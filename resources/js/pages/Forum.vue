@@ -2,9 +2,9 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import PlaceholderPattern from '../components/PlaceholderPattern.vue';
-import Input from '../components/ui/input/Input.vue';
-import Button from '../components/ui/button/Button.vue';
+import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
+import Input from '@/components/ui/input/Input.vue';
+import Button from '@/components/ui/button/Button.vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Forum', href: '/forum' },
