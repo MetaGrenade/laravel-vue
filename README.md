@@ -28,32 +28,32 @@ Follow these steps to set up the project locally:
    
 2. Install PHP Dependencies:
 
-    Make sure you have [Composer](https://getcomposer.org/) installed, then run:
-    ```bash
-    composer install
-    ```
+   Make sure you have [Composer](https://getcomposer.org/) installed, then run:
+   ```bash
+   composer install
+   ```
    
 3. Install JavaScript Dependencies:
 
-    Ensure that [Node.js](https://nodejs.org/) and npm are installed, then run:
-    ```bash
-    npm install
-    ```
+   Ensure that [Node.js](https://nodejs.org/) and npm are installed, then run:
+   ```bash
+   npm install
+   ```
 
 4. Copy the `.env.example` file to `.env` and configure your database and other environment variables:
 
-    Ensure that [Node.js](https://nodejs.org/) and npm are installed, then run:
-    ```bash
-    cp .env.example .env
-    ```
+   Ensure that [Node.js](https://nodejs.org/) and npm are installed, then run:
+   ```bash
+   cp .env.example .env
+   ```
    Update the `.env` file with your database credentials (for example, for MariaDB):
    ```dotenv
-    DB_CONNECTION=mysql
-    DB_HOST=127.0.0.1
-    DB_PORT=3306
-    DB_DATABASE=your_database_name
-    DB_USERNAME=your_username
-    DB_PASSWORD=your_password
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=your_database_name
+   DB_USERNAME=your_username
+   DB_PASSWORD=your_password
    ```
    
 5. Generate Application Key:
@@ -70,14 +70,14 @@ Follow these steps to set up the project locally:
    
 7. Build Assets & Start the Development Server:
 
-    For development with hot reloading, run:
-    ```bash
-    npm run dev
-    ```
-    In another terminal, start your Laravel server (or use [Laravel Herd](https://herd.laravel.com)):
-    ```bash
-    php artisan serve
-    ```
+   For development with hot reloading, run:
+   ```bash
+   npm run dev
+   ```
+   In another terminal, start your Laravel server (or use [Laravel Herd](https://herd.laravel.com)):
+   ```bash
+   php artisan serve
+   ```
 
 ## Usage
 
