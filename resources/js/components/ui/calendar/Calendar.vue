@@ -23,7 +23,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     :class="cn('p-3', props.class)"
     v-bind="forwarded"
   >
-    <CalendarHeader class="w-full w-100">
+    <CalendarHeader>
       <CalendarPrevButton />
       <CalendarHeading />
       <CalendarNextButton />
