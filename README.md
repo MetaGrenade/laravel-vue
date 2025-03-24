@@ -46,7 +46,7 @@ Follow these steps to set up the project locally:
     ```
    Update the `.env` file with your database credentials (for example, for MariaDB):
    ```dotenv
-   DB_CONNECTION=mysql
+    DB_CONNECTION=mysql
     DB_HOST=127.0.0.1
     DB_PORT=3306
     DB_DATABASE=your_database_name
@@ -93,18 +93,18 @@ Follow these steps to set up the project locally:
 
 ## Contributing
 
-    Contributions are welcome! Please submit issues and pull requests for any improvements or bug fixes. When contributing, please follow the existing code style and add relevant tests.
+Contributions are welcome! Please submit issues and pull requests for any improvements or bug fixes. When contributing, please follow the existing code style and add relevant tests.
 
 ## Useful Links
 
-    - [Laravel Documentation](https://laravel.com/docs)
-    - [Vue.js Documentation]()
-    - [Inertia.js Documentation](https://inertiajs.com/)
-    - [Laravel Starter Kits](https://laravel.com/starter-kits)
+- [Laravel Documentation](https://laravel.com/docs)
+- [Vue.js Documentation]()
+- [Inertia.js Documentation](https://inertiajs.com/)
+- [Laravel Starter Kits](https://laravel.com/starter-kits)
 
 ## License
 
-    This project is open-sourced under the [MIT License].
+This project is open-sourced under the [MIT License]().
 
 ## Final Notes
 
