@@ -3,6 +3,9 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import PlaceholderPattern from '../components/PlaceholderPattern.vue';
+import { Calendar } from '@/components/ui/calendar'
+import { type DateValue, getLocalTimeZone, today } from '@internationalized/date'
+import { type Ref, ref } from 'vue'
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -10,6 +13,8 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/dashboard',
     },
 ];
+
+const value = ref(today(getLocalTimeZone())) as Ref<DateValue>
 </script>
 
 <template>
@@ -24,8 +29,12 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <div class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <PlaceholderPattern />
                 </div>
-                <div class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <PlaceholderPattern />
+                <div class="relative aspect-video rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                    <Calendar
+                        v-model="value"
+                        :weekday-format="'short'"
+                        class="text-center flex justify-center items-center"
+                    />
                 </div>
             </div>
             <div class="relative min-h-[100vh] flex-1 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border md:min-h-min">
@@ -34,4 +43,3 @@ const breadcrumbs: BreadcrumbItem[] = [
         </div>
     </AppLayout>
 </template>
-
