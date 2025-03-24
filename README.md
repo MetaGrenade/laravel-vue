@@ -74,7 +74,7 @@ Follow these steps to set up the project locally:
     ```bash
     npm run dev
     ```
-    In another terminal, start your Laravel server (or use Laravel Herd):
+    In another terminal, start your Laravel server (or use [Laravel Herd](https://herd.laravel.com)):
     ```bash
     php artisan serve
     ```
