@@ -97,10 +97,11 @@ Contributions are welcome! Please submit issues and pull requests for any improv
 
 ## Useful Links
 
-- [Laravel Documentation](https://laravel.com/docs)
-- [Vue.js Documentation]()
+- [Laravel Documentation](https://laravel.com/docs/12.x)
+- [Vue.js Documentation](https://vuejs.org/guide/quick-start.html)
 - [Inertia.js Documentation](https://inertiajs.com/)
-- [Laravel Starter Kits](https://laravel.com/starter-kits)
+- [Laravel Starter Kits](https://laravel.com/docs/12.x/starter-kits#vue)
+- [shadcn-vue Component Library](https://www.shadcn-vue.com/)
 
 ## License
 
