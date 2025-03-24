@@ -2,6 +2,8 @@
 
 This repository provides a starter kit for building modern web applications with [Laravel](https://laravel.com) and [Vue 3](https://vuejs.org) using the [Laravel Starter Kits (Vue)](https://laravel.com/starter-kits). It leverages Inertia.js for a single-page application (SPA) experience, Vite for rapid asset bundling, and Tailwind CSS for styling.
 
+![Forum Page Example](https://i.imgur.com/gYNFkFl.png)
+
 ## Features
 
 - **Laravel 12**: Robust backend framework.
@@ -102,6 +104,7 @@ Contributions are welcome! Please submit issues and pull requests for any improv
 - [Inertia.js Documentation](https://inertiajs.com/)
 - [Laravel Starter Kits](https://laravel.com/docs/12.x/starter-kits#vue)
 - [shadcn-vue Component Library](https://www.shadcn-vue.com/)
+- [Lucide Icons](https://lucide.dev/icons/)
 
 ## License
 
