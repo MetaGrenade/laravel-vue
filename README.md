@@ -105,7 +105,7 @@ Contributions are welcome! Please submit issues and pull requests for any improv
 
 ## License
 
-This project is open-sourced under the [MIT License]().
+This project is open-sourced under the [MIT License](https://en.wikipedia.org/wiki/MIT_License).
 
 ## Final Notes
 
