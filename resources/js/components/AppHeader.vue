@@ -18,7 +18,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
 import type { BreadcrumbItem, NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, Search, Newspaper, Megaphone, Shield } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, Menu, Search, Newspaper, Megaphone, Shield, LifeBuoy } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface Props {
@@ -47,7 +47,7 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Blog',
         href: '/blog',
-        icon: Newspaper,
+        icon: BookOpen,
     },
     {
         title: 'Forum',
@@ -61,19 +61,25 @@ const rightNavItems: NavItem[] = [
         title: 'Admin',
         href: '/acp',
         icon: Shield,
-        color: '#FF0000', // red
+        color: 'rgb(197,102,34)', // orange
     },
     {
         title: 'Repository',
         href: 'https://github.com/MetaGrenade/laravel-vue',
         icon: Folder,
-        color: '#00FF00', // green
+        color: 'rgb(34, 197, 94)', // green
     },
+    // {
+    //     title: 'Documentation',
+    //     href: 'https://laravel.com/docs/starter-kits',
+    //     icon: Newspaper,
+    //     color: 'rgb(59, 130, 246)', // blue
+    // },
     {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits',
-        icon: BookOpen,
-        color: '#0000FF', // blue
+        title: 'Support',
+        href: '/support',
+        icon: LifeBuoy,
+        color: 'rgb(197,34,34)', // red
     },
 ];
 </script>
