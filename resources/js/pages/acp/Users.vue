@@ -5,6 +5,10 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 
+// Import Lucide icons for user stats
+import { Users, UserPlus, UserX, Activity } from 'lucide-vue-next';
+
+// Breadcrumbs for the page
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Users ACP',
@@ -12,6 +16,15 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+// Dummy data for user statistics
+const userStats = [
+    { title: 'Total Users', value: '1,234', icon: Users },
+    { title: 'Unverified Users', value: '234', icon: UserPlus },
+    { title: 'Banned Users', value: '12', icon: UserX },
+    { title: 'Online Users', value: '56', icon: Activity },
+];
+
+// Define interface for a User
 interface User {
     id: number;
     name: string;
@@ -29,10 +42,10 @@ const users = ref<User[]>([
     { id: 5, name: 'Ethan Hunt', email: 'ethan@example.com', role: 'User', created_at: '2022-05-20' },
 ]);
 
-// Search query
+// Search query for filtering users
 const searchQuery = ref('');
 
-// Filtered users computed property
+// Computed property for filtered users
 const filteredUsers = computed(() => {
     if (!searchQuery.value) return users.value;
     const q = searchQuery.value.toLowerCase();
@@ -47,9 +60,25 @@ const filteredUsers = computed(() => {
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Users ACP" />
-
         <AdminLayout>
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
+                <!-- User Stats Section -->
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div
+                        v-for="(stat, index) in userStats"
+                        :key="index"
+                        class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
+                    >
+                        <div class="mr-4">
+                            <component :is="stat.icon" class="h-8 w-8 text-gray-600" />
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">{{ stat.title }}</div>
+                            <div class="text-xl font-bold">{{ stat.value }}</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Search Bar -->
                 <div class="mb-4">
                     <input
