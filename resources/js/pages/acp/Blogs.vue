@@ -4,8 +4,9 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import Input from '@/components/ui/input/Input.vue'; // shadcn-vue Input component
-import Button from '@/components/ui/button/Button.vue'; // shadcn-vue Button component
+import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
+import Input from '@/components/ui/input/Input.vue';
+import Button from '@/components/ui/button/Button.vue';
 
 // Import Table components from shadcn-vue
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -81,6 +82,8 @@ const filteredBlogPosts = computed(() => {
                             <div class="text-sm text-gray-500">{{ stat.title }}</div>
                             <div class="text-xl font-bold">{{ stat.value }}</div>
                         </div>
+
+                        <PlaceholderPattern />
                     </div>
                 </div>
 
@@ -94,7 +97,7 @@ const filteredBlogPosts = computed(() => {
                                 placeholder="Search blog posts..."
                                 class="w-full rounded-md"
                             />
-                            <Button variant="secondary">
+                            <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
                                 Create New Post
                             </Button>
                         </div>

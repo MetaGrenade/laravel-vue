@@ -5,6 +5,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Folder, MessageSquare, CheckCircle } from 'lucide-vue-next';
+import Button from '@/components/ui/button/Button.vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -81,7 +82,7 @@ const forumCategories = [
         <Head title="Forums ACP" />
 
         <AdminLayout>
-            <div class="flex flex-col gap-8 rounded-xl pb-4">
+            <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
                 <!-- Forum Stats Section -->
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div
@@ -102,19 +103,23 @@ const forumCategories = [
 
                 <!-- Forum Categories Management Section -->
                 <div>
-                    <h2 class="mb-4 text-xl font-bold">Manage Forum Categories</h2>
+                    <div class="flex items-center justify-between pb-4">
+                        <h2 class="mb-4 text-xl font-bold">Manage Forum Categories</h2>
+                        <Button variant="success" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                            New Category
+                        </Button>
+                    </div>
                     <div
                         v-for="(category, catIndex) in forumCategories"
                         :key="catIndex"
                         class="mb-6 rounded-lg border border-sidebar-border/70 shadow hover:shadow-lg transition"
                     >
                         <!-- Category Card Header -->
-                        <div class="relative overflow-hidden flex items-center justify-between p-4 bg-gray-100 dark:bg-neutral-900 rounded-t-lg">
+                        <div class="flex items-center justify-between p-4 bg-gray-100 dark:bg-neutral-900 rounded-t-lg">
                             <h3 class="text-xl font-bold">{{ category.title }}</h3>
-                            <button class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600 text-sm">
-                                Edit Category
-                            </button>
-                            <PlaceholderPattern />
+                            <Button variant="primary" class="text-sm text-white bg-blue-500 hover:bg-blue-600">
+                                Edit
+                            </Button>
                         </div>
                         <!-- Subcategories Table -->
                         <div class="divide-y">
@@ -148,16 +153,20 @@ const forumCategories = [
                                 </div>
                                 <!-- Actions -->
                                 <div class="w-32 text-right">
-                                    <button class="text-blue-500 hover:underline text-sm">Edit</button>
-                                    <button class="ml-2 text-red-500 hover:underline text-sm">Delete</button>
+                                    <Button variant="ghost" class="text-blue-500 hover:underline text-sm">
+                                        Edit
+                                    </Button>
+                                    <Button variant="ghost" class="ml-2 text-red-500 hover:underline text-sm">
+                                        Delete
+                                    </Button>
                                 </div>
                             </div>
                         </div>
                         <!-- Create New Subcategory Button -->
                         <div class="p-4">
-                            <button class="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 text-sm">
-                                Add New Subcategory
-                            </button>
+                            <Button variant="success" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                New {{ category.title }} Category
+                            </Button>
                         </div>
                     </div>
                 </div>

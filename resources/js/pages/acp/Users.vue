@@ -4,7 +4,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import Input from '@/components/ui/input/Input.vue'; // Import Input component
+import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
+import Input from '@/components/ui/input/Input.vue';
 
 // Import Table components from shadcn-vue
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -80,6 +81,7 @@ const filteredUsers = computed(() => {
                             <div class="text-sm text-gray-500">{{ stat.title }}</div>
                             <div class="text-xl font-bold">{{ stat.value }}</div>
                         </div>
+                        <PlaceholderPattern />
                     </div>
                 </div>
 
@@ -102,7 +104,6 @@ const filteredUsers = computed(() => {
                                 <TableHead>Email</TableHead>
                                 <TableHead>Role</TableHead>
                                 <TableHead>Created At</TableHead>
-                                <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -116,10 +117,6 @@ const filteredUsers = computed(() => {
                                 <TableCell>{{ user.email }}</TableCell>
                                 <TableCell>{{ user.role }}</TableCell>
                                 <TableCell>{{ user.created_at }}</TableCell>
-                                <TableCell>
-                                    <button class="text-blue-500 hover:underline">Edit</button>
-                                    <button class="ml-2 text-red-500 hover:underline">Delete</button>
-                                </TableCell>
                             </TableRow>
                             <TableRow v-if="filteredUsers.length === 0">
                                 <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">

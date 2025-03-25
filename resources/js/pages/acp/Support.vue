@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Import shadcn-vue Input and Button components
@@ -99,6 +100,7 @@ const filteredFaqs = computed(() => {
                             <div class="text-sm text-gray-500">{{ stat.title }}</div>
                             <div class="text-xl font-bold">{{ stat.value }}</div>
                         </div>
+                        <PlaceholderPattern />
                     </div>
                 </div>
 
