@@ -16,11 +16,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 // Reactive state for system settings
 const maintenanceMode = ref(false);
 const emailVerificationRequired = ref(true);
-const enabledSections = ref({
-    blog: true,
-    forum: true,
-    support: true,
-});
+// const enabledSections = ref({
+//     blog: true,
+//     forum: true,
+//     support: true,
+// });
 
 // Dummy system info (replace with dynamic data as needed)
 const phpVersion = '8.4';
