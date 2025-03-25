@@ -11,7 +11,7 @@ import Input from '@/components/ui/input/Input.vue';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
 // Import Lucide icons for user stats
-import { Users, UserPlus, UserX, Activity } from 'lucide-vue-next';
+import { Users, UserPlus, UserX, Activity, Search } from 'lucide-vue-next';
 
 // Breadcrumbs for the page
 const breadcrumbs: BreadcrumbItem[] = [
@@ -86,11 +86,13 @@ const filteredUsers = computed(() => {
                 </div>
 
                 <!-- Search Bar using Input Component -->
-                <div class="mb-4">
+                <div class="relative w-full flex">
+                    <h2 class="text-lg font-semibold mb-2 md:mb-0 w-full">User Management</h2>
                     <Input
                         v-model="searchQuery"
-                        placeholder="Search users..."
-                        class="w-full rounded-md"
+                        type="text"
+                        placeholder="Search Users..."
+                        class="w-full pr-10 max-w-sm"
                     />
                 </div>
 

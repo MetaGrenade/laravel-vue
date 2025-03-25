@@ -94,7 +94,7 @@ const filteredBlogPosts = computed(() => {
                         <div class="flex space-x-2">
                             <Input
                                 v-model="searchQuery"
-                                placeholder="Search blog posts..."
+                                placeholder="Search Blogs..."
                                 class="w-full rounded-md"
                             />
                             <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">

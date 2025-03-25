@@ -65,7 +65,7 @@ const rightNavItems: NavItem[] = [
     },
     {
         title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
+        href: 'https://github.com/MetaGrenade/laravel-vue',
         icon: Folder,
         color: '#00FF00', // green
     },

@@ -10,6 +10,9 @@ import Button from '@/components/ui/button/Button.vue';
 // Import Table components from shadcn-vue
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
+// Import Lucide icons
+import { Search } from 'lucide-vue-next';
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Permission ACP',
@@ -79,11 +82,12 @@ const filteredPermissions = computed(() => {
                 <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                         <h2 class="text-lg font-semibold mb-2 md:mb-0">Role Management</h2>
-                        <div class="flex space-x-2">
+                        <div class="relative flex justify-end space-x-2">
                             <Input
                                 v-model="roleSearchQuery"
-                                placeholder="Search roles..."
-                                class="w-full rounded-md"
+                                type="text"
+                                placeholder="Search Roles..."
+                                class="w-full pr-10 max-w-sm"
                             />
                             <Button variant="secondary">
                                 Create Role
@@ -130,7 +134,7 @@ const filteredPermissions = computed(() => {
                         <div class="flex space-x-2">
                             <Input
                                 v-model="permissionSearchQuery"
-                                placeholder="Search permissions..."
+                                placeholder="Search Permissions..."
                                 class="w-full rounded-md"
                             />
                             <Button variant="secondary">

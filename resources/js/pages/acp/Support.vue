@@ -118,7 +118,7 @@ const filteredFaqs = computed(() => {
                                 <div class="flex space-x-2">
                                     <Input
                                         v-model="ticketSearchQuery"
-                                        placeholder="Search tickets..."
+                                        placeholder="Search Tickets..."
                                         class="w-full rounded-md"
                                     />
                                     <Button variant="secondary">Create Ticket</Button>
