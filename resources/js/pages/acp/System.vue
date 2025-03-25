@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch'; // Import the switch component 
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'System Settings',
+        title: 'System Settings ACP',
         href: '/acp/system',
     },
 ];

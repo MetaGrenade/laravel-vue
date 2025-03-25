@@ -303,7 +303,7 @@ const chartData = ref([
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Dashboard" />
+        <Head title="Dashboard ACP" />
         <AdminLayout>
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
                 <!-- Stats Cards Section -->
