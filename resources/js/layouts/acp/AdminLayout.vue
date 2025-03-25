@@ -4,27 +4,43 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings } from 'lucide-vue-next';
 
 const sidebarNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: '/acp/dashboard',
+        icon: LayoutGrid,
     },
     {
-        title: 'User Management',
+        title: 'Users',
         href: '/acp/users',
+        icon: User,
     },
     {
-        title: 'Blog Management',
-        href: '/acp/blogs',
-    },
-    {
-        title: 'Forum Management',
-        href: '/acp/forums',
-    },
-    {
-        title: 'Permission Management',
+        title: 'Permissions',
         href: '/acp/permissions',
+        icon: Shield,
+    },
+    {
+        title: 'Blogs',
+        href: '/acp/blogs',
+        icon: BookOpen,
+    },
+    {
+        title: 'Forums',
+        href: '/acp/forums',
+        icon: MessageSquare,
+    },
+    {
+        title: 'Support',
+        href: '/acp/support',
+        icon: LifeBuoy,
+    },
+    {
+        title: 'System Settings',
+        href: '/acp/system',
+        icon: Settings,
     },
 ];
 
@@ -47,8 +63,10 @@ const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.locati
                         :class="['w-full justify-start', { 'bg-muted': currentPath === item.href }]"
                         as-child
                     >
-                        <Link :href="item.href">
-                            {{ item.title }}
+                        <Link :href="item.href" class="flex items-center">
+                            <!-- Render the icon if available -->
+                            <component v-if="item.icon" :is="item.icon" class="mr-2 h-4 w-4" />
+                            <span>{{ item.title }}</span>
                         </Link>
                     </Button>
                 </nav>
