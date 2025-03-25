@@ -4,6 +4,11 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import Input from '@/components/ui/input/Input.vue'; // Input component
+import Button from '@/components/ui/button/Button.vue'; // Button component
+
+// Import Table components from shadcn-vue
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -44,7 +49,7 @@ const permissions = ref<Permission[]>([
 const roleSearchQuery = ref('');
 const permissionSearchQuery = ref('');
 
-// Computed filtered data
+// Computed filtered data for roles and permissions
 const filteredRoles = computed(() => {
     if (!roleSearchQuery.value) return roles.value;
     const q = roleSearchQuery.value.toLowerCase();
@@ -72,111 +77,97 @@ const filteredPermissions = computed(() => {
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
                 <!-- Roles Management Section -->
                 <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                    <h2 class="mb-4 text-lg font-semibold">Role Management</h2>
-                    <!-- Create Role Button -->
-                    <div class="mb-4 flex justify-end">
-                        <button class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
-                            Create Role
-                        </button>
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                        <h2 class="text-lg font-semibold mb-2 md:mb-0">Role Management</h2>
+                        <div class="flex space-x-2">
+                            <Input
+                                v-model="roleSearchQuery"
+                                placeholder="Search roles..."
+                                class="w-full rounded-md"
+                            />
+                            <Button variant="secondary">
+                                Create Role
+                            </Button>
+                        </div>
                     </div>
-                    <!-- Search Bar -->
-                    <div class="mb-4">
-                        <input
-                            v-model="roleSearchQuery"
-                            type="text"
-                            placeholder="Search roles..."
-                            class="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                    </div>
-                    <!-- Roles Table -->
+                    <!-- Roles Table using Table Components -->
                     <div class="overflow-x-auto">
-                        <table class="min-w-full border-collapse">
-                            <thead class="bg-gray-100 dark:bg-gray-800">
-                            <tr>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">ID</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Name</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Description</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Created At</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Actions</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr
-                                v-for="role in filteredRoles"
-                                :key="role.id"
-                                class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900"
-                            >
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ role.id }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ role.name }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ role.description }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ role.created_at }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">
-                                    <button class="text-blue-500 hover:underline">Edit</button>
-                                    <button class="ml-2 text-red-500 hover:underline">Delete</button>
-                                </td>
-                            </tr>
-                            <tr v-if="filteredRoles.length === 0">
-                                <td colspan="5" class="px-4 py-2 text-center text-sm text-gray-600 dark:text-gray-300">
-                                    No roles found.
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>ID</TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead>Created At</TableHead>
+                                    <TableHead>Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow v-for="role in filteredRoles" :key="role.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                    <TableCell>{{ role.id }}</TableCell>
+                                    <TableCell>{{ role.name }}</TableCell>
+                                    <TableCell>{{ role.description }}</TableCell>
+                                    <TableCell>{{ role.created_at }}</TableCell>
+                                    <TableCell>
+                                        <button class="text-blue-500 hover:underline">Edit</button>
+                                        <button class="ml-2 text-red-500 hover:underline">Delete</button>
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow v-if="filteredRoles.length === 0">
+                                    <TableCell colspan="5" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                        No roles found.
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
                     </div>
                 </div>
 
                 <!-- Permissions Management Section -->
                 <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                    <h2 class="mb-4 text-lg font-semibold">Permission Management</h2>
-                    <!-- Create Permission Button -->
-                    <div class="mb-4 flex justify-end">
-                        <button class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
-                            Create Permission
-                        </button>
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                        <h2 class="text-lg font-semibold mb-2 md:mb-0">Permission Management</h2>
+                        <div class="flex space-x-2">
+                            <Input
+                                v-model="permissionSearchQuery"
+                                placeholder="Search permissions..."
+                                class="w-full rounded-md"
+                            />
+                            <Button variant="secondary">
+                                Create Permission
+                            </Button>
+                        </div>
                     </div>
-                    <!-- Search Bar -->
-                    <div class="mb-4">
-                        <input
-                            v-model="permissionSearchQuery"
-                            type="text"
-                            placeholder="Search permissions..."
-                            class="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                    </div>
-                    <!-- Permissions Table -->
+                    <!-- Permissions Table using Table Components -->
                     <div class="overflow-x-auto">
-                        <table class="min-w-full border-collapse">
-                            <thead class="bg-gray-100 dark:bg-gray-800">
-                            <tr>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">ID</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Name</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Description</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Created At</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Actions</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr
-                                v-for="permission in filteredPermissions"
-                                :key="permission.id"
-                                class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900"
-                            >
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ permission.id }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ permission.name }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ permission.description }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ permission.created_at }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">
-                                    <button class="text-blue-500 hover:underline">Edit</button>
-                                    <button class="ml-2 text-red-500 hover:underline">Delete</button>
-                                </td>
-                            </tr>
-                            <tr v-if="filteredPermissions.length === 0">
-                                <td colspan="5" class="px-4 py-2 text-center text-sm text-gray-600 dark:text-gray-300">
-                                    No permissions found.
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>ID</TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead>Created At</TableHead>
+                                    <TableHead>Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow v-for="permission in filteredPermissions" :key="permission.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                    <TableCell>{{ permission.id }}</TableCell>
+                                    <TableCell>{{ permission.name }}</TableCell>
+                                    <TableCell>{{ permission.description }}</TableCell>
+                                    <TableCell>{{ permission.created_at }}</TableCell>
+                                    <TableCell>
+                                        <button class="text-blue-500 hover:underline">Edit</button>
+                                        <button class="ml-2 text-red-500 hover:underline">Delete</button>
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow v-if="filteredPermissions.length === 0">
+                                    <TableCell colspan="5" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                        No permissions found.
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
                     </div>
                 </div>
             </div>

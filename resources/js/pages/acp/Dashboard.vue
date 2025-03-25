@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 
 // Import Lucide icons
 import { Users, BookOpen, MessageSquare, LifeBuoy } from 'lucide-vue-next';
@@ -41,7 +42,7 @@ const recentActivities = [
                     <div
                         v-for="(stat, index) in stats"
                         :key="index"
-                        class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
+                        class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
                     >
                         <div class="mr-4">
                             <!-- Render the Lucide icon -->
@@ -51,6 +52,7 @@ const recentActivities = [
                             <div class="text-sm text-gray-500">{{ stat.title }}</div>
                             <div class="text-xl font-bold">{{ stat.value }}</div>
                         </div>
+                        <PlaceholderPattern />
                     </div>
                 </div>
 

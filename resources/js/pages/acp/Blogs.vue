@@ -4,6 +4,11 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import Input from '@/components/ui/input/Input.vue'; // shadcn-vue Input component
+import Button from '@/components/ui/button/Button.vue'; // shadcn-vue Button component
+
+// Import Table components from shadcn-vue
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
 // Import Lucide icons for stats cards
 import { FileText, CheckCircle, Edit3, MessageCircle } from 'lucide-vue-next';
@@ -67,7 +72,7 @@ const filteredBlogPosts = computed(() => {
                     <div
                         v-for="(stat, index) in blogStats"
                         :key="index"
-                        class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
+                        class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
                     >
                         <div class="mr-4">
                             <component :is="stat.icon" class="h-8 w-8 text-gray-600" />
@@ -84,52 +89,51 @@ const filteredBlogPosts = computed(() => {
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                         <h2 class="text-lg font-semibold mb-2 md:mb-0">Blog Posts</h2>
                         <div class="flex space-x-2">
-                            <input
+                            <Input
                                 v-model="searchQuery"
-                                type="text"
                                 placeholder="Search blog posts..."
-                                class="rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                                class="w-full rounded-md"
                             />
-                            <button class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
+                            <Button variant="secondary">
                                 Create New Post
-                            </button>
+                            </Button>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full border-collapse">
-                            <thead class="bg-gray-100 dark:bg-gray-800">
-                            <tr>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">ID</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Title</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Author</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Created At</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Status</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Actions</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr
-                                v-for="post in filteredBlogPosts"
-                                :key="post.id"
-                                class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900"
-                            >
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ post.id }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ post.title }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ post.author }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ post.created_at }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ post.status }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">
-                                    <button class="text-blue-500 hover:underline">Edit</button>
-                                    <button class="ml-2 text-red-500 hover:underline">Delete</button>
-                                </td>
-                            </tr>
-                            <tr v-if="filteredBlogPosts.length === 0">
-                                <td colspan="6" class="px-4 py-2 text-center text-sm text-gray-600 dark:text-gray-300">
-                                    No blog posts found.
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>ID</TableHead>
+                                    <TableHead>Title</TableHead>
+                                    <TableHead>Author</TableHead>
+                                    <TableHead>Created At</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow
+                                    v-for="post in filteredBlogPosts"
+                                    :key="post.id"
+                                    class="hover:bg-gray-50 dark:hover:bg-gray-900"
+                                >
+                                    <TableCell>{{ post.id }}</TableCell>
+                                    <TableCell>{{ post.title }}</TableCell>
+                                    <TableCell>{{ post.author }}</TableCell>
+                                    <TableCell>{{ post.created_at }}</TableCell>
+                                    <TableCell>{{ post.status }}</TableCell>
+                                    <TableCell>
+                                        <button class="text-blue-500 hover:underline">Edit</button>
+                                        <button class="ml-2 text-red-500 hover:underline">Delete</button>
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow v-if="filteredBlogPosts.length === 0">
+                                    <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                        No blog posts found.
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
                     </div>
                 </div>
             </div>

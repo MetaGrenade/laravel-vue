@@ -4,6 +4,10 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import Input from '@/components/ui/input/Input.vue'; // Import Input component
+
+// Import Table components from shadcn-vue
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
 // Import Lucide icons for user stats
 import { Users, UserPlus, UserX, Activity } from 'lucide-vue-next';
@@ -67,7 +71,7 @@ const filteredUsers = computed(() => {
                     <div
                         v-for="(stat, index) in userStats"
                         :key="index"
-                        class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
+                        class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
                     >
                         <div class="mr-4">
                             <component :is="stat.icon" class="h-8 w-8 text-gray-600" />
@@ -79,52 +83,51 @@ const filteredUsers = computed(() => {
                     </div>
                 </div>
 
-                <!-- Search Bar -->
+                <!-- Search Bar using Input Component -->
                 <div class="mb-4">
-                    <input
+                    <Input
                         v-model="searchQuery"
-                        type="text"
                         placeholder="Search users..."
-                        class="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                        class="w-full rounded-md"
                     />
                 </div>
 
-                <!-- Users Table -->
+                <!-- Users Table using Table Components -->
                 <div class="overflow-x-auto">
-                    <table class="min-w-full border-collapse">
-                        <thead class="bg-gray-100 dark:bg-gray-800">
-                        <tr>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">ID</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Name</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Email</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Role</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Created At</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Actions</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr
-                            v-for="user in filteredUsers"
-                            :key="user.id"
-                            class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900"
-                        >
-                            <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ user.id }}</td>
-                            <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ user.name }}</td>
-                            <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ user.email }}</td>
-                            <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ user.role }}</td>
-                            <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{{ user.created_at }}</td>
-                            <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">
-                                <button class="text-blue-500 hover:underline">Edit</button>
-                                <button class="ml-2 text-red-500 hover:underline">Delete</button>
-                            </td>
-                        </tr>
-                        <tr v-if="filteredUsers.length === 0">
-                            <td colspan="6" class="px-4 py-2 text-center text-sm text-gray-600 dark:text-gray-300">
-                                No users found.
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>ID</TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead>Created At</TableHead>
+                                <TableHead>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow
+                                v-for="user in filteredUsers"
+                                :key="user.id"
+                                class="hover:bg-gray-50 dark:hover:bg-gray-900"
+                            >
+                                <TableCell>{{ user.id }}</TableCell>
+                                <TableCell>{{ user.name }}</TableCell>
+                                <TableCell>{{ user.email }}</TableCell>
+                                <TableCell>{{ user.role }}</TableCell>
+                                <TableCell>{{ user.created_at }}</TableCell>
+                                <TableCell>
+                                    <button class="text-blue-500 hover:underline">Edit</button>
+                                    <button class="ml-2 text-red-500 hover:underline">Delete</button>
+                                </TableCell>
+                            </TableRow>
+                            <TableRow v-if="filteredUsers.length === 0">
+                                <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                    No users found.
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
                 </div>
             </div>
         </AdminLayout>

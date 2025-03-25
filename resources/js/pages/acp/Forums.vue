@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Folder, MessageSquare, CheckCircle } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -86,7 +87,7 @@ const forumCategories = [
                     <div
                         v-for="(stat, index) in forumStats"
                         :key="index"
-                        class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
+                        class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
                     >
                         <div class="mr-4">
                             <component :is="stat.icon" class="h-8 w-8 text-gray-600" />
@@ -95,6 +96,7 @@ const forumCategories = [
                             <div class="text-sm text-gray-500">{{ stat.title }}</div>
                             <div class="text-xl font-bold">{{ stat.value }}</div>
                         </div>
+                        <PlaceholderPattern />
                     </div>
                 </div>
 
@@ -107,18 +109,19 @@ const forumCategories = [
                         class="mb-6 rounded-lg border border-sidebar-border/70 shadow hover:shadow-lg transition"
                     >
                         <!-- Category Card Header -->
-                        <div class="flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-t-lg">
+                        <div class="relative overflow-hidden flex items-center justify-between p-4 bg-gray-100 dark:bg-neutral-900 rounded-t-lg">
                             <h3 class="text-xl font-bold">{{ category.title }}</h3>
                             <button class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600 text-sm">
                                 Edit Category
                             </button>
+                            <PlaceholderPattern />
                         </div>
                         <!-- Subcategories Table -->
                         <div class="divide-y">
                             <div
                                 v-for="(sub, subIndex) in category.subCategories"
                                 :key="subIndex"
-                                class="flex items-center p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition even:bg-gray-50 dark:even:bg-gray-800"
+                                class="flex items-center p-4 hover:bg-gray-50 dark:hover:bg-neutral-800 transition even:bg-gray-50 dark:even:bg-neutral-900"
                             >
                                 <!-- Subcategory Icon -->
                                 <div class="mr-4">
