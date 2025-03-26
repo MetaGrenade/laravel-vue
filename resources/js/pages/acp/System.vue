@@ -4,7 +4,10 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import { Switch } from '@/components/ui/switch'; // Import the switch component from shadcn-vue
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { Toaster, toast } from 'vue-sonner'
+
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -35,12 +38,13 @@ const averagePageLoadSpeed = ref('0.69 s');
 
 // Function to "save" settings (stubbed)
 function saveSettings() {
-    console.log('Saving settings...', {
-        maintenanceMode: maintenanceMode.value,
-        emailVerificationRequired: emailVerificationRequired.value,
-        // enabledSections: enabledSections.value,
-    });
-    alert('Settings saved (dummy implementation)!');
+    toast.success('System Settings Saved Successfully', {
+        description: 'Tuesday, March 25, 2025 at 4:34 PM',
+        action: {
+            label: 'Close',
+            onClick: () => console.log('Closed'),
+        },
+    })
 }
 </script>
 
@@ -60,8 +64,8 @@ function saveSettings() {
                         <div class="flex items-center">
                             <Switch v-model="maintenanceMode" />
                             <span class="ml-2 text-sm">
-                {{ maintenanceMode ? 'Enabled' : 'Disabled' }}
-              </span>
+                                {{ maintenanceMode ? 'Enabled' : 'Disabled' }}
+                            </span>
                         </div>
                     </div>
 
@@ -74,8 +78,8 @@ function saveSettings() {
                         <div class="flex items-center">
                             <Switch v-model="emailVerificationRequired" />
                             <span class="ml-2 text-sm">
-                {{ emailVerificationRequired ? 'Required' : 'Not Required' }}
-              </span>
+                                {{ emailVerificationRequired ? 'Required' : 'Not Required' }}
+                            </span>
                         </div>
                     </div>
 
@@ -141,9 +145,10 @@ function saveSettings() {
 
                 <!-- Save Settings Button -->
                 <div class="flex justify-end">
-                    <button @click="saveSettings" class="rounded bg-blue-500 px-6 py-2 text-white hover:bg-blue-600">
+                    <Toaster theme="dark" richColors />
+                    <Button @click="saveSettings" class="rounded bg-blue-500 px-6 py-2 text-white hover:bg-blue-600">
                         Save Changes
-                    </button>
+                    </Button>
                 </div>
             </div>
         </AdminLayout>

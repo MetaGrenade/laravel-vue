@@ -105,6 +105,7 @@ Contributions are welcome! Please submit issues and pull requests for any improv
 - [Laravel Starter Kits](https://laravel.com/docs/12.x/starter-kits#vue)
 - [shadcn-vue Component Library](https://www.shadcn-vue.com/)
 - [Lucide Icons](https://lucide.dev/icons/)
+- [Vue Sonner Toast Component](https://vue-sonner.vercel.app/)
 
 ## License
 
