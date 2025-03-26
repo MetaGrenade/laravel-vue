@@ -103,6 +103,7 @@ Contributions are welcome! Please submit issues and pull requests for any improv
 - [Vue.js Documentation](https://vuejs.org/guide/quick-start.html)
 - [Inertia.js Documentation](https://inertiajs.com/)
 - [Laravel Starter Kits](https://laravel.com/docs/12.x/starter-kits#vue)
+- [TailwindCSS Documentation](https://tailwindcss.com/docs/dark-mode)
 - [shadcn-vue Component Library](https://www.shadcn-vue.com/)
 - [Lucide Icons](https://lucide.dev/icons/)
 - [Vue Sonner Toast Component](https://vue-sonner.vercel.app/)
