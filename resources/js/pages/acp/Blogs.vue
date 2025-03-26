@@ -7,12 +7,28 @@ import { Head } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuSeparator,
+    DropdownMenuShortcut,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Import Table components from shadcn-vue
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
 // Import Lucide icons for stats cards
-import { FileText, CheckCircle, Edit3, MessageCircle } from 'lucide-vue-next';
+import { FileText, Edit3, MessageCircle, CheckCircle, Ellipsis, Eye, EyeOff, Shield,
+    Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Lock
+} from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -111,7 +127,7 @@ const filteredBlogPosts = computed(() => {
                                     <TableHead>Author</TableHead>
                                     <TableHead>Created At</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead>Actions</TableHead>
+                                    <TableHead></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -125,9 +141,40 @@ const filteredBlogPosts = computed(() => {
                                     <TableCell>{{ post.author }}</TableCell>
                                     <TableCell>{{ post.created_at }}</TableCell>
                                     <TableCell>{{ post.status }}</TableCell>
-                                    <TableCell>
-                                        <button class="text-blue-500 hover:underline">Edit</button>
-                                        <button class="ml-2 text-red-500 hover:underline">Delete</button>
+                                    <TableCell class="text-center">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger as-child>
+                                                <Button variant="outline" size="icon">
+                                                    <Ellipsis class="h-8 w-8" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuItem>
+                                                        <Eye class="h-8 w-8" />
+                                                        <span>Publish</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem>
+                                                        <EyeOff class="h-8 w-8" />
+                                                        <span>Unpublish</span>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuGroup>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuItem class="text-blue-500">
+                                                        <Pencil class="h-8 w-8" />
+                                                        <span>Edit</span>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuGroup>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem class="text-red-500">
+                                                    <Trash2 class="h-8 w-8" />
+                                                    <span>Delete</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="filteredBlogPosts.length === 0">

@@ -13,7 +13,7 @@ This repository provides a starter kit for building modern web applications with
 - **Authentication & Authorization**: Includes authentication scaffolding via Laravel Breeze (Vue variant) with options to integrate role management (e.g., using Spatie Permissions).
 - **Responsive Design**: Mobile-first design principles.
 - **Admin Control Panel (ACP)**: Example layouts for managing users, blogs, forums, and more.
-- **Placeholder Components**: Starter components (like `PlaceholderPattern`) simulate content while you integrate dynamic data.
+- **Placeholder Components**: Starter components from shadcn-vue (like `PlaceholderPattern`) simulate content while you integrate dynamic data.
 
 ## Setup & Installation
 

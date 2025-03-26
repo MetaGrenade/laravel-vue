@@ -5,13 +5,19 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import Input from '@/components/ui/input/Input.vue';
+import { Ellipsis, Shield, Trash2, Pencil } from 'lucide-vue-next';
 import Button from '@/components/ui/button/Button.vue';
-
-// Import Table components from shadcn-vue
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
-// Import Lucide icons
-import { Search } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -89,7 +95,7 @@ const filteredPermissions = computed(() => {
                                 placeholder="Search Roles..."
                                 class="w-full pr-10 max-w-sm"
                             />
-                            <Button variant="secondary">
+                            <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
                                 Create Role
                             </Button>
                         </div>
@@ -103,7 +109,7 @@ const filteredPermissions = computed(() => {
                                     <TableHead>Name</TableHead>
                                     <TableHead>Description</TableHead>
                                     <TableHead>Created At</TableHead>
-                                    <TableHead>Actions</TableHead>
+                                    <TableHead></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -112,9 +118,33 @@ const filteredPermissions = computed(() => {
                                     <TableCell>{{ role.name }}</TableCell>
                                     <TableCell>{{ role.description }}</TableCell>
                                     <TableCell>{{ role.created_at }}</TableCell>
-                                    <TableCell>
-                                        <button class="text-blue-500 hover:underline">Edit</button>
-                                        <button class="ml-2 text-red-500 hover:underline">Delete</button>
+                                    <TableCell class="text-center">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger as-child>
+                                                <Button variant="outline" size="icon">
+                                                    <Ellipsis class="h-8 w-8" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuItem class="text-blue-500">
+                                                        <Pencil class="h-8 w-8" />
+                                                        <span>Edit</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem>
+                                                        <Shield class="h-8 w-8" />
+                                                        <span>Permissions</span>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuGroup>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem class="text-red-500" disabled>
+                                                    <Trash2 class="h-8 w-8" />
+                                                    <span>Delete</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="filteredRoles.length === 0">
@@ -137,7 +167,7 @@ const filteredPermissions = computed(() => {
                                 placeholder="Search Permissions..."
                                 class="w-full rounded-md"
                             />
-                            <Button variant="secondary">
+                            <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
                                 Create Permission
                             </Button>
                         </div>
@@ -151,7 +181,7 @@ const filteredPermissions = computed(() => {
                                     <TableHead>Name</TableHead>
                                     <TableHead>Description</TableHead>
                                     <TableHead>Created At</TableHead>
-                                    <TableHead>Actions</TableHead>
+                                    <TableHead></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -160,9 +190,29 @@ const filteredPermissions = computed(() => {
                                     <TableCell>{{ permission.name }}</TableCell>
                                     <TableCell>{{ permission.description }}</TableCell>
                                     <TableCell>{{ permission.created_at }}</TableCell>
-                                    <TableCell>
-                                        <button class="text-blue-500 hover:underline">Edit</button>
-                                        <button class="ml-2 text-red-500 hover:underline">Delete</button>
+                                    <TableCell class="text-center">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger as-child>
+                                                <Button variant="outline" size="icon">
+                                                    <Ellipsis class="h-8 w-8" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuItem class="text-blue-500">
+                                                        <Pencil class="h-8 w-8" />
+                                                        <span>Edit</span>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuGroup>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem class="text-red-500" disabled>
+                                                    <Trash2 class="h-8 w-8" />
+                                                    <span>Delete</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="filteredPermissions.length === 0">

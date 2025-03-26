@@ -6,16 +6,28 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-// Import shadcn-vue Input and Button components
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
-
-// Import shadcn-vue Table components
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-
-// Import Lucide icons for support stats
-import { MessageSquare, XCircle, CheckCircle, HelpCircle } from 'lucide-vue-next';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell
+} from '@/components/ui/table';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuSeparator,
+    DropdownMenuShortcut,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    XCircle, HelpCircle, Ticket, TicketX, MessageSquare, CheckCircle, Ellipsis, UserPlus, SquareChevronUp,
+    Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff
+} from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -121,7 +133,9 @@ const filteredFaqs = computed(() => {
                                         placeholder="Search Tickets..."
                                         class="w-full rounded-md"
                                     />
-                                    <Button variant="secondary">Create Ticket</Button>
+                                    <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                        Create Ticket
+                                    </Button>
                                 </div>
                             </div>
                             <div class="overflow-x-auto">
@@ -133,7 +147,7 @@ const filteredFaqs = computed(() => {
                                             <TableHead>Submitted By</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead>Created At</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                            <TableHead></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -147,9 +161,44 @@ const filteredFaqs = computed(() => {
                                             <TableCell>{{ ticket.submittedBy }}</TableCell>
                                             <TableCell>{{ ticket.status }}</TableCell>
                                             <TableCell>{{ ticket.created_at }}</TableCell>
-                                            <TableCell>
-                                                <button class="text-blue-500 hover:underline text-sm">View</button>
-                                                <button class="ml-2 text-red-500 hover:underline text-sm">Delete</button>
+                                            <TableCell class="text-center">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger as-child>
+                                                        <Button variant="outline" size="icon">
+                                                            <Ellipsis class="h-8 w-8" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent>
+                                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuGroup>
+                                                            <DropdownMenuItem>
+                                                                <UserPlus class="h-8 w-8" />
+                                                                <span>Add Users</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem>
+                                                                <SquareChevronUp class="h-8 w-8" />
+                                                                <span>Elevate Priority</span>
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuGroup>
+                                                            <DropdownMenuItem class="text-blue-500">
+                                                                <Pencil class="h-8 w-8" />
+                                                                <span>Edit</span>
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem class="text-green-500">
+                                                            <Ticket class="h-8 w-8" />
+                                                            <span>Open Ticket</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem class="text-red-500">
+                                                            <TicketX class="h-8 w-8" />
+                                                            <span>Close Ticket</span>
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="filteredTickets.length === 0">
@@ -174,7 +223,9 @@ const filteredFaqs = computed(() => {
                                         placeholder="Search FAQs..."
                                         class="w-full rounded-md"
                                     />
-                                    <Button variant="secondary">Create FAQ</Button>
+                                    <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                        Create FAQ
+                                    </Button>
                                 </div>
                             </div>
                             <div class="overflow-x-auto">
@@ -184,7 +235,7 @@ const filteredFaqs = computed(() => {
                                             <TableHead>ID</TableHead>
                                             <TableHead>Question</TableHead>
                                             <TableHead>Answer</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                            <TableHead></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -196,9 +247,48 @@ const filteredFaqs = computed(() => {
                                             <TableCell>{{ faq.id }}</TableCell>
                                             <TableCell>{{ faq.question }}</TableCell>
                                             <TableCell>{{ faq.answer }}</TableCell>
-                                            <TableCell>
-                                                <button class="text-blue-500 hover:underline text-sm">Edit</button>
-                                                <button class="ml-2 text-red-500 hover:underline text-sm">Delete</button>
+                                            <TableCell class="text-center">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger as-child>
+                                                        <Button variant="outline" size="icon">
+                                                            <Ellipsis class="h-8 w-8" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent>
+                                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuGroup>
+                                                            <DropdownMenuItem>
+                                                                <MoveUp class="h-8 w-8" />
+                                                                <span>Move Up</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem>
+                                                                <MoveDown class="h-8 w-8" />
+                                                                <span>Move Down</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem>
+                                                                <Eye class="h-8 w-8" />
+                                                                <span>Publish</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem>
+                                                                <EyeOff class="h-8 w-8" />
+                                                                <span>Unpublish</span>
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuGroup>
+                                                            <DropdownMenuItem class="text-blue-500">
+                                                                <Pencil class="h-8 w-8" />
+                                                                <span>Edit</span>
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem class="text-red-500">
+                                                            <Trash2 class="h-8 w-8" />
+                                                            <span>Delete</span>
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="filteredFaqs.length === 0">

@@ -4,8 +4,25 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { Folder, MessageSquare, CheckCircle } from 'lucide-vue-next';
+import {
+    Folder, MessageSquare, CheckCircle, Ellipsis, Eye, EyeOff, Shield,
+    Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Lock
+} from 'lucide-vue-next';
 import Button from '@/components/ui/button/Button.vue';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuSeparator,
+    DropdownMenuShortcut,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -16,10 +33,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 // Dummy forum statistics
 const forumStats = [
-    { title: 'Total Categories', value: '5', icon: Folder },
-    { title: 'Total Subcategories', value: '12', icon: MessageSquare },
-    { title: 'Total Threads', value: '350', icon: CheckCircle },
-    { title: 'Total Posts', value: '1200', icon: MessageSquare },
+    { title: 'Total Categories', value: '2', icon: Folder },
+    { title: 'Total Subcategories', value: '4', icon: MessageSquare },
+    { title: 'Total Threads', value: '388', icon: CheckCircle },
+    { title: 'Total Posts', value: '7712', icon: MessageSquare },
 ];
 
 // Dummy data for forum categories with subcategories
@@ -117,9 +134,54 @@ const forumCategories = [
                         <!-- Category Card Header -->
                         <div class="flex items-center justify-between p-4 bg-gray-100 dark:bg-neutral-900 rounded-t-lg">
                             <h3 class="text-xl font-bold">{{ category.title }}</h3>
-                            <Button variant="primary" class="text-sm text-white bg-blue-500 hover:bg-blue-600">
-                                Edit
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger as-child>
+                                    <Button variant="outline" size="icon">
+                                        <Ellipsis class="h-8 w-8" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuGroup>
+                                        <DropdownMenuItem>
+                                            <MoveUp class="h-8 w-8" />
+                                            <span>Move Up</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                            <MoveDown class="h-8 w-8" />
+                                            <span>Move Down</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                            <EyeOff class="h-8 w-8" />
+                                            <span>Unpublish</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuGroup>
+                                        <DropdownMenuItem class="text-blue-500">
+                                            <Pencil class="h-8 w-8" />
+                                            <span>Edit</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                            <Shield class="h-8 w-8" />
+                                            <span>Permissions</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuGroup>
+                                        <DropdownMenuItem>
+                                            <MessageSquareShare class="h-8 w-8" />
+                                            <span>Migrate Children</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem class="text-red-500" disabled>
+                                        <Trash2 class="h-8 w-8" />
+                                        <span>Delete</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                         <!-- Subcategories Table -->
                         <div class="divide-y">
@@ -153,12 +215,58 @@ const forumCategories = [
                                 </div>
                                 <!-- Actions -->
                                 <div class="w-32 text-right">
-                                    <Button variant="ghost" class="text-blue-500 hover:underline text-sm">
-                                        Edit
-                                    </Button>
-                                    <Button variant="ghost" class="ml-2 text-red-500 hover:underline text-sm">
-                                        Delete
-                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger as-child>
+                                            <Button variant="outline" size="icon">
+                                                <Ellipsis class="h-8 w-8" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuGroup>
+                                                <DropdownMenuItem>
+                                                    <MoveUp class="h-8 w-8" />
+                                                    <span>Move Up</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem>
+                                                    <MoveDown class="h-8 w-8" />
+                                                    <span>Move Down</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem>
+                                                    <EyeOff class="h-8 w-8" />
+                                                    <span>Unpublish</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuGroup>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuGroup>
+                                                <DropdownMenuItem class="text-blue-500">
+                                                    <Pencil class="h-8 w-8" />
+                                                    <span>Edit Category</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem>
+                                                    <Shield class="h-8 w-8" />
+                                                    <span>Permissions</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuGroup>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuGroup>
+                                                <DropdownMenuItem>
+                                                    <Lock class="h-8 w-8" />
+                                                    <span>Lock Threads</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem>
+                                                    <MessageSquareShare class="h-8 w-8" />
+                                                    <span>Migrate Threads</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuGroup>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem class="text-red-500" disabled>
+                                                <Trash2 class="h-8 w-8" />
+                                                <span>Delete</span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             </div>
                         </div>
