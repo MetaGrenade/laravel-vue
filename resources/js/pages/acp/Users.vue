@@ -6,12 +6,23 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
-
-// Import Table components from shadcn-vue
+import Button from '@/components/ui/button/Button.vue';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuSeparator,
+    DropdownMenuShortcut,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-
-// Import Lucide icons for user stats
-import { Users, UserPlus, UserX, Activity, Search } from 'lucide-vue-next';
+import { Users, UserPlus, UserX, Activity, Ellipsis, Shield, Trash2, Pencil, MailCheck } from 'lucide-vue-next';
 
 // Breadcrumbs for the page
 const breadcrumbs: BreadcrumbItem[] = [
@@ -85,48 +96,83 @@ const filteredUsers = computed(() => {
                     </div>
                 </div>
 
-                <!-- Search Bar using Input Component -->
-                <div class="relative w-full flex">
-                    <h2 class="text-lg font-semibold mb-2 md:mb-0 w-full">User Management</h2>
-                    <Input
-                        v-model="searchQuery"
-                        type="text"
-                        placeholder="Search Users..."
-                        class="w-full pr-10 max-w-sm"
-                    />
-                </div>
+                <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                    <!-- Search Bar using Input Component -->
+                    <div class="relative w-full flex">
+                        <h2 class="text-lg font-semibold mb-2 md:mb-0 w-full">User Management</h2>
+                        <Input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Search Users..."
+                            class="w-full pr-10 max-w-sm"
+                        />
+                    </div>
 
-                <!-- Users Table using Table Components -->
-                <div class="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>ID</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead>Created At</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow
-                                v-for="user in filteredUsers"
-                                :key="user.id"
-                                class="hover:bg-gray-50 dark:hover:bg-gray-900"
-                            >
-                                <TableCell>{{ user.id }}</TableCell>
-                                <TableCell>{{ user.name }}</TableCell>
-                                <TableCell>{{ user.email }}</TableCell>
-                                <TableCell>{{ user.role }}</TableCell>
-                                <TableCell>{{ user.created_at }}</TableCell>
-                            </TableRow>
-                            <TableRow v-if="filteredUsers.length === 0">
-                                <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">
-                                    No users found.
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
+                    <!-- Users Table using Table Components -->
+                    <div class="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>ID</TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead>Created At</TableHead>
+                                    <TableHead></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow
+                                    v-for="user in filteredUsers"
+                                    :key="user.id"
+                                    class="hover:bg-gray-50 dark:hover:bg-gray-900"
+                                >
+                                    <TableCell>{{ user.id }}</TableCell>
+                                    <TableCell>{{ user.name }}</TableCell>
+                                    <TableCell>{{ user.email }}</TableCell>
+                                    <TableCell>{{ user.role }}</TableCell>
+                                    <TableCell>{{ user.created_at }}</TableCell>
+                                    <TableCell class="text-center">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger as-child>
+                                                <Button variant="outline" size="icon">
+                                                    <Ellipsis class="h-8 w-8" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuItem class="text-blue-500">
+                                                        <Pencil class="h-8 w-8" />
+                                                        <span>Edit</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem>
+                                                        <Shield class="h-8 w-8" />
+                                                        <span>Permissions</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem class="text-green-500">
+                                                        <MailCheck class="h-8 w-8" />
+                                                        <span>Verify</span>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuGroup>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem class="text-red-500">
+                                                    <Trash2 class="h-8 w-8" />
+                                                    <span>Delete</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow v-if="filteredUsers.length === 0">
+                                    <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                        No users found.
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
             </div>
         </AdminLayout>
