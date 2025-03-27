@@ -12,9 +12,21 @@ Route::get('blog', function () {
     return Inertia::render('Blog');
 })->name('blog');
 
+Route::get('blog/view', function () {
+    return Inertia::render('BlogView');
+})->name('blog.view');
+
 Route::get('forum', function () {
     return Inertia::render('Forum');
 })->name('forum');
+
+Route::get('forum/threads', function () {
+    return Inertia::render('ForumThreads');
+})->name('forum.threads');
+
+Route::get('forum/threads/view', function () {
+    return Inertia::render('ForumThreadView');
+})->name('forum.thread.view');
 
 //AUTH REQUIRED PAGES
 Route::get('dashboard', function () {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import PlaceholderPattern from '../components/PlaceholderPattern.vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -34,7 +34,12 @@ const breadcrumbs: BreadcrumbItem[] = [
             <section>
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                     <!-- Simulated list of posts -->
-                    <div v-for="n in 6" :key="n" class="flex flex-col space-y-2">
+                    <Link
+                        v-for="n in 6"
+                        :key="n"
+                        :href="route('blog.view', { id: n })"
+                        class="flex flex-col space-y-2 rounded-lg border p-4 hover:shadow transition"
+                    >
                         <div class="relative h-40 overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                             <PlaceholderPattern />
                         </div>
@@ -42,7 +47,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <p class="text-sm text-neutral-600 dark:text-neutral-400">
                             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent ut...
                         </p>
-                    </div>
+                    </Link>
                 </div>
             </section>
 
