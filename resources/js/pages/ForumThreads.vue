@@ -39,7 +39,7 @@ import {
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Forum', href: '/forum' },
     { title: 'General Gaming', href: '/forum/general-gaming' },
-    { title: 'PC Gaming', href: '/forum/pc-gaming' },
+    { title: 'PC Gaming', href: '/forum/general-gaming/pc-gaming' },
 ];
 
 // Define interface for a Thread
@@ -107,11 +107,11 @@ const filteredThreads = computed(() => {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="PC Gaming Threads" />
+        <Head title="Forum • PC Gaming" />
         <div class="p-4 space-y-6">
             <!-- Top Pagination and Search -->
             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="2">
+                <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
                     <PaginationList v-slot="{ items }" class="flex items-center gap-1">
                         <PaginationFirst />
                         <PaginationPrev />
@@ -228,7 +228,7 @@ const filteredThreads = computed(() => {
 
             <!-- Bottom Pagination -->
             <div class="flex justify-center">
-                <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="2">
+                <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
                     <PaginationList v-slot="{ items }" class="flex items-center gap-1">
                         <PaginationFirst />
                         <PaginationPrev />

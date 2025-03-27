@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import {
     Folder, MessageSquare, CheckCircle, Ellipsis, Eye, EyeOff, Shield,
@@ -197,7 +197,12 @@ const forumCategories = [
                                 <!-- Subcategory Details -->
                                 <div class="flex-1">
                                     <h4 class="font-semibold text-lg">
-                                        <a href="#" class="hover:underline">{{ sub.title }}</a>
+                                        <Link
+                                            :href="route('forum.thread.view', { id: sub.id })"
+                                            class="font-semibold hover:underline"
+                                        >
+                                            {{ sub.title }}
+                                        </Link>
                                     </h4>
                                     <div class="text-xs text-gray-500">
                                         Latest: <span class="font-medium">{{ sub.latestPost.title }}</span> by

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -135,9 +135,10 @@ const latestPosts = [
                         </div>
                         <!-- Card Body: Table of Subcategories -->
                         <div class="divide-y">
-                            <div
+                            <Link
                                 v-for="(sub, subIndex) in category.subCategories"
                                 :key="subIndex"
+                                :href="route('forum.threads', { id: sub.id })"
                                 class="flex items-center p-4 hover:bg-gray-100 transition even:bg-gray-50 dark:bg-neutral-950/60 dark:even:bg-neutral-800/60 dark:hover:bg-neutral-700/60"
                             >
                                 <!-- Subcategory Icon -->
@@ -148,7 +149,7 @@ const latestPosts = [
                                 </div>
                                 <!-- Subcategory Title -->
                                 <div class="flex-1">
-                                    <h3 class="font-semibold text-red-400"><a href="#">{{ sub.title }}</a></h3>
+                                    <h3 class="font-semibold hover:underline text-red-400 dark:hover:text-red-400">{{ sub.title }}</h3>
                                 </div>
                                 <!-- Thread Count -->
                                 <div class="w-20 text-center">
@@ -162,11 +163,16 @@ const latestPosts = [
                                 </div>
                                 <!-- Latest Post Information -->
                                 <div class="w-60 text-right">
-                                    <div class="font-semibold text-sm"><a href="#">{{ sub.latestPost.title }}</a></div>
-                                    <div class="text-xs text-gray-500">by {{ sub.latestPost.author }}</div>
-                                    <div class="text-xs text-gray-400">{{ sub.latestPost.date }}</div>
+                                    <Link
+                                        :href="route('forum.thread.view', { id: sub.latestPost.id })"
+                                        class="font-semibold text-sm hover:underline block"
+                                    >
+                                        {{ sub.latestPost.title }}
+                                    </Link>
+                                    <div class="text-xs text-gray-400 inline-block mr-1">by {{ sub.latestPost.author }}</div>
+                                    <div class="text-xs text-gray-500 inline-block">• {{ sub.latestPost.date }}</div>
                                 </div>
-                            </div>
+                            </Link>
                         </div>
                     </div>
                 </main>
@@ -179,7 +185,7 @@ const latestPosts = [
                         <div
                             v-for="(thread, index) in trendingThreads"
                             :key="index"
-                            class="py-2 border-b border-gray-200 dark:border-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700/60 transition"
+                            class="py-2 border-b border-sidebar-border/70 dark:border-sidebar-border/70 hover:bg-gray-100 dark:hover:bg-neutral-700/60 transition"
                         >
                             <a :href="thread.subCategoryLink" class="block px-2">
                                 <h4 class="font-semibold text-sm">{{ thread.title }}</h4>
@@ -198,7 +204,7 @@ const latestPosts = [
                         <div
                             v-for="(post, index) in latestPosts"
                             :key="index"
-                            class="py-2 border-b border-gray-200 dark:border-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700/60 transition"
+                            class="py-2 border-b border-sidebar-border/70 dark:border-sidebar-border/70 hover:bg-gray-100 dark:hover:bg-neutral-700/60 transition"
                         >
                             <a :href="post.subCategoryLink" class="block px-2">
                                 <h4 class="font-semibold text-sm">{{ post.title }}</h4>
