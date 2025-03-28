@@ -106,8 +106,8 @@ const latestPosts = [
 </script>
 
 <template>
-    <Head title="Forum" />
     <AppLayout :breadcrumbs="breadcrumbs">
+        <Head title="Forum" />
         <div class="p-4 space-y-6">
             <!-- Forum Header -->
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
@@ -149,7 +149,7 @@ const latestPosts = [
                                 </div>
                                 <!-- Subcategory Title -->
                                 <div class="flex-1">
-                                    <h3 class="font-semibold hover:underline text-red-400 dark:hover:text-red-400">{{ sub.title }}</h3>
+                                    <h3 class="font-semibold hover:underline text-green-400 dark:hover:text-green-400">{{ sub.title }}</h3>
                                 </div>
                                 <!-- Thread Count -->
                                 <div class="w-20 text-center">
@@ -192,7 +192,7 @@ const latestPosts = [
                                 <p class="text-xs text-gray-500">
                                     by {{ thread.author }} • {{ thread.date }} • {{ thread.replies }} replies
                                 </p>
-                                <div class="text-xs text-red-400">
+                                <div class="text-xs text-green-400">
                                     <a :href="thread.subCategoryLink">{{ thread.subCategory }}</a>
                                 </div>
                             </a>
@@ -211,7 +211,7 @@ const latestPosts = [
                                 <p class="text-xs text-gray-500">
                                     by {{ post.author }} • {{ post.date }} • {{ post.replies }} replies
                                 </p>
-                                <div class="text-xs text-red-400">{{ post.subCategory }}</div>
+                                <div class="text-xs text-green-400">{{ post.subCategory }}</div>
                             </a>
                         </div>
                     </div>

@@ -3,8 +3,6 @@ import { ref, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
-
-// Import shadcn‑vue components
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import {
@@ -109,6 +107,19 @@ const filteredThreads = computed(() => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Forum • PC Gaming" />
         <div class="p-4 space-y-6">
+            <!-- Forum Header -->
+            <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
+                <h1 class="text-2xl font-bold text-green-500">PC Games</h1>
+                <div class="flex w-full max-w-md space-x-2">
+                    <Input
+                        v-model="searchQuery"
+                        placeholder="Search PC Games..."
+                    />
+                    <Button variant="secondary" class="cursor-pointer">
+                        New Thread
+                    </Button>
+                </div>
+            </header>
             <!-- Top Pagination and Search -->
             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
                 <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
@@ -129,11 +140,6 @@ const filteredThreads = computed(() => {
                         <PaginationLast />
                     </PaginationList>
                 </Pagination>
-                <Input
-                    v-model="searchQuery"
-                    placeholder="Search threads..."
-                    class="w-full md:w-1/3"
-                />
             </div>
 
             <!-- Threads Table -->
@@ -142,9 +148,8 @@ const filteredThreads = computed(() => {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Thread Title</TableHead>
-                            <TableHead>Author</TableHead>
-                            <TableHead>Replies</TableHead>
-                            <TableHead>Views</TableHead>
+                            <TableHead class="text-center">Replies</TableHead>
+                            <TableHead class="text-center">Views</TableHead>
                             <TableHead>Last Reply</TableHead>
                             <TableHead></TableHead>
                         </TableRow>
@@ -158,22 +163,21 @@ const filteredThreads = computed(() => {
                             <TableCell>
                                 <Link
                                     :href="route('forum.thread.view', { id: thread.id })"
-                                    class="font-semibold hover:underline"
+                                    :class="{'font-semibold': thread.unread, 'font-normal': !thread.unread}"
+                                    class="hover:underline"
                                 >
-                                    <Pin v-if="thread.pinned" class="mr-2 h-4 w-4 text-green-500 inline-block" />
                                     {{ thread.title }}
+                                    <Pin v-if="thread.pinned" class="h-4 w-4 text-green-500 inline-block" />
                                 </Link>
+                                <div class="text-xs text-gray-500">By {{ thread.author }}</div>
                             </TableCell>
-                            <TableCell>{{ thread.author }}</TableCell>
-                            <TableCell>{{ thread.replies }}</TableCell>
-                            <TableCell>{{ thread.views }}</TableCell>
+                            <TableCell class="text-center">{{ thread.replies }}</TableCell>
+                            <TableCell class="text-center">{{ thread.views }}</TableCell>
                             <TableCell>
                                 <div class="text-sm">{{ thread.lastReplyAuthor }}</div>
                                 <div class="text-xs text-gray-500">{{ thread.lastReplyTime }}</div>
                             </TableCell>
                             <TableCell class="text-center">
-<!--                                <span v-if="thread.unread" class="text-blue-500 font-medium">Unread</span>-->
-<!--                                <span v-else class="text-gray-500">Read</span>-->
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
                                         <Button variant="outline" size="icon">
@@ -227,7 +231,7 @@ const filteredThreads = computed(() => {
             </div>
 
             <!-- Bottom Pagination -->
-            <div class="flex justify-center">
+            <div class="flex">
                 <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
                     <PaginationList v-slot="{ items }" class="flex items-center gap-1">
                         <PaginationFirst />

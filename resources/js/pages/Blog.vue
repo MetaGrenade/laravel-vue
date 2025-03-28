@@ -3,6 +3,17 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import PlaceholderPattern from '../components/PlaceholderPattern.vue';
+import Button from '@/components/ui/button/Button.vue';
+import {
+    Pagination,
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+} from '@/components/ui/pagination'
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -50,16 +61,28 @@ const breadcrumbs: BreadcrumbItem[] = [
                     </Link>
                 </div>
             </section>
+        </div>
 
-            <!-- Pagination (Placeholder Buttons) -->
-            <section class="flex justify-center space-x-2">
-                <button class="rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100">
-                    Previous
-                </button>
-                <button class="rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100">
-                    Next
-                </button>
-            </section>
+        <!-- Bottom Pagination -->
+        <div class="flex justify-center">
+            <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
+                <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                    <PaginationFirst />
+                    <PaginationPrev />
+
+                    <template v-for="(item, index) in items">
+                        <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
+                            <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                {{ item.value }}
+                            </Button>
+                        </PaginationListItem>
+                        <PaginationEllipsis v-else :key="item.type" :index="index" />
+                    </template>
+
+                    <PaginationNext />
+                    <PaginationLast />
+                </PaginationList>
+            </Pagination>
         </div>
     </AppLayout>
 </template>

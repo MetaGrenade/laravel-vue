@@ -123,7 +123,7 @@ const forumCategories = [
                     <div class="flex items-center justify-between pb-4">
                         <h2 class="mb-4 text-xl font-bold">Manage Forum Categories</h2>
                         <Button variant="success" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                            New Category
+                            Create Category
                         </Button>
                     </div>
                     <div
@@ -276,11 +276,11 @@ const forumCategories = [
                             </div>
                         </div>
                         <!-- Create New Subcategory Button -->
-                        <div class="p-4">
-                            <Button variant="success" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                New {{ category.title }} Category
-                            </Button>
-                        </div>
+<!--                        <div class="p-4">-->
+<!--                            <Button variant="success" class="text-sm text-white bg-green-500 hover:bg-green-600">-->
+<!--                                New {{ category.title }} Category-->
+<!--                            </Button>-->
+<!--                        </div>-->
                     </div>
                 </div>
             </div>
