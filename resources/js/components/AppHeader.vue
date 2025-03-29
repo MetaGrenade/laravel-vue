@@ -64,6 +64,12 @@ const rightNavItems: NavItem[] = [
         color: 'rgb(197,102,34)', // orange
     },
     {
+        title: 'Support',
+        href: '/support',
+        icon: LifeBuoy,
+        color: 'rgb(197,34,34)', // red
+    },
+    {
         title: 'Repository',
         href: 'https://github.com/MetaGrenade/laravel-vue',
         icon: Folder,
@@ -75,12 +81,6 @@ const rightNavItems: NavItem[] = [
     //     icon: Newspaper,
     //     color: 'rgb(59, 130, 246)', // blue
     // },
-    {
-        title: 'Support',
-        href: '/support',
-        icon: LifeBuoy,
-        color: 'rgb(197,34,34)', // red
-    },
 ];
 </script>
 

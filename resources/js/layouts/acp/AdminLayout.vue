@@ -51,7 +51,7 @@ const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.locati
 
 <template>
     <div class="px-4 py-6">
-        <Heading title="Admin Control Panel" description="Manage the system, content & users!" class="text-red-500" />
+        <Heading title="Admin Control Panel" :icon="Shield" description="Manage the system, content & users!" class="text-red-500" />
 
         <div class="flex flex-1 flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-x-12 lg:space-y-0">
             <aside class="w-full max-w-xl lg:w-48">
