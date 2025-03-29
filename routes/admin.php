@@ -4,7 +4,7 @@ use App\Http\Controllers\Admin\AdminController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::redirect('acp', '/acp/dashboard');
 
 //    Route::get('acp/dashboard', [AdminController::class, 'get'])->name('acp.dashboard');
