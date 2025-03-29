@@ -72,7 +72,7 @@ const trendingThreads = [
         date: '1h ago',
         replies: 12,
         subCategory: 'PC Games',
-        subCategoryLink: '/forum/pc-games',
+        subCategoryLink: '/forum/threads',
     },
     {
         title: 'Best new indie games',
@@ -80,7 +80,7 @@ const trendingThreads = [
         date: '2h ago',
         replies: 8,
         subCategory: 'PC Games',
-        subCategoryLink: '/forum/pc-games',
+        subCategoryLink: '/forum/threads',
     },
 ];
 
@@ -92,7 +92,7 @@ const latestPosts = [
         date: '30 min ago',
         replies: 3,
         subCategory: 'PC Hardware',
-        subCategoryLink: '/forum/pc-hardware',
+        subCategoryLink: '/forum/threads',
     },
     {
         title: 'Tips for game streaming',
@@ -100,7 +100,7 @@ const latestPosts = [
         date: '45 min ago',
         replies: 5,
         subCategory: 'Gaming',
-        subCategoryLink: '/forum/gaming',
+        subCategoryLink: '/forum/threads',
     },
 ];
 </script>
@@ -187,7 +187,7 @@ const latestPosts = [
                             :key="index"
                             class="py-2 border-b border-sidebar-border/70 dark:border-sidebar-border/70 hover:bg-gray-100 dark:hover:bg-neutral-700/60 transition"
                         >
-                            <a :href="thread.subCategoryLink" class="block px-2">
+                            <Link :href="route('forum.thread.view', { id: thread.id })" class="block px-2">
                                 <h4 class="font-semibold text-sm">{{ thread.title }}</h4>
                                 <p class="text-xs text-gray-500">
                                     by {{ thread.author }} • {{ thread.date }} • {{ thread.replies }} replies
@@ -195,7 +195,7 @@ const latestPosts = [
                                 <div class="text-xs text-green-400">
                                     <a :href="thread.subCategoryLink">{{ thread.subCategory }}</a>
                                 </div>
-                            </a>
+                            </Link>
                         </div>
                     </div>
                     <!-- Latest Posts -->
@@ -206,13 +206,13 @@ const latestPosts = [
                             :key="index"
                             class="py-2 border-b border-sidebar-border/70 dark:border-sidebar-border/70 hover:bg-gray-100 dark:hover:bg-neutral-700/60 transition"
                         >
-                            <a :href="post.subCategoryLink" class="block px-2">
+                            <Link :href="route('forum.thread.view', { id: post.id })" class="block px-2">
                                 <h4 class="font-semibold text-sm">{{ post.title }}</h4>
                                 <p class="text-xs text-gray-500">
                                     by {{ post.author }} • {{ post.date }} • {{ post.replies }} replies
                                 </p>
                                 <div class="text-xs text-green-400">{{ post.subCategory }}</div>
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </aside>

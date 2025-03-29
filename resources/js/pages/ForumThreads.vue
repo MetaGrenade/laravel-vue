@@ -36,8 +36,8 @@ import {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Forum', href: '/forum' },
-    { title: 'General Gaming', href: '/forum/general-gaming' },
-    { title: 'PC Gaming', href: '/forum/general-gaming/pc-gaming' },
+    { title: 'General Gaming', href: '/forum' },
+    { title: 'PC Gaming', href: '/forum/threads' },
 ];
 
 // Define interface for a Thread

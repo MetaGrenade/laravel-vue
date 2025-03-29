@@ -20,11 +20,29 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination'
 import { Textarea } from '@/components/ui/textarea'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuSeparator,
+    DropdownMenuShortcut,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    Pin, PinOff, Ellipsis, Eye, EyeOff, Pencil, Trash2, Lock, LockOpen, Flag, MessageSquareLock
+} from 'lucide-vue-next';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Forum', href: '/forum' },
-    { title: 'General Gaming', href: '/forum/general-gaming' },
-    { title: 'PC Gaming', href: '/forum/general-gaming/pc-gaming' },
+    { title: 'General Gaming', href: '/forum' },
+    { title: 'PC Gaming', href: '/forum/threads' },
     { title: 'Thread Title', href: '#' },
 ];
 
@@ -112,7 +130,10 @@ function postReply() {
         <div class="container mx-auto p-4 space-y-8">
             <!-- Thread Title -->
             <div class="mb-4">
-                <h1 class="text-3xl font-bold text-green-500">{{ threadTitle }}</h1>
+                <h1 id="thread_title" class="text-3xl font-bold text-green-500">
+                    <Pin class="h-8 w-8 inline-block" />
+                    {{ threadTitle }}
+                </h1>
             </div>
 
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
@@ -135,9 +156,73 @@ function postReply() {
                     </PaginationList>
                 </Pagination>
                 <div class="flex w-full max-w-md space-x-2 justify-end">
-                    <Button variant="secondary" class="cursor-pointer  bg-blue-500 hover:bg-blue-600">
-                        Post Reply
+                    <Button variant="secondary" class="cursor-pointer text-yellow-500" disabled>
+                        <Lock class="h-8 w-8" />
+                        Locked
                     </Button>
+                    <a href="#post_reply">
+                        <Button variant="secondary" class="cursor-pointer">
+                            Post Reply
+                        </Button>
+                    </a>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                            <Button variant="outline" size="icon">
+                                <Ellipsis class="h-8 w-8" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem class="text-orange-500">
+                                    <Flag class="h-8 w-8" />
+                                    <span>Report</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel>Mod Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem>
+                                    <Eye class="h-8 w-8" />
+                                    <span>Publish</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                    <EyeOff class="h-8 w-8" />
+                                    <span>Unpublish</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                    <Lock class="h-8 w-8" />
+                                    <span>Lock</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                    <LockOpen class="h-8 w-8" />
+                                    <span>Unlock</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                    <Pin class="h-8 w-8" />
+                                    <span>Pin</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                    <PinOff class="h-8 w-8" />
+                                    <span>Unpin</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem class="text-blue-500">
+                                    <Pencil class="h-8 w-8" />
+                                    <span>Edit Title</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem class="text-red-500">
+                                <Trash2 class="h-8 w-8" />
+                                <span>Delete</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </header>
 
@@ -150,7 +235,7 @@ function postReply() {
                 >
                     <!-- Left Side: User Info -->
                     <div class="flex-shrink-0 w-full md:w-1/5 border-r pr-4">
-                        <Avatar :src="post.avatar" alt="User avatar" class="h-16 w-16 rounded-full mb-2" />
+                        <Avatar :src="post.avatar" alt="User avatar" class="h-24 w-24 rounded-full mb-2" />
                         <div class="font-bold text-lg">{{ post.author }}</div>
                         <div class="text-sm text-gray-500">{{ post.role }}</div>
                         <div class="mt-2 text-xs text-gray-600">
@@ -197,17 +282,28 @@ function postReply() {
                     </PaginationList>
                 </Pagination>
                 <div class="flex w-full max-w-md space-x-2 justify-end">
-                    <Button variant="secondary" class="cursor-pointer">
-                        Go To Top
-                    </Button>
+                    <a href="#thread_title">
+                        <Button variant="secondary" class="cursor-pointer">
+                            Go To Top
+                        </Button>
+                    </a>
                 </div>
             </header>
 
+            <Alert variant="warning">
+                <MessageSquareLock class="w-6 h-6" />
+                <AlertTitle>Thread Locked</AlertTitle>
+                <AlertDescription>
+                    This thread has been locked by a moderator.
+                </AlertDescription>
+            </Alert>
+
             <!-- Reply Input Section -->
             <div class="mt-8 rounded-xl border p-6 shadow">
-                <h2 class="mb-4 text-xl font-bold">Leave a Reply</h2>
+                <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
                 <div class="flex flex-col gap-4">
                     <Textarea v-model="replyText" placeholder="Write your reply here..." class="w-full rounded-md" />
+
                     <Button variant="secondary" class="cursor-pointer bg-green-500 hover:bg-green-600">
                         Submit Reply
                     </Button>

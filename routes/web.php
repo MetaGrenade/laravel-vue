@@ -28,6 +28,10 @@ Route::get('forum/threads/view', function () {
     return Inertia::render('ForumThreadView');
 })->name('forum.thread.view');
 
+Route::get('support', function () {
+    return Inertia::render('Support');
+})->name('support');
+
 //AUTH REQUIRED PAGES
 Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
