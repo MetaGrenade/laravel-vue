@@ -111,7 +111,7 @@ const filteredFaqs = computed(() => {
             </h1>
 
             <Tabs default-value="tickets" class="w-full">
-                <TabsList>
+                <TabsList class="mb-4">
                     <TabsTrigger value="tickets">Support Tickets</TabsTrigger>
                     <TabsTrigger value="faq">Frequently Asked Questions</TabsTrigger>
                 </TabsList>
@@ -120,7 +120,7 @@ const filteredFaqs = computed(() => {
                 <TabsContent value="tickets" class="space-y-6">
                     <!-- Search and New Ticket Button -->
                     <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-<!--                        <h3 class="text-2xl font-semibold mb-4">My Tickets</h3>-->
+                        <h3 class="text-2xl font-semibold mb-4">My Tickets</h3>
                         <Input
                             v-model="ticketSearchQuery"
                             placeholder="Search your tickets..."
@@ -136,7 +136,7 @@ const filteredFaqs = computed(() => {
                     <!-- Tickets Table -->
                     <div class="overflow-x-auto rounded-xl border p-4 shadow-sm">
                         <Table>
-                            <TableHeader>
+                            <TableHeader class="bg-neutral-900">
                                 <TableRow>
                                     <TableHead>ID</TableHead>
                                     <TableHead>Subject</TableHead>
@@ -186,7 +186,7 @@ const filteredFaqs = computed(() => {
 
                     <!-- New Ticket Submission Form -->
                     <div class="rounded-xl border p-6 shadow">
-                        <h2 class="mb-4 text-xl font-bold" id="create_ticket">Submit a New Ticket</h2>
+                        <h2 class="mb-4 text-xl font-bold" id="create_ticket">Create New Ticket</h2>
                         <div class="flex flex-col gap-4">
                             <Input
                                 v-model="newTicketSubject"
@@ -209,7 +209,7 @@ const filteredFaqs = computed(() => {
                 <TabsContent value="faq" class="space-y-6">
                     <!-- Search FAQ -->
                     <div class="flex">
-<!--                        <h3 class="text-2xl font-semibold mb-4">Frequently Asked Questions</h3>-->
+                        <h3 class="text-2xl font-semibold mb-4">FAQ's</h3>
                         <Input
                             v-model="faqSearchQuery"
                             placeholder="Search FAQs..."
@@ -218,9 +218,9 @@ const filteredFaqs = computed(() => {
                     </div>
 
                     <!-- FAQ List -->
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto rounded-xl border">
                         <Table>
-                            <TableHeader>
+                            <TableHeader class="bg-neutral-900">
                                 <TableRow>
                                     <TableHead>Question</TableHead>
                                     <TableHead>Answer</TableHead>
