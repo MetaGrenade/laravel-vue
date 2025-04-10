@@ -20,6 +20,7 @@ class RolePermissionSeeder extends Seeder
         $permissions = [
             'dashboard',
             'users',
+            'permissions',
             'blogs',
             'forums',
             'support',

@@ -1,10 +1,25 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings } from 'lucide-vue-next';
+
+import { useRoles } from '@/composables/useRoles';
+import { usePermissions } from '@/composables/usePermissions';
+
+const { hasRole } = useRoles();
+const { hasPermission } = usePermissions();
+
+const isAdmin = computed(() => hasRole('admin|moderator|editor'));
+const manageUsers = computed(() => hasPermission('users.acp.manage'));
+const managePermissions = computed(() => hasPermission('permissions.acp.manage'));
+const manageBlogs = computed(() => hasPermission('blogs.acp.manage'));
+const manageForums = computed(() => hasPermission('forums.acp.manage'));
+const manageSupport = computed(() => hasPermission('support.acp.manage'));
+const manageSystem = computed(() => hasPermission('system.acp.manage'));
 
 const sidebarNavItems: NavItem[] = [
     {
@@ -45,8 +60,31 @@ const sidebarNavItems: NavItem[] = [
 ];
 
 const page = usePage();
-
 const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.location).pathname : '';
+
+// Create a computed property to filter nav items based on the user's permissions/roles
+const filteredNavItems = computed(() => {
+    return sidebarNavItems.filter(item => {
+        switch(item.title) {
+            case 'Dashboard':
+                return isAdmin.value;
+            case 'Users':
+                return manageUsers.value;
+            case 'Permissions':
+                return managePermissions.value;
+            case 'Blogs':
+                return manageBlogs.value;
+            case 'Forums':
+                return manageForums.value;
+            case 'Support':
+                return manageSupport.value;
+            case 'System Settings':
+                return manageSystem.value;
+            default:
+                return false;
+        }
+    });
+});
 </script>
 
 <template>
@@ -57,7 +95,7 @@ const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.locati
             <aside class="w-full max-w-xl lg:w-48">
                 <nav class="flex flex-col space-y-1">
                     <Button
-                        v-for="item in sidebarNavItems"
+                        v-for="item in filteredNavItems"
                         :key="item.href"
                         variant="ghost"
                         :class="['w-full justify-start', { 'bg-muted': currentPath === item.href }]"
@@ -83,4 +121,3 @@ const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.locati
         </div>
     </div>
 </template>
-

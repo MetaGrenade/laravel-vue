@@ -5,12 +5,8 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-
-// Import Lucide icons
 import { Users, BookOpen, MessageSquare, LifeBuoy } from 'lucide-vue-next';
-
-// Import the LineChart component from shadcn‑vue (adjust the import path as needed)
-import { LineChart } from '@/components/ui/chart-line'
+import { LineChart } from '@/components/ui/chart-line';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
