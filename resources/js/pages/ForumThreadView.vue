@@ -103,25 +103,6 @@ const posts = ref<Post[]>([
 
 // Reply text for new reply input
 const replyText = ref("");
-
-// Dummy function to simulate posting a reply
-function postReply() {
-    if (replyText.value.trim() === "") return;
-    const newPostNumber = posts.value.length + 1;
-    posts.value.push({
-        id: Date.now(),
-        author: "Current User",
-        avatar: "/images/avatar-placeholder.png",
-        role: "Member",
-        joinDate: "2023-06-01",
-        postCount: 1,
-        postNumber: newPostNumber,
-        postedAt: new Date().toLocaleString(),
-        content: `<p>${replyText.value}</p>`,
-        signature: "Current User • Happy to help.",
-    });
-    replyText.value = "";
-}
 </script>
 
 <template>
