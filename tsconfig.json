@@ -31,7 +31,7 @@
         /* Modules */
         "module": "ESNext" /* Specify what module code is generated. */,
         // "rootDir": "./",                                  /* Specify the root folder within your source files. */
-        "moduleResolution": "bundler" /* Specify how TypeScript looks up a file from a given module specifier. */,
+        "moduleResolution": "Node" /* Specify how TypeScript looks up a file from a given module specifier. */,
         // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
         "paths": {
             /* Specify a set of entries that re-map imports to additional lookup locations. */ "@/*": ["./resources/js/*"],
@@ -122,7 +122,8 @@
     "include": [
         "resources/js/**/*.ts",
         "resources/js/**/*.d.ts",
-        "resources/js/**/*.tsx", 
-        "resources/js/**/*.vue"
+        "resources/js/**/*.tsx",
+        "resources/js/**/*.vue",
+        "node_modules/@vue/runtime-core"
     ]
 }

@@ -14,6 +14,7 @@ This repository provides a starter kit for building modern web applications with
 - **Responsive Design**: Mobile-first design principles.
 - **Admin Control Panel (ACP)**: Example layouts for managing users, blogs, forums, and more.
 - **Placeholder Components**: Starter components from shadcn-vue (like `PlaceholderPattern`) simulate content while you integrate dynamic data.
+- **Role & Permission System**: Our project uses [Spatie's Laravel Permission](https://github.com/spatie/laravel-permission) package to provide robust role and permission management. This integration, combined with Laravel Breeze for authentication and our Inertia.js SPA, enables us to enforce access control both on the backend and in our Vue frontend.
 
 ## Setup & Installation
 
@@ -92,6 +93,87 @@ Follow these steps to set up the project locally:
 
 - **Styling & Customization:**
     Tailwind CSS is used for styling. Feel free to customize the design by modifying the Tailwind configuration or adding your own CSS.
+
+### Using the Permission System in the Vue SPA
+
+Since our frontend is built entirely in Vue with Inertia, we provide two TypeScript composables to facilitate role and permission checks.
+#### useRoles.ts
+```ts
+import { computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+
+interface Role {
+  id: number;
+  name: string;
+  guard_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  roles?: Role[];
+}
+
+export function useRoles() {
+  const page = usePage();
+  const user = computed<AuthUser | null>(() => page.props.auth.user || null);
+
+  /**
+   * Check if the user has any of the given roles. 
+   * Pass multiple roles separated by a pipe (e.g., "admin|moderator").
+   */
+  function hasRole(roles: string): boolean {
+    const rolesToCheck = roles.split('|').map(r => r.trim());
+    return !!(user.value && user.value.roles && user.value.roles.some(r => rolesToCheck.includes(r.name)));
+  }
+
+  return { hasRole };
+}
+```
+
+#### usePermissions.ts
+```ts
+import { computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+
+export function usePermissions() {
+  const page = usePage();
+  // We assume permissions are shared as an array of permission names.
+  const permissions = computed<string[]>(() => page.props.auth.permissions || []);
+
+  /**
+   * Check if the user has any of the given permissions.
+   * Pass multiple permissions separated by a pipe (e.g., "users.acp.manage|blogs.acp.manage").
+   */
+  function hasPermission(permissionsToCheck: string): boolean {
+    const permissionList = permissionsToCheck.split('|').map(p => p.trim());
+    return permissions.value.some(p => permissionList.includes(p));
+  }
+
+  return { hasPermission };
+}
+```
+
+#### Example Usage in a Component
+```vue
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useRoles } from '@/composables/useRoles';
+import { usePermissions } from '@/composables/usePermissions';
+
+const { hasRole } = useRoles();
+const { hasPermission } = usePermissions();
+
+const isAdmin = computed(() => hasRole('admin|super-admin'));
+const canManageUsers = computed(() => hasPermission('users.acp.manage'));
+
+console.log('User is admin:', isAdmin.value);
+console.log('User can manage users:', canManageUsers.value);
+</script>
+```
 
 ## Contributing
 
