@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -19,6 +19,7 @@ const managePermissions = computed(() => hasPermission('permissions.acp.manage')
 const manageBlogs = computed(() => hasPermission('blogs.acp.manage'));
 const manageForums = computed(() => hasPermission('forums.acp.manage'));
 const manageSupport = computed(() => hasPermission('support.acp.manage'));
+const manageTokens = computed(() => hasPermission('tokens.acp.manage'));
 const manageSystem = computed(() => hasPermission('system.acp.manage'));
 
 const sidebarNavItems: NavItem[] = [
@@ -53,6 +54,11 @@ const sidebarNavItems: NavItem[] = [
         icon: LifeBuoy,
     },
     {
+        title: 'Access Tokens',
+        href: '/acp/tokens',
+        icon: Key,
+    },
+    {
         title: 'System Settings',
         href: '/acp/system',
         icon: Settings,
@@ -78,6 +84,8 @@ const filteredNavItems = computed(() => {
                 return manageForums.value;
             case 'Support':
                 return manageSupport.value;
+            case 'Access Tokens':
+                return manageTokens.value;
             case 'System Settings':
                 return manageSystem.value;
             default:

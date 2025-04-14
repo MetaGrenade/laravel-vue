@@ -36,4 +36,8 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/system', function () {
         return Inertia::render('acp/System');
     })->name('acp.system');
+
+    Route::get('acp/tokens', function () {
+        return Inertia::render('acp/Tokens');
+    })->name('acp.tokens');
 });
