@@ -10,11 +10,12 @@ This repository provides a starter kit for building modern web applications with
 - **Vue 3 with Inertia.js**: Build reactive, single-page applications.
 - **Vite**: Modern build tool for fast development.
 - **Tailwind CSS**: Utility-first CSS framework.
-- **Authentication & Authorization**: Includes authentication scaffolding via Laravel Breeze (Vue variant) with options to integrate role management (e.g., using Spatie Permissions).
+- **Authentication & Authorization**: Includes session based authentication scaffolding via Laravel Breeze (Vue variant) with role & permission management (using Spatie Permissions).
+- **External API Authentication & Authorization**: Includes token based authentication scaffolding via [Laravel Sanctum](https://laravel.com/docs/12.x/sanctum).
 - **Responsive Design**: Mobile-first design principles.
-- **Admin Control Panel (ACP)**: Example layouts for managing users, blogs, forums, and more.
+- **Admin Control Panel (ACP)**: Example layouts for managing users, blogs, forums, support tickets, external api access tokens and more.
 - **Placeholder Components**: Starter components from shadcn-vue (like `PlaceholderPattern`) simulate content while you integrate dynamic data.
-- **Role & Permission System**: Our project uses [Spatie's Laravel Permission](https://github.com/spatie/laravel-permission) package to provide robust role and permission management. This integration, combined with Laravel Breeze for authentication and our Inertia.js SPA, enables us to enforce access control both on the backend and in our Vue frontend.
+- **Role & Permission System**: Our project uses [Spatie's Laravel Permission](https://spatie.be/docs/laravel-permission/v6/introduction) [package](https://github.com/spatie/laravel-permission) to provide robust role and permission management. This integration, combined with Laravel Breeze for authentication and our Inertia.js SPA, enables us to enforce access control both on the backend and in our Vue frontend.
 
 ## Setup & Installation
 
