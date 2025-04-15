@@ -2,13 +2,15 @@
 import { ref, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { type BreadcrumbItem } from '@/types';
+
+// Import shadcn‑vue components
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
-import { Textarea } from '@/components/ui/textarea';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -23,8 +25,12 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Ellipsis, Trash2, Pencil } from 'lucide-vue-next';
+import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff } from 'lucide-vue-next';
+import { usePermissions } from '@/composables/usePermissions';
+
+// Permission check for creating tokens (if needed)
+const { hasPermission } = usePermissions();
+const createTokens = computed(() => hasPermission('tokens.acp.create'));
 
 // Dummy breadcrumbs
 const breadcrumbs: BreadcrumbItem[] = [
@@ -44,7 +50,7 @@ interface Token {
     };
     created_at: string;
     last_used_at?: string;
-    status: 'active' | 'revoked';
+    status: 'active' | 'expired' | 'revoked';
 }
 
 const tokens = ref<Token[]>([
@@ -62,7 +68,7 @@ const tokens = ref<Token[]>([
         user: { id: 2, name: 'EditorUser', email: 'editor@example.com' },
         created_at: '2023-07-26 11:00:00',
         last_used_at: '2023-07-28 09:00:00',
-        status: 'active'
+        status: 'expired'
     },
     {
         id: 3,
@@ -72,10 +78,19 @@ const tokens = ref<Token[]>([
         last_used_at: '2023-07-01 08:00:00',
         status: 'revoked'
     },
+    {
+        id: 4,
+        name: 'Discord Bot Token',
+        user: { id: 4, name: 'DiscordBot', email: 'bot@discord.com' },
+        created_at: '2025-04-15 08:00:00',
+        last_used_at: '2025-04-15 08:00:00',
+        status: 'active'
+    },
 ]);
 
 const totalTokens = computed(() => tokens.value.length);
 const activeTokens = computed(() => tokens.value.filter(t => t.status === 'active').length);
+const expiredTokens = computed(() => tokens.value.filter(t => t.status === 'expired').length);
 const revokedTokens = computed(() => tokens.value.filter(t => t.status === 'revoked').length);
 
 // Search query and filtering for token list
@@ -91,31 +106,50 @@ const filteredTokens = computed(() => {
 });
 
 // --------------------
-// Token Creation Form
+// Dummy Token Logs Data
 // --------------------
-const newTokenUserEmail = ref("");
-const newTokenName = ref("");
-const tokenCreationMessage = ref("");
-
-function createToken() {
-    if (!newTokenUserEmail.value.trim() || !newTokenName.value.trim()) {
-        tokenCreationMessage.value = "Please fill in all fields.";
-        return;
-    }
-    // In a real implementation, you'd call an API endpoint to generate the token.
-    // Here we simulate token creation by adding a new token (without exposing the actual token)
-    const newToken: Token = {
-        id: Date.now(),
-        name: newTokenName.value,
-        user: { id: Date.now(), name: newTokenUserEmail.value, email: newTokenUserEmail.value },
-        created_at: new Date().toLocaleString(),
-        status: 'active'
-    };
-    tokens.value.push(newToken);
-    tokenCreationMessage.value = "Token created successfully. The token value is not displayed for security reasons.";
-    newTokenUserEmail.value = "";
-    newTokenName.value = "";
+interface TokenLog {
+    id: number;
+    token_name: string;
+    api_route: string;
+    timestamp: string;
+    status: string;
 }
+
+const tokenLogs = ref<TokenLog[]>([
+    {
+        id: 1,
+        token_name: 'Admin Token',
+        api_route: '/api/dashboard',
+        timestamp: '2023-07-28 07:45:00',
+        status: 'success',
+    },
+    {
+        id: 2,
+        token_name: 'Editor Token',
+        api_route: '/api/posts',
+        timestamp: '2023-07-28 08:15:00',
+        status: 'failed',
+    },
+    {
+        id: 3,
+        token_name: 'Discord Bot Token',
+        api_route: '/api/discord',
+        timestamp: '2025-04-15 08:10:00',
+        status: 'success',
+    },
+]);
+
+const logSearchQuery = ref('');
+const filteredLogs = computed(() => {
+    if (!logSearchQuery.value) return tokenLogs.value;
+    const q = logSearchQuery.value.toLowerCase();
+    return tokenLogs.value.filter(log =>
+        log.token_name.toLowerCase().includes(q) ||
+        log.api_route.toLowerCase().includes(q) ||
+        log.status.toLowerCase().includes(q)
+    );
+});
 </script>
 
 <template>
@@ -124,10 +158,10 @@ function createToken() {
         <AdminLayout>
             <div class="container mx-auto p-4 space-y-8">
                 <!-- Stats Section -->
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-1 lg:grid-cols-3">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-1 lg:grid-cols-4">
                     <div class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center">
                         <div class="mr-4">
-<!--                            <component :is="stat.icon" class="h-8 w-8 text-gray-600" />-->
+                            <component :is="Coins" class="h-8 w-8 text-gray-600" />
                         </div>
                         <div>
                             <div class="text-sm text-gray-500">Total Tokens</div>
@@ -137,7 +171,7 @@ function createToken() {
                     </div>
                     <div class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center">
                         <div class="mr-4">
-<!--                            <component :is="stat.icon" class="h-8 w-8 text-gray-600" />-->
+                            <component :is="ShieldCheck" class="h-8 w-8 text-gray-600" />
                         </div>
                         <div>
                             <div class="text-sm text-gray-500">Active Tokens</div>
@@ -147,7 +181,17 @@ function createToken() {
                     </div>
                     <div class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center">
                         <div class="mr-4">
-<!--                            <component :is="stat.icon" class="h-8 w-8 text-gray-600" />-->
+                            <component :is="ShieldAlert" class="h-8 w-8 text-gray-600" />
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Expired Tokens</div>
+                            <div class="text-xl font-bold">{{ expiredTokens }}</div>
+                        </div>
+                        <PlaceholderPattern />
+                    </div>
+                    <div class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center">
+                        <div class="mr-4">
+                            <component :is="ShieldOff" class="h-8 w-8 text-gray-600" />
                         </div>
                         <div>
                             <div class="text-sm text-gray-500">Revoked Tokens</div>
@@ -157,17 +201,23 @@ function createToken() {
                     </div>
                 </div>
 
-                <!-- Tabs for Token List and Token Creation -->
+                <!-- Tabs for Token List and Token Logs -->
                 <Tabs default-value="tokens" class="w-full">
-                    <TabsList>
-                        <TabsTrigger value="tokens">Token List</TabsTrigger>
-                        <TabsTrigger value="create">Create Token</TabsTrigger>
-                    </TabsList>
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                        <TabsList>
+                            <TabsTrigger value="tokens">Token List</TabsTrigger>
+                            <TabsTrigger value="logs">Token Activity</TabsTrigger>
+                        </TabsList>
+                        <div class="flex space-x-2">
+                            <Button variant="secondary" class="ml-10 text-sm text-white bg-green-500 hover:bg-green-600">
+                                Create Token
+                            </Button>
+                        </div>
+                    </div>
 
                     <!-- Token List Tab -->
                     <TabsContent value="tokens" class="space-y-6">
                         <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-
                             <!-- Search Bar -->
                             <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                                 <h2 class="text-lg font-semibold mb-2 md:mb-0">Manage Access Tokens</h2>
@@ -189,8 +239,8 @@ function createToken() {
                                             <TableHead>Assigned To</TableHead>
                                             <TableHead>Created At</TableHead>
                                             <TableHead>Last Used</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                            <TableHead class="text-center">Status</TableHead>
+                                            <TableHead class="text-center">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -207,15 +257,16 @@ function createToken() {
                                             </TableCell>
                                             <TableCell>{{ token.created_at }}</TableCell>
                                             <TableCell>{{ token.last_used_at || 'Never' }}</TableCell>
-                                            <TableCell>
-                          <span :class="{
+                                            <TableCell class="text-center">
+                        <span :class="{
                             'text-green-500': token.status === 'active',
+                            'text-yellow-500': token.status === 'expired',
                             'text-red-500': token.status === 'revoked'
                           }" class="font-medium">
-                            {{ token.status }}
-                          </span>
+                          {{ token.status }}
+                        </span>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
                                                         <Button variant="outline" size="icon">
@@ -251,29 +302,64 @@ function createToken() {
                         </div>
                     </TabsContent>
 
-                    <!-- Token Creation Tab -->
-                    <TabsContent value="create">
-                        <div class="rounded-xl border p-6 shadow">
-                            <h2 class="mb-4 text-xl font-bold">Create New Token</h2>
-                            <div class="flex flex-col gap-4">
-                                <Input
-                                    v-model="newTokenUserEmail"
-                                    placeholder="User Email"
-                                    class="w-full rounded-md"
-                                />
-                                <Input
-                                    v-model="newTokenName"
-                                    placeholder="Token Name"
-                                    class="w-full rounded-md"
-                                />
-                                <Button variant="primary" @click="createToken">
-                                    Create Token
-                                </Button>
+                    <!-- Token Logs Tab -->
+                    <TabsContent value="logs" class="space-y-6">
+                        <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                                <h2 class="text-lg font-semibold mb-2 md:mb-0">Token Activity Logs</h2>
+                                <div class="flex space-x-2">
+                                    <!-- Search Bar for Logs -->
+                                    <Input
+                                        v-model="logSearchQuery"
+                                        placeholder="Search logs..."
+                                        class="w-full rounded-md"
+                                    />
+                                </div>
                             </div>
-                            <div v-if="tokenCreationMessage" class="mt-4 p-4 border rounded bg-gray-100">
-                                <p class="font-semibold text-green-600">
-                                    {{ tokenCreationMessage }}
-                                </p>
+                            <!-- Logs Table -->
+                            <div class="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>ID</TableHead>
+                                            <TableHead>Token Name</TableHead>
+                                            <TableHead>API Route</TableHead>
+                                            <TableHead>Timestamp</TableHead>
+                                            <TableHead class="text-center">Status</TableHead>
+                                            <TableHead class="text-center">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow
+                                            v-for="log in filteredLogs"
+                                            :key="log.id"
+                                            class="hover:bg-gray-50 dark:hover:bg-gray-900"
+                                        >
+                                            <TableCell>{{ log.id }}</TableCell>
+                                            <TableCell>{{ log.token_name }}</TableCell>
+                                            <TableCell>{{ log.api_route }}</TableCell>
+                                            <TableCell>{{ log.timestamp }}</TableCell>
+                                            <TableCell class="text-center">
+                                                <span :class="{
+                                                  'text-green-500': log.status === 'success',
+                                                  'text-red-500': log.status === 'failed'
+                                                }" class="font-medium">
+                                                  {{ log.status }}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell class="text-center">
+                                                <Link :href="route('acp.tokens.logs.view')">
+                                                    <Button variant="ghost" class="text-blue-500 text-sm">View</Button>
+                                                </Link>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow v-if="filteredLogs.length === 0">
+                                            <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                                No token activity found.
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
                             </div>
                         </div>
                     </TabsContent>

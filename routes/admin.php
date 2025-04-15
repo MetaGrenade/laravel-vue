@@ -40,4 +40,8 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/tokens', function () {
         return Inertia::render('acp/Tokens');
     })->name('acp.tokens');
+
+    Route::get('acp/tokens/logs/view', function () {
+        return Inertia::render('acp/TokenLogView');
+    })->name('acp.tokens.logs.view');
 });
