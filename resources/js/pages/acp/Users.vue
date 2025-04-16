@@ -23,6 +23,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Users, UserPlus, UserX, Activity, Ellipsis, Shield, Trash2, Pencil, MailCheck } from 'lucide-vue-next';
+import { usePermissions } from '@/composables/usePermissions';
+
+// Permission checks
+const { hasPermission } = usePermissions();
+const editUsers = computed(() => hasPermission('users.acp.edit'));
+const deleteUsers = computed(() => hasPermission('users.acp.delete'));
 
 // Breadcrumbs for the page
 const breadcrumbs: BreadcrumbItem[] = [
@@ -141,8 +147,8 @@ const filteredUsers = computed(() => {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
+                                                <DropdownMenuSeparator v-if="editUsers" />
+                                                <DropdownMenuGroup v-if="editUsers">
                                                     <DropdownMenuItem class="text-blue-500">
                                                         <Pencil class="h-8 w-8" />
                                                         <span>Edit</span>
@@ -156,8 +162,8 @@ const filteredUsers = computed(() => {
                                                         <span>Verify</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem class="text-red-500">
+                                                <DropdownMenuSeparator v-if="deleteUsers" />
+                                                <DropdownMenuItem v-if="deleteUsers" class="text-red-500">
                                                     <Trash2 class="h-8 w-8" />
                                                     <span>Delete</span>
                                                 </DropdownMenuItem>

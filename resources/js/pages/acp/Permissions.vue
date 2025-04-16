@@ -17,7 +17,13 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { usePermissions } from '@/composables/usePermissions';
 
+// Permission checks
+const { hasPermission } = usePermissions();
+const createPermissions = computed(() => hasPermission('permissions.acp.create'));
+const editPermissions = computed(() => hasPermission('permissions.acp.edit'));
+const deletePermissions = computed(() => hasPermission('permissions.acp.delete'));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -95,7 +101,7 @@ const filteredPermissions = computed(() => {
                                 placeholder="Search Roles..."
                                 class="w-full pr-10 max-w-sm"
                             />
-                            <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                            <Button v-if="createPermissions" variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
                                 Create Role
                             </Button>
                         </div>
@@ -127,8 +133,8 @@ const filteredPermissions = computed(() => {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
+                                                <DropdownMenuSeparator v-if="editPermissions" />
+                                                <DropdownMenuGroup v-if="editPermissions">
                                                     <DropdownMenuItem class="text-blue-500">
                                                         <Pencil class="h-8 w-8" />
                                                         <span>Edit</span>
@@ -138,8 +144,8 @@ const filteredPermissions = computed(() => {
                                                         <span>Permissions</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem class="text-red-500" disabled>
+                                                <DropdownMenuSeparator v-if="deletePermissions" />
+                                                <DropdownMenuItem v-if="deletePermissions" class="text-red-500" disabled>
                                                     <Trash2 class="h-8 w-8" />
                                                     <span>Delete</span>
                                                 </DropdownMenuItem>
@@ -167,9 +173,6 @@ const filteredPermissions = computed(() => {
                                 placeholder="Search Permissions..."
                                 class="w-full rounded-md"
                             />
-                            <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                Create Permission
-                            </Button>
                         </div>
                     </div>
                     <!-- Permissions Table using Table Components -->
@@ -199,15 +202,15 @@ const filteredPermissions = computed(() => {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
+                                                <DropdownMenuSeparator v-if="editPermissions" />
+                                                <DropdownMenuGroup v-if="editPermissions">
                                                     <DropdownMenuItem class="text-blue-500">
                                                         <Pencil class="h-8 w-8" />
                                                         <span>Edit</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem class="text-red-500" disabled>
+                                                <DropdownMenuSeparator v-if="deletePermissions" />
+                                                <DropdownMenuItem v-if="deletePermissions" class="text-red-500" disabled>
                                                     <Trash2 class="h-8 w-8" />
                                                     <span>Delete</span>
                                                 </DropdownMenuItem>

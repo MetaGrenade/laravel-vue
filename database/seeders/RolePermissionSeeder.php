@@ -47,6 +47,8 @@ class RolePermissionSeeder extends Seeder
             }
             if ($permission == 'support') {
                 Permission::create(['name' => $permission.'.acp.assign']);
+                Permission::create(['name' => $permission.'.acp.move']);
+                Permission::create(['name' => $permission.'.acp.publish']);
                 Permission::create(['name' => $permission.'.acp.priority']);
                 Permission::create(['name' => $permission.'.acp.status']);
             }

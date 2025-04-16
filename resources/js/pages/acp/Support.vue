@@ -28,6 +28,18 @@ import {
     XCircle, HelpCircle, Ticket, TicketX, MessageSquare, CheckCircle, Ellipsis, UserPlus, SquareChevronUp,
     Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff
 } from 'lucide-vue-next';
+import { usePermissions } from '@/composables/usePermissions';
+
+// Permission checks
+const { hasPermission } = usePermissions();
+const createSupport = computed(() => hasPermission('support.acp.create'));
+const editSupport = computed(() => hasPermission('support.acp.edit'));
+const deleteSupport = computed(() => hasPermission('support.acp.delete'));
+const assignSupport = computed(() => hasPermission('support.acp.assign'));
+const prioritySupport = computed(() => hasPermission('support.acp.priority'));
+const statusSupport = computed(() => hasPermission('support.acp.status'));
+const moveSupport = computed(() => hasPermission('support.acp.move'));
+const publishSupport = computed(() => hasPermission('support.acp.publish'));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -133,7 +145,7 @@ const filteredFaqs = computed(() => {
                                         placeholder="Search Tickets..."
                                         class="w-full rounded-md"
                                     />
-                                    <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                    <Button v-if="createSupport" variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
                                         Create Ticket
                                     </Button>
                                 </div>
@@ -170,30 +182,30 @@ const filteredFaqs = computed(() => {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuSeparator v-if="assignSupport||prioritySupport" />
                                                         <DropdownMenuGroup>
-                                                            <DropdownMenuItem>
+                                                            <DropdownMenuItem v-if="assignSupport">
                                                                 <UserPlus class="h-8 w-8" />
                                                                 <span>Add Users</span>
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem>
+                                                            <DropdownMenuItem v-if="prioritySupport">
                                                                 <SquareChevronUp class="h-8 w-8" />
                                                                 <span>Elevate Priority</span>
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuGroup>
+                                                        <DropdownMenuSeparator v-if="editSupport" />
+                                                        <DropdownMenuGroup v-if="editSupport">
                                                             <DropdownMenuItem class="text-blue-500">
                                                                 <Pencil class="h-8 w-8" />
                                                                 <span>Edit</span>
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem class="text-green-500">
+                                                        <DropdownMenuSeparator v-if="statusSupport" />
+                                                        <DropdownMenuItem v-if="statusSupport" class="text-green-500">
                                                             <Ticket class="h-8 w-8" />
                                                             <span>Open Ticket</span>
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem class="text-red-500">
+                                                        <DropdownMenuItem v-if="statusSupport" class="text-red-500">
                                                             <TicketX class="h-8 w-8" />
                                                             <span>Close Ticket</span>
                                                         </DropdownMenuItem>
@@ -223,7 +235,7 @@ const filteredFaqs = computed(() => {
                                         placeholder="Search FAQs..."
                                         class="w-full rounded-md"
                                     />
-                                    <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                    <Button v-if="createSupport" variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
                                         Create FAQ
                                     </Button>
                                 </div>
@@ -256,8 +268,8 @@ const filteredFaqs = computed(() => {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuGroup>
+                                                        <DropdownMenuSeparator v-if="moveSupport||publishSupport" />
+                                                        <DropdownMenuGroup v-if="moveSupport">
                                                             <DropdownMenuItem>
                                                                 <MoveUp class="h-8 w-8" />
                                                                 <span>Move Up</span>
@@ -266,6 +278,8 @@ const filteredFaqs = computed(() => {
                                                                 <MoveDown class="h-8 w-8" />
                                                                 <span>Move Down</span>
                                                             </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuGroup v-if="publishSupport">
                                                             <DropdownMenuItem>
                                                                 <Eye class="h-8 w-8" />
                                                                 <span>Publish</span>
@@ -275,15 +289,15 @@ const filteredFaqs = computed(() => {
                                                                 <span>Unpublish</span>
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuGroup>
+                                                        <DropdownMenuSeparator v-if="editSupport" />
+                                                        <DropdownMenuGroup v-if="editSupport">
                                                             <DropdownMenuItem class="text-blue-500">
                                                                 <Pencil class="h-8 w-8" />
                                                                 <span>Edit</span>
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem class="text-red-500">
+                                                        <DropdownMenuSeparator v-if="deleteSupport" />
+                                                        <DropdownMenuItem v-if="deleteSupport" class="text-red-500">
                                                             <Trash2 class="h-8 w-8" />
                                                             <span>Delete</span>
                                                         </DropdownMenuItem>

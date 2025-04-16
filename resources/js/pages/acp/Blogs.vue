@@ -29,6 +29,14 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { FileText, Edit3, MessageCircle, CheckCircle, Ellipsis, Eye, EyeOff, Shield,
     Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Lock
 } from 'lucide-vue-next';
+import { usePermissions } from '@/composables/usePermissions';
+
+// Permission checks
+const { hasPermission } = usePermissions();
+const createBlogs = computed(() => hasPermission('blogs.acp.create'));
+const editBlogs = computed(() => hasPermission('blogs.acp.edit'));
+const publishBlogs = computed(() => hasPermission('blogs.acp.publish'));
+const deleteBlogs = computed(() => hasPermission('blogs.acp.delete'));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -113,7 +121,7 @@ const filteredBlogPosts = computed(() => {
                                 placeholder="Search Blogs..."
                                 class="w-full rounded-md"
                             />
-                            <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                            <Button v-if="createBlogs" variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
                                 Create New Post
                             </Button>
                         </div>
@@ -150,8 +158,8 @@ const filteredBlogPosts = computed(() => {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
+                                                <DropdownMenuSeparator v-if="publishBlogs" />
+                                                <DropdownMenuGroup v-if="publishBlogs">
                                                     <DropdownMenuItem>
                                                         <Eye class="h-8 w-8" />
                                                         <span>Publish</span>
@@ -161,15 +169,15 @@ const filteredBlogPosts = computed(() => {
                                                         <span>Unpublish</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
+                                                <DropdownMenuSeparator v-if="editBlogs" />
+                                                <DropdownMenuGroup v-if="editBlogs">
                                                     <DropdownMenuItem class="text-blue-500">
                                                         <Pencil class="h-8 w-8" />
                                                         <span>Edit</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem class="text-red-500">
+                                                <DropdownMenuSeparator v-if="deleteBlogs" />
+                                                <DropdownMenuItem v-if="deleteBlogs" class="text-red-500">
                                                     <Trash2 class="h-8 w-8" />
                                                     <span>Delete</span>
                                                 </DropdownMenuItem>

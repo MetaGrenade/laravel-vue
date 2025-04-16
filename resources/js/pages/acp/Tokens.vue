@@ -28,9 +28,11 @@ import {
 import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 
-// Permission check for creating tokens (if needed)
+// Permission checks
 const { hasPermission } = usePermissions();
 const createTokens = computed(() => hasPermission('tokens.acp.create'));
+const editTokens = computed(() => hasPermission('tokens.acp.edit'));
+const deleteTokens = computed(() => hasPermission('tokens.acp.delete'));
 
 // Dummy breadcrumbs
 const breadcrumbs: BreadcrumbItem[] = [
@@ -275,17 +277,21 @@ const filteredLogs = computed(() => {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuGroup>
+                                                        <DropdownMenuSeparator v-if="editTokens" />
+                                                        <DropdownMenuGroup v-if="editTokens">
                                                             <DropdownMenuItem class="text-blue-500">
                                                                 <Pencil class="h-8 w-8" />
                                                                 <span>Edit</span>
                                                             </DropdownMenuItem>
+                                                            <DropdownMenuItem class="text-red-500">
+                                                                <Trash2 class="h-8 w-8" />
+                                                                <span>Revoke</span>
+                                                            </DropdownMenuItem>
                                                         </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem class="text-red-500">
+                                                        <DropdownMenuSeparator v-if="deleteTokens" />
+                                                        <DropdownMenuItem v-if="deleteTokens" class="text-red-500">
                                                             <Trash2 class="h-8 w-8" />
-                                                            <span>Revoke Token</span>
+                                                            <span>Delete</span>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -23,6 +24,19 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { usePermissions } from '@/composables/usePermissions';
+
+// Permission checks
+const { hasPermission } = usePermissions();
+const createForums = computed(() => hasPermission('forums.acp.create'));
+const editForums = computed(() => hasPermission('forums.acp.edit'));
+const lockForums = computed(() => hasPermission('forums.acp.lock'));
+const migrateForums = computed(() => hasPermission('forums.acp.migrate'));
+const moveForums = computed(() => hasPermission('forums.acp.move'));
+const pinForums = computed(() => hasPermission('forums.acp.pin'));
+const publishForums = computed(() => hasPermission('forums.acp.publish'));
+const deleteForums = computed(() => hasPermission('forums.acp.delete'));
+const permissionsForums = computed(() => hasPermission('forums.acp.permissions'));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -122,7 +136,7 @@ const forumCategories = [
                 <div>
                     <div class="flex items-center justify-between pb-4">
                         <h2 class="mb-4 text-xl font-bold">Manage Forum Categories</h2>
-                        <Button variant="success" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                        <Button v-if="createForums" variant="success" class="text-sm text-white bg-green-500 hover:bg-green-600">
                             Create Category
                         </Button>
                     </div>
@@ -142,8 +156,8 @@ const forumCategories = [
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuGroup>
+                                    <DropdownMenuSeparator v-if="moveForums||publishForums" />
+                                    <DropdownMenuGroup v-if="moveForums">
                                         <DropdownMenuItem>
                                             <MoveUp class="h-8 w-8" />
                                             <span>Move Up</span>
@@ -152,31 +166,35 @@ const forumCategories = [
                                             <MoveDown class="h-8 w-8" />
                                             <span>Move Down</span>
                                         </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                    <DropdownMenuGroup v-if="publishForums">
                                         <DropdownMenuItem>
                                             <EyeOff class="h-8 w-8" />
                                             <span>Unpublish</span>
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuGroup>
+                                    <DropdownMenuSeparator v-if="editForums||permissionsForums" />
+                                    <DropdownMenuGroup v-if="editForums">
                                         <DropdownMenuItem class="text-blue-500">
                                             <Pencil class="h-8 w-8" />
                                             <span>Edit</span>
                                         </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                    <DropdownMenuGroup v-if="permissionsForums">
                                         <DropdownMenuItem>
                                             <Shield class="h-8 w-8" />
                                             <span>Permissions</span>
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuGroup>
+                                    <DropdownMenuSeparator v-if="migrateForums" />
+                                    <DropdownMenuGroup v-if="migrateForums">
                                         <DropdownMenuItem>
                                             <MessageSquareShare class="h-8 w-8" />
                                             <span>Migrate Children</span>
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem class="text-red-500" disabled>
+                                    <DropdownMenuSeparator v-if="deleteForums" />
+                                    <DropdownMenuItem v-if="deleteForums" class="text-red-500" disabled>
                                         <Trash2 class="h-8 w-8" />
                                         <span>Delete</span>
                                     </DropdownMenuItem>
@@ -228,8 +246,8 @@ const forumCategories = [
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent>
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuGroup>
+                                            <DropdownMenuSeparator v-if="moveForums||publishForums" />
+                                            <DropdownMenuGroup v-if="moveForums">
                                                 <DropdownMenuItem>
                                                     <MoveUp class="h-8 w-8" />
                                                     <span>Move Up</span>
@@ -238,35 +256,41 @@ const forumCategories = [
                                                     <MoveDown class="h-8 w-8" />
                                                     <span>Move Down</span>
                                                 </DropdownMenuItem>
+                                            </DropdownMenuGroup>
+                                            <DropdownMenuGroup v-if="publishForums">
                                                 <DropdownMenuItem>
                                                     <EyeOff class="h-8 w-8" />
                                                     <span>Unpublish</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuGroup>
+                                            <DropdownMenuSeparator v-if="editForums" />
+                                            <DropdownMenuGroup v-if="editForums">
                                                 <DropdownMenuItem class="text-blue-500">
                                                     <Pencil class="h-8 w-8" />
                                                     <span>Edit Category</span>
                                                 </DropdownMenuItem>
+                                            </DropdownMenuGroup>
+                                            <DropdownMenuGroup v-if="permissionsForums">
                                                 <DropdownMenuItem>
                                                     <Shield class="h-8 w-8" />
                                                     <span>Permissions</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuGroup>
+                                            <DropdownMenuSeparator v-if="lockForums||migrateForums" />
+                                            <DropdownMenuGroup v-if="lockForums">
                                                 <DropdownMenuItem>
                                                     <Lock class="h-8 w-8" />
                                                     <span>Lock Threads</span>
                                                 </DropdownMenuItem>
+                                            </DropdownMenuGroup>
+                                            <DropdownMenuGroup v-if="migrateForums">
                                                 <DropdownMenuItem>
                                                     <MessageSquareShare class="h-8 w-8" />
                                                     <span>Migrate Threads</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem class="text-red-500" disabled>
+                                            <DropdownMenuSeparator v-if="deleteForums" />
+                                            <DropdownMenuItem v-if="deleteForums" class="text-red-500" disabled>
                                                 <Trash2 class="h-8 w-8" />
                                                 <span>Delete</span>
                                             </DropdownMenuItem>
@@ -275,12 +299,6 @@ const forumCategories = [
                                 </div>
                             </div>
                         </div>
-                        <!-- Create New Subcategory Button -->
-<!--                        <div class="p-4">-->
-<!--                            <Button variant="success" class="text-sm text-white bg-green-500 hover:bg-green-600">-->
-<!--                                New {{ category.title }} Category-->
-<!--                            </Button>-->
-<!--                        </div>-->
                     </div>
                 </div>
             </div>
