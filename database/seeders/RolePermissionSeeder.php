@@ -18,7 +18,6 @@ class RolePermissionSeeder extends Seeder
 
         // Create permissions (adjust as needed)
         $permissions = [
-            'dashboard',
             'users',
             'permissions',
             'blogs',
@@ -29,9 +28,8 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission.'.view']);
-            Permission::create(['name' => $permission.'.create']);
-            Permission::create(['name' => $permission.'.acp.manage']);
+            Permission::create(['name' => $permission.'.acp.view']);
+            Permission::create(['name' => $permission.'.acp.create']);
             Permission::create(['name' => $permission.'.acp.edit']);
             if ($permission == 'blogs') {
                 Permission::create(['name' => $permission.'.acp.publish']);

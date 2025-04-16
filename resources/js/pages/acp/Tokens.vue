@@ -209,7 +209,7 @@ const filteredLogs = computed(() => {
                             <TabsTrigger value="logs">Token Activity</TabsTrigger>
                         </TabsList>
                         <div class="flex space-x-2">
-                            <Button variant="secondary" class="ml-10 text-sm text-white bg-green-500 hover:bg-green-600">
+                            <Button v-if="createTokens" variant="secondary" class="ml-10 text-sm text-white bg-green-500 hover:bg-green-600">
                                 Create Token
                             </Button>
                         </div>

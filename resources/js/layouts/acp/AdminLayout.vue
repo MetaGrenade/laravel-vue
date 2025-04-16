@@ -14,13 +14,13 @@ const { hasRole } = useRoles();
 const { hasPermission } = usePermissions();
 
 const isAdmin = computed(() => hasRole('admin|moderator|editor'));
-const manageUsers = computed(() => hasPermission('users.acp.manage'));
-const managePermissions = computed(() => hasPermission('permissions.acp.manage'));
-const manageBlogs = computed(() => hasPermission('blogs.acp.manage'));
-const manageForums = computed(() => hasPermission('forums.acp.manage'));
-const manageSupport = computed(() => hasPermission('support.acp.manage'));
-const manageTokens = computed(() => hasPermission('tokens.acp.manage'));
-const manageSystem = computed(() => hasPermission('system.acp.manage'));
+const manageUsers = computed(() => hasPermission('users.acp.view'));
+const managePermissions = computed(() => hasPermission('permissions.acp.view'));
+const manageBlogs = computed(() => hasPermission('blogs.acp.view'));
+const manageForums = computed(() => hasPermission('forums.acp.view'));
+const manageSupport = computed(() => hasPermission('support.acp.view'));
+const manageTokens = computed(() => hasPermission('tokens.acp.view'));
+const manageSystem = computed(() => hasPermission('system.acp.view'));
 
 const sidebarNavItems: NavItem[] = [
     {
