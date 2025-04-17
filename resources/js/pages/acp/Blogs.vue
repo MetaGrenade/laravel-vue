@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -21,15 +21,26 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-// Import Table components from shadcn-vue
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-
-// Import Lucide icons for stats cards
-import { FileText, Edit3, MessageCircle, CheckCircle, Ellipsis, Eye, EyeOff, Shield,
-    Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Lock
-} from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
+import {
+    Pagination,
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+} from '@/components/ui/pagination';
+import {
+    FileText, Edit3, MessageCircle, CheckCircle, Ellipsis,
+    Eye, EyeOff, Trash2, Pencil, Archive, ArchiveRestore
+} from 'lucide-vue-next';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 // Permission checks
 const { hasPermission } = usePermissions();
@@ -45,6 +56,11 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+// Expect that the admin controller passes a "blogs" prop (paginated collection)
+const props = defineProps({
+    blogs: Object,
+});
+
 // Dummy blog statistics with Lucide icons
 const blogStats = [
     { title: 'Total Posts', value: '120', icon: FileText },
@@ -53,36 +69,18 @@ const blogStats = [
     { title: 'Total Comments', value: '450', icon: MessageCircle },
 ];
 
-// Define a type for blog posts
-interface Blog {
-    id: number;
-    title: string;
-    author: string;
-    created_at: string;
-    status: 'Published' | 'Draft';
-}
-
-// Dummy data for blog posts
-const blogPosts = ref<Blog[]>([
-    { id: 1, title: 'How to Build a Modern Web App', author: 'Alice Johnson', created_at: '2022-01-15', status: 'Published' },
-    { id: 2, title: 'Understanding Laravel', author: 'Bob Smith', created_at: '2022-02-10', status: 'Draft' },
-    { id: 3, title: 'Vue 3 Composition API in Depth', author: 'Charlie Brown', created_at: '2022-03-05', status: 'Published' },
-    { id: 4, title: 'Managing State in Vuex', author: 'Diana Prince', created_at: '2022-04-20', status: 'Published' },
-    { id: 5, title: 'Building Reusable Components', author: 'Ethan Hunt', created_at: '2022-05-12', status: 'Draft' },
-]);
-
 // Search query for filtering blog posts
 const searchQuery = ref('');
 
 // Computed property to filter blog posts based on the search query
 const filteredBlogPosts = computed(() => {
-    if (!searchQuery.value) return blogPosts.value;
+    if (!searchQuery.value) return props.blogs.data;
     const q = searchQuery.value.toLowerCase();
-    return blogPosts.value.filter(
-        post =>
-            post.title.toLowerCase().includes(q) ||
-            post.author.toLowerCase().includes(q) ||
-            post.status.toLowerCase().includes(q)
+    return props.blogs.data.filter((post: any) =>
+        post.title.toLowerCase().includes(q) ||
+        post.user.name.toLowerCase().includes(q) ||
+        post.user.email.toLowerCase().includes(q) ||
+        post.status.toLowerCase().includes(q)
     );
 });
 </script>
@@ -121,9 +119,12 @@ const filteredBlogPosts = computed(() => {
                                 placeholder="Search Blogs..."
                                 class="w-full rounded-md"
                             />
-                            <Button v-if="createBlogs" variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                Create New Post
-                            </Button>
+                            <!-- Create New Post Button visible only if permission is granted -->
+                            <Link :href="route('acp.blogs.create')" v-if="createBlogs">
+                                <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                    Create New Post
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -132,23 +133,23 @@ const filteredBlogPosts = computed(() => {
                                 <TableRow>
                                     <TableHead>ID</TableHead>
                                     <TableHead>Title</TableHead>
-                                    <TableHead>Author</TableHead>
-                                    <TableHead>Created At</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead></TableHead>
+                                    <TableHead class="text-center">Author</TableHead>
+                                    <TableHead class="text-center">Created</TableHead>
+                                    <TableHead class="text-center">Status</TableHead>
+                                    <TableHead class="text-center">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow
-                                    v-for="post in filteredBlogPosts"
-                                    :key="post.id"
-                                    class="hover:bg-gray-50 dark:hover:bg-gray-900"
-                                >
+                                <TableRow v-for="(post, index) in filteredBlogPosts" :key="post.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
                                     <TableCell>{{ post.id }}</TableCell>
                                     <TableCell>{{ post.title }}</TableCell>
-                                    <TableCell>{{ post.author }}</TableCell>
-                                    <TableCell>{{ post.created_at }}</TableCell>
-                                    <TableCell>{{ post.status }}</TableCell>
+                                    <TableCell class="text-center">{{ post.user.name }}</TableCell>
+                                    <TableCell class="text-center">{{ dayjs(post.created_at).fromNow() }}</TableCell>
+                                    <TableCell class="text-center" :class="{
+                                    'text-green-500': post.status === 'published',
+                                    'text-red-500': post.status === 'archived',
+                                    'text-blue-500': post.status === 'draft'}">
+                                        {{ post.status }}</TableCell>
                                     <TableCell class="text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger as-child>
@@ -160,21 +161,31 @@ const filteredBlogPosts = computed(() => {
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                 <DropdownMenuSeparator v-if="publishBlogs" />
                                                 <DropdownMenuGroup v-if="publishBlogs">
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem v-if="post.status === 'draft'">
                                                         <Eye class="h-8 w-8" />
                                                         <span>Publish</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem v-if="post.status === 'published'">
                                                         <EyeOff class="h-8 w-8" />
                                                         <span>Unpublish</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem v-if="post.status === 'archived'">
+                                                        <ArchiveRestore class="h-8 w-8" />
+                                                        <span>Un Archive</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem v-if="post.status !== 'archived'">
+                                                        <Archive class="h-8 w-8" />
+                                                        <span>Archive</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
                                                 <DropdownMenuSeparator v-if="editBlogs" />
                                                 <DropdownMenuGroup v-if="editBlogs">
-                                                    <DropdownMenuItem class="text-blue-500">
-                                                        <Pencil class="h-8 w-8" />
-                                                        <span>Edit</span>
-                                                    </DropdownMenuItem>
+                                                    <Link :href="route('acp.blogs.edit', { blog: post.id })">
+                                                        <DropdownMenuItem class="text-blue-500">
+                                                            <Pencil class="h-8 w-8" />
+                                                            <span>Edit</span>
+                                                        </DropdownMenuItem>
+                                                    </Link>
                                                 </DropdownMenuGroup>
                                                 <DropdownMenuSeparator v-if="deleteBlogs" />
                                                 <DropdownMenuItem v-if="deleteBlogs" class="text-red-500">
@@ -193,6 +204,42 @@ const filteredBlogPosts = computed(() => {
                             </TableBody>
                         </Table>
                     </div>
+                </div>
+
+                <!-- Bottom Pagination -->
+                <div class="flex justify-center">
+                    <Pagination
+                        v-slot="{ page }"
+                        :items-per-page="props.blogs.per_page"
+                        :total="props.blogs.total"
+                        :sibling-count="1"
+                        show-edges
+                        :default-page="props.blogs.current_page"
+                    >
+                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationFirst />
+                            <PaginationPrev />
+
+                            <template v-for="(item, index) in items" :key="index">
+                                <PaginationListItem
+                                    v-if="item.type === 'page'"
+                                    :value="item.value"
+                                    as-child
+                                >
+                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                        {{ item.value }}
+                                    </Button>
+                                </PaginationListItem>
+                                <PaginationEllipsis
+                                    v-else
+                                    :index="index"
+                                />
+                            </template>
+
+                            <PaginationNext />
+                            <PaginationLast />
+                        </PaginationList>
+                    </Pagination>
                 </div>
             </div>
         </AdminLayout>

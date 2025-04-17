@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BlogController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -8,13 +9,9 @@ Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
 
-Route::get('blog', function () {
-    return Inertia::render('Blog');
-})->name('blog');
-
-Route::get('blog/view', function () {
-    return Inertia::render('BlogView');
-})->name('blog.view');
+// Public Blog Routes
+Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
+Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.view');
 
 Route::get('forum', function () {
     return Inertia::render('Forum');

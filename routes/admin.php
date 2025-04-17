@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -21,9 +22,13 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         return Inertia::render('acp/Permissions');
     })->name('acp.permissions');
 
-    Route::get('acp/blogs', function () {
-        return Inertia::render('acp/Blogs');
-    })->name('acp.blogs');
+    // Admin Blog Management Routes
+    Route::get('/acp/blogs', [AdminBlogController::class, 'index'])->name('acp.blogs.index');
+    Route::get('/acp/blogs/create', [AdminBlogController::class, 'create'])->name('acp.blogs.create');
+    Route::post('/acp/blogs', [AdminBlogController::class, 'store'])->name('acp.blogs.store');
+    Route::get('/acp/blogs/{blog}/edit', [AdminBlogController::class, 'edit'])->name('acp.blogs.edit');
+    Route::put('/acp/blogs/{blog}', [AdminBlogController::class, 'update'])->name('acp.blogs.update');
+    Route::delete('/acp/blogs/{blog}', [AdminBlogController::class, 'destroy'])->name('acp.blogs.destroy');
 
     Route::get('acp/forums', function () {
         return Inertia::render('acp/Forums');
