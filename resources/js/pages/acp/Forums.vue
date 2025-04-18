@@ -33,7 +33,6 @@ const editForums = computed(() => hasPermission('forums.acp.edit'));
 const lockForums = computed(() => hasPermission('forums.acp.lock'));
 const migrateForums = computed(() => hasPermission('forums.acp.migrate'));
 const moveForums = computed(() => hasPermission('forums.acp.move'));
-const pinForums = computed(() => hasPermission('forums.acp.pin'));
 const publishForums = computed(() => hasPermission('forums.acp.publish'));
 const deleteForums = computed(() => hasPermission('forums.acp.delete'));
 const permissionsForums = computed(() => hasPermission('forums.acp.permissions'));

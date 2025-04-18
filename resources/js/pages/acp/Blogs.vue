@@ -165,7 +165,7 @@ const filteredBlogPosts = computed(() => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow v-for="(post, index) in filteredBlogPosts" :key="post.id">
+                                <TableRow v-for="(post) in filteredBlogPosts" :key="post.id">
                                     <TableCell>{{ post.id }}</TableCell>
                                     <TableCell>{{ post.title }}</TableCell>
                                     <TableCell class="text-center">{{ post.user.name }}</TableCell>

@@ -338,8 +338,25 @@ const filteredFaqs = computed(() => {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuGroup>
+                                                        <DropdownMenuSeparator v-if="moveSupport||publishSupport" />
+                                                        <DropdownMenuGroup v-if="moveSupport">
+                                                            <DropdownMenuItem>
+                                                                <MoveUp class="mr-2" /> Move Up
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem>
+                                                                <MoveDown class="mr-2" /> Move Down
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuGroup v-if="publishSupport">
+                                                            <DropdownMenuItem v-if="!f.published">
+                                                                <Eye class="mr-2" /> Publish
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem v-if="f.published">
+                                                                <EyeOff class="mr-2" /> Unpublish
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator v-if="editSupport||deleteSupport" />
+                                                        <DropdownMenuGroup v-if="editSupport||deleteSupport">
                                                             <Link
                                                                 v-if="editSupport"
                                                                 :href="route('acp.support.faqs.edit', { faq: f.id })"
