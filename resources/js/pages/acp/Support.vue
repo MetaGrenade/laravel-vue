@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Input from '@/components/ui/input/Input.vue';
@@ -41,6 +41,49 @@ const statusSupport = computed(() => hasPermission('support.acp.status'));
 const moveSupport = computed(() => hasPermission('support.acp.move'));
 const publishSupport = computed(() => hasPermission('support.acp.publish'));
 
+const props = defineProps<{
+    tickets: {
+        data: Array<{
+            id: number;
+            subject: string;
+            body: string;
+            status: 'open' | 'pending' | 'closed';
+            priority: 'low' | 'medium' | 'high';
+            created_at: string;
+            updated_at: string;
+            user: {
+                id: number;
+                name: string;
+            };
+            assignee: {
+                id: number;
+                name: string;
+            } | null;
+        }>;
+        current_page: number;
+        per_page: number;
+        total: number;
+    };
+    faqs: {
+        data: Array<{
+            id: number;
+            question: string;
+            answer: string;
+            order: number;
+            published: boolean;
+        }>;
+        current_page: number;
+        per_page: number;
+        total: number;
+    };
+    supportStats: {
+        total: number;
+        open: number;
+        closed: number;
+        faqs: number;
+    };
+}>();
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Support ACP',
@@ -48,60 +91,29 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Dummy support statistics
-const supportStats = [
-    { title: 'Total Tickets', value: '150', icon: MessageSquare },
-    { title: 'Open Tickets', value: '35', icon: XCircle },
-    { title: 'Closed Tickets', value: '115', icon: CheckCircle },
-    { title: 'FAQs', value: '20', icon: HelpCircle },
-];
-
-// Dummy data for support tickets
-interface Ticket {
-    id: number;
-    subject: string;
-    submittedBy: string;
-    status: string;
-    created_at: string;
-}
-const tickets = ref<Ticket[]>([
-    { id: 1, subject: 'Unable to login', submittedBy: 'Alice', status: 'Open', created_at: '2023-01-10' },
-    { id: 2, subject: 'Bug in payment module', submittedBy: 'Bob', status: 'Closed', created_at: '2023-01-12' },
-    { id: 3, subject: 'Feature request: dark mode', submittedBy: 'Charlie', status: 'Open', created_at: '2023-01-15' },
-    // Add more tickets as needed...
-]);
-
-// Ticket search query and computed filtered tickets
+// Search state
 const ticketSearchQuery = ref('');
+const faqSearchQuery    = ref('');
+
+// Filtered lists
 const filteredTickets = computed(() => {
-    if (!ticketSearchQuery.value) return tickets.value;
+    const list = props.tickets.data;
+    if (!ticketSearchQuery.value) return list;
     const q = ticketSearchQuery.value.toLowerCase();
-    return tickets.value.filter(ticket =>
-        ticket.subject.toLowerCase().includes(q) ||
-        ticket.submittedBy.toLowerCase().includes(q) ||
-        ticket.status.toLowerCase().includes(q)
+    return list.filter(t =>
+        t.subject.toLowerCase().includes(q) ||
+        t.user.name.toLowerCase().includes(q) ||
+        t.status.includes(q)
     );
 });
-
-// Dummy data for FAQs
-interface FAQ {
-    id: number;
-    question: string;
-    answer: string;
-}
-const faqs = ref<FAQ[]>([
-    { id: 1, question: 'How do I reset my password?', answer: 'Click on "Forgot Password" on the login page.' },
-    { id: 2, question: 'Where can I find the user manual?', answer: 'The user manual is available in the Help section.' },
-    { id: 3, question: 'How do I contact support?', answer: 'Email us at support@example.com.' },
-    // Add more FAQs as needed...
-]);
-
-// FAQ search query and computed filtered FAQs
-const faqSearchQuery = ref('');
 const filteredFaqs = computed(() => {
-    if (!faqSearchQuery.value) return faqs.value;
+    const list = props.faqs.data;
+    if (!faqSearchQuery.value) return list;
     const q = faqSearchQuery.value.toLowerCase();
-    return faqs.value.filter(faq => faq.question.toLowerCase().includes(q));
+    return list.filter(f =>
+        f.question.toLowerCase().includes(q) ||
+        f.answer.toLowerCase().includes(q)
+    );
 });
 </script>
 
@@ -110,46 +122,74 @@ const filteredFaqs = computed(() => {
         <Head title="Support ACP" />
         <AdminLayout>
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
-                <!-- Support Stats Section -->
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div
-                        v-for="(stat, index) in supportStats"
-                        :key="index"
-                        class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
-                    >
-                        <div class="mr-4">
-                            <component :is="stat.icon" class="h-8 w-8 text-gray-600" />
-                        </div>
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
+                        <MessageSquare class="h-8 w-8 mr-3 text-gray-600" />
                         <div>
-                            <div class="text-sm text-gray-500">{{ stat.title }}</div>
-                            <div class="text-xl font-bold">{{ stat.value }}</div>
+                            <div class="text-sm text-gray-500">Total Tickets</div>
+                            <div class="text-xl font-bold">{{ props.supportStats.total }}</div>
+                        </div>
+                        <PlaceholderPattern />
+                    </div>
+                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
+                        <XCircle class="h-8 w-8 mr-3 text-gray-600" />
+                        <div>
+                            <div class="text-sm text-gray-500">Open Tickets</div>
+                            <div class="text-xl font-bold">{{ props.supportStats.open }}</div>
+                        </div>
+                        <PlaceholderPattern />
+                    </div>
+                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
+                        <CheckCircle class="h-8 w-8 mr-3 text-gray-600" />
+                        <div>
+                            <div class="text-sm text-gray-500">Closed Tickets</div>
+                            <div class="text-xl font-bold">{{ props.supportStats.closed }}</div>
+                        </div>
+                        <PlaceholderPattern />
+                    </div>
+                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
+                        <HelpCircle class="h-8 w-8 mr-3 text-gray-600" />
+                        <div>
+                            <div class="text-sm text-gray-500">FAQs</div>
+                            <div class="text-xl font-bold">{{ props.supportStats.faqs }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
                 </div>
 
+                <!-- Tickets & FAQs Tabs -->
                 <Tabs default-value="tickets" class="w-full">
                     <TabsList>
                         <TabsTrigger value="tickets">Support Tickets</TabsTrigger>
-                        <TabsTrigger value="faq">Frequently Asked Questions</TabsTrigger>
+                        <TabsTrigger value="faq">FAQs</TabsTrigger>
                     </TabsList>
 
+                    <!-- Tickets Tab -->
                     <TabsContent value="tickets">
-                        <!-- Support Ticket Management Section -->
-                        <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                                <h2 class="text-lg font-semibold mb-2 md:mb-0">Support Ticket Management</h2>
-                                <div class="flex space-x-2">
+                        <div class="rounded-xl border p-4 space-y-4">
+
+                            <!-- Header: Search & Create -->
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                <h2 class="text-lg font-semibold">Ticket Management</h2>
+                                <div class="flex space-x-2 w-full md:w-auto">
                                     <Input
                                         v-model="ticketSearchQuery"
-                                        placeholder="Search Tickets..."
-                                        class="w-full rounded-md"
+                                        placeholder="Search tickets..."
+                                        class="flex-1"
                                     />
-                                    <Button v-if="createSupport" variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                        Create Ticket
-                                    </Button>
+                                    <Link
+                                        v-if="createSupport"
+                                        :href="route('acp.support.tickets.create')"
+                                    >
+                                        <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                            Create Ticket
+                                        </Button>
+                                    </Link>
                                 </div>
                             </div>
+
+                            <!-- Tickets Table -->
                             <div class="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
@@ -158,63 +198,59 @@ const filteredFaqs = computed(() => {
                                             <TableHead>Subject</TableHead>
                                             <TableHead>Submitted By</TableHead>
                                             <TableHead>Status</TableHead>
+                                            <TableHead>Priority</TableHead>
+                                            <TableHead>Assigned To</TableHead>
                                             <TableHead>Created At</TableHead>
-                                            <TableHead></TableHead>
+                                            <TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         <TableRow
-                                            v-for="ticket in filteredTickets"
-                                            :key="ticket.id"
+                                            v-for="t in filteredTickets"
+                                            :key="t.id"
                                             class="hover:bg-gray-50 dark:hover:bg-gray-900"
                                         >
-                                            <TableCell>{{ ticket.id }}</TableCell>
-                                            <TableCell>{{ ticket.subject }}</TableCell>
-                                            <TableCell>{{ ticket.submittedBy }}</TableCell>
-                                            <TableCell>{{ ticket.status }}</TableCell>
-                                            <TableCell>{{ ticket.created_at }}</TableCell>
+                                            <TableCell>{{ t.id }}</TableCell>
+                                            <TableCell>{{ t.subject }}</TableCell>
+                                            <TableCell>{{ t.user.name }}</TableCell>
+                                            <TableCell>{{ t.status }}</TableCell>
+                                            <TableCell>{{ t.priority }}</TableCell>
+                                            <TableCell>{{ t.assignee?.name || '—' }}</TableCell>
+                                            <TableCell>{{ t.created_at }}</TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
                                                         <Button variant="outline" size="icon">
-                                                            <Ellipsis class="h-8 w-8" />
+                                                            <Ellipsis />
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator v-if="assignSupport||prioritySupport" />
+                                                        <DropdownMenuSeparator />
                                                         <DropdownMenuGroup>
-                                                            <DropdownMenuItem v-if="assignSupport">
-                                                                <UserPlus class="h-8 w-8" />
-                                                                <span>Add Users</span>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem v-if="prioritySupport">
-                                                                <SquareChevronUp class="h-8 w-8" />
-                                                                <span>Elevate Priority</span>
+                                                            <Link
+                                                                v-if="editSupport"
+                                                                :href="route('acp.support.tickets.edit', { ticket: t.id })"
+                                                            >
+                                                                <DropdownMenuItem>
+                                                                    <Pencil class="mr-2" />
+                                                                    Edit
+                                                                </DropdownMenuItem>
+                                                            </Link>
+                                                            <DropdownMenuItem
+                                                                v-if="deleteSupport"
+                                                                @click="$inertia.delete(route('acp.support.tickets.destroy', { ticket: t.id }))"
+                                                            >
+                                                                <Trash2 class="mr-2" />
+                                                                Delete
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator v-if="editSupport" />
-                                                        <DropdownMenuGroup v-if="editSupport">
-                                                            <DropdownMenuItem class="text-blue-500">
-                                                                <Pencil class="h-8 w-8" />
-                                                                <span>Edit</span>
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator v-if="statusSupport" />
-                                                        <DropdownMenuItem v-if="statusSupport" class="text-green-500">
-                                                            <Ticket class="h-8 w-8" />
-                                                            <span>Open Ticket</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem v-if="statusSupport" class="text-red-500">
-                                                            <TicketX class="h-8 w-8" />
-                                                            <span>Close Ticket</span>
-                                                        </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
-                                        <TableRow v-if="filteredTickets.length === 0">
-                                            <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                        <TableRow v-if="!filteredTickets.length">
+                                            <TableCell colspan="8" class="text-center text-gray-500">
                                                 No tickets found.
                                             </TableCell>
                                         </TableRow>
@@ -224,22 +260,31 @@ const filteredFaqs = computed(() => {
                         </div>
                     </TabsContent>
 
+                    <!-- FAQs Tab -->
                     <TabsContent value="faq">
-                        <!-- FAQ Management Section -->
-                        <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                                <h2 class="text-lg font-semibold mb-2 md:mb-0">FAQ Management</h2>
-                                <div class="flex space-x-2">
+                        <div class="rounded-xl border p-4 space-y-4">
+
+                            <!-- Header: Search & Create -->
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                <h2 class="text-lg font-semibold">FAQ Management</h2>
+                                <div class="flex space-x-2 w-full md:w-auto">
                                     <Input
                                         v-model="faqSearchQuery"
                                         placeholder="Search FAQs..."
-                                        class="w-full rounded-md"
+                                        class="flex-1"
                                     />
-                                    <Button v-if="createSupport" variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                        Create FAQ
-                                    </Button>
+                                    <Link
+                                        v-if="createSupport"
+                                        :href="route('acp.support.faqs.create')"
+                                    >
+                                        <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                            Create FAQ
+                                        </Button>
+                                    </Link>
                                 </div>
                             </div>
+
+                            <!-- FAQs Table -->
                             <div class="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
@@ -247,66 +292,54 @@ const filteredFaqs = computed(() => {
                                             <TableHead>ID</TableHead>
                                             <TableHead>Question</TableHead>
                                             <TableHead>Answer</TableHead>
-                                            <TableHead></TableHead>
+                                            <TableHead>Order</TableHead>
+                                            <TableHead>Published</TableHead>
+                                            <TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         <TableRow
-                                            v-for="faq in filteredFaqs"
-                                            :key="faq.id"
+                                            v-for="f in filteredFaqs"
+                                            :key="f.id"
                                             class="hover:bg-gray-50 dark:hover:bg-gray-900"
                                         >
-                                            <TableCell>{{ faq.id }}</TableCell>
-                                            <TableCell>{{ faq.question }}</TableCell>
-                                            <TableCell>{{ faq.answer }}</TableCell>
+                                            <TableCell>{{ f.id }}</TableCell>
+                                            <TableCell>{{ f.question }}</TableCell>
+                                            <TableCell>{{ f.answer }}</TableCell>
+                                            <TableCell>{{ f.order }}</TableCell>
+                                            <TableCell>{{ f.published ? 'Yes' : 'No' }}</TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
                                                         <Button variant="outline" size="icon">
-                                                            <Ellipsis class="h-8 w-8" />
+                                                            <Ellipsis />
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator v-if="moveSupport||publishSupport" />
-                                                        <DropdownMenuGroup v-if="moveSupport">
-                                                            <DropdownMenuItem>
-                                                                <MoveUp class="h-8 w-8" />
-                                                                <span>Move Up</span>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem>
-                                                                <MoveDown class="h-8 w-8" />
-                                                                <span>Move Down</span>
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuGroup>
-                                                        <DropdownMenuGroup v-if="publishSupport">
-                                                            <DropdownMenuItem>
-                                                                <Eye class="h-8 w-8" />
-                                                                <span>Publish</span>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem>
-                                                                <EyeOff class="h-8 w-8" />
-                                                                <span>Unpublish</span>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuGroup>
+                                                            <Link
+                                                                v-if="editSupport"
+                                                                :href="route('acp.support.faqs.edit', { faq: f.id })"
+                                                            >
+                                                                <DropdownMenuItem>
+                                                                    <Pencil class="mr-2" /> Edit
+                                                                </DropdownMenuItem>
+                                                            </Link>
+                                                            <DropdownMenuItem
+                                                                v-if="deleteSupport"
+                                                                @click="$inertia.delete(route('acp.support.faqs.destroy', { faq: f.id }))"
+                                                            >
+                                                                <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator v-if="editSupport" />
-                                                        <DropdownMenuGroup v-if="editSupport">
-                                                            <DropdownMenuItem class="text-blue-500">
-                                                                <Pencil class="h-8 w-8" />
-                                                                <span>Edit</span>
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator v-if="deleteSupport" />
-                                                        <DropdownMenuItem v-if="deleteSupport" class="text-red-500">
-                                                            <Trash2 class="h-8 w-8" />
-                                                            <span>Delete</span>
-                                                        </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
-                                        <TableRow v-if="filteredFaqs.length === 0">
-                                            <TableCell colspan="4" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                        <TableRow v-if="!filteredFaqs.length">
+                                            <TableCell colspan="6" class="text-center text-gray-500">
                                                 No FAQs found.
                                             </TableCell>
                                         </TableRow>

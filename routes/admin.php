@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
+use App\Http\Controllers\Admin\SupportController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -52,6 +53,21 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/support', function () {
         return Inertia::render('acp/Support');
     })->name('acp.support');
+
+    // Support ACP
+    Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');
+
+    // Tickets
+    Route::get('acp/support/tickets/create', [SupportController::class,'createTicket'])->name('acp.support.tickets.create');
+    Route::post('acp/support/tickets', [SupportController::class,'storeTicket'])->name('acp.support.tickets.store');
+    Route::put('acp/support/tickets/{ticket}', [SupportController::class,'updateTicket'])->name('acp.support.tickets.update');
+    Route::delete('acp/support/tickets/{ticket}', [SupportController::class,'destroyTicket'])->name('acp.support.tickets.destroy');
+
+    // FAQs
+    Route::get('acp/support/faqs/create', [SupportController::class,'createFaq'])->name('acp.support.faqs.create');
+    Route::post('acp/support/faqs', [SupportController::class,'storeFaq'])->name('acp.support.faqs.store');
+    Route::put('acp/support/faqs/{faq}', [SupportController::class,'updateFaq'])->name('acp.support.faqs.update');
+    Route::delete('acp/support/faqs/{faq}', [SupportController::class,'destroyFaq'])->name('acp.support.faqs.destroy');
 
     Route::get('acp/system', function () {
         return Inertia::render('acp/System');
