@@ -15,7 +15,7 @@ const { hasPermission } = usePermissions();
 
 const isAdmin = computed(() => hasRole('admin|moderator|editor'));
 const manageUsers = computed(() => hasPermission('users.acp.view'));
-const managePermissions = computed(() => hasPermission('permissions.acp.view'));
+const manageACL = computed(() => hasPermission('acl.acp.view'));
 const manageBlogs = computed(() => hasPermission('blogs.acp.view'));
 const manageForums = computed(() => hasPermission('forums.acp.view'));
 const manageSupport = computed(() => hasPermission('support.acp.view'));
@@ -34,8 +34,8 @@ const sidebarNavItems: NavItem[] = [
         icon: User,
     },
     {
-        title: 'Permissions',
-        href: '/acp/permissions',
+        title: 'Access Control',
+        href: '/acp/acl',
         icon: Shield,
     },
     {
@@ -76,8 +76,8 @@ const filteredNavItems = computed(() => {
                 return isAdmin.value;
             case 'Users':
                 return manageUsers.value;
-            case 'Permissions':
-                return managePermissions.value;
+            case 'Access Control':
+                return manageACL.value;
             case 'Blogs':
                 return manageBlogs.value;
             case 'Forums':

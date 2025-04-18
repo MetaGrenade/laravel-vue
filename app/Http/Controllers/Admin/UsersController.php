@@ -71,4 +71,15 @@ class UsersController extends Controller
         return redirect()->route('acp.users.index')
             ->with('success','User deleted.');
     }
+
+    /**
+     * Manually mark a user’s email as verified.
+     */
+    public function verify(Request $request, User $user)
+    {
+        $user->update(['email_verified_at' => now()]);
+
+        return redirect()->route('acp.users.index')
+            ->with('success','User verified.');
+    }
 }

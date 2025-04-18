@@ -189,10 +189,9 @@ const stats = [
                                                             <Pencil class="mr-2"/> Edit
                                                         </DropdownMenuItem>
                                                     </Link>
-<!--                                                    <DropdownMenuItem>-->
-<!--                                                        <Shield class="mr-2" /> Permissions-->
-<!--                                                    </DropdownMenuItem>-->
-                                                    <DropdownMenuItem v-if="verifyUsers && user.email_verified_at === null" class="text-green-500">
+                                                    <DropdownMenuItem v-if="verifyUsers && !user.email_verified_at" class="text-green-500"
+                                                        @click="$inertia.put(route('acp.users.verify', { user: user.id }))"
+                                                    >
                                                         <MailCheck class="mr-2" /> Verify
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator v-if="deleteUsers" />

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
 import Input from '@/components/ui/input/Input.vue';
-import { Ellipsis, Shield, Trash2, Pencil } from 'lucide-vue-next';
 import Button from '@/components/ui/button/Button.vue';
 import {
     DropdownMenu,
@@ -17,13 +16,18 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { Ellipsis, Trash2, Pencil } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 // Permission checks
 const { hasPermission } = usePermissions();
-const createPermissions = computed(() => hasPermission('permissions.acp.create'));
-const editPermissions = computed(() => hasPermission('permissions.acp.edit'));
-const deletePermissions = computed(() => hasPermission('permissions.acp.delete'));
+const createRoles = computed(() => hasPermission('acl.acp.create'));
+const editRoles = computed(() => hasPermission('acl.acp.edit'));
+const deleteRoles = computed(() => hasPermission('acl.acp.delete'));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -32,33 +36,30 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Define interfaces for Role and Permission
-interface Role {
-    id: number;
-    name: string;
-    description: string;
-    created_at: string;
-}
-
-interface Permission {
-    id: number;
-    name: string;
-    description: string;
-    created_at: string;
-}
-
-// Dummy data for Roles and Permissions
-const roles = ref<Role[]>([
-    { id: 1, name: 'Admin', description: 'Full access to system', created_at: '2022-01-01' },
-    { id: 2, name: 'Editor', description: 'Can edit content', created_at: '2022-02-01' },
-    { id: 3, name: 'User', description: 'Regular user access', created_at: '2022-03-01' },
-]);
-
-const permissions = ref<Permission[]>([
-    { id: 1, name: 'create-post', description: 'Create a post', created_at: '2022-01-05' },
-    { id: 2, name: 'edit-post', description: 'Edit a post', created_at: '2022-02-10' },
-    { id: 3, name: 'delete-post', description: 'Delete a post', created_at: '2022-03-15' },
-]);
+const props = defineProps<{
+    roles: {
+        data: Array<{
+            id: number;
+            name: string;
+            guard_name: string;
+            created_at: string
+        }>;
+        current_page: number;
+        per_page: number;
+        total: number;
+    };
+    permissions: {
+        data: Array<{
+            id: number;
+            name: string;
+            guard_name: string;
+            created_at: string
+        }>;
+        current_page: number;
+        per_page: number;
+        total: number;
+    };
+}>();
 
 // Search queries for each section
 const roleSearchQuery = ref('');
@@ -66,20 +67,20 @@ const permissionSearchQuery = ref('');
 
 // Computed filtered data for roles and permissions
 const filteredRoles = computed(() => {
-    if (!roleSearchQuery.value) return roles.value;
+    if (!roleSearchQuery.value) return props.roles.data;
     const q = roleSearchQuery.value.toLowerCase();
-    return roles.value.filter(role =>
+    return props.roles.data.filter(role =>
         role.name.toLowerCase().includes(q) ||
-        role.description.toLowerCase().includes(q)
+        role.guard_name.toLowerCase().includes(q)
     );
 });
 
 const filteredPermissions = computed(() => {
-    if (!permissionSearchQuery.value) return permissions.value;
+    if (!permissionSearchQuery.value) return props.permissions.data;
     const q = permissionSearchQuery.value.toLowerCase();
-    return permissions.value.filter(permission =>
+    return props.permissions.data.filter(permission =>
         permission.name.toLowerCase().includes(q) ||
-        permission.description.toLowerCase().includes(q)
+        permission.guard_name.toLowerCase().includes(q)
     );
 });
 </script>
@@ -101,9 +102,12 @@ const filteredPermissions = computed(() => {
                                 placeholder="Search Roles..."
                                 class="w-full pr-10 max-w-sm"
                             />
-                            <Button v-if="createPermissions" variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                Create Role
-                            </Button>
+                            <Link v-if="createRoles" :href="route('acp.acl.roles.create')">
+                                <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                    Create Role
+                                </Button>
+                            </Link>
+
                         </div>
                     </div>
                     <!-- Roles Table using Table Components -->
@@ -113,17 +117,17 @@ const filteredPermissions = computed(() => {
                                 <TableRow>
                                     <TableHead>ID</TableHead>
                                     <TableHead>Name</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>Created At</TableHead>
-                                    <TableHead></TableHead>
+                                    <TableHead class="text-center">Guard Name</TableHead>
+                                    <TableHead class="text-center">Created At</TableHead>
+                                    <TableHead class="text-center"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow v-for="role in filteredRoles" :key="role.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <TableRow v-for="role in filteredRoles" :key="role.id">
                                     <TableCell>{{ role.id }}</TableCell>
                                     <TableCell>{{ role.name }}</TableCell>
-                                    <TableCell>{{ role.description }}</TableCell>
-                                    <TableCell>{{ role.created_at }}</TableCell>
+                                    <TableCell class="text-center">{{ role.guard_name }}</TableCell>
+                                    <TableCell class="text-center">{{ dayjs(role.created_at).fromNow() }}</TableCell>
                                     <TableCell class="text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger as-child>
@@ -133,21 +137,19 @@ const filteredPermissions = computed(() => {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuSeparator v-if="editPermissions" />
-                                                <DropdownMenuGroup v-if="editPermissions">
-                                                    <DropdownMenuItem class="text-blue-500">
-                                                        <Pencil class="h-8 w-8" />
-                                                        <span>Edit</span>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem>
-                                                        <Shield class="h-8 w-8" />
-                                                        <span>Permissions</span>
-                                                    </DropdownMenuItem>
+                                                <DropdownMenuSeparator v-if="editRoles" />
+                                                <DropdownMenuGroup v-if="editRoles">
+                                                    <Link v-if="editRoles" :href="route('acp.acl.roles.update', { role: role.id })">
+                                                        <DropdownMenuItem class="text-blue-500">
+                                                            <Pencil class="mr-2"/> Edit
+                                                        </DropdownMenuItem>
+                                                    </Link>
                                                 </DropdownMenuGroup>
-                                                <DropdownMenuSeparator v-if="deletePermissions" />
-                                                <DropdownMenuItem v-if="deletePermissions" class="text-red-500" disabled>
-                                                    <Trash2 class="h-8 w-8" />
-                                                    <span>Delete</span>
+                                                <DropdownMenuSeparator v-if="deleteRoles" />
+                                                <DropdownMenuItem v-if="deleteRoles" class="text-red-500"
+                                                    @click="$inertia.delete(route('acp.acl.roles.destroy', { role: role.id }))"
+                                                >
+                                                    <Trash2 class="mr-2" /> Delete
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -182,41 +184,16 @@ const filteredPermissions = computed(() => {
                                 <TableRow>
                                     <TableHead>ID</TableHead>
                                     <TableHead>Name</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>Created At</TableHead>
-                                    <TableHead></TableHead>
+                                    <TableHead class="text-center">Guard Name</TableHead>
+                                    <TableHead class="text-center">Created At</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow v-for="permission in filteredPermissions" :key="permission.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <TableRow v-for="permission in filteredPermissions" :key="permission.id">
                                     <TableCell>{{ permission.id }}</TableCell>
                                     <TableCell>{{ permission.name }}</TableCell>
-                                    <TableCell>{{ permission.description }}</TableCell>
-                                    <TableCell>{{ permission.created_at }}</TableCell>
-                                    <TableCell class="text-center">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger as-child>
-                                                <Button variant="outline" size="icon">
-                                                    <Ellipsis class="h-8 w-8" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuSeparator v-if="editPermissions" />
-                                                <DropdownMenuGroup v-if="editPermissions">
-                                                    <DropdownMenuItem class="text-blue-500">
-                                                        <Pencil class="h-8 w-8" />
-                                                        <span>Edit</span>
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuGroup>
-                                                <DropdownMenuSeparator v-if="deletePermissions" />
-                                                <DropdownMenuItem v-if="deletePermissions" class="text-red-500" disabled>
-                                                    <Trash2 class="h-8 w-8" />
-                                                    <span>Delete</span>
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
+                                    <TableCell class="text-center">{{ permission.guard_name }}</TableCell>
+                                    <TableCell class="text-center">{{ dayjs(permission.created_at).fromNow() }}</TableCell>
                                 </TableRow>
                                 <TableRow v-if="filteredPermissions.length === 0">
                                     <TableCell colspan="5" class="text-center text-sm text-gray-600 dark:text-gray-300">

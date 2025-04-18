@@ -19,7 +19,7 @@ class RolePermissionSeeder extends Seeder
         // Create permissions (adjust as needed)
         $permissions = [
             'users',
-            'permissions',
+            'acl',
             'blogs',
             'forums',
             'support',

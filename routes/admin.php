@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
+use App\Http\Controllers\Admin\ACLController as AdminACLController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,14 +20,22 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         return Inertia::render('acp/Users');
     })->name('acp.users');
 
+    // Admin User Management Routes
     Route::get('acp/users', [AdminUserController::class, 'index'])->name('acp.users.index');
     Route::get('acp/users/{user}/edit', [AdminUserController::class, 'edit'])->name('acp.users.edit');
     Route::put('acp/users/{user}',  [AdminUserController::class, 'update'])->name('acp.users.update');
     Route::delete('acp/users/{user}', [AdminUserController::class, 'destroy'])->name('acp.users.destroy');
+    Route::put('acp/users/{user}/verify', [AdminUserController::class, 'verify'])->name('acp.users.verify');
 
-    Route::get('acp/permissions', function () {
-        return Inertia::render('acp/Permissions');
-    })->name('acp.permissions');
+    // Admin Access Control Management Routes
+    Route::get('acp/acl', [AdminACLController::class, 'index'])->name('acp.acl.index');
+    Route::post('acp/acl/permissions', [AdminACLController::class, 'storePermission'])->name('acp.acl.permissions.store');
+    Route::put('acp/acl/permissions/{permission}', [AdminACLController::class, 'updatePermission'])->name('acp.acl.permissions.update');
+    Route::delete('acp/acl/permissions/{permission}', [AdminACLController::class, 'destroyPermission'])->name('acp.acl.permissions.destroy');
+    Route::post('acp/acl/roles', [AdminACLController::class, 'storeRole'])->name('acp.acl.roles.store');
+    Route::get('acp/acl/roles/create', [AdminACLController::class, 'createRole'])->name('acp.acl.roles.create');
+    Route::put('acp/acl/roles/{role}', [AdminACLController::class, 'updateRole'])->name('acp.acl.roles.update');
+    Route::delete('acp/acl/roles/{role}', [AdminACLController::class, 'destroyRole'])->name('acp.acl.roles.destroy');
 
     // Admin Blog Management Routes
     Route::get('/acp/blogs', [AdminBlogController::class, 'index'])->name('acp.blogs.index');
