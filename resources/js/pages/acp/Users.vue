@@ -23,6 +23,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import {
+    Pagination,
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+} from '@/components/ui/pagination';
+import {
     Users as UsersIcon,
     UserPlus,
     UserX,
@@ -34,16 +44,6 @@ import {
     MailCheck
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
-import {
-    Pagination,
-    PaginationEllipsis,
-    PaginationFirst,
-    PaginationLast,
-    PaginationList,
-    PaginationListItem,
-    PaginationNext,
-    PaginationPrev,
-} from '@/components/ui/pagination';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 

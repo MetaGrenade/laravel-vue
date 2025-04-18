@@ -22,7 +22,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { usePermissions } from '@/composables/usePermissions';
 import {
     Pagination,
     PaginationEllipsis,
@@ -37,6 +36,7 @@ import {
     FileText, Edit3, MessageCircle, CheckCircle, Ellipsis,
     Eye, EyeOff, Trash2, Pencil, Archive, ArchiveRestore, Users as UsersIcon, UserPlus, UserX, Activity
 } from 'lucide-vue-next';
+import { usePermissions } from '@/composables/usePermissions';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
