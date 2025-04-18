@@ -37,8 +37,9 @@ class SupportController extends Controller
         ]);
     }
 
+    // Tickets
     /**
-     * Show the form for creating a new blog post.
+     * Show the form for creating a new support ticket.
      */
     public function createTicket()
     {
@@ -81,9 +82,9 @@ class SupportController extends Controller
         return back()->with('success','Ticket deleted.');
     }
 
-    // FAQ CRU(D)
+    // FAQ
     /**
-     * Show the form for creating a new blog post.
+     * Show the form for creating a new FAQ.
      */
     public function createFaq()
     {
