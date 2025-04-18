@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
+use App\Http\Controllers\Admin\UsersController as AdminUserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -17,6 +18,11 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/users', function () {
         return Inertia::render('acp/Users');
     })->name('acp.users');
+
+    Route::get('acp/users', [AdminUserController::class, 'index'])->name('acp.users.index');
+    Route::get('acp/users/{user}/edit', [AdminUserController::class, 'edit'])->name('acp.users.edit');
+    Route::put('acp/users/{user}',  [AdminUserController::class, 'update'])->name('acp.users.update');
+    Route::delete('acp/users/{user}', [AdminUserController::class, 'destroy'])->name('acp.users.destroy');
 
     Route::get('acp/permissions', function () {
         return Inertia::render('acp/Permissions');

@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/pagination';
 import {
     FileText, Edit3, MessageCircle, CheckCircle, Ellipsis,
-    Eye, EyeOff, Trash2, Pencil, Archive, ArchiveRestore
+    Eye, EyeOff, Trash2, Pencil, Archive, ArchiveRestore, Users as UsersIcon, UserPlus, UserX, Activity
 } from 'lucide-vue-next';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -57,16 +57,40 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 // Expect that the admin controller passes a "blogs" prop (paginated collection)
-const props = defineProps({
-    blogs: Object,
-});
+const props = defineProps<{
+    blogs: {
+        data: Array<{
+            id: number;
+            title: string;
+            slug: string;
+            user: {
+                id: number;
+                name: string;
+                email: string;
+                email_verified_at: string;
+                roles: Array<{ name: string }>;
+                created_at: string;
+            };
+            created_at: string;
+        }>;
+        current_page: number;
+        per_page: number;
+        total: number;
+    };
+    blogStats: {
+        total: number;
+        published: number;
+        draft: number;
+        archived: number;
+    };
+}>();
 
 // Dummy blog statistics with Lucide icons
-const blogStats = [
-    { title: 'Total Posts', value: '120', icon: FileText },
-    { title: 'Published Posts', value: '95', icon: CheckCircle },
-    { title: 'Draft Posts', value: '25', icon: Edit3 },
-    { title: 'Total Comments', value: '450', icon: MessageCircle },
+const stats = [
+    { title: 'Total Posts', value: props.blogStats.total, icon: FileText },
+    { title: 'Published Posts', value: props.blogStats.published, icon: CheckCircle },
+    { title: 'Draft Posts', value: props.blogStats.draft, icon: Edit3 },
+    { title: 'Archived Posts', value: props.blogStats.archived, icon: Archive },
 ];
 
 // Search query for filtering blog posts
@@ -93,7 +117,7 @@ const filteredBlogPosts = computed(() => {
                 <!-- Blog Stats Section -->
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <div
-                        v-for="(stat, index) in blogStats"
+                        v-for="(stat, index) in stats"
                         :key="index"
                         class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
                     >
@@ -140,7 +164,7 @@ const filteredBlogPosts = computed(() => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow v-for="(post, index) in filteredBlogPosts" :key="post.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <TableRow v-for="(post, index) in filteredBlogPosts" :key="post.id">
                                     <TableCell>{{ post.id }}</TableCell>
                                     <TableCell>{{ post.title }}</TableCell>
                                     <TableCell class="text-center">{{ post.user.name }}</TableCell>

@@ -15,10 +15,22 @@ class BlogController extends Controller
      */
     public function index(Request $request)
     {
-        // Retrieve blogs with their associated author information.
-        $blogs = Blog::with('user')->orderBy('created_at', 'desc')->paginate(15);
+        $perPage = $request->get('per_page', 15);
 
-        return inertia('acp/Blogs', compact('blogs'));
+        // Retrieve blogs with their associated author information.
+        $blogs = Blog::with('user')
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $blogStats = [
+            'total'      => Blog::count(),
+            'published'  => Blog::where('status', 'published')->count(),
+            'draft'      => Blog::where('status', 'draft')->count(),
+            'archived'   => Blog::where('status', 'archived')->count(),
+        ];
+
+        return inertia('acp/Blogs', compact('blogs', 'blogStats'));
     }
 
     /**
