@@ -53,6 +53,7 @@ dayjs.extend(relativeTime);
 const { hasPermission } = usePermissions();
 const editUsers = computed(() => hasPermission('users.acp.edit'));
 const deleteUsers = computed(() => hasPermission('users.acp.delete'));
+const verifyUsers = computed(() => hasPermission('users.acp.verify'));
 
 // Define exactly the props we expect from the controller:
 const props = defineProps<{
@@ -191,7 +192,7 @@ const stats = [
 <!--                                                    <DropdownMenuItem>-->
 <!--                                                        <Shield class="mr-2" /> Permissions-->
 <!--                                                    </DropdownMenuItem>-->
-                                                    <DropdownMenuItem v-if="editUsers && user.email_verified_at === null" class="text-green-500">
+                                                    <DropdownMenuItem v-if="verifyUsers && user.email_verified_at === null" class="text-green-500">
                                                         <MailCheck class="mr-2" /> Verify
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator v-if="deleteUsers" />
