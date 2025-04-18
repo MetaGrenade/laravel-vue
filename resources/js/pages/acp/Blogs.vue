@@ -71,6 +71,7 @@ const props = defineProps<{
                 roles: Array<{ name: string }>;
                 created_at: string;
             };
+            status: string;
             created_at: string;
         }>;
         current_page: number;
@@ -186,19 +187,19 @@ const filteredBlogPosts = computed(() => {
                                                 <DropdownMenuSeparator v-if="publishBlogs" />
                                                 <DropdownMenuGroup v-if="publishBlogs">
                                                     <DropdownMenuItem v-if="post.status === 'draft'">
-                                                        <Eye class="h-8 w-8" />
+                                                        <Eye class="mr-2" />
                                                         <span>Publish</span>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem v-if="post.status === 'published'">
-                                                        <EyeOff class="h-8 w-8" />
+                                                        <EyeOff class="mr-2" />
                                                         <span>Unpublish</span>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem v-if="post.status === 'archived'">
-                                                        <ArchiveRestore class="h-8 w-8" />
+                                                        <ArchiveRestore class="mr-2" />
                                                         <span>Un Archive</span>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem v-if="post.status !== 'archived'">
-                                                        <Archive class="h-8 w-8" />
+                                                        <Archive class="mr-2" />
                                                         <span>Archive</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
@@ -206,14 +207,16 @@ const filteredBlogPosts = computed(() => {
                                                 <DropdownMenuGroup v-if="editBlogs">
                                                     <Link :href="route('acp.blogs.edit', { blog: post.id })">
                                                         <DropdownMenuItem class="text-blue-500">
-                                                            <Pencil class="h-8 w-8" />
+                                                            <Pencil class="mr-2" />
                                                             <span>Edit</span>
                                                         </DropdownMenuItem>
                                                     </Link>
                                                 </DropdownMenuGroup>
                                                 <DropdownMenuSeparator v-if="deleteBlogs" />
-                                                <DropdownMenuItem v-if="deleteBlogs" class="text-red-500">
-                                                    <Trash2 class="h-8 w-8" />
+                                                <DropdownMenuItem v-if="deleteBlogs" class="text-red-500"
+                                                    @click="$inertia.delete(route('acp.blogs.destroy',{ user: post.id }))"
+                                                >
+                                                    <Trash2 class="mr-2" />
                                                     <span>Delete</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
