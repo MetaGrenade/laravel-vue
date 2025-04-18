@@ -56,7 +56,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Expect that the admin controller passes a "blogs" prop (paginated collection)
+// Expect that the admin controller passes a "blogs" (paginated collection) & "blogStats" prop
 const props = defineProps<{
     blogs: {
         data: Array<{

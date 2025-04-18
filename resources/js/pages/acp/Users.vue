@@ -55,7 +55,7 @@ const editUsers = computed(() => hasPermission('users.acp.edit'));
 const deleteUsers = computed(() => hasPermission('users.acp.delete'));
 const verifyUsers = computed(() => hasPermission('users.acp.verify'));
 
-// Define exactly the props we expect from the controller:
+// Expect that the admin controller passes a "users" (paginated collection) & "userStats" prop
 const props = defineProps<{
     users: {
         data: Array<{
