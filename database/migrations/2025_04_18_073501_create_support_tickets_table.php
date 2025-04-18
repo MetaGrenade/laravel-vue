@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('subject');
             $table->text('body');
-            $table->enum('status', ['open','pending','closed'])->default('open');
+            $table->enum('status', ['open','pending','closed'])->default('pending');
             $table->enum('priority', ['low','medium','high'])->default('medium');
             $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

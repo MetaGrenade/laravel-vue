@@ -29,6 +29,10 @@ import {
     Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 // Permission checks
 const { hasPermission } = usePermissions();
@@ -197,11 +201,11 @@ const filteredFaqs = computed(() => {
                                             <TableHead>ID</TableHead>
                                             <TableHead>Subject</TableHead>
                                             <TableHead>Submitted By</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Priority</TableHead>
-                                            <TableHead>Assigned To</TableHead>
-                                            <TableHead>Created At</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                            <TableHead class="text-center">Status</TableHead>
+                                            <TableHead class="text-center">Priority</TableHead>
+                                            <TableHead class="text-center">Assigned</TableHead>
+                                            <TableHead class="text-center">Created</TableHead>
+                                            <TableHead class="text-center">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -213,10 +217,10 @@ const filteredFaqs = computed(() => {
                                             <TableCell>{{ t.id }}</TableCell>
                                             <TableCell>{{ t.subject }}</TableCell>
                                             <TableCell>{{ t.user.name }}</TableCell>
-                                            <TableCell>{{ t.status }}</TableCell>
-                                            <TableCell>{{ t.priority }}</TableCell>
-                                            <TableCell>{{ t.assignee?.name || '—' }}</TableCell>
-                                            <TableCell>{{ t.created_at }}</TableCell>
+                                            <TableCell class="text-center">{{ t.status }}</TableCell>
+                                            <TableCell class="text-center">{{ t.priority }}</TableCell>
+                                            <TableCell class="text-center">{{ t.assignee?.name || '—' }}</TableCell>
+                                            <TableCell class="text-center">{{ dayjs(t.created_at).fromNow() }}</TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
@@ -226,23 +230,40 @@ const filteredFaqs = computed(() => {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuGroup>
-                                                            <Link
-                                                                v-if="editSupport"
-                                                                :href="route('acp.support.tickets.edit', { ticket: t.id })"
-                                                            >
+                                                        <DropdownMenuSeparator v-if="assignSupport||prioritySupport" />
+                                                        <DropdownMenuGroup v-if="assignSupport||prioritySupport">
+                                                            <DropdownMenuItem v-if="assignSupport">
+                                                                <UserPlus class="h-8 w-8" />
+                                                                <span>Add Users</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem v-if="prioritySupport">
+                                                                <SquareChevronUp class="h-8 w-8" />
+                                                                <span>Elevate Priority</span>
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator v-if="editSupport" />
+                                                        <DropdownMenuGroup v-if="editSupport">
+                                                            <Link :href="route('acp.support.tickets.edit', { ticket: t.id })">
                                                                 <DropdownMenuItem>
-                                                                    <Pencil class="mr-2" />
-                                                                    Edit
+                                                                    <Pencil class="mr-2" /> Edit
                                                                 </DropdownMenuItem>
                                                             </Link>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator v-if="statusSupport" />
+                                                        <DropdownMenuGroup v-if="statusSupport">
+                                                            <DropdownMenuItem v-if="t.status !== 'open'" class="text-green-500">
+                                                                <Ticket class="mr-2" /> Open Ticket
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem v-if="t.status === 'open'" class="text-red-500">
+                                                                <TicketX class="mr-2" /> Close Ticket
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator v-if="deleteSupport" />
+                                                        <DropdownMenuGroup v-if="deleteSupport">
                                                             <DropdownMenuItem
-                                                                v-if="deleteSupport"
                                                                 @click="$inertia.delete(route('acp.support.tickets.destroy', { ticket: t.id }))"
                                                             >
-                                                                <Trash2 class="mr-2" />
-                                                                Delete
+                                                                <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                     </DropdownMenuContent>
