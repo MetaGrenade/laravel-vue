@@ -29,10 +29,10 @@ import {
     Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import { useUserTimezone } from '@/composables/useUserTimezone';
 
-dayjs.extend(relativeTime);
+// dayjs composable for human readable dates
+const { fromNow } = useUserTimezone();
 
 // Permission checks
 const { hasPermission } = usePermissions();
@@ -119,6 +119,8 @@ const filteredFaqs = computed(() => {
         f.answer.toLowerCase().includes(q)
     );
 });
+
+console.log(fromNow(new Date()));
 </script>
 
 <template>
@@ -212,15 +214,30 @@ const filteredFaqs = computed(() => {
                                         <TableRow
                                             v-for="t in filteredTickets"
                                             :key="t.id"
-                                            class="hover:bg-gray-50 dark:hover:bg-gray-900"
                                         >
                                             <TableCell>{{ t.id }}</TableCell>
                                             <TableCell>{{ t.subject }}</TableCell>
                                             <TableCell>{{ t.user.name }}</TableCell>
-                                            <TableCell class="text-center">{{ t.status }}</TableCell>
-                                            <TableCell class="text-center">{{ t.priority }}</TableCell>
+                                            <TableCell class="text-center">
+                                                <span :class="{
+                                                    'text-blue-500': t.status === 'pending',
+                                                    'text-green-500': t.status === 'open',
+                                                    'text-red-500': t.status === 'closed'
+                                                  }">
+                                                    {{ t.status }}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell class="text-center">
+                                                <span :class="{
+                                                    'text-blue-500': t.priority === 'low',
+                                                    'text-yellow-500': t.priority === 'medium',
+                                                    'text-red-500': t.priority === 'high'
+                                                  }">
+                                                    {{ t.priority }}
+                                                </span>
+                                            </TableCell>
                                             <TableCell class="text-center">{{ t.assignee?.name || '—' }}</TableCell>
-                                            <TableCell class="text-center">{{ dayjs(t.created_at).fromNow() }}</TableCell>
+                                            <TableCell class="text-center">{{ fromNow(t.created_at) }}</TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
@@ -243,7 +260,7 @@ const filteredFaqs = computed(() => {
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="editSupport" />
                                                         <DropdownMenuGroup v-if="editSupport">
-                                                            <Link :href="route('acp.support.tickets.edit', { ticket: t.id })">
+                                                            <Link :href="route('acp.support.tickets.update', { ticket: t.id })">
                                                                 <DropdownMenuItem>
                                                                     <Pencil class="mr-2" /> Edit
                                                                 </DropdownMenuItem>
@@ -359,7 +376,7 @@ const filteredFaqs = computed(() => {
                                                         <DropdownMenuGroup v-if="editSupport||deleteSupport">
                                                             <Link
                                                                 v-if="editSupport"
-                                                                :href="route('acp.support.faqs.edit', { faq: f.id })"
+                                                                :href="route('acp.support.faqs.update', { faq: f.id })"
                                                             >
                                                                 <DropdownMenuItem>
                                                                     <Pencil class="mr-2" /> Edit

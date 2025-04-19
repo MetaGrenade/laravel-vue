@@ -33,21 +33,13 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import {
-    Users as UsersIcon,
-    UserPlus,
-    UserX,
-    Activity,
-    Ellipsis,
-    Pencil,
-    Trash2,
-    Shield,
-    MailCheck
+    Users as UsersIcon, UserPlus, UserX, Activity, Ellipsis, Pencil, Trash2, MailCheck
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import { useUserTimezone } from '@/composables/useUserTimezone';
 
-dayjs.extend(relativeTime);
+// dayjs composable for human readable dates
+const { fromNow } = useUserTimezone();
 
 // Permission checks
 const { hasPermission } = usePermissions();
@@ -172,7 +164,7 @@ const stats = [
                         {{ role.name }}
                       </span>
                                     </TableCell>
-                                    <TableCell class="text-center">{{ dayjs(user.created_at).fromNow() }}</TableCell>
+                                    <TableCell class="text-center">{{ fromNow(user.created_at) }}</TableCell>
                                     <TableCell class="text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger as-child>

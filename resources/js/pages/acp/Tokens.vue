@@ -5,8 +5,6 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { type BreadcrumbItem } from '@/types';
-
-// Import shadcn‑vue components
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -25,8 +23,12 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff } from 'lucide-vue-next';
+import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff, Ban } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
+import { useUserTimezone } from '@/composables/useUserTimezone';
+
+// dayjs composable for human readable dates
+const { fromNow } = useUserTimezone();
 
 // Permission checks
 const { hasPermission } = usePermissions();
@@ -239,8 +241,8 @@ const filteredLogs = computed(() => {
                                             <TableHead>ID</TableHead>
                                             <TableHead>Token Name</TableHead>
                                             <TableHead>Assigned To</TableHead>
-                                            <TableHead>Created At</TableHead>
-                                            <TableHead>Last Used</TableHead>
+                                            <TableHead class="text-center">Created</TableHead>
+                                            <TableHead class="text-center">Last Used</TableHead>
                                             <TableHead class="text-center">Status</TableHead>
                                             <TableHead class="text-center">Actions</TableHead>
                                         </TableRow>
@@ -257,16 +259,16 @@ const filteredLogs = computed(() => {
                                                 {{ token.user.name }}<br />
                                                 <span class="text-xs text-gray-500">{{ token.user.email }}</span>
                                             </TableCell>
-                                            <TableCell>{{ token.created_at }}</TableCell>
-                                            <TableCell>{{ token.last_used_at || 'Never' }}</TableCell>
+                                            <TableCell class="text-center">{{ fromNow(token.created_at) }}</TableCell>
+                                            <TableCell class="text-center">{{ fromNow(token.last_used_at) || 'Never' }}</TableCell>
                                             <TableCell class="text-center">
-                        <span :class="{
-                            'text-green-500': token.status === 'active',
-                            'text-yellow-500': token.status === 'expired',
-                            'text-red-500': token.status === 'revoked'
-                          }" class="font-medium">
-                          {{ token.status }}
-                        </span>
+                                                <span :class="{
+                                                    'text-green-500': token.status === 'active',
+                                                    'text-yellow-500': token.status === 'expired',
+                                                    'text-red-500': token.status === 'revoked'
+                                                  }" class="font-medium">
+                                                  {{ token.status }}
+                                                </span>
                                             </TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
@@ -280,18 +282,15 @@ const filteredLogs = computed(() => {
                                                         <DropdownMenuSeparator v-if="editTokens" />
                                                         <DropdownMenuGroup v-if="editTokens">
                                                             <DropdownMenuItem class="text-blue-500">
-                                                                <Pencil class="h-8 w-8" />
-                                                                <span>Edit</span>
+                                                                <Pencil class="mr-2" /> Edit
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem class="text-red-500">
-                                                                <Trash2 class="h-8 w-8" />
-                                                                <span>Revoke</span>
+                                                                <Ban class="mr-2" /> Revoke
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="deleteTokens" />
                                                         <DropdownMenuItem v-if="deleteTokens" class="text-red-500">
-                                                            <Trash2 class="h-8 w-8" />
-                                                            <span>Delete</span>
+                                                            <Trash2 class="mr-2" /> Delete
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -344,7 +343,7 @@ const filteredLogs = computed(() => {
                                             <TableCell>{{ log.id }}</TableCell>
                                             <TableCell>{{ log.token_name }}</TableCell>
                                             <TableCell>{{ log.api_route }}</TableCell>
-                                            <TableCell>{{ log.timestamp }}</TableCell>
+                                            <TableCell>{{ fromNow(log.timestamp) }}</TableCell>
                                             <TableCell class="text-center">
                                                 <span :class="{
                                                   'text-green-500': log.status === 'success',

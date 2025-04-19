@@ -33,14 +33,13 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import {
-    FileText, Edit3, MessageCircle, CheckCircle, Ellipsis,
-    Eye, EyeOff, Trash2, Pencil, Archive, ArchiveRestore, Users as UsersIcon, UserPlus, UserX, Activity
+    FileText, Edit3, CheckCircle, Ellipsis, Eye, EyeOff, Trash2, Pencil, Archive, ArchiveRestore
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import { useUserTimezone } from '@/composables/useUserTimezone';
 
-dayjs.extend(relativeTime);
+// dayjs composable for human readable dates
+const { fromNow } = useUserTimezone();
 
 // Permission checks
 const { hasPermission } = usePermissions();
@@ -169,7 +168,7 @@ const filteredBlogPosts = computed(() => {
                                     <TableCell>{{ post.id }}</TableCell>
                                     <TableCell>{{ post.title }}</TableCell>
                                     <TableCell class="text-center">{{ post.user.name }}</TableCell>
-                                    <TableCell class="text-center">{{ dayjs(post.created_at).fromNow() }}</TableCell>
+                                    <TableCell class="text-center">{{ fromNow(post.created_at) }}</TableCell>
                                     <TableCell class="text-center" :class="{
                                     'text-green-500': post.status === 'published',
                                     'text-red-500': post.status === 'archived',
