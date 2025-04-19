@@ -38,12 +38,12 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::delete('acp/acl/roles/{role}', [AdminACLController::class, 'destroyRole'])->name('acp.acl.roles.destroy');
 
     // Admin Blog Management Routes
-    Route::get('/acp/blogs', [AdminBlogController::class, 'index'])->name('acp.blogs.index');
-    Route::get('/acp/blogs/create', [AdminBlogController::class, 'create'])->name('acp.blogs.create');
-    Route::post('/acp/blogs', [AdminBlogController::class, 'store'])->name('acp.blogs.store');
-    Route::get('/acp/blogs/{blog}/edit', [AdminBlogController::class, 'edit'])->name('acp.blogs.edit');
-    Route::put('/acp/blogs/{blog}', [AdminBlogController::class, 'update'])->name('acp.blogs.update');
-    Route::delete('/acp/blogs/{blog}', [AdminBlogController::class, 'destroy'])->name('acp.blogs.destroy');
+    Route::get('acp/blogs', [AdminBlogController::class, 'index'])->name('acp.blogs.index');
+    Route::get('acp/blogs/create', [AdminBlogController::class, 'create'])->name('acp.blogs.create');
+    Route::post('acp/blogs', [AdminBlogController::class, 'store'])->name('acp.blogs.store');
+    Route::get('acp/blogs/{blog}/edit', [AdminBlogController::class, 'edit'])->name('acp.blogs.edit');
+    Route::put('acp/blogs/{blog}', [AdminBlogController::class, 'update'])->name('acp.blogs.update');
+    Route::delete('acp/blogs/{blog}', [AdminBlogController::class, 'destroy'])->name('acp.blogs.destroy');
 
     Route::get('acp/forums', function () {
         return Inertia::render('acp/Forums');
