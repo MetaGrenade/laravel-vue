@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreFaqRequest;
+use App\Http\Requests\Admin\StoreSupportTicketRequest;
+use App\Http\Requests\Admin\UpdateFaqRequest;
+use App\Http\Requests\Admin\UpdateSupportTicketRequest;
 use App\Models\SupportTicket;
 use App\Models\Faq;
 use Illuminate\Http\Request;
@@ -46,33 +50,15 @@ class SupportController extends Controller
         return inertia('acp/SupportTicketCreate');
     }
 
-    public function storeTicket(Request $request)
+    public function storeTicket(StoreSupportTicketRequest $request)
     {
-        $data = $request->validate([
-            'subject'  => 'required|string|max:255',
-            'body'     => 'required|string',
-            'priority' => 'in:low,medium,high',
-        ]);
-
-        SupportTicket::create(array_merge($data, [
-            'user_id' => $request->user()->id,
-        ]));
-
+        SupportTicket::create($request->validated());
         return back()->with('success','Ticket created.');
     }
 
-    public function updateTicket(Request $request, SupportTicket $ticket)
+    public function updateTicket(UpdateSupportTicketRequest $request, SupportTicket $ticket)
     {
-        $data = $request->validate([
-            'subject'    => 'sometimes|required|string|max:255',
-            'body'       => 'sometimes|required|string',
-            'status'     => 'in:open,pending,closed',
-            'priority'   => 'in:low,medium,high',
-            'assigned_to'=> 'nullable|exists:users,id',
-        ]);
-
-        $ticket->update($data);
-
+        $ticket->update($request->validated());
         return back()->with('success','Ticket updated.');
     }
 
@@ -91,31 +77,15 @@ class SupportController extends Controller
         return inertia('acp/SupportFaqCreate');
     }
 
-    public function storeFaq(Request $request)
+    public function storeFaq(StoreFaqRequest $request)
     {
-        $data = $request->validate([
-            'question'  => 'required|string',
-            'answer'    => 'required|string',
-            'order'     => 'integer',
-            'published' => 'boolean',
-        ]);
-
-        Faq::create($data);
-
+        Faq::create($request->validated());
         return back()->with('success','FAQ created.');
     }
 
-    public function updateFaq(Request $request, Faq $faq)
+    public function updateFaq(UpdateFaqRequest $request, Faq $faq)
     {
-        $data = $request->validate([
-            'question'  => 'sometimes|required|string',
-            'answer'    => 'sometimes|required|string',
-            'order'     => 'integer',
-            'published' => 'boolean',
-        ]);
-
-        $faq->update($data);
-
+        $faq->update($request->validated());
         return back()->with('success','FAQ updated.');
     }
 

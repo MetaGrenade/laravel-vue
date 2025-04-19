@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreUserRequest;
+use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -44,19 +46,22 @@ class UsersController extends Controller
     }
 
     /**
+     * Store a new user record.
+     */
+    public function store(StoreUserRequest $request)
+    {
+        $user = User::create($request->validated());
+        $user->syncRoles($request->roles ?? []);
+        return redirect()->route('acp.users.index')->with('success','User created.');
+    }
+
+    /**
      * Update the specified user.
      */
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
-        $data = $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
-            'roles' => 'array',               // e.g. ['admin','editor']
-        ]);
-
-        $user->update($data);
-        $user->syncRoles($data['roles'] ?? []);
-
+        $user->update($request->validated());
+        $user->syncRoles($request->roles ?? []);
         return redirect()->route('acp.users.index')
             ->with('success','User updated.');
     }
@@ -67,7 +72,6 @@ class UsersController extends Controller
     public function destroy(User $user)
     {
         $user->delete();
-
         return redirect()->route('acp.users.index')
             ->with('success','User deleted.');
     }
@@ -75,10 +79,9 @@ class UsersController extends Controller
     /**
      * Manually mark a user’s email as verified.
      */
-    public function verify(Request $request, User $user)
+    public function verify(User $user)
     {
         $user->update(['email_verified_at' => now()]);
-
         return redirect()->route('acp.users.index')
             ->with('success','User verified.');
     }

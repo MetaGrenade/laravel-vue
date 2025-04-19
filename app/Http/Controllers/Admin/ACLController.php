@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StorePermissionRequest;
+use App\Http\Requests\Admin\StoreRoleRequest;
+use App\Http\Requests\Admin\UpdatePermissionRequest;
+use App\Http\Requests\Admin\UpdateRoleRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
@@ -17,7 +21,7 @@ class ACLController extends Controller
     {
         $perPage = $request->get('per_page', 15);
 
-        $roles = Role::orderBy('name')
+        $roles = Role::with('permissions')->orderBy('name')
             ->paginate($perPage)
             ->withQueryString();
 
@@ -40,30 +44,20 @@ class ACLController extends Controller
     /**
      * Create a new Role.
      */
-    public function storeRole(Request $request)
+    public function storeRole(StoreRoleRequest $request)
     {
-        $data = $request->validate([
-            'name'        => 'required|string|max:255|unique:roles,name',
-            'guard_name' => 'required|string|max:255',
-        ]);
-
-        Role::create($data);
-
+        $role = Role::create($request->validated());
+        $role->syncPermissions($request->permissions ?? []);
         return back()->with('success', 'Role created.');
     }
 
     /**
      * Update an existing Role.
      */
-    public function updateRole(Request $request, Role $role)
+    public function updateRole(UpdateRoleRequest $request, Role $role)
     {
-        $data = $request->validate([
-            'name'        => 'required|string|max:255|unique:roles,name,' . $role->id,
-            'guard_name'  => 'required|string|max:255',
-        ]);
-
-        $role->update($data);
-
+        $role->update($request->validated());
+        $role->syncPermissions($request->permissions ?? []);
         return back()->with('success', 'Role updated.');
     }
 
@@ -73,37 +67,24 @@ class ACLController extends Controller
     public function destroyRole(Role $role)
     {
         $role->delete();
-
         return back()->with('success', 'Role deleted.');
     }
 
     /**
      * Create a new Permission.
      */
-    public function storePermission(Request $request)
+    public function storePermission(StorePermissionRequest $request)
     {
-        $data = $request->validate([
-            'name'        => 'required|string|max:255|unique:permissions,name',
-            'guard_name'  => 'required|string|max:255',
-        ]);
-
-        Permission::create($data);
-
+        Permission::create($request->validated());
         return back()->with('success', 'Permission created.');
     }
 
     /**
      * Update an existing Permission.
      */
-    public function updatePermission(Request $request, Permission $permission)
+    public function updatePermission(UpdatePermissionRequest $request, Permission $permission)
     {
-        $data = $request->validate([
-            'name'        => 'required|string|max:255|unique:permissions,name,' . $permission->id,
-            'guard_name'  => 'required|string|max:255',
-        ]);
-
-        $permission->update($data);
-
+        $permission->update($request->validated());
         return back()->with('success', 'Permission updated.');
     }
 
@@ -113,7 +94,6 @@ class ACLController extends Controller
     public function destroyPermission(Permission $permission)
     {
         $permission->delete();
-
         return back()->with('success', 'Permission deleted.');
     }
 }
