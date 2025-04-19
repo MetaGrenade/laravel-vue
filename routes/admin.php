@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
 use App\Http\Controllers\Admin\SupportController;
+use App\Http\Controllers\Admin\TokenController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -73,9 +74,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         return Inertia::render('acp/System');
     })->name('acp.system');
 
-    Route::get('acp/tokens', function () {
-        return Inertia::render('acp/Tokens');
-    })->name('acp.tokens');
+    // Tokens
+    Route::get('acp/tokens', [TokenController::class,'index'])->name('acp.tokens.index');
+    Route::post('acp/tokens', [TokenController::class,'store'])->name('acp.tokens.store');
+    Route::delete('acp/tokens/{token}', [TokenController::class,'destroy'])->name('acp.tokens.destroy');
 
     Route::get('acp/tokens/logs/view', function () {
         return Inertia::render('acp/TokenLogView');

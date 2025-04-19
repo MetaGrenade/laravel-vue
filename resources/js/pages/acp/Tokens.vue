@@ -41,71 +41,51 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Tokens', href: '/acp/tokens' }
 ];
 
-// --------------------
-// Token Data & Stats
-// --------------------
-interface Token {
-    id: number;
-    name: string;
-    user: {
+const props = defineProps<{
+    tokens: {
+        data: Array<{
+            id: number;
+            name: string;
+            user: {
+                id: number;
+                name: string;
+                email: string;
+            };
+            created_at: string;
+            last_used_at?: string;
+            status: 'active' | 'expired' | 'revoked';
+        }>;
+        current_page: number;
+        per_page: number;
+        total: number;
+    };
+    tokenStats: {
+        total: number;
+        active: number;
+        expired: number;
+        revoked: number;
+    };
+    userList: Array<{
         id: number;
         name: string;
         email: string;
-    };
-    created_at: string;
-    last_used_at?: string;
-    status: 'active' | 'expired' | 'revoked';
-}
+    }>;
+}>();
 
-const tokens = ref<Token[]>([
-    {
-        id: 1,
-        name: 'Admin Token',
-        user: { id: 1, name: 'Admin', email: 'admin@example.com' },
-        created_at: '2023-07-25 10:00:00',
-        last_used_at: '2023-07-28 08:00:00',
-        status: 'active'
-    },
-    {
-        id: 2,
-        name: 'Editor Token',
-        user: { id: 2, name: 'EditorUser', email: 'editor@example.com' },
-        created_at: '2023-07-26 11:00:00',
-        last_used_at: '2023-07-28 09:00:00',
-        status: 'expired'
-    },
-    {
-        id: 3,
-        name: 'Old User Token',
-        user: { id: 3, name: 'RegularUser', email: 'user@example.com' },
-        created_at: '2023-06-15 08:00:00',
-        last_used_at: '2023-07-01 08:00:00',
-        status: 'revoked'
-    },
-    {
-        id: 4,
-        name: 'Discord Bot Token',
-        user: { id: 4, name: 'DiscordBot', email: 'bot@discord.com' },
-        created_at: '2025-04-15 08:00:00',
-        last_used_at: '2025-04-15 08:00:00',
-        status: 'active'
-    },
-]);
-
-const totalTokens = computed(() => tokens.value.length);
-const activeTokens = computed(() => tokens.value.filter(t => t.status === 'active').length);
-const expiredTokens = computed(() => tokens.value.filter(t => t.status === 'expired').length);
-const revokedTokens = computed(() => tokens.value.filter(t => t.status === 'revoked').length);
+const totalTokens = computed(() => props.tokenStats.total);
+const activeTokens = computed(() => props.tokenStats.active);
+const expiredTokens = computed(() => props.tokenStats.expired);
+const revokedTokens = computed(() => props.tokenStats.revoked);
 
 // Search query and filtering for token list
 const tokenSearchQuery = ref('');
 const filteredTokens = computed(() => {
-    if (!tokenSearchQuery.value) return tokens.value;
+    if (!tokenSearchQuery.value) return props.tokens.data;
     const q = tokenSearchQuery.value.toLowerCase();
-    return tokens.value.filter(token =>
-        token.name.toLowerCase().includes(q) ||
-        token.user.name.toLowerCase().includes(q) ||
-        token.user.email.toLowerCase().includes(q)
+    return props.tokens.data.filter((t: any) =>
+        t.name.toLowerCase().includes(q) ||
+        t.user.name.toLowerCase().includes(q) ||
+        t.user.email.toLowerCase().includes(q)
     );
 });
 
@@ -289,14 +269,18 @@ const filteredLogs = computed(() => {
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="deleteTokens" />
-                                                        <DropdownMenuItem v-if="deleteTokens" class="text-red-500">
-                                                            <Trash2 class="mr-2" /> Delete
-                                                        </DropdownMenuItem>
+                                                        <Link :href="route('acp.tokens.index')" v-if="deleteTokens">
+                                                            <DropdownMenuItem  class="text-red-500"
+                                                                @click.prevent="$inertia.delete(route('acp.tokens.destroy', { token: t.id }))"
+                                                            >
+                                                                <Trash2 class="mr-2"/> Delete
+                                                            </DropdownMenuItem>
+                                                        </Link>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
-                                        <TableRow v-if="filteredTokens.length === 0">
+                                        <TableRow v-if="!filteredTokens.length">
                                             <TableCell colspan="7" class="text-center text-sm text-gray-600 dark:text-gray-300">
                                                 No tokens found.
                                             </TableCell>
