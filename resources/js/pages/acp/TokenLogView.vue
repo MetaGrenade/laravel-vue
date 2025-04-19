@@ -60,7 +60,7 @@ const tokenLog = ref<TokenLogDetail>({
             <div class="container mx-auto p-4 space-y-8">
                 <!-- Back Button & Page Heading -->
                 <div class="flex items-center space-x-4">
-                    <Link :href="route('acp.tokens')">
+                    <Link :href="route('acp.tokens.index')">
                         <Button variant="outline" size="icon">
                             <ArrowLeft class="h-5 w-5" />
                         </Button>

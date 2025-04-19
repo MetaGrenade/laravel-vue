@@ -23,7 +23,7 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     // Admin User Management Routes
     Route::get('acp/users', [AdminUserController::class, 'index'])->name('acp.users.index');
     Route::get('acp/users/{user}/edit', [AdminUserController::class, 'edit'])->name('acp.users.edit');
-    Route::put('acp/users/{user}',  [AdminUserController::class, 'update'])->name('acp.users.update');
+    Route::put('acp/users/{user}', [AdminUserController::class, 'update'])->name('acp.users.update');
     Route::delete('acp/users/{user}', [AdminUserController::class, 'destroy'])->name('acp.users.destroy');
     Route::put('acp/users/{user}/verify', [AdminUserController::class, 'verify'])->name('acp.users.verify');
 
