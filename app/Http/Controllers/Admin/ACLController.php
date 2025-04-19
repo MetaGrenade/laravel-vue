@@ -32,7 +32,6 @@ class ACLController extends Controller
         return inertia('acp/AccessControlLayer', compact('roles','permissions'));
     }
 
-
     /**
      * Show the form for creating a new blog post.
      */
