@@ -52,7 +52,8 @@ class UsersController extends Controller
     {
         $user = User::create($request->validated());
         $user->syncRoles($request->roles ?? []);
-        return redirect()->route('acp.users.index')->with('success','User created.');
+        return redirect()->route('acp.users.index')
+            ->with('success','User created.');
     }
 
     /**
