@@ -24,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
         // When GitHub Actions run there is no real .env file, so Laravel falls back to its default database connection
         // Which is set in config/database.php :19 'default' => env('DB_CONNECTION', 'sqlite'),
         if (DB::getDriverName() === 'mysql') {
+            //force DB timestamps to use 'UTC' timezone for more accurate dayjs conversion to local timezones
             DB::statement("SET time_zone = '+00:00'");
         }
     }
