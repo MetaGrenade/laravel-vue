@@ -39,21 +39,9 @@ const activeItemStyles = computed(
 );
 
 const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: '/dashboard',
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Blog',
-        href: '/blog',
-        icon: BookOpen,
-    },
-    {
-        title: 'Forum',
-        href: '/forum',
-        icon: Megaphone,
-    },
+    { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+    { title: 'Blog',      href: '/blogs',      icon: BookOpen },
+    { title: 'Forum',     href: '/forum',     icon: Megaphone },
 ];
 
 const rightNavItems: NavItem[] = [
@@ -75,18 +63,13 @@ const rightNavItems: NavItem[] = [
         icon: Folder,
         color: 'rgb(34, 197, 94)', // green
     },
-    // {
-    //     title: 'Documentation',
-    //     href: 'https://laravel.com/docs/starter-kits',
-    //     icon: Newspaper,
-    //     color: 'rgb(59, 130, 246)', // blue
-    // },
 ];
 </script>
 
 <template>
     <div>
-        <div class="border-b border-sidebar-border/80">
+        <!-- Fixed header -->
+        <div class="fixed inset-x-0 top-0 z-50 border-b border-sidebar-border/80 bg-white dark:bg-neutral-900">
             <div class="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
                 <!-- Mobile Menu -->
                 <div class="lg:hidden">
@@ -123,7 +106,7 @@ const rightNavItems: NavItem[] = [
                                         rel="noopener noreferrer"
                                         class="flex items-center space-x-2 text-sm font-medium"
                                     >
-                                        <component v-if="item.icon" :is="item.icon" class="h-5 w-5" :style="{ color: item.color }"/>
+                                        <component v-if="item.icon" :is="item.icon" class="h-5 w-5" :style="{ color: item.color }" />
                                         <span>{{ item.title }}</span>
                                     </a>
                                 </div>
@@ -132,6 +115,7 @@ const rightNavItems: NavItem[] = [
                     </Sheet>
                 </div>
 
+                <!-- Logo -->
                 <Link :href="route('dashboard')" class="flex items-center gap-x-2">
                     <AppLogo />
                 </Link>
@@ -140,7 +124,11 @@ const rightNavItems: NavItem[] = [
                 <div class="hidden h-full lg:flex lg:flex-1">
                     <NavigationMenu class="ml-10 flex h-full items-stretch">
                         <NavigationMenuList class="flex h-full items-stretch space-x-2">
-                            <NavigationMenuItem v-for="(item, index) in mainNavItems" :key="index" class="relative flex h-full items-center">
+                            <NavigationMenuItem
+                                v-for="(item, index) in mainNavItems"
+                                :key="index"
+                                class="relative flex h-full items-center"
+                            >
                                 <Link :href="item.href">
                                     <NavigationMenuLink
                                         :class="[navigationMenuTriggerStyle(), activeItemStyles(item.href), 'h-9 cursor-pointer px-3']"
@@ -152,12 +140,13 @@ const rightNavItems: NavItem[] = [
                                 <div
                                     v-if="isCurrentRoute(item.href)"
                                     class="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"
-                                ></div>
+                                />
                             </NavigationMenuItem>
                         </NavigationMenuList>
                     </NavigationMenu>
                 </div>
 
+                <!-- Right side -->
                 <div class="ml-auto flex items-center space-x-2">
                     <div class="relative flex items-center space-x-1">
                         <Button variant="ghost" size="icon" class="group h-9 w-9 cursor-pointer">
@@ -172,7 +161,11 @@ const rightNavItems: NavItem[] = [
                                             <Button variant="ghost" size="icon" as-child class="group h-9 w-9 cursor-pointer">
                                                 <a :href="item.href" target="_blank" rel="noopener noreferrer">
                                                     <span class="sr-only">{{ item.title }}</span>
-                                                    <component :is="item.icon" class="size-5 opacity-80 group-hover:opacity-100" :style="{ color: item.color }"/>
+                                                    <component
+                                                        :is="item.icon"
+                                                        class="size-5 opacity-80 group-hover:opacity-100"
+                                                        :style="{ color: item.color }"
+                                                    />
                                                 </a>
                                             </Button>
                                         </TooltipTrigger>
@@ -193,7 +186,11 @@ const rightNavItems: NavItem[] = [
                                 class="relative size-10 w-auto rounded-full p-1 focus-within:ring-2 focus-within:ring-primary"
                             >
                                 <Avatar class="size-8 overflow-hidden rounded-full">
-                                    <AvatarImage v-if="auth.user.avatar" :src="auth.user.avatar" :alt="auth.user.name" />
+                                    <AvatarImage
+                                        v-if="auth.user.avatar"
+                                        :src="auth.user.avatar"
+                                        :alt="auth.user.nickname"
+                                    />
                                     <AvatarFallback class="rounded-lg bg-neutral-200 font-semibold text-black dark:bg-neutral-700 dark:text-white">
                                         {{ getInitials(auth.user?.nickname) }}
                                     </AvatarFallback>
@@ -208,7 +205,12 @@ const rightNavItems: NavItem[] = [
             </div>
         </div>
 
-        <div v-if="props.breadcrumbs.length > 1" class="flex w-full border-b border-sidebar-border/70">
+        <!-- Breadcrumbs, pushed below fixed header -->
+        <div
+            v-if="props.breadcrumbs.length > 1"
+            class="flex w-full border-b border-sidebar-border/70"
+            style="margin-top: 0.5rem;"
+        >
             <div class="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500 md:max-w-7xl">
                 <Breadcrumbs :breadcrumbs="breadcrumbs" />
             </div>
