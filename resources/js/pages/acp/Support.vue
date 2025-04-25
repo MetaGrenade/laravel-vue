@@ -57,11 +57,12 @@ const props = defineProps<{
             updated_at: string;
             user: {
                 id: number;
-                name: string;
+                nickname: string;
+                email: string;
             };
             assignee: {
                 id: number;
-                name: string;
+                nickname: string;
             } | null;
         }>;
         current_page: number;
@@ -106,7 +107,7 @@ const filteredTickets = computed(() => {
     const q = ticketSearchQuery.value.toLowerCase();
     return list.filter(t =>
         t.subject.toLowerCase().includes(q) ||
-        t.user.name.toLowerCase().includes(q) ||
+        t.user.nickname.toLowerCase().includes(q) ||
         t.status.includes(q)
     );
 });
@@ -217,7 +218,7 @@ console.log(fromNow(new Date()));
                                         >
                                             <TableCell>{{ t.id }}</TableCell>
                                             <TableCell>{{ t.subject }}</TableCell>
-                                            <TableCell>{{ t.user.name }}</TableCell>
+                                            <TableCell>{{ t.user.nickname }}</TableCell>
                                             <TableCell class="text-center">
                                                 <span :class="{
                                                     'text-blue-500': t.status === 'pending',
@@ -236,7 +237,7 @@ console.log(fromNow(new Date()));
                                                     {{ t.priority }}
                                                 </span>
                                             </TableCell>
-                                            <TableCell class="text-center">{{ t.assignee?.name || '—' }}</TableCell>
+                                            <TableCell class="text-center">{{ t.assignee?.nickname || '—' }}</TableCell>
                                             <TableCell class="text-center">{{ fromNow(t.created_at) }}</TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>

@@ -64,11 +64,8 @@ const props = defineProps<{
             slug: string;
             user: {
                 id: number;
-                name: string;
+                nickname: string;
                 email: string;
-                email_verified_at: string;
-                roles: Array<{ name: string }>;
-                created_at: string;
             };
             status: string;
             created_at: string;
@@ -102,7 +99,7 @@ const filteredBlogPosts = computed(() => {
     const q = searchQuery.value.toLowerCase();
     return props.blogs.data.filter((post: any) =>
         post.title.toLowerCase().includes(q) ||
-        post.user.name.toLowerCase().includes(q) ||
+        post.user.nickname.toLowerCase().includes(q) ||
         post.user.email.toLowerCase().includes(q) ||
         post.status.toLowerCase().includes(q)
     );
@@ -167,7 +164,7 @@ const filteredBlogPosts = computed(() => {
                                 <TableRow v-for="(post) in filteredBlogPosts" :key="post.id">
                                     <TableCell>{{ post.id }}</TableCell>
                                     <TableCell>{{ post.title }}</TableCell>
-                                    <TableCell class="text-center">{{ post.user.name }}</TableCell>
+                                    <TableCell class="text-center">{{ post.user.nickname }}</TableCell>
                                     <TableCell class="text-center">{{ fromNow(post.created_at) }}</TableCell>
                                     <TableCell class="text-center" :class="{
                                     'text-green-500': post.status === 'published',

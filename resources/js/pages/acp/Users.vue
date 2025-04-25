@@ -52,7 +52,7 @@ const props = defineProps<{
     users: {
         data: Array<{
             id: number;
-            name: string;
+            nickname: string;
             email: string;
             email_verified_at: string;
             roles: Array<{ name: string }>;
@@ -83,7 +83,7 @@ const filteredUsers = computed(() => {
     }
     const q = searchQuery.value.toLowerCase();
     return props.users.data.filter(u =>
-        u.name.toLowerCase().includes(q) ||
+        u.nickname.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         u.roles.some(r => r.name.toLowerCase().includes(q))
     );
@@ -153,7 +153,7 @@ const stats = [
                                     :key="user.id"
                                 >
                                     <TableCell>{{ user.id }}</TableCell>
-                                    <TableCell>{{ user.name }}</TableCell>
+                                    <TableCell>{{ user.nickname }}</TableCell>
                                     <TableCell>{{ user.email }}</TableCell>
                                     <TableCell class="text-center">
                       <span

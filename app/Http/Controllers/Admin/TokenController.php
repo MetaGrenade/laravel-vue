@@ -33,7 +33,7 @@ class TokenController extends Controller
                 ->where('expires_at', '>=', now())->count(),
         ];
 
-        $userList = User::select('id','name','email')->get();
+        $userList = User::select('id','nickname','email')->get();
 
         return inertia('acp/Tokens', compact(['tokens', 'tokenStats', 'userList']));
     }

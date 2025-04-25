@@ -48,7 +48,7 @@ const props = defineProps<{
             name: string;
             user: {
                 id: number;
-                name: string;
+                nickname: string;
                 email: string;
             };
             created_at: string;
@@ -67,7 +67,7 @@ const props = defineProps<{
     };
     userList: Array<{
         id: number;
-        name: string;
+        nickname: string;
         email: string;
     }>;
 }>();
@@ -84,7 +84,7 @@ const filteredTokens = computed(() => {
     const q = tokenSearchQuery.value.toLowerCase();
     return props.tokens.data.filter((t: any) =>
         t.name.toLowerCase().includes(q) ||
-        t.user.name.toLowerCase().includes(q) ||
+        t.user.nickname.toLowerCase().includes(q) ||
         t.user.email.toLowerCase().includes(q)
     );
 });
@@ -236,7 +236,7 @@ const filteredLogs = computed(() => {
                                             <TableCell>{{ token.id }}</TableCell>
                                             <TableCell>{{ token.name }}</TableCell>
                                             <TableCell>
-                                                {{ token.user.name }}<br />
+                                                {{ token.user.nickname }}<br />
                                                 <span class="text-xs text-gray-500">{{ token.user.email }}</span>
                                             </TableCell>
                                             <TableCell class="text-center">{{ fromNow(token.created_at) }}</TableCell>
