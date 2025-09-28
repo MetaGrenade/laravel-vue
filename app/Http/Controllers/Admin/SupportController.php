@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateFaqRequest;
 use App\Http\Requests\Admin\UpdateSupportTicketRequest;
 use App\Models\SupportTicket;
 use App\Models\Faq;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -18,20 +19,24 @@ class SupportController extends Controller
     {
         $perPage = $request->get('per_page', 25);
 
-        $tickets = SupportTicket::with(['user','assignee'])
-            ->orderBy('created_at','desc')
+        $ticketQuery = SupportTicket::query();
+        $faqQuery    = Faq::query()->orderBy('order', 'asc');
+
+        $tickets = (clone $ticketQuery)
+            ->with(['user', 'assignee'])
+            ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->withQueryString();
 
-        $faqs = Faq::orderBy('order','asc')
+        $faqs = (clone $faqQuery)
             ->paginate($perPage)
             ->withQueryString();
 
         $stats = [
-            'total' => SupportTicket::count(),
-            'open'  => SupportTicket::where('status','open')->count(),
-            'closed'=> SupportTicket::where('status','closed')->count(),
-            'faqs'  => $faqs->count(),
+            'total'  => $tickets->total(),
+            'open'   => (clone $ticketQuery)->where('status', 'open')->count(),
+            'closed' => (clone $ticketQuery)->where('status', 'closed')->count(),
+            'faqs'   => $faqs->total(),
         ];
 
         return Inertia::render('acp/Support', [
@@ -53,13 +58,35 @@ class SupportController extends Controller
     public function storeTicket(StoreSupportTicketRequest $request)
     {
         SupportTicket::create($request->validated());
-        return back()->with('success','Ticket created.');
+
+        return redirect()
+            ->route('acp.support.index')
+            ->with('success', 'Ticket created.');
+    }
+
+    public function editTicket(SupportTicket $ticket)
+    {
+        $ticket->load([
+            'user:id,nickname,email',
+            'assignee:id,nickname,email',
+        ]);
+
+        $agents = User::orderBy('nickname')
+            ->get(['id', 'nickname', 'email']);
+
+        return inertia('acp/SupportTicketEdit', [
+            'ticket' => $ticket,
+            'agents' => $agents,
+        ]);
     }
 
     public function updateTicket(UpdateSupportTicketRequest $request, SupportTicket $ticket)
     {
         $ticket->update($request->validated());
-        return back()->with('success','Ticket updated.');
+
+        return redirect()
+            ->route('acp.support.index')
+            ->with('success', 'Ticket updated.');
     }
 
     public function destroyTicket(SupportTicket $ticket)
@@ -80,13 +107,26 @@ class SupportController extends Controller
     public function storeFaq(StoreFaqRequest $request)
     {
         Faq::create($request->validated());
-        return back()->with('success','FAQ created.');
+
+        return redirect()
+            ->route('acp.support.index')
+            ->with('success', 'FAQ created.');
+    }
+
+    public function editFaq(Faq $faq)
+    {
+        return inertia('acp/SupportFaqEdit', [
+            'faq' => $faq,
+        ]);
     }
 
     public function updateFaq(UpdateFaqRequest $request, Faq $faq)
     {
         $faq->update($request->validated());
-        return back()->with('success','FAQ updated.');
+
+        return redirect()
+            ->route('acp.support.index')
+            ->with('success', 'FAQ updated.');
     }
 
     public function destroyFaq(Faq $faq)

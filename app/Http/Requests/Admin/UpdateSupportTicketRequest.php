@@ -16,7 +16,7 @@ class UpdateSupportTicketRequest extends FormRequest
         return [
             'subject'    => 'sometimes|required|string|max:255',
             'body'       => 'sometimes|required|string',
-            'status'     => 'sometimes|required|in:open,closed',
+            'status'     => 'sometimes|required|in:open,pending,closed',
             'priority'   => 'in:low,medium,high',
             'assigned_to'=> 'nullable|exists:users,id',
             // etc...
