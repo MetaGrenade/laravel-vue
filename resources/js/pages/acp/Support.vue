@@ -261,7 +261,7 @@ console.log(fromNow(new Date()));
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="editSupport" />
                                                         <DropdownMenuGroup v-if="editSupport">
-                                                            <Link :href="route('acp.support.tickets.update', { ticket: t.id })">
+                                                            <Link :href="route('acp.support.tickets.edit', { ticket: t.id })">
                                                                 <DropdownMenuItem>
                                                                     <Pencil class="mr-2" /> Edit
                                                                 </DropdownMenuItem>
@@ -377,7 +377,7 @@ console.log(fromNow(new Date()));
                                                         <DropdownMenuGroup v-if="editSupport||deleteSupport">
                                                             <Link
                                                                 v-if="editSupport"
-                                                                :href="route('acp.support.faqs.update', { faq: f.id })"
+                                                                :href="route('acp.support.faqs.edit', { faq: f.id })"
                                                             >
                                                                 <DropdownMenuItem>
                                                                     <Pencil class="mr-2" /> Edit

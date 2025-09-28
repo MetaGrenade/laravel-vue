@@ -61,12 +61,14 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
 
     // Tickets
     Route::get('acp/support/tickets/create', [SupportController::class,'createTicket'])->name('acp.support.tickets.create');
+    Route::get('acp/support/tickets/{ticket}/edit', [SupportController::class,'editTicket'])->name('acp.support.tickets.edit');
     Route::post('acp/support/tickets', [SupportController::class,'storeTicket'])->name('acp.support.tickets.store');
     Route::put('acp/support/tickets/{ticket}', [SupportController::class,'updateTicket'])->name('acp.support.tickets.update');
     Route::delete('acp/support/tickets/{ticket}', [SupportController::class,'destroyTicket'])->name('acp.support.tickets.destroy');
 
     // FAQs
     Route::get('acp/support/faqs/create', [SupportController::class,'createFaq'])->name('acp.support.faqs.create');
+    Route::get('acp/support/faqs/{faq}/edit', [SupportController::class,'editFaq'])->name('acp.support.faqs.edit');
     Route::post('acp/support/faqs', [SupportController::class,'storeFaq'])->name('acp.support.faqs.store');
     Route::put('acp/support/faqs/{faq}', [SupportController::class,'updateFaq'])->name('acp.support.faqs.update');
     Route::delete('acp/support/faqs/{faq}', [SupportController::class,'destroyFaq'])->name('acp.support.faqs.destroy');
