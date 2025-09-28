@@ -79,12 +79,20 @@ class ForumPostController extends Controller
         abort_unless($canEdit, 403);
 
         $validated = $request->validate([
-            'body' => ['required', 'string'],
+            'body' => ['required', 'string', 'max:5000'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        $body = trim($validated['body']);
+
+        if ($body === '') {
+            throw ValidationException::withMessages([
+                'body' => 'Post content cannot be empty.',
+            ]);
+        }
+
         $post->forceFill([
-            'body' => $validated['body'],
+            'body' => $body,
             'edited_at' => Carbon::now(),
         ])->save();
 

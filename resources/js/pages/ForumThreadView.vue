@@ -387,24 +387,87 @@ const unpinThread = () => {
     performThreadAction('put', 'forum.threads.unpin');
 };
 
+const threadEditDialogOpen = ref(false);
+const threadEditForm = useForm({
+    title: props.thread.title,
+});
+
+watch(
+    () => props.thread.title,
+    (title) => {
+        threadEditForm.defaults('title', title);
+
+        if (!threadEditDialogOpen.value && threadEditForm.title !== title) {
+            threadEditForm.title = title;
+        }
+    },
+    { immediate: true },
+);
+
+watch(threadEditDialogOpen, (open) => {
+    if (!open) {
+        threadEditForm.reset('title');
+        threadEditForm.clearErrors('title');
+        threadEditForm.title = props.thread.title;
+    }
+});
+
+watch(
+    () => threadEditForm.title,
+    () => {
+        if (threadEditForm.errors.title) {
+            threadEditForm.clearErrors('title');
+        }
+    },
+);
+
 const renameThread = () => {
     if (!threadPermissions.value?.canEdit || threadActionLoading.value) {
         return;
     }
 
-    const newTitle = window.prompt('Update thread title', props.thread.title);
+    threadEditForm.title = props.thread.title;
+    threadEditForm.clearErrors('title');
+    threadEditDialogOpen.value = true;
+};
 
-    if (newTitle === null) {
+const submitThreadEdit = () => {
+    if (!threadPermissions.value?.canEdit || threadEditForm.processing) {
         return;
     }
 
-    const trimmed = newTitle.trim();
+    const trimmed = threadEditForm.title.trim();
 
-    if (trimmed === '' || trimmed === props.thread.title) {
+    if (trimmed === '') {
+        threadEditForm.setError('title', 'Please provide a thread title.');
         return;
     }
 
-    performThreadAction('put', 'forum.threads.update', { title: trimmed });
+    if (trimmed === props.thread.title) {
+        threadEditDialogOpen.value = false;
+        return;
+    }
+
+    threadEditForm.title = trimmed;
+    threadActionLoading.value = true;
+
+    threadEditForm
+        .transform(() => ({
+            title: trimmed,
+            redirect_to_thread: true,
+            page: postsMeta.value.current_page,
+        }))
+        .put(route('forum.threads.update', { board: props.board.slug, thread: props.thread.slug }), {
+            preserveScroll: true,
+            preserveState: false,
+            replace: true,
+            onSuccess: () => {
+                threadEditDialogOpen.value = false;
+            },
+            onFinish: () => {
+                threadActionLoading.value = false;
+            },
+        });
 };
 
 const deleteThread = () => {
@@ -489,24 +552,78 @@ const submitPostReport = () => {
     });
 };
 
+const postEditDialogOpen = ref(false);
+const postEditTarget = ref<ThreadPost | null>(null);
+const postEditForm = useForm({
+    body: '',
+});
+
+watch(postEditDialogOpen, (open) => {
+    if (!open) {
+        postEditTarget.value = null;
+        postEditForm.reset('body');
+        postEditForm.clearErrors('body');
+    }
+});
+
+watch(
+    () => postEditForm.body,
+    () => {
+        if (postEditForm.errors.body) {
+            postEditForm.clearErrors('body');
+        }
+    },
+);
+
 const editPost = (post: ThreadPost) => {
-    if (!post.permissions.canEdit || activePostActionId.value === post.id) {
+    if (!post.permissions.canEdit) {
         return;
     }
 
-    const updated = window.prompt('Update your post content', post.body_raw);
+    postEditTarget.value = post;
+    postEditForm.body = post.body_raw;
+    postEditForm.clearErrors('body');
+    postEditDialogOpen.value = true;
+};
 
-    if (updated === null) {
+const submitPostEdit = () => {
+    const target = postEditTarget.value;
+
+    if (!target || !target.permissions.canEdit || postEditForm.processing) {
         return;
     }
 
-    const trimmed = updated.trim();
+    const trimmed = postEditForm.body.trim();
 
-    if (trimmed === '' || trimmed === post.body_raw) {
+    if (trimmed === '') {
+        postEditForm.setError('body', 'Please enter some content before saving.');
         return;
     }
 
-    performPostAction(post, 'put', 'forum.posts.update', { body: trimmed });
+    if (trimmed === target.body_raw) {
+        postEditDialogOpen.value = false;
+        return;
+    }
+
+    postEditForm.body = trimmed;
+    activePostActionId.value = target.id;
+
+    postEditForm
+        .transform(() => ({
+            body: trimmed,
+            page: postsMeta.value.current_page,
+        }))
+        .put(route('forum.posts.update', { board: props.board.slug, thread: props.thread.slug, post: target.id }), {
+            preserveScroll: true,
+            preserveState: false,
+            replace: true,
+            onSuccess: () => {
+                postEditDialogOpen.value = false;
+            },
+            onFinish: () => {
+                activePostActionId.value = null;
+            },
+        });
 };
 
 const deletePost = (post: ThreadPost) => {
@@ -567,6 +684,82 @@ const submitReply = () => {
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Forum • ${props.thread.title}`" />
+        <Dialog v-model:open="threadEditDialogOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Edit thread title</DialogTitle>
+                    <DialogDescription>
+                        Update the discussion title to better reflect the current topic.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="space-y-5" @submit.prevent="submitThreadEdit">
+                    <div class="space-y-2">
+                        <Label for="thread_edit_title">Title</Label>
+                        <Input
+                            id="thread_edit_title"
+                            v-model="threadEditForm.title"
+                            type="text"
+                            placeholder="Thread title"
+                            :disabled="threadEditForm.processing"
+                        />
+                        <p v-if="threadEditForm.errors.title" class="text-sm text-destructive">
+                            {{ threadEditForm.errors.title }}
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            :disabled="threadEditForm.processing"
+                            @click="threadEditDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" :disabled="threadEditForm.processing">
+                            Save changes
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+        <Dialog v-model:open="postEditDialogOpen">
+            <DialogContent class="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Edit post</DialogTitle>
+                    <DialogDescription>
+                        Make adjustments to your reply before saving the update.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="space-y-5" @submit.prevent="submitPostEdit">
+                    <div class="space-y-2">
+                        <Label for="post_edit_body">Post content</Label>
+                        <Textarea
+                            id="post_edit_body"
+                            v-model="postEditForm.body"
+                            rows="8"
+                            placeholder="Share your updated thoughts..."
+                            :disabled="postEditForm.processing"
+                        />
+                        <p v-if="postEditForm.errors.body" class="text-sm text-destructive">
+                            {{ postEditForm.errors.body }}
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            :disabled="postEditForm.processing"
+                            @click="postEditDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" :disabled="postEditForm.processing">
+                            Save post
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
         <Dialog v-model:open="threadReportDialogOpen">
             <DialogContent class="sm:max-w-lg">
                 <DialogHeader>

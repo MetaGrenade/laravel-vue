@@ -6,6 +6,7 @@ use App\Models\ForumBoard;
 use App\Models\ForumThread;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ForumThreadModerationController extends Controller
 {
@@ -83,9 +84,19 @@ class ForumThreadModerationController extends Controller
             'title' => ['required', 'string', 'max:255'],
         ]);
 
-        $thread->forceFill([
-            'title' => $validated['title'],
-        ])->save();
+        $title = trim($validated['title']);
+
+        if ($title === '') {
+            throw ValidationException::withMessages([
+                'title' => 'The thread title cannot be empty.',
+            ]);
+        }
+
+        if ($title !== $thread->title) {
+            $thread->forceFill([
+                'title' => $title,
+            ])->save();
+        }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread title updated successfully.');
     }
