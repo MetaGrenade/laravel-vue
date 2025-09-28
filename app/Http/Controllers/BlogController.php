@@ -25,12 +25,24 @@ class BlogController extends Controller
      */
     public function show($slug)
     {
-        $blog = Blog::where('slug', $slug)
+        $blog = Blog::with(['user:id,nickname'])
+            ->where('slug', $slug)
             ->where('status', 'published')
             ->firstOrFail();
 
         return inertia('BlogView', [
-            'blog' => $blog,
+            'blog' => [
+                'id' => $blog->id,
+                'title' => $blog->title,
+                'slug' => $blog->slug,
+                'excerpt' => $blog->excerpt,
+                'body' => $blog->body,
+                'published_at' => optional($blog->published_at)->toIso8601String(),
+                'user' => $blog->user ? [
+                    'id' => $blog->user->id,
+                    'nickname' => $blog->user->nickname,
+                ] : null,
+            ],
         ]);
     }
 }
