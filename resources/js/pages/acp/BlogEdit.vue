@@ -1,0 +1,194 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+
+import AppLayout from '@/layouts/AppLayout.vue';
+import AdminLayout from '@/layouts/acp/AdminLayout.vue';
+import { type BreadcrumbItem } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import InputError from '@/components/InputError.vue';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
+import { useUserTimezone } from '@/composables/useUserTimezone';
+
+type BlogStatus = 'draft' | 'published' | 'archived';
+
+type BlogPayload = {
+    id: number;
+    title: string;
+    slug: string;
+    excerpt?: string | null;
+    body: string;
+    status: BlogStatus;
+    created_at?: string;
+    updated_at?: string;
+    published_at?: string | null;
+};
+
+const props = defineProps<{ blog: BlogPayload }>();
+
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Blogs ACP', href: route('acp.blogs.index') },
+    { title: props.blog.title, href: route('acp.blogs.edit', { blog: props.blog.id }) },
+];
+
+const statusOptions: Array<{ label: string; value: BlogStatus }> = [
+    { label: 'Draft', value: 'draft' },
+    { label: 'Published', value: 'published' },
+    { label: 'Archived', value: 'archived' },
+];
+
+const form = useForm({
+    title: props.blog.title ?? '',
+    excerpt: props.blog.excerpt ?? '',
+    body: props.blog.body ?? '',
+    status: props.blog.status ?? 'draft',
+});
+
+const { formatDate } = useUserTimezone();
+
+const createdAt = computed(() =>
+    props.blog.created_at ? formatDate(props.blog.created_at) : '—'
+);
+const updatedAt = computed(() =>
+    props.blog.updated_at ? formatDate(props.blog.updated_at) : '—'
+);
+const publishedAt = computed(() =>
+    props.blog.published_at ? formatDate(props.blog.published_at) : 'Not published'
+);
+
+const handleSubmit = () => {
+    form.put(route('acp.blogs.update', { blog: props.blog.id }), {
+        preserveScroll: true,
+    });
+};
+</script>
+
+<template>
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <Head :title="`Edit: ${props.blog.title}`" />
+
+        <AdminLayout>
+            <form class="flex flex-1 flex-col gap-6" @submit.prevent="handleSubmit">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h1 class="text-2xl font-semibold tracking-tight">Edit blog post</h1>
+                        <p class="text-sm text-muted-foreground">
+                            Update the article content or adjust its publication status.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <Button variant="outline" as-child>
+                            <Link :href="route('acp.blogs.index')">Back to blogs</Link>
+                        </Button>
+                        <Button type="submit" :disabled="form.processing">Save changes</Button>
+                    </div>
+                </div>
+
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                    <Card>
+                        <CardHeader class="relative overflow-hidden">
+                            <PlaceholderPattern class="absolute inset-0 opacity-10" />
+                            <div class="relative space-y-1">
+                                <CardTitle>Post content</CardTitle>
+                                <CardDescription>
+                                    Keep the information accurate and engaging for readers.
+                                </CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent class="space-y-6">
+                            <div class="grid gap-2">
+                                <Label for="title">Title</Label>
+                                <Input id="title" v-model="form.title" type="text" autocomplete="off" required />
+                                <InputError :message="form.errors.title" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label for="excerpt">Excerpt</Label>
+                                <Textarea
+                                    id="excerpt"
+                                    v-model="form.excerpt"
+                                    placeholder="A short summary that will appear on listing pages."
+                                    class="min-h-24"
+                                />
+                                <InputError :message="form.errors.excerpt" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label for="body">Body</Label>
+                                <Textarea
+                                    id="body"
+                                    v-model="form.body"
+                                    placeholder="Write the full content for the blog post."
+                                    class="min-h-48"
+                                    required
+                                />
+                                <InputError :message="form.errors.body" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div class="flex flex-col gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Publication status</CardTitle>
+                                <CardDescription>Change how this post is displayed to readers.</CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-4">
+                                <div class="grid gap-2">
+                                    <Label for="status">Status</Label>
+                                    <select
+                                        id="status"
+                                        v-model="form.status"
+                                        class="
+                                            flex h-10 w-full rounded-md border border-input bg-background px-3 py-2
+                                            text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
+                                        "
+                                    >
+                                        <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+                                            {{ option.label }}
+                                        </option>
+                                    </select>
+                                    <InputError :message="form.errors.status" />
+                                </div>
+
+                                <p class="text-sm text-muted-foreground">
+                                    Publishing immediately sets the article live and records the publish time. Draft posts stay
+                                    private to the editorial team.
+                                </p>
+                            </CardContent>
+                            <CardFooter class="justify-end">
+                                <Button type="submit" :disabled="form.processing">Save changes</Button>
+                            </CardFooter>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Timeline</CardTitle>
+                                <CardDescription>Key milestones for this post.</CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-2 text-sm text-muted-foreground">
+                                <div class="flex justify-between">
+                                    <span>Created</span>
+                                    <span>{{ createdAt }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Last updated</span>
+                                    <span>{{ updatedAt }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Published</span>
+                                    <span>{{ publishedAt }}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </form>
+        </AdminLayout>
+    </AppLayout>
+</template>

@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -104,6 +104,24 @@ const filteredBlogPosts = computed(() => {
         post.status.toLowerCase().includes(q)
     );
 });
+
+const publishPost = (postId: number) => {
+    router.put(route('acp.blogs.publish', { blog: postId }), {}, {
+        preserveScroll: true,
+    });
+};
+
+const unpublishPost = (postId: number) => {
+    router.put(route('acp.blogs.unpublish', { blog: postId }), {}, {
+        preserveScroll: true,
+    });
+};
+
+const deletePost = (postId: number) => {
+    router.delete(route('acp.blogs.destroy', { blog: postId }), {
+        preserveScroll: true,
+    });
+};
 </script>
 
 <template>
@@ -182,11 +200,14 @@ const filteredBlogPosts = computed(() => {
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                 <DropdownMenuSeparator v-if="publishBlogs" />
                                                 <DropdownMenuGroup v-if="publishBlogs">
-                                                    <DropdownMenuItem v-if="post.status === 'draft'">
+                                                    <DropdownMenuItem v-if="post.status === 'draft'" @click="publishPost(post.id)">
                                                         <Eye class="mr-2" />
                                                         <span>Publish</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem v-if="post.status === 'published'">
+                                                    <DropdownMenuItem
+                                                        v-if="post.status === 'published'"
+                                                        @click="unpublishPost(post.id)"
+                                                    >
                                                         <EyeOff class="mr-2" />
                                                         <span>Unpublish</span>
                                                     </DropdownMenuItem>
@@ -209,8 +230,10 @@ const filteredBlogPosts = computed(() => {
                                                     </Link>
                                                 </DropdownMenuGroup>
                                                 <DropdownMenuSeparator v-if="deleteBlogs" />
-                                                <DropdownMenuItem v-if="deleteBlogs" class="text-red-500"
-                                                    @click="$inertia.delete(route('acp.blogs.destroy',{ user: post.id }))"
+                                                <DropdownMenuItem
+                                                    v-if="deleteBlogs"
+                                                    class="text-red-500"
+                                                    @click="deletePost(post.id)"
                                                 >
                                                     <Trash2 class="mr-2" />
                                                     <span>Delete</span>

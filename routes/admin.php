@@ -45,6 +45,8 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/blogs/{blog}/edit', [AdminBlogController::class, 'edit'])->name('acp.blogs.edit');
     Route::put('acp/blogs/{blog}', [AdminBlogController::class, 'update'])->name('acp.blogs.update');
     Route::delete('acp/blogs/{blog}', [AdminBlogController::class, 'destroy'])->name('acp.blogs.destroy');
+    Route::put('acp/blogs/{blog}/publish', [AdminBlogController::class, 'publish'])->name('acp.blogs.publish');
+    Route::put('acp/blogs/{blog}/unpublish', [AdminBlogController::class, 'unpublish'])->name('acp.blogs.unpublish');
 
     Route::get('acp/forums', function () {
         return Inertia::render('acp/Forums');
