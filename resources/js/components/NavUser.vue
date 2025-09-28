@@ -6,14 +6,15 @@ import { type SharedData, type User } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { ChevronsUpDown } from 'lucide-vue-next';
 import UserMenuContent from './UserMenuContent.vue';
+import { computed } from 'vue';
 
 const page = usePage<SharedData>();
-const user = page.props.auth.user as User;
+const user = computed<User | undefined>(() => page.props.auth?.user ?? undefined);
 const { isMobile, state } = useSidebar();
 </script>
 
 <template>
-    <SidebarMenu>
+    <SidebarMenu v-if="user">
         <SidebarMenuItem>
             <DropdownMenu>
                 <DropdownMenuTrigger as-child>
