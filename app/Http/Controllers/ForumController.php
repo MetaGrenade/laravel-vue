@@ -124,6 +124,23 @@ class ForumController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $threadItems = $threads->getCollection()->map(function (ForumThread $thread) {
+            $latestPost = $thread->latestPost;
+
+            return [
+                'id' => $thread->id,
+                'title' => $thread->title,
+                'slug' => $thread->slug,
+                'author' => $thread->author?->nickname,
+                'replies' => max($thread->posts_count - 1, 0),
+                'views' => $thread->views,
+                'is_pinned' => $thread->is_pinned,
+                'is_locked' => $thread->is_locked,
+                'last_reply_author' => $latestPost?->author?->nickname,
+                'last_reply_at' => $latestPost?->created_at?->toDayDateTimeString(),
+            ];
+        })->values();
+
         return Inertia::render('ForumThreads', [
             'board' => [
                 'id' => $board->id,
@@ -135,22 +152,23 @@ class ForumController extends Controller
                     'slug' => $board->category?->slug,
                 ],
             ],
-            'threads' => $threads->through(function (ForumThread $thread) {
-                $latestPost = $thread->latestPost;
-
-                return [
-                    'id' => $thread->id,
-                    'title' => $thread->title,
-                    'slug' => $thread->slug,
-                    'author' => $thread->author?->nickname,
-                    'replies' => max($thread->posts_count - 1, 0),
-                    'views' => $thread->views,
-                    'is_pinned' => $thread->is_pinned,
-                    'is_locked' => $thread->is_locked,
-                    'last_reply_author' => $latestPost?->author?->nickname,
-                    'last_reply_at' => $latestPost?->created_at?->toDayDateTimeString(),
-                ];
-            }),
+            'threads' => [
+                'data' => $threadItems,
+                'meta' => [
+                    'current_page' => $threads->currentPage(),
+                    'from' => $threads->firstItem(),
+                    'last_page' => $threads->lastPage(),
+                    'per_page' => $threads->perPage(),
+                    'to' => $threads->lastItem(),
+                    'total' => $threads->total(),
+                ],
+                'links' => [
+                    'first' => $threads->url(1),
+                    'last' => $threads->url($threads->lastPage()),
+                    'prev' => $threads->previousPageUrl(),
+                    'next' => $threads->nextPageUrl(),
+                ],
+            ],
             'filters' => [
                 'search' => $search,
             ],
@@ -173,6 +191,27 @@ class ForumController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts) {
+            $author = $post->author;
+
+            return [
+                'id' => $post->id,
+                'body' => $post->body,
+                'created_at' => $post->created_at->toDayDateTimeString(),
+                'edited_at' => optional($post->edited_at)?->toDayDateTimeString(),
+                'number' => $posts->firstItem() ? ($posts->firstItem() + $index) : ($index + 1),
+                'signature' => null,
+                'author' => [
+                    'id' => $author?->id,
+                    'nickname' => $author?->nickname,
+                    'joined_at' => $author?->created_at?->toFormattedDateString(),
+                    'forum_posts_count' => $author?->forum_posts_count ?? 0,
+                    'primary_role' => $author?->getRoleNames()->first() ?? 'Member',
+                    'avatar_url' => null,
+                ],
+            ];
+        })->values();
+
         return Inertia::render('ForumThreadView', [
             'board' => [
                 'title' => $board->title,
@@ -192,26 +231,23 @@ class ForumController extends Controller
                 'author' => $thread->author?->nickname,
                 'last_posted_at' => optional($thread->last_posted_at)->toDayDateTimeString(),
             ],
-            'posts' => $posts->through(function (ForumPost $post, int $index) use ($posts) {
-                $author = $post->author;
-
-                return [
-                    'id' => $post->id,
-                    'body' => $post->body,
-                    'created_at' => $post->created_at->toDayDateTimeString(),
-                    'edited_at' => optional($post->edited_at)?->toDayDateTimeString(),
-                    'number' => $posts->firstItem() ? ($posts->firstItem() + $index) : ($index + 1),
-                    'signature' => null,
-                    'author' => [
-                        'id' => $author?->id,
-                        'nickname' => $author?->nickname,
-                        'joined_at' => $author?->created_at?->toFormattedDateString(),
-                        'forum_posts_count' => $author?->forum_posts_count ?? 0,
-                        'primary_role' => $author?->getRoleNames()->first() ?? 'Member',
-                        'avatar_url' => null,
-                    ],
-                ];
-            }),
+            'posts' => [
+                'data' => $postItems,
+                'meta' => [
+                    'current_page' => $posts->currentPage(),
+                    'from' => $posts->firstItem(),
+                    'last_page' => $posts->lastPage(),
+                    'per_page' => $posts->perPage(),
+                    'to' => $posts->lastItem(),
+                    'total' => $posts->total(),
+                ],
+                'links' => [
+                    'first' => $posts->url(1),
+                    'last' => $posts->url($posts->lastPage()),
+                    'prev' => $posts->previousPageUrl(),
+                    'next' => $posts->nextPageUrl(),
+                ],
+            ],
         ]);
     }
 }

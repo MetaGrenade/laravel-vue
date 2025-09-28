@@ -82,11 +82,19 @@ interface PaginationMeta {
     last_page: number;
     per_page: number;
     total: number;
+    from: number | null;
+    to: number | null;
 }
 
 interface PostsPayload {
     data: ThreadPost[];
     meta?: PaginationMeta | null;
+    links?: {
+        first: string | null;
+        last: string | null;
+        prev: string | null;
+        next: string | null;
+    } | null;
 }
 
 const props = defineProps<{
@@ -105,16 +113,44 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
     return trail;
 });
 
-const postsMeta = computed<PaginationMeta>(() => {
-    const meta = props.posts.meta;
-    const totalPosts = props.posts.data.length;
+const postsMetaFallback = computed<PaginationMeta>(() => {
+    const total = props.posts.data.length;
 
     return {
-        current_page: meta?.current_page ?? 1,
-        last_page: meta?.last_page ?? 1,
-        per_page: meta?.per_page ?? Math.max(totalPosts, 1),
-        total: meta?.total ?? totalPosts,
+        current_page: 1,
+        last_page: 1,
+        per_page: total > 0 ? total : 10,
+        total,
+        from: total > 0 ? 1 : null,
+        to: total > 0 ? total : null,
     };
+});
+
+const postsMeta = computed<PaginationMeta>(() => {
+    return {
+        ...postsMetaFallback.value,
+        ...(props.posts.meta ?? {}),
+    };
+});
+
+const postsPageCount = computed(() => {
+    const meta = postsMeta.value;
+    const derived = Math.ceil(meta.total / Math.max(meta.per_page, 1));
+    return Math.max(meta.last_page, derived || 1, 1);
+});
+
+const postsRangeLabel = computed(() => {
+    const meta = postsMeta.value;
+
+    if (meta.total === 0) {
+        return 'No posts to display';
+    }
+
+    const from = meta.from ?? ((meta.current_page - 1) * meta.per_page + 1);
+    const to = meta.to ?? Math.min(meta.current_page * meta.per_page, meta.total);
+    const postWord = meta.total === 1 ? 'post' : 'posts';
+
+    return `Showing ${from}-${to} of ${meta.total} ${postWord}`;
 });
 
 const paginationPage = ref(postsMeta.value.current_page);
@@ -127,10 +163,17 @@ watch(
 );
 
 watch(paginationPage, (page) => {
-    if (page === postsMeta.value.current_page) return;
+    const safePage = Math.min(Math.max(page, 1), postsPageCount.value);
+
+    if (safePage !== page) {
+        paginationPage.value = safePage;
+        return;
+    }
+
+    if (safePage === postsMeta.value.current_page) return;
 
     router.get(route('forum.threads.show', { board: props.board.slug, thread: props.thread.slug }), {
-        page,
+        page: safePage,
     }, {
         preserveScroll: true,
         preserveState: true,
@@ -153,31 +196,37 @@ const replyText = ref('');
                 </h1>
             </div>
 
-            <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
+            <header class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                <div class="text-sm text-muted-foreground text-center md:text-left">
+                    {{ postsRangeLabel }}
+                </div>
                 <Pagination
-                    v-slot="{ page }"
+                    v-slot="{ page, pageCount }"
                     v-model:page="paginationPage"
                     :items-per-page="Math.max(postsMeta.per_page, 1)"
                     :total="postsMeta.total"
                     :sibling-count="1"
                     show-edges
                 >
-                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                        <PaginationFirst />
-                        <PaginationPrev />
+                    <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                        <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationFirst />
+                            <PaginationPrev />
 
-                        <template v-for="(item, index) in items">
-                            <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
-                                <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
-                                    {{ item.value }}
-                                </Button>
-                            </PaginationListItem>
-                            <PaginationEllipsis v-else :key="item.type" :index="index" />
-                        </template>
+                            <template v-for="(item, index) in items">
+                                <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
+                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                        {{ item.value }}
+                                    </Button>
+                                </PaginationListItem>
+                                <PaginationEllipsis v-else :key="item.type" :index="index" />
+                            </template>
 
-                        <PaginationNext />
-                        <PaginationLast />
-                    </PaginationList>
+                            <PaginationNext />
+                            <PaginationLast />
+                        </PaginationList>
+                    </div>
                 </Pagination>
                 <div class="flex w-full max-w-md space-x-2 justify-end">
                     <Button v-if="props.thread.is_locked" variant="secondary" class="cursor-pointer text-yellow-500" disabled>
@@ -286,33 +335,39 @@ const replyText = ref('');
                 </div>
             </div>
 
-            <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
+            <header class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                <div class="text-sm text-muted-foreground text-center md:text-left">
+                    {{ postsRangeLabel }}
+                </div>
                 <Pagination
-                    v-slot="{ page }"
+                    v-slot="{ page, pageCount }"
                     v-model:page="paginationPage"
                     :items-per-page="Math.max(postsMeta.per_page, 1)"
                     :total="postsMeta.total"
                     :sibling-count="1"
                     show-edges
                 >
-                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                        <PaginationFirst />
-                        <PaginationPrev />
+                    <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                        <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationFirst />
+                            <PaginationPrev />
 
-                        <template v-for="(item, index) in items">
-                            <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
-                                <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
-                                    {{ item.value }}
-                                </Button>
-                            </PaginationListItem>
-                            <PaginationEllipsis v-else :key="item.type" :index="index" />
-                        </template>
+                            <template v-for="(item, index) in items">
+                                <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
+                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                        {{ item.value }}
+                                    </Button>
+                                </PaginationListItem>
+                                <PaginationEllipsis v-else :key="item.type" :index="index" />
+                            </template>
 
-                        <PaginationNext />
-                        <PaginationLast />
-                    </PaginationList>
+                            <PaginationNext />
+                            <PaginationLast />
+                        </PaginationList>
+                    </div>
                 </Pagination>
-                <div class="flex w-full max-w-md space-x-2 justify-end">
+                <div class="flex w-full max-w-md justify-end">
                     <a href="#thread_title">
                         <Button variant="secondary" class="cursor-pointer">
                             Go To Top
