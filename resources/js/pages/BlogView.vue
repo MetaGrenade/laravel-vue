@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
@@ -19,6 +19,7 @@ import {
 import { Loader2, MessageSquare, Share2 } from 'lucide-vue-next';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import type { BlogComment, SharedData } from '@/types';
+import { useInertiaPagination, type PaginationPayload } from '@/composables/useInertiaPagination';
 
 type BlogAuthor = {
     id?: number;
@@ -37,19 +38,7 @@ type BlogPayload = {
     user?: BlogAuthor | null;
 };
 
-interface PaginationMeta {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-interface CommentsPayload {
-    data: BlogComment[];
-    meta?: Partial<PaginationMeta> | null;
-}
+type CommentsPayload = PaginationPayload<BlogComment>;
 
 const props = defineProps<{ blog: BlogPayload; comments: CommentsPayload }>();
 
@@ -94,91 +83,34 @@ const publishedAt = computed(() => {
 
 const commentsData = computed(() => props.comments?.data ?? []);
 
-const commentsMetaFallback = computed<PaginationMeta>(() => {
-    const total = commentsData.value.length;
-
-    return {
-        current_page: 1,
-        last_page: 1,
-        per_page: total > 0 ? total : 10,
-        total,
-        from: total > 0 ? 1 : null,
-        to: total > 0 ? total : null,
-    };
-});
-
-const commentsMeta = computed<PaginationMeta>(() => {
-    const fallback = commentsMetaFallback.value;
-    const meta = props.comments?.meta ?? {};
-
-    return {
-        ...fallback,
-        ...(meta as Partial<PaginationMeta>),
-        current_page: Number((meta as Partial<PaginationMeta>).current_page ?? fallback.current_page),
-        last_page: Number((meta as Partial<PaginationMeta>).last_page ?? fallback.last_page),
-        per_page: Number((meta as Partial<PaginationMeta>).per_page ?? fallback.per_page),
-        total: Number((meta as Partial<PaginationMeta>).total ?? fallback.total),
-        from: (meta as Partial<PaginationMeta>).from ?? fallback.from,
-        to: (meta as Partial<PaginationMeta>).to ?? fallback.to,
-    };
-});
-
-const commentsPageCount = computed(() => {
-    const meta = commentsMeta.value;
-    const derived = Math.ceil(meta.total / Math.max(meta.per_page, 1));
-
-    return Math.max(meta.last_page, derived || 1, 1);
-});
-
-const commentsRangeLabel = computed(() => {
-    const meta = commentsMeta.value;
-
-    if (meta.total === 0) {
-        return 'No comments to display';
-    }
-
-    const from = meta.from ?? ((meta.current_page - 1) * meta.per_page + 1);
-    const to = meta.to ?? Math.min(meta.current_page * meta.per_page, meta.total);
-    const label = meta.total === 1 ? 'comment' : 'comments';
-
-    return `Showing ${from}-${to} of ${meta.total} ${label}`;
+const {
+    page: paginationPage,
+    meta: commentsMeta,
+    hasMultiplePages: commentsHasMultiplePages,
+    rangeLabel: commentsRangeLabel,
+    itemsPerPage: commentsItemsPerPage,
+} = useInertiaPagination(() => props.comments, {
+    fallbackPerPage: 10,
+    labels: {
+        singular: 'comment',
+        plural: 'comments',
+        empty: 'No comments to display',
+    },
+    onNavigate: (pageNumber) => {
+        router.get(
+            route('blogs.view', { slug: blog.value.slug }),
+            { page: pageNumber },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
 });
 
 const commentCount = computed(() => commentsMeta.value.total);
 const hasComments = computed(() => commentsData.value.length > 0);
-const hasMultiplePages = computed(() => commentsPageCount.value > 1);
-
-const paginationPage = ref(commentsMeta.value.current_page);
-
-watch(
-    () => commentsMeta.value.current_page,
-    (pageNumber) => {
-        paginationPage.value = pageNumber;
-    },
-);
-
-watch(paginationPage, (pageNumber) => {
-    const safePage = Math.min(Math.max(pageNumber, 1), commentsPageCount.value);
-
-    if (safePage !== pageNumber) {
-        paginationPage.value = safePage;
-        return;
-    }
-
-    if (safePage === commentsMeta.value.current_page) {
-        return;
-    }
-
-    router.get(
-        route('blogs.view', { slug: blog.value.slug }),
-        { page: safePage },
-        {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        },
-    );
-});
 
 const enhancedComments = computed(() =>
     commentsData.value.map((comment) => {
@@ -385,12 +317,12 @@ const submitComment = () => {
                     No comments yet. Be the first to share your thoughts.
                 </p>
 
-                <div v-if="hasMultiplePages" class="mt-6 flex flex-col items-center gap-3">
+                <div v-if="commentsHasMultiplePages" class="mt-6 flex flex-col items-center gap-3">
                     <span class="text-sm text-muted-foreground text-center">{{ commentsRangeLabel }}</span>
                     <Pagination
                         v-slot="{ page, pageCount }"
                         v-model:page="paginationPage"
-                        :items-per-page="Math.max(commentsMeta.per_page, 1)"
+                        :items-per-page="commentsItemsPerPage"
                         :total="commentsMeta.total"
                         :sibling-count="1"
                         show-edges

@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import {
     Pagination,
     PaginationEllipsis,
@@ -14,6 +14,7 @@ import {
     PaginationNext,
     PaginationPrev,
 } from '@/components/ui/pagination';
+import { useInertiaPagination, type PaginationPayload } from '@/composables/useInertiaPagination';
 
 interface BlogSummary {
     id: number;
@@ -23,19 +24,7 @@ interface BlogSummary {
     cover_image?: string | null;
 }
 
-interface PaginationMeta {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-interface BlogsPayload {
-    data: BlogSummary[];
-    meta?: Partial<PaginationMeta> | null;
-}
+type BlogsPayload = PaginationPayload<BlogSummary>;
 
 const props = defineProps<{ blogs: BlogsPayload }>();
 
@@ -45,82 +34,26 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const blogsData = computed(() => props.blogs?.data ?? []);
 
-const blogsMetaFallback = computed<PaginationMeta>(() => {
-    const total = blogsData.value.length;
-
-    return {
-        current_page: 1,
-        last_page: 1,
-        per_page: total > 0 ? total : 10,
-        total,
-        from: total > 0 ? 1 : null,
-        to: total > 0 ? total : null,
-    };
-});
-
-const blogsMeta = computed<PaginationMeta>(() => {
-    const fallback = blogsMetaFallback.value;
-    const meta = props.blogs?.meta ?? {};
-
-    return {
-        ...fallback,
-        ...(meta as Partial<PaginationMeta>),
-        current_page: Number((meta as Partial<PaginationMeta>).current_page ?? fallback.current_page),
-        last_page: Number((meta as Partial<PaginationMeta>).last_page ?? fallback.last_page),
-        per_page: Number((meta as Partial<PaginationMeta>).per_page ?? fallback.per_page),
-        total: Number((meta as Partial<PaginationMeta>).total ?? fallback.total),
-        from: (meta as Partial<PaginationMeta>).from ?? fallback.from,
-        to: (meta as Partial<PaginationMeta>).to ?? fallback.to,
-    };
-});
-
-const blogsPageCount = computed(() => {
-    const meta = blogsMeta.value;
-    const derived = Math.ceil(meta.total / Math.max(meta.per_page, 1));
-
-    return Math.max(meta.last_page, derived || 1, 1);
-});
-
-const blogsRangeLabel = computed(() => {
-    const meta = blogsMeta.value;
-
-    if (meta.total === 0) {
-        return 'No blog posts to display';
-    }
-
-    const from = meta.from ?? ((meta.current_page - 1) * meta.per_page + 1);
-    const to = meta.to ?? Math.min(meta.current_page * meta.per_page, meta.total);
-    const label = meta.total === 1 ? 'post' : 'posts';
-
-    return `Showing ${from}-${to} of ${meta.total} ${label}`;
-});
-
-const paginationPage = ref(blogsMeta.value.current_page);
-
-watch(
-    () => blogsMeta.value.current_page,
-    (page) => {
-        paginationPage.value = page;
+const {
+    page: paginationPage,
+    meta: blogsMeta,
+    hasMultiplePages: blogsHasMultiplePages,
+    rangeLabel: blogsRangeLabel,
+    itemsPerPage: blogsItemsPerPage,
+} = useInertiaPagination(() => props.blogs, {
+    fallbackPerPage: 10,
+    labels: {
+        singular: 'post',
+        plural: 'posts',
+        empty: 'No blog posts to display',
     },
-);
-
-watch(paginationPage, (page) => {
-    const safePage = Math.min(Math.max(page, 1), blogsPageCount.value);
-
-    if (safePage !== page) {
-        paginationPage.value = safePage;
-        return;
-    }
-
-    if (safePage === blogsMeta.value.current_page) {
-        return;
-    }
-
-    router.get(route('blogs.index'), { page: safePage }, {
-        preserveScroll: true,
-        preserveState: true,
-        replace: true,
-    });
+    onNavigate: (page) => {
+        router.get(route('blogs.index'), { page }, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    },
 });
 
 const featuredBlog = computed(() => blogsData.value[0] ?? null);
@@ -160,12 +93,12 @@ const featuredBlog = computed(() => blogsData.value[0] ?? null);
         </div>
 
         <!-- Bottom Pagination -->
-        <div v-if="blogsPageCount > 1" class="flex flex-col items-center gap-3 pb-6">
+        <div v-if="blogsHasMultiplePages" class="flex flex-col items-center gap-3 pb-6">
             <span class="text-sm text-muted-foreground text-center">{{ blogsRangeLabel }}</span>
             <Pagination
                 v-slot="{ page, pageCount }"
                 v-model:page="paginationPage"
-                :items-per-page="Math.max(blogsMeta.per_page, 1)"
+                :items-per-page="blogsItemsPerPage"
                 :total="blogsMeta.total"
                 :sibling-count="1"
                 show-edges
