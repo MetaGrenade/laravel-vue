@@ -197,7 +197,9 @@ class ForumController extends Controller
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
 
-        $isModerator = $request->user()?->hasAnyRole(['admin', 'editor', 'moderator']);
+        $user = $request->user();
+
+        $isModerator = $user?->hasAnyRole(['admin', 'editor', 'moderator']);
 
         if (!$thread->is_published && !$isModerator) {
             abort(404);
