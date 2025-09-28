@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\ForumController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -13,17 +14,9 @@ Route::get('/', function () {
 Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
 Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.view');
 
-Route::get('forum', function () {
-    return Inertia::render('Forum');
-})->name('forum');
-
-Route::get('forum/threads', function () {
-    return Inertia::render('ForumThreads');
-})->name('forum.threads');
-
-Route::get('forum/threads/view', function () {
-    return Inertia::render('ForumThreadView');
-})->name('forum.thread.view');
+Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
+Route::get('forum/{board:slug}', [ForumController::class, 'showBoard'])->name('forum.boards.show');
+Route::get('forum/{board:slug}/{thread:slug}', [ForumController::class, 'showThread'])->name('forum.threads.show');
 
 Route::get('support', function () {
     return Inertia::render('Support');

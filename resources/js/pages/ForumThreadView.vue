@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 
 // Import shadcn‑vue components
 import Avatar from '@/components/ui/avatar/Avatar.vue';
 import Button from '@/components/ui/button/Button.vue';
-import Input from '@/components/ui/input/Input.vue';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import {
     Pagination,
@@ -39,86 +38,115 @@ import {
 } from 'lucide-vue-next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Forum', href: '/forum' },
-    { title: 'General Gaming', href: '/forum' },
-    { title: 'PC Gaming', href: '/forum/threads' },
-    { title: 'Thread Title', href: '#' },
-];
-
-// Dummy thread title
-const threadTitle = ref("What are your all-time most played games at the end of 2024?");
-
-// Dummy data for thread posts
-interface Post {
-    id: number;
-    author: string;
-    avatar: string;
-    role: string;
-    joinDate: string;
-    postCount: number;
-    postNumber: number;
-    postedAt: string;
-    content: string;
-    signature: string;
+interface BoardSummary {
+    title: string;
+    slug: string;
+    category?: {
+        title: string | null;
+        slug: string | null;
+    } | null;
 }
-const posts = ref<Post[]>([
-    {
-        id: 1,
-        author: "Admin",
-        avatar: "/images/avatar-admin.png",
-        role: "Administrator",
-        joinDate: "2022-01-01",
-        postCount: 120,
-        postNumber: 1,
-        postedAt: "2023-07-28 08:30 AM",
-        content: `<p>This is the original post of the thread. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec ligula vel arcu interdum malesuada.</p>`,
-        signature: "Admin • Always here to help.",
-    },
-    {
-        id: 2,
-        author: "GamerX",
-        avatar: "/images/avatar-gamerx.png",
-        role: "Member",
-        joinDate: "2022-03-15",
-        postCount: 45,
-        postNumber: 2,
-        postedAt: "2023-07-28 09:15 AM",
-        content: `<p>I totally agree! My most played game is XYZ, which I’ve been enjoying for years now.</p>`,
-        signature: "GamerX • Keep on gaming!",
-    },
-    {
-        id: 3,
-        author: "PlayerOne",
-        avatar: "/images/avatar-playerone.png",
-        role: "Member",
-        joinDate: "2023-01-10",
-        postCount: 10,
-        postNumber: 3,
-        postedAt: "2023-07-28 09:45 AM",
-        content: `<p>For me, it's all about strategy. I love games that challenge my tactical skills.</p>`,
-        signature: "PlayerOne • Strategist at heart.",
-    },
-]);
 
-// Reply text for new reply input
-const replyText = ref("");
+interface ThreadSummary {
+    id: number;
+    title: string;
+    slug: string;
+    is_locked: boolean;
+    is_pinned: boolean;
+    views: number;
+    author: string | null;
+    last_posted_at: string | null;
+}
+
+interface PostAuthor {
+    id: number | null;
+    nickname: string | null;
+    joined_at: string | null;
+    forum_posts_count: number;
+    primary_role: string | null;
+    avatar_url: string | null;
+}
+
+interface ThreadPost {
+    id: number;
+    body: string;
+    created_at: string;
+    edited_at: string | null;
+    number: number;
+    signature: string | null;
+    author: PostAuthor;
+}
+
+interface PaginationMeta {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
+interface PostsPayload {
+    data: ThreadPost[];
+    meta: PaginationMeta;
+}
+
+const props = defineProps<{
+    board: BoardSummary;
+    thread: ThreadSummary;
+    posts: PostsPayload;
+}>();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => {
+    const trail: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
+    if (props.board.category?.title) {
+        trail.push({ title: props.board.category.title, href: '/forum' });
+    }
+    trail.push({ title: props.board.title, href: `/forum/${props.board.slug}` });
+    trail.push({ title: props.thread.title, href: route('forum.threads.show', { board: props.board.slug, thread: props.thread.slug }) });
+    return trail;
+});
+
+const paginationPage = ref(props.posts.meta.current_page);
+
+watch(() => props.posts.meta.current_page, (page) => {
+    paginationPage.value = page;
+});
+
+watch(paginationPage, (page) => {
+    if (page === props.posts.meta.current_page) return;
+
+    router.get(route('forum.threads.show', { board: props.board.slug, thread: props.thread.slug }), {
+        page,
+    }, {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
+});
+
+const replyText = ref('');
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Forum Thread View" />
+        <Head :title="`Forum • ${props.thread.title}`" />
         <div class="container mx-auto p-4 space-y-8">
             <!-- Thread Title -->
             <div class="mb-4">
                 <h1 id="thread_title" class="text-3xl font-bold text-green-500">
-                    <Pin class="h-8 w-8 inline-block" />
-                    {{ threadTitle }}
+                    <Pin v-if="props.thread.is_pinned" class="h-8 w-8 inline-block" />
+                    {{ props.thread.title }}
                 </h1>
             </div>
 
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-                <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
+                <Pagination
+                    v-slot="{ page }"
+                    v-model:page="paginationPage"
+                    :items-per-page="Math.max(props.posts.meta.per_page, 1)"
+                    :total="props.posts.meta.total"
+                    :sibling-count="1"
+                    show-edges
+                >
                     <PaginationList v-slot="{ items }" class="flex items-center gap-1">
                         <PaginationFirst />
                         <PaginationPrev />
@@ -137,12 +165,12 @@ const replyText = ref("");
                     </PaginationList>
                 </Pagination>
                 <div class="flex w-full max-w-md space-x-2 justify-end">
-                    <Button variant="secondary" class="cursor-pointer text-yellow-500" disabled>
+                    <Button v-if="props.thread.is_locked" variant="secondary" class="cursor-pointer text-yellow-500" disabled>
                         <Lock class="h-8 w-8" />
                         Locked
                     </Button>
                     <a href="#post_reply">
-                        <Button variant="secondary" class="cursor-pointer">
+                        <Button variant="secondary" class="cursor-pointer" :disabled="props.thread.is_locked">
                             Post Reply
                         </Button>
                     </a>
@@ -210,33 +238,33 @@ const replyText = ref("");
             <!-- Posts List -->
             <div class="space-y-6">
                 <div
-                    v-for="post in posts"
+                    v-for="post in props.posts.data"
                     :key="post.id"
                     class="flex flex-col md:flex-row gap-4 rounded-xl border p-4 shadow-sm"
                 >
                     <!-- Left Side: User Info -->
                     <div class="flex-shrink-0 w-full md:w-1/5 border-r pr-4">
-                        <Avatar :src="post.avatar" alt="User avatar" class="h-24 w-24 rounded-full mb-2" />
-                        <div class="font-bold text-lg">{{ post.author }}</div>
-                        <div class="text-sm text-gray-500">{{ post.role }}</div>
+                        <Avatar :src="post.author.avatar_url ?? undefined" alt="User avatar" class="h-24 w-24 rounded-full mb-2" />
+                        <div class="font-bold text-lg">{{ post.author.nickname ?? 'Unknown' }}</div>
+                        <div class="text-sm text-gray-500">{{ post.author.primary_role ?? 'Member' }}</div>
                         <div class="mt-2 text-xs text-gray-600">
-                            Joined: <span class="font-medium">{{ post.joinDate }}</span>
+                            Joined: <span class="font-medium">{{ post.author.joined_at ?? '—' }}</span>
                         </div>
                         <div class="mt-1 text-xs text-gray-600">
-                            Posts: <span class="font-medium">{{ post.postCount }}</span>
+                            Posts: <span class="font-medium">{{ post.author.forum_posts_count }}</span>
                         </div>
                     </div>
 
                     <!-- Right Side: Post Content -->
                     <div class="flex-1">
                         <div class="flex justify-between items-center border-b pb-2 mb-4">
-                            <div class="text-sm text-gray-500">{{ post.postedAt }}</div>
-                            <div class="text-sm font-medium text-gray-500">#{{ post.postNumber }}</div>
+                            <div class="text-sm text-gray-500">{{ post.created_at }}</div>
+                            <div class="text-sm font-medium text-gray-500">#{{ post.number }}</div>
                         </div>
                         <!-- Post Body -->
-                        <div class="prose dark:prose-dark" v-html="post.content"></div>
+                        <div class="prose dark:prose-dark" v-html="post.body"></div>
                         <!-- Forum Signature -->
-                        <div class="mt-4 border-t pt-2 text-xs text-gray-500">
+                        <div v-if="post.signature" class="mt-4 border-t pt-2 text-xs text-gray-500">
                             {{ post.signature }}
                         </div>
                     </div>
@@ -244,7 +272,14 @@ const replyText = ref("");
             </div>
 
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-                <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
+                <Pagination
+                    v-slot="{ page }"
+                    v-model:page="paginationPage"
+                    :items-per-page="Math.max(props.posts.meta.per_page, 1)"
+                    :total="props.posts.meta.total"
+                    :sibling-count="1"
+                    show-edges
+                >
                     <PaginationList v-slot="{ items }" class="flex items-center gap-1">
                         <PaginationFirst />
                         <PaginationPrev />
@@ -271,7 +306,7 @@ const replyText = ref("");
                 </div>
             </header>
 
-            <Alert variant="warning">
+            <Alert v-if="props.thread.is_locked" variant="warning">
                 <MessageSquareLock class="w-6 h-6" />
                 <AlertTitle>Thread Locked</AlertTitle>
                 <AlertDescription>
@@ -283,9 +318,9 @@ const replyText = ref("");
             <div class="mt-8 rounded-xl border p-6 shadow">
                 <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
                 <div class="flex flex-col gap-4">
-                    <Textarea v-model="replyText" placeholder="Write your reply here..." class="w-full rounded-md" />
+                    <Textarea v-model="replyText" placeholder="Write your reply here..." class="w-full rounded-md" :disabled="props.thread.is_locked" />
 
-                    <Button variant="secondary" class="cursor-pointer bg-green-500 hover:bg-green-600">
+                    <Button variant="secondary" class="cursor-pointer bg-green-500 hover:bg-green-600" :disabled="props.thread.is_locked">
                         Submit Reply
                     </Button>
                 </div>

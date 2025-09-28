@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -34,86 +34,115 @@ import {
     Pin, Ellipsis, Eye, EyeOff, Pencil, Trash2, Lock, LockOpen
 } from 'lucide-vue-next';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Forum', href: '/forum' },
-    { title: 'General Gaming', href: '/forum' },
-    { title: 'PC Gaming', href: '/forum/threads' },
-];
-
-// Define interface for a Thread
-interface Thread {
+interface BoardSummary {
     id: number;
     title: string;
-    author: string;
-    replies: number;
-    views: number;
-    lastReplyAuthor: string;
-    lastReplyTime: string;
-    pinned: boolean;
-    unread: boolean;
+    slug: string;
+    description: string | null;
+    category?: {
+        title: string | null;
+        slug: string | null;
+    } | null;
 }
 
-// Dummy data for forum threads
-const threads = ref<Thread[]>([
-    {
-        id: 1,
-        title: 'Welcome to PC Gaming',
-        author: 'Admin',
-        replies: 10,
-        views: 150,
-        lastReplyAuthor: 'User1',
-        lastReplyTime: '2023-07-28 09:00',
-        pinned: true,
-        unread: false,
-    },
-    {
-        id: 2,
-        title: 'Latest Game Releases',
-        author: 'Moderator',
-        replies: 25,
-        views: 300,
-        lastReplyAuthor: 'User2',
-        lastReplyTime: '2023-07-28 10:30',
-        pinned: false,
-        unread: true,
-    },
-    {
-        id: 3,
-        title: 'Tips and Tricks for Competitive Gaming',
-        author: 'GamerX',
-        replies: 15,
-        views: 250,
-        lastReplyAuthor: 'User3',
-        lastReplyTime: '2023-07-28 11:00',
-        pinned: false,
-        unread: false,
-    },
-    // Add more threads as needed...
-]);
+interface ThreadSummary {
+    id: number;
+    title: string;
+    slug: string;
+    author: string | null;
+    replies: number;
+    views: number;
+    is_pinned: boolean;
+    is_locked: boolean;
+    last_reply_author: string | null;
+    last_reply_at: string | null;
+}
 
-// Search query for filtering threads
-const searchQuery = ref('');
-const filteredThreads = computed(() => {
-    if (!searchQuery.value) return threads.value;
-    const q = searchQuery.value.toLowerCase();
-    return threads.value.filter(thread =>
-        thread.title.toLowerCase().includes(q) ||
-        thread.author.toLowerCase().includes(q)
-    );
+interface PaginationMeta {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
+interface ThreadsPayload {
+    data: ThreadSummary[];
+    meta: PaginationMeta;
+}
+
+const props = defineProps<{
+    board: BoardSummary;
+    threads: ThreadsPayload;
+    filters: {
+        search?: string;
+    };
+}>();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => {
+    const trail: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
+    if (props.board.category?.title) {
+        trail.push({ title: props.board.category.title, href: '/forum' });
+    }
+    trail.push({ title: props.board.title, href: `/forum/${props.board.slug}` });
+    return trail;
+});
+
+const searchQuery = ref(props.filters.search ?? '');
+const paginationPage = ref(props.threads.meta.current_page);
+
+watch(() => props.threads.meta.current_page, (page) => {
+    paginationPage.value = page;
+});
+
+let searchTimeout: ReturnType<typeof setTimeout> | undefined;
+
+watch(searchQuery, (value) => {
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    searchTimeout = setTimeout(() => {
+        paginationPage.value = 1;
+        router.get(route('forum.boards.show', { board: props.board.slug }), {
+            search: value || undefined,
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    }, 300);
+});
+
+watch(paginationPage, (page) => {
+    if (page === props.threads.meta.current_page) return;
+
+    router.get(route('forum.boards.show', { board: props.board.slug }), {
+        search: searchQuery.value || undefined,
+        page,
+    }, {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
+});
+
+onBeforeUnmount(() => {
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
 });
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Forum • PC Gaming" />
+        <Head :title="`Forum • ${props.board.title}`" />
         <div class="p-4 space-y-6">
             <!-- Forum Header -->
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-                <h1 class="text-2xl font-bold text-green-500">PC Games</h1>
+                <h1 class="text-2xl font-bold text-green-500">{{ props.board.title }}</h1>
                 <div class="flex w-full max-w-md space-x-2">
                     <Input
                         v-model="searchQuery"
-                        placeholder="Search PC Games..."
+                        :placeholder="`Search ${props.board.title}...`"
                     />
                     <Button variant="secondary" class="cursor-pointer">
                         New Thread
@@ -122,7 +151,14 @@ const filteredThreads = computed(() => {
             </header>
             <!-- Top Pagination and Search -->
             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
+                <Pagination
+                    v-slot="{ page }"
+                    v-model:page="paginationPage"
+                    :items-per-page="Math.max(props.threads.meta.per_page, 1)"
+                    :total="props.threads.meta.total"
+                    :sibling-count="1"
+                    show-edges
+                >
                     <PaginationList v-slot="{ items }" class="flex items-center gap-1">
                         <PaginationFirst />
                         <PaginationPrev />
@@ -156,26 +192,26 @@ const filteredThreads = computed(() => {
                     </TableHeader>
                     <TableBody>
                         <TableRow
-                            v-for="thread in filteredThreads"
+                            v-for="thread in props.threads.data"
                             :key="thread.id"
                             class="hover:bg-gray-50 dark:hover:bg-gray-900"
                         >
                             <TableCell>
                                 <Link
-                                    :href="route('forum.thread.view', { id: thread.id })"
-                                    :class="{'font-semibold': thread.unread, 'font-normal': !thread.unread}"
+                                    :href="route('forum.threads.show', { board: props.board.slug, thread: thread.slug })"
+                                    :class="{'font-semibold': thread.is_pinned, 'font-normal': !thread.is_pinned}"
                                     class="hover:underline"
                                 >
                                     {{ thread.title }}
-                                    <Pin v-if="thread.pinned" class="h-4 w-4 text-green-500 inline-block" />
+                                    <Pin v-if="thread.is_pinned" class="h-4 w-4 text-green-500 inline-block" />
                                 </Link>
-                                <div class="text-xs text-gray-500">By {{ thread.author }}</div>
+                                <div class="text-xs text-gray-500">By {{ thread.author ?? 'Unknown' }}</div>
                             </TableCell>
                             <TableCell class="text-center">{{ thread.replies }}</TableCell>
                             <TableCell class="text-center">{{ thread.views }}</TableCell>
                             <TableCell>
-                                <div class="text-sm">{{ thread.lastReplyAuthor }}</div>
-                                <div class="text-xs text-gray-500">{{ thread.lastReplyTime }}</div>
+                                <div class="text-sm">{{ thread.last_reply_author ?? '—' }}</div>
+                                <div class="text-xs text-gray-500">{{ thread.last_reply_at ?? '—' }}</div>
                             </TableCell>
                             <TableCell class="text-center">
                                 <DropdownMenu>
@@ -221,7 +257,7 @@ const filteredThreads = computed(() => {
                                 </DropdownMenu>
                             </TableCell>
                         </TableRow>
-                        <TableRow v-if="filteredThreads.length === 0">
+                        <TableRow v-if="props.threads.data.length === 0">
                             <TableCell colspan="7" class="text-center text-sm text-gray-600 dark:text-gray-300">
                                 No threads found.
                             </TableCell>
@@ -232,7 +268,14 @@ const filteredThreads = computed(() => {
 
             <!-- Bottom Pagination -->
             <div class="flex">
-                <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
+                <Pagination
+                    v-slot="{ page }"
+                    v-model:page="paginationPage"
+                    :items-per-page="Math.max(props.threads.meta.per_page, 1)"
+                    :total="props.threads.meta.total"
+                    :sibling-count="1"
+                    show-edges
+                >
                     <PaginationList v-slot="{ items }" class="flex items-center gap-1">
                         <PaginationFirst />
                         <PaginationPrev />
