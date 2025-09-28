@@ -1,66 +1,67 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
-import Input from '@/components/ui/input/Input.vue';
-import Avatar from '@/components/ui/avatar/Avatar.vue';
-// Use MessageSquare instead of ChatBubble for reply icon
-import { Share2, MessageSquare } from 'lucide-vue-next';
-import PlaceholderPattern from '../components/PlaceholderPattern.vue';
+import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
+import { Share2 } from 'lucide-vue-next';
+import { useUserTimezone } from '@/composables/useUserTimezone';
 
-const blogPost = ref({
-    id: 1,
-    title: "How to Build a Modern Web Application",
-    author: "Alice Johnson",
-    publishedAt: "2023-07-28",
-    content: `<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eget fermentum mauris. Vivamus euismod, ligula vel luctus hendrerit, risus erat dapibus justo, a varius justo odio et mauris. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.</p>
-  <p>Suspendisse potenti. In hac habitasse platea dictumst. Mauris quis sollicitudin turpis. Donec in sapien non eros tincidunt tincidunt. Cras egestas consectetur dui, eget cursus magna fermentum a.</p>`,
+type BlogAuthor = {
+    id?: number;
+    name?: string | null;
+    nickname?: string | null;
+};
+
+type BlogPayload = {
+    id: number;
+    title: string;
+    slug: string;
+    excerpt?: string | null;
+    body: string;
+    published_at?: string | null;
+    user?: BlogAuthor | null;
+};
+
+const props = defineProps<{ blog: BlogPayload }>();
+
+const blog = computed(() => props.blog);
+const { formatDate } = useUserTimezone();
+
+const authorName = computed(() => {
+    const author = blog.value.user;
+
+    if (!author) {
+        return 'Unknown author';
+    }
+
+    return author.name ?? author.nickname ?? 'Unknown author';
 });
 
-const comments = ref([
-    {
-        id: 1,
-        author: "Bob Smith",
-        avatar: "/images/avatar1.png",
-        postedAt: "2023-07-28 10:15 AM",
-        text: "Great article! Really enjoyed reading it.",
-    },
-    {
-        id: 2,
-        author: "Charlie Brown",
-        avatar: "/images/avatar2.png",
-        postedAt: "2023-07-28 11:30 AM",
-        text: "I have a question regarding the authentication section.",
-    },
-]);
+const publishedAt = computed(() => {
+    if (!blog.value.published_at) {
+        return null;
+    }
 
-const newComment = ref("");
-
-function postComment() {
-    if (newComment.value.trim() === "") return;
-    comments.value.push({
-        id: Date.now(),
-        author: "Current User",
-        avatar: "/images/avatar-placeholder.png",
-        postedAt: new Date().toLocaleString(),
-        text: newComment.value,
-    });
-    newComment.value = "";
-}
+    return formatDate(blog.value.published_at, 'MMMM D, YYYY');
+});
 </script>
 
 <template>
     <AppLayout>
-        <Head title="Blog Post" />
+        <Head :title="blog.title" />
         <div class="container mx-auto px-4 py-8">
             <!-- Blog Post Content -->
             <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
-                <h1 class="mb-2 text-3xl font-bold">{{ blogPost.title }}</h1>
-                <div class="mb-4 text-sm text-gray-500">
-                    By <span class="font-medium">{{ blogPost.author }}</span> | Published on {{ blogPost.publishedAt }}
+                <h1 class="mb-3 text-3xl font-bold">{{ blog.title }}</h1>
+                <div class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                    <span>By <span class="font-medium text-foreground">{{ authorName }}</span></span>
+                    <span v-if="publishedAt"> | Published on {{ publishedAt }}</span>
                 </div>
-                <div class="prose" v-html="blogPost.content"></div>
+                <p v-if="blog.excerpt" class="mb-6 text-base text-gray-600 dark:text-gray-300">
+                    {{ blog.excerpt }}
+                </p>
+                <div class="prose max-w-none" v-html="blog.body"></div>
             </div>
 
             <!-- Share Section -->
@@ -80,39 +81,13 @@ function postComment() {
             </div>
 
             <!-- Comments Section -->
-            <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
-                <h2 class="mb-4 text-2xl font-bold">Comments</h2>
-                <!-- Comment Form -->
-                <div class="mb-6">
-                    <h3 class="mb-2 text-lg font-semibold">Leave a Comment</h3>
-                    <div class="mb-4">
-                        <Input
-                            v-model="newComment"
-                            placeholder="Write your comment here..."
-                            class="w-full rounded-md"
-                        />
-                    </div>
-                    <Button variant="primary" @click="postComment">
-                        Post Comment
-                    </Button>
-                </div>
-                <!-- Comment List -->
-                <div>
-                    <div
-                        v-for="comment in comments"
-                        :key="comment.id"
-                        class="mb-4 flex space-x-4 border-b border-sidebar-border/70 dark:border-sidebar-border pb-4"
-                    >
-                        <Avatar :src="comment.avatar" alt="comment author" class="h-10 w-10 rounded-full" />
-                        <div>
-                            <div class="mb-1 text-sm font-semibold">{{ comment.author }}</div>
-                            <div class="mb-1 text-xs text-gray-500">{{ comment.postedAt }}</div>
-                            <div class="text-sm">{{ comment.text }}</div>
-                            <Button variant="ghost" class="mt-2 flex items-center text-sm">
-                                <MessageSquare class="mr-1 h-4 w-4" /> Reply
-                            </Button>
-                        </div>
-                    </div>
+            <div class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
+                <PlaceholderPattern />
+                <div class="relative space-y-3">
+                    <h2 class="text-2xl font-bold">Comments</h2>
+                    <p class="max-w-prose text-sm text-gray-600 dark:text-gray-300">
+                        Commenting isn’t available just yet. We’ll light this up once the discussion API is ready.
+                    </p>
                 </div>
             </div>
         </div>
