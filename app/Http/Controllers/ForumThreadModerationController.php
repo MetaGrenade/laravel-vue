@@ -116,8 +116,7 @@ class ForumThreadModerationController extends Controller
 
         $thread->delete();
 
-        return redirect()->route('forum.boards.show', $board)
-            ->with('success', 'Thread deleted successfully.');
+        return $this->redirectToBoard($request, $board, 'Thread deleted successfully.');
     }
 
     private function ensureThreadBelongsToBoard(ForumBoard $board, ForumThread $thread): void
@@ -125,9 +124,29 @@ class ForumThreadModerationController extends Controller
         abort_if($thread->forum_board_id !== $board->id, 404);
     }
 
-    private function redirectToBoard(ForumBoard $board, string $message): RedirectResponse
+    private function redirectToBoard(Request $request, ForumBoard $board, string $message): RedirectResponse
     {
-        return redirect()->route('forum.boards.show', $board)
+        $parameters = [
+            'board' => $board->slug,
+        ];
+
+        $page = (int) $request->input('page');
+
+        if ($page > 0) {
+            $parameters['page'] = $page;
+        }
+
+        $search = $request->input('search');
+
+        if (is_string($search)) {
+            $search = trim($search);
+
+            if ($search !== '') {
+                $parameters['search'] = $search;
+            }
+        }
+
+        return redirect()->route('forum.boards.show', $parameters)
             ->with('success', $message);
     }
 
@@ -149,6 +168,6 @@ class ForumThreadModerationController extends Controller
                 ->with('success', $message);
         }
 
-        return $this->redirectToBoard($board, $message);
+        return $this->redirectToBoard($request, $board, $message);
     }
 }

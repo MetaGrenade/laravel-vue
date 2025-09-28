@@ -181,11 +181,16 @@ const paginationPage = ref(threadsMeta.value.current_page);
 const activeActionThreadId = ref<number | null>(null);
 const threadReportDialogOpen = ref(false);
 const threadReportTarget = ref<ThreadSummary | null>(null);
+const threadEditDialogOpen = ref(false);
+const threadEditTarget = ref<ThreadSummary | null>(null);
 const threadReportForm = useForm({
     reason_category: '',
     reason: '',
     evidence_url: '',
     page: threadsMeta.value.current_page,
+});
+const threadEditForm = useForm({
+    title: '',
 });
 
 const selectedThreadReason = computed(() =>
@@ -261,6 +266,23 @@ watch(threadReportDialogOpen, (open) => {
         threadReportForm.clearErrors();
     }
 });
+
+watch(threadEditDialogOpen, (open) => {
+    if (!open) {
+        threadEditTarget.value = null;
+        threadEditForm.reset('title');
+        threadEditForm.clearErrors('title');
+    }
+});
+
+watch(
+    () => threadEditForm.title,
+    () => {
+        if (threadEditForm.errors.title) {
+            threadEditForm.clearErrors('title');
+        }
+    },
+);
 
 const openThreadReportDialog = (thread: ThreadSummary) => {
     if (!thread.permissions.canReport || !hasReportReasons.value) {
@@ -339,14 +361,65 @@ const unlockThread = (thread: ThreadSummary) => {
     performThreadAction(thread, 'put', 'forum.threads.unlock');
 };
 
-const renameThread = (thread: ThreadSummary) => {
-    const newTitle = window.prompt('Update thread title', thread.title)?.trim();
-
-    if (!newTitle || newTitle === thread.title) {
+const openThreadEditDialog = (thread: ThreadSummary) => {
+    if (!props.permissions.canModerate || threadEditForm.processing) {
         return;
     }
 
-    performThreadAction(thread, 'put', 'forum.threads.update', { title: newTitle });
+    threadEditTarget.value = thread;
+    threadEditForm.title = thread.title;
+    threadEditForm.clearErrors('title');
+    threadEditDialogOpen.value = true;
+};
+
+const submitThreadEdit = () => {
+    const target = threadEditTarget.value;
+
+    if (!target || !props.permissions.canModerate || threadEditForm.processing) {
+        return;
+    }
+
+    const trimmed = threadEditForm.title.trim();
+
+    if (trimmed === '') {
+        threadEditForm.setError('title', 'Please provide a thread title.');
+        return;
+    }
+
+    if (trimmed === target.title) {
+        threadEditDialogOpen.value = false;
+        return;
+    }
+
+    activeActionThreadId.value = target.id;
+    threadEditForm.title = trimmed;
+
+    threadEditForm
+        .transform(() => {
+            const payload: Record<string, unknown> = {
+                title: trimmed,
+                page: threadsMeta.value.current_page,
+            };
+
+            const search = searchQuery.value.trim();
+
+            if (search) {
+                payload.search = search;
+            }
+
+            return payload;
+        })
+        .put(route('forum.threads.update', { board: props.board.slug, thread: target.slug }), {
+            preserveScroll: true,
+            preserveState: false,
+            replace: true,
+            onSuccess: () => {
+                threadEditDialogOpen.value = false;
+            },
+            onFinish: () => {
+                activeActionThreadId.value = null;
+            },
+        });
 };
 
 const deleteThread = (thread: ThreadSummary) => {
@@ -372,6 +445,44 @@ const markThreadAsRead = (thread: ThreadSummary) => {
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Forum • ${props.board.title}`" />
+        <Dialog v-model:open="threadEditDialogOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Edit thread title</DialogTitle>
+                    <DialogDescription>
+                        Update the discussion title before it appears to other readers.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="space-y-5" @submit.prevent="submitThreadEdit">
+                    <div class="space-y-2">
+                        <Label for="board_thread_edit_title">Title</Label>
+                        <Input
+                            id="board_thread_edit_title"
+                            v-model="threadEditForm.title"
+                            type="text"
+                            placeholder="Thread title"
+                            :disabled="threadEditForm.processing"
+                        />
+                        <p v-if="threadEditForm.errors.title" class="text-sm text-destructive">
+                            {{ threadEditForm.errors.title }}
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            :disabled="threadEditForm.processing"
+                            @click="threadEditDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" :disabled="threadEditForm.processing">
+                            Save changes
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
         <Dialog v-model:open="threadReportDialogOpen">
             <DialogContent class="sm:max-w-lg">
                 <DialogHeader>
@@ -652,7 +763,7 @@ const markThreadAsRead = (thread: ThreadSummary) => {
                                                     <DropdownMenuItem
                                                         class="text-blue-500"
                                                         :disabled="activeActionThreadId === thread.id"
-                                                        @select="renameThread(thread)"
+                                                        @select="openThreadEditDialog(thread)"
                                                     >
                                                         <Pencil class="h-8 w-8" />
                                                         <span>Edit Title</span>
