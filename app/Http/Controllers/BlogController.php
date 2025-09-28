@@ -32,10 +32,10 @@ class BlogController extends Controller
     {
         abort_unless($blog->status === 'published', 404);
 
-        $blog->load(['user:id,nickname,avatar']);
+        $blog->load(['user:id,nickname']);
 
         $comments = $blog->comments()
-            ->with(['user:id,nickname,avatar'])
+            ->with(['user:id,nickname'])
             ->orderBy('created_at')
             ->paginate(self::COMMENTS_PER_PAGE)
             ->withQueryString();
