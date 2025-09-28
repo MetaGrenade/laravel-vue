@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\BlogCommentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -28,10 +27,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-
-    Route::post('/blogs/{blog:slug}/comments', [BlogCommentController::class, 'store'])
-        ->name('api.blogs.comments.store');
 });
-
-Route::get('/blogs/{blog:slug}/comments', [BlogCommentController::class, 'index'])
-    ->name('api.blogs.comments.index');

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BlogCommentController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumPostController;
@@ -22,6 +23,9 @@ Route::get('forum/{board:slug}', [ForumController::class, 'showBoard'])->name('f
 Route::get('forum/{board:slug}/{thread:slug}', [ForumController::class, 'showThread'])->name('forum.threads.show');
 
 Route::middleware('auth')->group(function () {
+    Route::post('/blogs/{blog:slug}/comments', [BlogCommentController::class, 'store'])
+        ->name('blogs.comments.store');
+
     Route::get('forum/{board:slug}/threads/create', [ForumController::class, 'createThread'])
         ->name('forum.threads.create');
     Route::post('forum/{board:slug}/threads', [ForumController::class, 'storeThread'])
