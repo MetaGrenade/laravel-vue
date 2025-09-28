@@ -108,6 +108,10 @@ class ForumDemoSeeder extends Seeder
                     ]);
 
                     $postTotal = random_int(2, 5);
+                    if ($categoryIndex === 0 && $boardIndex === 0 && $threadIndex === 0) {
+                        // Guarantee at least one thread spans multiple pages of posts for pagination testing.
+                        $postTotal = max($postTotal, 22);
+                    }
                     $lastPost = null;
 
                     for ($postIndex = 0; $postIndex < $postTotal; $postIndex++) {
