@@ -276,6 +276,15 @@ watch(postReportDialogOpen, (open) => {
     }
 });
 
+watch(
+    () => replyForm.body,
+    () => {
+        if (replyForm.errors.body) {
+            replyForm.clearErrors('body');
+        }
+    },
+);
+
 const performThreadAction = (
     method: 'put' | 'post',
     routeName: string,
@@ -512,7 +521,47 @@ const deletePost = (post: ThreadPost) => {
     performPostAction(post, 'delete', 'forum.posts.destroy');
 };
 
-const replyText = ref('');
+const replyForm = useForm({
+    body: '',
+});
+
+const showReplyForm = computed(() => threadPermissions.value?.canReply ?? false);
+
+const replySubmitDisabled = computed(() => {
+    if (!threadPermissions.value?.canReply) {
+        return true;
+    }
+
+    if (replyForm.processing) {
+        return true;
+    }
+
+    return replyForm.body.trim() === '';
+});
+
+const submitReply = () => {
+    if (!threadPermissions.value?.canReply || replyForm.processing) {
+        return;
+    }
+
+    const trimmed = replyForm.body.trim();
+
+    if (trimmed === '') {
+        replyForm.setError('body', 'Please enter a reply before submitting.');
+        return;
+    }
+
+    replyForm.clearErrors('body');
+    replyForm.body = trimmed;
+
+    replyForm.post(route('forum.posts.store', { board: props.board.slug, thread: props.thread.slug }), {
+        preserveScroll: false,
+        onSuccess: () => {
+            replyForm.reset('body');
+            replyForm.clearErrors();
+        },
+    });
+};
 </script>
 
 <template>
@@ -868,6 +917,7 @@ const replyText = ref('');
                 <div
                     v-for="post in props.posts.data"
                     :key="post.id"
+                    :id="`post-${post.id}`"
                     class="flex flex-col md:flex-row gap-4 rounded-xl border p-4 shadow-sm"
                 >
                     <!-- Left Side: User Info -->
@@ -1002,25 +1052,36 @@ const replyText = ref('');
                 </AlertDescription>
             </Alert>
 
+            <Alert v-if="!props.thread.is_published" variant="default">
+                <AlertTitle>Thread Not Published</AlertTitle>
+                <AlertDescription>
+                    Replies are disabled until this discussion has been published.
+                </AlertDescription>
+            </Alert>
+
             <!-- Reply Input Section -->
-            <div class="mt-8 rounded-xl border p-6 shadow">
+            <div v-if="showReplyForm" class="mt-8 rounded-xl border p-6 shadow">
                 <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
-                <div class="flex flex-col gap-4">
+                <form class="flex flex-col gap-4" @submit.prevent="submitReply">
                     <Textarea
-                        v-model="replyText"
+                        v-model="replyForm.body"
                         placeholder="Write your reply here..."
                         class="w-full rounded-md"
-                        :disabled="!props.thread.permissions.canReply"
+                        :disabled="replyForm.processing"
                     />
+                    <p v-if="replyForm.errors.body" class="text-sm text-destructive">
+                        {{ replyForm.errors.body }}
+                    </p>
 
                     <Button
+                        type="submit"
                         variant="secondary"
                         class="cursor-pointer bg-green-500 hover:bg-green-600"
-                        :disabled="!props.thread.permissions.canReply"
+                        :disabled="replySubmitDisabled"
                     >
                         Submit Reply
                     </Button>
-                </div>
+                </form>
             </div>
         </div>
     </AppLayout>

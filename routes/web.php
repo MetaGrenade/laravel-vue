@@ -29,6 +29,8 @@ Route::middleware('auth')->group(function () {
     Route::post('forum/{board:slug}/{thread:slug}/report', [ForumThreadActionController::class, 'report'])
         ->name('forum.threads.report');
 
+    Route::post('forum/{board:slug}/{thread:slug}/posts', [ForumPostController::class, 'store'])
+        ->name('forum.posts.store');
     Route::put('forum/{board:slug}/{thread:slug}/posts/{post}', [ForumPostController::class, 'update'])
         ->name('forum.posts.update');
     Route::delete('forum/{board:slug}/{thread:slug}/posts/{post}', [ForumPostController::class, 'destroy'])

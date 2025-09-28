@@ -296,7 +296,7 @@ class ForumController extends Controller
                     'canModerate' => (bool) $isModerator,
                     'canEdit' => $user !== null && ($user->id === $thread->user_id || $isModerator),
                     'canReport' => $user !== null && $user->id !== $thread->user_id,
-                    'canReply' => $user !== null && !$thread->is_locked,
+                    'canReply' => $user !== null && $thread->is_published && !$thread->is_locked,
                 ],
             ],
             'posts' => [
