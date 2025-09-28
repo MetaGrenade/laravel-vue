@@ -83,6 +83,10 @@ class ForumDemoSeeder extends Seeder
                 ]);
 
                 $threadCount = 3;
+                if ($categoryIndex === 0 && $boardIndex === 0) {
+                    // Guarantee at least one board spans multiple pages of threads for pagination testing.
+                    $threadCount = max($threadCount, 18);
+                }
 
                 for ($threadIndex = 0; $threadIndex < $threadCount; $threadIndex++) {
                     $author = $users->random();
