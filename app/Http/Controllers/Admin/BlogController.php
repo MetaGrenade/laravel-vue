@@ -18,17 +18,20 @@ class BlogController extends Controller
     {
         $perPage = $request->get('per_page', 15);
 
+        $blogQuery = Blog::query();
+
         // Retrieve blogs with their associated author information.
-        $blogs = Blog::with('user')
+        $blogs = (clone $blogQuery)
+            ->with('user')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->withQueryString();
 
         $blogStats = [
-            'total'      => Blog::count(),
-            'published'  => Blog::where('status', 'published')->count(),
-            'draft'      => Blog::where('status', 'draft')->count(),
-            'archived'   => Blog::where('status', 'archived')->count(),
+            'total'      => $blogs->total(),
+            'published'  => (clone $blogQuery)->where('status', 'published')->count(),
+            'draft'      => (clone $blogQuery)->where('status', 'draft')->count(),
+            'archived'   => (clone $blogQuery)->where('status', 'archived')->count(),
         ];
 
         return inertia('acp/Blogs', compact('blogs', 'blogStats'));
