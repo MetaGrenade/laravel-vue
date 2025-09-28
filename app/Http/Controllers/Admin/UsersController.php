@@ -19,16 +19,19 @@ class UsersController extends Controller
     {
         $perPage = $request->get('per_page', 15);
 
-        $users = User::with('roles')
+        $userQuery = User::query();
+
+        $users = (clone $userQuery)
+            ->with('roles')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->withQueryString();
 
         $userStats = [
-            'total'      => User::count(),
-            'unverified' => User::whereNull('email_verified_at')->count(),
-            'banned'     => User::where('is_banned', true)->count(),
-            'online'     => User::where('last_activity_at', '>=', now()->subMinutes(5))->count(),
+            'total'      => $users->total(),
+            'unverified' => (clone $userQuery)->whereNull('email_verified_at')->count(),
+            'banned'     => (clone $userQuery)->where('is_banned', true)->count(),
+            'online'     => (clone $userQuery)->where('last_activity_at', '>=', now()->subMinutes(5))->count(),
         ];
 
         return inertia('acp/Users', compact('users','userStats'));

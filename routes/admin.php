@@ -14,10 +14,6 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
 
     Route::get('acp/dashboard', [AdminController::class, 'get'])->name('acp.dashboard');
 
-    Route::get('acp/users', function () {
-        return Inertia::render('acp/Users');
-    })->name('acp.users');
-
     // Admin User Management Routes
     Route::get('acp/users', [AdminUserController::class, 'index'])->name('acp.users.index');
     Route::get('acp/users/{user}/edit', [AdminUserController::class, 'edit'])->name('acp.users.edit');
@@ -49,10 +45,6 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/forums', function () {
         return Inertia::render('acp/Forums');
     })->name('acp.forums');
-
-    Route::get('acp/support', function () {
-        return Inertia::render('acp/Support');
-    })->name('acp.support');
 
     // Support ACP
     Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');

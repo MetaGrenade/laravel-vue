@@ -20,8 +20,11 @@ class TokenController extends Controller
     {
         $perPage = $request->get('per_page', 10);
 
+        $tokenQuery = PersonalAccessToken::query();
+
         // eager‐load owner
-        $tokens = PersonalAccessToken::with('tokenable:id,nickname,email')
+        $tokens = (clone $tokenQuery)
+            ->with('tokenable:id,nickname,email')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->withQueryString()
@@ -44,16 +47,16 @@ class TokenController extends Controller
             });
 
         $revokedCount = Schema::hasColumn('personal_access_tokens', 'revoked_at')
-            ? PersonalAccessToken::whereNotNull('revoked_at')->count()
+            ? (clone $tokenQuery)->whereNotNull('revoked_at')->count()
             : 0;
 
         $tokenStats = [
-            'total'   => PersonalAccessToken::count(),
-            'active'  => PersonalAccessToken::where(function ($query) {
+            'total'   => $tokens->total(),
+            'active'  => (clone $tokenQuery)->where(function ($query) {
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());
             })->count(),
-            'expired' => PersonalAccessToken::whereNotNull('expires_at')
+            'expired' => (clone $tokenQuery)->whereNotNull('expires_at')
                 ->where('expires_at', '<=', now())->count(),
             'revoked' => $revokedCount,
         ];
