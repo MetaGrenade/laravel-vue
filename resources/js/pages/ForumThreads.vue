@@ -334,7 +334,11 @@ const deleteThread = (thread: ThreadSummary) => {
                                     class="hover:underline"
                                 >
                                     {{ thread.title }}
-                                    <Pin v-if="thread.is_pinned" class="h-4 w-4 text-green-500 inline-block" />
+                                    <Pin v-if="thread.is_pinned" class="h-4 w-4 text-green-500 inline-block ml-1" />
+                                    <Lock
+                                        v-if="thread.is_locked"
+                                        class="h-4 w-4 text-muted-foreground inline-block ml-1"
+                                    />
                                 </Link>
                                 <div class="flex items-center gap-2 text-xs text-gray-500">
                                     <span>By {{ thread.author ?? 'Unknown' }}</span>

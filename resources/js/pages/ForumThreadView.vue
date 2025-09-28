@@ -191,8 +191,12 @@ const replyText = ref('');
             <!-- Thread Title -->
             <div class="mb-4">
                 <h1 id="thread_title" class="text-3xl font-bold text-green-500">
-                    <Pin v-if="props.thread.is_pinned" class="h-8 w-8 inline-block" />
+                    <Pin v-if="props.thread.is_pinned" class="h-8 w-8 inline-block mr-2" />
                     {{ props.thread.title }}
+                    <Lock
+                        v-if="props.thread.is_locked"
+                        class="h-8 w-8 inline-block ml-2 text-muted-foreground"
+                    />
                 </h1>
             </div>
 
