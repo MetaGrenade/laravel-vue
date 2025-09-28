@@ -20,6 +20,7 @@ class ForumThread extends Model
         'excerpt',
         'is_locked',
         'is_pinned',
+        'is_published',
         'views',
         'last_posted_at',
         'last_post_user_id',
@@ -28,6 +29,7 @@ class ForumThread extends Model
     protected $casts = [
         'is_locked' => 'boolean',
         'is_pinned' => 'boolean',
+        'is_published' => 'boolean',
         'last_posted_at' => 'datetime',
     ];
 

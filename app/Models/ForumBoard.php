@@ -33,7 +33,17 @@ class ForumBoard extends Model
 
     public function threads(): HasMany
     {
-        return $this->hasMany(ForumThread::class)->orderByDesc('is_pinned')->orderByDesc('last_posted_at');
+        return $this->hasMany(ForumThread::class)
+            ->orderByDesc('is_pinned')
+            ->orderByDesc('last_posted_at');
+    }
+
+    public function publishedThreads(): HasMany
+    {
+        return $this->hasMany(ForumThread::class)
+            ->where('is_published', true)
+            ->orderByDesc('is_pinned')
+            ->orderByDesc('last_posted_at');
     }
 
     public function posts(): HasManyThrough
@@ -43,6 +53,8 @@ class ForumBoard extends Model
 
     public function latestThread(): HasOne
     {
-        return $this->hasOne(ForumThread::class)->latestOfMany('last_posted_at');
+        return $this->hasOne(ForumThread::class)
+            ->where('is_published', true)
+            ->latestOfMany('last_posted_at');
     }
 }

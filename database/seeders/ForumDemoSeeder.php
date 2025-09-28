@@ -106,6 +106,7 @@ class ForumDemoSeeder extends Seeder
                         'excerpt' => Str::limit($primaryBody, 160),
                         'is_locked' => false,
                         'is_pinned' => $threadIndex === 0 && ($boardDefinition['pinned_count'] ?? 0) > 0,
+                        'is_published' => true,
                         'views' => random_int(25, 750),
                         'last_posted_at' => $currentTimestamp,
                         'last_post_user_id' => $author->id,

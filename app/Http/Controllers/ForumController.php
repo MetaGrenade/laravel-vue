@@ -16,16 +16,21 @@ class ForumController extends Controller
     {
         $categories = ForumCategory::query()
             ->with(['boards' => function ($query) {
-                $query->withCount(['threads', 'posts'])
-                    ->with(['latestThread' => function ($threadQuery) {
-                        $threadQuery->with(['author:id,nickname', 'latestPost.author:id,nickname'])
-                            ->withCount('posts');
-                    }]);
+                $query->withCount([
+                    'publishedThreads as threads_count',
+                    'posts as posts_count' => function ($postQuery) {
+                        $postQuery->where('forum_threads.is_published', true);
+                    },
+                ])->with(['latestThread' => function ($threadQuery) {
+                    $threadQuery->with(['author:id,nickname', 'latestPost.author:id,nickname'])
+                        ->withCount('posts');
+                }]);
             }])
             ->orderBy('position')
             ->get();
 
         $trendingThreads = ForumThread::query()
+            ->where('is_published', true)
             ->with(['board:id,slug,title,forum_category_id', 'board.category:id,slug,title', 'author:id,nickname'])
             ->withCount('posts')
             ->orderByDesc('is_pinned')
@@ -35,6 +40,9 @@ class ForumController extends Controller
             ->get();
 
         $latestPosts = ForumPost::query()
+            ->whereHas('thread', function ($query) {
+                $query->where('is_published', true);
+            })
             ->with([
                 'thread:id,slug,title,forum_board_id',
                 'thread.board:id,slug,title,forum_category_id',
@@ -112,7 +120,12 @@ class ForumController extends Controller
 
         $search = trim((string) $request->query('search', ''));
 
+        $isModerator = $request->user()?->hasAnyRole(['admin', 'editor', 'moderator']);
+
         $threadsQuery = $board->threads()
+            ->when(!$isModerator, function ($query) {
+                $query->where('is_published', true);
+            })
             ->with(['author:id,nickname', 'latestPost.author:id,nickname'])
             ->withCount('posts');
 
@@ -136,6 +149,7 @@ class ForumController extends Controller
                 'views' => $thread->views,
                 'is_pinned' => $thread->is_pinned,
                 'is_locked' => $thread->is_locked,
+                'is_published' => $thread->is_published,
                 'last_reply_author' => $latestPost?->author?->nickname,
                 'last_reply_at' => $latestPost?->created_at?->toDayDateTimeString(),
             ];
@@ -172,12 +186,21 @@ class ForumController extends Controller
             'filters' => [
                 'search' => $search,
             ],
+            'permissions' => [
+                'canModerate' => (bool) $isModerator,
+            ],
         ]);
     }
 
     public function showThread(Request $request, ForumBoard $board, ForumThread $thread): Response
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
+
+        $isModerator = $request->user()?->hasAnyRole(['admin', 'editor', 'moderator']);
+
+        if (!$thread->is_published && !$isModerator) {
+            abort(404);
+        }
 
         $board->load('category');
 

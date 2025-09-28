@@ -54,6 +54,7 @@ interface ThreadSummary {
     views: number;
     is_pinned: boolean;
     is_locked: boolean;
+    is_published: boolean;
     last_reply_author: string | null;
     last_reply_at: string | null;
 }
@@ -83,6 +84,9 @@ const props = defineProps<{
     threads: ThreadsPayload;
     filters: {
         search?: string;
+    };
+    permissions: {
+        canModerate: boolean;
     };
 }>();
 
@@ -139,6 +143,7 @@ const threadsRangeLabel = computed(() => {
 });
 
 const paginationPage = ref(threadsMeta.value.current_page);
+const activeActionThreadId = ref<number | null>(null);
 
 watch(() => threadsMeta.value.current_page, (page) => {
     paginationPage.value = page;
@@ -187,6 +192,69 @@ onBeforeUnmount(() => {
         clearTimeout(searchTimeout);
     }
 });
+
+const performThreadAction = (
+    thread: ThreadSummary,
+    method: 'put' | 'delete',
+    routeName: string,
+    payload: Record<string, unknown> = {},
+) => {
+    activeActionThreadId.value = thread.id;
+
+    const url = route(routeName, { board: props.board.slug, thread: thread.slug });
+    const options = {
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onFinish: () => {
+            activeActionThreadId.value = null;
+        },
+    } as const;
+
+    if (method === 'delete') {
+        router.delete(url, {}, {
+            ...options,
+        });
+    } else {
+        router.put(url, payload, {
+            ...options,
+        });
+    }
+};
+
+const publishThread = (thread: ThreadSummary) => {
+    performThreadAction(thread, 'put', 'forum.threads.publish');
+};
+
+const unpublishThread = (thread: ThreadSummary) => {
+    performThreadAction(thread, 'put', 'forum.threads.unpublish');
+};
+
+const lockThread = (thread: ThreadSummary) => {
+    performThreadAction(thread, 'put', 'forum.threads.lock');
+};
+
+const unlockThread = (thread: ThreadSummary) => {
+    performThreadAction(thread, 'put', 'forum.threads.unlock');
+};
+
+const renameThread = (thread: ThreadSummary) => {
+    const newTitle = window.prompt('Update thread title', thread.title)?.trim();
+
+    if (!newTitle || newTitle === thread.title) {
+        return;
+    }
+
+    performThreadAction(thread, 'put', 'forum.threads.update', { title: newTitle });
+};
+
+const deleteThread = (thread: ThreadSummary) => {
+    if (!window.confirm(`Are you sure you want to delete "${thread.title}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    performThreadAction(thread, 'delete', 'forum.threads.destroy');
+};
 </script>
 
 <template>
@@ -250,7 +318,7 @@ onBeforeUnmount(() => {
                             <TableHead class="text-center">Replies</TableHead>
                             <TableHead class="text-center">Views</TableHead>
                             <TableHead>Last Reply</TableHead>
-                            <TableHead></TableHead>
+                            <TableHead v-if="props.permissions.canModerate"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -268,7 +336,15 @@ onBeforeUnmount(() => {
                                     {{ thread.title }}
                                     <Pin v-if="thread.is_pinned" class="h-4 w-4 text-green-500 inline-block" />
                                 </Link>
-                                <div class="text-xs text-gray-500">By {{ thread.author ?? 'Unknown' }}</div>
+                                <div class="flex items-center gap-2 text-xs text-gray-500">
+                                    <span>By {{ thread.author ?? 'Unknown' }}</span>
+                                    <span
+                                        v-if="!thread.is_published"
+                                        class="rounded bg-amber-200 px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase text-amber-900"
+                                    >
+                                        Unpublished
+                                    </span>
+                                </div>
                             </TableCell>
                             <TableCell class="text-center">{{ thread.replies }}</TableCell>
                             <TableCell class="text-center">{{ thread.views }}</TableCell>
@@ -276,7 +352,7 @@ onBeforeUnmount(() => {
                                 <div class="text-sm">{{ thread.last_reply_author ?? '—' }}</div>
                                 <div class="text-xs text-gray-500">{{ thread.last_reply_at ?? '—' }}</div>
                             </TableCell>
-                            <TableCell class="text-center">
+                            <TableCell v-if="props.permissions.canModerate" class="text-center">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
                                         <Button variant="outline" size="icon">
@@ -287,32 +363,56 @@ onBeforeUnmount(() => {
                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuGroup>
-                                            <DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                v-if="!thread.is_published"
+                                                :disabled="activeActionThreadId === thread.id"
+                                                @select="publishThread(thread)"
+                                            >
                                                 <Eye class="h-8 w-8" />
                                                 <span>Publish</span>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                v-if="thread.is_published"
+                                                :disabled="activeActionThreadId === thread.id"
+                                                @select="unpublishThread(thread)"
+                                            >
                                                 <EyeOff class="h-8 w-8" />
                                                 <span>Unpublish</span>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                v-if="!thread.is_locked"
+                                                :disabled="activeActionThreadId === thread.id"
+                                                @select="lockThread(thread)"
+                                            >
                                                 <Lock class="h-8 w-8" />
                                                 <span>Lock</span>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                v-if="thread.is_locked"
+                                                :disabled="activeActionThreadId === thread.id"
+                                                @select="unlockThread(thread)"
+                                            >
                                                 <LockOpen class="h-8 w-8" />
                                                 <span>Unlock</span>
                                             </DropdownMenuItem>
                                         </DropdownMenuGroup>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuGroup>
-                                            <DropdownMenuItem class="text-blue-500">
+                                            <DropdownMenuItem
+                                                class="text-blue-500"
+                                                :disabled="activeActionThreadId === thread.id"
+                                                @select="renameThread(thread)"
+                                            >
                                                 <Pencil class="h-8 w-8" />
                                                 <span>Edit Title</span>
                                             </DropdownMenuItem>
                                         </DropdownMenuGroup>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem class="text-red-500">
+                                        <DropdownMenuItem
+                                            class="text-red-500"
+                                            :disabled="activeActionThreadId === thread.id"
+                                            @select="deleteThread(thread)"
+                                        >
                                             <Trash2 class="h-8 w-8" />
                                             <span>Delete</span>
                                         </DropdownMenuItem>
@@ -321,7 +421,10 @@ onBeforeUnmount(() => {
                             </TableCell>
                         </TableRow>
                         <TableRow v-if="props.threads.data.length === 0">
-                            <TableCell colspan="7" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                            <TableCell
+                                :colspan="props.permissions.canModerate ? 5 : 4"
+                                class="text-center text-sm text-gray-600 dark:text-gray-300"
+                            >
                                 No threads found.
                             </TableCell>
                         </TableRow>
