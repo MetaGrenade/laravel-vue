@@ -28,6 +28,8 @@ Route::middleware('auth')->group(function () {
         ->name('forum.threads.store');
     Route::post('forum/{board:slug}/{thread:slug}/report', [ForumThreadActionController::class, 'report'])
         ->name('forum.threads.report');
+    Route::put('forum/{board:slug}/{thread:slug}', [ForumThreadModerationController::class, 'update'])
+        ->name('forum.threads.update');
 
     Route::post('forum/{board:slug}/{thread:slug}/posts', [ForumPostController::class, 'store'])
         ->name('forum.posts.store');
@@ -40,8 +42,6 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
-    Route::put('forum/{board:slug}/{thread:slug}', [ForumThreadModerationController::class, 'update'])
-        ->name('forum.threads.update');
     Route::put('forum/{board:slug}/{thread:slug}/publish', [ForumThreadModerationController::class, 'publish'])
         ->name('forum.threads.publish');
     Route::put('forum/{board:slug}/{thread:slug}/unpublish', [ForumThreadModerationController::class, 'unpublish'])

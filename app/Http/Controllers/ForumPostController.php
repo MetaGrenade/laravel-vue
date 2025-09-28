@@ -74,9 +74,10 @@ class ForumPostController extends Controller
 
         abort_if($user === null, 403);
 
-        $canEdit = $user->id === $post->user_id || $user->hasAnyRole(['admin', 'editor', 'moderator']);
+        $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
+        $canEditAsAuthor = $user->id === $post->user_id && $thread->is_published && !$thread->is_locked;
 
-        abort_unless($canEdit, 403);
+        abort_unless($isModerator || $canEditAsAuthor, 403);
 
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:5000'],

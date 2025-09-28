@@ -80,6 +80,15 @@ class ForumThreadModerationController extends Controller
     {
         $this->ensureThreadBelongsToBoard($board, $thread);
 
+        $user = $request->user();
+
+        abort_if($user === null, 403);
+
+        $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
+        $canEditAsAuthor = $user->id === $thread->user_id && $thread->is_published && !$thread->is_locked;
+
+        abort_unless($isModerator || $canEditAsAuthor, 403);
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
         ]);

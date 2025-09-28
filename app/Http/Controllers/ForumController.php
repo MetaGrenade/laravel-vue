@@ -235,8 +235,15 @@ class ForumController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator) {
+        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator, $thread) {
             $author = $post->author;
+
+            $canModerate = (bool) $isModerator;
+            $canEdit = $canModerate;
+
+            if (!$canEdit && $user !== null && $user->id === $post->user_id && $thread->is_published && !$thread->is_locked) {
+                $canEdit = true;
+            }
 
             return [
                 'id' => $post->id,
@@ -256,9 +263,9 @@ class ForumController extends Controller
                 ],
                 'permissions' => [
                     'canReport' => $user !== null && $user->id !== $post->user_id,
-                    'canEdit' => $user !== null && ($user->id === $post->user_id || $isModerator),
-                    'canDelete' => $user !== null && ($user->id === $post->user_id || $isModerator),
-                    'canModerate' => (bool) $isModerator,
+                    'canEdit' => $canEdit,
+                    'canDelete' => $user !== null && ($user->id === $post->user_id || $canModerate),
+                    'canModerate' => $canModerate,
                 ],
             ];
         })->values();
@@ -272,6 +279,15 @@ class ForumController extends Controller
                 ];
             })
             ->values();
+
+        $canModerateThread = (bool) $isModerator;
+        $canEditThread = $user !== null && (
+            $canModerateThread || (
+                $user->id === $thread->user_id &&
+                $thread->is_published &&
+                !$thread->is_locked
+            )
+        );
 
         return Inertia::render('ForumThreadView', [
             'board' => [
@@ -293,8 +309,8 @@ class ForumController extends Controller
                 'author' => $thread->author?->nickname,
                 'last_posted_at' => optional($thread->last_posted_at)->toDayDateTimeString(),
                 'permissions' => [
-                    'canModerate' => (bool) $isModerator,
-                    'canEdit' => $user !== null && ($user->id === $thread->user_id || $isModerator),
+                    'canModerate' => $canModerateThread,
+                    'canEdit' => $canEditThread,
                     'canReport' => $user !== null && $user->id !== $thread->user_id,
                     'canReply' => $user !== null && $thread->is_published && !$thread->is_locked,
                 ],
