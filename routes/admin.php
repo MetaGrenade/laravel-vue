@@ -29,6 +29,7 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
 
     // Admin Access Control Management Routes
     Route::get('acp/acl', [AdminACLController::class, 'index'])->name('acp.acl.index');
+    Route::get('acp/acl/permissions/create', [AdminACLController::class, 'createPermission'])->name('acp.acl.permissions.create');
     Route::post('acp/acl/permissions', [AdminACLController::class, 'storePermission'])->name('acp.acl.permissions.store');
     Route::put('acp/acl/permissions/{permission}', [AdminACLController::class, 'updatePermission'])->name('acp.acl.permissions.update');
     Route::delete('acp/acl/permissions/{permission}', [AdminACLController::class, 'destroyPermission'])->name('acp.acl.permissions.destroy');
