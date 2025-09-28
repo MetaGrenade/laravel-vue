@@ -80,7 +80,42 @@ const publishedAt = computed(() => {
                 </div>
             </div>
 
-            <!-- Comments Section -->
+            <!-- Comments Section - this needs to have scaffolding and apis built before being implemented -->
+<!--            <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">-->
+<!--                <h2 class="mb-4 text-2xl font-bold">Comments</h2>-->
+<!--                &lt;!&ndash; Comment Form &ndash;&gt;-->
+<!--                <div class="mb-6">-->
+<!--                    <h3 class="mb-2 text-lg font-semibold">Leave a Comment</h3>-->
+<!--                    <div class="mb-4">-->
+<!--                        <Input-->
+<!--                            v-model="newComment"-->
+<!--                            placeholder="Write your comment here..."-->
+<!--                            class="w-full rounded-md"-->
+<!--                        />-->
+<!--                    </div>-->
+<!--                    <Button variant="primary" @click="postComment">-->
+<!--                        Post Comment-->
+<!--                    </Button>-->
+<!--                </div>-->
+<!--                &lt;!&ndash; Comment List &ndash;&gt;-->
+<!--                <div>-->
+<!--                    <div-->
+<!--                        v-for="comment in comments"-->
+<!--                        :key="comment.id"-->
+<!--                        class="mb-4 flex space-x-4 border-b border-sidebar-border/70 dark:border-sidebar-border pb-4"-->
+<!--                    >-->
+<!--                        <Avatar :src="comment.avatar" alt="comment author" class="h-10 w-10 rounded-full" />-->
+<!--                        <div>-->
+<!--                            <div class="mb-1 text-sm font-semibold">{{ comment.author }}</div>-->
+<!--                            <div class="mb-1 text-xs text-gray-500">{{ comment.postedAt }}</div>-->
+<!--                            <div class="text-sm">{{ comment.text }}</div>-->
+<!--                            <Button variant="ghost" class="mt-2 flex items-center text-sm">-->
+<!--                                <MessageSquare class="mr-1 h-4 w-4" /> Reply-->
+<!--                            </Button>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
             <div class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
                 <PlaceholderPattern />
                 <div class="relative space-y-3">

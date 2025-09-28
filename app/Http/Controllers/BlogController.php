@@ -25,7 +25,7 @@ class BlogController extends Controller
      */
     public function show($slug)
     {
-        $blog = Blog::with(['user:id,name'])
+        $blog = Blog::with(['user:id,nickname'])
             ->where('slug', $slug)
             ->where('status', 'published')
             ->firstOrFail();
@@ -40,7 +40,7 @@ class BlogController extends Controller
                 'published_at' => optional($blog->published_at)->toIso8601String(),
                 'user' => $blog->user ? [
                     'id' => $blog->user->id,
-                    'name' => $blog->user->name,
+                    'nickname' => $blog->user->nickname,
                 ] : null,
             ],
         ]);
