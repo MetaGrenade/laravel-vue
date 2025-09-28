@@ -250,7 +250,13 @@ class ForumController extends Controller
 
         $board->load('category');
 
-        $thread->load(['author:id,nickname', 'board.category:id,title,slug', 'latestPost:id,forum_thread_id,created_at']);
+        $thread->load([
+            'author:id,nickname',
+            'board.category:id,title,slug',
+            'latestPost' => function ($query) {
+                $query->select('forum_posts.id', 'forum_posts.forum_thread_id', 'forum_posts.created_at');
+            },
+        ]);
 
         $posts = $thread->posts()
             ->with(['author' => function ($query) {
