@@ -31,6 +31,7 @@ class ForumThread extends Model
         'is_pinned' => 'boolean',
         'is_published' => 'boolean',
         'last_posted_at' => 'datetime',
+        'last_read_at' => 'datetime',
     ];
 
     public function getRouteKeyName(): string
@@ -61,5 +62,10 @@ class ForumThread extends Model
     public function latestPost(): HasOne
     {
         return $this->hasOne(ForumPost::class)->latestOfMany();
+    }
+
+    public function reads(): HasMany
+    {
+        return $this->hasMany(ForumThreadRead::class);
     }
 }

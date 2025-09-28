@@ -6,6 +6,7 @@ use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
+use App\Models\ForumThreadRead;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -126,16 +127,37 @@ class ForumController extends Controller
         $user = $request->user();
         $isModerator = $user?->hasAnyRole(['admin', 'editor', 'moderator']);
 
+        $includeReads = $user !== null;
+
         $threadsQuery = $board->threads()
+            ->select('forum_threads.*')
             ->when(!$isModerator, function ($query) {
-                $query->where('is_published', true);
+                $query->where('forum_threads.is_published', true);
+            })
+            ->when($includeReads, function ($query) use ($user) {
+                $query->leftJoin('forum_thread_reads as thread_reads', function ($join) use ($user) {
+                    $join->on('thread_reads.forum_thread_id', '=', 'forum_threads.id')
+                        ->where('thread_reads.user_id', '=', $user->id);
+                })->addSelect([
+                    'thread_reads.last_read_at as last_read_at',
+                    'thread_reads.last_read_post_id as last_read_post_id',
+                ]);
             })
             ->with(['author:id,nickname', 'latestPost.author:id,nickname'])
             ->withCount('posts');
 
         if ($search !== '') {
-            $threadsQuery->where('title', 'like', "%{$search}%");
+            $threadsQuery->where('forum_threads.title', 'like', "%{$search}%");
         }
+
+        $threadsQuery->orderByDesc('forum_threads.is_pinned');
+
+        if ($includeReads) {
+            $threadsQuery->orderByDesc(DB::raw('CASE WHEN forum_threads.last_posted_at IS NULL THEN 0 WHEN thread_reads.last_read_at IS NULL THEN 1 WHEN forum_threads.last_posted_at > thread_reads.last_read_at THEN 1 ELSE 0 END'));
+        }
+
+        $threadsQuery->orderByDesc('forum_threads.last_posted_at');
+        $threadsQuery->orderByDesc('forum_threads.created_at');
 
         $threads = $threadsQuery
             ->paginate(15)
@@ -154,6 +176,9 @@ class ForumController extends Controller
                 'is_pinned' => $thread->is_pinned,
                 'is_locked' => $thread->is_locked,
                 'is_published' => $thread->is_published,
+                'has_unread' => $user !== null && $thread->last_posted_at !== null && (
+                    $thread->last_read_at === null || $thread->last_posted_at->gt($thread->last_read_at)
+                ),
                 'last_reply_author' => $latestPost?->author?->nickname,
                 'last_reply_at' => $latestPost?->created_at?->toDayDateTimeString(),
                 'permissions' => [
@@ -225,7 +250,7 @@ class ForumController extends Controller
 
         $board->load('category');
 
-        $thread->load(['author:id,nickname', 'board.category:id,title,slug']);
+        $thread->load(['author:id,nickname', 'board.category:id,title,slug', 'latestPost:id,forum_thread_id,created_at']);
 
         $posts = $thread->posts()
             ->with(['author' => function ($query) {
@@ -269,6 +294,26 @@ class ForumController extends Controller
                 ],
             ];
         })->values();
+
+        if ($user !== null) {
+            $latestPost = $thread->latestPost;
+            $readAt = now();
+
+            if ($latestPost?->created_at && $latestPost->created_at->greaterThan($readAt)) {
+                $readAt = $latestPost->created_at;
+            }
+
+            ForumThreadRead::updateOrCreate(
+                [
+                    'forum_thread_id' => $thread->id,
+                    'user_id' => $user->id,
+                ],
+                [
+                    'last_read_post_id' => $latestPost?->id,
+                    'last_read_at' => $readAt,
+                ],
+            );
+        }
 
         $reportReasons = collect(config('forum.report_reasons', []))
             ->map(function (array $reason, string $key) {
@@ -385,7 +430,9 @@ class ForumController extends Controller
 
         $thread = null;
 
-        DB::transaction(function () use ($board, $user, $title, $slug, $body, &$thread) {
+        $initialPost = null;
+
+        DB::transaction(function () use ($board, $user, $title, $slug, $body, &$thread, &$initialPost) {
             $excerptSource = preg_replace('/\s+/', ' ', $body) ?? $body;
 
             $thread = ForumThread::create([
@@ -398,17 +445,30 @@ class ForumController extends Controller
                 'last_post_user_id' => $user->id,
             ]);
 
-            $post = ForumPost::create([
+            $initialPost = ForumPost::create([
                 'forum_thread_id' => $thread->id,
                 'user_id' => $user->id,
                 'body' => $body,
             ]);
 
             $thread->forceFill([
-                'last_posted_at' => $post->created_at,
-                'last_post_user_id' => $post->user_id,
+                'last_posted_at' => $initialPost->created_at,
+                'last_post_user_id' => $initialPost->user_id,
             ])->save();
         });
+
+        if ($initialPost !== null) {
+            ForumThreadRead::updateOrCreate(
+                [
+                    'forum_thread_id' => $thread->id,
+                    'user_id' => $user->id,
+                ],
+                [
+                    'last_read_post_id' => $initialPost->id,
+                    'last_read_at' => $initialPost->created_at ?? now(),
+                ],
+            );
+        }
 
         return redirect()->route('forum.threads.show', [
             'board' => $board->slug,

@@ -63,6 +63,7 @@ interface ThreadSummary {
     is_pinned: boolean;
     is_locked: boolean;
     is_published: boolean;
+    has_unread: boolean;
     last_reply_author: string | null;
     last_reply_at: string | null;
     permissions: ThreadPermissions;
@@ -519,8 +520,11 @@ const deleteThread = (thread: ThreadSummary) => {
                             <TableCell>
                                 <Link
                                     :href="route('forum.threads.show', { board: props.board.slug, thread: thread.slug })"
-                                    :class="{'font-semibold': thread.is_pinned, 'font-normal': !thread.is_pinned}"
-                                    class="hover:underline"
+                                    :class="[
+                                        thread.has_unread ? 'font-semibold' : 'font-normal',
+                                        thread.is_pinned ? 'text-green-500' : '',
+                                        'hover:underline',
+                                    ]"
                                 >
                                     {{ thread.title }}
                                     <Pin v-if="thread.is_pinned" class="h-4 w-4 text-green-500 inline-block ml-1" />

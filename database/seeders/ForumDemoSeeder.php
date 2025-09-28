@@ -6,6 +6,7 @@ use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
+use App\Models\ForumThreadRead;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -17,6 +18,7 @@ class ForumDemoSeeder extends Seeder
     public function run(): void
     {
         Schema::disableForeignKeyConstraints();
+        ForumThreadRead::truncate();
         ForumPost::truncate();
         ForumThread::truncate();
         ForumBoard::truncate();

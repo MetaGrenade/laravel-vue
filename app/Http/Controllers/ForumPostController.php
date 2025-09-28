@@ -6,6 +6,7 @@ use App\Models\ForumBoard;
 use App\Models\ForumPost;
 use App\Models\ForumPostReport;
 use App\Models\ForumThread;
+use App\Models\ForumThreadRead;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -46,6 +47,17 @@ class ForumPostController extends Controller
             'last_posted_at' => Carbon::now(),
             'last_post_user_id' => $user->id,
         ])->save();
+
+        ForumThreadRead::updateOrCreate(
+            [
+                'forum_thread_id' => $thread->id,
+                'user_id' => $user->id,
+            ],
+            [
+                'last_read_post_id' => $post->id,
+                'last_read_at' => $post->created_at ?? now(),
+            ],
+        );
 
         $postCount = $thread->posts()->count();
         $perPage = 10;
