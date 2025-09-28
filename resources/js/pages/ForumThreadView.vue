@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 
 // Import shadcn‑vue components
 import Avatar from '@/components/ui/avatar/Avatar.vue';
 import Button from '@/components/ui/button/Button.vue';
-import Input from '@/components/ui/input/Input.vue';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import {
     Pagination,
@@ -20,6 +19,9 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -35,118 +37,975 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-    Pin, PinOff, Ellipsis, Eye, EyeOff, Pencil, Trash2, Lock, LockOpen, Flag, MessageSquareLock
+    Pin,
+    PinOff,
+    Ellipsis,
+    Eye,
+    EyeOff,
+    Pencil,
+    Trash2,
+    Lock,
+    LockOpen,
+    Flag,
+    MessageSquareLock,
 } from 'lucide-vue-next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Forum', href: '/forum' },
-    { title: 'General Gaming', href: '/forum' },
-    { title: 'PC Gaming', href: '/forum/threads' },
-    { title: 'Thread Title', href: '#' },
-];
-
-// Dummy thread title
-const threadTitle = ref("What are your all-time most played games at the end of 2024?");
-
-// Dummy data for thread posts
-interface Post {
-    id: number;
-    author: string;
-    avatar: string;
-    role: string;
-    joinDate: string;
-    postCount: number;
-    postNumber: number;
-    postedAt: string;
-    content: string;
-    signature: string;
+interface BoardSummary {
+    title: string;
+    slug: string;
+    category?: {
+        title: string | null;
+        slug: string | null;
+    } | null;
 }
-const posts = ref<Post[]>([
-    {
-        id: 1,
-        author: "Admin",
-        avatar: "/images/avatar-admin.png",
-        role: "Administrator",
-        joinDate: "2022-01-01",
-        postCount: 120,
-        postNumber: 1,
-        postedAt: "2023-07-28 08:30 AM",
-        content: `<p>This is the original post of the thread. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec ligula vel arcu interdum malesuada.</p>`,
-        signature: "Admin • Always here to help.",
-    },
-    {
-        id: 2,
-        author: "GamerX",
-        avatar: "/images/avatar-gamerx.png",
-        role: "Member",
-        joinDate: "2022-03-15",
-        postCount: 45,
-        postNumber: 2,
-        postedAt: "2023-07-28 09:15 AM",
-        content: `<p>I totally agree! My most played game is XYZ, which I’ve been enjoying for years now.</p>`,
-        signature: "GamerX • Keep on gaming!",
-    },
-    {
-        id: 3,
-        author: "PlayerOne",
-        avatar: "/images/avatar-playerone.png",
-        role: "Member",
-        joinDate: "2023-01-10",
-        postCount: 10,
-        postNumber: 3,
-        postedAt: "2023-07-28 09:45 AM",
-        content: `<p>For me, it's all about strategy. I love games that challenge my tactical skills.</p>`,
-        signature: "PlayerOne • Strategist at heart.",
-    },
-]);
 
-// Reply text for new reply input
-const replyText = ref("");
+interface ThreadPermissions {
+    canModerate: boolean;
+    canEdit: boolean;
+    canReport: boolean;
+    canReply: boolean;
+}
+
+interface ThreadSummary {
+    id: number;
+    title: string;
+    slug: string;
+    is_locked: boolean;
+    is_pinned: boolean;
+    is_published: boolean;
+    views: number;
+    author: string | null;
+    last_posted_at: string | null;
+    permissions: ThreadPermissions;
+}
+
+interface PostAuthor {
+    id: number | null;
+    nickname: string | null;
+    joined_at: string | null;
+    forum_posts_count: number;
+    primary_role: string | null;
+    avatar_url: string | null;
+}
+
+interface PostPermissions {
+    canReport: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+    canModerate: boolean;
+}
+
+interface ThreadPost {
+    id: number;
+    body: string;
+    body_raw: string;
+    created_at: string;
+    edited_at: string | null;
+    number: number;
+    signature: string | null;
+    author: PostAuthor;
+    permissions: PostPermissions;
+}
+
+interface PaginationMeta {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+}
+
+interface PostsPayload {
+    data: ThreadPost[];
+    meta?: PaginationMeta | null;
+    links?: {
+        first: string | null;
+        last: string | null;
+        prev: string | null;
+        next: string | null;
+    } | null;
+}
+
+interface ReportReasonOption {
+    value: string;
+    label: string;
+    description?: string | null;
+}
+
+const props = defineProps<{
+    board: BoardSummary;
+    thread: ThreadSummary;
+    posts: PostsPayload;
+    reportReasons: ReportReasonOption[];
+}>();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => {
+    const trail: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
+    if (props.board.category?.title) {
+        trail.push({ title: props.board.category.title, href: '/forum' });
+    }
+    trail.push({ title: props.board.title, href: `/forum/${props.board.slug}` });
+    trail.push({ title: props.thread.title, href: route('forum.threads.show', { board: props.board.slug, thread: props.thread.slug }) });
+    return trail;
+});
+
+const threadPermissions = computed(() => props.thread.permissions);
+const reportReasons = computed(() => props.reportReasons ?? []);
+const defaultReportReason = computed(() => reportReasons.value[0]?.value ?? '');
+const hasReportReasons = computed(() => reportReasons.value.length > 0);
+
+const postsMetaFallback = computed<PaginationMeta>(() => {
+    const total = props.posts.data.length;
+
+    return {
+        current_page: 1,
+        last_page: 1,
+        per_page: total > 0 ? total : 10,
+        total,
+        from: total > 0 ? 1 : null,
+        to: total > 0 ? total : null,
+    };
+});
+
+const postsMeta = computed<PaginationMeta>(() => {
+    return {
+        ...postsMetaFallback.value,
+        ...(props.posts.meta ?? {}),
+    };
+});
+
+const postsPageCount = computed(() => {
+    const meta = postsMeta.value;
+    const derived = Math.ceil(meta.total / Math.max(meta.per_page, 1));
+    return Math.max(meta.last_page, derived || 1, 1);
+});
+
+const postsRangeLabel = computed(() => {
+    const meta = postsMeta.value;
+
+    if (meta.total === 0) {
+        return 'No posts to display';
+    }
+
+    const from = meta.from ?? ((meta.current_page - 1) * meta.per_page + 1);
+    const to = meta.to ?? Math.min(meta.current_page * meta.per_page, meta.total);
+    const postWord = meta.total === 1 ? 'post' : 'posts';
+
+    return `Showing ${from}-${to} of ${meta.total} ${postWord}`;
+});
+
+const paginationPage = ref(postsMeta.value.current_page);
+const threadActionLoading = ref(false);
+const activePostActionId = ref<number | null>(null);
+const threadReportDialogOpen = ref(false);
+const postReportDialogOpen = ref(false);
+const postReportTarget = ref<ThreadPost | null>(null);
+
+const threadReportForm = useForm({
+    reason_category: '',
+    reason: '',
+    evidence_url: '',
+    page: postsMeta.value.current_page,
+});
+
+const postReportForm = useForm({
+    reason_category: '',
+    reason: '',
+    evidence_url: '',
+    page: postsMeta.value.current_page,
+});
+
+const selectedThreadReason = computed(() =>
+    reportReasons.value.find((option) => option.value === threadReportForm.reason_category) ?? null,
+);
+
+const selectedPostReason = computed(() =>
+    reportReasons.value.find((option) => option.value === postReportForm.reason_category) ?? null,
+);
+
+watch(
+    () => postsMeta.value.current_page,
+    (page) => {
+        paginationPage.value = page;
+        threadReportForm.page = page;
+        postReportForm.page = page;
+    },
+);
+
+watch(paginationPage, (page) => {
+    const safePage = Math.min(Math.max(page, 1), postsPageCount.value);
+
+    if (safePage !== page) {
+        paginationPage.value = safePage;
+        return;
+    }
+
+    if (safePage === postsMeta.value.current_page) return;
+
+    router.get(route('forum.threads.show', { board: props.board.slug, thread: props.thread.slug }), {
+        page: safePage,
+    }, {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
+});
+
+watch(threadReportDialogOpen, (open) => {
+    if (open) {
+        if (!threadReportForm.reason_category && defaultReportReason.value) {
+            threadReportForm.reason_category = defaultReportReason.value;
+        }
+    } else {
+        threadReportForm.reset('reason_category', 'reason', 'evidence_url');
+        threadReportForm.clearErrors();
+    }
+});
+
+watch(postReportDialogOpen, (open) => {
+    if (open) {
+        if (!postReportForm.reason_category && defaultReportReason.value) {
+            postReportForm.reason_category = defaultReportReason.value;
+        }
+    } else {
+        postReportTarget.value = null;
+        postReportForm.reset('reason_category', 'reason', 'evidence_url');
+        postReportForm.clearErrors();
+    }
+});
+
+watch(
+    () => replyForm.body,
+    () => {
+        if (replyForm.errors.body) {
+            replyForm.clearErrors('body');
+        }
+    },
+);
+
+const performThreadAction = (
+    method: 'put' | 'post',
+    routeName: string,
+    payload: Record<string, unknown> = {},
+) => {
+    threadActionLoading.value = true;
+
+    const url = route(routeName, { board: props.board.slug, thread: props.thread.slug });
+    const data = {
+        ...payload,
+        redirect_to_thread: true,
+        page: postsMeta.value.current_page,
+    };
+
+    const options = {
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onFinish: () => {
+            threadActionLoading.value = false;
+        },
+    } as const;
+
+    if (method === 'post') {
+        router.post(url, data, options);
+    } else {
+        router.put(url, data, options);
+    }
+};
+const openThreadReportDialog = () => {
+    if (!threadPermissions.value?.canReport || !hasReportReasons.value) {
+        return;
+    }
+
+    threadReportDialogOpen.value = true;
+};
+
+const submitThreadReport = () => {
+    if (!threadPermissions.value?.canReport || threadReportForm.processing || !hasReportReasons.value) {
+        return;
+    }
+
+    threadReportForm.page = postsMeta.value.current_page;
+
+    threadReportForm.post(route('forum.threads.report', { board: props.board.slug, thread: props.thread.slug }), {
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onSuccess: () => {
+            threadReportDialogOpen.value = false;
+        },
+    });
+};
+
+const publishThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.publish');
+};
+
+const unpublishThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.unpublish');
+};
+
+const lockThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.lock');
+};
+
+const unlockThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.unlock');
+};
+
+const pinThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.pin');
+};
+
+const unpinThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.unpin');
+};
+
+const threadEditDialogOpen = ref(false);
+const threadEditForm = useForm({
+    title: props.thread.title,
+});
+
+watch(
+    () => props.thread.title,
+    (title) => {
+        threadEditForm.defaults('title', title);
+
+        if (!threadEditDialogOpen.value && threadEditForm.title !== title) {
+            threadEditForm.title = title;
+        }
+    },
+    { immediate: true },
+);
+
+watch(threadEditDialogOpen, (open) => {
+    if (!open) {
+        threadEditForm.reset('title');
+        threadEditForm.clearErrors('title');
+        threadEditForm.title = props.thread.title;
+    }
+});
+
+watch(
+    () => threadEditForm.title,
+    () => {
+        if (threadEditForm.errors.title) {
+            threadEditForm.clearErrors('title');
+        }
+    },
+);
+
+const renameThread = () => {
+    if (!threadPermissions.value?.canEdit || threadActionLoading.value) {
+        return;
+    }
+
+    threadEditForm.title = props.thread.title;
+    threadEditForm.clearErrors('title');
+    threadEditDialogOpen.value = true;
+};
+
+const submitThreadEdit = () => {
+    if (!threadPermissions.value?.canEdit || threadEditForm.processing) {
+        return;
+    }
+
+    const trimmed = threadEditForm.title.trim();
+
+    if (trimmed === '') {
+        threadEditForm.setError('title', 'Please provide a thread title.');
+        return;
+    }
+
+    if (trimmed === props.thread.title) {
+        threadEditDialogOpen.value = false;
+        return;
+    }
+
+    threadEditForm.title = trimmed;
+    threadActionLoading.value = true;
+
+    threadEditForm
+        .transform(() => ({
+            title: trimmed,
+            redirect_to_thread: true,
+            page: postsMeta.value.current_page,
+        }))
+        .put(route('forum.threads.update', { board: props.board.slug, thread: props.thread.slug }), {
+            preserveScroll: true,
+            preserveState: false,
+            replace: true,
+            onSuccess: () => {
+                threadEditDialogOpen.value = false;
+            },
+            onFinish: () => {
+                threadActionLoading.value = false;
+            },
+        });
+};
+
+const deleteThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete "${props.thread.title}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    threadActionLoading.value = true;
+
+    const url = route('forum.threads.destroy', { board: props.board.slug, thread: props.thread.slug });
+
+    router.delete(url, {}, {
+        preserveScroll: false,
+        preserveState: false,
+        onFinish: () => {
+            threadActionLoading.value = false;
+        },
+    });
+};
+
+const performPostAction = (
+    post: ThreadPost,
+    method: 'put' | 'delete' | 'post',
+    routeName: string,
+    payload: Record<string, unknown> = {},
+) => {
+    activePostActionId.value = post.id;
+
+    const url = route(routeName, { board: props.board.slug, thread: props.thread.slug, post: post.id });
+    const data = {
+        ...payload,
+        page: postsMeta.value.current_page,
+    };
+
+    const options = {
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onFinish: () => {
+            activePostActionId.value = null;
+        },
+    } as const;
+
+    if (method === 'delete') {
+        router.delete(url, data, options);
+    } else if (method === 'put') {
+        router.put(url, data, options);
+    } else {
+        router.post(url, data, options);
+    }
+};
+
+const openPostReportDialog = (post: ThreadPost) => {
+    if (!post.permissions.canReport || !hasReportReasons.value) {
+        return;
+    }
+
+    postReportTarget.value = post;
+    postReportDialogOpen.value = true;
+};
+
+const submitPostReport = () => {
+    const target = postReportTarget.value;
+
+    if (!target || !target.permissions.canReport || postReportForm.processing || !hasReportReasons.value) {
+        return;
+    }
+
+    postReportForm.page = postsMeta.value.current_page;
+
+    postReportForm.post(route('forum.posts.report', { board: props.board.slug, thread: props.thread.slug, post: target.id }), {
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onSuccess: () => {
+            postReportDialogOpen.value = false;
+        },
+    });
+};
+
+const postEditDialogOpen = ref(false);
+const postEditTarget = ref<ThreadPost | null>(null);
+const postEditForm = useForm({
+    body: '',
+});
+
+watch(postEditDialogOpen, (open) => {
+    if (!open) {
+        postEditTarget.value = null;
+        postEditForm.reset('body');
+        postEditForm.clearErrors('body');
+    }
+});
+
+watch(
+    () => postEditForm.body,
+    () => {
+        if (postEditForm.errors.body) {
+            postEditForm.clearErrors('body');
+        }
+    },
+);
+
+const editPost = (post: ThreadPost) => {
+    if (!post.permissions.canEdit) {
+        return;
+    }
+
+    postEditTarget.value = post;
+    postEditForm.body = post.body_raw;
+    postEditForm.clearErrors('body');
+    postEditDialogOpen.value = true;
+};
+
+const submitPostEdit = () => {
+    const target = postEditTarget.value;
+
+    if (!target || !target.permissions.canEdit || postEditForm.processing) {
+        return;
+    }
+
+    const trimmed = postEditForm.body.trim();
+
+    if (trimmed === '') {
+        postEditForm.setError('body', 'Please enter some content before saving.');
+        return;
+    }
+
+    if (trimmed === target.body_raw) {
+        postEditDialogOpen.value = false;
+        return;
+    }
+
+    postEditForm.body = trimmed;
+    activePostActionId.value = target.id;
+
+    postEditForm
+        .transform(() => ({
+            body: trimmed,
+            page: postsMeta.value.current_page,
+        }))
+        .put(route('forum.posts.update', { board: props.board.slug, thread: props.thread.slug, post: target.id }), {
+            preserveScroll: true,
+            preserveState: false,
+            replace: true,
+            onSuccess: () => {
+                postEditDialogOpen.value = false;
+            },
+            onFinish: () => {
+                activePostActionId.value = null;
+            },
+        });
+};
+
+const deletePost = (post: ThreadPost) => {
+    if (!post.permissions.canDelete || activePostActionId.value === post.id) {
+        return;
+    }
+
+    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+        return;
+    }
+
+    performPostAction(post, 'delete', 'forum.posts.destroy');
+};
+
+const replyForm = useForm({
+    body: '',
+});
+
+const showReplyForm = computed(() => threadPermissions.value?.canReply ?? false);
+
+const replySubmitDisabled = computed(() => {
+    if (!threadPermissions.value?.canReply) {
+        return true;
+    }
+
+    if (replyForm.processing) {
+        return true;
+    }
+
+    return replyForm.body.trim() === '';
+});
+
+const submitReply = () => {
+    if (!threadPermissions.value?.canReply || replyForm.processing) {
+        return;
+    }
+
+    const trimmed = replyForm.body.trim();
+
+    if (trimmed === '') {
+        replyForm.setError('body', 'Please enter a reply before submitting.');
+        return;
+    }
+
+    replyForm.clearErrors('body');
+    replyForm.body = trimmed;
+
+    replyForm.post(route('forum.posts.store', { board: props.board.slug, thread: props.thread.slug }), {
+        preserveScroll: false,
+        onSuccess: () => {
+            replyForm.reset('body');
+            replyForm.clearErrors();
+        },
+    });
+};
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Forum Thread View" />
+        <Head :title="`Forum • ${props.thread.title}`" />
+        <Dialog v-model:open="threadEditDialogOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Edit thread title</DialogTitle>
+                    <DialogDescription>
+                        Update the discussion title to better reflect the current topic.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="space-y-5" @submit.prevent="submitThreadEdit">
+                    <div class="space-y-2">
+                        <Label for="thread_edit_title">Title</Label>
+                        <Input
+                            id="thread_edit_title"
+                            v-model="threadEditForm.title"
+                            type="text"
+                            placeholder="Thread title"
+                            :disabled="threadEditForm.processing"
+                        />
+                        <p v-if="threadEditForm.errors.title" class="text-sm text-destructive">
+                            {{ threadEditForm.errors.title }}
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            :disabled="threadEditForm.processing"
+                            @click="threadEditDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" :disabled="threadEditForm.processing">
+                            Save changes
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+        <Dialog v-model:open="postEditDialogOpen">
+            <DialogContent class="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Edit post</DialogTitle>
+                    <DialogDescription>
+                        Make adjustments to your reply before saving the update.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="space-y-5" @submit.prevent="submitPostEdit">
+                    <div class="space-y-2">
+                        <Label for="post_edit_body">Post content</Label>
+                        <Textarea
+                            id="post_edit_body"
+                            v-model="postEditForm.body"
+                            rows="8"
+                            placeholder="Share your updated thoughts..."
+                            :disabled="postEditForm.processing"
+                        />
+                        <p v-if="postEditForm.errors.body" class="text-sm text-destructive">
+                            {{ postEditForm.errors.body }}
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            :disabled="postEditForm.processing"
+                            @click="postEditDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" :disabled="postEditForm.processing">
+                            Save post
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+        <Dialog v-model:open="threadReportDialogOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Report thread</DialogTitle>
+                    <DialogDescription>
+                        Let the moderation team know why this discussion needs attention. Provide as much
+                        context as you can so we can review it quickly.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="space-y-5" @submit.prevent="submitThreadReport">
+                    <div class="space-y-2">
+                        <Label for="thread_report_reason">Reason</Label>
+                        <select
+                            id="thread_report_reason"
+                            v-model="threadReportForm.reason_category"
+                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-sm focus:outline-none focus:ring-2"
+                            :class="threadReportForm.errors.reason_category
+                                ? 'border-destructive focus:ring-destructive/40'
+                                : 'focus:ring-primary/40'"
+                            :disabled="!hasReportReasons"
+                            required
+                        >
+                            <option disabled value="">Select a reason…</option>
+                            <option v-for="option in reportReasons" :key="option.value" :value="option.value">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                        <p v-if="selectedThreadReason?.description" class="text-xs text-muted-foreground">
+                            {{ selectedThreadReason.description }}
+                        </p>
+                        <p v-if="!hasReportReasons" class="text-xs text-destructive">
+                            Reporting options are temporarily unavailable. Please reach out to the support team.
+                        </p>
+                        <p v-if="threadReportForm.errors.reason_category" class="text-sm text-destructive">
+                            {{ threadReportForm.errors.reason_category }}
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="thread_report_details">Additional details</Label>
+                        <Textarea
+                            id="thread_report_details"
+                            v-model="threadReportForm.reason"
+                            placeholder="Share specific quotes, timeline, or any other details that explain the problem."
+                            class="min-h-[120px]"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Optional, but detailed reports help moderators resolve issues faster.
+                        </p>
+                        <p v-if="threadReportForm.errors.reason" class="text-sm text-destructive">
+                            {{ threadReportForm.errors.reason }}
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="thread_report_evidence">Supporting link (optional)</Label>
+                        <Input
+                            id="thread_report_evidence"
+                            v-model="threadReportForm.evidence_url"
+                            type="url"
+                            placeholder="https://example.com/screenshot-or-proof"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Share a link to screenshots, logs, or other evidence that supports your report.
+                        </p>
+                        <p v-if="threadReportForm.errors.evidence_url" class="text-sm text-destructive">
+                            {{ threadReportForm.errors.evidence_url }}
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            :disabled="threadReportForm.processing"
+                            @click="threadReportDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            class="bg-orange-500 hover:bg-orange-600"
+                            :disabled="threadReportForm.processing || !hasReportReasons"
+                        >
+                            Submit report
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+        <Dialog v-model:open="postReportDialogOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>
+                        Report post
+                        <template v-if="postReportTarget">
+                            #{{ postReportTarget.number }} by {{ postReportTarget.author?.nickname ?? 'Unknown user' }}
+                        </template>
+                    </DialogTitle>
+                    <DialogDescription>
+                        Flag this reply for moderator review. We will notify you once a decision has been made.
+                    </DialogDescription>
+                </DialogHeader>
+                <div v-if="postReportTarget" class="rounded-md border border-muted bg-muted/20 p-3 text-sm">
+                    <p class="text-xs uppercase text-muted-foreground">Post preview</p>
+                    <p class="mt-2 whitespace-pre-wrap text-sm text-foreground">
+                        {{ postReportTarget.body_raw }}
+                    </p>
+                </div>
+                <form class="mt-5 space-y-5" @submit.prevent="submitPostReport">
+                    <div class="space-y-2">
+                        <Label for="post_report_reason">Reason</Label>
+                        <select
+                            id="post_report_reason"
+                            v-model="postReportForm.reason_category"
+                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-sm focus:outline-none focus:ring-2"
+                            :class="postReportForm.errors.reason_category
+                                ? 'border-destructive focus:ring-destructive/40'
+                                : 'focus:ring-primary/40'"
+                            :disabled="!hasReportReasons"
+                            required
+                        >
+                            <option disabled value="">Select a reason…</option>
+                            <option v-for="option in reportReasons" :key="option.value" :value="option.value">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                        <p v-if="selectedPostReason?.description" class="text-xs text-muted-foreground">
+                            {{ selectedPostReason.description }}
+                        </p>
+                        <p v-if="!hasReportReasons" class="text-xs text-destructive">
+                            Reporting options are temporarily unavailable. Please reach out to the support team.
+                        </p>
+                        <p v-if="postReportForm.errors.reason_category" class="text-sm text-destructive">
+                            {{ postReportForm.errors.reason_category }}
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="post_report_details">Additional details</Label>
+                        <Textarea
+                            id="post_report_details"
+                            v-model="postReportForm.reason"
+                            placeholder="Explain what is wrong with this reply and why it breaks the rules."
+                            class="min-h-[120px]"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Optional, but context helps moderators resolve issues faster.
+                        </p>
+                        <p v-if="postReportForm.errors.reason" class="text-sm text-destructive">
+                            {{ postReportForm.errors.reason }}
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="post_report_evidence">Supporting link (optional)</Label>
+                        <Input
+                            id="post_report_evidence"
+                            v-model="postReportForm.evidence_url"
+                            type="url"
+                            placeholder="https://example.com/screenshot-or-proof"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Share a link to screenshots, logs, or other evidence that supports your report.
+                        </p>
+                        <p v-if="postReportForm.errors.evidence_url" class="text-sm text-destructive">
+                            {{ postReportForm.errors.evidence_url }}
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            :disabled="postReportForm.processing"
+                            @click="postReportDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            class="bg-orange-500 hover:bg-orange-600"
+                            :disabled="postReportForm.processing || !hasReportReasons"
+                        >
+                            Submit report
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
         <div class="container mx-auto p-4 space-y-8">
             <!-- Thread Title -->
             <div class="mb-4">
                 <h1 id="thread_title" class="text-3xl font-bold text-green-500">
-                    <Pin class="h-8 w-8 inline-block" />
-                    {{ threadTitle }}
+                    <Pin v-if="props.thread.is_pinned" class="h-8 w-8 inline-block mr-2" />
+                    {{ props.thread.title }}
+                    <Lock
+                        v-if="props.thread.is_locked"
+                        class="h-8 w-8 inline-block ml-2 text-muted-foreground"
+                    />
                 </h1>
             </div>
 
-            <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-                <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
-                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                        <PaginationFirst />
-                        <PaginationPrev />
+            <header class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                <div class="text-sm text-muted-foreground text-center md:text-left">
+                    {{ postsRangeLabel }}
+                </div>
+                <Pagination
+                    v-slot="{ page, pageCount }"
+                    v-model:page="paginationPage"
+                    :items-per-page="Math.max(postsMeta.per_page, 1)"
+                    :total="postsMeta.total"
+                    :sibling-count="1"
+                    show-edges
+                >
+                    <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                        <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationFirst />
+                            <PaginationPrev />
 
-                        <template v-for="(item, index) in items">
-                            <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
-                                <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
-                                    {{ item.value }}
-                                </Button>
-                            </PaginationListItem>
-                            <PaginationEllipsis v-else :key="item.type" :index="index" />
-                        </template>
+                            <template v-for="(item, index) in items">
+                                <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
+                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                        {{ item.value }}
+                                    </Button>
+                                </PaginationListItem>
+                                <PaginationEllipsis v-else :key="item.type" :index="index" />
+                            </template>
 
-                        <PaginationNext />
-                        <PaginationLast />
-                    </PaginationList>
+                            <PaginationNext />
+                            <PaginationLast />
+                        </PaginationList>
+                    </div>
                 </Pagination>
                 <div class="flex w-full max-w-md space-x-2 justify-end">
-                    <Button variant="secondary" class="cursor-pointer text-yellow-500" disabled>
+                    <Button v-if="props.thread.is_locked" variant="secondary" class="cursor-pointer text-yellow-500" disabled>
                         <Lock class="h-8 w-8" />
                         Locked
                     </Button>
                     <a href="#post_reply">
-                        <Button variant="secondary" class="cursor-pointer">
+                        <Button variant="secondary" class="cursor-pointer" :disabled="!props.thread.permissions.canReply">
                             Post Reply
                         </Button>
                     </a>
-                    <DropdownMenu>
+                    <DropdownMenu
+                        v-if="
+                            threadPermissions.canReport ||
+                            threadPermissions.canModerate ||
+                            threadPermissions.canEdit
+                        "
+                    >
                         <DropdownMenuTrigger as-child>
                             <Button variant="outline" size="icon">
                                 <Ellipsis class="h-8 w-8" />
@@ -155,50 +1014,89 @@ const replyText = ref("");
                         <DropdownMenuContent>
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                                <DropdownMenuItem class="text-orange-500">
+                            <DropdownMenuGroup v-if="threadPermissions.canReport">
+                                <DropdownMenuItem
+                                    class="text-orange-500"
+                                    :disabled="threadActionLoading || threadReportForm.processing || !hasReportReasons"
+                                    @select="openThreadReportDialog"
+                                >
                                     <Flag class="h-8 w-8" />
                                     <span>Report</span>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel>Mod Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                                <DropdownMenuItem>
-                                    <Eye class="h-8 w-8" />
-                                    <span>Publish</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <EyeOff class="h-8 w-8" />
-                                    <span>Unpublish</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <Lock class="h-8 w-8" />
-                                    <span>Lock</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <LockOpen class="h-8 w-8" />
-                                    <span>Unlock</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <Pin class="h-8 w-8" />
-                                    <span>Pin</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <PinOff class="h-8 w-8" />
-                                    <span>Unpin</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                                <DropdownMenuItem class="text-blue-500">
+                            <template v-if="threadPermissions.canModerate">
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel>Mod Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuGroup>
+                                    <DropdownMenuItem
+                                        v-if="!props.thread.is_published"
+                                        :disabled="threadActionLoading"
+                                        @select="publishThread"
+                                    >
+                                        <Eye class="h-8 w-8" />
+                                        <span>Publish</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="props.thread.is_published"
+                                        :disabled="threadActionLoading"
+                                        @select="unpublishThread"
+                                    >
+                                        <EyeOff class="h-8 w-8" />
+                                        <span>Unpublish</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="!props.thread.is_locked"
+                                        :disabled="threadActionLoading"
+                                        @select="lockThread"
+                                    >
+                                        <Lock class="h-8 w-8" />
+                                        <span>Lock</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="props.thread.is_locked"
+                                        :disabled="threadActionLoading"
+                                        @select="unlockThread"
+                                    >
+                                        <LockOpen class="h-8 w-8" />
+                                        <span>Unlock</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="!props.thread.is_pinned"
+                                        :disabled="threadActionLoading"
+                                        @select="pinThread"
+                                    >
+                                        <Pin class="h-8 w-8" />
+                                        <span>Pin</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="props.thread.is_pinned"
+                                        :disabled="threadActionLoading"
+                                        @select="unpinThread"
+                                    >
+                                        <PinOff class="h-8 w-8" />
+                                        <span>Unpin</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuGroup>
+                            </template>
+                            <DropdownMenuSeparator v-if="threadPermissions.canEdit" />
+                            <DropdownMenuGroup v-if="threadPermissions.canEdit">
+                                <DropdownMenuItem
+                                    class="text-blue-500"
+                                    :disabled="threadActionLoading"
+                                    @select="renameThread"
+                                >
                                     <Pencil class="h-8 w-8" />
                                     <span>Edit Title</span>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem class="text-red-500">
+                            <DropdownMenuSeparator v-if="threadPermissions.canModerate" />
+                            <DropdownMenuItem
+                                v-if="threadPermissions.canModerate"
+                                class="text-red-500"
+                                :disabled="threadActionLoading"
+                                @select="deleteThread"
+                            >
                                 <Trash2 class="h-8 w-8" />
                                 <span>Delete</span>
                             </DropdownMenuItem>
@@ -210,59 +1108,127 @@ const replyText = ref("");
             <!-- Posts List -->
             <div class="space-y-6">
                 <div
-                    v-for="post in posts"
+                    v-for="post in props.posts.data"
                     :key="post.id"
+                    :id="`post-${post.id}`"
                     class="flex flex-col md:flex-row gap-4 rounded-xl border p-4 shadow-sm"
                 >
                     <!-- Left Side: User Info -->
                     <div class="flex-shrink-0 w-full md:w-1/5 border-r pr-4">
-                        <Avatar :src="post.avatar" alt="User avatar" class="h-24 w-24 rounded-full mb-2" />
-                        <div class="font-bold text-lg">{{ post.author }}</div>
-                        <div class="text-sm text-gray-500">{{ post.role }}</div>
+                        <Avatar :src="post.author.avatar_url ?? undefined" alt="User avatar" class="h-24 w-24 rounded-full mb-2" />
+                        <div class="font-bold text-lg">{{ post.author.nickname ?? 'Unknown' }}</div>
+                        <div class="text-sm text-gray-500">{{ post.author.primary_role ?? 'Member' }}</div>
                         <div class="mt-2 text-xs text-gray-600">
-                            Joined: <span class="font-medium">{{ post.joinDate }}</span>
+                            Joined: <span class="font-medium">{{ post.author.joined_at ?? '—' }}</span>
                         </div>
                         <div class="mt-1 text-xs text-gray-600">
-                            Posts: <span class="font-medium">{{ post.postCount }}</span>
+                            Posts: <span class="font-medium">{{ post.author.forum_posts_count }}</span>
                         </div>
                     </div>
 
                     <!-- Right Side: Post Content -->
                     <div class="flex-1">
                         <div class="flex justify-between items-center border-b pb-2 mb-4">
-                            <div class="text-sm text-gray-500">{{ post.postedAt }}</div>
-                            <div class="text-sm font-medium text-gray-500">#{{ post.postNumber }}</div>
+                            <div class="text-sm text-gray-500">{{ post.created_at }}</div>
+                            <div class="flex items-center gap-2">
+                                <div class="text-sm font-medium text-gray-500">#{{ post.number }}</div>
+                                <DropdownMenu
+                                    v-if="
+                                        post.permissions.canReport ||
+                                        post.permissions.canEdit ||
+                                        post.permissions.canDelete
+                                    "
+                                >
+                                    <DropdownMenuTrigger as-child>
+                                        <Button variant="ghost" size="icon" class="h-8 w-8">
+                                            <Ellipsis class="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuLabel>Post Actions</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuGroup v-if="post.permissions.canReport">
+                                            <DropdownMenuItem
+                                                class="text-orange-500"
+                                                :disabled="activePostActionId === post.id || postReportForm.processing || !hasReportReasons"
+                                                @select="openPostReportDialog(post)"
+                                            >
+                                                <Flag class="h-4 w-4" />
+                                                <span>Report</span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuGroup>
+                                        <DropdownMenuGroup v-if="post.permissions.canEdit">
+                                            <DropdownMenuItem
+                                                class="text-blue-500"
+                                                :disabled="activePostActionId === post.id"
+                                                @select="editPost(post)"
+                                            >
+                                                <Pencil class="h-4 w-4" />
+                                                <span>Edit</span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuGroup>
+                                        <DropdownMenuSeparator
+                                            v-if="
+                                                post.permissions.canDelete &&
+                                                (post.permissions.canReport || post.permissions.canEdit)
+                                            "
+                                        />
+                                        <DropdownMenuItem
+                                            v-if="post.permissions.canDelete"
+                                            class="text-red-500"
+                                            :disabled="activePostActionId === post.id"
+                                            @select="deletePost(post)"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                            <span>Delete</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </div>
                         <!-- Post Body -->
-                        <div class="prose dark:prose-dark" v-html="post.content"></div>
+                        <div class="prose dark:prose-dark" v-html="post.body"></div>
                         <!-- Forum Signature -->
-                        <div class="mt-4 border-t pt-2 text-xs text-gray-500">
+                        <div v-if="post.signature" class="mt-4 border-t pt-2 text-xs text-gray-500">
                             {{ post.signature }}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-                <Pagination v-slot="{ page }" :items-per-page="10" :total="100" :sibling-count="1" show-edges :default-page="1">
-                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                        <PaginationFirst />
-                        <PaginationPrev />
+            <header class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                <div class="text-sm text-muted-foreground text-center md:text-left">
+                    {{ postsRangeLabel }}
+                </div>
+                <Pagination
+                    v-slot="{ page, pageCount }"
+                    v-model:page="paginationPage"
+                    :items-per-page="Math.max(postsMeta.per_page, 1)"
+                    :total="postsMeta.total"
+                    :sibling-count="1"
+                    show-edges
+                >
+                    <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                        <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationFirst />
+                            <PaginationPrev />
 
-                        <template v-for="(item, index) in items">
-                            <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
-                                <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
-                                    {{ item.value }}
-                                </Button>
-                            </PaginationListItem>
-                            <PaginationEllipsis v-else :key="item.type" :index="index" />
-                        </template>
+                            <template v-for="(item, index) in items">
+                                <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
+                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                        {{ item.value }}
+                                    </Button>
+                                </PaginationListItem>
+                                <PaginationEllipsis v-else :key="item.type" :index="index" />
+                            </template>
 
-                        <PaginationNext />
-                        <PaginationLast />
-                    </PaginationList>
+                            <PaginationNext />
+                            <PaginationLast />
+                        </PaginationList>
+                    </div>
                 </Pagination>
-                <div class="flex w-full max-w-md space-x-2 justify-end">
+                <div class="flex w-full max-w-md justify-end">
                     <a href="#thread_title">
                         <Button variant="secondary" class="cursor-pointer">
                             Go To Top
@@ -271,7 +1237,7 @@ const replyText = ref("");
                 </div>
             </header>
 
-            <Alert variant="warning">
+            <Alert v-if="props.thread.is_locked" variant="warning">
                 <MessageSquareLock class="w-6 h-6" />
                 <AlertTitle>Thread Locked</AlertTitle>
                 <AlertDescription>
@@ -279,16 +1245,36 @@ const replyText = ref("");
                 </AlertDescription>
             </Alert>
 
-            <!-- Reply Input Section -->
-            <div class="mt-8 rounded-xl border p-6 shadow">
-                <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
-                <div class="flex flex-col gap-4">
-                    <Textarea v-model="replyText" placeholder="Write your reply here..." class="w-full rounded-md" />
+            <Alert v-if="!props.thread.is_published" variant="default">
+                <AlertTitle>Thread Not Published</AlertTitle>
+                <AlertDescription>
+                    Replies are disabled until this discussion has been published.
+                </AlertDescription>
+            </Alert>
 
-                    <Button variant="secondary" class="cursor-pointer bg-green-500 hover:bg-green-600">
+            <!-- Reply Input Section -->
+            <div v-if="showReplyForm" class="mt-8 rounded-xl border p-6 shadow">
+                <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
+                <form class="flex flex-col gap-4" @submit.prevent="submitReply">
+                    <Textarea
+                        v-model="replyForm.body"
+                        placeholder="Write your reply here..."
+                        class="w-full rounded-md"
+                        :disabled="replyForm.processing"
+                    />
+                    <p v-if="replyForm.errors.body" class="text-sm text-destructive">
+                        {{ replyForm.errors.body }}
+                    </p>
+
+                    <Button
+                        type="submit"
+                        variant="secondary"
+                        class="cursor-pointer bg-green-500 hover:bg-green-600"
+                        :disabled="replySubmitDisabled"
+                    >
                         Submit Reply
                     </Button>
-                </div>
+                </form>
             </div>
         </div>
     </AppLayout>
