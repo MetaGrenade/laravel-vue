@@ -14,6 +14,8 @@ This repository provides a starter kit for building modern web applications with
 - **External API Authentication & Authorization**: Includes token based authentication scaffolding via [Laravel Sanctum](https://laravel.com/docs/12.x/sanctum).
 - **Responsive Design**: Mobile-first design principles.
 - **Admin Control Panel (ACP)**: Example layouts for managing users, blogs, forums, support tickets, external api access tokens and more.
+- **Forum System**: Persistent categories, boards, threads, and posts with moderation tools (publish, lock, pin, delete) plus per-thread/post author editing and reporting workflows.
+- **Forum Seeding Utilities**: A comprehensive `ForumDemoSeeder` seeds realistic boards, long threads, and paginated replies so you can explore the full forum experience locally.
 - **Placeholder Components**: Starter components from shadcn-vue (like `PlaceholderPattern`) simulate content while you integrate dynamic data.
 - **Role & Permission System**: Our project uses [Spatie's Laravel Permission](https://spatie.be/docs/laravel-permission/v6/introduction) [package](https://github.com/spatie/laravel-permission) to provide robust role and permission management. This integration, combined with Laravel Breeze for authentication and our Inertia.js SPA, enables us to enforce access control both on the backend and in our Vue frontend.
 
@@ -65,11 +67,13 @@ Follow these steps to set up the project locally:
    ```
    
 6. Run Database Migrations:
-   
+
    ```bash
    php artisan migrate
    ```
-   
+
+   > **Tip:** The forum schema includes pagination-ready relationships for boards, threads, and posts. Run the migrations before seeding demo data.
+
 7. Build Assets & Start the Development Server:
 
    For development with hot reloading, run:
@@ -85,6 +89,21 @@ Follow these steps to set up the project locally:
 
 - **Authentication:**
     The project includes authentication scaffolding using Laravel Breeze (Vue variant). Visit `/login` or `/register` to test user authentication.
+
+- **Forum Demo Data:**
+    Populate the forum with realistic categories, boards, and sample discussions by running:
+
+    ```bash
+    php artisan db:seed --class=ForumDemoSeeder
+    ```
+
+    The seeder resets the forum tables and creates:
+
+    - Multiple boards with enough threads to exercise the board pagination controls.
+    - At least one thread that contains 20+ replies, ensuring the thread pagination UI has real data.
+    - Moderation-ready discussions with a mix of published, locked, and pinned states for testing.
+
+    After seeding, visit `/forum` for the public experience or `/acp/forums` to review administrative listings. Actions like reporting, editing (for authors of unlocked, published content), and moderator toggles (publish, lock, pin, delete) are wired to live endpoints.
 
 - **Admin Control Panel (ACP):**
     Access the ACP via routes like `/acp/dashboard`. The ACP layout includes side navigation for managing users, blogs, forums, and permissions.
