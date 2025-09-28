@@ -153,7 +153,16 @@ const stats = [
                                     :key="user.id"
                                 >
                                     <TableCell>{{ user.id }}</TableCell>
-                                    <TableCell>{{ user.nickname }}</TableCell>
+                                    <TableCell>
+                                        <Link
+                                            v-if="editUsers"
+                                            :href="route('acp.users.edit', { user: user.id })"
+                                            class="font-medium text-primary transition hover:underline"
+                                        >
+                                            {{ user.nickname }}
+                                        </Link>
+                                        <span v-else>{{ user.nickname }}</span>
+                                    </TableCell>
                                     <TableCell>{{ user.email }}</TableCell>
                                     <TableCell class="text-center">
                       <span
