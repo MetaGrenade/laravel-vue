@@ -139,7 +139,7 @@ class ForumController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $threadItems = $threads->getCollection()->map(function (ForumThread $thread) {
+        $threadItems = $threads->getCollection()->map(function (ForumThread $thread) use ($user, $isModerator) {
             $latestPost = $thread->latestPost;
 
             return [
@@ -154,8 +154,22 @@ class ForumController extends Controller
                 'is_published' => $thread->is_published,
                 'last_reply_author' => $latestPost?->author?->nickname,
                 'last_reply_at' => $latestPost?->created_at?->toDayDateTimeString(),
+                'permissions' => [
+                    'canReport' => $user !== null && $user->id !== $thread->user_id,
+                    'canModerate' => (bool) $isModerator,
+                ],
             ];
         })->values();
+
+        $reportReasons = collect(config('forum.report_reasons', []))
+            ->map(function (array $reason, string $key) {
+                return [
+                    'value' => $key,
+                    'label' => $reason['label'] ?? Str::headline(str_replace('_', ' ', $key)),
+                    'description' => $reason['description'] ?? null,
+                ];
+            })
+            ->values();
 
         return Inertia::render('ForumThreads', [
             'board' => [
@@ -191,6 +205,7 @@ class ForumController extends Controller
             'permissions' => [
                 'canModerate' => (bool) $isModerator,
             ],
+            'reportReasons' => $reportReasons,
         ]);
     }
 
