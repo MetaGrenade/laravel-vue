@@ -86,7 +86,7 @@ interface PaginationMeta {
 
 interface PostsPayload {
     data: ThreadPost[];
-    meta: PaginationMeta;
+    meta?: PaginationMeta | null;
 }
 
 const props = defineProps<{
@@ -105,14 +105,29 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
     return trail;
 });
 
-const paginationPage = ref(props.posts.meta.current_page);
+const postsMeta = computed<PaginationMeta>(() => {
+    const meta = props.posts.meta;
+    const totalPosts = props.posts.data.length;
 
-watch(() => props.posts.meta.current_page, (page) => {
-    paginationPage.value = page;
+    return {
+        current_page: meta?.current_page ?? 1,
+        last_page: meta?.last_page ?? 1,
+        per_page: meta?.per_page ?? Math.max(totalPosts, 1),
+        total: meta?.total ?? totalPosts,
+    };
 });
 
+const paginationPage = ref(postsMeta.value.current_page);
+
+watch(
+    () => postsMeta.value.current_page,
+    (page) => {
+        paginationPage.value = page;
+    },
+);
+
 watch(paginationPage, (page) => {
-    if (page === props.posts.meta.current_page) return;
+    if (page === postsMeta.value.current_page) return;
 
     router.get(route('forum.threads.show', { board: props.board.slug, thread: props.thread.slug }), {
         page,
@@ -142,8 +157,8 @@ const replyText = ref('');
                 <Pagination
                     v-slot="{ page }"
                     v-model:page="paginationPage"
-                    :items-per-page="Math.max(props.posts.meta.per_page, 1)"
-                    :total="props.posts.meta.total"
+                    :items-per-page="Math.max(postsMeta.per_page, 1)"
+                    :total="postsMeta.total"
                     :sibling-count="1"
                     show-edges
                 >
@@ -275,8 +290,8 @@ const replyText = ref('');
                 <Pagination
                     v-slot="{ page }"
                     v-model:page="paginationPage"
-                    :items-per-page="Math.max(props.posts.meta.per_page, 1)"
-                    :total="props.posts.meta.total"
+                    :items-per-page="Math.max(postsMeta.per_page, 1)"
+                    :total="postsMeta.total"
                     :sibling-count="1"
                     show-edges
                 >
