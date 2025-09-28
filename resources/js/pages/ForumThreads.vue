@@ -67,7 +67,7 @@ interface PaginationMeta {
 
 interface ThreadsPayload {
     data: ThreadSummary[];
-    meta: PaginationMeta;
+    meta?: PaginationMeta | null;
 }
 
 const props = defineProps<{
@@ -88,9 +88,25 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
 });
 
 const searchQuery = ref(props.filters.search ?? '');
-const paginationPage = ref(props.threads.meta.current_page);
 
-watch(() => props.threads.meta.current_page, (page) => {
+const threadsMetaFallback = computed<PaginationMeta>(() => {
+    const total = props.threads.data?.length ?? 0;
+
+    return {
+        current_page: 1,
+        last_page: 1,
+        per_page: total > 0 ? total : 15,
+        total,
+    };
+});
+
+const threadsMeta = computed<PaginationMeta>(() => {
+    return props.threads.meta ?? threadsMetaFallback.value;
+});
+
+const paginationPage = ref(threadsMeta.value.current_page);
+
+watch(() => threadsMeta.value.current_page, (page) => {
     paginationPage.value = page;
 });
 
@@ -113,7 +129,7 @@ watch(searchQuery, (value) => {
 });
 
 watch(paginationPage, (page) => {
-    if (page === props.threads.meta.current_page) return;
+    if (page === threadsMeta.value.current_page) return;
 
     router.get(route('forum.boards.show', { board: props.board.slug }), {
         search: searchQuery.value || undefined,
@@ -154,8 +170,8 @@ onBeforeUnmount(() => {
                 <Pagination
                     v-slot="{ page }"
                     v-model:page="paginationPage"
-                    :items-per-page="Math.max(props.threads.meta.per_page, 1)"
-                    :total="props.threads.meta.total"
+                    :items-per-page="Math.max(threadsMeta.per_page, 1)"
+                    :total="threadsMeta.total"
                     :sibling-count="1"
                     show-edges
                 >
@@ -271,8 +287,8 @@ onBeforeUnmount(() => {
                 <Pagination
                     v-slot="{ page }"
                     v-model:page="paginationPage"
-                    :items-per-page="Math.max(props.threads.meta.per_page, 1)"
-                    :total="props.threads.meta.total"
+                    :items-per-page="Math.max(threadsMeta.per_page, 1)"
+                    :total="threadsMeta.total"
                     :sibling-count="1"
                     show-edges
                 >
