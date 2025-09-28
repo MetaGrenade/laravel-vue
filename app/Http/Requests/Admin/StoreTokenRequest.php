@@ -6,11 +6,6 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTokenRequest extends FormRequest
 {
-    public mixed $name;
-    public mixed $abilities;
-    public mixed $expires_at;
-    public mixed $user_id;
-
     public function authorize(): bool
     {
         // only admins (or whoever) may create tokens

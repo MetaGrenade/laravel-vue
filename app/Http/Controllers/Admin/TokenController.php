@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTokenRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -67,16 +68,18 @@ class TokenController extends Controller
      */
     public function store(StoreTokenRequest $request)
     {
-        $user = User::findOrFail($request->user_id);
+        $data = $request->validated();
 
-        $token = $user->createToken(
-            $request->name,
-            $request->abilities ?? ['*'],
-            $request->expires_at ? now()->parse($request->expires_at) : null
+        $user = User::findOrFail($data['user_id']);
+
+        $user->createToken(
+            $data['name'],
+            $data['abilities'] ?? ['*'],
+            $data['expires_at'] ? Carbon::parse($data['expires_at']) : null
         );
 
         return redirect()->route('acp.tokens.index')
-            ->with('success','Token created.');
+            ->with('success', 'Token created.');
     }
 
     /**
