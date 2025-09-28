@@ -34,7 +34,17 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-    Pin, PinOff, Ellipsis, Eye, EyeOff, Pencil, Trash2, Lock, LockOpen, Flag, MessageSquareLock
+    Pin,
+    PinOff,
+    Ellipsis,
+    Eye,
+    EyeOff,
+    Pencil,
+    Trash2,
+    Lock,
+    LockOpen,
+    Flag,
+    MessageSquareLock,
 } from 'lucide-vue-next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
@@ -47,15 +57,24 @@ interface BoardSummary {
     } | null;
 }
 
+interface ThreadPermissions {
+    canModerate: boolean;
+    canEdit: boolean;
+    canReport: boolean;
+    canReply: boolean;
+}
+
 interface ThreadSummary {
     id: number;
     title: string;
     slug: string;
     is_locked: boolean;
     is_pinned: boolean;
+    is_published: boolean;
     views: number;
     author: string | null;
     last_posted_at: string | null;
+    permissions: ThreadPermissions;
 }
 
 interface PostAuthor {
@@ -67,14 +86,23 @@ interface PostAuthor {
     avatar_url: string | null;
 }
 
+interface PostPermissions {
+    canReport: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+    canModerate: boolean;
+}
+
 interface ThreadPost {
     id: number;
     body: string;
+    body_raw: string;
     created_at: string;
     edited_at: string | null;
     number: number;
     signature: string | null;
     author: PostAuthor;
+    permissions: PostPermissions;
 }
 
 interface PaginationMeta {
@@ -112,6 +140,8 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
     trail.push({ title: props.thread.title, href: route('forum.threads.show', { board: props.board.slug, thread: props.thread.slug }) });
     return trail;
 });
+
+const threadPermissions = computed(() => props.thread.permissions);
 
 const postsMetaFallback = computed<PaginationMeta>(() => {
     const total = props.posts.data.length;
@@ -154,6 +184,8 @@ const postsRangeLabel = computed(() => {
 });
 
 const paginationPage = ref(postsMeta.value.current_page);
+const threadActionLoading = ref(false);
+const activePostActionId = ref<number | null>(null);
 
 watch(
     () => postsMeta.value.current_page,
@@ -180,6 +212,224 @@ watch(paginationPage, (page) => {
         replace: true,
     });
 });
+
+const performThreadAction = (
+    method: 'put' | 'post',
+    routeName: string,
+    payload: Record<string, unknown> = {},
+) => {
+    threadActionLoading.value = true;
+
+    const url = route(routeName, { board: props.board.slug, thread: props.thread.slug });
+    const data = {
+        ...payload,
+        redirect_to_thread: true,
+        page: postsMeta.value.current_page,
+    };
+
+    const options = {
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onFinish: () => {
+            threadActionLoading.value = false;
+        },
+    } as const;
+
+    if (method === 'post') {
+        router.post(url, data, options);
+    } else {
+        router.put(url, data, options);
+    }
+};
+
+const reportThread = () => {
+    if (!threadPermissions.value?.canReport || threadActionLoading.value) {
+        return;
+    }
+
+    const reason = window.prompt(
+        'Let the moderation team know what is wrong with this thread (optional):',
+        '',
+    );
+
+    const payload: Record<string, unknown> = {};
+
+    if (reason && reason.trim() !== '') {
+        payload.reason = reason.trim();
+    }
+
+    performThreadAction('post', 'forum.threads.report', payload);
+};
+
+const publishThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.publish');
+};
+
+const unpublishThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.unpublish');
+};
+
+const lockThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.lock');
+};
+
+const unlockThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.unlock');
+};
+
+const pinThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.pin');
+};
+
+const unpinThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.unpin');
+};
+
+const renameThread = () => {
+    if (!threadPermissions.value?.canEdit || threadActionLoading.value) {
+        return;
+    }
+
+    const newTitle = window.prompt('Update thread title', props.thread.title);
+
+    if (newTitle === null) {
+        return;
+    }
+
+    const trimmed = newTitle.trim();
+
+    if (trimmed === '' || trimmed === props.thread.title) {
+        return;
+    }
+
+    performThreadAction('put', 'forum.threads.update', { title: trimmed });
+};
+
+const deleteThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete "${props.thread.title}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    threadActionLoading.value = true;
+
+    const url = route('forum.threads.destroy', { board: props.board.slug, thread: props.thread.slug });
+
+    router.delete(url, {}, {
+        preserveScroll: false,
+        preserveState: false,
+        onFinish: () => {
+            threadActionLoading.value = false;
+        },
+    });
+};
+
+const performPostAction = (
+    post: ThreadPost,
+    method: 'put' | 'delete' | 'post',
+    routeName: string,
+    payload: Record<string, unknown> = {},
+) => {
+    activePostActionId.value = post.id;
+
+    const url = route(routeName, { board: props.board.slug, thread: props.thread.slug, post: post.id });
+    const data = {
+        ...payload,
+        page: postsMeta.value.current_page,
+    };
+
+    const options = {
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onFinish: () => {
+            activePostActionId.value = null;
+        },
+    } as const;
+
+    if (method === 'delete') {
+        router.delete(url, data, options);
+    } else if (method === 'put') {
+        router.put(url, data, options);
+    } else {
+        router.post(url, data, options);
+    }
+};
+
+const reportPost = (post: ThreadPost) => {
+    if (!post.permissions.canReport || activePostActionId.value === post.id) {
+        return;
+    }
+
+    const reason = window.prompt('Let us know what is wrong with this post (optional):', '');
+    const payload: Record<string, unknown> = {};
+
+    if (reason && reason.trim() !== '') {
+        payload.reason = reason.trim();
+    }
+
+    performPostAction(post, 'post', 'forum.posts.report', payload);
+};
+
+const editPost = (post: ThreadPost) => {
+    if (!post.permissions.canEdit || activePostActionId.value === post.id) {
+        return;
+    }
+
+    const updated = window.prompt('Update your post content', post.body_raw);
+
+    if (updated === null) {
+        return;
+    }
+
+    const trimmed = updated.trim();
+
+    if (trimmed === '' || trimmed === post.body_raw) {
+        return;
+    }
+
+    performPostAction(post, 'put', 'forum.posts.update', { body: trimmed });
+};
+
+const deletePost = (post: ThreadPost) => {
+    if (!post.permissions.canDelete || activePostActionId.value === post.id) {
+        return;
+    }
+
+    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+        return;
+    }
+
+    performPostAction(post, 'delete', 'forum.posts.destroy');
+};
 
 const replyText = ref('');
 </script>
@@ -238,11 +488,17 @@ const replyText = ref('');
                         Locked
                     </Button>
                     <a href="#post_reply">
-                        <Button variant="secondary" class="cursor-pointer" :disabled="props.thread.is_locked">
+                        <Button variant="secondary" class="cursor-pointer" :disabled="!props.thread.permissions.canReply">
                             Post Reply
                         </Button>
                     </a>
-                    <DropdownMenu>
+                    <DropdownMenu
+                        v-if="
+                            threadPermissions.canReport ||
+                            threadPermissions.canModerate ||
+                            threadPermissions.canEdit
+                        "
+                    >
                         <DropdownMenuTrigger as-child>
                             <Button variant="outline" size="icon">
                                 <Ellipsis class="h-8 w-8" />
@@ -251,50 +507,89 @@ const replyText = ref('');
                         <DropdownMenuContent>
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                                <DropdownMenuItem class="text-orange-500">
+                            <DropdownMenuGroup v-if="threadPermissions.canReport">
+                                <DropdownMenuItem
+                                    class="text-orange-500"
+                                    :disabled="threadActionLoading"
+                                    @select="reportThread"
+                                >
                                     <Flag class="h-8 w-8" />
                                     <span>Report</span>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel>Mod Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                                <DropdownMenuItem>
-                                    <Eye class="h-8 w-8" />
-                                    <span>Publish</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <EyeOff class="h-8 w-8" />
-                                    <span>Unpublish</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <Lock class="h-8 w-8" />
-                                    <span>Lock</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <LockOpen class="h-8 w-8" />
-                                    <span>Unlock</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <Pin class="h-8 w-8" />
-                                    <span>Pin</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <PinOff class="h-8 w-8" />
-                                    <span>Unpin</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                                <DropdownMenuItem class="text-blue-500">
+                            <template v-if="threadPermissions.canModerate">
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel>Mod Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuGroup>
+                                    <DropdownMenuItem
+                                        v-if="!props.thread.is_published"
+                                        :disabled="threadActionLoading"
+                                        @select="publishThread"
+                                    >
+                                        <Eye class="h-8 w-8" />
+                                        <span>Publish</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="props.thread.is_published"
+                                        :disabled="threadActionLoading"
+                                        @select="unpublishThread"
+                                    >
+                                        <EyeOff class="h-8 w-8" />
+                                        <span>Unpublish</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="!props.thread.is_locked"
+                                        :disabled="threadActionLoading"
+                                        @select="lockThread"
+                                    >
+                                        <Lock class="h-8 w-8" />
+                                        <span>Lock</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="props.thread.is_locked"
+                                        :disabled="threadActionLoading"
+                                        @select="unlockThread"
+                                    >
+                                        <LockOpen class="h-8 w-8" />
+                                        <span>Unlock</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="!props.thread.is_pinned"
+                                        :disabled="threadActionLoading"
+                                        @select="pinThread"
+                                    >
+                                        <Pin class="h-8 w-8" />
+                                        <span>Pin</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="props.thread.is_pinned"
+                                        :disabled="threadActionLoading"
+                                        @select="unpinThread"
+                                    >
+                                        <PinOff class="h-8 w-8" />
+                                        <span>Unpin</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuGroup>
+                            </template>
+                            <DropdownMenuSeparator v-if="threadPermissions.canEdit" />
+                            <DropdownMenuGroup v-if="threadPermissions.canEdit">
+                                <DropdownMenuItem
+                                    class="text-blue-500"
+                                    :disabled="threadActionLoading"
+                                    @select="renameThread"
+                                >
                                     <Pencil class="h-8 w-8" />
                                     <span>Edit Title</span>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem class="text-red-500">
+                            <DropdownMenuSeparator v-if="threadPermissions.canModerate" />
+                            <DropdownMenuItem
+                                v-if="threadPermissions.canModerate"
+                                class="text-red-500"
+                                :disabled="threadActionLoading"
+                                @select="deleteThread"
+                            >
                                 <Trash2 class="h-8 w-8" />
                                 <span>Delete</span>
                             </DropdownMenuItem>
@@ -327,7 +622,61 @@ const replyText = ref('');
                     <div class="flex-1">
                         <div class="flex justify-between items-center border-b pb-2 mb-4">
                             <div class="text-sm text-gray-500">{{ post.created_at }}</div>
-                            <div class="text-sm font-medium text-gray-500">#{{ post.number }}</div>
+                            <div class="flex items-center gap-2">
+                                <div class="text-sm font-medium text-gray-500">#{{ post.number }}</div>
+                                <DropdownMenu
+                                    v-if="
+                                        post.permissions.canReport ||
+                                        post.permissions.canEdit ||
+                                        post.permissions.canDelete
+                                    "
+                                >
+                                    <DropdownMenuTrigger as-child>
+                                        <Button variant="ghost" size="icon" class="h-8 w-8">
+                                            <Ellipsis class="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuLabel>Post Actions</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuGroup v-if="post.permissions.canReport">
+                                            <DropdownMenuItem
+                                                class="text-orange-500"
+                                                :disabled="activePostActionId === post.id"
+                                                @select="reportPost(post)"
+                                            >
+                                                <Flag class="h-4 w-4" />
+                                                <span>Report</span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuGroup>
+                                        <DropdownMenuGroup v-if="post.permissions.canEdit">
+                                            <DropdownMenuItem
+                                                class="text-blue-500"
+                                                :disabled="activePostActionId === post.id"
+                                                @select="editPost(post)"
+                                            >
+                                                <Pencil class="h-4 w-4" />
+                                                <span>Edit</span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuGroup>
+                                        <DropdownMenuSeparator
+                                            v-if="
+                                                post.permissions.canDelete &&
+                                                (post.permissions.canReport || post.permissions.canEdit)
+                                            "
+                                        />
+                                        <DropdownMenuItem
+                                            v-if="post.permissions.canDelete"
+                                            class="text-red-500"
+                                            :disabled="activePostActionId === post.id"
+                                            @select="deletePost(post)"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                            <span>Delete</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </div>
                         <!-- Post Body -->
                         <div class="prose dark:prose-dark" v-html="post.body"></div>
@@ -392,9 +741,18 @@ const replyText = ref('');
             <div class="mt-8 rounded-xl border p-6 shadow">
                 <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
                 <div class="flex flex-col gap-4">
-                    <Textarea v-model="replyText" placeholder="Write your reply here..." class="w-full rounded-md" :disabled="props.thread.is_locked" />
+                    <Textarea
+                        v-model="replyText"
+                        placeholder="Write your reply here..."
+                        class="w-full rounded-md"
+                        :disabled="!props.thread.permissions.canReply"
+                    />
 
-                    <Button variant="secondary" class="cursor-pointer bg-green-500 hover:bg-green-600" :disabled="props.thread.is_locked">
+                    <Button
+                        variant="secondary"
+                        class="cursor-pointer bg-green-500 hover:bg-green-600"
+                        :disabled="!props.thread.permissions.canReply"
+                    >
                         Submit Reply
                     </Button>
                 </div>

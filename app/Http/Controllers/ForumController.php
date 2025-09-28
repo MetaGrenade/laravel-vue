@@ -120,7 +120,8 @@ class ForumController extends Controller
 
         $search = trim((string) $request->query('search', ''));
 
-        $isModerator = $request->user()?->hasAnyRole(['admin', 'editor', 'moderator']);
+        $user = $request->user();
+        $isModerator = $user?->hasAnyRole(['admin', 'editor', 'moderator']);
 
         $threadsQuery = $board->threads()
             ->when(!$isModerator, function ($query) {
@@ -214,12 +215,13 @@ class ForumController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts) {
+        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator) {
             $author = $post->author;
 
             return [
                 'id' => $post->id,
                 'body' => $post->body,
+                'body_raw' => $post->body,
                 'created_at' => $post->created_at->toDayDateTimeString(),
                 'edited_at' => optional($post->edited_at)?->toDayDateTimeString(),
                 'number' => $posts->firstItem() ? ($posts->firstItem() + $index) : ($index + 1),
@@ -231,6 +233,12 @@ class ForumController extends Controller
                     'forum_posts_count' => $author?->forum_posts_count ?? 0,
                     'primary_role' => $author?->getRoleNames()->first() ?? 'Member',
                     'avatar_url' => null,
+                ],
+                'permissions' => [
+                    'canReport' => $user !== null && $user->id !== $post->user_id,
+                    'canEdit' => $user !== null && ($user->id === $post->user_id || $isModerator),
+                    'canDelete' => $user !== null && ($user->id === $post->user_id || $isModerator),
+                    'canModerate' => (bool) $isModerator,
                 ],
             ];
         })->values();
@@ -250,9 +258,16 @@ class ForumController extends Controller
                 'slug' => $thread->slug,
                 'is_locked' => $thread->is_locked,
                 'is_pinned' => $thread->is_pinned,
+                'is_published' => $thread->is_published,
                 'views' => $thread->views,
                 'author' => $thread->author?->nickname,
                 'last_posted_at' => optional($thread->last_posted_at)->toDayDateTimeString(),
+                'permissions' => [
+                    'canModerate' => (bool) $isModerator,
+                    'canEdit' => $user !== null && ($user->id === $thread->user_id || $isModerator),
+                    'canReport' => $user !== null && $user->id !== $thread->user_id,
+                    'canReply' => $user !== null && !$thread->is_locked,
+                ],
             ],
             'posts' => [
                 'data' => $postItems,

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\ForumController;
+use App\Http\Controllers\ForumPostController;
+use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumThreadModerationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,6 +21,18 @@ Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
 Route::get('forum/{board:slug}', [ForumController::class, 'showBoard'])->name('forum.boards.show');
 Route::get('forum/{board:slug}/{thread:slug}', [ForumController::class, 'showThread'])->name('forum.threads.show');
 
+Route::middleware('auth')->group(function () {
+    Route::post('forum/{board:slug}/{thread:slug}/report', [ForumThreadActionController::class, 'report'])
+        ->name('forum.threads.report');
+
+    Route::put('forum/{board:slug}/{thread:slug}/posts/{post}', [ForumPostController::class, 'update'])
+        ->name('forum.posts.update');
+    Route::delete('forum/{board:slug}/{thread:slug}/posts/{post}', [ForumPostController::class, 'destroy'])
+        ->name('forum.posts.destroy');
+    Route::post('forum/{board:slug}/{thread:slug}/posts/{post}/report', [ForumPostController::class, 'report'])
+        ->name('forum.posts.report');
+});
+
 Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('forum/{board:slug}/{thread:slug}', [ForumThreadModerationController::class, 'update'])
         ->name('forum.threads.update');
@@ -30,6 +44,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->name('forum.threads.lock');
     Route::put('forum/{board:slug}/{thread:slug}/unlock', [ForumThreadModerationController::class, 'unlock'])
         ->name('forum.threads.unlock');
+    Route::put('forum/{board:slug}/{thread:slug}/pin', [ForumThreadModerationController::class, 'pin'])
+        ->name('forum.threads.pin');
+    Route::put('forum/{board:slug}/{thread:slug}/unpin', [ForumThreadModerationController::class, 'unpin'])
+        ->name('forum.threads.unpin');
     Route::delete('forum/{board:slug}/{thread:slug}', [ForumThreadModerationController::class, 'destroy'])
         ->name('forum.threads.destroy');
 });
