@@ -12,9 +12,7 @@ use Inertia\Inertia;
 Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::redirect('acp', '/acp/dashboard');
 
-    Route::get('acp/dashboard', function () {
-        return Inertia::render('acp/Dashboard');
-    })->name('acp.dashboard');
+    Route::get('acp/dashboard', [AdminController::class, 'get'])->name('acp.dashboard');
 
     Route::get('acp/users', function () {
         return Inertia::render('acp/Users');
