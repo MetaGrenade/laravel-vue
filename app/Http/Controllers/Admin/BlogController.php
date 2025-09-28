@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\BlogRequest;
 use Illuminate\Http\Request;
 use App\Models\Blog;
 use Illuminate\Support\Str;
+use Illuminate\Http\RedirectResponse;
 
 class BlogController extends Controller
 {
@@ -105,5 +106,35 @@ class BlogController extends Controller
 
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post deleted successfully.');
+    }
+
+    /**
+     * Publish the specified blog post.
+     */
+    public function publish(Blog $blog): RedirectResponse
+    {
+        if ($blog->status !== 'published') {
+            $blog->forceFill([
+                'status' => 'published',
+                'published_at' => now(),
+            ])->save();
+        }
+
+        return redirect()->back()->with('success', 'Blog post published successfully.');
+    }
+
+    /**
+     * Unpublish the specified blog post.
+     */
+    public function unpublish(Blog $blog): RedirectResponse
+    {
+        if ($blog->status !== 'draft') {
+            $blog->forceFill([
+                'status' => 'draft',
+                'published_at' => null,
+            ])->save();
+        }
+
+        return redirect()->back()->with('success', 'Blog post moved back to draft.');
     }
 }
