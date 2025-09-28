@@ -6,7 +6,9 @@ use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -316,5 +318,85 @@ class ForumController extends Controller
             ],
             'reportReasons' => $reportReasons,
         ]);
+    }
+
+    public function createThread(Request $request, ForumBoard $board): Response
+    {
+        $user = $request->user();
+
+        abort_if($user === null, 403);
+
+        $board->load('category');
+
+        return Inertia::render('ForumThreadCreate', [
+            'board' => [
+                'id' => $board->id,
+                'title' => $board->title,
+                'slug' => $board->slug,
+                'description' => $board->description,
+                'category' => [
+                    'title' => $board->category?->title,
+                    'slug' => $board->category?->slug,
+                ],
+            ],
+        ]);
+    }
+
+    public function storeThread(Request $request, ForumBoard $board): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_if($user === null, 403);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'body' => ['required', 'string'],
+        ]);
+
+        $title = trim((string) $validated['title']);
+        $body = trim((string) $validated['body']);
+
+        $baseSlug = Str::slug($title);
+        if ($baseSlug === '') {
+            $baseSlug = 'thread';
+        }
+
+        $baseSlug = Str::limit($baseSlug, 240, '');
+
+        do {
+            $slug = $baseSlug . '-' . Str::random(6);
+        } while (ForumThread::where('slug', $slug)->exists());
+
+        $thread = null;
+
+        DB::transaction(function () use ($board, $user, $title, $slug, $body, &$thread) {
+            $excerptSource = preg_replace('/\s+/', ' ', $body) ?? $body;
+
+            $thread = ForumThread::create([
+                'forum_board_id' => $board->id,
+                'user_id' => $user->id,
+                'title' => $title,
+                'slug' => $slug,
+                'excerpt' => Str::limit($excerptSource, 160),
+                'last_posted_at' => now(),
+                'last_post_user_id' => $user->id,
+            ]);
+
+            $post = ForumPost::create([
+                'forum_thread_id' => $thread->id,
+                'user_id' => $user->id,
+                'body' => $body,
+            ]);
+
+            $thread->forceFill([
+                'last_posted_at' => $post->created_at,
+                'last_post_user_id' => $post->user_id,
+            ])->save();
+        });
+
+        return redirect()->route('forum.threads.show', [
+            'board' => $board->slug,
+            'thread' => $thread->slug,
+        ])->with('success', 'Thread created successfully.');
     }
 }

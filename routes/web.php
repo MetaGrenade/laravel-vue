@@ -22,6 +22,10 @@ Route::get('forum/{board:slug}', [ForumController::class, 'showBoard'])->name('f
 Route::get('forum/{board:slug}/{thread:slug}', [ForumController::class, 'showThread'])->name('forum.threads.show');
 
 Route::middleware('auth')->group(function () {
+    Route::get('forum/{board:slug}/threads/create', [ForumController::class, 'createThread'])
+        ->name('forum.threads.create');
+    Route::post('forum/{board:slug}/threads', [ForumController::class, 'storeThread'])
+        ->name('forum.threads.store');
     Route::post('forum/{board:slug}/{thread:slug}/report', [ForumThreadActionController::class, 'report'])
         ->name('forum.threads.report');
 

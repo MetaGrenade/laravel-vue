@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -106,6 +106,8 @@ const props = defineProps<{
     reportReasons: ReportReasonOption[];
 }>();
 
+const page = usePage<{ auth: { user: unknown | null } }>();
+
 const breadcrumbs = computed<BreadcrumbItem[]>(() => {
     const trail: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
     if (props.board.category?.title) {
@@ -120,6 +122,8 @@ const searchQuery = ref(props.filters.search ?? '');
 const reportReasons = computed(() => props.reportReasons ?? []);
 const defaultReportReason = computed(() => reportReasons.value[0]?.value ?? '');
 const hasReportReasons = computed(() => reportReasons.value.length > 0);
+
+const canStartThread = computed(() => Boolean(page.props.auth?.user));
 
 const threadsMetaFallback = computed<PaginationMeta>(() => {
     const total = props.threads.data?.length ?? 0;
@@ -442,8 +446,20 @@ const deleteThread = (thread: ThreadSummary) => {
                         v-model="searchQuery"
                         :placeholder="`Search ${props.board.title}...`"
                     />
-                    <Button variant="secondary" class="cursor-pointer">
-                        New Thread
+                    <Button
+                        v-if="canStartThread"
+                        variant="secondary"
+                        class="cursor-pointer"
+                        as-child
+                    >
+                        <Link :href="route('forum.threads.create', { board: props.board.slug })">
+                            New Thread
+                        </Link>
+                    </Button>
+                    <Button v-else variant="secondary" class="cursor-pointer" as-child>
+                        <Link :href="route('login')">
+                            New Thread
+                        </Link>
                     </Button>
                 </div>
             </header>
