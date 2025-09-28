@@ -29,7 +29,10 @@ class ACLController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        return inertia('acp/AccessControlLayer', compact('roles','permissions'));
+        $availablePermissions = Permission::orderBy('name')
+            ->get(['id', 'name', 'guard_name']);
+
+        return inertia('acp/AccessControlLayer', compact('roles', 'permissions', 'availablePermissions'));
     }
 
     /**
@@ -37,7 +40,17 @@ class ACLController extends Controller
      */
     public function createRole()
     {
-        return inertia('acp/ACLRoleCreate');
+        $permissions = Permission::orderBy('name')->get(['id', 'name', 'guard_name']);
+
+        return inertia('acp/ACLRoleCreate', compact('permissions'));
+    }
+
+    /**
+     * Show the form for creating a new permission.
+     */
+    public function createPermission()
+    {
+        return inertia('acp/ACLPermissionCreate');
     }
 
     /**
@@ -47,7 +60,8 @@ class ACLController extends Controller
     {
         $role = Role::create($request->validated());
         $role->syncPermissions($request->permissions ?? []);
-        return back()->with('success', 'Role created.');
+
+        return redirect()->route('acp.acl.index')->with('success', 'Role created.');
     }
 
     /**
@@ -75,7 +89,8 @@ class ACLController extends Controller
     public function storePermission(StorePermissionRequest $request)
     {
         Permission::create($request->validated());
-        return back()->with('success', 'Permission created.');
+
+        return redirect()->route('acp.acl.index')->with('success', 'Permission created.');
     }
 
     /**
