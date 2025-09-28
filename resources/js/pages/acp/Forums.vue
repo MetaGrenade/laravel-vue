@@ -215,7 +215,7 @@ const forumCategories = [
                                 <div class="flex-1">
                                     <h4 class="font-semibold text-lg">
                                         <Link
-                                            :href="route('forum.boards.show', { board: sub.slug })"
+                                            :href="sub.slug ? route('forum.boards.show', { board: sub.slug }) : '#'"
                                             class="font-semibold hover:underline"
                                         >
                                             {{ sub.title }}
