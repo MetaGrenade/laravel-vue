@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import dayjs from 'dayjs';
+import { ref, computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { type BreadcrumbItem } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
@@ -26,6 +27,19 @@ import {
 import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff, Ban } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import InputError from '@/components/InputError.vue';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 
 // dayjs composable for human readable dates
 const { fromNow } = useUserTimezone();
@@ -41,20 +55,25 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Tokens', href: '/acp/tokens' }
 ];
 
+interface TokenUser {
+    id: number;
+    nickname: string;
+    email: string;
+}
+
+interface Token {
+    id: number;
+    name: string;
+    user: TokenUser | null;
+    created_at: string;
+    last_used_at?: string | null;
+    expires_at?: string | null;
+    revoked_at?: string | null;
+}
+
 const props = defineProps<{
     tokens: {
-        data: Array<{
-            id: number;
-            name: string;
-            user: {
-                id: number;
-                nickname: string;
-                email: string;
-            };
-            created_at: string;
-            last_used_at?: string;
-            status: 'active' | 'expired' | 'revoked';
-        }>;
+        data: Token[];
         current_page: number;
         per_page: number;
         total: number;
@@ -82,12 +101,90 @@ const tokenSearchQuery = ref('');
 const filteredTokens = computed(() => {
     if (!tokenSearchQuery.value) return props.tokens.data;
     const q = tokenSearchQuery.value.toLowerCase();
-    return props.tokens.data.filter((t: any) =>
-        t.name.toLowerCase().includes(q) ||
-        t.user.nickname.toLowerCase().includes(q) ||
-        t.user.email.toLowerCase().includes(q)
-    );
+    return props.tokens.data.filter((token) => {
+        const matchesName = token.name.toLowerCase().includes(q);
+        const matchesNickname = token.user?.nickname?.toLowerCase().includes(q) ?? false;
+        const matchesEmail = token.user?.email?.toLowerCase().includes(q) ?? false;
+
+        return matchesName || matchesNickname || matchesEmail;
+    });
 });
+
+// Create token dialog state & form
+const createDialogOpen = ref(false);
+const defaultUserId = props.userList.length ? props.userList[0].id : '';
+const createTokenForm = useForm({
+    name: '',
+    user_id: defaultUserId as number | '',
+    expires_at: '',
+    abilities: [] as string[],
+});
+const abilityInput = ref('');
+
+const resetCreateTokenForm = () => {
+    createTokenForm.reset();
+    abilityInput.value = '';
+    createTokenForm.clearErrors();
+};
+
+watch(createDialogOpen, (open) => {
+    if (!open) {
+        resetCreateTokenForm();
+    }
+});
+
+const submitCreateToken = () => {
+    createTokenForm.abilities = abilityInput.value
+        .split(',')
+        .map((ability) => ability.trim())
+        .filter(Boolean);
+
+    createTokenForm.post(route('acp.tokens.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            createDialogOpen.value = false;
+        },
+    });
+};
+
+const deleteForm = useForm({});
+const deleteToken = (tokenId: number) => {
+    deleteForm.delete(route('acp.tokens.destroy', { token: tokenId }), {
+        preserveScroll: true,
+    });
+};
+
+const resolveTokenStatus = (token: Token) => {
+    if (token.revoked_at) {
+        return {
+            label: 'Revoked',
+            classes:
+                'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-200',
+        };
+    }
+
+    if (token.expires_at && dayjs(token.expires_at).isBefore(dayjs())) {
+        return {
+            label: 'Expired',
+            classes:
+                'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200',
+        };
+    }
+
+    return {
+        label: 'Active',
+        classes:
+            'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200',
+    };
+};
+
+const lastUsedDisplay = (value?: string | null) => {
+    if (!value) {
+        return 'Never';
+    }
+
+    return fromNow(value);
+};
 
 // --------------------
 // Dummy Token Logs Data
@@ -193,9 +290,91 @@ const filteredLogs = computed(() => {
                             <TabsTrigger value="logs">Token Activity</TabsTrigger>
                         </TabsList>
                         <div class="flex space-x-2">
-                            <Button v-if="createTokens" variant="secondary" class="ml-10 text-sm text-white bg-green-500 hover:bg-green-600">
-                                Create Token
-                            </Button>
+                            <Dialog v-if="createTokens" v-model:open="createDialogOpen">
+                                <DialogTrigger as-child>
+                                    <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600 md:ml-10">
+                                        Create Token
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent class="sm:max-w-lg">
+                                    <form class="space-y-6" @submit.prevent="submitCreateToken">
+                                        <DialogHeader class="space-y-2">
+                                            <DialogTitle>Create access token</DialogTitle>
+                                            <DialogDescription>
+                                                Generate a new personal access token and assign it to a user.
+                                            </DialogDescription>
+                                        </DialogHeader>
+
+                                        <div class="space-y-4">
+                                            <div class="space-y-2">
+                                                <Label for="token-name">Token name</Label>
+                                                <Input
+                                                    id="token-name"
+                                                    v-model="createTokenForm.name"
+                                                    type="text"
+                                                    placeholder="Server integration"
+                                                    autocomplete="off"
+                                                    required
+                                                />
+                                                <InputError :message="createTokenForm.errors.name" />
+                                            </div>
+
+                                            <div class="space-y-2">
+                                                <Label for="token-user">User</Label>
+                                                <select
+                                                    id="token-user"
+                                                    v-model="createTokenForm.user_id"
+                                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
+                                                    required
+                                                >
+                                                    <option disabled value="">Select a user</option>
+                                                    <option
+                                                        v-for="user in userList"
+                                                        :key="user.id"
+                                                        :value="user.id"
+                                                    >
+                                                        {{ user.nickname }} ({{ user.email }})
+                                                    </option>
+                                                </select>
+                                                <InputError :message="createTokenForm.errors.user_id" />
+                                            </div>
+
+                                            <div class="space-y-2">
+                                                <Label for="token-abilities">Abilities</Label>
+                                                <Textarea
+                                                    id="token-abilities"
+                                                    v-model="abilityInput"
+                                                    rows="3"
+                                                    placeholder="Comma separated abilities (leave blank for full access)"
+                                                />
+                                                <p class="text-xs text-muted-foreground">
+                                                    Leave empty to grant full access. Example: read,update
+                                                </p>
+                                                <InputError :message="createTokenForm.errors.abilities" />
+                                            </div>
+
+                                            <div class="space-y-2">
+                                                <Label for="token-expires-at">Expires at</Label>
+                                                <Input
+                                                    id="token-expires-at"
+                                                    v-model="createTokenForm.expires_at"
+                                                    type="datetime-local"
+                                                />
+                                                <InputError :message="createTokenForm.errors.expires_at" />
+                                            </div>
+                                        </div>
+
+                                        <DialogFooter class="gap-2 sm:gap-4">
+                                            <DialogClose as-child>
+                                                <Button type="button" variant="outline">Cancel</Button>
+                                            </DialogClose>
+                                            <Button type="submit" :disabled="createTokenForm.processing">
+                                                {{ createTokenForm.processing ? 'Creating…' : 'Create token' }}
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </div>
 
@@ -236,18 +415,19 @@ const filteredLogs = computed(() => {
                                             <TableCell>{{ token.id }}</TableCell>
                                             <TableCell>{{ token.name }}</TableCell>
                                             <TableCell>
-                                                {{ token.user.nickname }}<br />
-                                                <span class="text-xs text-gray-500">{{ token.user.email }}</span>
+                                                {{ token.user?.nickname ?? '—' }}<br />
+                                                <span class="text-xs text-gray-500">{{ token.user?.email ?? '—' }}</span>
                                             </TableCell>
                                             <TableCell class="text-center">{{ fromNow(token.created_at) }}</TableCell>
-                                            <TableCell class="text-center">{{ fromNow(token.last_used_at) || 'Never' }}</TableCell>
+                                            <TableCell class="text-center">{{ lastUsedDisplay(token.last_used_at) }}</TableCell>
                                             <TableCell class="text-center">
-                                                <span :class="{
-                                                    'text-green-500': token.status === 'active',
-                                                    'text-yellow-500': token.status === 'expired',
-                                                    'text-red-500': token.status === 'revoked'
-                                                  }" class="font-medium">
-                                                  {{ token.status }}
+                                                <span
+                                                    :class="[
+                                                        'inline-flex items-center justify-center rounded-full px-2 py-1 text-xs font-medium capitalize',
+                                                        resolveTokenStatus(token).classes,
+                                                    ]"
+                                                >
+                                                    {{ resolveTokenStatus(token).label }}
                                                 </span>
                                             </TableCell>
                                             <TableCell class="text-center">
@@ -269,13 +449,13 @@ const filteredLogs = computed(() => {
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="deleteTokens" />
-                                                        <Link :href="route('acp.tokens.index')" v-if="deleteTokens">
-                                                            <DropdownMenuItem  class="text-red-500"
-                                                                @click.prevent="$inertia.delete(route('acp.tokens.destroy', { token: t.id }))"
-                                                            >
-                                                                <Trash2 class="mr-2"/> Delete
-                                                            </DropdownMenuItem>
-                                                        </Link>
+                                                        <DropdownMenuItem
+                                                            v-if="deleteTokens"
+                                                            class="text-red-500"
+                                                            @click.prevent="deleteToken(token.id)"
+                                                        >
+                                                            <Trash2 class="mr-2" /> Delete
+                                                        </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
