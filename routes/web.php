@@ -28,6 +28,8 @@ Route::middleware('auth')->group(function () {
         ->name('forum.threads.store');
     Route::post('forum/{board:slug}/{thread:slug}/report', [ForumThreadActionController::class, 'report'])
         ->name('forum.threads.report');
+    Route::post('forum/{board:slug}/{thread:slug}/mark-read', [ForumThreadActionController::class, 'markAsRead'])
+        ->name('forum.threads.mark-read');
     Route::put('forum/{board:slug}/{thread:slug}', [ForumThreadModerationController::class, 'update'])
         ->name('forum.threads.update');
 

@@ -34,7 +34,16 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import {
-    Pin, Ellipsis, Eye, EyeOff, Pencil, Trash2, Lock, LockOpen, Flag
+    Pin,
+    Ellipsis,
+    Eye,
+    EyeOff,
+    Pencil,
+    Trash2,
+    Lock,
+    LockOpen,
+    Flag,
+    CheckCircle2,
 } from 'lucide-vue-next';
 
 interface BoardSummary {
@@ -51,6 +60,7 @@ interface BoardSummary {
 interface ThreadPermissions {
     canReport: boolean;
     canModerate: boolean;
+    canMarkRead: boolean;
 }
 
 interface ThreadSummary {
@@ -184,7 +194,9 @@ const selectedThreadReason = computed(() =>
 
 const showActionColumn = computed(() =>
     props.permissions.canModerate ||
-    props.threads.data.some((thread) => thread.permissions.canReport),
+    props.threads.data.some((thread) =>
+        thread.permissions.canReport || thread.permissions.canMarkRead,
+    ),
 );
 
 watch(() => threadsMeta.value.current_page, (page) => {
@@ -280,7 +292,7 @@ const submitThreadReport = () => {
 
 const performThreadAction = (
     thread: ThreadSummary,
-    method: 'put' | 'delete',
+    method: 'put' | 'delete' | 'post',
     routeName: string,
     payload: Record<string, unknown> = {},
 ) => {
@@ -297,7 +309,11 @@ const performThreadAction = (
     } as const;
 
     if (method === 'delete') {
-        router.delete(url, {}, {
+        router.delete(url, payload, {
+            ...options,
+        });
+    } else if (method === 'post') {
+        router.post(url, payload, {
             ...options,
         });
     } else {
@@ -339,6 +355,17 @@ const deleteThread = (thread: ThreadSummary) => {
     }
 
     performThreadAction(thread, 'delete', 'forum.threads.destroy');
+};
+
+const markThreadAsRead = (thread: ThreadSummary) => {
+    if (!thread.permissions.canMarkRead || activeActionThreadId.value === thread.id) {
+        return;
+    }
+
+    performThreadAction(thread, 'post', 'forum.threads.mark-read', {
+        page: threadsMeta.value.current_page,
+        search: searchQuery.value || undefined,
+    });
 };
 </script>
 
@@ -560,6 +587,16 @@ const deleteThread = (thread: ThreadSummary) => {
                                         <DropdownMenuContent>
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                             <DropdownMenuSeparator />
+                                            <DropdownMenuGroup v-if="thread.permissions.canMarkRead">
+                                                <DropdownMenuItem
+                                                    class="text-green-600"
+                                                    :disabled="activeActionThreadId === thread.id"
+                                                    @select="markThreadAsRead(thread)"
+                                                >
+                                                    <CheckCircle2 class="h-8 w-8" />
+                                                    <span>Mark as read</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuGroup>
                                             <DropdownMenuGroup v-if="thread.permissions.canReport">
                                                 <DropdownMenuItem
                                                     class="text-orange-500"
@@ -571,7 +608,9 @@ const deleteThread = (thread: ThreadSummary) => {
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
                                             <template v-if="props.permissions.canModerate">
-                                                <DropdownMenuSeparator v-if="thread.permissions.canReport" />
+                                                <DropdownMenuSeparator
+                                                    v-if="thread.permissions.canReport || thread.permissions.canMarkRead"
+                                                />
                                                 <DropdownMenuLabel>Mod Actions</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuGroup>

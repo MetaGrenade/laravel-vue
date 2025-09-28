@@ -166,6 +166,10 @@ class ForumController extends Controller
         $threadItems = $threads->getCollection()->map(function (ForumThread $thread) use ($user, $isModerator) {
             $latestPost = $thread->latestPost;
 
+            $hasUnread = $user !== null && $thread->last_posted_at !== null && (
+                $thread->last_read_at === null || $thread->last_posted_at->gt($thread->last_read_at)
+            );
+
             return [
                 'id' => $thread->id,
                 'title' => $thread->title,
@@ -176,14 +180,13 @@ class ForumController extends Controller
                 'is_pinned' => $thread->is_pinned,
                 'is_locked' => $thread->is_locked,
                 'is_published' => $thread->is_published,
-                'has_unread' => $user !== null && $thread->last_posted_at !== null && (
-                    $thread->last_read_at === null || $thread->last_posted_at->gt($thread->last_read_at)
-                ),
+                'has_unread' => $hasUnread,
                 'last_reply_author' => $latestPost?->author?->nickname,
                 'last_reply_at' => $latestPost?->created_at?->toDayDateTimeString(),
                 'permissions' => [
                     'canReport' => $user !== null && $user->id !== $thread->user_id,
                     'canModerate' => (bool) $isModerator,
+                    'canMarkRead' => $hasUnread,
                 ],
             ];
         })->values();
