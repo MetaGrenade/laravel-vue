@@ -155,6 +155,7 @@ export function useInertiaPagination<T>(
         hasMultiplePages,
         rangeLabel,
         itemsPerPage,
+        items,
         goToPage,
     }
 }

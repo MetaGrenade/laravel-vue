@@ -81,15 +81,7 @@ const publishedAt = computed(() => {
     return formatDate(blog.value.published_at, 'MMMM D, YYYY');
 });
 
-const commentsData = computed(() => props.comments?.data ?? []);
-
-const {
-    page: paginationPage,
-    meta: commentsMeta,
-    hasMultiplePages: commentsHasMultiplePages,
-    rangeLabel: commentsRangeLabel,
-    itemsPerPage: commentsItemsPerPage,
-} = useInertiaPagination(() => props.comments, {
+const commentsPagination = useInertiaPagination(() => props.comments, {
     fallbackPerPage: 10,
     labels: {
         singular: 'comment',
@@ -108,6 +100,13 @@ const {
         );
     },
 });
+
+const paginationPage = commentsPagination.page;
+const commentsMeta = commentsPagination.meta;
+const commentsHasMultiplePages = commentsPagination.hasMultiplePages;
+const commentsRangeLabel = commentsPagination.rangeLabel;
+const commentsItemsPerPage = commentsPagination.itemsPerPage;
+const commentsData = commentsPagination.items;
 
 const commentCount = computed(() => commentsMeta.value.total);
 const hasComments = computed(() => commentsData.value.length > 0);

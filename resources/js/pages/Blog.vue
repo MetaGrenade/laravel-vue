@@ -32,15 +32,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Blog', href: '/blogs' },
 ];
 
-const blogsData = computed(() => props.blogs?.data ?? []);
-
-const {
-    page: paginationPage,
-    meta: blogsMeta,
-    hasMultiplePages: blogsHasMultiplePages,
-    rangeLabel: blogsRangeLabel,
-    itemsPerPage: blogsItemsPerPage,
-} = useInertiaPagination(() => props.blogs, {
+const blogsPagination = useInertiaPagination(() => props.blogs, {
     fallbackPerPage: 10,
     labels: {
         singular: 'post',
@@ -55,6 +47,13 @@ const {
         });
     },
 });
+
+const paginationPage = blogsPagination.page;
+const blogsMeta = blogsPagination.meta;
+const blogsHasMultiplePages = blogsPagination.hasMultiplePages;
+const blogsRangeLabel = blogsPagination.rangeLabel;
+const blogsItemsPerPage = blogsPagination.itemsPerPage;
+const blogsData = blogsPagination.items;
 
 const featuredBlog = computed(() => blogsData.value[0] ?? null);
 </script>
