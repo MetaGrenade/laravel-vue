@@ -37,4 +37,12 @@ export interface User {
     updated_at: string;
 }
 
+export interface BlogComment {
+    id: number;
+    body: string;
+    created_at: string;
+    updated_at: string;
+    user: (Pick<User, 'id' | 'nickname' | 'avatar'> & { avatar?: string | null }) | null;
+}
+
 export type BreadcrumbItemType = BreadcrumbItem;

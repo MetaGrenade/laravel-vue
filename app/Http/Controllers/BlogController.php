@@ -23,12 +23,11 @@ class BlogController extends Controller
     /**
      * Show the detailed view for a single blog post.
      */
-    public function show($slug)
+    public function show(Blog $blog)
     {
-        $blog = Blog::with(['user:id,nickname'])
-            ->where('slug', $slug)
-            ->where('status', 'published')
-            ->firstOrFail();
+        abort_unless($blog->status === 'published', 404);
+
+        $blog->load(['user:id,nickname']);
 
         return inertia('BlogView', [
             'blog' => [

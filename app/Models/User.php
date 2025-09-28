@@ -65,5 +65,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(ForumThreadRead::class);
     }
+
+    public function blogComments(): HasMany
+    {
+        return $this->hasMany(BlogComment::class);
+    }
 }
 

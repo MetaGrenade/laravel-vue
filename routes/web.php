@@ -15,7 +15,7 @@ Route::get('/', function () {
 
 // Public Blog Routes
 Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
-Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.view');
+Route::get('/blogs/{blog:slug}', [BlogController::class, 'show'])->name('blogs.view');
 
 Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
 Route::get('forum/{board:slug}', [ForumController::class, 'showBoard'])->name('forum.boards.show');
