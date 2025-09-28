@@ -13,7 +13,9 @@ class ForumThreadReport extends Model
     protected $fillable = [
         'forum_thread_id',
         'reporter_id',
+        'reason_category',
         'reason',
+        'evidence_url',
     ];
 
     public function thread(): BelongsTo

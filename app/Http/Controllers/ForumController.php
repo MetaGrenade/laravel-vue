@@ -7,6 +7,7 @@ use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -245,6 +246,16 @@ class ForumController extends Controller
             ];
         })->values();
 
+        $reportReasons = collect(config('forum.report_reasons', []))
+            ->map(function (array $reason, string $key) {
+                return [
+                    'value' => $key,
+                    'label' => $reason['label'] ?? Str::headline(str_replace('_', ' ', $key)),
+                    'description' => $reason['description'] ?? null,
+                ];
+            })
+            ->values();
+
         return Inertia::render('ForumThreadView', [
             'board' => [
                 'title' => $board->title,
@@ -288,6 +299,7 @@ class ForumController extends Controller
                     'next' => $posts->nextPageUrl(),
                 ],
             ],
+            'reportReasons' => $reportReasons,
         ]);
     }
 }

@@ -7,6 +7,7 @@ use App\Models\ForumThread;
 use App\Models\ForumThreadReport;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ForumThreadActionController extends Controller
 {
@@ -18,10 +19,20 @@ class ForumThreadActionController extends Controller
 
         abort_if($user === null, 403);
 
+        $reasons = config('forum.report_reasons', []);
+
         $validated = $request->validate([
+            'reason_category' => ['required', 'string', Rule::in(array_keys($reasons))],
             'reason' => ['nullable', 'string', 'max:1000'],
+            'evidence_url' => ['nullable', 'string', 'max:2048', 'url'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
+
+        $reason = isset($validated['reason']) ? trim((string) $validated['reason']) : null;
+        $reason = $reason === '' ? null : $reason;
+
+        $evidenceUrl = isset($validated['evidence_url']) ? trim((string) $validated['evidence_url']) : null;
+        $evidenceUrl = $evidenceUrl === '' ? null : $evidenceUrl;
 
         ForumThreadReport::updateOrCreate(
             [
@@ -29,7 +40,9 @@ class ForumThreadActionController extends Controller
                 'reporter_id' => $user->id,
             ],
             [
-                'reason' => $validated['reason'] ?? null,
+                'reason_category' => $validated['reason_category'],
+                'reason' => $reason,
+                'evidence_url' => $evidenceUrl,
             ],
         );
 

@@ -13,7 +13,9 @@ class ForumPostReport extends Model
     protected $fillable = [
         'forum_post_id',
         'reporter_id',
+        'reason_category',
         'reason',
+        'evidence_url',
     ];
 
     public function post(): BelongsTo

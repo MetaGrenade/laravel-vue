@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 
 // Import shadcn‑vue components
@@ -19,6 +19,9 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -125,10 +128,17 @@ interface PostsPayload {
     } | null;
 }
 
+interface ReportReasonOption {
+    value: string;
+    label: string;
+    description?: string | null;
+}
+
 const props = defineProps<{
     board: BoardSummary;
     thread: ThreadSummary;
     posts: PostsPayload;
+    reportReasons: ReportReasonOption[];
 }>();
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => {
@@ -142,6 +152,9 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
 });
 
 const threadPermissions = computed(() => props.thread.permissions);
+const reportReasons = computed(() => props.reportReasons ?? []);
+const defaultReportReason = computed(() => reportReasons.value[0]?.value ?? '');
+const hasReportReasons = computed(() => reportReasons.value.length > 0);
 
 const postsMetaFallback = computed<PaginationMeta>(() => {
     const total = props.posts.data.length;
@@ -186,11 +199,38 @@ const postsRangeLabel = computed(() => {
 const paginationPage = ref(postsMeta.value.current_page);
 const threadActionLoading = ref(false);
 const activePostActionId = ref<number | null>(null);
+const threadReportDialogOpen = ref(false);
+const postReportDialogOpen = ref(false);
+const postReportTarget = ref<ThreadPost | null>(null);
+
+const threadReportForm = useForm({
+    reason_category: '',
+    reason: '',
+    evidence_url: '',
+    page: postsMeta.value.current_page,
+});
+
+const postReportForm = useForm({
+    reason_category: '',
+    reason: '',
+    evidence_url: '',
+    page: postsMeta.value.current_page,
+});
+
+const selectedThreadReason = computed(() =>
+    reportReasons.value.find((option) => option.value === threadReportForm.reason_category) ?? null,
+);
+
+const selectedPostReason = computed(() =>
+    reportReasons.value.find((option) => option.value === postReportForm.reason_category) ?? null,
+);
 
 watch(
     () => postsMeta.value.current_page,
     (page) => {
         paginationPage.value = page;
+        threadReportForm.page = page;
+        postReportForm.page = page;
     },
 );
 
@@ -211,6 +251,29 @@ watch(paginationPage, (page) => {
         preserveState: true,
         replace: true,
     });
+});
+
+watch(threadReportDialogOpen, (open) => {
+    if (open) {
+        if (!threadReportForm.reason_category && defaultReportReason.value) {
+            threadReportForm.reason_category = defaultReportReason.value;
+        }
+    } else {
+        threadReportForm.reset('reason_category', 'reason', 'evidence_url');
+        threadReportForm.clearErrors();
+    }
+});
+
+watch(postReportDialogOpen, (open) => {
+    if (open) {
+        if (!postReportForm.reason_category && defaultReportReason.value) {
+            postReportForm.reason_category = defaultReportReason.value;
+        }
+    } else {
+        postReportTarget.value = null;
+        postReportForm.reset('reason_category', 'reason', 'evidence_url');
+        postReportForm.clearErrors();
+    }
 });
 
 const performThreadAction = (
@@ -242,24 +305,29 @@ const performThreadAction = (
         router.put(url, data, options);
     }
 };
-
-const reportThread = () => {
-    if (!threadPermissions.value?.canReport || threadActionLoading.value) {
+const openThreadReportDialog = () => {
+    if (!threadPermissions.value?.canReport || !hasReportReasons.value) {
         return;
     }
 
-    const reason = window.prompt(
-        'Let the moderation team know what is wrong with this thread (optional):',
-        '',
-    );
+    threadReportDialogOpen.value = true;
+};
 
-    const payload: Record<string, unknown> = {};
-
-    if (reason && reason.trim() !== '') {
-        payload.reason = reason.trim();
+const submitThreadReport = () => {
+    if (!threadPermissions.value?.canReport || threadReportForm.processing || !hasReportReasons.value) {
+        return;
     }
 
-    performThreadAction('post', 'forum.threads.report', payload);
+    threadReportForm.page = postsMeta.value.current_page;
+
+    threadReportForm.post(route('forum.threads.report', { board: props.board.slug, thread: props.thread.slug }), {
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onSuccess: () => {
+            threadReportDialogOpen.value = false;
+        },
+    });
 };
 
 const publishThread = () => {
@@ -384,19 +452,32 @@ const performPostAction = (
     }
 };
 
-const reportPost = (post: ThreadPost) => {
-    if (!post.permissions.canReport || activePostActionId.value === post.id) {
+const openPostReportDialog = (post: ThreadPost) => {
+    if (!post.permissions.canReport || !hasReportReasons.value) {
         return;
     }
 
-    const reason = window.prompt('Let us know what is wrong with this post (optional):', '');
-    const payload: Record<string, unknown> = {};
+    postReportTarget.value = post;
+    postReportDialogOpen.value = true;
+};
 
-    if (reason && reason.trim() !== '') {
-        payload.reason = reason.trim();
+const submitPostReport = () => {
+    const target = postReportTarget.value;
+
+    if (!target || !target.permissions.canReport || postReportForm.processing || !hasReportReasons.value) {
+        return;
     }
 
-    performPostAction(post, 'post', 'forum.posts.report', payload);
+    postReportForm.page = postsMeta.value.current_page;
+
+    postReportForm.post(route('forum.posts.report', { board: props.board.slug, thread: props.thread.slug, post: target.id }), {
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onSuccess: () => {
+            postReportDialogOpen.value = false;
+        },
+    });
 };
 
 const editPost = (post: ThreadPost) => {
@@ -437,6 +518,190 @@ const replyText = ref('');
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Forum • ${props.thread.title}`" />
+        <Dialog v-model:open="threadReportDialogOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Report thread</DialogTitle>
+                    <DialogDescription>
+                        Let the moderation team know why this discussion needs attention. Provide as much
+                        context as you can so we can review it quickly.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="space-y-5" @submit.prevent="submitThreadReport">
+                    <div class="space-y-2">
+                        <Label for="thread_report_reason">Reason</Label>
+                        <select
+                            id="thread_report_reason"
+                            v-model="threadReportForm.reason_category"
+                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-sm focus:outline-none focus:ring-2"
+                            :class="threadReportForm.errors.reason_category
+                                ? 'border-destructive focus:ring-destructive/40'
+                                : 'focus:ring-primary/40'"
+                            :disabled="!hasReportReasons"
+                            required
+                        >
+                            <option disabled value="">Select a reason…</option>
+                            <option v-for="option in reportReasons" :key="option.value" :value="option.value">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                        <p v-if="selectedThreadReason?.description" class="text-xs text-muted-foreground">
+                            {{ selectedThreadReason.description }}
+                        </p>
+                        <p v-if="!hasReportReasons" class="text-xs text-destructive">
+                            Reporting options are temporarily unavailable. Please reach out to the support team.
+                        </p>
+                        <p v-if="threadReportForm.errors.reason_category" class="text-sm text-destructive">
+                            {{ threadReportForm.errors.reason_category }}
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="thread_report_details">Additional details</Label>
+                        <Textarea
+                            id="thread_report_details"
+                            v-model="threadReportForm.reason"
+                            placeholder="Share specific quotes, timeline, or any other details that explain the problem."
+                            class="min-h-[120px]"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Optional, but detailed reports help moderators resolve issues faster.
+                        </p>
+                        <p v-if="threadReportForm.errors.reason" class="text-sm text-destructive">
+                            {{ threadReportForm.errors.reason }}
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="thread_report_evidence">Supporting link (optional)</Label>
+                        <Input
+                            id="thread_report_evidence"
+                            v-model="threadReportForm.evidence_url"
+                            type="url"
+                            placeholder="https://example.com/screenshot-or-proof"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Share a link to screenshots, logs, or other evidence that supports your report.
+                        </p>
+                        <p v-if="threadReportForm.errors.evidence_url" class="text-sm text-destructive">
+                            {{ threadReportForm.errors.evidence_url }}
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            :disabled="threadReportForm.processing"
+                            @click="threadReportDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            class="bg-orange-500 hover:bg-orange-600"
+                            :disabled="threadReportForm.processing || !hasReportReasons"
+                        >
+                            Submit report
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+        <Dialog v-model:open="postReportDialogOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>
+                        Report post
+                        <template v-if="postReportTarget">
+                            #{{ postReportTarget.number }} by {{ postReportTarget.author?.nickname ?? 'Unknown user' }}
+                        </template>
+                    </DialogTitle>
+                    <DialogDescription>
+                        Flag this reply for moderator review. We will notify you once a decision has been made.
+                    </DialogDescription>
+                </DialogHeader>
+                <div v-if="postReportTarget" class="rounded-md border border-muted bg-muted/20 p-3 text-sm">
+                    <p class="text-xs uppercase text-muted-foreground">Post preview</p>
+                    <p class="mt-2 whitespace-pre-wrap text-sm text-foreground">
+                        {{ postReportTarget.body_raw }}
+                    </p>
+                </div>
+                <form class="mt-5 space-y-5" @submit.prevent="submitPostReport">
+                    <div class="space-y-2">
+                        <Label for="post_report_reason">Reason</Label>
+                        <select
+                            id="post_report_reason"
+                            v-model="postReportForm.reason_category"
+                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-sm focus:outline-none focus:ring-2"
+                            :class="postReportForm.errors.reason_category
+                                ? 'border-destructive focus:ring-destructive/40'
+                                : 'focus:ring-primary/40'"
+                            :disabled="!hasReportReasons"
+                            required
+                        >
+                            <option disabled value="">Select a reason…</option>
+                            <option v-for="option in reportReasons" :key="option.value" :value="option.value">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                        <p v-if="selectedPostReason?.description" class="text-xs text-muted-foreground">
+                            {{ selectedPostReason.description }}
+                        </p>
+                        <p v-if="!hasReportReasons" class="text-xs text-destructive">
+                            Reporting options are temporarily unavailable. Please reach out to the support team.
+                        </p>
+                        <p v-if="postReportForm.errors.reason_category" class="text-sm text-destructive">
+                            {{ postReportForm.errors.reason_category }}
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="post_report_details">Additional details</Label>
+                        <Textarea
+                            id="post_report_details"
+                            v-model="postReportForm.reason"
+                            placeholder="Explain what is wrong with this reply and why it breaks the rules."
+                            class="min-h-[120px]"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Optional, but context helps moderators resolve issues faster.
+                        </p>
+                        <p v-if="postReportForm.errors.reason" class="text-sm text-destructive">
+                            {{ postReportForm.errors.reason }}
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="post_report_evidence">Supporting link (optional)</Label>
+                        <Input
+                            id="post_report_evidence"
+                            v-model="postReportForm.evidence_url"
+                            type="url"
+                            placeholder="https://example.com/screenshot-or-proof"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Share a link to screenshots, logs, or other evidence that supports your report.
+                        </p>
+                        <p v-if="postReportForm.errors.evidence_url" class="text-sm text-destructive">
+                            {{ postReportForm.errors.evidence_url }}
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            :disabled="postReportForm.processing"
+                            @click="postReportDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            class="bg-orange-500 hover:bg-orange-600"
+                            :disabled="postReportForm.processing || !hasReportReasons"
+                        >
+                            Submit report
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
         <div class="container mx-auto p-4 space-y-8">
             <!-- Thread Title -->
             <div class="mb-4">
@@ -510,8 +775,8 @@ const replyText = ref('');
                             <DropdownMenuGroup v-if="threadPermissions.canReport">
                                 <DropdownMenuItem
                                     class="text-orange-500"
-                                    :disabled="threadActionLoading"
-                                    @select="reportThread"
+                                    :disabled="threadActionLoading || threadReportForm.processing || !hasReportReasons"
+                                    @select="openThreadReportDialog"
                                 >
                                     <Flag class="h-8 w-8" />
                                     <span>Report</span>
@@ -642,8 +907,8 @@ const replyText = ref('');
                                         <DropdownMenuGroup v-if="post.permissions.canReport">
                                             <DropdownMenuItem
                                                 class="text-orange-500"
-                                                :disabled="activePostActionId === post.id"
-                                                @select="reportPost(post)"
+                                                :disabled="activePostActionId === post.id || postReportForm.processing || !hasReportReasons"
+                                                @select="openPostReportDialog(post)"
                                             >
                                                 <Flag class="h-4 w-4" />
                                                 <span>Report</span>
