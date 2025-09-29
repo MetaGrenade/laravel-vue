@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
@@ -16,6 +17,8 @@ use Inertia\Response;
 
 class ForumController extends Controller
 {
+    use InteractsWithInertiaPagination;
+
     public function index(): Response
     {
         $categories = ForumCategory::query()
@@ -212,23 +215,9 @@ class ForumController extends Controller
                     'slug' => $board->category?->slug,
                 ],
             ],
-            'threads' => [
+            'threads' => array_merge([
                 'data' => $threadItems,
-                'meta' => [
-                    'current_page' => $threads->currentPage(),
-                    'from' => $threads->firstItem(),
-                    'last_page' => $threads->lastPage(),
-                    'per_page' => $threads->perPage(),
-                    'to' => $threads->lastItem(),
-                    'total' => $threads->total(),
-                ],
-                'links' => [
-                    'first' => $threads->url(1),
-                    'last' => $threads->url($threads->lastPage()),
-                    'prev' => $threads->previousPageUrl(),
-                    'next' => $threads->nextPageUrl(),
-                ],
-            ],
+            ], $this->inertiaPagination($threads)),
             'filters' => [
                 'search' => $search,
             ],
@@ -369,23 +358,9 @@ class ForumController extends Controller
                     'canReply' => $user !== null && $thread->is_published && !$thread->is_locked,
                 ],
             ],
-            'posts' => [
+            'posts' => array_merge([
                 'data' => $postItems,
-                'meta' => [
-                    'current_page' => $posts->currentPage(),
-                    'from' => $posts->firstItem(),
-                    'last_page' => $posts->lastPage(),
-                    'per_page' => $posts->perPage(),
-                    'to' => $posts->lastItem(),
-                    'total' => $posts->total(),
-                ],
-                'links' => [
-                    'first' => $posts->url(1),
-                    'last' => $posts->url($posts->lastPage()),
-                    'prev' => $posts->previousPageUrl(),
-                    'next' => $posts->nextPageUrl(),
-                ],
-            ],
+            ], $this->inertiaPagination($posts)),
             'reportReasons' => $reportReasons,
         ]);
     }

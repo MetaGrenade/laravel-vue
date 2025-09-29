@@ -11,12 +11,7 @@ import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuPortal,
     DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -33,6 +28,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import {
     Pin,
     Ellipsis,
@@ -77,15 +73,6 @@ interface ThreadSummary {
     last_reply_author: string | null;
     last_reply_at: string | null;
     permissions: ThreadPermissions;
-}
-
-interface PaginationMeta {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
 }
 
 interface ThreadsPayload {
@@ -136,48 +123,33 @@ const hasReportReasons = computed(() => reportReasons.value.length > 0);
 
 const canStartThread = computed(() => Boolean(page.props.auth?.user));
 
-const threadsMetaFallback = computed<PaginationMeta>(() => {
-    const total = props.threads.data?.length ?? 0;
-
-    return {
-        current_page: 1,
-        last_page: 1,
-        per_page: total > 0 ? total : 15,
-        total,
-        from: total > 0 ? 1 : null,
-        to: total > 0 ? total : null,
-    };
+const {
+    meta: threadsMeta,
+    page: paginationPage,
+    setPage: setThreadsPage,
+    rangeLabel: threadsRangeLabel,
+} = useInertiaPagination({
+    meta: computed(() => props.threads.meta ?? null),
+    itemsLength: computed(() => props.threads.data?.length ?? 0),
+    defaultPerPage: 15,
+    itemLabel: 'thread',
+    itemLabelPlural: 'threads',
+    emptyLabel: 'No threads to display',
+    onNavigate: (page) => {
+        router.get(
+            route('forum.boards.show', { board: props.board.slug }),
+            {
+                search: searchQuery.value || undefined,
+                page,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
 });
-
-const threadsMeta = computed<PaginationMeta>(() => {
-    return {
-        ...threadsMetaFallback.value,
-        ...(props.threads.meta ?? {}),
-    };
-});
-
-const threadsPageCount = computed(() => {
-    const meta = threadsMeta.value;
-    const derived = Math.ceil(meta.total / Math.max(meta.per_page, 1));
-    return Math.max(meta.last_page, derived || 1, 1);
-});
-
-const threadsRangeLabel = computed(() => {
-    const meta = threadsMeta.value;
-
-    if (meta.total === 0) {
-        return 'No threads to display';
-    }
-
-    const from = meta.from ?? ((meta.current_page - 1) * meta.per_page + 1);
-    const to = meta.to ?? Math.min(meta.current_page * meta.per_page, meta.total);
-
-    const threadWord = meta.total === 1 ? 'thread' : 'threads';
-
-    return `Showing ${from}-${to} of ${meta.total} ${threadWord}`;
-});
-
-const paginationPage = ref(threadsMeta.value.current_page);
 const activeActionThreadId = ref<number | null>(null);
 const threadReportDialogOpen = ref(false);
 const threadReportTarget = ref<ThreadSummary | null>(null);
@@ -204,10 +176,12 @@ const showActionColumn = computed(() =>
     ),
 );
 
-watch(() => threadsMeta.value.current_page, (page) => {
-    paginationPage.value = page;
-    threadReportForm.page = page;
-});
+watch(
+    () => threadsMeta.value.current_page,
+    (page) => {
+        threadReportForm.page = page;
+    },
+);
 
 let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -216,7 +190,7 @@ watch(searchQuery, (value) => {
         clearTimeout(searchTimeout);
     }
     searchTimeout = setTimeout(() => {
-        paginationPage.value = 1;
+        setThreadsPage(1, { emitNavigate: false });
         threadReportForm.page = 1;
         router.get(route('forum.boards.show', { board: props.board.slug }), {
             search: value || undefined,
@@ -229,24 +203,7 @@ watch(searchQuery, (value) => {
 });
 
 watch(paginationPage, (page) => {
-    const safePage = Math.min(Math.max(page, 1), threadsPageCount.value);
-
-    if (safePage !== page) {
-        paginationPage.value = safePage;
-        return;
-    }
-
-    if (safePage === threadsMeta.value.current_page) return;
-
-    threadReportForm.page = safePage;
-    router.get(route('forum.boards.show', { board: props.board.slug }), {
-        search: searchQuery.value || undefined,
-        page: safePage,
-    }, {
-        preserveScroll: true,
-        preserveState: true,
-        replace: true,
-    });
+    threadReportForm.page = page;
 });
 
 onBeforeUnmount(() => {
@@ -641,7 +598,7 @@ const markThreadAsRead = (thread: ThreadSummary) => {
             <div class="overflow-x-auto">
                 <Table>
                     <TableHeader>
-                        <TableRow>
+                        <TableRow class="bg-muted/50">
                             <TableHead>Thread Title</TableHead>
                             <TableHead class="text-center">Replies</TableHead>
                             <TableHead class="text-center">Views</TableHead>
@@ -653,7 +610,7 @@ const markThreadAsRead = (thread: ThreadSummary) => {
                         <TableRow
                             v-for="thread in props.threads.data"
                             :key="thread.id"
-                            class="hover:bg-gray-50 dark:hover:bg-gray-900"
+                            class="hover:bg-gray-50 dark:hover:bg-muted/50"
                         >
                             <TableCell>
                                 <Link
@@ -718,6 +675,16 @@ const markThreadAsRead = (thread: ThreadSummary) => {
                                                     <span>Report</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
+                                            <DropdownMenuGroup v-if="props.permissions.canModerate">
+                                                <DropdownMenuItem
+                                                    class="text-blue-500"
+                                                    :disabled="activeActionThreadId === thread.id"
+                                                    @select="openThreadEditDialog(thread)"
+                                                >
+                                                    <Pencil class="h-8 w-8" />
+                                                    <span>Edit Title</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuGroup>
                                             <template v-if="props.permissions.canModerate">
                                                 <DropdownMenuSeparator
                                                     v-if="thread.permissions.canReport || thread.permissions.canMarkRead"
@@ -756,17 +723,6 @@ const markThreadAsRead = (thread: ThreadSummary) => {
                                                     >
                                                         <LockOpen class="h-8 w-8" />
                                                         <span>Unlock</span>
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
-                                                    <DropdownMenuItem
-                                                        class="text-blue-500"
-                                                        :disabled="activeActionThreadId === thread.id"
-                                                        @select="openThreadEditDialog(thread)"
-                                                    >
-                                                        <Pencil class="h-8 w-8" />
-                                                        <span>Edit Title</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
                                                 <DropdownMenuSeparator />

@@ -7,7 +7,6 @@ import { type BreadcrumbItem } from '@/types';
 // Import shadcn‑vue components
 import Avatar from '@/components/ui/avatar/Avatar.vue';
 import Button from '@/components/ui/button/Button.vue';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import {
     Pagination,
     PaginationEllipsis,
@@ -28,12 +27,7 @@ import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuPortal,
     DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -50,6 +44,7 @@ import {
     MessageSquareLock,
 } from 'lucide-vue-next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 
 interface BoardSummary {
     title: string;
@@ -108,15 +103,6 @@ interface ThreadPost {
     permissions: PostPermissions;
 }
 
-interface PaginationMeta {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
 interface PostsPayload {
     data: ThreadPost[];
     meta?: PaginationMeta | null;
@@ -156,47 +142,31 @@ const reportReasons = computed(() => props.reportReasons ?? []);
 const defaultReportReason = computed(() => reportReasons.value[0]?.value ?? '');
 const hasReportReasons = computed(() => reportReasons.value.length > 0);
 
-const postsMetaFallback = computed<PaginationMeta>(() => {
-    const total = props.posts.data.length;
-
-    return {
-        current_page: 1,
-        last_page: 1,
-        per_page: total > 0 ? total : 10,
-        total,
-        from: total > 0 ? 1 : null,
-        to: total > 0 ? total : null,
-    };
+const {
+    meta: postsMeta,
+    page: paginationPage,
+    rangeLabel: postsRangeLabel,
+} = useInertiaPagination({
+    meta: computed(() => props.posts.meta ?? null),
+    itemsLength: computed(() => props.posts.data.length),
+    defaultPerPage: 10,
+    itemLabel: 'post',
+    itemLabelPlural: 'posts',
+    emptyLabel: 'No posts to display',
+    onNavigate: (page) => {
+        router.get(
+            route('forum.threads.show', { board: props.board.slug, thread: props.thread.slug }),
+            {
+                page,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
 });
-
-const postsMeta = computed<PaginationMeta>(() => {
-    return {
-        ...postsMetaFallback.value,
-        ...(props.posts.meta ?? {}),
-    };
-});
-
-const postsPageCount = computed(() => {
-    const meta = postsMeta.value;
-    const derived = Math.ceil(meta.total / Math.max(meta.per_page, 1));
-    return Math.max(meta.last_page, derived || 1, 1);
-});
-
-const postsRangeLabel = computed(() => {
-    const meta = postsMeta.value;
-
-    if (meta.total === 0) {
-        return 'No posts to display';
-    }
-
-    const from = meta.from ?? ((meta.current_page - 1) * meta.per_page + 1);
-    const to = meta.to ?? Math.min(meta.current_page * meta.per_page, meta.total);
-    const postWord = meta.total === 1 ? 'post' : 'posts';
-
-    return `Showing ${from}-${to} of ${meta.total} ${postWord}`;
-});
-
-const paginationPage = ref(postsMeta.value.current_page);
 const threadActionLoading = ref(false);
 const activePostActionId = ref<number | null>(null);
 const threadReportDialogOpen = ref(false);
@@ -228,29 +198,14 @@ const selectedPostReason = computed(() =>
 watch(
     () => postsMeta.value.current_page,
     (page) => {
-        paginationPage.value = page;
         threadReportForm.page = page;
         postReportForm.page = page;
     },
 );
 
 watch(paginationPage, (page) => {
-    const safePage = Math.min(Math.max(page, 1), postsPageCount.value);
-
-    if (safePage !== page) {
-        paginationPage.value = safePage;
-        return;
-    }
-
-    if (safePage === postsMeta.value.current_page) return;
-
-    router.get(route('forum.threads.show', { board: props.board.slug, thread: props.thread.slug }), {
-        page: safePage,
-    }, {
-        preserveScroll: true,
-        preserveState: true,
-        replace: true,
-    });
+    threadReportForm.page = page;
+    postReportForm.page = page;
 });
 
 watch(threadReportDialogOpen, (open) => {
@@ -990,6 +945,16 @@ const submitReply = () => {
                                     <span>Report</span>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
+                            <DropdownMenuGroup v-if="threadPermissions.canEdit">
+                                <DropdownMenuItem
+                                    class="text-blue-500"
+                                    :disabled="threadActionLoading"
+                                    @select="renameThread"
+                                >
+                                    <Pencil class="h-8 w-8" />
+                                    <span>Edit Title</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
                             <template v-if="threadPermissions.canModerate">
                                 <DropdownMenuSeparator />
                                 <DropdownMenuLabel>Mod Actions</DropdownMenuLabel>
@@ -1045,17 +1010,6 @@ const submitReply = () => {
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
                             </template>
-                            <DropdownMenuSeparator v-if="threadPermissions.canEdit" />
-                            <DropdownMenuGroup v-if="threadPermissions.canEdit">
-                                <DropdownMenuItem
-                                    class="text-blue-500"
-                                    :disabled="threadActionLoading"
-                                    @select="renameThread"
-                                >
-                                    <Pencil class="h-8 w-8" />
-                                    <span>Edit Title</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuGroup>
                             <DropdownMenuSeparator v-if="threadPermissions.canModerate" />
                             <DropdownMenuItem
                                 v-if="threadPermissions.canModerate"
