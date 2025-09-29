@@ -945,6 +945,16 @@ const submitReply = () => {
                                     <span>Report</span>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
+                            <DropdownMenuGroup v-if="threadPermissions.canEdit">
+                                <DropdownMenuItem
+                                    class="text-blue-500"
+                                    :disabled="threadActionLoading"
+                                    @select="renameThread"
+                                >
+                                    <Pencil class="h-8 w-8" />
+                                    <span>Edit Title</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
                             <template v-if="threadPermissions.canModerate">
                                 <DropdownMenuSeparator />
                                 <DropdownMenuLabel>Mod Actions</DropdownMenuLabel>
@@ -1000,17 +1010,6 @@ const submitReply = () => {
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
                             </template>
-                            <DropdownMenuSeparator v-if="threadPermissions.canEdit" />
-                            <DropdownMenuGroup v-if="threadPermissions.canEdit">
-                                <DropdownMenuItem
-                                    class="text-blue-500"
-                                    :disabled="threadActionLoading"
-                                    @select="renameThread"
-                                >
-                                    <Pencil class="h-8 w-8" />
-                                    <span>Edit Title</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuGroup>
                             <DropdownMenuSeparator v-if="threadPermissions.canModerate" />
                             <DropdownMenuItem
                                 v-if="threadPermissions.canModerate"

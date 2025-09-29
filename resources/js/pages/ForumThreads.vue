@@ -675,6 +675,16 @@ const markThreadAsRead = (thread: ThreadSummary) => {
                                                     <span>Report</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
+                                            <DropdownMenuGroup v-if="props.permissions.canModerate">
+                                                <DropdownMenuItem
+                                                    class="text-blue-500"
+                                                    :disabled="activeActionThreadId === thread.id"
+                                                    @select="openThreadEditDialog(thread)"
+                                                >
+                                                    <Pencil class="h-8 w-8" />
+                                                    <span>Edit Title</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuGroup>
                                             <template v-if="props.permissions.canModerate">
                                                 <DropdownMenuSeparator
                                                     v-if="thread.permissions.canReport || thread.permissions.canMarkRead"
@@ -713,17 +723,6 @@ const markThreadAsRead = (thread: ThreadSummary) => {
                                                     >
                                                         <LockOpen class="h-8 w-8" />
                                                         <span>Unlock</span>
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
-                                                    <DropdownMenuItem
-                                                        class="text-blue-500"
-                                                        :disabled="activeActionThreadId === thread.id"
-                                                        @select="openThreadEditDialog(thread)"
-                                                    >
-                                                        <Pencil class="h-8 w-8" />
-                                                        <span>Edit Title</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
                                                 <DropdownMenuSeparator />
