@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreFaqRequest;
 use App\Http\Requests\Admin\StoreSupportTicketRequest;
@@ -12,36 +13,82 @@ use App\Models\Faq;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class SupportController extends Controller
 {
-    public function index(Request $request)
+    use InteractsWithInertiaPagination;
+
+    public function index(Request $request): Response
     {
-        $perPage = $request->get('per_page', 25);
+        $perPage = (int) $request->get('per_page', 25);
 
         $ticketQuery = SupportTicket::query();
-        $faqQuery    = Faq::query()->orderBy('order', 'asc');
+        $faqQuery = Faq::query();
 
         $tickets = (clone $ticketQuery)
-            ->with(['user', 'assignee'])
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage)
+            ->with(['user:id,nickname,email', 'assignee:id,nickname,email'])
+            ->orderByDesc('created_at')
+            ->paginate($perPage, ['*'], 'tickets_page')
             ->withQueryString();
 
         $faqs = (clone $faqQuery)
-            ->paginate($perPage)
+            ->orderBy('order')
+            ->paginate($perPage, ['*'], 'faqs_page')
             ->withQueryString();
 
+        $ticketItems = $tickets->getCollection()
+            ->map(function (SupportTicket $ticket) {
+                return [
+                    'id' => $ticket->id,
+                    'subject' => $ticket->subject,
+                    'body' => $ticket->body,
+                    'status' => $ticket->status,
+                    'priority' => $ticket->priority,
+                    'created_at' => optional($ticket->created_at)->toIso8601String(),
+                    'updated_at' => optional($ticket->updated_at)->toIso8601String(),
+                    'user' => $ticket->user ? [
+                        'id' => $ticket->user->id,
+                        'nickname' => $ticket->user->nickname,
+                        'email' => $ticket->user->email,
+                    ] : null,
+                    'assignee' => $ticket->assignee ? [
+                        'id' => $ticket->assignee->id,
+                        'nickname' => $ticket->assignee->nickname,
+                        'email' => $ticket->assignee->email,
+                    ] : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $faqItems = $faqs->getCollection()
+            ->map(function (Faq $faq) {
+                return [
+                    'id' => $faq->id,
+                    'question' => $faq->question,
+                    'answer' => $faq->answer,
+                    'order' => $faq->order,
+                    'published' => (bool) $faq->published,
+                ];
+            })
+            ->values()
+            ->all();
+
         $stats = [
-            'total'  => $tickets->total(),
-            'open'   => (clone $ticketQuery)->where('status', 'open')->count(),
+            'total' => $tickets->total(),
+            'open' => (clone $ticketQuery)->where('status', 'open')->count(),
             'closed' => (clone $ticketQuery)->where('status', 'closed')->count(),
-            'faqs'   => $faqs->total(),
+            'faqs' => $faqs->total(),
         ];
 
         return Inertia::render('acp/Support', [
-            'tickets'      => $tickets,
-            'faqs'         => $faqs,
+            'tickets' => array_merge([
+                'data' => $ticketItems,
+            ], $this->inertiaPagination($tickets)),
+            'faqs' => array_merge([
+                'data' => $faqItems,
+            ], $this->inertiaPagination($faqs)),
             'supportStats' => $stats,
         ]);
     }

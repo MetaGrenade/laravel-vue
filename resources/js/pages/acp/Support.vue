@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Input from '@/components/ui/input/Input.vue';
@@ -11,17 +11,22 @@ import Button from '@/components/ui/button/Button.vue';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell
 } from '@/components/ui/table';
 import {
+    Pagination,
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+} from '@/components/ui/pagination';
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuPortal,
     DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -30,6 +35,7 @@ import {
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 
 // dayjs composable for human readable dates
 const { fromNow } = useUserTimezone();
@@ -45,6 +51,13 @@ const statusSupport = computed(() => hasPermission('support.acp.status'));
 const moveSupport = computed(() => hasPermission('support.acp.move'));
 const publishSupport = computed(() => hasPermission('support.acp.publish'));
 
+type PaginationLinks = {
+    first: string | null;
+    last: string | null;
+    prev: string | null;
+    next: string | null;
+};
+
 const props = defineProps<{
     tickets: {
         data: Array<{
@@ -53,21 +66,21 @@ const props = defineProps<{
             body: string;
             status: 'open' | 'pending' | 'closed';
             priority: 'low' | 'medium' | 'high';
-            created_at: string;
-            updated_at: string;
+            created_at: string | null;
+            updated_at: string | null;
             user: {
                 id: number;
                 nickname: string;
                 email: string;
-            };
+            } | null;
             assignee: {
                 id: number;
                 nickname: string;
+                email?: string;
             } | null;
         }>;
-        current_page: number;
-        per_page: number;
-        total: number;
+        meta?: PaginationMeta | null;
+        links?: PaginationLinks | null;
     };
     faqs: {
         data: Array<{
@@ -77,9 +90,8 @@ const props = defineProps<{
             order: number;
             published: boolean;
         }>;
-        current_page: number;
-        per_page: number;
-        total: number;
+        meta?: PaginationMeta | null;
+        links?: PaginationLinks | null;
     };
     supportStats: {
         total: number;
@@ -88,6 +100,61 @@ const props = defineProps<{
         faqs: number;
     };
 }>();
+
+const currentTicketPage = computed(() => props.tickets.meta?.current_page ?? 1);
+const currentFaqPage = computed(() => props.faqs.meta?.current_page ?? 1);
+
+const {
+    meta: ticketsMeta,
+    page: ticketsPage,
+    rangeLabel: ticketsRangeLabel,
+} = useInertiaPagination({
+    meta: computed(() => props.tickets.meta ?? null),
+    itemsLength: computed(() => props.tickets.data?.length ?? 0),
+    defaultPerPage: 25,
+    itemLabel: 'support ticket',
+    itemLabelPlural: 'support tickets',
+    onNavigate: (page) => {
+        router.get(
+            route('acp.support.index'),
+            {
+                tickets_page: page,
+                faqs_page: currentFaqPage.value,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
+});
+
+const {
+    meta: faqsMeta,
+    page: faqsPage,
+    rangeLabel: faqsRangeLabel,
+} = useInertiaPagination({
+    meta: computed(() => props.faqs.meta ?? null),
+    itemsLength: computed(() => props.faqs.data?.length ?? 0),
+    defaultPerPage: 25,
+    itemLabel: 'FAQ',
+    itemLabelPlural: 'FAQs',
+    onNavigate: (page) => {
+        router.get(
+            route('acp.support.index'),
+            {
+                tickets_page: currentTicketPage.value,
+                faqs_page: page,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
+});
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -105,23 +172,21 @@ const filteredTickets = computed(() => {
     const list = props.tickets.data;
     if (!ticketSearchQuery.value) return list;
     const q = ticketSearchQuery.value.toLowerCase();
-    return list.filter(t =>
+    return list.filter((t) =>
         t.subject.toLowerCase().includes(q) ||
-        t.user.nickname.toLowerCase().includes(q) ||
-        t.status.includes(q)
+        (t.user?.nickname?.toLowerCase().includes(q) ?? false) ||
+        t.status.toLowerCase().includes(q)
     );
 });
 const filteredFaqs = computed(() => {
     const list = props.faqs.data;
     if (!faqSearchQuery.value) return list;
     const q = faqSearchQuery.value.toLowerCase();
-    return list.filter(f =>
+    return list.filter((f) =>
         f.question.toLowerCase().includes(q) ||
         f.answer.toLowerCase().includes(q)
     );
 });
-
-console.log(fromNow(new Date()));
 </script>
 
 <template>
@@ -218,7 +283,7 @@ console.log(fromNow(new Date()));
                                         >
                                             <TableCell>{{ t.id }}</TableCell>
                                             <TableCell>{{ t.subject }}</TableCell>
-                                            <TableCell>{{ t.user.nickname }}</TableCell>
+                                            <TableCell>{{ t.user?.nickname ?? '—' }}</TableCell>
                                             <TableCell class="text-center">
                                                 <span :class="{
                                                     'text-blue-500': t.status === 'pending',
@@ -238,7 +303,7 @@ console.log(fromNow(new Date()));
                                                 </span>
                                             </TableCell>
                                             <TableCell class="text-center">{{ t.assignee?.nickname || '—' }}</TableCell>
-                                            <TableCell class="text-center">{{ fromNow(t.created_at) }}</TableCell>
+                                            <TableCell class="text-center">{{ t.created_at ? fromNow(t.created_at) : '—' }}</TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
@@ -295,6 +360,47 @@ console.log(fromNow(new Date()));
                                         </TableRow>
                                     </TableBody>
                                 </Table>
+                            </div>
+                            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                                <div class="text-sm text-muted-foreground text-center md:text-left">
+                                    {{ ticketsRangeLabel }}
+                                </div>
+                                <Pagination
+                                    v-if="ticketsMeta.total > 0"
+                                    v-slot="{ page, pageCount }"
+                                    v-model:page="ticketsPage"
+                                    :items-per-page="Math.max(ticketsMeta.per_page, 1)"
+                                    :total="ticketsMeta.total"
+                                    :sibling-count="1"
+                                    show-edges
+                                >
+                                    <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                                        <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                            <PaginationFirst />
+                                            <PaginationPrev />
+
+                                            <template v-for="(item, index) in items" :key="index">
+                                                <PaginationListItem
+                                                    v-if="item.type === 'page'"
+                                                    :value="item.value"
+                                                    as-child
+                                                >
+                                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                                        {{ item.value }}
+                                                    </Button>
+                                                </PaginationListItem>
+                                                <PaginationEllipsis
+                                                    v-else
+                                                    :index="index"
+                                                />
+                                            </template>
+
+                                            <PaginationNext />
+                                            <PaginationLast />
+                                        </PaginationList>
+                                    </div>
+                                </Pagination>
                             </div>
                         </div>
                     </TabsContent>
@@ -401,6 +507,47 @@ console.log(fromNow(new Date()));
                                         </TableRow>
                                     </TableBody>
                                 </Table>
+                            </div>
+                            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                                <div class="text-sm text-muted-foreground text-center md:text-left">
+                                    {{ faqsRangeLabel }}
+                                </div>
+                                <Pagination
+                                    v-if="faqsMeta.total > 0"
+                                    v-slot="{ page, pageCount }"
+                                    v-model:page="faqsPage"
+                                    :items-per-page="Math.max(faqsMeta.per_page, 1)"
+                                    :total="faqsMeta.total"
+                                    :sibling-count="1"
+                                    show-edges
+                                >
+                                    <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                                        <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                            <PaginationFirst />
+                                            <PaginationPrev />
+
+                                            <template v-for="(item, index) in items" :key="index">
+                                                <PaginationListItem
+                                                    v-if="item.type === 'page'"
+                                                    :value="item.value"
+                                                    as-child
+                                                >
+                                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                                        {{ item.value }}
+                                                    </Button>
+                                                </PaginationListItem>
+                                                <PaginationEllipsis
+                                                    v-else
+                                                    :index="index"
+                                                />
+                                            </template>
+
+                                            <PaginationNext />
+                                            <PaginationLast />
+                                        </PaginationList>
+                                    </div>
+                                </Pagination>
                             </div>
                         </div>
                     </TabsContent>

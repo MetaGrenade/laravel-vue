@@ -2,39 +2,65 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 use Spatie\Permission\Models\Role;
 
 class UsersController extends Controller
 {
+    use InteractsWithInertiaPagination;
+
     /**
      * Display a listing of users, plus some stats.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-        $perPage = $request->get('per_page', 15);
+        $perPage = (int) $request->get('per_page', 15);
 
         $userQuery = User::query();
 
         $users = (clone $userQuery)
-            ->with('roles')
-            ->orderBy('created_at', 'desc')
+            ->with(['roles:id,name'])
+            ->orderByDesc('created_at')
             ->paginate($perPage)
             ->withQueryString();
 
+        $userItems = $users->getCollection()
+            ->map(function (User $user) {
+                return [
+                    'id' => $user->id,
+                    'nickname' => $user->nickname,
+                    'email' => $user->email,
+                    'email_verified_at' => optional($user->email_verified_at)->toIso8601String(),
+                    'created_at' => optional($user->created_at)->toIso8601String(),
+                    'roles' => $user->roles
+                        ->map(fn ($role) => ['name' => $role->name])
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->values()
+            ->all();
+
         $userStats = [
-            'total'      => $users->total(),
+            'total' => $users->total(),
             'unverified' => (clone $userQuery)->whereNull('email_verified_at')->count(),
-            'banned'     => (clone $userQuery)->where('is_banned', true)->count(),
-            'online'     => (clone $userQuery)->where('last_activity_at', '>=', now()->subMinutes(5))->count(),
+            'banned' => (clone $userQuery)->where('is_banned', true)->count(),
+            'online' => (clone $userQuery)->where('last_activity_at', '>=', now()->subMinutes(5))->count(),
         ];
 
-        return inertia('acp/Users', compact('users','userStats'));
+        return inertia('acp/Users', [
+            'users' => array_merge([
+                'data' => $userItems,
+            ], $this->inertiaPagination($users)),
+            'userStats' => $userStats,
+        ]);
     }
 
     /**

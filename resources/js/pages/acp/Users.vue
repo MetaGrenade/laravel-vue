@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
@@ -14,12 +14,7 @@ import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuPortal,
     DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import {
@@ -37,6 +32,7 @@ import {
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 
 // dayjs composable for human readable dates
 const { fromNow } = useUserTimezone();
@@ -48,19 +44,25 @@ const deleteUsers = computed(() => hasPermission('users.acp.delete'));
 const verifyUsers = computed(() => hasPermission('users.acp.verify'));
 
 // Expect that the admin controller passes a "users" (paginated collection) & "userStats" prop
+type PaginationLinks = {
+    first: string | null;
+    last: string | null;
+    prev: string | null;
+    next: string | null;
+};
+
 const props = defineProps<{
     users: {
         data: Array<{
             id: number;
             nickname: string;
             email: string;
-            email_verified_at: string;
+            email_verified_at: string | null;
             roles: Array<{ name: string }>;
-            created_at: string;
+            created_at: string | null;
         }>;
-        current_page: number;
-        per_page: number;
-        total: number;
+        meta?: PaginationMeta | null;
+        links?: PaginationLinks | null;
     };
     userStats: {
         total: number;
@@ -69,6 +71,29 @@ const props = defineProps<{
         online: number;
     };
 }>();
+
+const {
+    meta: usersMeta,
+    page: usersPage,
+    rangeLabel: usersRangeLabel,
+} = useInertiaPagination({
+    meta: computed(() => props.users.meta ?? null),
+    itemsLength: computed(() => props.users.data?.length ?? 0),
+    defaultPerPage: 15,
+    itemLabel: 'user',
+    itemLabelPlural: 'users',
+    onNavigate: (page) => {
+        router.get(
+            route('acp.users.index'),
+            { page },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
+});
 
 // Breadcrumbs
 const breadcrumbs: BreadcrumbItem[] = [
@@ -217,38 +242,45 @@ const stats = [
                 </div>
 
                 <!-- Bottom Pagination -->
-                <div class="flex justify-center">
+                <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                    <div class="text-sm text-muted-foreground text-center md:text-left">
+                        {{ usersRangeLabel }}
+                    </div>
                     <Pagination
-                        v-slot="{ page }"
-                        :items-per-page="props.users.per_page"
-                        :total="props.users.total"
+                        v-if="usersMeta.total > 0"
+                        v-slot="{ page, pageCount }"
+                        v-model:page="usersPage"
+                        :items-per-page="Math.max(usersMeta.per_page, 1)"
+                        :total="usersMeta.total"
                         :sibling-count="1"
                         show-edges
-                        :default-page="props.users.current_page"
                     >
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                            <PaginationFirst />
-                            <PaginationPrev />
+                        <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                            <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                            <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                <PaginationFirst />
+                                <PaginationPrev />
 
-                            <template v-for="(item, index) in items" :key="index">
-                                <PaginationListItem
-                                    v-if="item.type === 'page'"
-                                    :value="item.value"
-                                    as-child
-                                >
-                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
-                                        {{ item.value }}
-                                    </Button>
-                                </PaginationListItem>
-                                <PaginationEllipsis
-                                    v-else
-                                    :index="index"
-                                />
-                            </template>
+                                <template v-for="(item, index) in items" :key="index">
+                                    <PaginationListItem
+                                        v-if="item.type === 'page'"
+                                        :value="item.value"
+                                        as-child
+                                    >
+                                        <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                            {{ item.value }}
+                                        </Button>
+                                    </PaginationListItem>
+                                    <PaginationEllipsis
+                                        v-else
+                                        :index="index"
+                                    />
+                                </template>
 
-                            <PaginationNext />
-                            <PaginationLast />
-                        </PaginationList>
+                                <PaginationNext />
+                                <PaginationLast />
+                            </PaginationList>
+                        </div>
                     </Pagination>
                 </div>
             </div>
