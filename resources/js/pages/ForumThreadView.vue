@@ -276,15 +276,6 @@ watch(postReportDialogOpen, (open) => {
     }
 });
 
-watch(
-    () => replyForm.body,
-    () => {
-        if (replyForm.errors.body) {
-            replyForm.clearErrors('body');
-        }
-    },
-);
-
 const performThreadAction = (
     method: 'put' | 'post',
     routeName: string,
@@ -642,6 +633,15 @@ const replyForm = useForm({
     body: '',
 });
 
+watch(
+    () => replyForm.body,
+    () => {
+        if (replyForm.errors.body) {
+            replyForm.clearErrors('body');
+        }
+    },
+);
+
 const showReplyForm = computed(() => threadPermissions.value?.canReply ?? false);
 
 const replySubmitDisabled = computed(() => {
@@ -944,10 +944,10 @@ const submitReply = () => {
                 </form>
             </DialogContent>
         </Dialog>
-        <div class="container mx-auto p-4 space-y-8">
-            <!-- Thread Title -->
-            <div class="mb-4">
-                <h1 id="thread_title" class="text-3xl font-bold text-green-500">
+        <div class="p-4 space-y-8">
+            <!-- Forum Header -->
+            <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
+                <h1 id="thread_title" class="text-2xl font-bold text-green-500">
                     <Pin v-if="props.thread.is_pinned" class="h-8 w-8 inline-block mr-2" />
                     {{ props.thread.title }}
                     <Lock
@@ -955,41 +955,7 @@ const submitReply = () => {
                         class="h-8 w-8 inline-block ml-2 text-muted-foreground"
                     />
                 </h1>
-            </div>
-
-            <header class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                <div class="text-sm text-muted-foreground text-center md:text-left">
-                    {{ postsRangeLabel }}
-                </div>
-                <Pagination
-                    v-slot="{ page, pageCount }"
-                    v-model:page="paginationPage"
-                    :items-per-page="Math.max(postsMeta.per_page, 1)"
-                    :total="postsMeta.total"
-                    :sibling-count="1"
-                    show-edges
-                >
-                    <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
-                        <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                            <PaginationFirst />
-                            <PaginationPrev />
-
-                            <template v-for="(item, index) in items">
-                                <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
-                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
-                                        {{ item.value }}
-                                    </Button>
-                                </PaginationListItem>
-                                <PaginationEllipsis v-else :key="item.type" :index="index" />
-                            </template>
-
-                            <PaginationNext />
-                            <PaginationLast />
-                        </PaginationList>
-                    </div>
-                </Pagination>
-                <div class="flex w-full max-w-md space-x-2 justify-end">
+                <div class="flex max-w-md space-x-2">
                     <Button v-if="props.thread.is_locked" variant="secondary" class="cursor-pointer text-yellow-500" disabled>
                         <Lock class="h-8 w-8" />
                         Locked
@@ -1104,6 +1070,40 @@ const submitReply = () => {
                     </DropdownMenu>
                 </div>
             </header>
+            <!-- Top Pagination and Search -->
+            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                <div class="text-sm text-muted-foreground text-center md:text-left">
+                    {{ postsRangeLabel }}
+                </div>
+                <Pagination
+                    v-slot="{ page, pageCount }"
+                    v-model:page="paginationPage"
+                    :items-per-page="Math.max(postsMeta.per_page, 1)"
+                    :total="postsMeta.total"
+                    :sibling-count="1"
+                    show-edges
+                >
+                    <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                        <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationFirst />
+                            <PaginationPrev />
+
+                            <template v-for="(item, index) in items">
+                                <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
+                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                        {{ item.value }}
+                                    </Button>
+                                </PaginationListItem>
+                                <PaginationEllipsis v-else :key="item.type" :index="index" />
+                            </template>
+
+                            <PaginationNext />
+                            <PaginationLast />
+                        </PaginationList>
+                    </div>
+                </Pagination>
+            </div>
 
             <!-- Posts List -->
             <div class="space-y-6">
