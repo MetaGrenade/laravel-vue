@@ -598,7 +598,7 @@ const markThreadAsRead = (thread: ThreadSummary) => {
             <div class="overflow-x-auto">
                 <Table>
                     <TableHeader>
-                        <TableRow>
+                        <TableRow class="bg-muted/50">
                             <TableHead>Thread Title</TableHead>
                             <TableHead class="text-center">Replies</TableHead>
                             <TableHead class="text-center">Views</TableHead>
@@ -610,7 +610,7 @@ const markThreadAsRead = (thread: ThreadSummary) => {
                         <TableRow
                             v-for="thread in props.threads.data"
                             :key="thread.id"
-                            class="hover:bg-gray-50 dark:hover:bg-gray-900"
+                            class="hover:bg-gray-50 dark:hover:bg-muted/50"
                         >
                             <TableCell>
                                 <Link
