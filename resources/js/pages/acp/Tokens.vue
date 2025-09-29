@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import { ref, computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { type BreadcrumbItem } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
@@ -16,12 +16,7 @@ import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuPortal,
     DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff, Ban } from 'lucide-vue-next';
@@ -40,6 +35,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 
 // dayjs composable for human readable dates
 const { fromNow } = useUserTimezone();
@@ -65,7 +61,7 @@ interface Token {
     id: number;
     name: string;
     user: TokenUser | null;
-    created_at: string;
+    created_at: string | null;
     last_used_at?: string | null;
     expires_at?: string | null;
     revoked_at?: string | null;
@@ -74,9 +70,13 @@ interface Token {
 const props = defineProps<{
     tokens: {
         data: Token[];
-        current_page: number;
-        per_page: number;
-        total: number;
+        meta?: PaginationMeta | null;
+        links?: {
+            first: string | null;
+            last: string | null;
+            prev: string | null;
+            next: string | null;
+        } | null;
     };
     tokenStats: {
         total: number;
@@ -90,6 +90,29 @@ const props = defineProps<{
         email: string;
     }>;
 }>();
+
+const {
+    meta: tokensMeta,
+    page: tokensPage,
+    rangeLabel: tokensRangeLabel,
+} = useInertiaPagination({
+    meta: computed(() => props.tokens.meta ?? null),
+    itemsLength: computed(() => props.tokens.data?.length ?? 0),
+    defaultPerPage: 10,
+    itemLabel: 'token',
+    itemLabelPlural: 'tokens',
+    onNavigate: (page) => {
+        router.get(
+            route('acp.tokens.index'),
+            { page },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
+});
 
 const totalTokens = computed(() => props.tokenStats.total);
 const activeTokens = computed(() => props.tokenStats.active);
@@ -418,7 +441,7 @@ const filteredLogs = computed(() => {
                                                 {{ token.user?.nickname ?? '—' }}<br />
                                                 <span class="text-xs text-gray-500">{{ token.user?.email ?? '—' }}</span>
                                             </TableCell>
-                                            <TableCell class="text-center">{{ fromNow(token.created_at) }}</TableCell>
+                                            <TableCell class="text-center">{{ token.created_at ? fromNow(token.created_at) : '—' }}</TableCell>
                                             <TableCell class="text-center">{{ lastUsedDisplay(token.last_used_at) }}</TableCell>
                                             <TableCell class="text-center">
                                                 <span
@@ -467,6 +490,47 @@ const filteredLogs = computed(() => {
                                         </TableRow>
                                     </TableBody>
                                 </Table>
+                            </div>
+                            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                                <div class="text-sm text-muted-foreground text-center md:text-left">
+                                    {{ tokensRangeLabel }}
+                                </div>
+                                <Pagination
+                                    v-if="tokensMeta.total > 0"
+                                    v-slot="{ page, pageCount }"
+                                    v-model:page="tokensPage"
+                                    :items-per-page="Math.max(tokensMeta.per_page, 1)"
+                                    :total="tokensMeta.total"
+                                    :sibling-count="1"
+                                    show-edges
+                                >
+                                    <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                                        <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                            <PaginationFirst />
+                                            <PaginationPrev />
+
+                                            <template v-for="(item, index) in items" :key="index">
+                                                <PaginationListItem
+                                                    v-if="item.type === 'page'"
+                                                    :value="item.value"
+                                                    as-child
+                                                >
+                                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                                        {{ item.value }}
+                                                    </Button>
+                                                </PaginationListItem>
+                                                <PaginationEllipsis
+                                                    v-else
+                                                    :index="index"
+                                                />
+                                            </template>
+
+                                            <PaginationNext />
+                                            <PaginationLast />
+                                        </PaginationList>
+                                    </div>
+                                </Pagination>
                             </div>
                         </div>
                     </TabsContent>

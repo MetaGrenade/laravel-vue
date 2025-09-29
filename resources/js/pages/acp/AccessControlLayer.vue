@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
@@ -42,6 +42,7 @@ import {
 import { usePermissions } from '@/composables/usePermissions';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 
 dayjs.extend(relativeTime);
 
@@ -73,21 +74,81 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+type PaginationLinks = {
+    first: string | null;
+    last: string | null;
+    prev: string | null;
+    next: string | null;
+};
+
 const props = defineProps<{
     roles: {
         data: RoleItem[];
-        current_page: number;
-        per_page: number;
-        total: number;
+        meta?: PaginationMeta | null;
+        links?: PaginationLinks | null;
     };
     permissions: {
         data: PermissionItem[];
-        current_page: number;
-        per_page: number;
-        total: number;
+        meta?: PaginationMeta | null;
+        links?: PaginationLinks | null;
     };
     availablePermissions: RolePermission[];
 }>();
+
+const currentRolesPage = computed(() => props.roles.meta?.current_page ?? 1);
+const currentPermissionsPage = computed(() => props.permissions.meta?.current_page ?? 1);
+
+const {
+    meta: rolesMeta,
+    page: rolesPage,
+    rangeLabel: rolesRangeLabel,
+} = useInertiaPagination({
+    meta: computed(() => props.roles.meta ?? null),
+    itemsLength: computed(() => props.roles.data?.length ?? 0),
+    defaultPerPage: 15,
+    itemLabel: 'role',
+    itemLabelPlural: 'roles',
+    onNavigate: (page) => {
+        router.get(
+            route('acp.acl.index'),
+            {
+                roles_page: page,
+                permissions_page: currentPermissionsPage.value,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
+});
+
+const {
+    meta: permissionsMeta,
+    page: permissionsPage,
+    rangeLabel: permissionsRangeLabel,
+} = useInertiaPagination({
+    meta: computed(() => props.permissions.meta ?? null),
+    itemsLength: computed(() => props.permissions.data?.length ?? 0),
+    defaultPerPage: 15,
+    itemLabel: 'permission',
+    itemLabelPlural: 'permissions',
+    onNavigate: (page) => {
+        router.get(
+            route('acp.acl.index'),
+            {
+                roles_page: currentRolesPage.value,
+                permissions_page: page,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
+});
 
 // Permission checks
 const { hasPermission } = usePermissions();
@@ -252,7 +313,9 @@ const filteredPermissions = computed(() => {
                                             <TableCell>{{ role.id }}</TableCell>
                                             <TableCell>{{ role.name }}</TableCell>
                                             <TableCell class="text-center">{{ role.guard_name }}</TableCell>
-                                            <TableCell class="text-center">{{ dayjs(role.created_at).fromNow() }}</TableCell>
+                                            <TableCell class="text-center">
+                                                {{ role.created_at ? dayjs(role.created_at).fromNow() : '—' }}
+                                            </TableCell>
                                             <TableCell class="text-center">
                                                 <template v-if="canEdit || canDelete">
                                                     <DropdownMenu>
@@ -292,38 +355,45 @@ const filteredPermissions = computed(() => {
                         </div>
 
                         <!-- Bottom Pagination -->
-                        <div class="flex justify-center">
+                        <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                            <div class="text-sm text-muted-foreground text-center md:text-left">
+                                {{ rolesRangeLabel }}
+                            </div>
                             <Pagination
-                                v-slot="{ page }"
-                                :items-per-page="props.roles.per_page"
-                                :total="props.roles.total"
+                                v-if="rolesMeta.total > 0"
+                                v-slot="{ page, pageCount }"
+                                v-model:page="rolesPage"
+                                :items-per-page="Math.max(rolesMeta.per_page, 1)"
+                                :total="rolesMeta.total"
                                 :sibling-count="1"
                                 show-edges
-                                :default-page="props.roles.current_page"
                             >
-                                <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                                    <PaginationFirst />
-                                    <PaginationPrev />
+                                <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                                    <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                        <PaginationFirst />
+                                        <PaginationPrev />
 
-                                    <template v-for="(item, index) in items" :key="index">
-                                        <PaginationListItem
-                                            v-if="item.type === 'page'"
-                                            :value="item.value"
-                                            as-child
-                                        >
-                                            <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
-                                                {{ item.value }}
-                                            </Button>
-                                        </PaginationListItem>
-                                        <PaginationEllipsis
-                                            v-else
-                                            :index="index"
-                                        />
-                                    </template>
+                                        <template v-for="(item, index) in items" :key="index">
+                                            <PaginationListItem
+                                                v-if="item.type === 'page'"
+                                                :value="item.value"
+                                                as-child
+                                            >
+                                                <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                                    {{ item.value }}
+                                                </Button>
+                                            </PaginationListItem>
+                                            <PaginationEllipsis
+                                                v-else
+                                                :index="index"
+                                            />
+                                        </template>
 
-                                    <PaginationNext />
-                                    <PaginationLast />
-                                </PaginationList>
+                                        <PaginationNext />
+                                        <PaginationLast />
+                                    </PaginationList>
+                                </div>
                             </Pagination>
                         </div>
                     </TabsContent>
@@ -363,7 +433,9 @@ const filteredPermissions = computed(() => {
                                             <TableCell>{{ permission.id }}</TableCell>
                                             <TableCell>{{ permission.name }}</TableCell>
                                             <TableCell class="text-center">{{ permission.guard_name }}</TableCell>
-                                            <TableCell class="text-center">{{ dayjs(permission.created_at).fromNow() }}</TableCell>
+                                            <TableCell class="text-center">
+                                                {{ permission.created_at ? dayjs(permission.created_at).fromNow() : '—' }}
+                                            </TableCell>
                                             <TableCell class="text-center">
                                                 <template v-if="canEdit || canDelete">
                                                     <DropdownMenu>
@@ -403,38 +475,45 @@ const filteredPermissions = computed(() => {
                         </div>
 
                         <!-- Bottom Pagination -->
-                        <div class="flex justify-center">
+                        <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                            <div class="text-sm text-muted-foreground text-center md:text-left">
+                                {{ permissionsRangeLabel }}
+                            </div>
                             <Pagination
-                                v-slot="{ page }"
-                                :items-per-page="props.permissions.per_page"
-                                :total="props.permissions.total"
+                                v-if="permissionsMeta.total > 0"
+                                v-slot="{ page, pageCount }"
+                                v-model:page="permissionsPage"
+                                :items-per-page="Math.max(permissionsMeta.per_page, 1)"
+                                :total="permissionsMeta.total"
                                 :sibling-count="1"
                                 show-edges
-                                :default-page="props.permissions.current_page"
                             >
-                                <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                                    <PaginationFirst />
-                                    <PaginationPrev />
+                                <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                                    <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                        <PaginationFirst />
+                                        <PaginationPrev />
 
-                                    <template v-for="(item, index) in items" :key="index">
-                                        <PaginationListItem
-                                            v-if="item.type === 'page'"
-                                            :value="item.value"
-                                            as-child
-                                        >
-                                            <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
-                                                {{ item.value }}
-                                            </Button>
-                                        </PaginationListItem>
-                                        <PaginationEllipsis
-                                            v-else
-                                            :index="index"
-                                        />
-                                    </template>
+                                        <template v-for="(item, index) in items" :key="index">
+                                            <PaginationListItem
+                                                v-if="item.type === 'page'"
+                                                :value="item.value"
+                                                as-child
+                                            >
+                                                <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                                    {{ item.value }}
+                                                </Button>
+                                            </PaginationListItem>
+                                            <PaginationEllipsis
+                                                v-else
+                                                :index="index"
+                                            />
+                                        </template>
 
-                                    <PaginationNext />
-                                    <PaginationLast />
-                                </PaginationList>
+                                        <PaginationNext />
+                                        <PaginationLast />
+                                    </PaginationList>
+                                </div>
                             </Pagination>
                         </div>
                     </TabsContent>

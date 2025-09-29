@@ -13,12 +13,7 @@ import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuPortal,
     DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -37,6 +32,7 @@ import {
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 
 // dayjs composable for human readable dates
 const { fromNow } = useUserTimezone();
@@ -56,6 +52,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 // Expect that the admin controller passes a "blogs" (paginated collection) & "blogStats" prop
+type PaginationLinks = {
+    first: string | null;
+    last: string | null;
+    prev: string | null;
+    next: string | null;
+};
+
 const props = defineProps<{
     blogs: {
         data: Array<{
@@ -66,13 +69,12 @@ const props = defineProps<{
                 id: number;
                 nickname: string;
                 email: string;
-            };
+            } | null;
             status: string;
-            created_at: string;
+            created_at: string | null;
         }>;
-        current_page: number;
-        per_page: number;
-        total: number;
+        meta?: PaginationMeta | null;
+        links?: PaginationLinks | null;
     };
     blogStats: {
         total: number;
@@ -81,6 +83,31 @@ const props = defineProps<{
         archived: number;
     };
 }>();
+
+const hasBlogs = computed(() => (props.blogs.data?.length ?? 0) > 0);
+
+const {
+    meta: blogsMeta,
+    page: blogsPage,
+    rangeLabel: blogsRangeLabel,
+} = useInertiaPagination({
+    meta: computed(() => props.blogs.meta ?? null),
+    itemsLength: computed(() => props.blogs.data?.length ?? 0),
+    defaultPerPage: 15,
+    itemLabel: 'blog post',
+    itemLabelPlural: 'blog posts',
+    onNavigate: (page) => {
+        router.get(
+            route('acp.blogs.index'),
+            { page },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
+});
 
 // Dummy blog statistics with Lucide icons
 const stats = [
@@ -99,8 +126,8 @@ const filteredBlogPosts = computed(() => {
     const q = searchQuery.value.toLowerCase();
     return props.blogs.data.filter((post: any) =>
         post.title.toLowerCase().includes(q) ||
-        post.user.nickname.toLowerCase().includes(q) ||
-        post.user.email.toLowerCase().includes(q) ||
+        (post.user?.nickname?.toLowerCase().includes(q) ?? false) ||
+        (post.user?.email?.toLowerCase().includes(q) ?? false) ||
         post.status.toLowerCase().includes(q)
     );
 });
@@ -182,8 +209,8 @@ const deletePost = (postId: number) => {
                                 <TableRow v-for="(post) in filteredBlogPosts" :key="post.id">
                                     <TableCell>{{ post.id }}</TableCell>
                                     <TableCell>{{ post.title }}</TableCell>
-                                    <TableCell class="text-center">{{ post.user.nickname }}</TableCell>
-                                    <TableCell class="text-center">{{ fromNow(post.created_at) }}</TableCell>
+                                    <TableCell class="text-center">{{ post.user?.nickname ?? '—' }}</TableCell>
+                                    <TableCell class="text-center">{{ post.created_at ? fromNow(post.created_at) : '—' }}</TableCell>
                                     <TableCell class="text-center" :class="{
                                     'text-green-500': post.status === 'published',
                                     'text-red-500': post.status === 'archived',
@@ -253,38 +280,45 @@ const deletePost = (postId: number) => {
                 </div>
 
                 <!-- Bottom Pagination -->
-                <div class="flex justify-center">
+                <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                    <div class="text-sm text-muted-foreground text-center md:text-left">
+                        {{ blogsRangeLabel }}
+                    </div>
                     <Pagination
-                        v-slot="{ page }"
-                        :items-per-page="props.blogs.per_page"
-                        :total="props.blogs.total"
+                        v-if="hasBlogs || blogsMeta.total > 0"
+                        v-slot="{ page, pageCount }"
+                        v-model:page="blogsPage"
+                        :items-per-page="Math.max(blogsMeta.per_page, 1)"
+                        :total="blogsMeta.total"
                         :sibling-count="1"
                         show-edges
-                        :default-page="props.blogs.current_page"
                     >
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                            <PaginationFirst />
-                            <PaginationPrev />
+                        <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                            <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                            <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                <PaginationFirst />
+                                <PaginationPrev />
 
-                            <template v-for="(item, index) in items" :key="index">
-                                <PaginationListItem
-                                    v-if="item.type === 'page'"
-                                    :value="item.value"
-                                    as-child
-                                >
-                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
-                                        {{ item.value }}
-                                    </Button>
-                                </PaginationListItem>
-                                <PaginationEllipsis
-                                    v-else
-                                    :index="index"
-                                />
-                            </template>
+                                <template v-for="(item, index) in items" :key="index">
+                                    <PaginationListItem
+                                        v-if="item.type === 'page'"
+                                        :value="item.value"
+                                        as-child
+                                    >
+                                        <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                            {{ item.value }}
+                                        </Button>
+                                    </PaginationListItem>
+                                    <PaginationEllipsis
+                                        v-else
+                                        :index="index"
+                                    />
+                                </template>
 
-                            <PaginationNext />
-                            <PaginationLast />
-                        </PaginationList>
+                                <PaginationNext />
+                                <PaginationLast />
+                            </PaginationList>
+                        </div>
                     </Pagination>
                 </div>
             </div>

@@ -2,39 +2,66 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BlogRequest;
-use Illuminate\Http\Request;
 use App\Models\Blog;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Http\RedirectResponse;
+use Inertia\Response;
 
 class BlogController extends Controller
 {
+    use InteractsWithInertiaPagination;
+
     /**
      * Display a listing of all blog posts for management.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-        $perPage = $request->get('per_page', 15);
+        $perPage = (int) $request->get('per_page', 15);
 
         $blogQuery = Blog::query();
 
         // Retrieve blogs with their associated author information.
         $blogs = (clone $blogQuery)
-            ->with('user')
-            ->orderBy('created_at', 'desc')
+            ->with(['user:id,nickname,email'])
+            ->orderByDesc('created_at')
             ->paginate($perPage)
             ->withQueryString();
 
+        $blogItems = $blogs->getCollection()
+            ->map(function (Blog $blog) {
+                return [
+                    'id' => $blog->id,
+                    'title' => $blog->title,
+                    'slug' => $blog->slug,
+                    'status' => $blog->status,
+                    'created_at' => optional($blog->created_at)->toIso8601String(),
+                    'user' => $blog->user ? [
+                        'id' => $blog->user->id,
+                        'nickname' => $blog->user->nickname,
+                        'email' => $blog->user->email,
+                    ] : null,
+                ];
+            })
+            ->values()
+            ->all();
+
         $blogStats = [
-            'total'      => $blogs->total(),
-            'published'  => (clone $blogQuery)->where('status', 'published')->count(),
-            'draft'      => (clone $blogQuery)->where('status', 'draft')->count(),
-            'archived'   => (clone $blogQuery)->where('status', 'archived')->count(),
+            'total' => $blogs->total(),
+            'published' => (clone $blogQuery)->where('status', 'published')->count(),
+            'draft' => (clone $blogQuery)->where('status', 'draft')->count(),
+            'archived' => (clone $blogQuery)->where('status', 'archived')->count(),
         ];
 
-        return inertia('acp/Blogs', compact('blogs', 'blogStats'));
+        return inertia('acp/Blogs', [
+            'blogs' => array_merge([
+                'data' => $blogItems,
+            ], $this->inertiaPagination($blogs)),
+            'blogStats' => $blogStats,
+        ]);
     }
 
     /**
