@@ -97,6 +97,7 @@ const {
                 </div>
             </section>
 
+            <!-- Pagination -->
             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
                 <div class="text-sm text-muted-foreground text-center md:text-left">
                     {{ blogsRangeLabel }}
@@ -156,6 +157,46 @@ const {
             <section v-else class="text-center text-muted-foreground">
                 No blog posts to display yet. Check back soon!
             </section>
+
+            <!-- Pagination -->
+            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                <div class="text-sm text-muted-foreground text-center md:text-left">
+                    {{ blogsRangeLabel }}
+                </div>
+                <Pagination
+                    v-if="hasBlogs || blogsMeta.total > 0"
+                    v-slot="{ page, pageCount }"
+                    v-model:page="paginationPage"
+                    :items-per-page="Math.max(blogsMeta.per_page, 1)"
+                    :total="blogsMeta.total"
+                    :sibling-count="1"
+                    show-edges
+                >
+                    <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                        <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationFirst />
+                            <PaginationPrev />
+
+                            <template v-for="(item, index) in items" :key="index">
+                                <PaginationListItem
+                                    v-if="item.type === 'page'"
+                                    :value="item.value"
+                                    as-child
+                                >
+                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                        {{ item.value }}
+                                    </Button>
+                                </PaginationListItem>
+                                <PaginationEllipsis v-else :index="index" />
+                            </template>
+
+                            <PaginationNext />
+                            <PaginationLast />
+                        </PaginationList>
+                    </div>
+                </Pagination>
+            </div>
         </div>
     </AppLayout>
 </template>
