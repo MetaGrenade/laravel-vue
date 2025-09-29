@@ -2,35 +2,62 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Models\Blog;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class BlogController extends Controller
 {
+    use InteractsWithInertiaPagination;
+
     /**
      * Display a listing of published blog posts.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-        $blogs = Blog::where('status', 'published')
-            ->orderBy('published_at', 'desc')
-            ->paginate(10);
+        $blogs = Blog::query()
+            ->where('status', 'published')
+            ->with(['user:id,nickname'])
+            ->orderByDesc('published_at')
+            ->orderByDesc('created_at')
+            ->paginate(9)
+            ->withQueryString();
 
-        // Return an Inertia response for SPA or a normal view
-        return inertia('Blog', compact('blogs'));
+        $blogItems = $blogs->getCollection()->map(function (Blog $blog) {
+            return [
+                'id' => $blog->id,
+                'title' => $blog->title,
+                'slug' => $blog->slug,
+                'excerpt' => $blog->excerpt,
+                'cover_image' => $blog->cover_image ?? null,
+                'published_at' => optional($blog->published_at)->toIso8601String(),
+                'author' => $blog->user ? [
+                    'id' => $blog->user->id,
+                    'nickname' => $blog->user->nickname,
+                ] : null,
+            ];
+        })->values();
+
+        return Inertia::render('Blog', [
+            'blogs' => array_merge([
+                'data' => $blogItems,
+            ], $this->inertiaPagination($blogs)),
+        ]);
     }
 
     /**
      * Show the detailed view for a single blog post.
      */
-    public function show($slug)
+    public function show($slug): Response
     {
         $blog = Blog::with(['user:id,nickname'])
             ->where('slug', $slug)
             ->where('status', 'published')
             ->firstOrFail();
 
-        return inertia('BlogView', [
+        return Inertia::render('BlogView', [
             'blog' => [
                 'id' => $blog->id,
                 'title' => $blog->title,

@@ -153,6 +153,35 @@ class AcpDashboardDemoSeeder extends Seeder
                 'published_at' => $now->copy()->subMonths(8),
                 'created_at' => $now->copy()->subMonths(9),
             ],
+            [
+                'slug' => 'demo-welcome-to-the-dashboard-2',
+                'title' => 'Welcome to the Live ACP Dashboard II',
+                'status' => 'published',
+                'published_at' => $now->copy()->subDays(9),
+                'created_at' => $now->copy()->subDays(12),
+                'author' => $admin,
+            ],
+            [
+                'slug' => 'demo-monthly-product-recap-2',
+                'title' => 'Monthly Product Recap II',
+                'status' => 'published',
+                'published_at' => $now->copy()->subDays(37),
+                'created_at' => $now->copy()->subDays(40),
+            ],
+            [
+                'slug' => 'demo-community-highlights-2',
+                'title' => 'Community Highlights to Share II',
+                'status' => 'draft',
+                'published_at' => null,
+                'created_at' => $now->copy()->subDays(18),
+            ],
+            [
+                'slug' => 'demo-support-efficiency-wins-2',
+                'title' => 'Support Efficiency Wins for Q2 II',
+                'status' => 'published',
+                'published_at' => $now->copy()->subDays(65),
+                'created_at' => $now->copy()->subDays(70),
+            ],
         ];
 
         foreach ($blogDefinitions as $index => $definition) {
