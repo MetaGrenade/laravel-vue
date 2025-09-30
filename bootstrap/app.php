@@ -41,9 +41,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'verified' => EnsureEmailIsVerifiedIfRequired::class,
             'token.activity' => LogTokenActivity::class,
-        ]);
-
-        $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
