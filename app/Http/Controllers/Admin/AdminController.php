@@ -25,6 +25,7 @@ class AdminController extends Controller
         return Inertia::render('acp/Dashboard', [
             'metrics' => $metrics,
             'chartData' => $this->buildChartData(),
+            'slaMetrics' => $this->buildSlaMetrics(),
             'recentActivities' => $this->recentActivities(),
         ]);
     }
@@ -63,6 +64,194 @@ class AdminController extends Controller
             'users' => $userTotals,
             'blogs' => $blogTotals,
             'tickets' => $tickets,
+        ];
+    }
+
+    /**
+     * Assemble support specific SLA metrics for the dashboard.
+     */
+    protected function buildSlaMetrics(): array
+    {
+        return [
+            'queue_aging' => $this->buildQueueAgingMetrics(),
+            'pending_volume' => $this->buildPendingVolumeMetrics(),
+            'response_times' => $this->buildResponseTimeMetrics(),
+        ];
+    }
+
+    /**
+     * Summarise the age of tickets that are still in the queue.
+     */
+    protected function buildQueueAgingMetrics(): array
+    {
+        $now = now();
+
+        $openTickets = SupportTicket::query()
+            ->whereIn('status', ['open', 'pending'])
+            ->select(['id', 'created_at'])
+            ->get();
+
+        $buckets = [
+            'under_1_day' => 0,
+            'one_to_three_days' => 0,
+            'three_to_seven_days' => 0,
+            'over_seven_days' => 0,
+        ];
+
+        foreach ($openTickets as $ticket) {
+            if (! $ticket->created_at) {
+                continue;
+            }
+
+            $hoursOpen = $ticket->created_at->diffInHours($now);
+
+            if ($hoursOpen < 24) {
+                $buckets['under_1_day']++;
+            } elseif ($hoursOpen < 72) {
+                $buckets['one_to_three_days']++;
+            } elseif ($hoursOpen < 168) {
+                $buckets['three_to_seven_days']++;
+            } else {
+                $buckets['over_seven_days']++;
+            }
+        }
+
+        return $buckets;
+    }
+
+    /**
+     * Calculate current pending volume and the short term trend of new pending tickets.
+     */
+    protected function buildPendingVolumeMetrics(): array
+    {
+        $pendingQuery = SupportTicket::query()->where('status', 'pending');
+
+        $totalPending = (clone $pendingQuery)->count();
+
+        $pendingByPriority = (clone $pendingQuery)
+            ->select([
+                'priority',
+                DB::raw('COUNT(*) as aggregate'),
+            ])
+            ->groupBy('priority')
+            ->pluck('aggregate', 'priority');
+
+        $start = now()->startOfDay()->subDays(6);
+
+        $pendingTicketsByDay = SupportTicket::query()
+            ->select([
+                DB::raw("DATE(created_at) as day"),
+                DB::raw('COUNT(*) as aggregate'),
+            ])
+            ->where('status', 'pending')
+            ->where('created_at', '>=', $start)
+            ->groupBy('day')
+            ->orderBy('day')
+            ->pluck('aggregate', 'day');
+
+        $trend = collect(range(0, 6))
+            ->map(function (int $offset) use ($start, $pendingTicketsByDay) {
+                $day = $start->copy()->addDays($offset);
+                $key = $day->format('Y-m-d');
+
+                return [
+                    'period' => $day->format('M j'),
+                    'Pending Tickets' => (int) ($pendingTicketsByDay[$key] ?? 0),
+                ];
+            })
+            ->toArray();
+
+        return [
+            'total' => $totalPending,
+            'by_priority' => [
+                'low' => (int) ($pendingByPriority['low'] ?? 0),
+                'medium' => (int) ($pendingByPriority['medium'] ?? 0),
+                'high' => (int) ($pendingByPriority['high'] ?? 0),
+            ],
+            'trend' => $trend,
+        ];
+    }
+
+    /**
+     * Calculate average first response and resolution times alongside their trends.
+     */
+    protected function buildResponseTimeMetrics(): array
+    {
+        $rangeStart = now()->startOfWeek()->subWeeks(7);
+
+        $tickets = SupportTicket::query()
+            ->with(['messages' => function ($query) {
+                $query->orderBy('created_at');
+            }])
+            ->where('created_at', '>=', $rangeStart)
+            ->get();
+
+        $responseMinutes = [];
+        $trendBuckets = [];
+
+        foreach ($tickets as $ticket) {
+            $firstResponse = $ticket->messages->first(function ($message) use ($ticket) {
+                return $message->user_id && $message->user_id !== $ticket->user_id;
+            });
+
+            if (! $firstResponse || ! $ticket->created_at) {
+                continue;
+            }
+
+            $minutes = $ticket->created_at->diffInMinutes($firstResponse->created_at);
+
+            $responseMinutes[] = $minutes;
+
+            $bucketKey = $firstResponse->created_at->copy()->startOfWeek()->format('Y-m-d');
+
+            if (! array_key_exists($bucketKey, $trendBuckets)) {
+                $trendBuckets[$bucketKey] = [
+                    'minutes' => [],
+                ];
+            }
+
+            $trendBuckets[$bucketKey]['minutes'][] = $minutes;
+        }
+
+        $trend = collect(range(0, 7))
+            ->map(function (int $offset) use ($rangeStart, $trendBuckets) {
+                $weekStart = $rangeStart->copy()->addWeeks($offset);
+                $key = $weekStart->format('Y-m-d');
+
+                $minutes = $trendBuckets[$key]['minutes'] ?? [];
+                $averageHours = empty($minutes)
+                    ? 0.0
+                    : round(array_sum($minutes) / count($minutes) / 60, 1);
+
+                return [
+                    'period' => $weekStart->format('M j'),
+                    'Average First Response (hrs)' => $averageHours,
+                ];
+            })
+            ->toArray();
+
+        $averageFirstResponseHours = empty($responseMinutes)
+            ? null
+            : round(array_sum($responseMinutes) / count($responseMinutes) / 60, 1);
+
+        $resolutionMinutes = SupportTicket::query()
+            ->where('status', 'closed')
+            ->whereNotNull('created_at')
+            ->whereNotNull('updated_at')
+            ->get()
+            ->map(function (SupportTicket $ticket) {
+                return $ticket->created_at->diffInMinutes($ticket->updated_at);
+            })
+            ->filter(fn ($minutes) => $minutes !== null);
+
+        $averageResolutionHours = $resolutionMinutes->isEmpty()
+            ? null
+            : round($resolutionMinutes->avg() / 60, 1);
+
+        return [
+            'average_first_response_hours' => $averageFirstResponseHours,
+            'average_resolution_hours' => $averageResolutionHours,
+            'trend' => $trend,
         ];
     }
 
