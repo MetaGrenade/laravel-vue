@@ -122,7 +122,7 @@ class ForumController extends Controller
         }
 
         return Inertia::render('Forum', [
-            'categories' => $categoryPayload,
+            'categories' => $categoryPayload->all(),
             'trendingThreads' => $trendingThreads->map(function (ForumThread $thread) {
                 return [
                     'id' => $thread->id,
@@ -138,7 +138,7 @@ class ForumController extends Controller
                     'replies' => max($thread->posts_count - 1, 0),
                     'last_reply_at' => optional($thread->last_posted_at)->toDayDateTimeString(),
                 ];
-            })->values(),
+            })->values()->all(),
             'latestPosts' => $latestPosts->map(function (ForumPost $post) {
                 return [
                     'id' => $post->id,
@@ -150,7 +150,7 @@ class ForumController extends Controller
                     'created_at' => $post->created_at->toDayDateTimeString(),
                     'thread_id' => $post->thread->id,
                 ];
-            })->values(),
+            })->values()->all(),
             'filters' => [
                 'search' => $search,
             ],
