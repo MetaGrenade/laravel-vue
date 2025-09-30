@@ -29,7 +29,14 @@ import {
     PaginationNext,
     PaginationPrev,
 } from '@/components/ui/pagination';
-import { ShieldAlert, ShieldCheck, ShieldX } from 'lucide-vue-next';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Ellipsis, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-vue-next';
 
 const props = defineProps<{
     reports: {
@@ -459,7 +466,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                             <TableHead class="w-40">Reason</TableHead>
                                             <TableHead class="w-40">Reporter</TableHead>
                                             <TableHead class="w-48">Submitted</TableHead>
-                                            <TableHead class="w-32 text-right">Actions</TableHead>
+                                            <TableHead class="w-16 text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -551,14 +558,24 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                                 </div>
                                             </TableCell>
                                             <TableCell class="text-right">
-                                                <div class="flex justify-end gap-2">
-                                                    <Button size="sm" variant="outline" @click="openModerationDialog(report, 'reviewed')">
-                                                        Mark reviewed
-                                                    </Button>
-                                                    <Button size="sm" variant="ghost" @click="openModerationDialog(report, 'dismissed')">
-                                                        Dismiss
-                                                    </Button>
-                                                </div>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger as-child>
+                                                        <Button size="icon" variant="outline">
+                                                            <Ellipsis class="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>Report actions</DropdownMenuLabel>
+                                                        <DropdownMenuItem @select="openModerationDialog(report, 'reviewed')">
+                                                            <ShieldCheck class="h-4 w-4" />
+                                                            <span>Mark reviewed</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem @select="openModerationDialog(report, 'dismissed')">
+                                                            <ShieldX class="h-4 w-4" />
+                                                            <span>Dismiss</span>
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
                                     </TableBody>
