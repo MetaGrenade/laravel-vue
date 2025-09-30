@@ -1,56 +1,64 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import Button from '@/components/ui/button/Button.vue';
 import { ArrowLeft } from 'lucide-vue-next';
+import { useUserTimezone } from '@/composables/useUserTimezone';
 
-// Define an interface for our token log details with additional fields
 interface TokenLogDetail {
     id: number;
-    token_name: string;
+    token_name: string | null;
     api_route: string;
     method: string;
     status: string;
-    http_status: number;
-    timestamp: string;
-    ip: string;
-    response_time: number;
-    request_params: string;      // Sanitized request parameters
-    response_summary: string;    // Summary of the response data
-    user_agent: string;          // Information about the client making the request
-    server_memory_usage: string; // e.g., "512 MB / 2048 MB"
-    auth_method: string;         // e.g., "session" or "token"
-    error_message?: string;      // Additional error details (if any)
+    http_status: number | null;
+    timestamp: string | null;
+    ip: string | null;
+    response_time_ms: number | null;
+    request_payload: Record<string, unknown> | unknown[] | null;
+    response_summary: Record<string, unknown> | unknown[] | null;
+    user_agent: string | null;
+    error_message?: string | null;
 }
 
-// Dummy breadcrumbs for navigation
+const props = defineProps<{ log: TokenLogDetail }>();
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Tokens', href: '/acp/tokens' },
-    { title: 'Activity Logs', href: '/acp/tokens/logs' },
+    { title: 'Activity Logs', href: '/acp/tokens#logs' },
     { title: 'Log Detail', href: '#' },
 ];
 
-// Dummy token log data with extra details
-const tokenLog = ref<TokenLogDetail>({
-    id: 1,
-    token_name: 'Admin Token',
-    api_route: '/api/dashboard',
-    method: 'GET',
-    status: 'success',
-    http_status: 200,
-    timestamp: '2023-07-28 07:45:00',
-    ip: '192.168.1.10',
-    response_time: 125,
-    request_params: '{"id":1}', // Example: a sanitized JSON string
-    response_summary: '{"data":"Dashboard data retrieved successfully"}', // Example: a sanitized JSON string
-    user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)...',
-    server_memory_usage: '512 MB / 2048 MB',
-    auth_method: 'token',
-    error_message: '{"error":"lorem ipsum"}', // Example: a sanitized JSON string
-});
+const { fromNow } = useUserTimezone();
+
+const log = computed(() => props.log);
+
+const formattedRequestPayload = computed(() => formatStructuredData(log.value.request_payload));
+const formattedResponseSummary = computed(() => formatStructuredData(log.value.response_summary));
+const relativeTimestamp = computed(() => log.value.timestamp ? fromNow(log.value.timestamp) : 'Unknown');
+
+function formatStructuredData(data: Record<string, unknown> | unknown[] | null): string {
+    if (!data) {
+        return '—';
+    }
+
+    if (Array.isArray(data)) {
+        if (data.length === 0) {
+            return '—';
+        }
+    } else if (Object.keys(data).length === 0) {
+        return '—';
+    }
+
+    try {
+        return JSON.stringify(data, null, 2);
+    } catch {
+        return '—';
+    }
+}
 </script>
 
 <template>
@@ -74,63 +82,56 @@ const tokenLog = ref<TokenLogDetail>({
                     <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <dt class="text-sm font-medium text-gray-500">ID</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.id }}</dd>
+                            <dd class="text-lg font-bold text-gray-700">{{ log.id }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Token Name</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.token_name }}</dd>
+                            <dd class="text-lg font-bold text-gray-700">{{ log.token_name ?? 'Unknown token' }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">API Route</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.api_route }}</dd>
+                            <dd class="text-lg font-bold text-gray-700">{{ log.api_route }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">HTTP Method</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.method }}</dd>
+                            <dd class="text-lg font-bold text-gray-700">{{ log.method }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Status</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.status }}</dd>
+                            <dd class="text-lg font-bold text-gray-700">{{ log.status }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">HTTP Status Code</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.http_status }}</dd>
+                            <dd class="text-lg font-bold text-gray-700">{{ log.http_status ?? '—' }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Timestamp</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.timestamp }}</dd>
+                            <dd class="text-lg font-bold text-gray-700">{{ log.timestamp ?? 'Unknown' }}</dd>
+                            <dd v-if="log.timestamp" class="text-sm text-muted-foreground">{{ relativeTimestamp }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">IP Address</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.ip }}</dd>
+                            <dd class="text-lg font-bold text-gray-700">{{ log.ip ?? '—' }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Response Time</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.response_time }} ms</dd>
+                            <dd class="text-lg font-bold text-gray-700">{{ log.response_time_ms ? `${log.response_time_ms} ms` : '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Request Parameters</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.request_params }}</dd>
+                            <dt class="text-sm font-medium text-gray-500">Request Payload</dt>
+                            <dd class="text-sm font-mono whitespace-pre-wrap break-words bg-muted/40 p-3 rounded">{{ formattedRequestPayload }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Response Summary</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.response_summary }}</dd>
+                            <dd class="text-sm font-mono whitespace-pre-wrap break-words bg-muted/40 p-3 rounded">{{ formattedResponseSummary }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">User Agent</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.user_agent }}</dd>
+                            <dd class="text-lg font-bold text-gray-700">{{ log.user_agent ?? '—' }}</dd>
                         </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Server Memory Usage</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.server_memory_usage }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Authentication Method</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ tokenLog.auth_method }}</dd>
-                        </div>
-                        <div v-if="tokenLog.error_message">
+                        <div v-if="log.error_message">
                             <dt class="text-sm font-medium text-red-500">Error Message</dt>
-                            <dd class="text-lg font-bold text-red-500">{{ tokenLog.error_message }}</dd>
+                            <dd class="text-lg font-bold text-red-500">{{ log.error_message }}</dd>
                         </div>
                     </dl>
                 </div>

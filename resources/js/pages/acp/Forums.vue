@@ -6,7 +6,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import {
-    Folder, MessageSquare, CheckCircle, Ellipsis, Eye, EyeOff, Shield,
+    Folder, MessageSquare, CheckCircle, Ellipsis, EyeOff, Shield,
     Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Lock
 } from 'lucide-vue-next';
 import Button from '@/components/ui/button/Button.vue';
@@ -16,12 +16,7 @@ import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuPortal,
     DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usePermissions } from '@/composables/usePermissions';

@@ -35,6 +35,16 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    Pagination,
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+} from '@/components/ui/pagination';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 
 // dayjs composable for human readable dates
@@ -67,6 +77,16 @@ interface Token {
     revoked_at?: string | null;
 }
 
+interface TokenLog {
+    id: number;
+    token_name: string | null;
+    api_route: string;
+    method: string;
+    status: string;
+    http_status: number | null;
+    timestamp: string | null;
+}
+
 const props = defineProps<{
     tokens: {
         data: Token[];
@@ -89,15 +109,21 @@ const props = defineProps<{
         nickname: string;
         email: string;
     }>;
+    tokenLogs: TokenLog[];
 }>();
+
+const tokensMetaSource = computed(() => props.tokens.meta ?? null);
+const tokenItems = computed(() => props.tokens.data ?? []);
+const tokenLogsItems = computed(() => props.tokenLogs ?? []);
 
 const {
     meta: tokensMeta,
     page: tokensPage,
+    setPage: setTokensPage,
     rangeLabel: tokensRangeLabel,
 } = useInertiaPagination({
-    meta: computed(() => props.tokens.meta ?? null),
-    itemsLength: computed(() => props.tokens.data?.length ?? 0),
+    meta: tokensMetaSource,
+    itemsLength: computed(() => tokenItems.value.length),
     defaultPerPage: 10,
     itemLabel: 'token',
     itemLabelPlural: 'tokens',
@@ -122,9 +148,11 @@ const revokedTokens = computed(() => props.tokenStats.revoked);
 // Search query and filtering for token list
 const tokenSearchQuery = ref('');
 const filteredTokens = computed(() => {
-    if (!tokenSearchQuery.value) return props.tokens.data;
+    if (!tokenSearchQuery.value) {
+        return tokenItems.value;
+    }
     const q = tokenSearchQuery.value.toLowerCase();
-    return props.tokens.data.filter((token) => {
+    return tokenItems.value.filter((token) => {
         const matchesName = token.name.toLowerCase().includes(q);
         const matchesNickname = token.user?.nickname?.toLowerCase().includes(q) ?? false;
         const matchesEmail = token.user?.email?.toLowerCase().includes(q) ?? false;
@@ -132,6 +160,14 @@ const filteredTokens = computed(() => {
         return matchesName || matchesNickname || matchesEmail;
     });
 });
+
+watch(tokenSearchQuery, () => {
+    setTokensPage(1, { emitNavigate: false });
+});
+
+const showTokenPagination = computed(
+    () => tokensMeta.value.total > tokensMeta.value.per_page,
+);
 
 // Create token dialog state & form
 const createDialogOpen = ref(false);
@@ -209,50 +245,23 @@ const lastUsedDisplay = (value?: string | null) => {
     return fromNow(value);
 };
 
-// --------------------
-// Dummy Token Logs Data
-// --------------------
-interface TokenLog {
-    id: number;
-    token_name: string;
-    api_route: string;
-    timestamp: string;
-    status: string;
-}
-
-const tokenLogs = ref<TokenLog[]>([
-    {
-        id: 1,
-        token_name: 'Admin Token',
-        api_route: '/api/dashboard',
-        timestamp: '2023-07-28 07:45:00',
-        status: 'success',
-    },
-    {
-        id: 2,
-        token_name: 'Editor Token',
-        api_route: '/api/posts',
-        timestamp: '2023-07-28 08:15:00',
-        status: 'failed',
-    },
-    {
-        id: 3,
-        token_name: 'Discord Bot Token',
-        api_route: '/api/discord',
-        timestamp: '2025-04-15 08:10:00',
-        status: 'success',
-    },
-]);
-
 const logSearchQuery = ref('');
 const filteredLogs = computed(() => {
-    if (!logSearchQuery.value) return tokenLogs.value;
+    const logs = tokenLogsItems.value;
+
+    if (!logSearchQuery.value) {
+        return logs;
+    }
     const q = logSearchQuery.value.toLowerCase();
-    return tokenLogs.value.filter(log =>
-        log.token_name.toLowerCase().includes(q) ||
-        log.api_route.toLowerCase().includes(q) ||
-        log.status.toLowerCase().includes(q)
-    );
+    return logs.filter((log) => {
+        const tokenName = log.token_name?.toLowerCase() ?? '';
+        return (
+            tokenName.includes(q) ||
+            log.api_route.toLowerCase().includes(q) ||
+            log.status.toLowerCase().includes(q) ||
+            log.method.toLowerCase().includes(q)
+        );
+    });
 });
 </script>
 
@@ -496,7 +505,7 @@ const filteredLogs = computed(() => {
                                     {{ tokensRangeLabel }}
                                 </div>
                                 <Pagination
-                                    v-if="tokensMeta.total > 0"
+                                    v-if="showTokenPagination"
                                     v-slot="{ page, pageCount }"
                                     v-model:page="tokensPage"
                                     :items-per-page="Math.max(tokensMeta.per_page, 1)"
@@ -569,9 +578,9 @@ const filteredLogs = computed(() => {
                                             class="hover:bg-gray-50 dark:hover:bg-gray-900"
                                         >
                                             <TableCell>{{ log.id }}</TableCell>
-                                            <TableCell>{{ log.token_name }}</TableCell>
+                                            <TableCell>{{ log.token_name ?? 'Unknown token' }}</TableCell>
                                             <TableCell>{{ log.api_route }}</TableCell>
-                                            <TableCell>{{ fromNow(log.timestamp) }}</TableCell>
+                                            <TableCell>{{ log.timestamp ? fromNow(log.timestamp) : 'Unknown' }}</TableCell>
                                             <TableCell class="text-center">
                                                 <span :class="{
                                                   'text-green-500': log.status === 'success',
@@ -581,7 +590,7 @@ const filteredLogs = computed(() => {
                                                 </span>
                                             </TableCell>
                                             <TableCell class="text-center">
-                                                <Link :href="route('acp.tokens.logs.view')">
+                                                <Link :href="route('acp.tokens.logs.show', { tokenLog: log.id })">
                                                     <Button variant="ghost" class="text-blue-500 text-sm">View</Button>
                                                 </Link>
                                             </TableCell>
