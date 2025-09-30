@@ -9,8 +9,10 @@ return new class extends Migration {
     {
         Schema::create('support_ticket_message_attachments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('support_ticket_message_id')
-                ->constrained()
+            $table->foreignId('support_ticket_message_id');
+            $table->foreign('support_ticket_message_id', 'st_msg_attachment_message_fk')
+                ->references('id')
+                ->on('support_ticket_messages')
                 ->cascadeOnDelete();
             $table->string('disk');
             $table->string('path');
