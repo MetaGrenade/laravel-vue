@@ -186,7 +186,7 @@ class ForumReportsTest extends TestCase
         $this->assertSame(ForumPostReport::STATUS_DISMISSED, $report->status);
         $this->assertNotNull($report->reviewed_at);
         $this->assertSame($moderator->id, $report->reviewed_by);
-        $this->assertDatabaseMissing('forum_posts', [
+        $this->assertSoftDeleted('forum_posts', [
             'id' => $post->id,
         ]);
     }
