@@ -83,6 +83,8 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     // Tokens
     Route::get('acp/tokens', [TokenController::class,'index'])->name('acp.tokens.index');
     Route::post('acp/tokens', [TokenController::class,'store'])->name('acp.tokens.store');
+    Route::put('acp/tokens/{token}', [TokenController::class,'update'])->name('acp.tokens.update');
+    Route::patch('acp/tokens/{token}/revoke', [TokenController::class,'revoke'])->name('acp.tokens.revoke');
     Route::delete('acp/tokens/{token}', [TokenController::class,'destroy'])->name('acp.tokens.destroy');
 
     Route::get('acp/tokens/logs/{tokenLog}', [TokenController::class, 'showLog'])

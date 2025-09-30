@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\PersonalAccessToken;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,5 +29,7 @@ class AppServiceProvider extends ServiceProvider
             //force DB timestamps to use 'UTC' timezone for more accurate dayjs conversion to local timezones
             DB::statement("SET time_zone = '+00:00'");
         }
+
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
     }
 }

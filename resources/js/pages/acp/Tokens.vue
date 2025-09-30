@@ -8,6 +8,7 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { type BreadcrumbItem } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
@@ -75,6 +76,7 @@ interface Token {
     last_used_at?: string | null;
     expires_at?: string | null;
     revoked_at?: string | null;
+    abilities?: string[];
 }
 
 interface TokenLog {
@@ -206,9 +208,74 @@ const submitCreateToken = () => {
     });
 };
 
+const editDialogOpen = ref(false);
+const editingTokenId = ref<number | null>(null);
+const editingToken = ref<Token | null>(null);
+const editTokenForm = useForm({
+    name: '',
+    expires_at: '',
+    abilities: [] as string[],
+    clear_revocation: false,
+});
+const editAbilityInput = ref('');
+
+const resetEditTokenForm = () => {
+    editTokenForm.reset();
+    editTokenForm.abilities = [];
+    editTokenForm.clear_revocation = false;
+    editTokenForm.clearErrors();
+    editAbilityInput.value = '';
+    editingTokenId.value = null;
+    editingToken.value = null;
+};
+
+watch(editDialogOpen, (open) => {
+    if (!open) {
+        resetEditTokenForm();
+    }
+});
+
+const openEditDialog = (token: Token) => {
+    editingTokenId.value = token.id;
+    editingToken.value = token;
+    editTokenForm.name = token.name;
+    editTokenForm.expires_at = token.expires_at
+        ? dayjs(token.expires_at).format('YYYY-MM-DDTHH:mm')
+        : '';
+    editTokenForm.clear_revocation = false;
+    editAbilityInput.value = (token.abilities ?? []).join(', ');
+    editTokenForm.clearErrors();
+    editDialogOpen.value = true;
+};
+
+const submitEditToken = () => {
+    if (!editingTokenId.value) {
+        return;
+    }
+
+    editTokenForm.abilities = editAbilityInput.value
+        .split(',')
+        .map((ability) => ability.trim())
+        .filter(Boolean);
+
+    editTokenForm.put(route('acp.tokens.update', { token: editingTokenId.value }), {
+        preserveScroll: true,
+        onSuccess: () => {
+            editDialogOpen.value = false;
+        },
+    });
+};
+
 const deleteForm = useForm({});
 const deleteToken = (tokenId: number) => {
     deleteForm.delete(route('acp.tokens.destroy', { token: tokenId }), {
+        preserveScroll: true,
+    });
+};
+
+const revokeForm = useForm({});
+const revokeToken = (tokenId: number) => {
+    revokeForm.patch(route('acp.tokens.revoke', { token: tokenId }), {
         preserveScroll: true,
     });
 };
@@ -407,6 +474,79 @@ const filteredLogs = computed(() => {
                                     </form>
                                 </DialogContent>
                             </Dialog>
+                            <Dialog v-if="editTokens" v-model:open="editDialogOpen">
+                                <DialogContent class="sm:max-w-lg">
+                                    <form class="space-y-6" @submit.prevent="submitEditToken">
+                                        <DialogHeader class="space-y-2">
+                                            <DialogTitle>Edit access token</DialogTitle>
+                                            <DialogDescription>
+                                                Update the token name, expiry and abilities.
+                                            </DialogDescription>
+                                        </DialogHeader>
+
+                                        <div class="space-y-4">
+                                            <div class="space-y-2">
+                                                <Label for="edit-token-name">Token name</Label>
+                                                <Input
+                                                    id="edit-token-name"
+                                                    v-model="editTokenForm.name"
+                                                    type="text"
+                                                    placeholder="Server integration"
+                                                    autocomplete="off"
+                                                    required
+                                                />
+                                                <InputError :message="editTokenForm.errors.name" />
+                                            </div>
+
+                                            <div class="space-y-2">
+                                                <Label for="edit-token-abilities">Abilities</Label>
+                                                <Textarea
+                                                    id="edit-token-abilities"
+                                                    v-model="editAbilityInput"
+                                                    rows="3"
+                                                    placeholder="Comma separated abilities (leave blank for full access)"
+                                                />
+                                                <p class="text-xs text-muted-foreground">
+                                                    Leave empty to grant full access. Example: read,update
+                                                </p>
+                                                <InputError :message="editTokenForm.errors.abilities" />
+                                            </div>
+
+                                            <div class="space-y-2">
+                                                <Label for="edit-token-expires-at">Expires at</Label>
+                                                <Input
+                                                    id="edit-token-expires-at"
+                                                    v-model="editTokenForm.expires_at"
+                                                    type="datetime-local"
+                                                />
+                                                <InputError :message="editTokenForm.errors.expires_at" />
+                                            </div>
+
+                                            <div
+                                                v-if="editingToken?.revoked_at"
+                                                class="flex items-center space-x-2 rounded-md border border-dashed border-muted p-3"
+                                            >
+                                                <Checkbox
+                                                    id="restore-token"
+                                                    v-model:checked="editTokenForm.clear_revocation"
+                                                />
+                                                <Label for="restore-token" class="text-sm leading-tight">
+                                                    Restore this token (clear revoked status)
+                                                </Label>
+                                            </div>
+                                        </div>
+
+                                        <DialogFooter class="gap-2 sm:gap-4">
+                                            <DialogClose as-child>
+                                                <Button type="button" variant="outline">Cancel</Button>
+                                            </DialogClose>
+                                            <Button type="submit" :disabled="editTokenForm.processing">
+                                                {{ editTokenForm.processing ? 'Saving…' : 'Save changes' }}
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </div>
 
@@ -473,10 +613,17 @@ const filteredLogs = computed(() => {
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuSeparator v-if="editTokens" />
                                                         <DropdownMenuGroup v-if="editTokens">
-                                                            <DropdownMenuItem class="text-blue-500">
+                                                            <DropdownMenuItem
+                                                                class="text-blue-500"
+                                                                @click.prevent="openEditDialog(token)"
+                                                            >
                                                                 <Pencil class="mr-2" /> Edit
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem class="text-red-500">
+                                                            <DropdownMenuItem
+                                                                class="text-red-500"
+                                                                :disabled="revokeForm.processing || !!token.revoked_at"
+                                                                @click.prevent="revokeToken(token.id)"
+                                                            >
                                                                 <Ban class="mr-2" /> Revoke
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>

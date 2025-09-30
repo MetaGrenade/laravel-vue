@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTokenRequest;
+use App\Http\Requests\Admin\UpdateTokenRequest;
+use App\Models\PersonalAccessToken;
 use App\Models\TokenLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class TokenController extends Controller
 {
@@ -45,6 +45,7 @@ class TokenController extends Controller
                     'last_used_at' => optional($token->last_used_at)->toIso8601String(),
                     'expires_at' => optional($token->expires_at)->toIso8601String(),
                     'revoked_at' => optional($token->revoked_at)->toIso8601String(),
+                    'abilities' => $token->abilities ?? [],
                     'user' => $user ? [
                         'id' => $user->id,
                         'nickname' => $user->nickname,
@@ -55,19 +56,16 @@ class TokenController extends Controller
             ->values()
             ->all();
 
-        $revokedCount = Schema::hasColumn('personal_access_tokens', 'revoked_at')
-            ? (clone $tokenQuery)->whereNotNull('revoked_at')->count()
-            : 0;
-
         $tokenStats = [
             'total' => $tokens->total(),
-            'active' => (clone $tokenQuery)->where(function ($query) {
+            'active' => (clone $tokenQuery)->whereNull('revoked_at')->where(function ($query) {
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());
             })->count(),
-            'expired' => (clone $tokenQuery)->whereNotNull('expires_at')
+            'expired' => (clone $tokenQuery)->whereNull('revoked_at')
+                ->whereNotNull('expires_at')
                 ->where('expires_at', '<=', now())->count(),
-            'revoked' => $revokedCount,
+            'revoked' => (clone $tokenQuery)->whereNotNull('revoked_at')->count(),
         ];
 
         $userList = User::select('id','nickname','email')->get();
@@ -120,6 +118,46 @@ class TokenController extends Controller
 
         return redirect()->route('acp.tokens.index')
             ->with('success', 'Token created.');
+    }
+
+    /**
+     * Update a token's metadata.
+     */
+    public function update(UpdateTokenRequest $request, PersonalAccessToken $token)
+    {
+        $data = $request->validated();
+
+        $token->forceFill([
+            'name' => $data['name'],
+            'abilities' => $data['abilities'] ?? [],
+            'expires_at' => $data['expires_at'] ? Carbon::parse($data['expires_at']) : null,
+        ]);
+
+        if ($data['clear_revocation'] ?? false) {
+            $token->revoked_at = null;
+        }
+
+        $token->save();
+
+        return redirect()->route('acp.tokens.index')
+            ->with('success', 'Token updated.');
+    }
+
+    /**
+     * Revoke a token without deleting it.
+     */
+    public function revoke(Request $request, PersonalAccessToken $token)
+    {
+        abort_unless($request->user()->can('tokens.acp.edit'), 403);
+
+        if (is_null($token->revoked_at)) {
+            $token->forceFill([
+                'revoked_at' => now(),
+            ])->save();
+        }
+
+        return redirect()->route('acp.tokens.index')
+            ->with('success', 'Token revoked.');
     }
 
     /**
