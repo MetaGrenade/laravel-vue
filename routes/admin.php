@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\TokenController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
 use App\Http\Controllers\Admin\ForumBoardController;
 use App\Http\Controllers\Admin\ForumCategoryController;
+use App\Http\Controllers\Admin\ForumReportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -48,6 +49,9 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/blogs/{blog}/unarchive', [AdminBlogController::class, 'unarchive'])->name('acp.blogs.unarchive');
 
     Route::get('acp/forums', [ForumCategoryController::class, 'index'])->name('acp.forums.index');
+    Route::get('acp/forums/reports', [ForumReportController::class, 'index'])->name('acp.forums.reports.index');
+    Route::patch('acp/forums/reports/threads/{report}', [ForumReportController::class, 'updateThread'])->name('acp.forums.reports.threads.update');
+    Route::patch('acp/forums/reports/posts/{report}', [ForumReportController::class, 'updatePost'])->name('acp.forums.reports.posts.update');
     Route::get('acp/forums/categories/create', [ForumCategoryController::class, 'create'])->name('acp.forums.categories.create');
     Route::post('acp/forums/categories', [ForumCategoryController::class, 'store'])->name('acp.forums.categories.store');
     Route::get('acp/forums/categories/{category}/edit', [ForumCategoryController::class, 'edit'])->name('acp.forums.categories.edit');
