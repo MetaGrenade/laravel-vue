@@ -100,25 +100,21 @@ class DashboardController extends Controller
     {
         $start = now()->startOfMonth()->subMonths(5);
 
-        $forumPostsByMonth = ForumPost::select([
-                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
-                DB::raw('COUNT(*) as total'),
-            ])
+        $forumPostsByMonth = ForumPost::query()
             ->where('user_id', $user->id)
             ->where('created_at', '>=', $start)
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('total', 'month');
+            ->get(['created_at'])
+            ->filter(fn (ForumPost $post) => $post->created_at)
+            ->groupBy(fn (ForumPost $post) => $post->created_at->format('Y-m'))
+            ->map->count();
 
-        $supportTicketsByMonth = SupportTicket::select([
-                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
-                DB::raw('COUNT(*) as total'),
-            ])
+        $supportTicketsByMonth = SupportTicket::query()
             ->where('user_id', $user->id)
             ->where('created_at', '>=', $start)
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('total', 'month');
+            ->get(['created_at'])
+            ->filter(fn (SupportTicket $ticket) => $ticket->created_at)
+            ->groupBy(fn (SupportTicket $ticket) => $ticket->created_at->format('Y-m'))
+            ->map->count();
 
         return collect(range(0, 5))
             ->map(fn (int $offset) => $start->copy()->addMonths($offset))
