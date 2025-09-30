@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
 use App\Http\Controllers\Admin\SupportController;
+use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TokenController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
 use App\Http\Controllers\Admin\ForumBoardController;
@@ -76,16 +77,14 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/support/faqs/{faq}', [SupportController::class,'updateFaq'])->name('acp.support.faqs.update');
     Route::delete('acp/support/faqs/{faq}', [SupportController::class,'destroyFaq'])->name('acp.support.faqs.destroy');
 
-    Route::get('acp/system', function () {
-        return Inertia::render('acp/System');
-    })->name('acp.system');
+    Route::get('acp/system', [SystemSettingsController::class, 'index'])->name('acp.system');
+    Route::put('acp/system', [SystemSettingsController::class, 'update'])->name('acp.system.update');
 
     // Tokens
     Route::get('acp/tokens', [TokenController::class,'index'])->name('acp.tokens.index');
     Route::post('acp/tokens', [TokenController::class,'store'])->name('acp.tokens.store');
     Route::delete('acp/tokens/{token}', [TokenController::class,'destroy'])->name('acp.tokens.destroy');
 
-    Route::get('acp/tokens/logs/view', function () {
-        return Inertia::render('acp/TokenLogView');
-    })->name('acp.tokens.logs.view');
+    Route::get('acp/tokens/logs/{tokenLog}', [TokenController::class, 'showLog'])
+        ->name('acp.tokens.logs.show');
 });

@@ -22,7 +22,7 @@ Route::get('/public-data', function() {
 });
 
 // Sanctum-protected routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'token.activity'])->group(function () {
     // Return the authenticated user details
     Route::get('/user', function (Request $request) {
         return $request->user();

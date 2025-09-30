@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Toaster, toast } from 'vue-sonner'
+import { Toaster, toast } from 'vue-sonner';
 
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -16,36 +16,44 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Reactive state for system settings
-const maintenanceMode = ref(false);
-const emailVerificationRequired = ref(true);
-// const enabledSections = ref({
-//     blog: true,
-//     forum: true,
-//     support: true,
-// });
+const props = defineProps<{
+    settings: {
+        maintenance_mode: boolean;
+        email_verification_required: boolean;
+    };
+    diagnostics: {
+        php_version: string;
+        laravel_version: string;
+        server_environment: string;
+        server_time: string;
+        server_timezone: string;
+        app_url: string | null;
+        queue_connection: string | null;
+        cache_driver: string | null;
+        session_driver: string | null;
+        memory_usage: string;
+        memory_peak: string;
+    };
+}>();
 
-// Dummy system info (replace with dynamic data as needed)
-const phpVersion = '8.4';
-const laravelVersion = '12.x';
-const serverEnvironment = 'Development';
+const form = useForm({
+    maintenance_mode: props.settings.maintenance_mode,
+    email_verification_required: props.settings.email_verification_required,
+});
 
-// Additional server info
-const serverTime = ref('2023-07-27 15:34:00'); // Example server time
-const serverTimezone = ref('UTC');
-const memoryUsage = ref('512 MB used / 2048 MB total');
-const averagePageLoadSpeed = ref('0.69 s');
+const diagnostics = computed(() => props.diagnostics);
 
-// Function to "save" settings (stubbed)
-function saveSettings() {
-    toast.success('System Settings Saved Successfully', {
-        description: 'Tuesday, March 25, 2025 at 4:34 PM',
-        action: {
-            label: 'Close',
-            onClick: () => console.log('Closed'),
+const saveSettings = () => {
+    form.put(route('acp.system.update'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success('System settings saved successfully');
         },
-    })
-}
+        onError: () => {
+            toast.error('Unable to save settings. Please review the form and try again.');
+        },
+    });
+};
 </script>
 
 <template>
@@ -62,9 +70,9 @@ function saveSettings() {
                             Toggle maintenance mode to temporarily disable access for users.
                         </p>
                         <div class="flex items-center">
-                            <Switch v-model="maintenanceMode" />
+                            <Switch v-model="form.maintenance_mode" />
                             <span class="ml-2 text-sm">
-                                {{ maintenanceMode ? 'Enabled' : 'Disabled' }}
+                                {{ form.maintenance_mode ? 'Enabled' : 'Disabled' }}
                             </span>
                         </div>
                     </div>
@@ -76,9 +84,9 @@ function saveSettings() {
                             Require users to verify their email address upon registration.
                         </p>
                         <div class="flex items-center">
-                            <Switch v-model="emailVerificationRequired" />
+                            <Switch v-model="form.email_verification_required" />
                             <span class="ml-2 text-sm">
-                                {{ emailVerificationRequired ? 'Required' : 'Not Required' }}
+                                {{ form.email_verification_required ? 'Required' : 'Not Required' }}
                             </span>
                         </div>
                     </div>
@@ -114,31 +122,47 @@ function saveSettings() {
                     <ul class="space-y-2 text-sm">
                         <li>
                             <span class="font-medium text-gray-500">PHP Version: </span>
-                            <span class="font-medium text-gray-600">{{ phpVersion }}</span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.php_version }}</span>
                         </li>
                         <li>
                             <span class="font-medium text-gray-500">Laravel Version: </span>
-                            <span class="font-medium text-gray-600">{{ laravelVersion }}</span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.laravel_version }}</span>
                         </li>
                         <li>
                             <span class="font-medium text-gray-500">Server Environment: </span>
-                            <span class="font-medium text-gray-600">{{ serverEnvironment }}</span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.server_environment }}</span>
                         </li>
                         <li>
                             <span class="font-medium text-gray-500">Server Time: </span>
-                            <span class="font-medium text-gray-600">{{ serverTime }}</span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.server_time }}</span>
                         </li>
                         <li>
                             <span class="font-medium text-gray-500">Server Timezone: </span>
-                            <span class="font-medium text-gray-600">{{ serverTimezone }}</span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.server_timezone }}</span>
+                        </li>
+                        <li>
+                            <span class="font-medium text-gray-500">Application URL: </span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.app_url ?? 'Not configured' }}</span>
+                        </li>
+                        <li>
+                            <span class="font-medium text-gray-500">Queue Connection: </span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.queue_connection }}</span>
+                        </li>
+                        <li>
+                            <span class="font-medium text-gray-500">Cache Driver: </span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.cache_driver }}</span>
+                        </li>
+                        <li>
+                            <span class="font-medium text-gray-500">Session Driver: </span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.session_driver }}</span>
                         </li>
                         <li>
                             <span class="font-medium text-gray-500">Memory Usage: </span>
-                            <span class="font-medium text-gray-600">{{ memoryUsage }}</span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.memory_usage }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Average Page Load Speed: </span>
-                            <span class="font-medium text-gray-600">{{ averagePageLoadSpeed }}</span>
+                            <span class="font-medium text-gray-500">Peak Memory Usage: </span>
+                            <span class="font-medium text-gray-600">{{ diagnostics.memory_peak }}</span>
                         </li>
                     </ul>
                 </div>
@@ -146,7 +170,11 @@ function saveSettings() {
                 <!-- Save Settings Button -->
                 <div class="flex justify-end">
                     <Toaster theme="dark" richColors />
-                    <Button @click="saveSettings" class="rounded bg-blue-500 px-6 py-2 text-white hover:bg-blue-600">
+                    <Button
+                        @click="saveSettings"
+                        :disabled="form.processing"
+                        class="rounded bg-blue-500 px-6 py-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
                         Save Changes
                     </Button>
                 </div>

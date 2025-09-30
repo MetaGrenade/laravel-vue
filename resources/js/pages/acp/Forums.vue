@@ -6,17 +6,8 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import {
-    Folder,
-    Layers,
-    MessageSquare,
-    CheckCircle,
-    Ellipsis,
-    MoveUp,
-    MoveDown,
-    Pencil,
-    Trash2,
-    ExternalLink,
-    PlusCircle,
+    Folder, MessageSquare, CheckCircle, Ellipsis, EyeOff, Shield,
+    Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Lock
 } from 'lucide-vue-next';
 import Button from '@/components/ui/button/Button.vue';
 import {
