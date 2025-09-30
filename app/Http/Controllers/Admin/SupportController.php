@@ -11,7 +11,9 @@ use App\Http\Requests\Admin\UpdateSupportTicketRequest;
 use App\Models\SupportTicket;
 use App\Models\Faq;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -140,6 +142,55 @@ class SupportController extends Controller
     {
         $ticket->delete();
         return back()->with('success','Ticket deleted.');
+    }
+
+    public function assignTicket(Request $request, SupportTicket $ticket): RedirectResponse
+    {
+        $validated = $request->validate([
+            'assigned_to' => ['nullable', 'exists:users,id'],
+        ]);
+
+        $ticket->update([
+            'assigned_to' => $validated['assigned_to'] ?? null,
+        ]);
+
+        $message = $ticket->assigned_to
+            ? 'Ticket assigned to agent.'
+            : 'Ticket unassigned.';
+
+        return back()->with('success', $message);
+    }
+
+    public function updateTicketPriority(Request $request, SupportTicket $ticket): RedirectResponse
+    {
+        $validated = $request->validate([
+            'priority' => ['required', Rule::in(['low', 'medium', 'high'])],
+        ]);
+
+        $ticket->update([
+            'priority' => $validated['priority'],
+        ]);
+
+        return back()->with('success', 'Ticket priority updated.');
+    }
+
+    public function updateTicketStatus(Request $request, SupportTicket $ticket): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['open', 'pending', 'closed'])],
+        ]);
+
+        $ticket->update([
+            'status' => $validated['status'],
+        ]);
+
+        $message = match ($validated['status']) {
+            'open' => 'Ticket opened.',
+            'closed' => 'Ticket closed.',
+            default => 'Ticket status updated.',
+        };
+
+        return back()->with('success', $message);
     }
 
     // FAQ
