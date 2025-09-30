@@ -35,6 +35,16 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    Pagination,
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+} from '@/components/ui/pagination';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 
 // dayjs composable for human readable dates
@@ -102,13 +112,18 @@ const props = defineProps<{
     tokenLogs: TokenLog[];
 }>();
 
+const tokensMetaSource = computed(() => props.tokens.meta ?? null);
+const tokenItems = computed(() => props.tokens.data ?? []);
+const tokenLogsItems = computed(() => props.tokenLogs ?? []);
+
 const {
     meta: tokensMeta,
     page: tokensPage,
+    setPage: setTokensPage,
     rangeLabel: tokensRangeLabel,
 } = useInertiaPagination({
-    meta: computed(() => props.tokens.meta ?? null),
-    itemsLength: computed(() => props.tokens.data?.length ?? 0),
+    meta: tokensMetaSource,
+    itemsLength: computed(() => tokenItems.value.length),
     defaultPerPage: 10,
     itemLabel: 'token',
     itemLabelPlural: 'tokens',
@@ -133,9 +148,11 @@ const revokedTokens = computed(() => props.tokenStats.revoked);
 // Search query and filtering for token list
 const tokenSearchQuery = ref('');
 const filteredTokens = computed(() => {
-    if (!tokenSearchQuery.value) return props.tokens.data;
+    if (!tokenSearchQuery.value) {
+        return tokenItems.value;
+    }
     const q = tokenSearchQuery.value.toLowerCase();
-    return props.tokens.data.filter((token) => {
+    return tokenItems.value.filter((token) => {
         const matchesName = token.name.toLowerCase().includes(q);
         const matchesNickname = token.user?.nickname?.toLowerCase().includes(q) ?? false;
         const matchesEmail = token.user?.email?.toLowerCase().includes(q) ?? false;
@@ -143,6 +160,14 @@ const filteredTokens = computed(() => {
         return matchesName || matchesNickname || matchesEmail;
     });
 });
+
+watch(tokenSearchQuery, () => {
+    setTokensPage(1, { emitNavigate: false });
+});
+
+const showTokenPagination = computed(
+    () => tokensMeta.value.total > tokensMeta.value.per_page,
+);
 
 // Create token dialog state & form
 const createDialogOpen = ref(false);
@@ -222,7 +247,7 @@ const lastUsedDisplay = (value?: string | null) => {
 
 const logSearchQuery = ref('');
 const filteredLogs = computed(() => {
-    const logs = props.tokenLogs ?? [];
+    const logs = tokenLogsItems.value;
 
     if (!logSearchQuery.value) {
         return logs;
@@ -480,7 +505,7 @@ const filteredLogs = computed(() => {
                                     {{ tokensRangeLabel }}
                                 </div>
                                 <Pagination
-                                    v-if="tokensMeta.total > 0"
+                                    v-if="showTokenPagination"
                                     v-slot="{ page, pageCount }"
                                     v-model:page="tokensPage"
                                     :items-per-page="Math.max(tokensMeta.per_page, 1)"
