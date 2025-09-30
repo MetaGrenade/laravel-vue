@@ -31,7 +31,7 @@ class BlogFilteringTest extends TestCase
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Blog')
             ->where('filters.category', $categoryA->slug)
-            ->where('blogs.data', function (array $data) use ($matchingBlog, $nonMatchingBlog) {
+            ->where('blogs.data', function ($data) use ($matchingBlog, $nonMatchingBlog) {
                 $blogIds = collect($data)->pluck('id');
 
                 return $blogIds->contains($matchingBlog->id)
@@ -58,7 +58,7 @@ class BlogFilteringTest extends TestCase
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Blog')
             ->where('filters.tag', $tagA->slug)
-            ->where('blogs.data', function (array $data) use ($matchingBlog, $nonMatchingBlog) {
+            ->where('blogs.data', function ($data) use ($matchingBlog, $nonMatchingBlog) {
                 $blogIds = collect($data)->pluck('id');
 
                 return $blogIds->contains($matchingBlog->id)
@@ -87,7 +87,7 @@ class BlogFilteringTest extends TestCase
             ->component('Blog')
             ->where('filters.category', $category->slug)
             ->where('filters.tag', $tag->slug)
-            ->where('blogs.data', function (array $data) use ($matchingBlog, $categoryOnlyBlog, $tagOnlyBlog) {
+            ->where('blogs.data', function ($data) use ($matchingBlog, $categoryOnlyBlog, $tagOnlyBlog) {
                 $blogIds = collect($data)->pluck('id');
 
                 return $blogIds->contains($matchingBlog->id)
