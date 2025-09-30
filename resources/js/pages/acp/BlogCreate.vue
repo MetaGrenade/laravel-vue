@@ -40,21 +40,6 @@ const form = useForm<BlogForm>({
     cover_image: null,
 });
 
-form.transform((data) => {
-    const payload: Record<string, FormDataEntryValue> = {
-        title: data.title ?? '',
-        excerpt: data.excerpt ?? '',
-        body: data.body ?? '',
-        status: data.status ?? 'draft',
-    };
-
-    if (data.cover_image) {
-        payload.cover_image = data.cover_image;
-    }
-
-    return payload;
-});
-
 const coverImagePreview = ref<string | null>(null);
 
 const handleCoverImageChange = (event: Event) => {
@@ -75,10 +60,27 @@ onBeforeUnmount(() => {
     }
 });
 
+const buildFormData = () => {
+    const formData = new FormData();
+
+    formData.append('title', form.title ?? '');
+    formData.append('excerpt', form.excerpt ?? '');
+    formData.append('body', form.body ?? '');
+    formData.append('status', form.status ?? 'draft');
+
+    if (form.cover_image instanceof File) {
+        formData.append('cover_image', form.cover_image);
+    }
+
+    return formData;
+};
+
 const handleSubmit = () => {
-    form.post(route('acp.blogs.store'), {
+    const formData = buildFormData();
+
+    form.submit('post', route('acp.blogs.store'), {
+        data: formData,
         preserveScroll: true,
-        forceFormData: true,
     });
 };
 </script>
