@@ -101,6 +101,95 @@ const props = defineProps<{
     };
 }>();
 
+type Ticket = (typeof props.tickets.data)[number];
+
+const quickActionVisitOptions = {
+    preserveScroll: true,
+    preserveState: true,
+    replace: true,
+} as const;
+
+const assignTicket = (ticket: Ticket) => {
+    const defaultValue = ticket.assignee?.id ? String(ticket.assignee.id) : '';
+    const input = window.prompt(
+        'Enter the agent user ID to assign this ticket. Leave blank to unassign.',
+        defaultValue,
+    );
+
+    if (input === null) {
+        return;
+    }
+
+    const trimmed = input.trim();
+
+    let payload: { assigned_to: number | null };
+
+    if (trimmed === '') {
+        if (!window.confirm('Remove the current assignee from this ticket?')) {
+            return;
+        }
+
+        payload = { assigned_to: null };
+    } else {
+        const parsed = Number.parseInt(trimmed, 10);
+
+        if (Number.isNaN(parsed)) {
+            window.alert('Please enter a valid numeric user ID.');
+            return;
+        }
+
+        if (!window.confirm(`Assign this ticket to user ID ${parsed}?`)) {
+            return;
+        }
+
+        payload = { assigned_to: parsed };
+    }
+
+    router.put(
+        route('acp.support.tickets.assign', { ticket: ticket.id }),
+        payload,
+        quickActionVisitOptions,
+    );
+};
+
+const elevatePriority = (ticket: Ticket) => {
+    const priorityLevels: Ticket['priority'][] = ['low', 'medium', 'high'];
+    const currentIndex = priorityLevels.indexOf(ticket.priority);
+    const nextPriority = priorityLevels[Math.min(priorityLevels.length - 1, currentIndex + 1)];
+
+    if (nextPriority === ticket.priority) {
+        window.alert('Ticket is already at the highest priority.');
+        return;
+    }
+
+    if (!window.confirm(`Change priority from ${ticket.priority} to ${nextPriority}?`)) {
+        return;
+    }
+
+    router.put(
+        route('acp.support.tickets.priority', { ticket: ticket.id }),
+        { priority: nextPriority },
+        quickActionVisitOptions,
+    );
+};
+
+const updateTicketStatus = (ticket: Ticket, status: Ticket['status']) => {
+    const statusLabel = status === 'open' ? 'open this ticket' : status === 'closed' ? 'close this ticket' : `mark this ticket as ${status}`;
+
+    if (!window.confirm(`Are you sure you want to ${statusLabel}?`)) {
+        return;
+    }
+
+    router.put(
+        route('acp.support.tickets.status', { ticket: ticket.id }),
+        { status },
+        quickActionVisitOptions,
+    );
+};
+
+const openTicket = (ticket: Ticket) => updateTicketStatus(ticket, 'open');
+const closeTicket = (ticket: Ticket) => updateTicketStatus(ticket, 'closed');
+
 const currentTicketPage = computed(() => props.tickets.meta?.current_page ?? 1);
 const currentFaqPage = computed(() => props.faqs.meta?.current_page ?? 1);
 
@@ -315,11 +404,17 @@ const filteredFaqs = computed(() => {
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuSeparator v-if="assignSupport||prioritySupport" />
                                                         <DropdownMenuGroup v-if="assignSupport||prioritySupport">
-                                                            <DropdownMenuItem v-if="assignSupport">
+                                                            <DropdownMenuItem
+                                                                v-if="assignSupport"
+                                                                @select="assignTicket(t)"
+                                                            >
                                                                 <UserPlus class="h-8 w-8" />
                                                                 <span>Add Users</span>
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem v-if="prioritySupport">
+                                                            <DropdownMenuItem
+                                                                v-if="prioritySupport"
+                                                                @select="elevatePriority(t)"
+                                                            >
                                                                 <SquareChevronUp class="h-8 w-8" />
                                                                 <span>Elevate Priority</span>
                                                             </DropdownMenuItem>
@@ -334,10 +429,18 @@ const filteredFaqs = computed(() => {
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="statusSupport" />
                                                         <DropdownMenuGroup v-if="statusSupport">
-                                                            <DropdownMenuItem v-if="t.status !== 'open'" class="text-green-500">
+                                                            <DropdownMenuItem
+                                                                v-if="t.status !== 'open'"
+                                                                class="text-green-500"
+                                                                @select="openTicket(t)"
+                                                            >
                                                                 <Ticket class="mr-2" /> Open Ticket
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem v-if="t.status === 'open'" class="text-red-500">
+                                                            <DropdownMenuItem
+                                                                v-if="t.status === 'open'"
+                                                                class="text-red-500"
+                                                                @select="closeTicket(t)"
+                                                            >
                                                                 <TicketX class="mr-2" /> Close Ticket
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
