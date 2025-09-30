@@ -19,7 +19,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Ellipsis, TicketX, LifeBuoy } from 'lucide-vue-next';
+import { Ellipsis, TicketX, LifeBuoy, Eye } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import {
     Pagination,
@@ -45,6 +45,7 @@ interface Ticket {
     status: 'open' | 'pending' | 'closed';
     priority: 'low' | 'medium' | 'high';
     created_at: string | null;
+    updated_at: string | null;
     assignee: TicketAssignee | null;
 }
 
@@ -196,6 +197,10 @@ const submitTicket = () => {
             form.reset();
         },
     });
+};
+
+const goToTicket = (ticketId: number) => {
+    router.get(route('support.tickets.show', { ticket: ticketId }));
 };
 
 const statusClass = (status: Ticket['status']) => {
@@ -359,10 +364,27 @@ watch(faqSearchQuery, () => {
                                     <TableRow
                                         v-for="ticket in filteredTickets"
                                         :key="ticket.id"
-                                        class="hover:bg-gray-50 dark:hover:bg-gray-900"
+                                        class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900"
+                                        @click="goToTicket(ticket.id)"
                                     >
-                                        <TableCell>{{ ticket.id }}</TableCell>
-                                        <TableCell>{{ ticket.subject }}</TableCell>
+                                        <TableCell>
+                                            <Link
+                                                :href="route('support.tickets.show', { ticket: ticket.id })"
+                                                class="font-medium text-primary hover:underline"
+                                                @click.stop
+                                            >
+                                                #{{ ticket.id }}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Link
+                                                :href="route('support.tickets.show', { ticket: ticket.id })"
+                                                class="font-medium text-primary hover:underline"
+                                                @click.stop
+                                            >
+                                                {{ ticket.subject }}
+                                            </Link>
+                                        </TableCell>
                                         <TableCell class="text-center">
                                             <span :class="statusClass(ticket.status)">
                                                 {{ formatStatus(ticket.status) }}
@@ -377,7 +399,7 @@ watch(faqSearchQuery, () => {
                                         <TableCell class="text-center">{{ formatDate(ticket.created_at) }}</TableCell>
                                         <TableCell class="text-center">
                                             <DropdownMenu>
-                                                <DropdownMenuTrigger as-child>
+                                                <DropdownMenuTrigger as-child @click.stop>
                                                     <Button variant="outline" size="icon">
                                                         <Ellipsis class="h-8 w-8" />
                                                     </Button>
@@ -386,6 +408,10 @@ watch(faqSearchQuery, () => {
                                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuGroup>
+                                                        <DropdownMenuItem @select="goToTicket(ticket.id)">
+                                                            <Eye class="h-8 w-8" />
+                                                            <span>View Ticket</span>
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem class="text-red-500">
                                                             <TicketX class="h-8 w-8" />
                                                             <span>Close Ticket</span>

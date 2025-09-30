@@ -62,9 +62,17 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
 });
 
 Route::get('support', [SupportCenterController::class, 'index'])->name('support');
-Route::post('support/tickets', [SupportCenterController::class, 'store'])
-    ->middleware('auth')
-    ->name('support.tickets.store');
+
+Route::middleware('auth')->group(function () {
+    Route::post('support/tickets', [SupportCenterController::class, 'store'])
+        ->name('support.tickets.store');
+
+    Route::get('support/tickets/{ticket}', [SupportCenterController::class, 'show'])
+        ->name('support.tickets.show');
+
+    Route::post('support/tickets/{ticket}/messages', [SupportCenterController::class, 'storeMessage'])
+        ->name('support.tickets.messages.store');
+});
 
 //AUTH REQUIRED PAGES
 Route::get('dashboard', function () {
