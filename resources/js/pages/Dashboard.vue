@@ -168,7 +168,14 @@ const alertState = computed(() => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Dashboard" />
 
-        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
+        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pt-4 pb-4">
+<!--            <Alert variant="destructive">-->
+<!--                <AlertCircle class="w-4 h-4" />-->
+<!--                <AlertTitle>Error</AlertTitle>-->
+<!--                <AlertDescription>-->
+<!--                    Your session has expired. Please log in again.-->
+<!--                </AlertDescription>-->
+<!--            </Alert>-->
             <Alert :variant="alertState.variant">
                 <component :is="alertState.icon" class="h-5 w-5" />
                 <AlertTitle>{{ alertState.title }}</AlertTitle>
