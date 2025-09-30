@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTokenRequest;
+use App\Models\TokenLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -71,12 +72,34 @@ class TokenController extends Controller
 
         $userList = User::select('id','nickname','email')->get();
 
+        $tokenLogs = TokenLog::query()
+            ->with('token:id,name')
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->map(function (TokenLog $log) {
+                $tokenName = $log->token_name ?? optional($log->token)->name;
+
+                return [
+                    'id' => $log->id,
+                    'token_name' => $tokenName,
+                    'api_route' => $log->route,
+                    'method' => $log->method,
+                    'status' => $log->status,
+                    'http_status' => $log->http_status,
+                    'timestamp' => optional($log->created_at)->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all();
+
         return inertia('acp/Tokens', [
             'tokens' => array_merge([
                 'data' => $tokenItems,
             ], $this->inertiaPagination($tokens)),
             'tokenStats' => $tokenStats,
             'userList' => $userList,
+            'tokenLogs' => $tokenLogs,
         ]);
     }
 
@@ -107,5 +130,30 @@ class TokenController extends Controller
         $token->delete();
         return redirect()->route('acp.tokens.index')
             ->with('success','Token revoked.');
+    }
+
+    public function showLog(TokenLog $tokenLog): Response
+    {
+        $tokenLog->loadMissing('token:id,name');
+
+        $tokenName = $tokenLog->token_name ?? optional($tokenLog->token)->name;
+
+        return Inertia::render('acp/TokenLogView', [
+            'log' => [
+                'id' => $tokenLog->id,
+                'token_name' => $tokenName,
+                'api_route' => $tokenLog->route,
+                'method' => $tokenLog->method,
+                'status' => $tokenLog->status,
+                'http_status' => $tokenLog->http_status,
+                'timestamp' => optional($tokenLog->created_at)->toIso8601String(),
+                'ip' => $tokenLog->ip_address,
+                'response_time_ms' => $tokenLog->response_time_ms,
+                'request_payload' => $tokenLog->request_payload,
+                'response_summary' => $tokenLog->response_summary,
+                'user_agent' => $tokenLog->user_agent,
+                'error_message' => $tokenLog->error_message,
+            ],
+        ]);
     }
 }

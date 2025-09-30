@@ -72,7 +72,6 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::post('acp/tokens', [TokenController::class,'store'])->name('acp.tokens.store');
     Route::delete('acp/tokens/{token}', [TokenController::class,'destroy'])->name('acp.tokens.destroy');
 
-    Route::get('acp/tokens/logs/view', function () {
-        return Inertia::render('acp/TokenLogView');
-    })->name('acp.tokens.logs.view');
+    Route::get('acp/tokens/logs/{tokenLog}', [TokenController::class, 'showLog'])
+        ->name('acp.tokens.logs.show');
 });
