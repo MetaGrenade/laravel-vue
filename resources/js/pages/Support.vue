@@ -141,6 +141,8 @@ const filteredFaqs = computed(() => {
                                     <TableHead>ID</TableHead>
                                     <TableHead>Subject</TableHead>
                                     <TableHead class="text-center">Status</TableHead>
+                                    <TableHead class="text-center">Priority</TableHead>
+                                    <TableHead class="text-center">Assigned</TableHead>
                                     <TableHead class="text-center">Created At</TableHead>
                                     <TableHead class="text-center">Actions</TableHead>
                                 </TableRow>
@@ -153,7 +155,25 @@ const filteredFaqs = computed(() => {
                                 >
                                     <TableCell>{{ ticket.id }}</TableCell>
                                     <TableCell>{{ ticket.subject }}</TableCell>
-                                    <TableCell class="text-center">{{ ticket.status }}</TableCell>
+                                    <TableCell class="text-center">
+                                        <span :class="{
+                                            'text-blue-500': ticket.status === 'pending',
+                                            'text-green-500': ticket.status === 'open',
+                                            'text-red-500': ticket.status === 'closed'
+                                          }">
+                                            {{ ticket.status }}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell class="text-center">
+                                        <span :class="{
+                                            'text-blue-500': ticket.priority === 'low',
+                                            'text-yellow-500': ticket.priority === 'medium',
+                                            'text-red-500': ticket.priority === 'high'
+                                          }">
+                                            {{ ticket.priority }}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell class="text-center">{{ ticket.assignee?.nickname || '—' }}</TableCell>
                                     <TableCell class="text-center">{{ ticket.created_at }}</TableCell>
                                     <TableCell class="text-center">
                                         <DropdownMenu>
