@@ -10,6 +10,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -194,5 +195,24 @@ class SupportCenterController extends Controller
         return redirect()
             ->route('support.tickets.show', $ticket)
             ->with('success', 'Your message has been sent.');
+    }
+
+    public function updateStatus(Request $request, SupportTicket $ticket): HttpResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user && $ticket->user_id === $user->id, 403);
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:closed'],
+        ]);
+
+        if ($ticket->status !== $validated['status']) {
+            $ticket->update([
+                'status' => $validated['status'],
+            ]);
+        }
+
+        return response()->noContent();
     }
 }

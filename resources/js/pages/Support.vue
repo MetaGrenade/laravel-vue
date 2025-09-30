@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
+import { Toaster } from '@/components/ui/sonner';
 
 // Import shadcn‑vue components
 import Input from '@/components/ui/input/Input.vue';
@@ -32,6 +33,7 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
+import { toast } from 'vue-sonner';
 
 interface TicketAssignee {
     id: number;
@@ -190,6 +192,8 @@ const form = useForm({
     body: '',
 });
 
+const closingTicketId = ref<number | null>(null);
+
 const submitTicket = () => {
     form.post(route('support.tickets.store'), {
         preserveScroll: true,
@@ -201,6 +205,36 @@ const submitTicket = () => {
 
 const goToTicket = (ticketId: number) => {
     router.get(route('support.tickets.show', { ticket: ticketId }));
+};
+
+const closeTicket = (ticket: Ticket) => {
+    if (ticket.status === 'closed' || closingTicketId.value === ticket.id) {
+        return;
+    }
+
+    closingTicketId.value = ticket.id;
+
+    router.patch(
+        route('support.tickets.status', { ticket: ticket.id }),
+        { status: 'closed' },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Ticket closed successfully.');
+                router.reload({
+                    only: ['tickets'],
+                    preserveScroll: true,
+                    preserveState: true,
+                });
+            },
+            onError: () => {
+                toast.error('Unable to close the ticket. Please try again later.');
+            },
+            onFinish: () => {
+                closingTicketId.value = null;
+            },
+        },
+    );
 };
 
 const statusClass = (status: Ticket['status']) => {
@@ -262,6 +296,7 @@ watch(faqSearchQuery, () => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Support Center" />
         <div class="container mx-auto p-4 space-y-8">
+            <Toaster position="top-right" richColors />
             <h1 class="text-3xl font-bold mb-4">
                 <LifeBuoy class="h-8 w-8 text-green-600 inline-block" />
                 Support Center
@@ -412,9 +447,17 @@ watch(faqSearchQuery, () => {
                                                             <Eye class="h-8 w-8" />
                                                             <span>View Ticket</span>
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem class="text-red-500">
+                                                        <DropdownMenuItem
+                                                            v-if="ticket.status !== 'closed'"
+                                                            class="text-red-500 focus:text-red-500"
+                                                            :disabled="closingTicketId === ticket.id"
+                                                            @select="closeTicket(ticket)"
+                                                            @click.stop
+                                                        >
                                                             <TicketX class="h-8 w-8" />
-                                                            <span>Close Ticket</span>
+                                                            <span>
+                                                                {{ closingTicketId === ticket.id ? 'Closing…' : 'Close Ticket' }}
+                                                            </span>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuGroup>
                                                 </DropdownMenuContent>

@@ -84,6 +84,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('support/tickets/{ticket}/messages', [SupportCenterController::class, 'storeMessage'])
         ->name('support.tickets.messages.store');
+
+    Route::patch('support/tickets/{ticket}/status', [SupportCenterController::class, 'updateStatus'])
+        ->name('support.tickets.status');
 });
 
 //AUTH REQUIRED PAGES
