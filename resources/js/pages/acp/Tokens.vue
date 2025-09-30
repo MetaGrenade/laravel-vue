@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import dayjs from 'dayjs';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type SharedData } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -113,6 +113,74 @@ const props = defineProps<{
     }>;
     tokenLogs: TokenLog[];
 }>();
+
+const page = usePage<SharedData & { flash?: { plain_text_token?: string | null; success?: string | null; error?: string | null } }>();
+const flashPlainTextToken = computed(() => page.props.flash?.plain_text_token ?? '');
+const tokenSecretDialogOpen = ref(false);
+const tokenSecretValue = ref('');
+const tokenSecretCopied = ref(false);
+const tokenSecretCopyError = ref<string | null>(null);
+let tokenSecretCopyTimeout: ReturnType<typeof setTimeout> | null = null;
+
+watch(flashPlainTextToken, (value) => {
+    if (value) {
+        tokenSecretValue.value = value;
+        tokenSecretDialogOpen.value = true;
+        tokenSecretCopied.value = false;
+        tokenSecretCopyError.value = null;
+    }
+}, { immediate: true });
+
+watch(tokenSecretDialogOpen, (open) => {
+    if (!open && tokenSecretCopyTimeout) {
+        clearTimeout(tokenSecretCopyTimeout);
+        tokenSecretCopyTimeout = null;
+        tokenSecretCopied.value = false;
+    }
+});
+
+const copyTokenSecret = async () => {
+    if (!tokenSecretValue.value) {
+        return;
+    }
+
+    tokenSecretCopyError.value = null;
+
+    if (
+        typeof navigator === 'undefined' ||
+        !navigator.clipboard ||
+        typeof navigator.clipboard.writeText !== 'function'
+    ) {
+        tokenSecretCopyError.value = 'Copying is not supported in this browser. Please copy the token manually.';
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(tokenSecretValue.value);
+        tokenSecretCopied.value = true;
+        tokenSecretCopyError.value = null;
+
+        if (tokenSecretCopyTimeout) {
+            clearTimeout(tokenSecretCopyTimeout);
+        }
+
+        tokenSecretCopyTimeout = window.setTimeout(() => {
+            tokenSecretCopied.value = false;
+            tokenSecretCopyTimeout = null;
+        }, 2000);
+    } catch (error) {
+        console.error('Failed to copy token secret', error);
+        tokenSecretCopied.value = false;
+        tokenSecretCopyError.value = 'Unable to copy the token automatically. Please copy it manually.';
+    }
+};
+
+onBeforeUnmount(() => {
+    if (tokenSecretCopyTimeout) {
+        clearTimeout(tokenSecretCopyTimeout);
+        tokenSecretCopyTimeout = null;
+    }
+});
 
 const tokensMetaSource = computed(() => props.tokens.meta ?? null);
 const tokenItems = computed(() => props.tokens.data ?? []);
@@ -388,11 +456,63 @@ const filteredLogs = computed(() => {
                             <TabsTrigger value="tokens">Token List</TabsTrigger>
                             <TabsTrigger value="logs">Token Activity</TabsTrigger>
                         </TabsList>
-                        <div class="flex space-x-2">
-                            <Dialog v-if="createTokens" v-model:open="createDialogOpen">
-                                <DialogTrigger as-child>
-                                    <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600 md:ml-10">
-                                        Create Token
+                    <div class="flex space-x-2">
+                        <Dialog v-model:open="tokenSecretDialogOpen">
+                            <DialogContent class="sm:max-w-lg">
+                                <DialogHeader class="space-y-2">
+                                    <DialogTitle>Save your new token</DialogTitle>
+                                    <DialogDescription>
+                                        This is the only time the token secret will be shown. Copy and store it securely now.
+                                    </DialogDescription>
+                                </DialogHeader>
+
+                                <div class="space-y-3">
+                                    <Label for="new-token-secret">Token secret</Label>
+                                    <div class="flex flex-col gap-2 sm:flex-row">
+                                        <Textarea
+                                            id="new-token-secret"
+                                            v-model="tokenSecretValue"
+                                            rows="3"
+                                            readonly
+                                            class="font-mono text-sm"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            class="shrink-0 sm:h-auto sm:w-32"
+                                            @click="copyTokenSecret"
+                                        >
+                                            {{ tokenSecretCopied ? 'Copied!' : 'Copy token' }}
+                                        </Button>
+                                    </div>
+                                    <p
+                                        v-if="tokenSecretCopied"
+                                        class="text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                                    >
+                                        Token copied to clipboard.
+                                    </p>
+                                    <p
+                                        v-else-if="tokenSecretCopyError"
+                                        class="text-xs text-red-600 dark:text-red-400"
+                                    >
+                                        {{ tokenSecretCopyError }}
+                                    </p>
+                                    <p class="text-xs text-muted-foreground">
+                                        Make sure to store this token securely. You won't be able to see it again after closing this dialog.
+                                    </p>
+                                </div>
+
+                                <DialogFooter class="gap-2 sm:gap-4">
+                                    <DialogClose as-child>
+                                        <Button type="button" variant="outline">Close</Button>
+                                    </DialogClose>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                        <Dialog v-if="createTokens" v-model:open="createDialogOpen">
+                            <DialogTrigger as-child>
+                                <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600 md:ml-10">
+                                    Create Token
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent class="sm:max-w-lg">

@@ -110,14 +110,15 @@ class TokenController extends Controller
 
         $user = User::findOrFail($data['user_id']);
 
-        $user->createToken(
+        $newToken = $user->createToken(
             $data['name'],
             $data['abilities'] ?? ['*'],
             $data['expires_at'] ? Carbon::parse($data['expires_at']) : null
         );
 
         return redirect()->route('acp.tokens.index')
-            ->with('success', 'Token created.');
+            ->with('success', 'Token created.')
+            ->with('plain_text_token', $newToken->plainTextToken);
     }
 
     /**

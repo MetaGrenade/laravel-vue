@@ -46,6 +46,11 @@ class HandleInertiaRequests extends Middleware
                 'message' => trim($message),
                 'author' => trim($author)
             ],
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+                'plain_text_token' => $request->session()->get('plain_text_token'),
+            ],
             'auth' => [
                 'user' => $request->user() ? $request->user()->load('roles') : null,
                 'permissions' => $request->user()
