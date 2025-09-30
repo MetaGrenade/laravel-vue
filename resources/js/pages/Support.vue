@@ -193,6 +193,19 @@ const form = useForm({
 });
 
 const closingTicketId = ref<number | null>(null);
+const openTicketMenuId = ref<number | null>(null);
+
+const handleTicketMenuOpenChange = (ticketId: number, open: boolean) => {
+    if (open) {
+        openTicketMenuId.value = ticketId;
+
+        return;
+    }
+
+    if (openTicketMenuId.value === ticketId) {
+        openTicketMenuId.value = null;
+    }
+};
 
 const submitTicket = () => {
     form.post(route('support.tickets.store'), {
@@ -212,6 +225,7 @@ const closeTicket = (ticket: Ticket) => {
         return;
     }
 
+    openTicketMenuId.value = null;
     closingTicketId.value = ticket.id;
 
     router.patch(
@@ -232,6 +246,7 @@ const closeTicket = (ticket: Ticket) => {
             },
             onFinish: () => {
                 closingTicketId.value = null;
+                openTicketMenuId.value = null;
             },
         },
     );
@@ -433,7 +448,10 @@ watch(faqSearchQuery, () => {
                                         <TableCell class="text-center">{{ ticket.assignee?.nickname || '—' }}</TableCell>
                                         <TableCell class="text-center">{{ formatDate(ticket.created_at) }}</TableCell>
                                         <TableCell class="text-center">
-                                            <DropdownMenu>
+                                            <DropdownMenu
+                                                :open="openTicketMenuId === ticket.id"
+                                                @update:open="(open) => handleTicketMenuOpenChange(ticket.id, open)"
+                                            >
                                                 <DropdownMenuTrigger as-child @click.stop>
                                                     <Button variant="outline" size="icon">
                                                         <Ellipsis class="h-8 w-8" />
