@@ -93,29 +93,26 @@ onBeforeUnmount(() => {
     }
 });
 
-const buildFormData = () => {
-    const formData = new FormData();
-
-    formData.append('title', form.title ?? '');
-    formData.append('excerpt', form.excerpt ?? '');
-    formData.append('body', form.body ?? '');
-    formData.append('status', form.status ?? 'draft');
-
-    if (form.cover_image instanceof File) {
-        formData.append('cover_image', form.cover_image);
-    }
-
-    formData.append('_method', 'PUT');
-
-    return formData;
-};
-
 const handleSubmit = () => {
-    const formData = buildFormData();
+    form.transform((data) => {
+        const payload: Record<string, unknown> = {
+            ...data,
+            _method: 'PUT',
+        };
 
-    form.submit('post', route('acp.blogs.update', { blog: props.blog.id }), {
-        data: formData,
+        if (!data.cover_image) {
+            delete payload.cover_image;
+        }
+
+        return payload;
+    });
+
+    form.post(route('acp.blogs.update', { blog: props.blog.id }), {
+        forceFormData: true,
         preserveScroll: true,
+        onFinish: () => {
+            form.transform((data) => ({ ...data }));
+        },
     });
 };
 </script>
