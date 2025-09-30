@@ -77,6 +77,28 @@ const publishedAt = computed(() => {
 
     return formatDate(blog.value.published_at, 'MMMM D, YYYY');
 });
+
+const buildAbsoluteUrl = (path: string) => {
+    if (typeof window === 'undefined') {
+        return path;
+    }
+
+    try {
+        return new URL(path, window.location.origin).toString();
+    } catch {
+        return path;
+    }
+};
+
+const shareUrl = computed(() => buildAbsoluteUrl(route('blogs.view', { slug: blog.value.slug })));
+const encodedShareUrl = computed(() => encodeURIComponent(shareUrl.value));
+const encodedTitle = computed(() => encodeURIComponent(blog.value.title));
+
+const shareLinks = computed(() => ({
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedShareUrl.value}`,
+    twitter: `https://twitter.com/intent/tweet?url=${encodedShareUrl.value}&text=${encodedTitle.value}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedShareUrl.value}`,
+}));
 </script>
 
 <template>
@@ -121,14 +143,41 @@ const publishedAt = computed(() => {
             <div class="mb-8 flex items-center justify-between rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
                 <span class="text-lg font-semibold">Share this post:</span>
                 <div class="flex space-x-2">
-                    <Button variant="ghost" class="flex items-center">
-                        <Share2 class="mr-1 h-4 w-4" /> Facebook
+                    <Button
+                        as="a"
+                        :href="shareLinks.facebook"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        variant="ghost"
+                        class="flex items-center"
+                    >
+                        <Share2 class="mr-1 h-4 w-4" aria-hidden="true" />
+                        <span class="sr-only">Share on Facebook</span>
+                        <span aria-hidden="true">Facebook</span>
                     </Button>
-                    <Button variant="ghost" class="flex items-center">
-                        <Share2 class="mr-1 h-4 w-4" /> Twitter
+                    <Button
+                        as="a"
+                        :href="shareLinks.twitter"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        variant="ghost"
+                        class="flex items-center"
+                    >
+                        <Share2 class="mr-1 h-4 w-4" aria-hidden="true" />
+                        <span class="sr-only">Share on Twitter</span>
+                        <span aria-hidden="true">Twitter</span>
                     </Button>
-                    <Button variant="ghost" class="flex items-center">
-                        <Share2 class="mr-1 h-4 w-4" /> LinkedIn
+                    <Button
+                        as="a"
+                        :href="shareLinks.linkedin"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        variant="ghost"
+                        class="flex items-center"
+                    >
+                        <Share2 class="mr-1 h-4 w-4" aria-hidden="true" />
+                        <span class="sr-only">Share on LinkedIn</span>
+                        <span aria-hidden="true">LinkedIn</span>
                     </Button>
                 </div>
             </div>
