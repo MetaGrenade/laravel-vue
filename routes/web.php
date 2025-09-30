@@ -6,6 +6,7 @@ use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumThreadModerationController;
+use App\Http\Controllers\SupportCenterController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -61,9 +62,18 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->name('forum.threads.destroy');
 });
 
-Route::get('support', function () {
-    return Inertia::render('Support');
-})->name('support');
+Route::get('support', [SupportCenterController::class, 'index'])->name('support');
+
+Route::middleware('auth')->group(function () {
+    Route::post('support/tickets', [SupportCenterController::class, 'store'])
+        ->name('support.tickets.store');
+
+    Route::get('support/tickets/{ticket}', [SupportCenterController::class, 'show'])
+        ->name('support.tickets.show');
+
+    Route::post('support/tickets/{ticket}/messages', [SupportCenterController::class, 'storeMessage'])
+        ->name('support.tickets.messages.store');
+});
 
 //AUTH REQUIRED PAGES
 Route::get('dashboard', DashboardController::class)
