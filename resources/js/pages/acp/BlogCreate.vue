@@ -41,10 +41,15 @@ const form = useForm<BlogForm>({
 });
 
 form.transform((data) => {
-    const payload: Record<string, unknown> = { ...data };
+    const payload = new FormData();
 
-    if (!data.cover_image) {
-        delete payload.cover_image;
+    payload.append('title', data.title ?? '');
+    payload.append('excerpt', data.excerpt ?? '');
+    payload.append('body', data.body ?? '');
+    payload.append('status', data.status ?? 'draft');
+
+    if (data.cover_image) {
+        payload.append('cover_image', data.cover_image);
     }
 
     return payload;

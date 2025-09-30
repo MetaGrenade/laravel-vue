@@ -85,11 +85,16 @@ class BlogController extends Controller
             ? $request->file('cover_image')->store('blog-covers', 'public')
             : null;
 
+        $excerpt = $validated['excerpt'] ?? null;
+        if ($excerpt === '') {
+            $excerpt = null;
+        }
+
         // Create a new blog record
         $blog = Blog::create([
             'title'        => $validated['title'],
             'slug'         => Str::slug($validated['title']),
-            'excerpt'      => $validated['excerpt'] ?? null,
+            'excerpt'      => $excerpt,
             'cover_image'  => $coverImagePath,
             'body'         => $validated['body'],
             'user_id'      => auth()->id(),
@@ -134,10 +139,15 @@ class BlogController extends Controller
         // Validate request data
         $validated = $request->validated();
 
+        $excerpt = $validated['excerpt'] ?? null;
+        if ($excerpt === '') {
+            $excerpt = null;
+        }
+
         $updateData = [
             'title'        => $validated['title'],
             'slug'         => Str::slug($validated['title']),
-            'excerpt'      => $validated['excerpt'] ?? null,
+            'excerpt'      => $excerpt,
             'body'         => $validated['body'],
             'status'       => $validated['status'],
             'published_at' => $validated['status'] === 'published' ? now() : $blog->published_at,
