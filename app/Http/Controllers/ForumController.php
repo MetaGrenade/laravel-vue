@@ -19,25 +19,40 @@ class ForumController extends Controller
 {
     use InteractsWithInertiaPagination;
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = trim((string) $request->query('search', ''));
+
         $categories = ForumCategory::query()
-            ->with(['boards' => function ($query) {
-                $query->withCount([
+            ->when($search !== '', function ($query) use ($search) {
+                $query->whereHas('boards', function ($boardQuery) use ($search) {
+                    $boardQuery->where('forum_boards.title', 'like', "%{$search}%");
+                });
+            })
+            ->with(['boards' => function ($query) use ($search) {
+                $query->when($search !== '', function ($boardQuery) use ($search) {
+                    $boardQuery->where('forum_boards.title', 'like', "%{$search}%");
+                })
+                ->withCount([
                     'publishedThreads as threads_count',
                     'posts as posts_count' => function ($postQuery) {
                         $postQuery->where('forum_threads.is_published', true);
                     },
-                ])->with(['latestThread' => function ($threadQuery) {
+                ])
+                ->with(['latestThread' => function ($threadQuery) {
                     $threadQuery->with(['author:id,nickname', 'latestPost.author:id,nickname'])
                         ->withCount('posts');
-                }]);
+                }])
+                ->orderBy('position');
             }])
             ->orderBy('position')
             ->get();
 
         $trendingThreads = ForumThread::query()
             ->where('is_published', true)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('forum_threads.title', 'like', "%{$search}%");
+            })
             ->with(['board:id,slug,title,forum_category_id', 'board.category:id,slug,title', 'author:id,nickname'])
             ->withCount('posts')
             ->orderByDesc('is_pinned')
@@ -47,8 +62,11 @@ class ForumController extends Controller
             ->get();
 
         $latestPosts = ForumPost::query()
-            ->whereHas('thread', function ($query) {
-                $query->where('is_published', true);
+            ->whereHas('thread', function ($query) use ($search) {
+                $query->where('is_published', true)
+                    ->when($search !== '', function ($threadQuery) use ($search) {
+                        $threadQuery->where('forum_threads.title', 'like', "%{$search}%");
+                    });
             })
             ->with([
                 'thread:id,slug,title,forum_board_id',
@@ -59,9 +77,13 @@ class ForumController extends Controller
             ->limit(5)
             ->get();
 
-        return Inertia::render('Forum', [
-            'categories' => $categories->map(function (ForumCategory $category) {
-                return [
+        $defaultBoard = ForumBoard::query()
+            ->orderBy('position')
+            ->orderBy('id')
+            ->first();
+
+        $categoryPayload = $categories->map(function (ForumCategory $category) {
+            return [
                     'id' => $category->id,
                     'title' => $category->title,
                     'slug' => $category->slug,
@@ -89,7 +111,18 @@ class ForumController extends Controller
                         ];
                     })->values(),
                 ];
-            })->values(),
+        });
+
+        if ($search !== '') {
+            $categoryPayload = $categoryPayload->filter(function (array $category) {
+                return count($category['boards']) > 0;
+            })->values();
+        } else {
+            $categoryPayload = $categoryPayload->values();
+        }
+
+        return Inertia::render('Forum', [
+            'categories' => $categoryPayload,
             'trendingThreads' => $trendingThreads->map(function (ForumThread $thread) {
                 return [
                     'id' => $thread->id,
@@ -118,6 +151,13 @@ class ForumController extends Controller
                     'thread_id' => $post->thread->id,
                 ];
             })->values(),
+            'filters' => [
+                'search' => $search,
+            ],
+            'defaultBoard' => $defaultBoard ? [
+                'slug' => $defaultBoard->slug,
+                'title' => $defaultBoard->title,
+            ] : null,
         ]);
     }
 

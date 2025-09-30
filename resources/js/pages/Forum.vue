@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -62,11 +63,77 @@ const props = defineProps<{
     categories: ForumCategorySummary[];
     trendingThreads: TrendingThreadSummary[];
     latestPosts: LatestPostSummary[];
+    filters?: {
+        search?: string | null;
+    };
+    defaultBoard?: {
+        slug: string;
+        title: string;
+    } | null;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Forum', href: '/forum' },
 ];
+
+const page = usePage<{ auth: { user: unknown | null } }>();
+
+const searchQuery = ref(props.filters?.search ?? '');
+
+watch(
+    () => props.filters?.search ?? '',
+    (value) => {
+        if (value !== searchQuery.value) {
+            searchQuery.value = value;
+        }
+    },
+);
+
+const isAuthenticated = computed(() => Boolean(page.props.auth?.user));
+
+const defaultBoardSlug = computed(() => props.defaultBoard?.slug ?? null);
+
+const isSearching = computed(() => searchQuery.value.trim().length > 0);
+
+const newThreadHref = computed(() => {
+    const boardSlug = defaultBoardSlug.value;
+
+    if (!boardSlug) {
+        return null;
+    }
+
+    if (isAuthenticated.value) {
+        return route('forum.threads.create', { board: boardSlug });
+    }
+
+    return route('login');
+});
+
+let searchTimeout: ReturnType<typeof setTimeout> | undefined;
+
+watch(searchQuery, (value) => {
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+
+    searchTimeout = setTimeout(() => {
+        router.get(
+            route('forum.index'),
+            { search: value || undefined },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    }, 300);
+});
+
+onBeforeUnmount(() => {
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+});
 </script>
 
 <template>
@@ -77,8 +144,21 @@ const breadcrumbs: BreadcrumbItem[] = [
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
                 <h1 class="text-2xl font-bold">Forum</h1>
                 <div class="flex w-full max-w-md space-x-2">
-                    <Input default-value="Search Forum"/>
-                    <Button variant="secondary" class="cursor-pointer">
+                    <Input
+                        v-model="searchQuery"
+                        placeholder="Search the forum"
+                    />
+                    <Button
+                        v-if="newThreadHref"
+                        variant="secondary"
+                        class="cursor-pointer"
+                        as-child
+                    >
+                        <Link :href="newThreadHref">
+                            New Thread
+                        </Link>
+                    </Button>
+                    <Button v-else variant="secondary" disabled class="cursor-not-allowed opacity-70">
                         New Thread
                     </Button>
                 </div>
@@ -149,8 +229,16 @@ const breadcrumbs: BreadcrumbItem[] = [
                             </div>
                         </div>
                     </template>
-                    <div v-else class="rounded-lg border border-dashed border-sidebar-border/70 p-8 text-center text-sm text-gray-500">
-                        No forum categories are available yet. Run the forum demo seeder or create categories in the admin panel to get started.
+                    <div
+                        v-else
+                        class="rounded-lg border border-dashed border-sidebar-border/70 p-8 text-center text-sm text-gray-500"
+                    >
+                        <template v-if="isSearching">
+                            No boards match your search. Try a different keyword or clear the filter to browse all boards.
+                        </template>
+                        <template v-else>
+                            No forum categories are available yet. Run the forum demo seeder or create categories in the admin panel to get started.
+                        </template>
                     </div>
                 </main>
 
