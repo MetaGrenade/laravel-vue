@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell
-} from '@/components/ui/table';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import {
     Pagination,
     PaginationEllipsis,
@@ -30,12 +29,22 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     XCircle, HelpCircle, Ticket, TicketX, MessageSquare, CheckCircle, Ellipsis, UserPlus, SquareChevronUp,
     Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
+import { Label } from '@/components/ui/label';
+import InputError from '@/components/InputError.vue';
 
 // dayjs composable for human readable dates
 const { fromNow } = useUserTimezone();
@@ -109,86 +118,160 @@ const quickActionVisitOptions = {
     replace: true,
 } as const;
 
-const assignTicket = (ticket: Ticket) => {
-    const defaultValue = ticket.assignee?.id ? String(ticket.assignee.id) : '';
-    const input = window.prompt(
-        'Enter the agent user ID to assign this ticket. Leave blank to unassign.',
-        defaultValue,
-    );
+const assignDialogOpen = ref(false);
+const assignDialogTicket = ref<Ticket | null>(null);
+const assignDialogError = ref<string | null>(null);
+const assignForm = useForm({
+    assigned_to: '',
+});
 
-    if (input === null) {
+const handleAssignDialogChange = (open: boolean) => {
+    assignDialogOpen.value = open;
+
+    if (!open) {
+        assignDialogTicket.value = null;
+        assignDialogError.value = null;
+        assignForm.reset();
+        assignForm.clearErrors();
+    }
+};
+
+const openAssignDialog = (ticket: Ticket) => {
+    assignDialogTicket.value = ticket;
+    assignDialogError.value = null;
+    assignForm.reset();
+    assignForm.clearErrors();
+    assignForm.assigned_to = ticket.assignee?.id ? String(ticket.assignee.id) : '';
+    handleAssignDialogChange(true);
+};
+
+watch(
+    () => assignForm.assigned_to,
+    () => {
+        assignDialogError.value = null;
+    },
+);
+
+const submitAssignForm = () => {
+    if (!assignDialogTicket.value) {
         return;
     }
 
-    const trimmed = input.trim();
+    const trimmed = assignForm.assigned_to.trim();
 
-    let payload: { assigned_to: number | null };
-
-    if (trimmed === '') {
-        if (!window.confirm('Remove the current assignee from this ticket?')) {
-            return;
-        }
-
-        payload = { assigned_to: null };
-    } else {
+    if (trimmed !== '') {
         const parsed = Number.parseInt(trimmed, 10);
 
         if (Number.isNaN(parsed)) {
-            window.alert('Please enter a valid numeric user ID.');
+            assignDialogError.value = 'Please enter a valid numeric user ID.';
             return;
         }
-
-        if (!window.confirm(`Assign this ticket to user ID ${parsed}?`)) {
-            return;
-        }
-
-        payload = { assigned_to: parsed };
     }
 
-    router.put(
-        route('acp.support.tickets.assign', { ticket: ticket.id }),
-        payload,
-        quickActionVisitOptions,
-    );
+    assignForm
+        .transform(() => ({
+            assigned_to: trimmed === '' ? null : Number.parseInt(trimmed, 10),
+        }))
+        .put(route('acp.support.tickets.assign', { ticket: assignDialogTicket.value.id }), {
+            ...quickActionVisitOptions,
+            onSuccess: () => handleAssignDialogChange(false),
+        });
 };
 
-const elevatePriority = (ticket: Ticket) => {
+const priorityDialogOpen = ref(false);
+const priorityDialogTicket = ref<Ticket | null>(null);
+const priorityDialogNextPriority = ref<Ticket['priority'] | null>(null);
+
+const handlePriorityDialogChange = (open: boolean) => {
+    priorityDialogOpen.value = open;
+
+    if (!open) {
+        priorityDialogTicket.value = null;
+        priorityDialogNextPriority.value = null;
+    }
+};
+
+const openPriorityDialog = (ticket: Ticket) => {
     const priorityLevels: Ticket['priority'][] = ['low', 'medium', 'high'];
     const currentIndex = priorityLevels.indexOf(ticket.priority);
-    const nextPriority = priorityLevels[Math.min(priorityLevels.length - 1, currentIndex + 1)];
+    const nextPriority =
+        currentIndex === -1 || currentIndex + 1 >= priorityLevels.length
+            ? null
+            : priorityLevels[currentIndex + 1];
 
-    if (nextPriority === ticket.priority) {
-        window.alert('Ticket is already at the highest priority.');
+    if (!nextPriority) {
         return;
     }
 
-    if (!window.confirm(`Change priority from ${ticket.priority} to ${nextPriority}?`)) {
+    priorityDialogTicket.value = ticket;
+    priorityDialogNextPriority.value = nextPriority;
+    handlePriorityDialogChange(true);
+};
+
+const confirmPriorityUpdate = () => {
+    if (!priorityDialogTicket.value || !priorityDialogNextPriority.value) {
         return;
     }
 
     router.put(
-        route('acp.support.tickets.priority', { ticket: ticket.id }),
-        { priority: nextPriority },
-        quickActionVisitOptions,
+        route('acp.support.tickets.priority', { ticket: priorityDialogTicket.value.id }),
+        { priority: priorityDialogNextPriority.value },
+        {
+            ...quickActionVisitOptions,
+            onSuccess: () => handlePriorityDialogChange(false),
+        },
     );
 };
 
-const updateTicketStatus = (ticket: Ticket, status: Ticket['status']) => {
-    const statusLabel = status === 'open' ? 'open this ticket' : status === 'closed' ? 'close this ticket' : `mark this ticket as ${status}`;
+const statusDialogOpen = ref(false);
+const statusDialogTicket = ref<Ticket | null>(null);
+const statusDialogStatus = ref<Ticket['status'] | null>(null);
 
-    if (!window.confirm(`Are you sure you want to ${statusLabel}?`)) {
+const handleStatusDialogChange = (open: boolean) => {
+    statusDialogOpen.value = open;
+
+    if (!open) {
+        statusDialogTicket.value = null;
+        statusDialogStatus.value = null;
+    }
+};
+
+const openStatusDialog = (ticket: Ticket, status: Ticket['status']) => {
+    statusDialogTicket.value = ticket;
+    statusDialogStatus.value = status;
+    handleStatusDialogChange(true);
+};
+
+const statusDialogActionLabel = computed(() => {
+    if (!statusDialogStatus.value) {
+        return '';
+    }
+
+    if (statusDialogStatus.value === 'open') {
+        return 'open this ticket';
+    }
+
+    if (statusDialogStatus.value === 'closed') {
+        return 'close this ticket';
+    }
+
+    return `mark this ticket as ${statusDialogStatus.value}`;
+});
+
+const confirmStatusUpdate = () => {
+    if (!statusDialogTicket.value || !statusDialogStatus.value) {
         return;
     }
 
     router.put(
-        route('acp.support.tickets.status', { ticket: ticket.id }),
-        { status },
-        quickActionVisitOptions,
+        route('acp.support.tickets.status', { ticket: statusDialogTicket.value.id }),
+        { status: statusDialogStatus.value },
+        {
+            ...quickActionVisitOptions,
+            onSuccess: () => handleStatusDialogChange(false),
+        },
     );
 };
-
-const openTicket = (ticket: Ticket) => updateTicketStatus(ticket, 'open');
-const closeTicket = (ticket: Ticket) => updateTicketStatus(ticket, 'closed');
 
 const currentTicketPage = computed(() => props.tickets.meta?.current_page ?? 1);
 const currentFaqPage = computed(() => props.faqs.meta?.current_page ?? 1);
@@ -404,20 +487,21 @@ const filteredFaqs = computed(() => {
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuSeparator v-if="assignSupport||prioritySupport" />
                                                         <DropdownMenuGroup v-if="assignSupport||prioritySupport">
-                                                            <DropdownMenuItem
-                                                                v-if="assignSupport"
-                                                                @select="assignTicket(t)"
-                                                            >
-                                                                <UserPlus class="h-8 w-8" />
-                                                                <span>Add Users</span>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                v-if="prioritySupport"
-                                                                @select="elevatePriority(t)"
-                                                            >
-                                                                <SquareChevronUp class="h-8 w-8" />
-                                                                <span>Elevate Priority</span>
-                                                            </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            v-if="assignSupport"
+                                                            @select="openAssignDialog(t)"
+                                                        >
+                                                            <UserPlus class="h-8 w-8" />
+                                                            <span>Add Users</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            v-if="prioritySupport"
+                                                            :disabled="t.priority === 'high'"
+                                                            @select="openPriorityDialog(t)"
+                                                        >
+                                                            <SquareChevronUp class="h-8 w-8" />
+                                                            <span>Elevate Priority</span>
+                                                        </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="editSupport" />
                                                         <DropdownMenuGroup v-if="editSupport">
@@ -432,14 +516,14 @@ const filteredFaqs = computed(() => {
                                                             <DropdownMenuItem
                                                                 v-if="t.status !== 'open'"
                                                                 class="text-green-500"
-                                                                @select="openTicket(t)"
+                                                                @select="openStatusDialog(t, 'open')"
                                                             >
                                                                 <Ticket class="mr-2" /> Open Ticket
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 v-if="t.status === 'open'"
                                                                 class="text-red-500"
-                                                                @select="closeTicket(t)"
+                                                                @select="openStatusDialog(t, 'closed')"
                                                             >
                                                                 <TicketX class="mr-2" /> Close Ticket
                                                             </DropdownMenuItem>
@@ -657,5 +741,89 @@ const filteredFaqs = computed(() => {
                 </Tabs>
             </div>
         </AdminLayout>
+
+        <Dialog :open="assignDialogOpen" @update:open="handleAssignDialogChange">
+            <DialogContent class="sm:max-w-md">
+                <form class="space-y-6" @submit.prevent="submitAssignForm">
+                    <DialogHeader>
+                        <DialogTitle>Assign ticket</DialogTitle>
+                        <DialogDescription v-if="assignDialogTicket">
+                            Assign ticket <span class="font-medium">#{{ assignDialogTicket.id }}</span> to an agent or leave the
+                            field blank to unassign it.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div class="grid gap-3">
+                        <div class="grid gap-2">
+                            <Label for="assign-ticket-agent">Agent user ID</Label>
+                            <Input
+                                id="assign-ticket-agent"
+                                v-model="assignForm.assigned_to"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                placeholder="e.g. 42"
+                            />
+                            <InputError :message="assignDialogError ?? assignForm.errors.assigned_to" />
+                        </div>
+                        <p class="text-sm text-muted-foreground">
+                            Leave this empty to remove the current assignee.
+                        </p>
+                    </div>
+
+                    <DialogFooter class="gap-2">
+                        <Button type="button" variant="secondary" @click="handleAssignDialogChange(false)">
+                            Cancel
+                        </Button>
+                        <Button type="submit" :disabled="assignForm.processing">
+                            Save
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog :open="priorityDialogOpen" @update:open="handlePriorityDialogChange">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Elevate priority</DialogTitle>
+                    <DialogDescription v-if="priorityDialogTicket && priorityDialogNextPriority">
+                        Change the priority of ticket <span class="font-medium">#{{ priorityDialogTicket.id }}</span> from
+                        <span class="font-medium">{{ priorityDialogTicket.priority }}</span> to
+                        <span class="font-medium">{{ priorityDialogNextPriority }}</span>.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <DialogFooter class="gap-2">
+                    <Button type="button" variant="secondary" @click="handlePriorityDialogChange(false)">
+                        Cancel
+                    </Button>
+                    <Button type="button" :disabled="!priorityDialogTicket || !priorityDialogNextPriority" @click="confirmPriorityUpdate">
+                        Confirm
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog :open="statusDialogOpen" @update:open="handleStatusDialogChange">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Update ticket status</DialogTitle>
+                    <DialogDescription v-if="statusDialogTicket && statusDialogStatus">
+                        Are you sure you want to {{ statusDialogActionLabel }} for
+                        ticket <span class="font-medium">#{{ statusDialogTicket.id }}</span>?
+                    </DialogDescription>
+                </DialogHeader>
+
+                <DialogFooter class="gap-2">
+                    <Button type="button" variant="secondary" @click="handleStatusDialogChange(false)">
+                        Cancel
+                    </Button>
+                    <Button type="button" :disabled="!statusDialogTicket || !statusDialogStatus" @click="confirmStatusUpdate">
+                        Confirm
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>
