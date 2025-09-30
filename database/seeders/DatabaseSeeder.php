@@ -19,5 +19,9 @@ class DatabaseSeeder extends Seeder
             'nickname' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        $this->call([
+            TokenLogDemoSeeder::class,
+        ]);
     }
 }
