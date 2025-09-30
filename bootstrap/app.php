@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureSiteIsAvailable;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
@@ -28,7 +29,11 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureFrontendRequestsAreStateful::class,
         ]);
 
-        $middleware->web(append: [
+        $middleware->web(
+            prepend: [
+                EnsureSiteIsAvailable::class,
+            ],
+            append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
