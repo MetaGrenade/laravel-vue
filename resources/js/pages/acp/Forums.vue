@@ -7,7 +7,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import {
     Folder, MessageSquare, CheckCircle, Ellipsis, EyeOff, Shield,
-    Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Lock
+    Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Lock, Layers
 } from 'lucide-vue-next';
 import Button from '@/components/ui/button/Button.vue';
 import {
