@@ -11,9 +11,32 @@ class EmailVerification
      */
     public static function isRequired(): bool
     {
-        return (bool) SystemSetting::get(
-            'email_verification_required',
-            (bool) config('auth.must_verify_email', false)
-        );
+        $value = SystemSetting::get('email_verification_required');
+
+        if ($value === null) {
+            return static::normalize(config('auth.must_verify_email', false));
+        }
+
+        return static::normalize($value);
+    }
+
+    /**
+     * Normalize the mixed value to a strict boolean.
+     */
+    protected static function normalize(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $normalized = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+
+        return (bool) $value;
     }
 }
