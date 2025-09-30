@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BlogCommentController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForumController;
@@ -18,6 +19,16 @@ Route::get('/', function () {
 // Public Blog Routes
 Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
 Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.view');
+
+Route::prefix('blogs/{blog:slug}/comments')->group(function () {
+    Route::get('/', [BlogCommentController::class, 'index'])->name('blogs.comments.index');
+
+    Route::middleware('auth')->group(function () {
+        Route::post('/', [BlogCommentController::class, 'store'])->name('blogs.comments.store');
+        Route::put('/{comment}', [BlogCommentController::class, 'update'])->name('blogs.comments.update');
+        Route::delete('/{comment}', [BlogCommentController::class, 'destroy'])->name('blogs.comments.destroy');
+    });
+});
 
 Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
 Route::get('forum/{board:slug}', [ForumController::class, 'showBoard'])->name('forum.boards.show');

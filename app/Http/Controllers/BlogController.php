@@ -52,7 +52,12 @@ class BlogController extends Controller
      */
     public function show($slug): Response
     {
-        $blog = Blog::with(['user:id,nickname'])
+        $blog = Blog::with([
+            'user:id,nickname',
+            'comments' => function ($query) {
+                $query->with(['user:id,nickname'])->orderBy('created_at');
+            },
+        ])
             ->where('slug', $slug)
             ->where('status', 'published')
             ->firstOrFail();
@@ -69,6 +74,18 @@ class BlogController extends Controller
                     'id' => $blog->user->id,
                     'nickname' => $blog->user->nickname,
                 ] : null,
+                'comments' => $blog->comments->map(function ($comment) {
+                    return [
+                        'id' => $comment->id,
+                        'body' => $comment->body,
+                        'created_at' => optional($comment->created_at)->toIso8601String(),
+                        'updated_at' => optional($comment->updated_at)->toIso8601String(),
+                        'user' => $comment->user ? [
+                            'id' => $comment->user->id,
+                            'nickname' => $comment->user->nickname,
+                        ] : null,
+                    ];
+                })->values(),
             ],
         ]);
     }
