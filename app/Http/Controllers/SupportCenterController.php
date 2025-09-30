@@ -8,8 +8,12 @@ use App\Http\Requests\StorePublicSupportTicketRequest;
 use App\Models\Faq;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
+use App\Models\SupportTicketMessageAttachment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -117,6 +121,7 @@ class SupportCenterController extends Controller
             'assignee:id,nickname,email',
             'user:id,nickname,email',
             'messages.author:id,nickname,email',
+            'messages.attachments',
         ]);
 
         $messages = $ticket->messages
@@ -133,6 +138,17 @@ class SupportCenterController extends Controller
                     'is_from_support' => $message->author
                         ? $message->author->id !== $ticket->user_id
                         : false,
+                    'attachments' => $message->attachments
+                        ->map(function (SupportTicketMessageAttachment $attachment) {
+                            return [
+                                'id' => $attachment->id,
+                                'name' => $attachment->name,
+                                'size' => $attachment->size,
+                                'download_url' => Storage::disk($attachment->disk)->url($attachment->path),
+                            ];
+                        })
+                        ->values()
+                        ->all(),
                 ];
             })
             ->values()
@@ -149,6 +165,7 @@ class SupportCenterController extends Controller
                     'email' => $ticket->user->email,
                 ] : null,
                 'is_from_support' => false,
+                'attachments' => [],
             ];
         }
 
@@ -183,13 +200,41 @@ class SupportCenterController extends Controller
     ): RedirectResponse {
         $validated = $request->validated();
 
-        $message = $ticket->messages()->create([
-            'user_id' => $request->user()->id,
-            'body' => $validated['body'],
-        ]);
+        DB::transaction(function () use ($request, $ticket, $validated): void {
+            $message = $ticket->messages()->create([
+                'user_id' => $request->user()->id,
+                'body' => $validated['body'],
+            ]);
 
-        $ticket->touch();
-        $message->touch();
+            $attachments = $request->file('attachments', []);
+
+            if ($attachments instanceof UploadedFile) {
+                $attachments = [$attachments];
+            } elseif (! is_array($attachments)) {
+                $attachments = [];
+            }
+
+            $disk = 'public';
+
+            foreach ($attachments as $file) {
+                if (! $file) {
+                    continue;
+                }
+
+                $path = $file->store("support-attachments/{$ticket->id}", $disk);
+
+                $message->attachments()->create([
+                    'disk' => $disk,
+                    'path' => $path,
+                    'name' => $file->getClientOriginalName() ?: $file->hashName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'size' => $file->getSize() ?: 0,
+                ]);
+            }
+
+            $ticket->touch();
+            $message->touch();
+        });
 
         return redirect()
             ->route('support.tickets.show', $ticket)
