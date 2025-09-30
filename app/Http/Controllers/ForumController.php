@@ -240,6 +240,25 @@ class ForumController extends Controller
             abort(404);
         }
 
+        $sessionKey = 'forum.viewed_threads';
+        $now = now();
+        $thresholdTimestamp = $now->copy()->subMinutes(5)->getTimestamp();
+
+        $viewedThreads = $request->session()->get($sessionKey, []);
+        $viewedThreads = array_filter(
+            $viewedThreads,
+            static fn ($timestamp) => $timestamp >= $thresholdTimestamp
+        );
+
+        $lastViewedAt = $viewedThreads[$thread->id] ?? null;
+
+        if ($lastViewedAt === null || $lastViewedAt < $thresholdTimestamp) {
+            $thread->increment('views');
+            $viewedThreads[$thread->id] = $now->getTimestamp();
+        }
+
+        $request->session()->put($sessionKey, $viewedThreads);
+
         $board->load('category');
 
         $thread->load([
