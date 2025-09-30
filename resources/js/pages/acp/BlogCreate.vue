@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -12,6 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { CalendarClock, Eye } from 'lucide-vue-next';
+import { useUserTimezone } from '@/composables/useUserTimezone';
 
 type BlogTaxonomyOption = {
     id: number;
@@ -31,6 +35,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const statusOptions = [
     { label: 'Draft', value: 'draft' },
+    { label: 'Scheduled', value: 'scheduled' },
     { label: 'Published', value: 'published' },
     { label: 'Archived', value: 'archived' },
 ];
@@ -39,10 +44,11 @@ type BlogForm = {
     title: string;
     excerpt: string;
     body: string;
-    status: 'draft' | 'published' | 'archived';
+    status: 'draft' | 'scheduled' | 'published' | 'archived';
     cover_image: File | null;
     category_ids: number[];
     tag_ids: number[];
+    scheduled_for: string;
 };
 
 const form = useForm<BlogForm>({
@@ -53,9 +59,70 @@ const form = useForm<BlogForm>({
     cover_image: null,
     category_ids: [],
     tag_ids: [],
+    scheduled_for: '',
 });
 
 const coverImagePreview = ref<string | null>(null);
+const previewOpen = ref(false);
+
+const { formatDate } = useUserTimezone();
+
+const formatForInput = (date: Date) => {
+    const pad = (value: number) => value.toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const defaultScheduledAt = () => {
+    const date = new Date();
+    date.setMinutes(date.getMinutes() + 30);
+    date.setSeconds(0, 0);
+
+    return formatForInput(date);
+};
+
+const minScheduleValue = computed(() => formatForInput(new Date()));
+
+watch(
+    () => form.status,
+    (status) => {
+        if (status === 'scheduled' && !form.scheduled_for) {
+            form.scheduled_for = defaultScheduledAt();
+        }
+
+        if (status !== 'scheduled') {
+            form.scheduled_for = '';
+        }
+    },
+    { immediate: true },
+);
+
+const previewCoverImage = computed(() => coverImagePreview.value ?? null);
+const previewCover = computed(() => previewCoverImage.value ?? '/images/default-cover.jpg');
+const selectedCategories = computed(() =>
+    props.categories.filter((category) => form.category_ids.includes(category.id)),
+);
+const selectedTags = computed(() => props.tags.filter((tag) => form.tag_ids.includes(tag.id)));
+const previewScheduledMessage = computed(() => {
+    if (form.status === 'scheduled' && form.scheduled_for) {
+        return `Scheduled for ${formatDate(form.scheduled_for, 'MMMM D, YYYY h:mm A')}`;
+    }
+
+    if (form.status === 'draft') {
+        return 'Draft — this post will stay private until you publish it.';
+    }
+
+    if (form.status === 'archived') {
+        return 'Archived — readers will not see this post until it is reactivated.';
+    }
+
+    return 'Publish immediately once saved.';
+});
 
 const handleCoverImageChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
@@ -77,12 +144,15 @@ onBeforeUnmount(() => {
 
 const handleSubmit = () => {
     form.transform((data) => {
-        if (data.cover_image) {
-            return data;
+        const payload = { ...data } as Record<string, unknown>;
+
+        if (!data.cover_image) {
+            delete payload.cover_image;
         }
 
-        const payload = { ...data };
-        delete payload.cover_image;
+        if (data.status !== 'scheduled') {
+            delete payload.scheduled_for;
+        }
 
         return payload;
     });
@@ -114,6 +184,15 @@ const handleSubmit = () => {
                     <div class="flex flex-wrap gap-2">
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.blogs.index')">Cancel</Link>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            class="flex items-center gap-2"
+                            @click="previewOpen = true"
+                        >
+                            <Eye class="h-4 w-4" />
+                            Preview
                         </Button>
                         <Button type="submit" :disabled="form.processing">Save blog post</Button>
                     </div>
@@ -261,9 +340,24 @@ const handleSubmit = () => {
                                 <InputError :message="form.errors.status" />
                             </div>
 
+                            <div v-if="form.status === 'scheduled'" class="grid gap-2">
+                                <Label for="scheduled_for">Schedule for</Label>
+                                <Input
+                                    id="scheduled_for"
+                                    v-model="form.scheduled_for"
+                                    type="datetime-local"
+                                    :min="minScheduleValue"
+                                    required
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    We'll automatically publish the post at this date and time.
+                                </p>
+                                <InputError :message="form.errors.scheduled_for" />
+                            </div>
+
                             <p class="text-sm text-muted-foreground">
-                                Draft posts remain private until they are published. You can revisit and update them at any
-                                time from the Blogs dashboard.
+                                Draft posts remain private until they are published. Scheduled posts will go live
+                                automatically, while archived entries stay hidden from readers.
                             </p>
                         </CardContent>
                         <CardFooter class="justify-end">
@@ -272,6 +366,62 @@ const handleSubmit = () => {
                     </Card>
                 </div>
             </form>
+
+            <Dialog v-model:open="previewOpen">
+                <DialogContent class="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Preview blog post</DialogTitle>
+                        <DialogDescription>
+                            Review how your article will appear before saving or scheduling it.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div class="space-y-6">
+                        <Alert variant="warning" class="items-start">
+                            <component :is="CalendarClock" class="mt-0.5 h-4 w-4" />
+                            <AlertTitle>Publication summary</AlertTitle>
+                            <AlertDescription>{{ previewScheduledMessage }}</AlertDescription>
+                        </Alert>
+
+                        <div class="space-y-6">
+                            <div class="overflow-hidden rounded-lg border border-muted">
+                                <img :src="previewCover" alt="Preview cover" class="h-56 w-full object-cover" />
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-xs uppercase tracking-wide text-muted-foreground">Title</p>
+                                    <h2 class="text-2xl font-semibold">{{ form.title || 'Untitled post' }}</h2>
+                                </div>
+                                <div v-if="form.excerpt" class="text-sm text-muted-foreground">
+                                    {{ form.excerpt }}
+                                </div>
+                                <div class="prose max-w-none" v-html="form.body || '<p>No body content yet.</p>'"></div>
+                            </div>
+
+                            <div v-if="selectedCategories.length || selectedTags.length" class="space-y-3">
+                                <p class="text-xs uppercase tracking-wide text-muted-foreground">Metadata</p>
+                                <div class="flex flex-wrap gap-2 text-xs">
+                                    <span
+                                        v-for="category in selectedCategories"
+                                        :key="`preview-category-${category.id}`"
+                                        class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-medium text-primary"
+                                    >
+                                        {{ category.name }}
+                                    </span>
+                                    <span
+                                        v-for="tag in selectedTags"
+                                        :key="`preview-tag-${tag.id}`"
+                                        class="inline-flex items-center rounded-full border border-muted-foreground/30 bg-muted px-3 py-1 font-medium text-muted-foreground"
+                                    >
+                                        #{{ tag.name }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </AdminLayout>
     </AppLayout>
 </template>

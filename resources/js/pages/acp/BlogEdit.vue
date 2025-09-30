@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -13,6 +13,9 @@ import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { CalendarClock, Eye, Link as LinkIcon } from 'lucide-vue-next';
 
 type BlogTaxonomyOption = {
     id: number;
@@ -20,7 +23,7 @@ type BlogTaxonomyOption = {
     slug: string;
 };
 
-type BlogStatus = 'draft' | 'published' | 'archived';
+type BlogStatus = 'draft' | 'scheduled' | 'published' | 'archived';
 
 type BlogPayload = {
     id: number;
@@ -32,8 +35,10 @@ type BlogPayload = {
     created_at?: string;
     updated_at?: string;
     published_at?: string | null;
+    scheduled_for?: string | null;
     cover_image?: string | null;
     cover_image_url?: string | null;
+    preview_url?: string | null;
     categories: BlogTaxonomyOption[];
     tags: BlogTaxonomyOption[];
 };
@@ -46,6 +51,7 @@ type BlogForm = {
     cover_image: File | null;
     category_ids: number[];
     tag_ids: number[];
+    scheduled_for: string;
 };
 
 const props = defineProps<{
@@ -73,6 +79,7 @@ const form = useForm<BlogForm>({
     cover_image: null,
     category_ids: props.blog.categories?.map((category) => category.id) ?? [],
     tag_ids: props.blog.tags?.map((tag) => tag.id) ?? [],
+    scheduled_for: '',
 });
 
 const { formatDate } = useUserTimezone();
@@ -86,10 +93,119 @@ const updatedAt = computed(() =>
 const publishedAt = computed(() =>
     props.blog.published_at ? formatDate(props.blog.published_at) : 'Not published'
 );
+const scheduledAt = computed(() =>
+    props.blog.scheduled_for ? formatDate(props.blog.scheduled_for) : '—'
+);
 
 const coverImagePreview = ref<string | null>(null);
-
 const existingCoverImage = computed(() => coverImagePreview.value ?? props.blog.cover_image_url ?? null);
+
+const previewOpen = ref(false);
+const previewCopied = ref(false);
+
+const formatForInput = (date: Date) => {
+    const pad = (value: number) => value.toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const toInputValue = (value?: string | null) => {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    return formatForInput(date);
+};
+
+const defaultScheduledAt = () => {
+    const date = new Date();
+    date.setMinutes(date.getMinutes() + 30);
+    date.setSeconds(0, 0);
+
+    return formatForInput(date);
+};
+
+const minScheduleValue = computed(() => formatForInput(new Date()));
+
+form.scheduled_for = props.blog.status === 'scheduled' ? toInputValue(props.blog.scheduled_for) : '';
+
+watch(
+    () => form.status,
+    (status) => {
+        if (status === 'scheduled' && !form.scheduled_for) {
+            form.scheduled_for =
+                props.blog.status === 'scheduled' && props.blog.scheduled_for
+                    ? toInputValue(props.blog.scheduled_for)
+                    : defaultScheduledAt();
+        }
+
+        if (status !== 'scheduled') {
+            form.scheduled_for = '';
+        }
+    },
+    { immediate: true },
+);
+
+const selectedCategories = computed(() =>
+    props.categories.filter((category) => form.category_ids.includes(category.id)),
+);
+const selectedTags = computed(() => props.tags.filter((tag) => form.tag_ids.includes(tag.id)));
+
+const previewCover = computed(() => existingCoverImage.value ?? '/images/default-cover.jpg');
+const previewScheduledMessage = computed(() => {
+    if (form.status === 'scheduled' && form.scheduled_for) {
+        return `Scheduled for ${formatDate(form.scheduled_for, 'MMMM D, YYYY h:mm A')}`;
+    }
+
+    if (form.status === 'draft') {
+        return 'Draft — this post will remain private until published.';
+    }
+
+    if (form.status === 'archived') {
+        return 'Archived — this post is hidden from readers.';
+    }
+
+    if (form.status === 'published') {
+        return 'Published — updates will go live immediately after saving.';
+    }
+
+    return 'Ready to publish when you save changes.';
+});
+
+const previewLink = computed(() => props.blog.preview_url ?? null);
+
+let copyTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const copyPreviewLink = async () => {
+    if (!previewLink.value) {
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(previewLink.value);
+        previewCopied.value = true;
+
+        if (copyTimeout) {
+            clearTimeout(copyTimeout);
+        }
+
+        copyTimeout = setTimeout(() => {
+            previewCopied.value = false;
+        }, 2000);
+    } catch {
+        previewCopied.value = false;
+    }
+};
 
 const handleCoverImageChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
@@ -107,6 +223,10 @@ onBeforeUnmount(() => {
     if (coverImagePreview.value) {
         URL.revokeObjectURL(coverImagePreview.value);
     }
+
+    if (copyTimeout) {
+        clearTimeout(copyTimeout);
+    }
 });
 
 const handleSubmit = () => {
@@ -118,6 +238,10 @@ const handleSubmit = () => {
 
         if (!data.cover_image) {
             delete payload.cover_image;
+        }
+
+        if (data.status !== 'scheduled') {
+            delete payload.scheduled_for;
         }
 
         return payload;
@@ -150,6 +274,26 @@ const handleSubmit = () => {
                     <div class="flex flex-wrap gap-2">
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.blogs.index')">Back to blogs</Link>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            class="flex items-center gap-2"
+                            @click="previewOpen = true"
+                        >
+                            <Eye class="h-4 w-4" />
+                            Preview changes
+                        </Button>
+                        <Button
+                            v-if="previewLink"
+                            variant="outline"
+                            as-child
+                            class="flex items-center gap-2"
+                        >
+                            <a :href="previewLink" target="_blank" rel="noopener">
+                                <LinkIcon class="h-4 w-4" />
+                                Open preview link
+                            </a>
                         </Button>
                         <Button type="submit" :disabled="form.processing">Save changes</Button>
                     </div>
@@ -298,9 +442,24 @@ const handleSubmit = () => {
                                     <InputError :message="form.errors.status" />
                                 </div>
 
+                                <div v-if="form.status === 'scheduled'" class="grid gap-2">
+                                    <Label for="scheduled_for">Schedule for</Label>
+                                    <Input
+                                        id="scheduled_for"
+                                        v-model="form.scheduled_for"
+                                        type="datetime-local"
+                                        :min="minScheduleValue"
+                                        required
+                                    />
+                                    <p class="text-xs text-muted-foreground">
+                                        We'll queue the post to publish automatically at this time.
+                                    </p>
+                                    <InputError :message="form.errors.scheduled_for" />
+                                </div>
+
                                 <p class="text-sm text-muted-foreground">
                                     Publishing immediately sets the article live and records the publish time. Draft posts stay
-                                    private to the editorial team.
+                                    private, scheduled entries go live automatically, and archived posts remain hidden.
                                 </p>
                             </CardContent>
                             <CardFooter class="justify-end">
@@ -326,11 +485,95 @@ const handleSubmit = () => {
                                     <span>Published</span>
                                     <span>{{ publishedAt }}</span>
                                 </div>
+                                <div class="flex justify-between">
+                                    <span>Scheduled</span>
+                                    <span>{{ scheduledAt }}</span>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
                 </div>
             </form>
+
+            <Dialog v-model:open="previewOpen">
+                <DialogContent class="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Preview blog post</DialogTitle>
+                        <DialogDescription>
+                            Confirm how the article will look once saved or scheduled.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div class="space-y-6">
+                        <Alert variant="warning" class="items-start">
+                            <component :is="CalendarClock" class="mt-0.5 h-4 w-4" />
+                            <AlertTitle>Publication summary</AlertTitle>
+                            <AlertDescription>{{ previewScheduledMessage }}</AlertDescription>
+                        </Alert>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <Button
+                                v-if="previewLink"
+                                variant="outline"
+                                as-child
+                                class="flex items-center gap-2"
+                            >
+                                <a :href="previewLink" target="_blank" rel="noopener">
+                                    <LinkIcon class="h-4 w-4" />
+                                    Open shareable preview
+                                </a>
+                            </Button>
+                            <Button
+                                v-if="previewLink"
+                                type="button"
+                                variant="ghost"
+                                class="flex items-center gap-2"
+                                @click="copyPreviewLink"
+                            >
+                                <LinkIcon class="h-4 w-4" />
+                                {{ previewCopied ? 'Copied!' : 'Copy preview link' }}
+                            </Button>
+                        </div>
+
+                        <div class="space-y-6">
+                            <div class="overflow-hidden rounded-lg border border-muted">
+                                <img :src="previewCover" alt="Preview cover" class="h-56 w-full object-cover" />
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-xs uppercase tracking-wide text-muted-foreground">Title</p>
+                                    <h2 class="text-2xl font-semibold">{{ form.title || 'Untitled post' }}</h2>
+                                </div>
+                                <div v-if="form.excerpt" class="text-sm text-muted-foreground">
+                                    {{ form.excerpt }}
+                                </div>
+                                <div class="prose max-w-none" v-html="form.body || '<p>No body content yet.</p>'"></div>
+                            </div>
+
+                            <div v-if="selectedCategories.length || selectedTags.length" class="space-y-3">
+                                <p class="text-xs uppercase tracking-wide text-muted-foreground">Metadata</p>
+                                <div class="flex flex-wrap gap-2 text-xs">
+                                    <span
+                                        v-for="category in selectedCategories"
+                                        :key="`preview-category-${category.id}`"
+                                        class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-medium text-primary"
+                                    >
+                                        {{ category.name }}
+                                    </span>
+                                    <span
+                                        v-for="tag in selectedTags"
+                                        :key="`preview-tag-${tag.id}`"
+                                        class="inline-flex items-center rounded-full border border-muted-foreground/30 bg-muted px-3 py-1 font-medium text-muted-foreground"
+                                    >
+                                        #{{ tag.name }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </AdminLayout>
     </AppLayout>
 </template>

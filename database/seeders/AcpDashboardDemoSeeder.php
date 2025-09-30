@@ -232,6 +232,8 @@ class AcpDashboardDemoSeeder extends Seeder
                     'user_id' => $author->id,
                     'status' => $definition['status'],
                     'published_at' => $definition['published_at'],
+                    'scheduled_for' => $definition['scheduled_for'] ?? null,
+                    'preview_token' => $definition['preview_token'] ?? Str::uuid()->toString(),
                 ]
             );
             $blog->forceFill([
