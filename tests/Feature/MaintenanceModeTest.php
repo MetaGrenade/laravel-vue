@@ -32,4 +32,26 @@ class MaintenanceModeTest extends TestCase
 
         $this->get(route('home'))->assertOk();
     }
+
+    public function test_admins_can_manage_system_settings_during_maintenance(): void
+    {
+        $admin = User::factory()->create();
+        $role = Role::create(['name' => 'admin']);
+        $admin->assignRole($role);
+
+        SystemSetting::set('maintenance_mode', true);
+
+        $this->actingAs($admin);
+
+        $this->get(route('acp.system'))->assertOk();
+
+        $this->from(route('acp.system'))
+            ->put(route('acp.system.update'), [
+                'maintenance_mode' => false,
+                'email_verification_required' => false,
+            ])
+            ->assertRedirect(route('acp.system'));
+
+        $this->assertFalse((bool) SystemSetting::get('maintenance_mode'));
+    }
 }

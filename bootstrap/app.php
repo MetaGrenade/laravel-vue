@@ -30,15 +30,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->web(
-            prepend: [
-                EnsureSiteIsAvailable::class,
-            ],
             append: [
-            HandleAppearance::class,
-            HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
-            UpdateLastActivity::class,
-        ]);
+                EnsureSiteIsAvailable::class,
+                HandleAppearance::class,
+                HandleInertiaRequests::class,
+                AddLinkHeadersForPreloadedAssets::class,
+                UpdateLastActivity::class,
+            ]);
 
         $middleware->alias([
             'verified' => EnsureEmailIsVerified::class,
