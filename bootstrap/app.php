@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureEmailIsVerifiedIfRequired;
+use App\Http\Middleware\EnsureSiteIsAvailable;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
@@ -28,12 +29,14 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureFrontendRequestsAreStateful::class,
         ]);
 
-        $middleware->web(append: [
-            HandleAppearance::class,
-            HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
-            UpdateLastActivity::class,
-        ]);
+        $middleware->web(
+            append: [
+                EnsureSiteIsAvailable::class,
+                HandleAppearance::class,
+                HandleInertiaRequests::class,
+                AddLinkHeadersForPreloadedAssets::class,
+                UpdateLastActivity::class,
+            ]);
 
         $middleware->alias([
             'verified' => EnsureEmailIsVerifiedIfRequired::class,
