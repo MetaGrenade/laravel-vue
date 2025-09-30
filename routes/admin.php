@@ -55,10 +55,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
 
     Route::get('acp/forums/boards/create', [ForumBoardController::class, 'create'])->name('acp.forums.boards.create');
     Route::post('acp/forums/boards', [ForumBoardController::class, 'store'])->name('acp.forums.boards.store');
-    Route::get('acp/forums/boards/{board}/edit', [ForumBoardController::class, 'edit'])->name('acp.forums.boards.edit');
-    Route::put('acp/forums/boards/{board}', [ForumBoardController::class, 'update'])->name('acp.forums.boards.update');
-    Route::delete('acp/forums/boards/{board}', [ForumBoardController::class, 'destroy'])->name('acp.forums.boards.destroy');
-    Route::patch('acp/forums/boards/{board}/reorder', [ForumBoardController::class, 'reorder'])->name('acp.forums.boards.reorder');
+    Route::get('acp/forums/boards/{board:id}/edit', [ForumBoardController::class, 'edit'])->name('acp.forums.boards.edit');
+    Route::put('acp/forums/boards/{board:id}', [ForumBoardController::class, 'update'])->name('acp.forums.boards.update');
+    Route::delete('acp/forums/boards/{board:id}', [ForumBoardController::class, 'destroy'])->name('acp.forums.boards.destroy');
+    Route::patch('acp/forums/boards/{board:id}/reorder', [ForumBoardController::class, 'reorder'])->name('acp.forums.boards.reorder');
 
     // Support ACP
     Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');
