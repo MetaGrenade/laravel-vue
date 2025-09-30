@@ -108,7 +108,7 @@ class ForumReportsTest extends TestCase
 
         $response->assertInertia(fn (Assert $page) => $page
             ->component('acp/ForumReports')
-            ->where('reports.data', function (array $reports) use ($threadReport, $postReport) {
+            ->where('reports.data', function ($reports) use ($threadReport, $postReport) {
                 $collection = collect($reports);
 
                 return $collection->contains(fn ($report) => $report['id'] === $threadReport->id && $report['type'] === 'thread')
@@ -133,7 +133,7 @@ class ForumReportsTest extends TestCase
 
         $response = $this->actingAs($moderator)
             ->from(route('acp.forums.reports.index'))
-            ->patch(route('acp.forums.reports.threads.update', $report), [
+            ->patch(route('acp.forums.reports.threads.update', ['report' => $report->id]), [
                 'status' => ForumThreadReport::STATUS_REVIEWED,
                 'moderation_action' => 'lock_thread',
             ]);
@@ -173,7 +173,7 @@ class ForumReportsTest extends TestCase
 
         $response = $this->actingAs($moderator)
             ->from(route('acp.forums.reports.index'))
-            ->patch(route('acp.forums.reports.posts.update', $report), [
+            ->patch(route('acp.forums.reports.posts.update', ['report' => $report->id]), [
                 'status' => ForumPostReport::STATUS_DISMISSED,
                 'moderation_action' => 'delete_post',
             ]);
