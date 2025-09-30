@@ -265,6 +265,29 @@ class AcpDashboardDemoSeeder extends Seeder
                 'created_at' => $createdAt,
                 'updated_at' => $updatedAt,
             ])->saveQuietly();
+
+            if ($ticketModel->messages()->count() === 0) {
+                $initialMessage = $ticketModel->messages()->create([
+                    'user_id' => $requestor->id,
+                    'body' => "Hi team, I wanted to follow up on an issue I noticed during the demo walkthrough. Could you take a look?",
+                ]);
+                $initialMessage->forceFill([
+                    'created_at' => $createdAt,
+                    'updated_at' => $createdAt,
+                ])->saveQuietly();
+
+                if ($assigneeId) {
+                    $reply = $ticketModel->messages()->create([
+                        'user_id' => $assigneeId,
+                        'body' => "Thanks for flagging this! I'm reviewing the details now and will circle back shortly.",
+                    ]);
+                    $replyTimestamp = $createdAt->copy()->addHours(6);
+                    $reply->forceFill([
+                        'created_at' => $replyTimestamp,
+                        'updated_at' => $replyTimestamp,
+                    ])->saveQuietly();
+                }
+            }
         }
 
         $recentTickets = [
@@ -300,6 +323,27 @@ class AcpDashboardDemoSeeder extends Seeder
                 'created_at' => $createdAt,
                 'updated_at' => $ticket['status'] === 'pending' ? $createdAt->copy()->addDay() : $now->copy()->subHours(6),
             ])->saveQuietly();
+
+            if ($ticketModel->messages()->count() === 0) {
+                $initialMessage = $ticketModel->messages()->create([
+                    'user_id' => $requestor->id,
+                    'body' => "Hello support, we noticed some behaviour that might need investigation. Let us know what you find!",
+                ]);
+                $initialMessage->forceFill([
+                    'created_at' => $createdAt,
+                    'updated_at' => $createdAt,
+                ])->saveQuietly();
+
+                $reply = $ticketModel->messages()->create([
+                    'user_id' => $admin->id,
+                    'body' => "Appreciate the heads up—we're running diagnostics and will keep you updated with next steps.",
+                ]);
+                $replyTimestamp = $createdAt->copy()->addHours(4);
+                $reply->forceFill([
+                    'created_at' => $replyTimestamp,
+                    'updated_at' => $replyTimestamp,
+                ])->saveQuietly();
+            }
         }
     }
 
