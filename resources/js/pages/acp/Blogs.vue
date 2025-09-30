@@ -36,7 +36,17 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {
-    FileText, Edit3, CheckCircle, Ellipsis, Eye, EyeOff, Trash2, Pencil, Archive, ArchiveRestore
+    FileText,
+    Edit3,
+    CheckCircle,
+    Ellipsis,
+    Eye,
+    EyeOff,
+    Trash2,
+    Pencil,
+    Archive,
+    ArchiveRestore,
+    CalendarClock,
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
@@ -88,6 +98,7 @@ const props = defineProps<{
         total: number;
         published: number;
         draft: number;
+        scheduled: number;
         archived: number;
     };
 }>();
@@ -122,6 +133,7 @@ const stats = [
     { title: 'Total Posts', value: props.blogStats.total, icon: FileText },
     { title: 'Published Posts', value: props.blogStats.published, icon: CheckCircle },
     { title: 'Draft Posts', value: props.blogStats.draft, icon: Edit3 },
+    { title: 'Scheduled Posts', value: props.blogStats.scheduled, icon: CalendarClock },
     { title: 'Archived Posts', value: props.blogStats.archived, icon: Archive },
 ];
 
@@ -270,9 +282,11 @@ const deletePost = (postId: number) => {
                                     <TableCell class="text-center">{{ post.user?.nickname ?? '—' }}</TableCell>
                                     <TableCell class="text-center">{{ post.created_at ? fromNow(post.created_at) : '—' }}</TableCell>
                                     <TableCell class="text-center" :class="{
-                                    'text-green-500': post.status === 'published',
-                                    'text-red-500': post.status === 'archived',
-                                    'text-blue-500': post.status === 'draft'}">
+                                        'text-green-500': post.status === 'published',
+                                        'text-red-500': post.status === 'archived',
+                                        'text-blue-500': post.status === 'draft',
+                                        'text-amber-500': post.status === 'scheduled',
+                                    }">
                                         {{ post.status }}</TableCell>
                                     <TableCell class="text-center">
                                         <DropdownMenu>
@@ -285,9 +299,12 @@ const deletePost = (postId: number) => {
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                 <DropdownMenuSeparator v-if="publishBlogs" />
                                                 <DropdownMenuGroup v-if="publishBlogs">
-                                                    <DropdownMenuItem v-if="post.status === 'draft'" @click="publishPost(post.id)">
+                                                    <DropdownMenuItem
+                                                        v-if="post.status === 'draft' || post.status === 'scheduled'"
+                                                        @click="publishPost(post.id)"
+                                                    >
                                                         <Eye class="mr-2" />
-                                                        <span>Publish</span>
+                                                        <span>Publish now</span>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         v-if="post.status === 'published'"
@@ -295,6 +312,13 @@ const deletePost = (postId: number) => {
                                                     >
                                                         <EyeOff class="mr-2" />
                                                         <span>Unpublish</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        v-if="post.status === 'scheduled'"
+                                                        @click="unpublishPost(post.id)"
+                                                    >
+                                                        <EyeOff class="mr-2" />
+                                                        <span>Unschedule</span>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         v-if="post.status === 'archived'"

@@ -10,6 +10,7 @@ use App\Models\BlogCategory;
 use App\Models\BlogTag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Response;
@@ -24,6 +25,18 @@ class BlogController extends Controller
     public function index(Request $request): Response
     {
         $perPage = (int) $request->get('per_page', 15);
+
+        Blog::query()
+            ->where('status', 'scheduled')
+            ->whereNotNull('scheduled_for')
+            ->where('scheduled_for', '<=', now())
+            ->each(function (Blog $dueBlog) {
+                $dueBlog->forceFill([
+                    'status' => 'published',
+                    'published_at' => $dueBlog->scheduled_for,
+                    'scheduled_for' => null,
+                ])->save();
+            });
 
         $blogQuery = Blog::query();
 
@@ -42,6 +55,7 @@ class BlogController extends Controller
                     'slug' => $blog->slug,
                     'status' => $blog->status,
                     'created_at' => optional($blog->created_at)->toIso8601String(),
+                    'scheduled_for' => optional($blog->scheduled_for)->toIso8601String(),
                     'user' => $blog->user ? [
                         'id' => $blog->user->id,
                         'nickname' => $blog->user->nickname,
@@ -56,6 +70,7 @@ class BlogController extends Controller
             'total' => $blogs->total(),
             'published' => (clone $blogQuery)->where('status', 'published')->count(),
             'draft' => (clone $blogQuery)->where('status', 'draft')->count(),
+            'scheduled' => (clone $blogQuery)->where('status', 'scheduled')->count(),
             'archived' => (clone $blogQuery)->where('status', 'archived')->count(),
         ];
 
@@ -114,6 +129,29 @@ class BlogController extends Controller
         }
 
         // Create a new blog record
+        $status = $validated['status'];
+
+        $scheduledFor = null;
+        $publishedAt = null;
+
+        if ($status === 'scheduled') {
+            $scheduledValue = $validated['scheduled_for'] ?? null;
+            if ($scheduledValue) {
+                $scheduledCandidate = Carbon::parse($scheduledValue);
+
+                if ($scheduledCandidate->isPast()) {
+                    $status = 'published';
+                    $publishedAt = $scheduledCandidate;
+                } else {
+                    $scheduledFor = $scheduledCandidate;
+                }
+            } else {
+                $status = 'draft';
+            }
+        } elseif ($status === 'published') {
+            $publishedAt = now();
+        }
+
         $blog = Blog::create([
             'title'        => $validated['title'],
             'slug'         => Str::slug($validated['title']),
@@ -121,8 +159,10 @@ class BlogController extends Controller
             'cover_image'  => $coverImagePath,
             'body'         => $validated['body'],
             'user_id'      => auth()->id(),
-            'status'       => $validated['status'],
-            'published_at' => $validated['status'] === 'published' ? now() : null,
+            'status'       => $status,
+            'published_at' => $publishedAt,
+            'scheduled_for' => $scheduledFor,
+            'preview_token' => Str::uuid()->toString(),
         ]);
 
         $blog->categories()->sync($validated['category_ids'] ?? []);
@@ -139,6 +179,12 @@ class BlogController extends Controller
     {
         $blog->load(['categories:id,name,slug', 'tags:id,name,slug']);
 
+        if (!$blog->preview_token) {
+            $blog->forceFill([
+                'preview_token' => Str::uuid()->toString(),
+            ])->save();
+        }
+
         return inertia('acp/BlogEdit', [
             'blog' => array_merge($blog->only([
                 'id',
@@ -151,9 +197,14 @@ class BlogController extends Controller
                 'created_at',
                 'updated_at',
                 'published_at',
+                'scheduled_for',
+                'preview_token',
             ]), [
                 'cover_image_url' => $blog->cover_image
                     ? Storage::disk('public')->url($blog->cover_image)
+                    : null,
+                'preview_url' => $blog->preview_token
+                    ? route('blogs.preview', ['blog' => $blog->id, 'token' => $blog->preview_token])
                     : null,
                 'categories' => $blog->categories
                     ->map(fn (BlogCategory $category) => [
@@ -206,13 +257,42 @@ class BlogController extends Controller
             $excerpt = null;
         }
 
+        $status = $validated['status'];
+
+        $scheduledFor = null;
+        $publishedAt = $blog->published_at;
+
+        if ($status === 'scheduled') {
+            $scheduledValue = $validated['scheduled_for'] ?? null;
+            if ($scheduledValue) {
+                $scheduledCandidate = Carbon::parse($scheduledValue);
+
+                if ($scheduledCandidate->isPast()) {
+                    $status = 'published';
+                    $publishedAt = $scheduledCandidate;
+                    $scheduledFor = null;
+                } else {
+                    $scheduledFor = $scheduledCandidate;
+                    $publishedAt = null;
+                }
+            } else {
+                $status = 'draft';
+                $publishedAt = null;
+            }
+        } elseif ($status === 'published') {
+            $publishedAt = now();
+        } else {
+            $publishedAt = null;
+        }
+
         $updateData = [
             'title'        => $validated['title'],
             'slug'         => Str::slug($validated['title']),
             'excerpt'      => $excerpt,
             'body'         => $validated['body'],
-            'status'       => $validated['status'],
-            'published_at' => $validated['status'] === 'published' ? now() : $blog->published_at,
+            'status'       => $status,
+            'published_at' => $publishedAt,
+            'scheduled_for' => $scheduledFor,
         ];
 
         if ($request->hasFile('cover_image')) {
@@ -253,6 +333,7 @@ class BlogController extends Controller
             $blog->forceFill([
                 'status' => 'published',
                 'published_at' => now(),
+                'scheduled_for' => null,
             ])->save();
         }
 
@@ -268,6 +349,7 @@ class BlogController extends Controller
             $blog->forceFill([
                 'status' => 'draft',
                 'published_at' => null,
+                'scheduled_for' => null,
             ])->save();
         }
 
@@ -283,6 +365,7 @@ class BlogController extends Controller
             $blog->forceFill([
                 'status' => 'archived',
                 'published_at' => null,
+                'scheduled_for' => null,
             ])->save();
         }
 
@@ -298,6 +381,7 @@ class BlogController extends Controller
             $blog->forceFill([
                 'status' => 'draft',
                 'published_at' => null,
+                'scheduled_for' => null,
             ])->save();
         }
 

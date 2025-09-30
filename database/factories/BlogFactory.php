@@ -26,6 +26,8 @@ class BlogFactory extends Factory
             'user_id' => User::factory(),
             'status' => 'draft',
             'published_at' => null,
+            'scheduled_for' => null,
+            'preview_token' => Str::uuid()->toString(),
         ];
     }
 
@@ -35,6 +37,7 @@ class BlogFactory extends Factory
             return [
                 'status' => 'published',
                 'published_at' => now(),
+                'scheduled_for' => null,
             ];
         });
     }
@@ -44,6 +47,18 @@ class BlogFactory extends Factory
         return $this->state(fn () => [
             'status' => 'archived',
             'published_at' => null,
+            'scheduled_for' => null,
         ]);
+    }
+
+    public function scheduled(): self
+    {
+        return $this->state(function () {
+            return [
+                'status' => 'scheduled',
+                'scheduled_for' => now()->addDay(),
+                'published_at' => null,
+            ];
+        });
     }
 }

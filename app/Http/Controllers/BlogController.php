@@ -23,8 +23,27 @@ class BlogController extends Controller
         $categoryFilter = $request->string('category')->trim();
         $tagFilter = $request->string('tag')->trim();
 
+        Blog::query()
+            ->where('status', 'scheduled')
+            ->whereNotNull('scheduled_for')
+            ->where('scheduled_for', '<=', now())
+            ->each(function (Blog $dueBlog) {
+                $dueBlog->forceFill([
+                    'status' => 'published',
+                    'published_at' => $dueBlog->scheduled_for,
+                    'scheduled_for' => null,
+                ])->save();
+            });
+
         $blogsQuery = Blog::query()
-            ->where('status', 'published')
+            ->where(function ($query) {
+                $query->where('status', 'published')
+                    ->orWhere(function ($query) {
+                        $query->where('status', 'scheduled')
+                            ->whereNotNull('scheduled_for')
+                            ->where('scheduled_for', '<=', now());
+                    });
+            })
             ->with([
                 'user:id,nickname',
                 'categories:id,name,slug',
@@ -135,8 +154,23 @@ class BlogController extends Controller
             },
         ])
             ->where('slug', $slug)
-            ->where('status', 'published')
+            ->where(function ($query) {
+                $query->where('status', 'published')
+                    ->orWhere(function ($query) {
+                        $query->where('status', 'scheduled')
+                            ->whereNotNull('scheduled_for')
+                            ->where('scheduled_for', '<=', now());
+                    });
+            })
             ->firstOrFail();
+
+        if ($blog->status === 'scheduled' && $blog->scheduled_for && $blog->scheduled_for->lessThanOrEqualTo(now())) {
+            $blog->forceFill([
+                'status' => 'published',
+                'published_at' => $blog->scheduled_for,
+                'scheduled_for' => null,
+            ])->save();
+        }
 
         return Inertia::render('BlogView', [
             'blog' => [
@@ -179,6 +213,51 @@ class BlogController extends Controller
                         ] : null,
                     ];
                 })->values(),
+            ],
+        ]);
+    }
+
+    public function preview(Blog $blog, string $token): Response
+    {
+        abort_unless($blog->preview_token && hash_equals($blog->preview_token, $token), 403);
+
+        $blog->load([
+            'user:id,nickname',
+            'categories:id,name,slug',
+            'tags:id,name,slug',
+        ]);
+
+        return Inertia::render('BlogPreview', [
+            'blog' => [
+                'id' => $blog->id,
+                'title' => $blog->title,
+                'slug' => $blog->slug,
+                'excerpt' => $blog->excerpt,
+                'cover_image' => $blog->cover_image
+                    ? Storage::disk('public')->url($blog->cover_image)
+                    : null,
+                'body' => $blog->body,
+                'published_at' => optional($blog->published_at)->toIso8601String(),
+                'scheduled_for' => optional($blog->scheduled_for)->toIso8601String(),
+                'status' => $blog->status,
+                'user' => $blog->user ? [
+                    'id' => $blog->user->id,
+                    'nickname' => $blog->user->nickname,
+                ] : null,
+                'categories' => $blog->categories->map(function (BlogCategory $category) {
+                    return [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'slug' => $category->slug,
+                    ];
+                })->values()->all(),
+                'tags' => $blog->tags->map(function (BlogTag $tag) {
+                    return [
+                        'id' => $tag->id,
+                        'name' => $tag->name,
+                        'slug' => $tag->slug,
+                    ];
+                })->values()->all(),
             ],
         ]);
     }
