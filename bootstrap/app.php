@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureEmailIsVerifiedIfRequired;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
@@ -12,7 +13,6 @@ use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
-use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -36,7 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'verified' => EnsureEmailIsVerified::class,
+            'verified' => EnsureEmailIsVerifiedIfRequired::class,
             'token.activity' => LogTokenActivity::class,
         ]);
 

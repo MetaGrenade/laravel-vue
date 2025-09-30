@@ -20,6 +20,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Email Verification Requirement
+    |--------------------------------------------------------------------------
+    |
+    | This option defines the default expectation for email verification when
+    | a setting has not been stored in the database. Administrators may toggle
+    | the requirement at runtime via the system settings panel.
+    |
+    */
+
+    'must_verify_email' => env('AUTH_MUST_VERIFY_EMAIL', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Authentication Guards
     |--------------------------------------------------------------------------
     |

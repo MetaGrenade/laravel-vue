@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemSetting;
+use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,10 +20,7 @@ class SystemSettingsController extends Controller
         return Inertia::render('acp/System', [
             'settings' => [
                 'maintenance_mode' => (bool) SystemSetting::get('maintenance_mode', false),
-                'email_verification_required' => (bool) SystemSetting::get(
-                    'email_verification_required',
-                    (bool) config('auth.must_verify_email', false)
-                ),
+                'email_verification_required' => EmailVerification::isRequired(),
             ],
             'diagnostics' => $this->diagnosticsPayload(),
         ]);

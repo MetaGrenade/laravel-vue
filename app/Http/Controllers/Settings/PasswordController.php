@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -19,7 +19,7 @@ class PasswordController extends Controller
     public function edit(Request $request): Response
     {
         return Inertia::render('settings/Password', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => EmailVerification::isRequired(),
             'status' => $request->session()->get('status'),
         ]);
     }
