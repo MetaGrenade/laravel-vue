@@ -224,7 +224,6 @@ const clearFilters = () => {
 
 const {
     meta: reportsMeta,
-    page: reportsPage,
     rangeLabel: reportsRangeLabel,
     setPage: setReportsPage,
 } = useInertiaPagination({
