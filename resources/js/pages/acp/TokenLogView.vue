@@ -55,7 +55,7 @@ function formatStructuredData(data: Record<string, unknown> | unknown[] | null):
 
     try {
         return JSON.stringify(data, null, 2);
-    } catch (error) {
+    } catch {
         return '—';
     }
 }
