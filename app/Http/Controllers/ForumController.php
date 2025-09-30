@@ -8,6 +8,7 @@ use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
+use App\Support\MarkdownRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -289,7 +290,7 @@ class ForumController extends Controller
 
             return [
                 'id' => $post->id,
-                'body' => $post->body,
+                'body' => MarkdownRenderer::convert($post->body),
                 'body_raw' => $post->body,
                 'created_at' => $post->created_at->toDayDateTimeString(),
                 'edited_at' => optional($post->edited_at)?->toDayDateTimeString(),
@@ -436,7 +437,9 @@ class ForumController extends Controller
         $initialPost = null;
 
         DB::transaction(function () use ($board, $user, $title, $slug, $body, &$thread, &$initialPost) {
-            $excerptSource = preg_replace('/\s+/', ' ', $body) ?? $body;
+            $excerptSource = MarkdownRenderer::convert($body);
+            $excerptSource = strip_tags($excerptSource);
+            $excerptSource = preg_replace('/\s+/', ' ', $excerptSource) ?? $excerptSource;
 
             $thread = ForumThread::create([
                 'forum_board_id' => $board->id,
