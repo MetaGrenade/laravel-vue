@@ -81,8 +81,8 @@ class BlogController extends Controller
         })->values();
 
         $categories = BlogCategory::query()
+            ->whereHas('blogs', fn ($query) => $query->where('status', 'published'))
             ->withCount(['blogs as published_blogs_count' => fn ($query) => $query->where('status', 'published')])
-            ->having('published_blogs_count', '>', 0)
             ->orderBy('name')
             ->get(['id', 'name', 'slug'])
             ->map(fn (BlogCategory $category) => [
@@ -95,8 +95,8 @@ class BlogController extends Controller
             ->all();
 
         $tags = BlogTag::query()
+            ->whereHas('blogs', fn ($query) => $query->where('status', 'published'))
             ->withCount(['blogs as published_blogs_count' => fn ($query) => $query->where('status', 'published')])
-            ->having('published_blogs_count', '>', 0)
             ->orderBy('name')
             ->get(['id', 'name', 'slug'])
             ->map(fn (BlogTag $tag) => [
