@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Models\Blog;
+use App\Models\BlogCategory;
+use App\Models\BlogTag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -18,11 +20,32 @@ class BlogController extends Controller
      */
     public function index(Request $request): Response
     {
-        $blogs = Blog::query()
+        $categoryFilter = $request->string('category')->trim();
+        $tagFilter = $request->string('tag')->trim();
+
+        $blogsQuery = Blog::query()
             ->where('status', 'published')
-            ->with(['user:id,nickname'])
+            ->with([
+                'user:id,nickname',
+                'categories:id,name,slug',
+                'tags:id,name,slug',
+            ])
             ->orderByDesc('published_at')
-            ->orderByDesc('created_at')
+            ->orderByDesc('created_at');
+
+        if ($categoryFilter->isNotEmpty()) {
+            $blogsQuery->whereHas('categories', function ($query) use ($categoryFilter) {
+                $query->where('slug', $categoryFilter->toString());
+            });
+        }
+
+        if ($tagFilter->isNotEmpty()) {
+            $blogsQuery->whereHas('tags', function ($query) use ($tagFilter) {
+                $query->where('slug', $tagFilter->toString());
+            });
+        }
+
+        $blogs = $blogsQuery
             ->paginate(9)
             ->withQueryString();
 
@@ -40,13 +63,61 @@ class BlogController extends Controller
                     'id' => $blog->user->id,
                     'nickname' => $blog->user->nickname,
                 ] : null,
+                'categories' => $blog->categories->map(function (BlogCategory $category) {
+                    return [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'slug' => $category->slug,
+                    ];
+                })->values()->all(),
+                'tags' => $blog->tags->map(function (BlogTag $tag) {
+                    return [
+                        'id' => $tag->id,
+                        'name' => $tag->name,
+                        'slug' => $tag->slug,
+                    ];
+                })->values()->all(),
             ];
         })->values();
+
+        $categories = BlogCategory::query()
+            ->withCount(['blogs as published_blogs_count' => fn ($query) => $query->where('status', 'published')])
+            ->having('published_blogs_count', '>', 0)
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug'])
+            ->map(fn (BlogCategory $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'count' => $category->published_blogs_count,
+            ])
+            ->values()
+            ->all();
+
+        $tags = BlogTag::query()
+            ->withCount(['blogs as published_blogs_count' => fn ($query) => $query->where('status', 'published')])
+            ->having('published_blogs_count', '>', 0)
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug'])
+            ->map(fn (BlogTag $tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+                'slug' => $tag->slug,
+                'count' => $tag->published_blogs_count,
+            ])
+            ->values()
+            ->all();
 
         return Inertia::render('Blog', [
             'blogs' => array_merge([
                 'data' => $blogItems,
             ], $this->inertiaPagination($blogs)),
+            'filters' => [
+                'category' => $categoryFilter->isNotEmpty() ? $categoryFilter->toString() : null,
+                'tag' => $tagFilter->isNotEmpty() ? $tagFilter->toString() : null,
+            ],
+            'categories' => $categories,
+            'tags' => $tags,
         ]);
     }
 
@@ -57,6 +128,8 @@ class BlogController extends Controller
     {
         $blog = Blog::with([
             'user:id,nickname',
+            'categories:id,name,slug',
+            'tags:id,name,slug',
             'comments' => function ($query) {
                 $query->with(['user:id,nickname'])->orderBy('created_at');
             },
@@ -80,6 +153,20 @@ class BlogController extends Controller
                     'id' => $blog->user->id,
                     'nickname' => $blog->user->nickname,
                 ] : null,
+                'categories' => $blog->categories->map(function (BlogCategory $category) {
+                    return [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'slug' => $category->slug,
+                    ];
+                })->values()->all(),
+                'tags' => $blog->tags->map(function (BlogTag $tag) {
+                    return [
+                        'id' => $tag->id,
+                        'name' => $tag->name,
+                        'slug' => $tag->slug,
+                    ];
+                })->values()->all(),
                 'comments' => $blog->comments->map(function ($comment) {
                     return [
                         'id' => $comment->id,

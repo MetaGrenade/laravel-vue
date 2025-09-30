@@ -13,6 +13,17 @@ import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 
+type BlogTaxonomyOption = {
+    id: number;
+    name: string;
+    slug: string;
+};
+
+const props = defineProps<{
+    categories: BlogTaxonomyOption[];
+    tags: BlogTaxonomyOption[];
+}>();
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Blogs ACP', href: route('acp.blogs.index') },
     { title: 'Create blog post', href: route('acp.blogs.create') },
@@ -30,6 +41,8 @@ type BlogForm = {
     body: string;
     status: 'draft' | 'published' | 'archived';
     cover_image: File | null;
+    category_ids: number[];
+    tag_ids: number[];
 };
 
 const form = useForm<BlogForm>({
@@ -38,6 +51,8 @@ const form = useForm<BlogForm>({
     body: '',
     status: 'draft',
     cover_image: null,
+    category_ids: [],
+    tag_ids: [],
 });
 
 const coverImagePreview = ref<string | null>(null);
@@ -165,6 +180,60 @@ const handleSubmit = () => {
                                     required
                                 />
                                 <InputError :message="form.errors.body" />
+                            </div>
+
+                            <div class="grid gap-4">
+                                <div class="space-y-2">
+                                    <Label>Categories</Label>
+                                    <p class="text-sm text-muted-foreground">
+                                        Choose one or more categories to help readers browse related topics.
+                                    </p>
+                                    <div class="grid gap-2 sm:grid-cols-2">
+                                        <label
+                                            v-for="category in props.categories"
+                                            :key="category.id"
+                                            class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                class="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                                                :value="category.id"
+                                                v-model="form.category_ids"
+                                            />
+                                            <span>{{ category.name }}</span>
+                                        </label>
+                                        <p v-if="props.categories.length === 0" class="text-sm text-muted-foreground sm:col-span-2">
+                                            No categories available yet. Add some in the database seeder or admin tools.
+                                        </p>
+                                    </div>
+                                    <InputError :message="form.errors.category_ids" />
+                                </div>
+
+                                <div class="space-y-2">
+                                    <Label>Tags</Label>
+                                    <p class="text-sm text-muted-foreground">
+                                        Add optional tags to highlight key topics or campaigns.
+                                    </p>
+                                    <div class="grid gap-2 sm:grid-cols-2">
+                                        <label
+                                            v-for="tag in props.tags"
+                                            :key="tag.id"
+                                            class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                class="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                                                :value="tag.id"
+                                                v-model="form.tag_ids"
+                                            />
+                                            <span>{{ tag.name }}</span>
+                                        </label>
+                                        <p v-if="props.tags.length === 0" class="text-sm text-muted-foreground sm:col-span-2">
+                                            No tags available yet. Seed some to enable richer filtering.
+                                        </p>
+                                    </div>
+                                    <InputError :message="form.errors.tag_ids" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

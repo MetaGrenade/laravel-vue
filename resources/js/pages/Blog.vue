@@ -21,6 +21,12 @@ interface BlogAuthorSummary {
     nickname: string | null;
 }
 
+interface BlogTaxonomySummary {
+    id: number;
+    name: string;
+    slug: string;
+}
+
 interface BlogSummary {
     id: number;
     title: string;
@@ -29,6 +35,8 @@ interface BlogSummary {
     cover_image: string | null;
     published_at: string | null;
     author: BlogAuthorSummary | null;
+    categories: BlogTaxonomySummary[];
+    tags: BlogTaxonomySummary[];
 }
 
 interface BlogsPayload {
@@ -42,14 +50,80 @@ interface BlogsPayload {
     } | null;
 }
 
+interface BlogFiltersPayload {
+    category: string | null;
+    tag: string | null;
+}
+
+interface BlogTaxonomyOption extends BlogTaxonomySummary {
+    count: number;
+}
+
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Blog', href: '/blogs' }];
 
 const props = defineProps<{
     blogs: BlogsPayload;
+    filters: BlogFiltersPayload;
+    categories: BlogTaxonomyOption[];
+    tags: BlogTaxonomyOption[];
 }>();
 
 const hasBlogs = computed(() => (props.blogs.data?.length ?? 0) > 0);
 const featuredBlog = computed(() => props.blogs.data?.[0] ?? null);
+
+const activeCategory = computed(() => props.filters?.category ?? null);
+const activeTag = computed(() => props.filters?.tag ?? null);
+const hasActiveFilters = computed(() => Boolean(activeCategory.value || activeTag.value));
+
+const applyFilters = (category: string | null, tag: string | null) => {
+    const params: Record<string, unknown> = {};
+
+    if (category) {
+        params.category = category;
+    }
+
+    if (tag) {
+        params.tag = tag;
+    }
+
+    router.get(route('blogs.index'), params, {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
+};
+
+const toggleCategory = (slug: string) => {
+    const nextCategory = activeCategory.value === slug ? null : slug;
+    applyFilters(nextCategory, activeTag.value);
+};
+
+const toggleTag = (slug: string) => {
+    const nextTag = activeTag.value === slug ? null : slug;
+    applyFilters(activeCategory.value, nextTag);
+};
+
+const clearFilters = () => {
+    if (!hasActiveFilters.value) {
+        return;
+    }
+
+    applyFilters(null, null);
+};
+
+const buildPaginationParams = (page: number) => {
+    const params: Record<string, unknown> = { page };
+
+    if (activeCategory.value) {
+        params.category = activeCategory.value;
+    }
+
+    if (activeTag.value) {
+        params.tag = activeTag.value;
+    }
+
+    return params;
+};
 
 const {
     meta: blogsMeta,
@@ -64,7 +138,7 @@ const {
     onNavigate: (page) => {
         router.get(
             route('blogs.index'),
-            { page },
+            buildPaginationParams(page),
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -89,11 +163,92 @@ const {
                         class="object-cover w-full h-full"
                     />
                     <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span
+                                v-for="category in featuredBlog.categories"
+                                :key="`featured-category-${category.id}`"
+                                class="inline-flex items-center rounded-full bg-primary/80 px-3 py-1 font-medium text-white"
+                            >
+                                {{ category.name }}
+                            </span>
+                            <span
+                                v-for="tag in featuredBlog.tags"
+                                :key="`featured-tag-${tag.id}`"
+                                class="inline-flex items-center rounded-full bg-black/50 px-3 py-1 font-medium text-white"
+                            >
+                                #{{ tag.name }}
+                            </span>
+                        </div>
                         <h2 class="text-xl font-bold text-white">{{ featuredBlog.title }}</h2>
                         <p v-if="featuredBlog.excerpt" class="mt-1 text-sm text-white line-clamp-2">
                             {{ featuredBlog.excerpt }}
                         </p>
                     </div>
+                </div>
+            </section>
+
+            <!-- Filters -->
+            <section class="space-y-4 rounded-xl border border-sidebar-border/70 bg-background/60 p-4 shadow-sm dark:border-sidebar-border">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-base font-semibold">Browse the library</h2>
+                        <p class="text-sm text-muted-foreground">Focus on categories and tags to surface relevant posts.</p>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :disabled="!hasActiveFilters"
+                        @click="clearFilters"
+                    >
+                        Clear filters
+                    </Button>
+                </div>
+
+                <div class="space-y-3">
+                    <div v-if="props.categories.length" class="flex flex-wrap gap-2">
+                        <button
+                            v-for="category in props.categories"
+                            :key="`category-filter-${category.id}`"
+                            type="button"
+                            class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition"
+                            :class="[
+                                activeCategory === category.slug
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-muted-foreground/30 text-muted-foreground hover:border-primary/50 hover:text-primary',
+                            ]"
+                            @click="toggleCategory(category.slug)"
+                        >
+                            {{ category.name }}
+                            <span class="text-[10px] text-muted-foreground">({{ category.count }})</span>
+                        </button>
+                    </div>
+                    <p v-else class="text-sm text-muted-foreground">No categories available yet.</p>
+
+                    <div v-if="props.tags.length" class="flex flex-wrap gap-2">
+                        <button
+                            v-for="tag in props.tags"
+                            :key="`tag-filter-${tag.id}`"
+                            type="button"
+                            class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition"
+                            :class="[
+                                activeTag === tag.slug
+                                    ? 'border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-200'
+                                    : 'border-muted-foreground/30 text-muted-foreground hover:border-amber-400/70 hover:text-amber-600 dark:hover:text-amber-300',
+                            ]"
+                            @click="toggleTag(tag.slug)"
+                        >
+                            #{{ tag.name }}
+                            <span class="text-[10px] text-muted-foreground">({{ tag.count }})</span>
+                        </button>
+                    </div>
+                    <p v-else class="text-sm text-muted-foreground">No tags available yet.</p>
+                </div>
+
+                <div v-if="hasActiveFilters" class="text-xs text-muted-foreground">
+                    Showing posts filtered by
+                    <span v-if="activeCategory" class="font-medium text-foreground">category: {{ activeCategory }}</span>
+                    <span v-if="activeCategory && activeTag"> and </span>
+                    <span v-if="activeTag" class="font-medium text-foreground">tag: {{ activeTag }}</span>.
                 </div>
             </section>
 
@@ -150,6 +305,22 @@ const {
                         <p v-if="blog.excerpt" class="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3">
                             {{ blog.excerpt }}
                         </p>
+                        <div v-if="blog.categories.length || blog.tags.length" class="flex flex-wrap gap-2 text-xs">
+                            <span
+                                v-for="category in blog.categories"
+                                :key="`list-category-${blog.id}-${category.id}`"
+                                class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 font-medium text-primary"
+                            >
+                                {{ category.name }}
+                            </span>
+                            <span
+                                v-for="tag in blog.tags"
+                                :key="`list-tag-${blog.id}-${tag.id}`"
+                                class="inline-flex items-center rounded-full bg-muted px-2.5 py-1 font-medium text-muted-foreground"
+                            >
+                                #{{ tag.name }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </section>

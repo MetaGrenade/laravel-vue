@@ -6,6 +6,8 @@ use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BlogRequest;
 use App\Models\Blog;
+use App\Models\BlogCategory;
+use App\Models\BlogTag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Http\RedirectResponse;
@@ -70,7 +72,28 @@ class BlogController extends Controller
      */
     public function create()
     {
-        return inertia('acp/BlogCreate');
+        return inertia('acp/BlogCreate', [
+            'categories' => BlogCategory::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug'])
+                ->map(fn (BlogCategory $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                ])
+                ->values()
+                ->all(),
+            'tags' => BlogTag::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug'])
+                ->map(fn (BlogTag $tag) => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'slug' => $tag->slug,
+                ])
+                ->values()
+                ->all(),
+        ]);
     }
 
     /**
@@ -102,6 +125,9 @@ class BlogController extends Controller
             'published_at' => $validated['status'] === 'published' ? now() : null,
         ]);
 
+        $blog->categories()->sync($validated['category_ids'] ?? []);
+        $blog->tags()->sync($validated['tag_ids'] ?? []);
+
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post created successfully.');
     }
@@ -111,6 +137,8 @@ class BlogController extends Controller
      */
     public function edit(Blog $blog)
     {
+        $blog->load(['categories:id,name,slug', 'tags:id,name,slug']);
+
         return inertia('acp/BlogEdit', [
             'blog' => array_merge($blog->only([
                 'id',
@@ -127,7 +155,41 @@ class BlogController extends Controller
                 'cover_image_url' => $blog->cover_image
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
+                'categories' => $blog->categories
+                    ->map(fn (BlogCategory $category) => [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'slug' => $category->slug,
+                    ])
+                    ->all(),
+                'tags' => $blog->tags
+                    ->map(fn (BlogTag $tag) => [
+                        'id' => $tag->id,
+                        'name' => $tag->name,
+                        'slug' => $tag->slug,
+                    ])
+                    ->all(),
             ]),
+            'categories' => BlogCategory::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug'])
+                ->map(fn (BlogCategory $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                ])
+                ->values()
+                ->all(),
+            'tags' => BlogTag::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug'])
+                ->map(fn (BlogTag $tag) => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'slug' => $tag->slug,
+                ])
+                ->values()
+                ->all(),
         ]);
     }
 
@@ -163,6 +225,9 @@ class BlogController extends Controller
 
         // Update the blog record
         $blog->update($updateData);
+
+        $blog->categories()->sync($validated['category_ids'] ?? []);
+        $blog->tags()->sync($validated['tag_ids'] ?? []);
 
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post updated successfully.');
