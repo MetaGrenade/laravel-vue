@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import {
@@ -108,6 +107,11 @@ const props = defineProps<{
         closed: number;
         faqs: number;
     };
+    assignableAgents: Array<{
+        id: number;
+        nickname: string;
+        email: string;
+    }>;
 }>();
 
 type Ticket = (typeof props.tickets.data)[number];
@@ -120,9 +124,8 @@ const quickActionVisitOptions = {
 
 const assignDialogOpen = ref(false);
 const assignDialogTicket = ref<Ticket | null>(null);
-const assignDialogError = ref<string | null>(null);
-const assignForm = useForm({
-    assigned_to: '',
+const assignForm = useForm<{ assigned_to: number | null }>({
+    assigned_to: null,
 });
 
 const handleAssignDialogChange = (open: boolean) => {
@@ -130,7 +133,6 @@ const handleAssignDialogChange = (open: boolean) => {
 
     if (!open) {
         assignDialogTicket.value = null;
-        assignDialogError.value = null;
         assignForm.reset();
         assignForm.clearErrors();
     }
@@ -138,44 +140,21 @@ const handleAssignDialogChange = (open: boolean) => {
 
 const openAssignDialog = (ticket: Ticket) => {
     assignDialogTicket.value = ticket;
-    assignDialogError.value = null;
     assignForm.reset();
     assignForm.clearErrors();
-    assignForm.assigned_to = ticket.assignee?.id ? String(ticket.assignee.id) : '';
+    assignForm.assigned_to = ticket.assignee?.id ?? null;
     handleAssignDialogChange(true);
 };
-
-watch(
-    () => assignForm.assigned_to,
-    () => {
-        assignDialogError.value = null;
-    },
-);
 
 const submitAssignForm = () => {
     if (!assignDialogTicket.value) {
         return;
     }
 
-    const trimmed = assignForm.assigned_to.trim();
-
-    if (trimmed !== '') {
-        const parsed = Number.parseInt(trimmed, 10);
-
-        if (Number.isNaN(parsed)) {
-            assignDialogError.value = 'Please enter a valid numeric user ID.';
-            return;
-        }
-    }
-
-    assignForm
-        .transform(() => ({
-            assigned_to: trimmed === '' ? null : Number.parseInt(trimmed, 10),
-        }))
-        .put(route('acp.support.tickets.assign', { ticket: assignDialogTicket.value.id }), {
-            ...quickActionVisitOptions,
-            onSuccess: () => handleAssignDialogChange(false),
-        });
+    assignForm.put(route('acp.support.tickets.assign', { ticket: assignDialogTicket.value.id }), {
+        ...quickActionVisitOptions,
+        onSuccess: () => handleAssignDialogChange(false),
+    });
 };
 
 const priorityDialogOpen = ref(false);
@@ -748,27 +727,26 @@ const filteredFaqs = computed(() => {
                     <DialogHeader>
                         <DialogTitle>Assign ticket</DialogTitle>
                         <DialogDescription v-if="assignDialogTicket">
-                            Assign ticket <span class="font-medium">#{{ assignDialogTicket.id }}</span> to an agent or leave the
-                            field blank to unassign it.
+                            Assign ticket <span class="font-medium">#{{ assignDialogTicket.id }}</span> to an agent or choose
+                            <span class="font-medium">Unassigned</span> to clear the current assignee.
                         </DialogDescription>
                     </DialogHeader>
 
                     <div class="grid gap-3">
                         <div class="grid gap-2">
-                            <Label for="assign-ticket-agent">Agent user ID</Label>
-                            <Input
+                            <Label for="assign-ticket-agent">Assigned agent</Label>
+                            <select
                                 id="assign-ticket-agent"
                                 v-model="assignForm.assigned_to"
-                                type="text"
-                                inputmode="numeric"
-                                autocomplete="off"
-                                placeholder="e.g. 42"
-                            />
-                            <InputError :message="assignDialogError ?? assignForm.errors.assigned_to" />
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            >
+                                <option :value="null">Unassigned</option>
+                                <option v-for="agent in props.assignableAgents" :key="agent.id" :value="agent.id">
+                                    {{ agent.nickname }} ({{ agent.email }})
+                                </option>
+                            </select>
+                            <InputError :message="assignForm.errors.assigned_to" />
                         </div>
-                        <p class="text-sm text-muted-foreground">
-                            Leave this empty to remove the current assignee.
-                        </p>
                     </div>
 
                     <DialogFooter class="gap-2">

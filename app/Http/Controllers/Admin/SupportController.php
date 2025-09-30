@@ -84,6 +84,15 @@ class SupportController extends Controller
             'faqs' => $faqs->total(),
         ];
 
+        $assignableAgents = User::orderBy('nickname')
+            ->get(['id', 'nickname', 'email'])
+            ->map(fn (User $agent) => [
+                'id' => $agent->id,
+                'nickname' => $agent->nickname,
+                'email' => $agent->email,
+            ])
+            ->all();
+
         return Inertia::render('acp/Support', [
             'tickets' => array_merge([
                 'data' => $ticketItems,
@@ -92,6 +101,7 @@ class SupportController extends Controller
                 'data' => $faqItems,
             ], $this->inertiaPagination($faqs)),
             'supportStats' => $stats,
+            'assignableAgents' => $assignableAgents,
         ]);
     }
 
