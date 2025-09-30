@@ -37,7 +37,7 @@ class ForumPostReport extends Model
 
     public function post(): BelongsTo
     {
-        return $this->belongsTo(ForumPost::class, 'forum_post_id');
+        return $this->belongsTo(ForumPost::class, 'forum_post_id')->withTrashed();
     }
 
     public function reporter(): BelongsTo
