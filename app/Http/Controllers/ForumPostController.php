@@ -165,6 +165,9 @@ class ForumPostController extends Controller
                 'reason_category' => $validated['reason_category'],
                 'reason' => $reason,
                 'evidence_url' => $evidenceUrl,
+                'status' => ForumPostReport::STATUS_PENDING,
+                'reviewed_at' => null,
+                'reviewed_by' => null,
             ],
         );
 

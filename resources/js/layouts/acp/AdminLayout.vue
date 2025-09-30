@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -49,6 +49,11 @@ const sidebarNavItems: NavItem[] = [
         icon: MessageSquare,
     },
     {
+        title: 'Forum Reports',
+        href: '/acp/forums/reports',
+        icon: ShieldAlert,
+    },
+    {
         title: 'Support',
         href: '/acp/support',
         icon: LifeBuoy,
@@ -81,6 +86,8 @@ const filteredNavItems = computed(() => {
             case 'Blogs':
                 return manageBlogs.value;
             case 'Forums':
+                return manageForums.value;
+            case 'Forum Reports':
                 return manageForums.value;
             case 'Support':
                 return manageSupport.value;
