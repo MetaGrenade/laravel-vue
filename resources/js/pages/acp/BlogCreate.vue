@@ -41,15 +41,15 @@ const form = useForm<BlogForm>({
 });
 
 form.transform((data) => {
-    const payload = new FormData();
-
-    payload.append('title', data.title ?? '');
-    payload.append('excerpt', data.excerpt ?? '');
-    payload.append('body', data.body ?? '');
-    payload.append('status', data.status ?? 'draft');
+    const payload: Record<string, FormDataEntryValue> = {
+        title: data.title ?? '',
+        excerpt: data.excerpt ?? '',
+        body: data.body ?? '',
+        status: data.status ?? 'draft',
+    };
 
     if (data.cover_image) {
-        payload.append('cover_image', data.cover_image);
+        payload.cover_image = data.cover_image;
     }
 
     return payload;
