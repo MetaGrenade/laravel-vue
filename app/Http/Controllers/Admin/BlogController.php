@@ -208,4 +208,34 @@ class BlogController extends Controller
 
         return redirect()->back()->with('success', 'Blog post moved back to draft.');
     }
+
+    /**
+     * Archive the specified blog post.
+     */
+    public function archive(Blog $blog): RedirectResponse
+    {
+        if ($blog->status !== 'archived') {
+            $blog->forceFill([
+                'status' => 'archived',
+                'published_at' => null,
+            ])->save();
+        }
+
+        return redirect()->back()->with('success', 'Blog post archived successfully.');
+    }
+
+    /**
+     * Restore an archived blog post back to draft state.
+     */
+    public function unarchive(Blog $blog): RedirectResponse
+    {
+        if ($blog->status === 'archived') {
+            $blog->forceFill([
+                'status' => 'draft',
+                'published_at' => null,
+            ])->save();
+        }
+
+        return redirect()->back()->with('success', 'Blog post unarchived successfully.');
+    }
 }

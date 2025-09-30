@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -27,6 +27,14 @@ import {
     PaginationNext,
     PaginationPrev,
 } from '@/components/ui/pagination';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     FileText, Edit3, CheckCircle, Ellipsis, Eye, EyeOff, Trash2, Pencil, Archive, ArchiveRestore
 } from 'lucide-vue-next';
@@ -121,10 +129,23 @@ const stats = [
 const searchQuery = ref('');
 
 // Computed property to filter blog posts based on the search query
-const filteredBlogPosts = computed(() => {
+type BlogRow = {
+    id: number;
+    title: string;
+    slug: string;
+    user: {
+        id: number;
+        nickname: string;
+        email: string;
+    } | null;
+    status: string;
+    created_at: string | null;
+};
+
+const filteredBlogPosts = computed<BlogRow[]>(() => {
     if (!searchQuery.value) return props.blogs.data;
     const q = searchQuery.value.toLowerCase();
-    return props.blogs.data.filter((post: any) =>
+    return props.blogs.data.filter((post: BlogRow) =>
         post.title.toLowerCase().includes(q) ||
         (post.user?.nickname?.toLowerCase().includes(q) ?? false) ||
         (post.user?.email?.toLowerCase().includes(q) ?? false) ||
@@ -140,6 +161,43 @@ const publishPost = (postId: number) => {
 
 const unpublishPost = (postId: number) => {
     router.put(route('acp.blogs.unpublish', { blog: postId }), {}, {
+        preserveScroll: true,
+    });
+};
+
+const archiveDialogOpen = ref(false);
+const archiveTarget = ref<BlogRow | null>(null);
+
+const openArchiveDialog = (post: BlogRow) => {
+    archiveTarget.value = post;
+    archiveDialogOpen.value = true;
+};
+
+const closeArchiveDialog = () => {
+    archiveDialogOpen.value = false;
+};
+
+const confirmArchivePost = () => {
+    if (!archiveTarget.value) {
+        return;
+    }
+
+    router.put(route('acp.blogs.archive', { blog: archiveTarget.value.id }), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            archiveDialogOpen.value = false;
+        },
+    });
+};
+
+watch(archiveDialogOpen, (open) => {
+    if (!open) {
+        archiveTarget.value = null;
+    }
+});
+
+const unarchivePost = (postId: number) => {
+    router.put(route('acp.blogs.unarchive', { blog: postId }), {}, {
         preserveScroll: true,
     });
 };
@@ -238,11 +296,17 @@ const deletePost = (postId: number) => {
                                                         <EyeOff class="mr-2" />
                                                         <span>Unpublish</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem v-if="post.status === 'archived'">
+                                                    <DropdownMenuItem
+                                                        v-if="post.status === 'archived'"
+                                                        @click="unarchivePost(post.id)"
+                                                    >
                                                         <ArchiveRestore class="mr-2" />
-                                                        <span>Un Archive</span>
+                                                        <span>Unarchive</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem v-if="post.status !== 'archived'">
+                                                    <DropdownMenuItem
+                                                        v-if="post.status !== 'archived'"
+                                                        @click="openArchiveDialog(post)"
+                                                    >
                                                         <Archive class="mr-2" />
                                                         <span>Archive</span>
                                                     </DropdownMenuItem>
@@ -324,4 +388,21 @@ const deletePost = (postId: number) => {
             </div>
         </AdminLayout>
     </AppLayout>
+    <Dialog v-model:open="archiveDialogOpen">
+        <DialogContent class="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>Archive blog post</DialogTitle>
+                <DialogDescription>
+                    Archiving
+                    <span class="font-semibold">{{ archiveTarget?.title ?? 'this blog post' }}</span>
+                    will hide it from the public blog listing. You can unarchive it from the admin panel at any
+                    time.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter class="gap-2 sm:gap-3">
+                <Button variant="outline" @click="closeArchiveDialog">Cancel</Button>
+                <Button variant="destructive" @click="confirmArchivePost">Archive</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>
