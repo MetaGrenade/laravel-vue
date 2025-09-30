@@ -144,6 +144,22 @@ const unpublishPost = (postId: number) => {
     });
 };
 
+const archivePost = (postId: number) => {
+    if (!confirm('Are you sure you want to archive this blog post? It will be hidden from the public.')) {
+        return;
+    }
+
+    router.put(route('acp.blogs.archive', { blog: postId }), {}, {
+        preserveScroll: true,
+    });
+};
+
+const unarchivePost = (postId: number) => {
+    router.put(route('acp.blogs.unarchive', { blog: postId }), {}, {
+        preserveScroll: true,
+    });
+};
+
 const deletePost = (postId: number) => {
     router.delete(route('acp.blogs.destroy', { blog: postId }), {
         preserveScroll: true,
@@ -238,11 +254,17 @@ const deletePost = (postId: number) => {
                                                         <EyeOff class="mr-2" />
                                                         <span>Unpublish</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem v-if="post.status === 'archived'">
+                                                    <DropdownMenuItem
+                                                        v-if="post.status === 'archived'"
+                                                        @click="unarchivePost(post.id)"
+                                                    >
                                                         <ArchiveRestore class="mr-2" />
-                                                        <span>Un Archive</span>
+                                                        <span>Unarchive</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem v-if="post.status !== 'archived'">
+                                                    <DropdownMenuItem
+                                                        v-if="post.status !== 'archived'"
+                                                        @click="archivePost(post.id)"
+                                                    >
                                                         <Archive class="mr-2" />
                                                         <span>Archive</span>
                                                     </DropdownMenuItem>
