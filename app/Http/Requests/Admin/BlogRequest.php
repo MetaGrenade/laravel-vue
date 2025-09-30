@@ -20,6 +20,10 @@ class BlogRequest extends FormRequest
             'body'  => 'required|string',
             'status'   => 'required|in:draft,published,archived',
             'cover_image' => 'nullable|image|max:5120',
+            'category_ids' => 'array',
+            'category_ids.*' => 'integer|exists:blog_categories,id',
+            'tag_ids' => 'array',
+            'tag_ids.*' => 'integer|exists:blog_tags,id',
         ];
     }
 }

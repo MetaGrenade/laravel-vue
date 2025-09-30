@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Blog;
+use App\Models\BlogCategory;
+use App\Models\BlogTag;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -116,6 +118,37 @@ class AcpDashboardDemoSeeder extends Seeder
         $now = now();
         $authors = $users->shuffle()->take(4)->prepend($admin)->values();
 
+        $categoryDefinitions = [
+            ['slug' => 'product-updates', 'name' => 'Product Updates'],
+            ['slug' => 'company-news', 'name' => 'Company News'],
+            ['slug' => 'community-stories', 'name' => 'Community Stories'],
+            ['slug' => 'tips-and-tricks', 'name' => 'Tips & Tricks'],
+        ];
+
+        $tagDefinitions = [
+            ['slug' => 'release', 'name' => 'Release'],
+            ['slug' => 'roadmap', 'name' => 'Roadmap'],
+            ['slug' => 'team', 'name' => 'Team'],
+            ['slug' => 'customer-story', 'name' => 'Customer Story'],
+            ['slug' => 'support', 'name' => 'Support'],
+            ['slug' => 'productivity', 'name' => 'Productivity'],
+        ];
+
+        $categories = collect($categoryDefinitions)
+            ->map(fn (array $definition) => BlogCategory::updateOrCreate(
+                ['slug' => $definition['slug']],
+                ['name' => $definition['name']]
+            ));
+
+        $tags = collect($tagDefinitions)
+            ->map(fn (array $definition) => BlogTag::updateOrCreate(
+                ['slug' => $definition['slug']],
+                ['name' => $definition['name']]
+            ));
+
+        $categoryIds = $categories->pluck('id')->values()->all();
+        $tagIds = $tags->pluck('id')->values()->all();
+
         $blogDefinitions = [
             [
                 'slug' => 'demo-welcome-to-the-dashboard',
@@ -205,6 +238,24 @@ class AcpDashboardDemoSeeder extends Seeder
                 'created_at' => $createdAt,
                 'updated_at' => $updatedAt,
             ])->saveQuietly();
+
+            if (!empty($categoryIds)) {
+                $blogCategories = array_values(array_unique([
+                    $categoryIds[$index % count($categoryIds)],
+                    $categoryIds[($index + 1) % count($categoryIds)],
+                ]));
+                $blog->categories()->sync($blogCategories);
+            }
+
+            if (!empty($tagIds)) {
+                $blogTags = collect([
+                    $tagIds[$index % count($tagIds)],
+                    $tagIds[($index + 2) % count($tagIds)],
+                    $tagIds[($index + 3) % count($tagIds)],
+                ])->unique()->values()->all();
+
+                $blog->tags()->sync($blogTags);
+            }
         }
     }
 

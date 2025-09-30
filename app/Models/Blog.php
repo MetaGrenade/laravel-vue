@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -45,5 +46,17 @@ class Blog extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(BlogComment::class);
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(BlogCategory::class, 'blog_blog_category')
+            ->withTimestamps();
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(BlogTag::class, 'blog_blog_tag')
+            ->withTimestamps();
     }
 }

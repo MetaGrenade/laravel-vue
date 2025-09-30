@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
 import BlogComments from '@/components/blog/BlogComments.vue';
 import { Share2 } from 'lucide-vue-next';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+
+type BlogTaxonomyItem = {
+    id: number;
+    name: string;
+    slug: string;
+};
 
 type BlogAuthor = {
     id?: number;
@@ -37,6 +43,8 @@ type BlogPayload = {
     user?: BlogAuthor | null;
     comments?: BlogComment[];
     cover_image?: string | null;
+    categories?: BlogTaxonomyItem[];
+    tags?: BlogTaxonomyItem[];
 };
 
 const props = defineProps<{ blog: BlogPayload }>();
@@ -45,6 +53,8 @@ const blog = computed(() => props.blog);
 const { formatDate } = useUserTimezone();
 
 const comments = computed(() => blog.value.comments ?? []);
+const categories = computed(() => blog.value.categories ?? []);
+const tags = computed(() => blog.value.tags ?? []);
 
 const coverImage = computed(
     () => blog.value.cover_image ?? '/images/default-cover.jpg',
@@ -82,6 +92,24 @@ const publishedAt = computed(() => {
                 <div class="mb-4 text-sm text-gray-500 dark:text-gray-400">
                     <span>By <span class="font-medium text-foreground">{{ authorName }}</span></span>
                     <span v-if="publishedAt"> | Published on {{ publishedAt }}</span>
+                </div>
+                <div v-if="categories.length || tags.length" class="mb-4 flex flex-wrap gap-2 text-xs">
+                    <Link
+                        v-for="category in categories"
+                        :key="`category-${category.id}`"
+                        :href="route('blogs.index', { category: category.slug })"
+                        class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-medium text-primary transition hover:border-primary hover:bg-primary/20"
+                    >
+                        {{ category.name }}
+                    </Link>
+                    <Link
+                        v-for="tag in tags"
+                        :key="`tag-${tag.id}`"
+                        :href="route('blogs.index', { tag: tag.slug })"
+                        class="inline-flex items-center rounded-full border border-muted-foreground/30 bg-muted px-3 py-1 font-medium text-muted-foreground transition hover:border-muted-foreground/60 hover:bg-muted/80"
+                    >
+                        #{{ tag.name }}
+                    </Link>
                 </div>
                 <p v-if="blog.excerpt" class="mb-6 text-base text-gray-600 dark:text-gray-300">
                     {{ blog.excerpt }}

@@ -14,6 +14,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
+type BlogTaxonomyOption = {
+    id: number;
+    name: string;
+    slug: string;
+};
+
 type BlogStatus = 'draft' | 'published' | 'archived';
 
 type BlogPayload = {
@@ -28,6 +34,8 @@ type BlogPayload = {
     published_at?: string | null;
     cover_image?: string | null;
     cover_image_url?: string | null;
+    categories: BlogTaxonomyOption[];
+    tags: BlogTaxonomyOption[];
 };
 
 type BlogForm = {
@@ -36,9 +44,15 @@ type BlogForm = {
     body: string;
     status: BlogStatus;
     cover_image: File | null;
+    category_ids: number[];
+    tag_ids: number[];
 };
 
-const props = defineProps<{ blog: BlogPayload }>();
+const props = defineProps<{
+    blog: BlogPayload;
+    categories: BlogTaxonomyOption[];
+    tags: BlogTaxonomyOption[];
+}>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Blogs ACP', href: route('acp.blogs.index') },
@@ -57,6 +71,8 @@ const form = useForm<BlogForm>({
     body: props.blog.body ?? '',
     status: props.blog.status ?? 'draft',
     cover_image: null,
+    category_ids: props.blog.categories?.map((category) => category.id) ?? [],
+    tag_ids: props.blog.tags?.map((tag) => tag.id) ?? [],
 });
 
 const { formatDate } = useUserTimezone();
@@ -200,6 +216,60 @@ const handleSubmit = () => {
                                     required
                                 />
                                 <InputError :message="form.errors.body" />
+                            </div>
+
+                            <div class="grid gap-4">
+                                <div class="space-y-2">
+                                    <Label>Categories</Label>
+                                    <p class="text-sm text-muted-foreground">
+                                        Select the categories that best represent this article.
+                                    </p>
+                                    <div class="grid gap-2 sm:grid-cols-2">
+                                        <label
+                                            v-for="category in props.categories"
+                                            :key="category.id"
+                                            class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                class="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                                                :value="category.id"
+                                                v-model="form.category_ids"
+                                            />
+                                            <span>{{ category.name }}</span>
+                                        </label>
+                                        <p v-if="props.categories.length === 0" class="text-sm text-muted-foreground sm:col-span-2">
+                                            No categories available yet. Add some options to improve navigation.
+                                        </p>
+                                    </div>
+                                    <InputError :message="form.errors.category_ids" />
+                                </div>
+
+                                <div class="space-y-2">
+                                    <Label>Tags</Label>
+                                    <p class="text-sm text-muted-foreground">
+                                        Use tags to surface cross-cutting topics and campaigns.
+                                    </p>
+                                    <div class="grid gap-2 sm:grid-cols-2">
+                                        <label
+                                            v-for="tag in props.tags"
+                                            :key="tag.id"
+                                            class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                class="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                                                :value="tag.id"
+                                                v-model="form.tag_ids"
+                                            />
+                                            <span>{{ tag.name }}</span>
+                                        </label>
+                                        <p v-if="props.tags.length === 0" class="text-sm text-muted-foreground sm:col-span-2">
+                                            No tags configured yet. Seed some to support editorial organization.
+                                        </p>
+                                    </div>
+                                    <InputError :message="form.errors.tag_ids" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
