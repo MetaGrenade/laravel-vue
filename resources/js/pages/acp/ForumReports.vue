@@ -461,21 +461,28 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead class="w-32">Type</TableHead>
+                                            <TableHead class="w-40">Type & reason</TableHead>
                                             <TableHead>Content</TableHead>
-                                            <TableHead class="w-40">Reason</TableHead>
                                             <TableHead class="w-48">Reporter</TableHead>
                                             <TableHead class="w-16 text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         <TableRow v-for="report in props.reports.data" :key="`${report.type}-${report.id}`" class="align-top">
-                                            <TableCell class="font-medium">
-                                                <div class="flex items-center gap-2">
-                                                    <component :is="statusIcons[report.status]" class="h-4 w-4" />
-                                                    <div class="space-y-1">
-                                                        <div>{{ typeLabels[report.type] }}</div>
-                                                        <div class="text-xs text-muted-foreground">{{ statusLabels[report.status] }}</div>
+                                            <TableCell>
+                                                <div class="space-y-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <component :is="statusIcons[report.status]" class="h-4 w-4" />
+                                                        <div class="space-y-1">
+                                                            <div class="font-medium">{{ typeLabels[report.type] }}</div>
+                                                            <div class="text-xs text-muted-foreground">{{ statusLabels[report.status] }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rounded-md bg-muted/30 px-2 py-1 text-xs">
+                                                        <div class="font-medium">{{ reasonLookup[report.reason_category ?? ''] ?? 'Not specified' }}</div>
+                                                        <div v-if="report.reason_category" class="text-muted-foreground">
+                                                            {{ report.reason_category }}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -518,16 +525,6 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
 
                                                     <div v-if="report.evidence_url" class="text-xs">
                                                         <a :href="report.evidence_url" class="text-primary hover:underline" target="_blank" rel="noopener">Evidence link</a>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div class="space-y-1 text-sm">
-                                                    <div class="font-medium">
-                                                        {{ reasonLookup[report.reason_category ?? ''] ?? 'Not specified' }}
-                                                    </div>
-                                                    <div v-if="report.reason_category" class="text-xs text-muted-foreground">
-                                                        {{ report.reason_category }}
                                                     </div>
                                                 </div>
                                             </TableCell>
