@@ -250,6 +250,25 @@ const deleteBoard = (boardId: number) => {
                                             <span>Edit Category</span>
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
+                                    <DropdownMenuGroup v-if="permissionsForums">
+                                        <DropdownMenuItem>
+                                            <Shield class="h-8 w-8" />
+                                            <span>Permissions</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                    <DropdownMenuGroup v-if="publishForums">
+                                        <DropdownMenuItem>
+                                            <EyeOff class="h-8 w-8" />
+                                            <span>Unpublish</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                    <DropdownMenuSeparator v-if="migrateForums" />
+                                    <DropdownMenuGroup v-if="migrateForums">
+                                        <DropdownMenuItem>
+                                            <MessageSquareShare class="h-8 w-8" />
+                                            <span>Migrate Children</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
                                     <DropdownMenuSeparator v-if="deleteForums" />
                                     <DropdownMenuItem
                                         v-if="deleteForums"
