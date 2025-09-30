@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -26,6 +26,16 @@ type BlogPayload = {
     created_at?: string;
     updated_at?: string;
     published_at?: string | null;
+    cover_image?: string | null;
+    cover_image_url?: string | null;
+};
+
+type BlogForm = {
+    title: string;
+    excerpt: string;
+    body: string;
+    status: BlogStatus;
+    cover_image: File | null;
 };
 
 const props = defineProps<{ blog: BlogPayload }>();
@@ -41,11 +51,12 @@ const statusOptions: Array<{ label: string; value: BlogStatus }> = [
     { label: 'Archived', value: 'archived' },
 ];
 
-const form = useForm({
+const form = useForm<BlogForm>({
     title: props.blog.title ?? '',
     excerpt: props.blog.excerpt ?? '',
     body: props.blog.body ?? '',
     status: props.blog.status ?? 'draft',
+    cover_image: null,
 });
 
 const { formatDate } = useUserTimezone();
@@ -60,9 +71,48 @@ const publishedAt = computed(() =>
     props.blog.published_at ? formatDate(props.blog.published_at) : 'Not published'
 );
 
+const coverImagePreview = ref<string | null>(null);
+
+const existingCoverImage = computed(() => coverImagePreview.value ?? props.blog.cover_image_url ?? null);
+
+const handleCoverImageChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0] ?? null;
+
+    if (coverImagePreview.value) {
+        URL.revokeObjectURL(coverImagePreview.value);
+    }
+
+    form.cover_image = file;
+    coverImagePreview.value = file ? URL.createObjectURL(file) : null;
+};
+
+onBeforeUnmount(() => {
+    if (coverImagePreview.value) {
+        URL.revokeObjectURL(coverImagePreview.value);
+    }
+});
+
 const handleSubmit = () => {
-    form.put(route('acp.blogs.update', { blog: props.blog.id }), {
+    form.transform((data) => {
+        const payload: Record<string, unknown> = {
+            ...data,
+            _method: 'PUT',
+        };
+
+        if (!data.cover_image) {
+            delete payload.cover_image;
+        }
+
+        return payload;
+    });
+
+    form.post(route('acp.blogs.update', { blog: props.blog.id }), {
+        forceFormData: true,
         preserveScroll: true,
+        onFinish: () => {
+            form.transform((data) => ({ ...data }));
+        },
     });
 };
 </script>
@@ -116,6 +166,28 @@ const handleSubmit = () => {
                                     class="min-h-24"
                                 />
                                 <InputError :message="form.errors.excerpt" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label for="cover_image">Cover image</Label>
+                                <Input
+                                    id="cover_image"
+                                    type="file"
+                                    accept="image/*"
+                                    @change="handleCoverImageChange"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    Replace the existing banner to refresh how this post appears across the site.
+                                </p>
+                                <InputError :message="form.errors.cover_image" />
+
+                                <div v-if="existingCoverImage" class="mt-2">
+                                    <img
+                                        :src="existingCoverImage"
+                                        alt="Blog cover preview"
+                                        class="h-32 w-full rounded-md object-cover border border-dashed border-muted"
+                                    />
+                                </div>
                             </div>
 
                             <div class="grid gap-2">

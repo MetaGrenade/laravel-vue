@@ -9,6 +9,7 @@ use App\Models\Blog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Response;
 
 class BlogController extends Controller
@@ -80,11 +81,21 @@ class BlogController extends Controller
         // Validate request data
         $validated = $request->validated();
 
+        $coverImagePath = $request->file('cover_image')
+            ? $request->file('cover_image')->store('blog-covers', 'public')
+            : null;
+
+        $excerpt = $validated['excerpt'] ?? null;
+        if ($excerpt === '') {
+            $excerpt = null;
+        }
+
         // Create a new blog record
         $blog = Blog::create([
             'title'        => $validated['title'],
             'slug'         => Str::slug($validated['title']),
-            'excerpt'      => $validated['excerpt'] ?? null,
+            'excerpt'      => $excerpt,
+            'cover_image'  => $coverImagePath,
             'body'         => $validated['body'],
             'user_id'      => auth()->id(),
             'status'       => $validated['status'],
@@ -101,7 +112,22 @@ class BlogController extends Controller
     public function edit(Blog $blog)
     {
         return inertia('acp/BlogEdit', [
-            'blog' => $blog,
+            'blog' => array_merge($blog->only([
+                'id',
+                'title',
+                'slug',
+                'excerpt',
+                'cover_image',
+                'body',
+                'status',
+                'created_at',
+                'updated_at',
+                'published_at',
+            ]), [
+                'cover_image_url' => $blog->cover_image
+                    ? Storage::disk('public')->url($blog->cover_image)
+                    : null,
+            ]),
         ]);
     }
 
@@ -113,15 +139,30 @@ class BlogController extends Controller
         // Validate request data
         $validated = $request->validated();
 
-        // Update the blog record
-        $blog->update([
+        $excerpt = $validated['excerpt'] ?? null;
+        if ($excerpt === '') {
+            $excerpt = null;
+        }
+
+        $updateData = [
             'title'        => $validated['title'],
             'slug'         => Str::slug($validated['title']),
-            'excerpt'      => $validated['excerpt'] ?? null,
+            'excerpt'      => $excerpt,
             'body'         => $validated['body'],
             'status'       => $validated['status'],
             'published_at' => $validated['status'] === 'published' ? now() : $blog->published_at,
-        ]);
+        ];
+
+        if ($request->hasFile('cover_image')) {
+            if ($blog->cover_image) {
+                Storage::disk('public')->delete($blog->cover_image);
+            }
+
+            $updateData['cover_image'] = $request->file('cover_image')->store('blog-covers', 'public');
+        }
+
+        // Update the blog record
+        $blog->update($updateData);
 
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post updated successfully.');

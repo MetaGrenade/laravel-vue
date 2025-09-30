@@ -19,6 +19,7 @@ class BlogRequest extends FormRequest
             'excerpt'  => 'nullable|string',
             'body'  => 'required|string',
             'status'   => 'required|in:draft,published,archived',
+            'cover_image' => 'nullable|image|max:5120',
         ];
     }
 }

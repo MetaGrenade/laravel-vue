@@ -36,6 +36,7 @@ type BlogPayload = {
     published_at?: string | null;
     user?: BlogAuthor | null;
     comments?: BlogComment[];
+    cover_image?: string | null;
 };
 
 const props = defineProps<{ blog: BlogPayload }>();
@@ -44,6 +45,10 @@ const blog = computed(() => props.blog);
 const { formatDate } = useUserTimezone();
 
 const comments = computed(() => blog.value.comments ?? []);
+
+const coverImage = computed(
+    () => blog.value.cover_image ?? '/images/default-cover.jpg',
+);
 
 const authorName = computed(() => {
     const author = blog.value.user;
@@ -70,6 +75,9 @@ const publishedAt = computed(() => {
         <div class="container mx-auto px-4 py-8">
             <!-- Blog Post Content -->
             <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
+                <div v-if="coverImage" class="mb-6 overflow-hidden rounded-lg">
+                    <img :src="coverImage" alt="Blog cover" class="w-full h-64 object-cover" />
+                </div>
                 <h1 class="mb-3 text-3xl font-bold">{{ blog.title }}</h1>
                 <div class="mb-4 text-sm text-gray-500 dark:text-gray-400">
                     <span>By <span class="font-medium text-foreground">{{ authorName }}</span></span>

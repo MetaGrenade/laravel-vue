@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Models\Blog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,7 +32,9 @@ class BlogController extends Controller
                 'title' => $blog->title,
                 'slug' => $blog->slug,
                 'excerpt' => $blog->excerpt,
-                'cover_image' => $blog->cover_image ?? null,
+                'cover_image' => $blog->cover_image
+                    ? Storage::disk('public')->url($blog->cover_image)
+                    : null,
                 'published_at' => optional($blog->published_at)->toIso8601String(),
                 'author' => $blog->user ? [
                     'id' => $blog->user->id,
@@ -68,6 +71,9 @@ class BlogController extends Controller
                 'title' => $blog->title,
                 'slug' => $blog->slug,
                 'excerpt' => $blog->excerpt,
+                'cover_image' => $blog->cover_image
+                    ? Storage::disk('public')->url($blog->cover_image)
+                    : null,
                 'body' => $blog->body,
                 'published_at' => optional($blog->published_at)->toIso8601String(),
                 'user' => $blog->user ? [

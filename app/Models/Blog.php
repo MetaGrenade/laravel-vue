@@ -15,6 +15,7 @@ class Blog extends Model
         'title',
         'slug',
         'excerpt',
+        'cover_image',
         'body',
         'user_id',
         'status',
