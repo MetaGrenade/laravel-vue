@@ -78,7 +78,7 @@ class BlogController extends Controller
                     ];
                 })->values()->all(),
             ];
-        })->values();
+        })->values()->all();
 
         $categories = BlogCategory::query()
             ->whereHas('blogs', fn ($query) => $query->where('status', 'published'))
