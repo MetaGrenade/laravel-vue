@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -9,6 +9,8 @@ import Button from '@/components/ui/button/Button.vue';
 import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import Input from '@/components/ui/input/Input.vue';
+import { Paperclip } from 'lucide-vue-next';
 
 interface TicketAssignee {
     id: number;
@@ -22,12 +24,20 @@ interface TicketUser {
     email: string;
 }
 
+interface TicketMessageAttachment {
+    id: number;
+    name: string;
+    size: number;
+    download_url: string;
+}
+
 interface TicketMessage {
     id: number;
     body: string;
     created_at: string | null;
     author: TicketAssignee | null;
     is_from_support: boolean;
+    attachments: TicketMessageAttachment[];
 }
 
 const props = defineProps<{
@@ -85,19 +95,63 @@ const { formatDate, fromNow } = useUserTimezone();
 const formattedCreatedAt = computed(() => formatDate(props.ticket.created_at));
 const formattedUpdatedAt = computed(() => formatDate(props.ticket.updated_at));
 
-const replyForm = useForm({
+interface ReplyFormPayload {
+    body: string;
+    attachments: File[];
+}
+
+const replyForm = useForm<ReplyFormPayload>({
     body: '',
+    attachments: [],
 });
+
+const attachmentInput = ref<HTMLInputElement | null>(null);
+
+const handleAttachmentsChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+
+    replyForm.attachments = target.files ? Array.from(target.files) : [];
+};
+
+const attachmentErrors = computed(() => {
+    const errorEntries = Object.entries(replyForm.errors).filter(([key]) =>
+        key === 'attachments' || key.startsWith('attachments.'),
+    );
+
+    return errorEntries.length > 0 ? errorEntries[0][1] : '';
+});
+
+const resetAttachmentsInput = () => {
+    if (attachmentInput.value) {
+        attachmentInput.value.value = '';
+    }
+};
 
 const submitReply = () => {
     if (!props.canReply) {
         return;
     }
 
+    replyForm.transform((data) => {
+        if (!data.attachments || data.attachments.length === 0) {
+            const payload = { ...data };
+            delete payload.attachments;
+
+            return payload;
+        }
+
+        return data;
+    });
+
     replyForm.post(route('support.tickets.messages.store', { ticket: props.ticket.id }), {
         preserveScroll: true,
+        forceFormData: true,
         onSuccess: () => {
-            replyForm.reset('body');
+            replyForm.reset('body', 'attachments');
+            resetAttachmentsInput();
+        },
+        onFinish: () => {
+            replyForm.transform((data) => ({ ...data }));
         },
     });
 };
@@ -131,6 +185,20 @@ const messageTimestamp = (value: string | null) => {
     }
 
     return `${formatDate(value)} · ${fromNow(value)}`;
+};
+
+const formatFileSize = (bytes: number) => {
+    if (!bytes) {
+        return '0 B';
+    }
+
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const size = bytes / Math.pow(1024, exponent);
+
+    const formatted = size >= 10 || exponent === 0 ? size.toFixed(0) : size.toFixed(1);
+
+    return `${formatted} ${units[exponent]}`;
 };
 </script>
 
@@ -181,6 +249,37 @@ const messageTimestamp = (value: string | null) => {
                                     "
                                 >
                                     <p class="mb-2 whitespace-pre-line">{{ message.body }}</p>
+                                    <div v-if="message.attachments.length" class="mt-3 flex flex-col gap-2">
+                                        <div
+                                            class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide opacity-80"
+                                        >
+                                            <Paperclip class="h-3 w-3" />
+                                            <span>Attachments</span>
+                                        </div>
+                                        <ul class="flex flex-col gap-1 text-xs">
+                                            <li v-for="attachment in message.attachments" :key="attachment.id">
+                                                <a
+                                                    :href="attachment.download_url"
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                    class="flex items-center gap-2 underline underline-offset-4"
+                                                    :class="message.is_from_support
+                                                        ? 'text-primary hover:text-primary/80'
+                                                        : 'text-primary-foreground hover:text-primary-foreground/80'"
+                                                >
+                                                    <span class="truncate">{{ attachment.name }}</span>
+                                                    <span
+                                                        class="whitespace-nowrap text-[0.7rem]"
+                                                        :class="message.is_from_support
+                                                            ? 'text-muted-foreground'
+                                                            : 'text-primary-foreground/80'"
+                                                    >
+                                                        {{ formatFileSize(attachment.size) }}
+                                                    </span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
                                     <p class="text-xs font-medium opacity-75">
                                         {{ resolveAuthorLabel(message) }} · {{ messageTimestamp(message.created_at) }}
                                     </p>
@@ -203,6 +302,32 @@ const messageTimestamp = (value: string | null) => {
                                 required
                             />
                             <InputError :message="replyForm.errors.body" />
+                            <div class="flex flex-col gap-2">
+                                <Input
+                                    ref="attachmentInput"
+                                    id="attachments"
+                                    type="file"
+                                    multiple
+                                    :disabled="replyForm.processing"
+                                    accept="image/*,application/pdf,text/plain,text/csv,application/zip,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/x-ndjson"
+                                    @change="handleAttachmentsChange"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    Attach relevant screenshots or log files (up to 5 files, 10&nbsp;MB each).
+                                </p>
+                                <ul v-if="replyForm.attachments.length" class="flex flex-wrap gap-2 text-xs">
+                                    <li
+                                        v-for="file in replyForm.attachments"
+                                        :key="`${file.name}-${file.lastModified}`"
+                                        class="flex items-center gap-2 rounded-md border border-dashed border-muted bg-muted/40 px-2 py-1"
+                                    >
+                                        <Paperclip class="h-3 w-3" />
+                                        <span class="max-w-[10rem] truncate">{{ file.name }}</span>
+                                        <span class="text-muted-foreground">{{ formatFileSize(file.size) }}</span>
+                                    </li>
+                                </ul>
+                                <InputError :message="attachmentErrors" />
+                            </div>
                             <div class="flex justify-end">
                                 <Button type="submit" :disabled="replyForm.processing">
                                     Send message
