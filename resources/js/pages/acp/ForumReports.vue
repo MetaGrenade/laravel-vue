@@ -464,8 +464,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                             <TableHead class="w-32">Type</TableHead>
                                             <TableHead>Content</TableHead>
                                             <TableHead class="w-40">Reason</TableHead>
-                                            <TableHead class="w-40">Reporter</TableHead>
-                                            <TableHead class="w-48">Submitted</TableHead>
+                                            <TableHead class="w-48">Reporter</TableHead>
                                             <TableHead class="w-16 text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -541,19 +540,15 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                                     <div v-if="report.reporter?.email" class="text-xs text-muted-foreground">
                                                         {{ report.reporter.email }}
                                                     </div>
-                                                    <div v-if="report.reviewer" class="text-xs text-muted-foreground">
-                                                        Reviewed by {{ report.reviewer.nickname }}
+                                                    <div v-if="report.created_at" class="text-xs text-muted-foreground">
+                                                        Submitted {{ fromNow(report.created_at) }}
                                                     </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div class="space-y-1 text-sm">
-                                                    <div v-if="report.created_at">
-                                                        {{ fromNow(report.created_at) }}
-                                                    </div>
-                                                    <div v-else class="text-muted-foreground">Unknown</div>
+                                                    <div v-else class="text-xs text-muted-foreground">Submitted date unknown</div>
                                                     <div v-if="report.reviewed_at" class="text-xs text-muted-foreground">
                                                         Updated {{ fromNow(report.reviewed_at) }}
+                                                    </div>
+                                                    <div v-if="report.reviewer" class="text-xs text-muted-foreground">
+                                                        Reviewed by {{ report.reviewer.nickname }}
                                                     </div>
                                                 </div>
                                             </TableCell>
