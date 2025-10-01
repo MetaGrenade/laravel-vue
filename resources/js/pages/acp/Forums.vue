@@ -60,10 +60,13 @@ const props = defineProps<{
 const { hasPermission } = usePermissions();
 const { fromNow } = useUserTimezone();
 
-const createForums = computed(() => hasPermission('forums.acp.create'));
-const editForums = computed(() => hasPermission('forums.acp.edit'));
-const moveForums = computed(() => hasPermission('forums.acp.move'));
-const deleteForums = computed(() => hasPermission('forums.acp.delete'));
+const createForums = computed<boolean>(() => hasPermission('forums.acp.create'));
+const editForums = computed<boolean>(() => hasPermission('forums.acp.edit'));
+const moveForums = computed<boolean>(() => hasPermission('forums.acp.move'));
+const deleteForums = computed<boolean>(() => hasPermission('forums.acp.delete'));
+const permissionsForums = computed<boolean>(() => hasPermission('forums.acp.permissions'));
+const publishForums = computed<boolean>(() => hasPermission('forums.acp.publish'));
+const migrateForums = computed<boolean>(() => hasPermission('forums.acp.migrate'));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
