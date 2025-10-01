@@ -23,6 +23,12 @@ class BlogController extends Controller
     {
         $categoryFilter = $request->string('category')->trim();
         $tagFilter = $request->string('tag')->trim();
+        $searchFilter = $request->string('search')->trim();
+        $sortFilter = $request->string('sort')->lower();
+
+        $sortMode = in_array($sortFilter->toString(), ['latest', 'oldest', 'popular'], true)
+            ? $sortFilter->toString()
+            : 'latest';
 
         Blog::query()
             ->where('status', 'scheduled')
@@ -49,9 +55,7 @@ class BlogController extends Controller
                 'user:id,nickname',
                 'categories:id,name,slug',
                 'tags:id,name,slug',
-            ])
-            ->orderByDesc('published_at')
-            ->orderByDesc('created_at');
+            ]);
 
         if ($categoryFilter->isNotEmpty()) {
             $blogsQuery->whereHas('categories', function ($query) use ($categoryFilter) {
@@ -63,6 +67,26 @@ class BlogController extends Controller
             $blogsQuery->whereHas('tags', function ($query) use ($tagFilter) {
                 $query->where('slug', $tagFilter->toString());
             });
+        }
+
+        if ($searchFilter->isNotEmpty()) {
+            $blogsQuery->where(function ($query) use ($searchFilter) {
+                $query->where('title', 'like', '%' . $searchFilter->toString() . '%')
+                    ->orWhere('excerpt', 'like', '%' . $searchFilter->toString() . '%');
+            });
+        }
+
+        if ($sortMode === 'popular') {
+            $blogsQuery->withCount('comments')
+                ->orderByDesc('comments_count')
+                ->orderByDesc('published_at')
+                ->orderByDesc('created_at');
+        } elseif ($sortMode === 'oldest') {
+            $blogsQuery->orderBy('published_at')
+                ->orderBy('created_at');
+        } else {
+            $blogsQuery->orderByDesc('published_at')
+                ->orderByDesc('created_at');
         }
 
         $blogs = $blogsQuery
@@ -135,6 +159,8 @@ class BlogController extends Controller
             'filters' => [
                 'category' => $categoryFilter->isNotEmpty() ? $categoryFilter->toString() : null,
                 'tag' => $tagFilter->isNotEmpty() ? $tagFilter->toString() : null,
+                'search' => $searchFilter->isNotEmpty() ? $searchFilter->toString() : null,
+                'sort' => $sortMode,
             ],
             'categories' => $categories,
             'tags' => $tags,

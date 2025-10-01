@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -50,9 +50,13 @@ interface BlogsPayload {
     } | null;
 }
 
+type BlogSortOption = 'latest' | 'oldest' | 'popular';
+
 interface BlogFiltersPayload {
     category: string | null;
     tag: string | null;
+    search: string | null;
+    sort: BlogSortOption | null;
 }
 
 interface BlogTaxonomyOption extends BlogTaxonomySummary {
@@ -71,20 +75,71 @@ const props = defineProps<{
 const hasBlogs = computed(() => (props.blogs.data?.length ?? 0) > 0);
 const featuredBlog = computed(() => props.blogs.data?.[0] ?? null);
 
+const defaultSort: BlogSortOption = 'latest';
+
 const activeCategory = computed(() => props.filters?.category ?? null);
 const activeTag = computed(() => props.filters?.tag ?? null);
-const hasActiveFilters = computed(() => Boolean(activeCategory.value || activeTag.value));
+const searchInput = ref(props.filters?.search ?? '');
+const sortOrder = ref<BlogSortOption>(props.filters?.sort ?? defaultSort);
 
-const applyFilters = (category: string | null, tag: string | null) => {
-    const params: Record<string, unknown> = {};
+watch(
+    () => props.filters,
+    (filters) => {
+        searchInput.value = filters?.search ?? '';
+        sortOrder.value = filters?.sort ?? defaultSort;
+    },
+    { deep: true },
+);
 
-    if (category) {
-        params.category = category;
+const hasActiveFilters = computed(
+    () =>
+        Boolean(
+            activeCategory.value ||
+                activeTag.value ||
+                searchInput.value.trim().length > 0 ||
+                sortOrder.value !== defaultSort,
+        ),
+);
+
+const buildQueryParams = (params: {
+    category?: string | null;
+    tag?: string | null;
+    search?: string | null;
+    sort?: BlogSortOption | null;
+    page?: number;
+}) => {
+    const query: Record<string, unknown> = {};
+
+    if (params.category) {
+        query.category = params.category;
     }
 
-    if (tag) {
-        params.tag = tag;
+    if (params.tag) {
+        query.tag = params.tag;
     }
+
+    if (params.search && params.search.trim().length > 0) {
+        query.search = params.search.trim();
+    }
+
+    if (params.sort && params.sort !== defaultSort) {
+        query.sort = params.sort;
+    }
+
+    if (params.page && params.page > 1) {
+        query.page = params.page;
+    }
+
+    return query;
+};
+
+const applyFilters = (
+    category: string | null,
+    tag: string | null,
+    search: string | null = searchInput.value,
+    sort: BlogSortOption | null = sortOrder.value,
+) => {
+    const params = buildQueryParams({ category, tag, search, sort });
 
     router.get(route('blogs.index'), params, {
         preserveScroll: true,
@@ -108,21 +163,27 @@ const clearFilters = () => {
         return;
     }
 
-    applyFilters(null, null);
+    searchInput.value = '';
+    sortOrder.value = defaultSort;
+
+    applyFilters(null, null, '', defaultSort);
 };
 
-const buildPaginationParams = (page: number) => {
-    const params: Record<string, unknown> = { page };
+const buildPaginationParams = (page: number) =>
+    buildQueryParams({
+        page,
+        category: activeCategory.value,
+        tag: activeTag.value,
+        search: searchInput.value,
+        sort: sortOrder.value,
+    });
 
-    if (activeCategory.value) {
-        params.category = activeCategory.value;
-    }
+const submitSearch = () => {
+    applyFilters(activeCategory.value, activeTag.value, searchInput.value, sortOrder.value);
+};
 
-    if (activeTag.value) {
-        params.tag = activeTag.value;
-    }
-
-    return params;
+const updateSort = () => {
+    applyFilters(activeCategory.value, activeTag.value, searchInput.value, sortOrder.value);
 };
 
 const {
@@ -210,6 +271,33 @@ const {
                 </div>
 
                 <div class="space-y-3">
+                    <form class="flex flex-col gap-3 md:flex-row" @submit.prevent="submitSearch">
+                        <label class="flex-1 text-sm">
+                            <span class="sr-only">Search blog posts</span>
+                            <input
+                                v-model="searchInput"
+                                type="search"
+                                name="search"
+                                placeholder="Search blog posts"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            />
+                        </label>
+                        <label class="md:w-48 text-sm">
+                            <span class="sr-only">Sort blog posts</span>
+                            <select
+                                v-model="sortOrder"
+                                name="sort"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                @change="updateSort"
+                            >
+                                <option value="latest">Newest first</option>
+                                <option value="oldest">Oldest first</option>
+                                <option value="popular">Most discussed</option>
+                            </select>
+                        </label>
+                        <Button type="submit" class="md:w-auto" variant="default">Search</Button>
+                    </form>
+
                     <div v-if="props.categories.length" class="flex flex-wrap gap-2">
                         <button
                             v-for="category in props.categories"

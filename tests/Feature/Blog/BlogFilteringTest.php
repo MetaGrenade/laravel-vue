@@ -4,7 +4,9 @@ namespace Tests\Feature\Blog;
 
 use App\Models\Blog;
 use App\Models\BlogCategory;
+use App\Models\BlogComment;
 use App\Models\BlogTag;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -94,5 +96,62 @@ class BlogFilteringTest extends TestCase
                     && !$blogIds->contains($categoryOnlyBlog->id)
                     && !$blogIds->contains($tagOnlyBlog->id);
             }));
+    }
+
+    public function test_can_filter_blogs_by_keyword_search(): void
+    {
+        $matchingBlog = Blog::factory()->published()->create([
+            'title' => 'Laravel testing strategies',
+            'excerpt' => 'Practical guide to testing Laravel apps.',
+        ]);
+
+        $nonMatchingBlog = Blog::factory()->published()->create([
+            'title' => 'Vue component patterns',
+            'excerpt' => 'Tips for frontend engineers.',
+        ]);
+
+        $response = $this->get(route('blogs.index', ['search' => 'laravel']));
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Blog')
+            ->where('filters.search', 'laravel')
+            ->where('blogs.data', function ($data) use ($matchingBlog, $nonMatchingBlog) {
+                $blogIds = collect($data)->pluck('id');
+
+                return $blogIds->contains($matchingBlog->id)
+                    && !$blogIds->contains($nonMatchingBlog->id);
+            }));
+    }
+
+    public function test_can_sort_blogs_by_popularity(): void
+    {
+        $user = User::factory()->create();
+
+        $mostDiscussed = Blog::factory()->published()->create(['published_at' => now()->subDays(3)]);
+        $moderatelyDiscussed = Blog::factory()->published()->create(['published_at' => now()->subDays(2)]);
+        $leastDiscussed = Blog::factory()->published()->create(['published_at' => now()->subDay()]);
+
+        foreach (range(1, 3) as $index) {
+            BlogComment::create([
+                'blog_id' => $mostDiscussed->id,
+                'user_id' => $user->id,
+                'body' => "Popular comment {$index}",
+            ]);
+        }
+
+        BlogComment::create([
+            'blog_id' => $moderatelyDiscussed->id,
+            'user_id' => $user->id,
+            'body' => 'A single comment',
+        ]);
+
+        $response = $this->get(route('blogs.index', ['sort' => 'popular']));
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Blog')
+            ->where('filters.sort', 'popular')
+            ->where('blogs.data.0.id', $mostDiscussed->id)
+            ->where('blogs.data.1.id', $moderatelyDiscussed->id)
+            ->where('blogs.data.2.id', $leastDiscussed->id));
     }
 }
