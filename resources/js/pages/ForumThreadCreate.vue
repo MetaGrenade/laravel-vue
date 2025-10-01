@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/InputError.vue';
+import RichTextEditor from '@/components/editor/RichTextEditor.vue';
 
 interface BoardSummary {
     id: number;
@@ -42,9 +42,32 @@ const form = useForm({
     body: '',
 });
 
+const draftStorageKey = computed(() => `forum:thread:draft:${props.board.id}`);
+
+watch(
+    () => form.body,
+    () => {
+        if (form.errors.body) {
+            form.clearErrors('body');
+        }
+    },
+);
+
+const hasContent = (html: string) => html.replace(/<[^>]*>/g, '').trim() !== '';
+
 const submit = () => {
+    if (!hasContent(form.body)) {
+        form.setError('body', 'Please enter some content before publishing.');
+        return;
+    }
+
     form.post(route('forum.threads.store', { board: props.board.slug }), {
         preserveScroll: true,
+        onSuccess: () => {
+            if (draftStorageKey.value && typeof window !== 'undefined') {
+                window.localStorage.removeItem(draftStorageKey.value);
+            }
+        },
     });
 };
 </script>
@@ -53,7 +76,7 @@ const submit = () => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head :title="`New Thread • ${props.board.title}`" />
 
-        <form class="mx-auto flex max-w-4xl flex-1 flex-col gap-8 p-4" @submit.prevent="submit">
+        <form class="flex flex-1 flex-col gap-8 p-4" @submit.prevent="submit">
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 class="text-2xl font-semibold tracking-tight">Start a new discussion</h1>
@@ -86,12 +109,11 @@ const submit = () => {
 
                 <div class="grid gap-2">
                     <Label for="thread_body">Message</Label>
-                    <Textarea
+                    <RichTextEditor
                         id="thread_body"
                         v-model="form.body"
-                        class="min-h-48"
-                        placeholder="Share the details, context, or questions to kickstart the discussion."
-                        required
+                        :placeholder="'Share the details, context, or questions to kickstart the discussion.'"
+                        :storage-key="draftStorageKey"
                     />
                     <InputError :message="form.errors.body" />
                 </div>
