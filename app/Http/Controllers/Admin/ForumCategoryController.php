@@ -13,6 +13,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Response;
 
 class ForumCategoryController extends Controller
@@ -42,6 +43,8 @@ class ForumCategoryController extends Controller
                 'title' => $category->title,
                 'slug' => $category->slug,
                 'description' => $category->description,
+                'access_permission' => $category->access_permission,
+                'is_published' => $category->is_published,
                 'position' => $category->position,
                 'boards' => $category->boards->map(function (ForumBoard $board) {
                     $latestThread = $board->latestThread;
@@ -165,5 +168,103 @@ class ForumCategoryController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Forum categories reordered successfully.');
+    }
+
+    public function updatePermissions(Request $request, ForumCategory $category): RedirectResponse
+    {
+        abort_unless($request->user()?->can('forums.acp.permissions'), 403);
+
+        $input = $request->input('access_permission');
+        $permission = is_string($input) ? trim($input) : '';
+
+        $category->forceFill([
+            'access_permission' => $permission === '' ? null : $permission,
+        ])->save();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Forum category permissions updated successfully.');
+    }
+
+    public function publish(Request $request, ForumCategory $category): RedirectResponse
+    {
+        abort_unless($request->user()?->can('forums.acp.publish'), 403);
+
+        if ($category->is_published) {
+            return redirect()
+                ->back()
+                ->with('success', 'Forum category is already published.');
+        }
+
+        $category->forceFill(['is_published' => true])->save();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Forum category published successfully.');
+    }
+
+    public function unpublish(Request $request, ForumCategory $category): RedirectResponse
+    {
+        abort_unless($request->user()?->can('forums.acp.publish'), 403);
+
+        if (! $category->is_published) {
+            return redirect()
+                ->back()
+                ->with('success', 'Forum category is already unpublished.');
+        }
+
+        $category->forceFill(['is_published' => false])->save();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Forum category unpublished successfully.');
+    }
+
+    public function migrate(Request $request, ForumCategory $category): RedirectResponse
+    {
+        abort_unless($request->user()?->can('forums.acp.migrate'), 403);
+
+        $validated = $request->validate([
+            'target_category_id' => [
+                'required',
+                'integer',
+                Rule::exists('forum_categories', 'id'),
+                Rule::notIn([$category->id]),
+            ],
+        ]);
+
+        $targetCategory = ForumCategory::find($validated['target_category_id']);
+
+        if (! $targetCategory) {
+            return redirect()
+                ->back()
+                ->with('error', 'Selected destination category could not be found.');
+        }
+
+        $boards = $category->boards()->orderBy('position')->get();
+
+        if ($boards->isEmpty()) {
+            return redirect()
+                ->back()
+                ->with('error', 'This category does not have any boards to migrate.');
+        }
+
+        $position = ForumBoard::query()
+            ->where('forum_category_id', $targetCategory->id)
+            ->max('position') ?? 0;
+
+        foreach ($boards as $board) {
+            $board->forceFill([
+                'forum_category_id' => $targetCategory->id,
+                'position' => ++$position,
+            ])->save();
+        }
+
+        $this->resequenceBoards($category->id);
+        $this->resequenceBoards($targetCategory->id);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Forum boards migrated to the selected category successfully.');
     }
 }

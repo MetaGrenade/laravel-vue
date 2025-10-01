@@ -58,6 +58,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/forums/categories/{category}', [ForumCategoryController::class, 'update'])->name('acp.forums.categories.update');
     Route::delete('acp/forums/categories/{category}', [ForumCategoryController::class, 'destroy'])->name('acp.forums.categories.destroy');
     Route::patch('acp/forums/categories/{category}/reorder', [ForumCategoryController::class, 'reorder'])->name('acp.forums.categories.reorder');
+    Route::patch('acp/forums/categories/{category}/permissions', [ForumCategoryController::class, 'updatePermissions'])->name('acp.forums.categories.permissions');
+    Route::patch('acp/forums/categories/{category}/publish', [ForumCategoryController::class, 'publish'])->name('acp.forums.categories.publish');
+    Route::patch('acp/forums/categories/{category}/unpublish', [ForumCategoryController::class, 'unpublish'])->name('acp.forums.categories.unpublish');
+    Route::patch('acp/forums/categories/{category}/migrate', [ForumCategoryController::class, 'migrate'])->name('acp.forums.categories.migrate');
 
     Route::get('acp/forums/boards/create', [ForumBoardController::class, 'create'])->name('acp.forums.boards.create');
     Route::post('acp/forums/boards', [ForumBoardController::class, 'store'])->name('acp.forums.boards.store');

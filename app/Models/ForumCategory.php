@@ -14,7 +14,13 @@ class ForumCategory extends Model
         'title',
         'slug',
         'description',
+        'access_permission',
+        'is_published',
         'position',
+    ];
+
+    protected $casts = [
+        'is_published' => 'boolean',
     ];
 
     public function boards(): HasMany

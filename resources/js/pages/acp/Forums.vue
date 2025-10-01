@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import {
-    Folder, MessageSquare, CheckCircle, Ellipsis, EyeOff, Shield,
+    Folder, MessageSquare, CheckCircle, Ellipsis, Eye, EyeOff, Shield,
     Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Layers,
     PlusCircle, ExternalLink
 } from 'lucide-vue-next';
 import Button from '@/components/ui/button/Button.vue';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,6 +25,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import type { SharedData } from '@/types';
+import { toast } from 'vue-sonner';
 
 type ForumStat = {
     title: string;
@@ -48,6 +53,8 @@ type ForumCategorySummary = {
     title: string;
     slug: string;
     description: string | null;
+    access_permission: string | null;
+    is_published: boolean;
     position: number;
     boards: ForumBoardSummary[];
 };
@@ -59,6 +66,25 @@ const props = defineProps<{
 
 const { hasPermission } = usePermissions();
 const { fromNow } = useUserTimezone();
+const page = usePage<SharedData & { flash?: { success?: string | null; error?: string | null } }>();
+
+watch(
+    () => page.props.flash?.success ?? null,
+    (message) => {
+        if (message) {
+            toast.success(message);
+        }
+    },
+);
+
+watch(
+    () => page.props.flash?.error ?? null,
+    (message) => {
+        if (message) {
+            toast.error(message);
+        }
+    },
+);
 
 const createForums = computed<boolean>(() => hasPermission('forums.acp.create'));
 const editForums = computed<boolean>(() => hasPermission('forums.acp.edit'));
@@ -114,16 +140,15 @@ const goToCategoryEdit = (categoryId: number) => {
     router.get(route('acp.forums.categories.edit', { category: categoryId }));
 };
 
-const deleteCategory = (categoryId: number) => {
-    if (
-        confirm(
-            'Deleting this category will also remove all boards, threads, and posts within it. Are you sure you want to continue?',
-        )
-    ) {
-        router.delete(route('acp.forums.categories.destroy', { category: categoryId }), {
-            preserveScroll: true,
-        });
-    }
+const toggleCategoryPublish = (category: ForumCategorySummary, shouldPublish: boolean) => {
+    const routeName = shouldPublish
+        ? 'acp.forums.categories.publish'
+        : 'acp.forums.categories.unpublish';
+
+    router.patch(route(routeName, { category: category.id }), {}, {
+        preserveScroll: true,
+        onError: () => toast.error('Unable to update the publication state for this category.'),
+    });
 };
 
 const openBoardCreate = (categoryId: number) => {
@@ -142,20 +167,345 @@ const goToBoardEdit = (boardId: number) => {
     router.get(route('acp.forums.boards.edit', { board: boardId }));
 };
 
-const deleteBoard = (boardId: number) => {
-    if (
-        confirm('Deleting this board will remove all threads and posts it contains. Do you want to proceed?')
-    ) {
-        router.delete(route('acp.forums.boards.destroy', { board: boardId }), {
-            preserveScroll: true,
-        });
+const permissionDialogOpen = ref(false);
+const permissionDialogCategory = ref<ForumCategorySummary | null>(null);
+const permissionDialogValue = ref('');
+const permissionDialogProcessing = ref(false);
+
+watch(permissionDialogOpen, (open) => {
+    if (!open) {
+        permissionDialogCategory.value = null;
+        permissionDialogValue.value = '';
+        permissionDialogProcessing.value = false;
     }
+});
+
+const openPermissionDialog = (category: ForumCategorySummary) => {
+    permissionDialogCategory.value = category;
+    permissionDialogValue.value = category.access_permission ?? '';
+    permissionDialogOpen.value = true;
+};
+
+const submitPermissionDialog = () => {
+    if (!permissionDialogCategory.value) {
+        return;
+    }
+
+    permissionDialogProcessing.value = true;
+    const trimmed = permissionDialogValue.value.trim();
+
+    router.patch(
+        route('acp.forums.categories.permissions', { category: permissionDialogCategory.value.id }),
+        { access_permission: trimmed === '' ? null : trimmed },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                permissionDialogOpen.value = false;
+            },
+            onError: () =>
+                toast.error('Unable to update the category permissions. Please try again.'),
+            onFinish: () => {
+                permissionDialogProcessing.value = false;
+            },
+        },
+    );
+};
+
+const migrateDialogOpen = ref(false);
+const migrateDialogCategory = ref<ForumCategorySummary | null>(null);
+const migrateDialogTargetId = ref<number | null>(null);
+const migrateDialogProcessing = ref(false);
+
+const availableMigrateTargets = computed<ForumCategorySummary[]>(() => {
+    if (!migrateDialogCategory.value) {
+        return [];
+    }
+
+    return categories.value.filter((item) => item.id !== migrateDialogCategory.value?.id);
+});
+
+watch(availableMigrateTargets, (targets) => {
+    if (!migrateDialogOpen.value) {
+        return;
+    }
+
+    if (targets.length === 0) {
+        migrateDialogTargetId.value = null;
+        return;
+    }
+
+    if (!targets.some((item) => item.id === migrateDialogTargetId.value)) {
+        migrateDialogTargetId.value = targets[0]?.id ?? null;
+    }
+});
+
+watch(migrateDialogOpen, (open) => {
+    if (!open) {
+        migrateDialogCategory.value = null;
+        migrateDialogTargetId.value = null;
+        migrateDialogProcessing.value = false;
+    }
+});
+
+const openMigrateDialog = (category: ForumCategorySummary) => {
+    const targets = categories.value.filter((item) => item.id !== category.id);
+
+    if (targets.length === 0) {
+        toast.error('There are no other categories available to migrate the boards into.');
+        return;
+    }
+
+    migrateDialogCategory.value = category;
+    migrateDialogTargetId.value = targets[0]?.id ?? null;
+    migrateDialogOpen.value = true;
+};
+
+const submitMigrateDialog = () => {
+    if (!migrateDialogCategory.value || !migrateDialogTargetId.value) {
+        toast.error('Please choose a valid category to migrate into.');
+        return;
+    }
+
+    migrateDialogProcessing.value = true;
+
+    router.patch(
+        route('acp.forums.categories.migrate', { category: migrateDialogCategory.value.id }),
+        { target_category_id: migrateDialogTargetId.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                migrateDialogOpen.value = false;
+            },
+            onError: () =>
+                toast.error('Unable to migrate the boards at this time. Please try again.'),
+            onFinish: () => {
+                migrateDialogProcessing.value = false;
+            },
+        },
+    );
+};
+
+const deleteCategoryDialogOpen = ref(false);
+const deleteCategoryDialogCategory = ref<ForumCategorySummary | null>(null);
+const deleteCategoryDialogProcessing = ref(false);
+
+watch(deleteCategoryDialogOpen, (open) => {
+    if (!open) {
+        deleteCategoryDialogCategory.value = null;
+        deleteCategoryDialogProcessing.value = false;
+    }
+});
+
+const openDeleteCategoryDialog = (category: ForumCategorySummary) => {
+    deleteCategoryDialogCategory.value = category;
+    deleteCategoryDialogOpen.value = true;
+};
+
+const confirmDeleteCategory = () => {
+    if (!deleteCategoryDialogCategory.value) {
+        return;
+    }
+
+    deleteCategoryDialogProcessing.value = true;
+
+    router.delete(route('acp.forums.categories.destroy', { category: deleteCategoryDialogCategory.value.id }), {
+        preserveScroll: true,
+        onSuccess: () => {
+            deleteCategoryDialogOpen.value = false;
+        },
+        onError: () =>
+            toast.error('Unable to delete the category right now. Please try again.'),
+        onFinish: () => {
+            deleteCategoryDialogProcessing.value = false;
+        },
+    });
+};
+
+const deleteBoardDialogOpen = ref(false);
+const deleteBoardDialogTarget = ref<{ board: ForumBoardSummary; category: ForumCategorySummary } | null>(null);
+const deleteBoardDialogProcessing = ref(false);
+
+watch(deleteBoardDialogOpen, (open) => {
+    if (!open) {
+        deleteBoardDialogTarget.value = null;
+        deleteBoardDialogProcessing.value = false;
+    }
+});
+
+const openDeleteBoardDialog = (category: ForumCategorySummary, board: ForumBoardSummary) => {
+    deleteBoardDialogTarget.value = { board, category };
+    deleteBoardDialogOpen.value = true;
+};
+
+const confirmDeleteBoard = () => {
+    if (!deleteBoardDialogTarget.value) {
+        return;
+    }
+
+    deleteBoardDialogProcessing.value = true;
+
+    router.delete(route('acp.forums.boards.destroy', { board: deleteBoardDialogTarget.value.board.id }), {
+        preserveScroll: true,
+        onSuccess: () => {
+            deleteBoardDialogOpen.value = false;
+        },
+        onError: () => toast.error('Unable to delete the board right now. Please try again.'),
+        onFinish: () => {
+            deleteBoardDialogProcessing.value = false;
+        },
+    });
 };
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Forums ACP" />
+
+        <Dialog v-model:open="permissionDialogOpen">
+            <DialogContent class="sm:max-w-md">
+                <form class="space-y-5" @submit.prevent="submitPermissionDialog">
+                    <DialogHeader>
+                        <DialogTitle>Configure category permissions</DialogTitle>
+                        <DialogDescription v-if="permissionDialogCategory">
+                            Choose the permission required to view
+                            "{{ permissionDialogCategory.title }}". Leave the field blank to remove restrictions.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div class="grid gap-2">
+                        <Label for="category_permission_key">Permission key</Label>
+                        <Input
+                            id="category_permission_key"
+                            v-model="permissionDialogValue"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="forums.view.private"
+                            :disabled="permissionDialogProcessing"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Members must have this permission to access the category.
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            :disabled="permissionDialogProcessing"
+                            @click="permissionDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" :disabled="permissionDialogProcessing">
+                            Save changes
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog v-model:open="migrateDialogOpen">
+            <DialogContent class="sm:max-w-md">
+                <form class="space-y-5" @submit.prevent="submitMigrateDialog">
+                    <DialogHeader>
+                        <DialogTitle>Migrate boards to another category</DialogTitle>
+                        <DialogDescription v-if="migrateDialogCategory">
+                            All boards within "{{ migrateDialogCategory.title }}" will be moved into the selected
+                            category.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div class="grid gap-2">
+                        <Label for="migrate_target_category">Target category</Label>
+                        <select
+                            id="migrate_target_category"
+                            v-model.number="migrateDialogTargetId"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            :disabled="migrateDialogProcessing"
+                        >
+                            <option
+                                v-for="target in availableMigrateTargets"
+                                :key="target.id"
+                                :value="target.id"
+                            >
+                                {{ target.title }}
+                            </option>
+                        </select>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            :disabled="migrateDialogProcessing"
+                            @click="migrateDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" :disabled="migrateDialogProcessing || !migrateDialogTargetId">
+                            Migrate boards
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog v-model:open="deleteCategoryDialogOpen">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Delete category</DialogTitle>
+                    <DialogDescription v-if="deleteCategoryDialogCategory">
+                        Deleting "{{ deleteCategoryDialogCategory.title }}" will remove all boards, threads, and posts it
+                        contains. This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter class="gap-2 sm:gap-3">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        :disabled="deleteCategoryDialogProcessing"
+                        @click="deleteCategoryDialogOpen = false"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        :disabled="deleteCategoryDialogProcessing"
+                        @click="confirmDeleteCategory"
+                    >
+                        Delete category
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog v-model:open="deleteBoardDialogOpen">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Delete board</DialogTitle>
+                    <DialogDescription v-if="deleteBoardDialogTarget">
+                        Are you sure you want to delete "{{ deleteBoardDialogTarget.board.title }}" from
+                        "{{ deleteBoardDialogTarget.category.title }}"? All threads and posts within the board will be
+                        permanently removed.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter class="gap-2 sm:gap-3">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        :disabled="deleteBoardDialogProcessing"
+                        @click="deleteBoardDialogOpen = false"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        :disabled="deleteBoardDialogProcessing"
+                        @click="confirmDeleteBoard"
+                    >
+                        Delete board
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <AdminLayout>
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
@@ -216,6 +566,23 @@ const deleteBoard = (boardId: number) => {
                                 <p v-if="category.description" class="mt-1 text-sm text-muted-foreground">
                                     {{ category.description }}
                                 </p>
+                                <div
+                                    v-if="category.access_permission || !category.is_published"
+                                    class="mt-2 flex flex-wrap gap-2"
+                                >
+                                    <span
+                                        v-if="!category.is_published"
+                                        class="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/20 dark:text-amber-200"
+                                    >
+                                        Unpublished
+                                    </span>
+                                    <span
+                                        v-if="category.access_permission"
+                                        class="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-500/20 dark:text-blue-200"
+                                    >
+                                        Requires "{{ category.access_permission }}"
+                                    </span>
+                                </div>
                             </div>
                             <DropdownMenu>
                                 <DropdownMenuTrigger as-child>
@@ -254,29 +621,39 @@ const deleteBoard = (boardId: number) => {
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
                                     <DropdownMenuGroup v-if="permissionsForums">
-                                        <DropdownMenuItem>
-                                            <Shield class="h-8 w-8" />
-                                            <span>Permissions</span>
+                                        <DropdownMenuItem @select="openPermissionDialog(category)">
+                                            <Shield class="h-4 w-4" />
+                                            <span>Configure Permissions</span>
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
                                     <DropdownMenuGroup v-if="publishForums">
-                                        <DropdownMenuItem>
-                                            <EyeOff class="h-8 w-8" />
+                                        <DropdownMenuItem
+                                            v-if="category.is_published"
+                                            @select="toggleCategoryPublish(category, false)"
+                                        >
+                                            <EyeOff class="h-4 w-4" />
                                             <span>Unpublish</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            v-else
+                                            @select="toggleCategoryPublish(category, true)"
+                                        >
+                                            <Eye class="h-4 w-4" />
+                                            <span>Publish</span>
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
                                     <DropdownMenuSeparator v-if="migrateForums" />
                                     <DropdownMenuGroup v-if="migrateForums">
-                                        <DropdownMenuItem>
-                                            <MessageSquareShare class="h-8 w-8" />
-                                            <span>Migrate Children</span>
+                                        <DropdownMenuItem @select="openMigrateDialog(category)">
+                                            <MessageSquareShare class="h-4 w-4" />
+                                            <span>Migrate Boards</span>
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
                                     <DropdownMenuSeparator v-if="deleteForums" />
                                     <DropdownMenuItem
                                         v-if="deleteForums"
                                         class="text-red-500"
-                                        @select="deleteCategory(category.id)"
+                                        @select="openDeleteCategoryDialog(category)"
                                     >
                                         <Trash2 class="h-4 w-4" />
                                         <span>Delete Category</span>
@@ -375,7 +752,7 @@ const deleteBoard = (boardId: number) => {
                                             <DropdownMenuItem
                                                 v-if="deleteForums"
                                                 class="text-red-500"
-                                                @select="deleteBoard(board.id)"
+                                                @select="openDeleteBoardDialog(category, board)"
                                             >
                                                 <Trash2 class="h-4 w-4" />
                                                 <span>Delete Board</span>
