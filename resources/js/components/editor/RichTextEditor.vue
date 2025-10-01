@@ -5,7 +5,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import { useDebounceFn } from '@vueuse/core'
 import { cn } from '@/lib/utils'
-import { Bold, Code, Eye, EyeOff, Italic, List, ListOrdered, Quote, Redo, Strikethrough, Undo } from 'lucide-vue-next'
+import { Code as CodeIcon, Eye, EyeOff, List, ListOrdered, Quote, Redo, Undo } from 'lucide-vue-next'
 
 const props = withDefaults(
   defineProps<{
@@ -176,59 +176,62 @@ const togglePreview = () => {
   isPreviewing.value = true
 }
 
-const formattingGroups = computed(() => [
-  [
-    {
-      icon: Bold,
-      label: 'Bold',
-      isActive: () => editor.value?.isActive('bold') ?? false,
-      action: () => editor.value?.chain().focus().toggleBold().run(),
-    },
-    {
-      icon: Italic,
-      label: 'Italic',
-      isActive: () => editor.value?.isActive('italic') ?? false,
-      action: () => editor.value?.chain().focus().toggleItalic().run(),
-    },
-    {
-      icon: Strikethrough,
-      label: 'Strikethrough',
-      isActive: () => editor.value?.isActive('strike') ?? false,
-      action: () => editor.value?.chain().focus().toggleStrike().run(),
-    },
-    {
-      icon: Code,
-      label: 'Inline code',
-      isActive: () => editor.value?.isActive('code') ?? false,
-      action: () => editor.value?.chain().focus().toggleCode().run(),
-    },
-  ],
-  [
-    {
-      icon: List,
-      label: 'Bullet list',
-      isActive: () => editor.value?.isActive('bulletList') ?? false,
-      action: () => editor.value?.chain().focus().toggleBulletList().run(),
-    },
-    {
-      icon: ListOrdered,
-      label: 'Numbered list',
-      isActive: () => editor.value?.isActive('orderedList') ?? false,
-      action: () => editor.value?.chain().focus().toggleOrderedList().run(),
-    },
-    {
-      icon: Quote,
-      label: 'Quote',
-      isActive: () => editor.value?.isActive('blockquote') ?? false,
-      action: () => editor.value?.chain().focus().toggleBlockquote().run(),
-    },
-    {
-      icon: Code,
-      label: 'Code block',
-      isActive: () => editor.value?.isActive('codeBlock') ?? false,
-      action: () => editor.value?.chain().focus().toggleCodeBlock().run(),
-    },
-  ],
+const markButtons = computed(() => [
+  {
+    key: 'bold',
+    label: 'bold',
+    isActive: () => editor.value?.isActive('bold') ?? false,
+    canRun: () => editor.value?.can().chain().focus().toggleBold().run() ?? false,
+    action: () => editor.value?.chain().focus().toggleBold().run(),
+  },
+  {
+    key: 'italic',
+    label: 'italic',
+    isActive: () => editor.value?.isActive('italic') ?? false,
+    canRun: () => editor.value?.can().chain().focus().toggleItalic().run() ?? false,
+    action: () => editor.value?.chain().focus().toggleItalic().run(),
+  },
+  {
+    key: 'strike',
+    label: 'strike',
+    isActive: () => editor.value?.isActive('strike') ?? false,
+    canRun: () => editor.value?.can().chain().focus().toggleStrike().run() ?? false,
+    action: () => editor.value?.chain().focus().toggleStrike().run(),
+  },
+  {
+    key: 'code',
+    label: 'code',
+    isActive: () => editor.value?.isActive('code') ?? false,
+    canRun: () => editor.value?.can().chain().focus().toggleCode().run() ?? false,
+    action: () => editor.value?.chain().focus().toggleCode().run(),
+  },
+])
+
+const blockFormatting = computed(() => [
+  {
+    icon: List,
+    label: 'Bullet list',
+    isActive: () => editor.value?.isActive('bulletList') ?? false,
+    action: () => editor.value?.chain().focus().toggleBulletList().run(),
+  },
+  {
+    icon: ListOrdered,
+    label: 'Numbered list',
+    isActive: () => editor.value?.isActive('orderedList') ?? false,
+    action: () => editor.value?.chain().focus().toggleOrderedList().run(),
+  },
+  {
+    icon: Quote,
+    label: 'Quote',
+    isActive: () => editor.value?.isActive('blockquote') ?? false,
+    action: () => editor.value?.chain().focus().toggleBlockquote().run(),
+  },
+  {
+    icon: CodeIcon,
+    label: 'Code block',
+    isActive: () => editor.value?.isActive('codeBlock') ?? false,
+    action: () => editor.value?.chain().focus().toggleCodeBlock().run(),
+  },
 ])
 
 const undo = () => editor.value?.chain().focus().undo().run()
@@ -245,23 +248,34 @@ const toolbarButtonClass = (active: boolean) =>
   <div :id="id" :class="cn('flex flex-col gap-2', props.class)">
     <div class="overflow-hidden rounded-lg border border-border bg-card">
       <div class="flex flex-wrap items-center gap-1 border-b border-border bg-muted/40 px-2 py-1">
+        <div v-if="editor" class="flex flex-wrap items-center gap-1">
+          <button
+            v-for="button in markButtons"
+            :key="button.key"
+            type="button"
+            class="tiptap-mark-button"
+            :class="{ 'is-active': button.isActive() }"
+            :disabled="!button.canRun()"
+            @mousedown.prevent
+            @click.prevent="button.action()"
+          >
+            {{ button.label }}
+          </button>
+        </div>
+
         <div class="flex flex-wrap items-center gap-1">
-          <template v-for="group in formattingGroups" :key="group[0].label">
-            <div class="flex items-center gap-1">
-              <button
-                v-for="item in group"
-                :key="item.label"
-                type="button"
-                class="shrink-0"
-                :class="toolbarButtonClass(item.isActive())"
-                :aria-label="item.label"
-                @mousedown.prevent
-                @click.prevent="item.action()"
-              >
-                <component :is="item.icon" class="h-4 w-4" />
-              </button>
-            </div>
-          </template>
+          <button
+            v-for="item in blockFormatting"
+            :key="item.label"
+            type="button"
+            class="shrink-0"
+            :class="toolbarButtonClass(item.isActive())"
+            :aria-label="item.label"
+            @mousedown.prevent
+            @click.prevent="item.action()"
+          >
+            <component :is="item.icon" class="h-4 w-4" />
+          </button>
         </div>
 
         <div class="ml-auto flex items-center gap-1">
@@ -339,5 +353,27 @@ const toolbarButtonClass = (active: boolean) =>
   float: left;
   height: 0;
   pointer-events: none;
+}
+
+.tiptap-mark-button {
+  border: 1px solid theme('colors.border');
+  border-radius: 0.375rem;
+  background: theme('colors.background');
+  color: theme('colors.foreground');
+  font-size: theme('fontSize.sm');
+  font-weight: 500;
+  text-transform: capitalize;
+  padding: 0.25rem 0.5rem;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.tiptap-mark-button.is-active {
+  background: theme('colors.muted.DEFAULT');
+  color: theme('colors.foreground');
+}
+
+.tiptap-mark-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
