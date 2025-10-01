@@ -156,11 +156,15 @@ const {
         <div class="p-4 space-y-6">
             <!-- Featured Post Section -->
             <section v-if="featuredBlog">
-                <div class="relative h-64 overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                <Link
+                    :href="route('blogs.view', { slug: featuredBlog.slug })"
+                    :aria-label="`Read featured blog: ${featuredBlog.title}`"
+                    class="group relative block h-64 overflow-hidden rounded-xl border border-sidebar-border/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-sidebar-border"
+                >
                     <img
                         :src="featuredBlog.cover_image || '/images/default-cover.jpg'"
                         alt="Featured blog cover"
-                        class="object-cover w-full h-full"
+                        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     />
                     <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
                         <div class="flex flex-wrap gap-2 text-xs">
@@ -183,8 +187,9 @@ const {
                         <p v-if="featuredBlog.excerpt" class="mt-1 text-sm text-white line-clamp-2">
                             {{ featuredBlog.excerpt }}
                         </p>
+                        <span class="sr-only">Read more about {{ featuredBlog.title }}</span>
                     </div>
-                </div>
+                </Link>
             </section>
 
             <!-- Filters -->
