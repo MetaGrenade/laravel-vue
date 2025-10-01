@@ -1159,10 +1159,10 @@ const submitReply = () => {
                             </div>
                         </div>
                         <!-- Post Body -->
-                        <div class="prose dark:prose-dark" v-html="post.body"></div>
+                        <div class="tiptap ProseMirror prose prose-sm dark:prose-invert max-w-none" v-html="post.body"></div>
                         <!-- Forum Signature -->
-                        <div v-if="post.signature" class="mt-4 border-t pt-2 text-xs text-gray-500">
-                            {{ post.signature }}
+                        <div v-if="post.author.signature" class="mt-4 border-t pt-2 text-xs text-gray-500">
+                            {{ post.author.signature }}
                         </div>
                     </div>
                 </div>
