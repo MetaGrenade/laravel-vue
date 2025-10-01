@@ -242,7 +242,7 @@ const toolbarButtonClass = (active: boolean) =>
 </script>
 
 <template>
-  <div :id="id" :class="cn('flex flex-col gap-2', class)">
+  <div :id="id" :class="cn('flex flex-col gap-2', props.class)">
     <div class="overflow-hidden rounded-lg border border-border bg-card">
       <div class="flex flex-wrap items-center gap-1 border-b border-border bg-muted/40 px-2 py-1">
         <div class="flex flex-wrap items-center gap-1">
