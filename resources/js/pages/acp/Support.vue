@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Toaster, toast } from 'vue-sonner';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Button from '@/components/ui/button/Button.vue';
@@ -123,6 +124,7 @@ const props = defineProps<{
 }>();
 
 type Ticket = (typeof props.tickets.data)[number];
+type FaqItem = (typeof props.faqs.data)[number];
 
 const quickActionVisitOptions = {
     preserveScroll: true,
@@ -346,6 +348,70 @@ const filteredFaqs = computed(() => {
         f.answer.toLowerCase().includes(q)
     );
 });
+
+const reorderFaq = (faq: FaqItem, direction: 'up' | 'down') => {
+    router.patch(
+        route('acp.support.faqs.reorder', { faq: faq.id }),
+        { direction },
+        {
+            ...quickActionVisitOptions,
+            onSuccess: () => {
+                const action = direction === 'up' ? 'up' : 'down';
+                toast.success(`FAQ order moved ${action}.`);
+            },
+            onError: (errors) => {
+                const message =
+                    typeof errors.direction === 'string'
+                        ? errors.direction
+                        : 'Unable to reorder FAQ.';
+
+                toast.error(message);
+            },
+        },
+    );
+};
+
+const publishFaq = (faq: FaqItem) => {
+    router.patch(
+        route('acp.support.faqs.publish', { faq: faq.id }),
+        {},
+        {
+            ...quickActionVisitOptions,
+            onSuccess: () => {
+                toast.success('FAQ published.');
+            },
+            onError: (errors) => {
+                const message =
+                    typeof errors.published === 'string'
+                        ? errors.published
+                        : 'Unable to publish FAQ.';
+
+                toast.error(message);
+            },
+        },
+    );
+};
+
+const unpublishFaq = (faq: FaqItem) => {
+    router.patch(
+        route('acp.support.faqs.unpublish', { faq: faq.id }),
+        {},
+        {
+            ...quickActionVisitOptions,
+            onSuccess: () => {
+                toast.success('FAQ unpublished.');
+            },
+            onError: (errors) => {
+                const message =
+                    typeof errors.published === 'string'
+                        ? errors.published
+                        : 'Unable to unpublish FAQ.';
+
+                toast.error(message);
+            },
+        },
+    );
+};
 </script>
 
 <template>
@@ -655,18 +721,28 @@ const filteredFaqs = computed(() => {
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuSeparator v-if="moveSupport||publishSupport" />
                                                         <DropdownMenuGroup v-if="moveSupport">
-                                                            <DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                @select="reorderFaq(f, 'up')"
+                                                            >
                                                                 <MoveUp class="mr-2" /> Move Up
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                @select="reorderFaq(f, 'down')"
+                                                            >
                                                                 <MoveDown class="mr-2" /> Move Down
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuGroup v-if="publishSupport">
-                                                            <DropdownMenuItem v-if="!f.published">
+                                                            <DropdownMenuItem
+                                                                v-if="!f.published"
+                                                                @select="publishFaq(f)"
+                                                            >
                                                                 <Eye class="mr-2" /> Publish
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem v-if="f.published">
+                                                            <DropdownMenuItem
+                                                                v-if="f.published"
+                                                                @select="unpublishFaq(f)"
+                                                            >
                                                                 <EyeOff class="mr-2" /> Unpublish
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
@@ -744,6 +820,7 @@ const filteredFaqs = computed(() => {
                     </TabsContent>
                 </Tabs>
             </div>
+            <Toaster theme="dark" richColors />
         </AdminLayout>
 
         <Dialog :open="assignDialogOpen" @update:open="handleAssignDialogChange">

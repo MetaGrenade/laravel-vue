@@ -85,6 +85,9 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::post('acp/support/faqs', [SupportController::class,'storeFaq'])->name('acp.support.faqs.store');
     Route::put('acp/support/faqs/{faq}', [SupportController::class,'updateFaq'])->name('acp.support.faqs.update');
     Route::delete('acp/support/faqs/{faq}', [SupportController::class,'destroyFaq'])->name('acp.support.faqs.destroy');
+    Route::patch('acp/support/faqs/{faq}/reorder', [SupportController::class,'reorderFaq'])->name('acp.support.faqs.reorder');
+    Route::patch('acp/support/faqs/{faq}/publish', [SupportController::class,'publishFaq'])->name('acp.support.faqs.publish');
+    Route::patch('acp/support/faqs/{faq}/unpublish', [SupportController::class,'unpublishFaq'])->name('acp.support.faqs.unpublish');
 
     Route::get('acp/system', [SystemSettingsController::class, 'index'])->name('acp.system');
     Route::put('acp/system', [SystemSettingsController::class, 'update'])->name('acp.system.update');

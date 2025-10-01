@@ -14,6 +14,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -260,6 +261,66 @@ class SupportController extends Controller
     {
         $faq->delete();
         return back()->with('success','FAQ deleted.');
+    }
+
+    public function reorderFaq(Request $request, Faq $faq): RedirectResponse
+    {
+        $validated = $request->validate([
+            'direction' => ['required', Rule::in(['up', 'down'])],
+        ]);
+
+        $direction = $validated['direction'];
+
+        $neighbor = Faq::query()
+            ->when(
+                $direction === 'up',
+                fn ($query) => $query->where('order', '<', $faq->order)->orderByDesc('order'),
+                fn ($query) => $query->where('order', '>', $faq->order)->orderBy('order')
+            )
+            ->first();
+
+        if (! $neighbor) {
+            $message = $direction === 'up'
+                ? 'FAQ is already at the top.'
+                : 'FAQ is already at the bottom.';
+
+            throw ValidationException::withMessages([
+                'direction' => $message,
+            ]);
+        }
+
+        $currentOrder = $faq->order;
+
+        $faq->update(['order' => $neighbor->order]);
+        $neighbor->update(['order' => $currentOrder]);
+
+        return back()->with('success', 'FAQ order updated.');
+    }
+
+    public function publishFaq(Faq $faq): RedirectResponse
+    {
+        if ($faq->published) {
+            throw ValidationException::withMessages([
+                'published' => 'FAQ is already published.',
+            ]);
+        }
+
+        $faq->update(['published' => true]);
+
+        return back()->with('success', 'FAQ published.');
+    }
+
+    public function unpublishFaq(Faq $faq): RedirectResponse
+    {
+        if (! $faq->published) {
+            throw ValidationException::withMessages([
+                'published' => 'FAQ is already unpublished.',
+            ]);
+        }
+
+        $faq->update(['published' => false]);
+
+        return back()->with('success', 'FAQ unpublished.');
     }
 
     protected function resolutionAttributes(SupportTicket $ticket, string $nextStatus, int $userId): array
