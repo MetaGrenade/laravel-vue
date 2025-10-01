@@ -28,6 +28,12 @@ class SupportCenterController extends Controller
         $ticketsPerPage = max(1, (int) $request->query('tickets_per_page', 10));
         $faqsPerPage = max(1, (int) $request->query('faqs_per_page', 10));
 
+        $ticketsSearch = $request->string('tickets_search')->trim();
+        $faqsSearch = $request->string('faqs_search')->trim();
+
+        $ticketsSearchTerm = $ticketsSearch->isNotEmpty() ? $ticketsSearch->value() : null;
+        $faqsSearchTerm = $faqsSearch->isNotEmpty() ? $faqsSearch->value() : null;
+
         $ticketsPayload = [
             'data' => [],
             'meta' => null,
@@ -37,6 +43,22 @@ class SupportCenterController extends Controller
         if ($user) {
             $tickets = SupportTicket::query()
                 ->where('user_id', $user->id)
+                ->when($ticketsSearchTerm, function ($query) use ($ticketsSearchTerm) {
+                    $escaped = $this->escapeForLike($ticketsSearchTerm);
+                    $like = "%{$escaped}%";
+
+                    $query->where(function ($query) use ($like) {
+                        $query
+                            ->where('subject', 'like', $like)
+                            ->orWhere('status', 'like', $like)
+                            ->orWhere('priority', 'like', $like)
+                            ->orWhereHas('assignee', function ($query) use ($like) {
+                                $query
+                                    ->where('nickname', 'like', $like)
+                                    ->orWhere('email', 'like', $like);
+                            });
+                    });
+                })
                 ->with(['assignee:id,nickname,email'])
                 ->orderByDesc('created_at')
                 ->paginate($ticketsPerPage, ['*'], 'tickets_page')
@@ -66,6 +88,16 @@ class SupportCenterController extends Controller
 
         $faqs = Faq::query()
             ->where('published', true)
+            ->when($faqsSearchTerm, function ($query) use ($faqsSearchTerm) {
+                $escaped = $this->escapeForLike($faqsSearchTerm);
+                $like = "%{$escaped}%";
+
+                $query->where(function ($query) use ($like) {
+                    $query
+                        ->where('question', 'like', $like)
+                        ->orWhere('answer', 'like', $like);
+                });
+            })
             ->orderBy('order')
             ->paginate($faqsPerPage, ['*'], 'faqs_page')
             ->withQueryString();
@@ -239,5 +271,10 @@ class SupportCenterController extends Controller
         return redirect()
             ->route('support.tickets.show', $ticket)
             ->with('success', 'Your message has been sent.');
+    }
+
+    private function escapeForLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 }

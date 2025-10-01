@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { type BreadcrumbItem } from '@/types';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { useDebounceFn } from '@vueuse/core';
 
 // Import shadcn‑vue components
 import Input from '@/components/ui/input/Input.vue';
@@ -78,47 +79,76 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Support', href: '/support' },
 ];
 
-const ticketSearchQuery = ref('');
+const page = usePage<SharedData>();
+
+const readSearchParam = (location: string, key: string): string => {
+    try {
+        return new URL(location).searchParams.get(key) ?? '';
+    } catch {
+        return '';
+    }
+};
+
+const ticketSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'tickets_search'));
+const faqSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'faqs_search'));
 const ticketsMetaSource = computed(() => props.tickets.meta ?? null);
 const ticketItems = computed(() => props.tickets.data ?? []);
-const filteredTickets = computed(() => {
-    if (!props.canSubmitTicket) {
-        return [];
-    }
-
-    if (!ticketSearchQuery.value) {
-        return ticketItems.value;
-    }
-
-    const q = ticketSearchQuery.value.toLowerCase();
-
-    return ticketItems.value.filter(ticket => {
-        return [
-            ticket.subject,
-            ticket.status,
-            ticket.priority,
-            ticket.assignee?.nickname ?? '',
-        ]
-            .join(' ')
-            .toLowerCase()
-            .includes(q);
-    });
-});
-
-const faqSearchQuery = ref('');
 const faqsMetaSource = computed(() => props.faqs.meta ?? null);
 const faqItems = computed(() => props.faqs.data ?? []);
-const filteredFaqs = computed(() => {
-    if (!faqSearchQuery.value) {
-        return faqItems.value;
+
+interface SupportQueryOverrides {
+    tickets_page?: number | null;
+    faqs_page?: number | null;
+}
+
+const buildSupportQuery = (overrides: SupportQueryOverrides = {}) => {
+    const query: Record<string, number | string> = {};
+
+    const ticketsSearch = ticketSearchQuery.value.trim();
+    const faqsSearch = faqSearchQuery.value.trim();
+
+    if (ticketsSearch !== '') {
+        query.tickets_search = ticketsSearch;
     }
 
-    const q = faqSearchQuery.value.toLowerCase();
+    if (faqsSearch !== '') {
+        query.faqs_search = faqsSearch;
+    }
 
-    return faqItems.value.filter(faq =>
-        faq.question.toLowerCase().includes(q) || faq.answer.toLowerCase().includes(q),
-    );
-});
+    if (overrides.tickets_page !== undefined) {
+        if (overrides.tickets_page && overrides.tickets_page > 1) {
+            query.tickets_page = overrides.tickets_page;
+        }
+    } else {
+        const currentTicketsPage = ticketsMetaSource.value?.current_page ?? 1;
+
+        if (currentTicketsPage > 1) {
+            query.tickets_page = currentTicketsPage;
+        }
+    }
+
+    if (overrides.faqs_page !== undefined) {
+        if (overrides.faqs_page && overrides.faqs_page > 1) {
+            query.faqs_page = overrides.faqs_page;
+        }
+    } else {
+        const currentFaqsPage = faqsMetaSource.value?.current_page ?? 1;
+
+        if (currentFaqsPage > 1) {
+            query.faqs_page = currentFaqsPage;
+        }
+    }
+
+    return query;
+};
+
+const navigateToSupport = (overrides: SupportQueryOverrides = {}) => {
+    router.get(route('support'), buildSupportQuery(overrides), {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
+};
 
 const {
     meta: ticketsMeta,
@@ -133,21 +163,7 @@ const {
     itemLabelPlural: 'tickets',
     emptyLabel: 'No tickets to display',
     onNavigate: (page) => {
-        router.get(
-            route('support'),
-            {
-                tickets_page: page,
-                faqs_page:
-                    faqsMetaSource.value?.current_page && faqsMetaSource.value.current_page > 1
-                        ? faqsMetaSource.value.current_page
-                        : undefined,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
+        navigateToSupport({ tickets_page: page });
     },
 });
 
@@ -164,21 +180,7 @@ const {
     itemLabelPlural: 'FAQs',
     emptyLabel: "No FAQs to display",
     onNavigate: (page) => {
-        router.get(
-            route('support'),
-            {
-                faqs_page: page,
-                tickets_page:
-                    ticketsMetaSource.value?.current_page && ticketsMetaSource.value.current_page > 1
-                        ? ticketsMetaSource.value.current_page
-                        : undefined,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
+        navigateToSupport({ faqs_page: page });
     },
 });
 
@@ -198,6 +200,55 @@ const submitTicket = () => {
         },
     });
 };
+
+const debouncedTicketsSearch = useDebounceFn(() => {
+    navigateToSupport({ tickets_page: 1 });
+}, 300);
+
+const debouncedFaqsSearch = useDebounceFn(() => {
+    navigateToSupport({ faqs_page: 1 });
+}, 300);
+
+let skipTicketsSearchWatch = false;
+let skipFaqsSearchWatch = false;
+
+watch(
+    () => page.props.ziggy.location,
+    (location) => {
+        const nextTicketsSearch = readSearchParam(location, 'tickets_search');
+        const nextFaqsSearch = readSearchParam(location, 'faqs_search');
+
+        if (ticketSearchQuery.value !== nextTicketsSearch) {
+            skipTicketsSearchWatch = true;
+            ticketSearchQuery.value = nextTicketsSearch;
+        }
+
+        if (faqSearchQuery.value !== nextFaqsSearch) {
+            skipFaqsSearchWatch = true;
+            faqSearchQuery.value = nextFaqsSearch;
+        }
+    },
+);
+
+watch(ticketSearchQuery, () => {
+    if (skipTicketsSearchWatch) {
+        skipTicketsSearchWatch = false;
+        return;
+    }
+
+    setTicketsPage(1, { emitNavigate: false });
+    debouncedTicketsSearch();
+});
+
+watch(faqSearchQuery, () => {
+    if (skipFaqsSearchWatch) {
+        skipFaqsSearchWatch = false;
+        return;
+    }
+
+    setFaqsPage(1, { emitNavigate: false });
+    debouncedFaqsSearch();
+});
 
 const goToTicket = (ticketId: number) => {
     router.get(route('support.tickets.show', { ticket: ticketId }));
@@ -249,13 +300,6 @@ const formatDate = (value: string | null) => {
     }).format(date);
 };
 
-watch(ticketSearchQuery, () => {
-    setTicketsPage(1, { emitNavigate: false });
-});
-
-watch(faqSearchQuery, () => {
-    setFaqsPage(1, { emitNavigate: false });
-});
 </script>
 
 <template>
@@ -362,7 +406,7 @@ watch(faqSearchQuery, () => {
                                 </TableHeader>
                                 <TableBody>
                                     <TableRow
-                                        v-for="ticket in filteredTickets"
+                                        v-for="ticket in ticketItems"
                                         :key="ticket.id"
                                         class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900"
                                         @click="goToTicket(ticket.id)"
@@ -421,7 +465,7 @@ watch(faqSearchQuery, () => {
                                             </DropdownMenu>
                                         </TableCell>
                                     </TableRow>
-                                    <TableRow v-if="filteredTickets.length === 0">
+                                    <TableRow v-if="ticketItems.length === 0">
                                         <TableCell colspan="7" class="text-center text-sm text-gray-600 dark:text-gray-300">
                                             No tickets found.
                                         </TableCell>
@@ -549,18 +593,21 @@ watch(faqSearchQuery, () => {
                             </TableHeader>
                             <TableBody>
                                 <TableRow
-                                    v-for="faq in filteredFaqs"
+                                    v-for="faq in faqItems"
                                     :key="faq.id"
                                     class="hover:bg-gray-50 dark:hover:bg-gray-900"
                                 >
                                     <TableCell>{{ faq.question }}</TableCell>
                                     <TableCell>{{ faq.answer }}</TableCell>
                                 </TableRow>
-                                  <TableRow v-if="filteredFaqs.length === 0">
-                                      <TableCell colspan="2" class="text-center text-sm text-gray-600 dark:text-gray-300">
-                                          No FAQs found.
-                                      </TableCell>
-                                  </TableRow>
+                                <TableRow v-if="faqItems.length === 0">
+                                    <TableCell
+                                        colspan="2"
+                                        class="text-center text-sm text-gray-600 dark:text-gray-300"
+                                    >
+                                        No FAQs found.
+                                    </TableCell>
+                                </TableRow>
                             </TableBody>
                         </Table>
                     </div>
