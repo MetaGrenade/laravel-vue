@@ -76,7 +76,7 @@ const submit = () => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head :title="`New Thread • ${props.board.title}`" />
 
-        <form class="mx-auto flex max-w-4xl flex-1 flex-col gap-8 p-4" @submit.prevent="submit">
+        <form class="flex flex-1 flex-col gap-8 p-4" @submit.prevent="submit">
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 class="text-2xl font-semibold tracking-tight">Start a new discussion</h1>
