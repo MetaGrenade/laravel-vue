@@ -87,7 +87,7 @@ const canonicalUrl = computed(() => blog.value.canonical_url ?? shareUrl.value);
 const encodedShareUrl = computed(() => encodeURIComponent(shareUrl.value));
 const encodedTitle = computed(() => encodeURIComponent(blog.value.title));
 const metaImage = computed(() => {
-    const image = coverImage.value;
+    const image = blog.value.cover_image;
 
     if (!image) {
         return null;
