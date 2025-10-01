@@ -22,7 +22,7 @@ import Text from '@tiptap/extension-text'
 import TextStyle from '@tiptap/extension-text-style'
 import { useDebounceFn } from '@vueuse/core'
 import { cn } from '@/lib/utils'
-import { Bold as BoldIcon, Code as CodeIcon, Eye, EyeOff, Italic as ItalicIcon, List, ListOrdered, Quote, Redo, Strikethrough, Undo } from 'lucide-vue-next'
+import { Bold as BoldIcon, MessageSquareCode, Code as CodeIcon, Eye, EyeOff, Italic as ItalicIcon, List, ListOrdered, Quote, Redo, Strikethrough, Undo } from 'lucide-vue-next'
 
 const props = withDefaults(
   defineProps<{
@@ -254,7 +254,7 @@ const formattingGroups = computed(() => [
       action: () => editor.value?.chain().focus().toggleBlockquote().run(),
     },
     {
-      icon: CodeIcon,
+      icon: MessageSquareCode,
       label: 'Code block',
       isActive: () => editor.value?.isActive('codeBlock') ?? false,
       action: () => editor.value?.chain().focus().toggleCodeBlock().run(),
