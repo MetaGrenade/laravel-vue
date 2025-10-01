@@ -29,7 +29,7 @@ class SupportController extends Controller
         $faqQuery = Faq::query();
 
         $tickets = (clone $ticketQuery)
-            ->with(['user:id,nickname,email', 'assignee:id,nickname,email'])
+            ->with(['user:id,nickname,email', 'assignee:id,nickname,email', 'resolver:id,nickname,email'])
             ->orderByDesc('created_at')
             ->paginate($perPage, ['*'], 'tickets_page')
             ->withQueryString();
@@ -49,6 +49,9 @@ class SupportController extends Controller
                     'priority' => $ticket->priority,
                     'created_at' => optional($ticket->created_at)->toIso8601String(),
                     'updated_at' => optional($ticket->updated_at)->toIso8601String(),
+                    'resolved_at' => optional($ticket->resolved_at)->toIso8601String(),
+                    'resolved_by' => $ticket->resolved_by,
+                    'customer_satisfaction_rating' => $ticket->customer_satisfaction_rating,
                     'user' => $ticket->user ? [
                         'id' => $ticket->user->id,
                         'nickname' => $ticket->user->nickname,
@@ -58,6 +61,11 @@ class SupportController extends Controller
                         'id' => $ticket->assignee->id,
                         'nickname' => $ticket->assignee->nickname,
                         'email' => $ticket->assignee->email,
+                    ] : null,
+                    'resolver' => $ticket->resolver ? [
+                        'id' => $ticket->resolver->id,
+                        'nickname' => $ticket->resolver->nickname,
+                        'email' => $ticket->resolver->email,
                     ] : null,
                 ];
             })
@@ -128,6 +136,7 @@ class SupportController extends Controller
         $ticket->load([
             'user:id,nickname,email',
             'assignee:id,nickname,email',
+            'resolver:id,nickname,email',
         ]);
 
         $agents = User::orderBy('nickname')
@@ -141,7 +150,13 @@ class SupportController extends Controller
 
     public function updateTicket(UpdateSupportTicketRequest $request, SupportTicket $ticket)
     {
-        $ticket->update($request->validated());
+        $validated = $request->validated();
+
+        if (array_key_exists('status', $validated)) {
+            $validated += $this->resolutionAttributes($ticket, $validated['status'], (int) $request->user()->id);
+        }
+
+        $ticket->update($validated);
 
         return redirect()
             ->route('acp.support.index')
@@ -190,9 +205,13 @@ class SupportController extends Controller
             'status' => ['required', Rule::in(['open', 'pending', 'closed'])],
         ]);
 
-        $ticket->update([
+        $updates = [
             'status' => $validated['status'],
-        ]);
+        ];
+
+        $updates += $this->resolutionAttributes($ticket, $validated['status'], (int) $request->user()->id);
+
+        $ticket->update($updates);
 
         $message = match ($validated['status']) {
             'open' => 'Ticket opened.',
@@ -241,5 +260,29 @@ class SupportController extends Controller
     {
         $faq->delete();
         return back()->with('success','FAQ deleted.');
+    }
+
+    protected function resolutionAttributes(SupportTicket $ticket, string $nextStatus, int $userId): array
+    {
+        if ($nextStatus === 'closed') {
+            if ($ticket->status !== 'closed' || ! $ticket->resolved_at) {
+                return [
+                    'resolved_at' => now(),
+                    'resolved_by' => $userId,
+                ];
+            }
+
+            return [];
+        }
+
+        if ($ticket->status === 'closed' && $nextStatus !== 'closed') {
+            return [
+                'resolved_at' => null,
+                'resolved_by' => null,
+                'customer_satisfaction_rating' => null,
+            ];
+        }
+
+        return [];
     }
 }

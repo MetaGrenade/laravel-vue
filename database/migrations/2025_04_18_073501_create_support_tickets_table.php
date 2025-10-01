@@ -15,6 +15,9 @@ return new class extends Migration {
             $table->enum('status', ['open','pending','closed'])->default('pending');
             $table->enum('priority', ['low','medium','high'])->default('medium');
             $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('resolved_at')->nullable();
+            $table->foreignId('resolved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedTinyInteger('customer_satisfaction_rating')->nullable();
             $table->timestamps();
         });
     }

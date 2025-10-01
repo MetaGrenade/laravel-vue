@@ -23,9 +23,13 @@ const props = defineProps<{
         priority: 'low' | 'medium' | 'high';
         assigned_to: number | null;
         assignee: { id: number; nickname: string; email: string } | null;
+        resolver: { id: number; nickname: string; email: string } | null;
         user: { id: number; nickname: string; email: string };
         created_at: string;
         updated_at: string;
+        resolved_at: string | null;
+        resolved_by: number | null;
+        customer_satisfaction_rating: number | null;
     };
     agents: Array<{ id: number; nickname: string; email: string }>;
 }>();
@@ -59,6 +63,9 @@ const { fromNow, formatDate } = useUserTimezone();
 
 const lastUpdated = computed(() => formatDate(props.ticket.updated_at));
 const createdAt = computed(() => formatDate(props.ticket.created_at));
+const resolvedAt = computed(() =>
+    props.ticket.resolved_at ? formatDate(props.ticket.resolved_at) : null,
+);
 
 const handleSubmit = () => {
     form.put(route('acp.support.tickets.update', { ticket: props.ticket.id }), {
@@ -194,6 +201,20 @@ const handleSubmit = () => {
                                 <div>
                                     <span class="font-medium text-foreground">Last updated</span>
                                     <p>{{ lastUpdated }} ({{ fromNow(props.ticket.updated_at) }})</p>
+                                </div>
+                                <div v-if="props.ticket.resolved_at" class="space-y-1">
+                                    <span class="font-medium text-foreground">Resolved</span>
+                                    <p>
+                                        {{ resolvedAt }} ({{ fromNow(props.ticket.resolved_at) }})
+                                    </p>
+                                    <p v-if="props.ticket.resolver" class="text-xs">
+                                        by {{ props.ticket.resolver.nickname }}
+                                        <span class="text-muted-foreground">({{ props.ticket.resolver.email }})</span>
+                                    </p>
+                                </div>
+                                <div v-if="typeof props.ticket.customer_satisfaction_rating === 'number'">
+                                    <span class="font-medium text-foreground">Customer satisfaction</span>
+                                    <p>{{ props.ticket.customer_satisfaction_rating }} / 5</p>
                                 </div>
                                 <div class="space-y-1">
                                     <span class="font-medium text-foreground">Requester</span>

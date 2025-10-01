@@ -46,7 +46,7 @@ import { Label } from '@/components/ui/label';
 import InputError from '@/components/InputError.vue';
 
 // dayjs composable for human readable dates
-const { fromNow } = useUserTimezone();
+const { fromNow, formatDate } = useUserTimezone();
 
 // Permission checks
 const { hasPermission } = usePermissions();
@@ -76,12 +76,20 @@ const props = defineProps<{
             priority: 'low' | 'medium' | 'high';
             created_at: string | null;
             updated_at: string | null;
+            resolved_at: string | null;
+            resolved_by: number | null;
+            customer_satisfaction_rating: number | null;
             user: {
                 id: number;
                 nickname: string;
                 email: string;
             } | null;
             assignee: {
+                id: number;
+                nickname: string;
+                email?: string;
+            } | null;
+            resolver: {
                 id: number;
                 nickname: string;
                 email?: string;
@@ -424,6 +432,9 @@ const filteredFaqs = computed(() => {
                                             <TableHead class="text-center">Priority</TableHead>
                                             <TableHead class="text-center">Assigned</TableHead>
                                             <TableHead class="text-center">Created</TableHead>
+                                            <TableHead class="text-center">Resolved</TableHead>
+                                            <TableHead class="text-center">Resolver</TableHead>
+                                            <TableHead class="text-center">CSAT</TableHead>
                                             <TableHead class="text-center">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -455,6 +466,20 @@ const filteredFaqs = computed(() => {
                                             </TableCell>
                                             <TableCell class="text-center">{{ t.assignee?.nickname || '—' }}</TableCell>
                                             <TableCell class="text-center">{{ t.created_at ? fromNow(t.created_at) : '—' }}</TableCell>
+                                            <TableCell class="text-center">
+                                                <span v-if="t.resolved_at" :title="formatDate(t.resolved_at)">
+                                                    {{ fromNow(t.resolved_at) }}
+                                                </span>
+                                                <span v-else>—</span>
+                                            </TableCell>
+                                            <TableCell class="text-center">{{ t.resolver?.nickname || '—' }}</TableCell>
+                                            <TableCell class="text-center">
+                                                {{
+                                                    typeof t.customer_satisfaction_rating === 'number'
+                                                        ? `${t.customer_satisfaction_rating}/5`
+                                                        : '—'
+                                                }}
+                                            </TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
