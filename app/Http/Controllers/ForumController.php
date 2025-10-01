@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -419,6 +420,13 @@ class ForumController extends Controller
 
         $title = trim((string) $validated['title']);
         $body = trim((string) $validated['body']);
+        $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
+
+        if ($bodyText === '') {
+            throw ValidationException::withMessages([
+                'body' => 'Please enter some content before publishing.',
+            ]);
+        }
 
         $baseSlug = Str::slug($title);
         if ($baseSlug === '') {
@@ -435,8 +443,8 @@ class ForumController extends Controller
 
         $initialPost = null;
 
-        DB::transaction(function () use ($board, $user, $title, $slug, $body, &$thread, &$initialPost) {
-            $excerptSource = preg_replace('/\s+/', ' ', $body) ?? $body;
+        DB::transaction(function () use ($board, $user, $title, $slug, $body, $bodyText, &$thread, &$initialPost) {
+            $excerptSource = $bodyText;
 
             $thread = ForumThread::create([
                 'forum_board_id' => $board->id,

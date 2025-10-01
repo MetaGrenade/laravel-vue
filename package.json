@@ -25,6 +25,9 @@
     "dependencies": {
         "@inertiajs/vue3": "^2.0.0-beta.3",
         "@unovis/ts": "^1.5.1",
+        "@tiptap/extension-placeholder": "^2.11.5",
+        "@tiptap/starter-kit": "^2.11.5",
+        "@tiptap/vue-3": "^2.11.5",
         "@unovis/vue": "^1.5.1",
         "@vitejs/plugin-vue": "^5.2.1",
         "@vueuse/core": "^12.8.2",
