@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/editor';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/InputError.vue';
+import { isEditorContentEmpty, normalizeEditorContent } from '@/lib/editor';
 
 interface BoardSummary {
     id: number;
@@ -42,7 +43,25 @@ const form = useForm({
     body: '',
 });
 
+watch(
+    () => form.body,
+    () => {
+        if (form.errors.body) {
+            form.clearErrors('body');
+        }
+    },
+);
+
 const submit = () => {
+    const normalized = normalizeEditorContent(form.body);
+
+    if (isEditorContentEmpty(normalized)) {
+        form.setError('body', 'Please enter some content before publishing your thread.');
+        return;
+    }
+
+    form.body = normalized;
+
     form.post(route('forum.threads.store', { board: props.board.slug }), {
         preserveScroll: true,
     });
@@ -86,12 +105,12 @@ const submit = () => {
 
                 <div class="grid gap-2">
                     <Label for="thread_body">Message</Label>
-                    <Textarea
+                    <RichTextEditor
                         id="thread_body"
                         v-model="form.body"
-                        class="min-h-48"
+                        :disabled="form.processing"
                         placeholder="Share the details, context, or questions to kickstart the discussion."
-                        required
+                        content-class="min-h-[16rem]"
                     />
                     <InputError :message="form.errors.body" />
                 </div>

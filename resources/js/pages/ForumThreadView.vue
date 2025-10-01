@@ -18,6 +18,7 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination'
 import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/ui/editor'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -45,6 +46,7 @@ import {
 } from 'lucide-vue-next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
+import { isEditorContentEmpty, normalizeEditorContent } from '@/lib/editor';
 
 interface BoardSummary {
     title: string;
@@ -539,24 +541,26 @@ const submitPostEdit = () => {
         return;
     }
 
-    const trimmed = postEditForm.body.trim();
+    const normalized = normalizeEditorContent(postEditForm.body);
 
-    if (trimmed === '') {
+    if (isEditorContentEmpty(normalized)) {
         postEditForm.setError('body', 'Please enter some content before saving.');
         return;
     }
 
-    if (trimmed === target.body_raw) {
+    const targetNormalized = normalizeEditorContent(target.body_raw);
+
+    if (normalized === targetNormalized) {
         postEditDialogOpen.value = false;
         return;
     }
 
-    postEditForm.body = trimmed;
+    postEditForm.body = normalized;
     activePostActionId.value = target.id;
 
     postEditForm
         .transform(() => ({
-            body: trimmed,
+            body: normalized,
             page: postsMeta.value.current_page,
         }))
         .put(route('forum.posts.update', { board: props.board.slug, thread: props.thread.slug, post: target.id }), {
@@ -608,7 +612,7 @@ const replySubmitDisabled = computed(() => {
         return true;
     }
 
-    return replyForm.body.trim() === '';
+    return isEditorContentEmpty(replyForm.body);
 });
 
 const submitReply = () => {
@@ -616,15 +620,15 @@ const submitReply = () => {
         return;
     }
 
-    const trimmed = replyForm.body.trim();
+    const normalized = normalizeEditorContent(replyForm.body);
 
-    if (trimmed === '') {
+    if (isEditorContentEmpty(normalized)) {
         replyForm.setError('body', 'Please enter a reply before submitting.');
         return;
     }
 
     replyForm.clearErrors('body');
-    replyForm.body = trimmed;
+    replyForm.body = normalized;
 
     replyForm.post(route('forum.posts.store', { board: props.board.slug, thread: props.thread.slug }), {
         preserveScroll: false,
@@ -688,12 +692,12 @@ const submitReply = () => {
                 <form class="space-y-5" @submit.prevent="submitPostEdit">
                     <div class="space-y-2">
                         <Label for="post_edit_body">Post content</Label>
-                        <Textarea
+                        <RichTextEditor
                             id="post_edit_body"
                             v-model="postEditForm.body"
-                            rows="8"
-                            placeholder="Share your updated thoughts..."
                             :disabled="postEditForm.processing"
+                            placeholder="Share your updated thoughts..."
+                            content-class="min-h-[14rem]"
                         />
                         <p v-if="postEditForm.errors.body" class="text-sm text-destructive">
                             {{ postEditForm.errors.body }}
@@ -1210,11 +1214,12 @@ const submitReply = () => {
             <div v-if="showReplyForm" class="mt-8 rounded-xl border p-6 shadow">
                 <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
                 <form class="flex flex-col gap-4" @submit.prevent="submitReply">
-                    <Textarea
+                    <RichTextEditor
+                        id="post_reply_body"
                         v-model="replyForm.body"
-                        placeholder="Write your reply here..."
-                        class="w-full rounded-md"
                         :disabled="replyForm.processing"
+                        placeholder="Write your reply here..."
+                        content-class="min-h-[14rem]"
                     />
                     <p v-if="replyForm.errors.body" class="text-sm text-destructive">
                         {{ replyForm.errors.body }}
