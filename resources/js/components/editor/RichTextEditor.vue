@@ -22,7 +22,7 @@ import Text from '@tiptap/extension-text'
 import TextStyle from '@tiptap/extension-text-style'
 import { useDebounceFn } from '@vueuse/core'
 import { cn } from '@/lib/utils'
-import { Bold, Code, Eye, EyeOff, Italic, List, ListOrdered, Quote, Redo, Strikethrough, Undo } from 'lucide-vue-next'
+import { Bold as BoldIcon, Code as CodeIcon, Eye, EyeOff, Italic as ItalicIcon, List, ListOrdered, Quote, Redo, Strikethrough, Undo } from 'lucide-vue-next'
 
 const props = withDefaults(
   defineProps<{
@@ -210,13 +210,13 @@ const togglePreview = () => {
 const formattingGroups = computed(() => [
   [
     {
-      icon: Bold,
+      icon: BoldIcon,
       label: 'Bold',
       isActive: () => editor.value?.isActive('bold') ?? false,
       action: () => editor.value?.chain().focus().toggleBold().run(),
     },
     {
-      icon: Italic,
+      icon: ItalicIcon,
       label: 'Italic',
       isActive: () => editor.value?.isActive('italic') ?? false,
       action: () => editor.value?.chain().focus().toggleItalic().run(),
@@ -228,7 +228,7 @@ const formattingGroups = computed(() => [
       action: () => editor.value?.chain().focus().toggleStrike().run(),
     },
     {
-      icon: Code,
+      icon: CodeIcon,
       label: 'Inline code',
       isActive: () => editor.value?.isActive('code') ?? false,
       action: () => editor.value?.chain().focus().toggleCode().run(),
@@ -254,7 +254,7 @@ const formattingGroups = computed(() => [
       action: () => editor.value?.chain().focus().toggleBlockquote().run(),
     },
     {
-      icon: Code,
+      icon: CodeIcon,
       label: 'Code block',
       isActive: () => editor.value?.isActive('codeBlock') ?? false,
       action: () => editor.value?.chain().focus().toggleCodeBlock().run(),
