@@ -8,7 +8,7 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import {
     Folder, MessageSquare, CheckCircle, Ellipsis, EyeOff, Shield,
     Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Layers,
-    PlusCircle
+    PlusCircle, ExternalLink
 } from 'lucide-vue-next';
 import Button from '@/components/ui/button/Button.vue';
 import {
