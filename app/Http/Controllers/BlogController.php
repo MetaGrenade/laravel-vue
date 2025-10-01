@@ -8,6 +8,7 @@ use App\Models\BlogCategory;
 use App\Models\BlogTag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -172,15 +173,57 @@ class BlogController extends Controller
             ])->save();
         }
 
+        $coverImageUrl = $blog->cover_image
+            ? Storage::disk('public')->url($blog->cover_image)
+            : null;
+
+        $canonicalUrl = route('blogs.view', ['slug' => $blog->slug]);
+        $metaDescription = $blog->excerpt ? trim($blog->excerpt) : null;
+        $metaImage = $coverImageUrl;
+        $authorName = $blog->user && $blog->user->nickname
+            ? trim($blog->user->nickname)
+            : null;
+
+        $renderTag = static function (string $tag, array $attributes): HtmlString {
+            $attributeString = collect($attributes)
+                ->map(fn ($value, $key) => sprintf('%s="%s"', $key, e($value)))
+                ->implode(' ');
+
+            $closing = $tag === 'meta' || $tag === 'link' ? ' />' : '>';
+
+            return new HtmlString(sprintf('<%s %s%s', $tag, $attributeString, $closing));
+        };
+
+        $metaTags = collect([
+            $metaDescription ? ['name' => 'description', 'content' => $metaDescription] : null,
+            ['property' => 'og:type', 'content' => 'article'],
+            ['property' => 'og:title', 'content' => $blog->title],
+            $metaDescription ? ['property' => 'og:description', 'content' => $metaDescription] : null,
+            ['property' => 'og:url', 'content' => $canonicalUrl],
+            $metaImage ? ['property' => 'og:image', 'content' => $metaImage] : null,
+            $authorName ? ['property' => 'article:author', 'content' => $authorName] : null,
+            ['name' => 'twitter:card', 'content' => $metaImage ? 'summary_large_image' : 'summary'],
+            ['name' => 'twitter:title', 'content' => $blog->title],
+            $metaDescription ? ['name' => 'twitter:description', 'content' => $metaDescription] : null,
+            $metaImage ? ['name' => 'twitter:image', 'content' => $metaImage] : null,
+            $authorName ? ['name' => 'twitter:creator', 'content' => $authorName] : null,
+        ])->filter()
+            ->map(fn (array $attributes) => $renderTag('meta', $attributes))
+            ->all();
+
+        $linkTags = collect([
+            ['rel' => 'canonical', 'href' => $canonicalUrl],
+        ])->map(fn (array $attributes) => $renderTag('link', $attributes))
+            ->all();
+
         return Inertia::render('BlogView', [
             'blog' => [
                 'id' => $blog->id,
                 'title' => $blog->title,
                 'slug' => $blog->slug,
                 'excerpt' => $blog->excerpt,
-                'cover_image' => $blog->cover_image
-                    ? Storage::disk('public')->url($blog->cover_image)
-                    : null,
+                'cover_image' => $coverImageUrl,
+                'canonical_url' => $canonicalUrl,
                 'body' => $blog->body,
                 'published_at' => optional($blog->published_at)->toIso8601String(),
                 'user' => $blog->user ? [
@@ -214,6 +257,9 @@ class BlogController extends Controller
                     ];
                 })->values(),
             ],
+        ])->withViewData([
+            'metaTags' => $metaTags,
+            'linkTags' => $linkTags,
         ]);
     }
 

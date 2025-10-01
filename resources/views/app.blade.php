@@ -40,6 +40,16 @@
 
         @routes
         @vite(['resources/js/app.ts'])
+        @if (!empty($linkTags ?? []))
+            @foreach ($linkTags as $tag)
+                {!! $tag !!}
+            @endforeach
+        @endif
+        @if (!empty($metaTags ?? []))
+            @foreach ($metaTags as $tag)
+                {!! $tag !!}
+            @endforeach
+        @endif
         @inertiaHead
     </head>
     <body class="font-sans antialiased pt-14">
