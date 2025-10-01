@@ -5,6 +5,7 @@ namespace Tests\Feature\Support;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -78,6 +79,8 @@ class SupportTicketQuickActionsTest extends TestCase
 
     public function test_admin_can_toggle_ticket_status(): void
     {
+        Carbon::setTestNow('2025-02-15 12:00:00');
+
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
@@ -101,6 +104,54 @@ class SupportTicketQuickActionsTest extends TestCase
         $response->assertRedirect(route('acp.support.index'));
         $response->assertSessionHas('success', 'Ticket closed.');
 
-        $this->assertSame('closed', $ticket->fresh()->status);
+        $freshTicket = $ticket->fresh();
+
+        $this->assertSame('closed', $freshTicket->status);
+        $this->assertNotNull($freshTicket->resolved_at);
+        $this->assertTrue($freshTicket->resolved_at->equalTo(Carbon::now()));
+        $this->assertSame($admin->id, $freshTicket->resolved_by);
+        $this->assertNull($freshTicket->customer_satisfaction_rating);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_admin_reopening_ticket_clears_resolution_metadata(): void
+    {
+        Carbon::setTestNow('2025-02-15 13:00:00');
+
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $requestor = User::factory()->create();
+
+        $ticket = SupportTicket::create([
+            'user_id' => $requestor->id,
+            'subject' => 'Follow up on closed issue',
+            'body' => 'Need to reopen for additional context.',
+            'status' => 'closed',
+            'priority' => 'medium',
+            'resolved_at' => Carbon::now()->subDay(),
+            'resolved_by' => $admin->id,
+            'customer_satisfaction_rating' => 4,
+        ]);
+
+        $response = $this
+            ->actingAs($admin)
+            ->from(route('acp.support.index'))
+            ->put(route('acp.support.tickets.status', $ticket), [
+                'status' => 'open',
+            ]);
+
+        $response->assertRedirect(route('acp.support.index'));
+        $response->assertSessionHas('success', 'Ticket opened.');
+
+        $freshTicket = $ticket->fresh();
+
+        $this->assertSame('open', $freshTicket->status);
+        $this->assertNull($freshTicket->resolved_at);
+        $this->assertNull($freshTicket->resolved_by);
+        $this->assertNull($freshTicket->customer_satisfaction_rating);
+
+        Carbon::setTestNow();
     }
 }

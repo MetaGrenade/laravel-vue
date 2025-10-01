@@ -15,6 +15,13 @@ class SupportTicket extends Model
         'status',
         'priority',
         'assigned_to',
+        'resolved_at',
+        'resolved_by',
+        'customer_satisfaction_rating',
+    ];
+
+    protected $casts = [
+        'resolved_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -25,6 +32,11 @@ class SupportTicket extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function resolver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
     }
 
     public function messages(): HasMany

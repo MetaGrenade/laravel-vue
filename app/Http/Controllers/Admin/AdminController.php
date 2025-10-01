@@ -237,10 +237,10 @@ class AdminController extends Controller
         $resolutionMinutes = SupportTicket::query()
             ->where('status', 'closed')
             ->whereNotNull('created_at')
-            ->whereNotNull('updated_at')
+            ->whereNotNull('resolved_at')
             ->get()
             ->map(function (SupportTicket $ticket) {
-                return $ticket->created_at->diffInMinutes($ticket->updated_at);
+                return $ticket->created_at->diffInMinutes($ticket->resolved_at);
             })
             ->filter(fn ($minutes) => $minutes !== null);
 
@@ -326,11 +326,12 @@ class AdminController extends Controller
                 ];
             });
 
-        $ticketActivity = SupportTicket::latest('updated_at')
+        $ticketActivity = SupportTicket::query()
+            ->orderByDesc(DB::raw('COALESCE(resolved_at, updated_at, created_at)'))
             ->take(5)
             ->get()
             ->map(function (SupportTicket $ticket) {
-                $timestamp = $ticket->updated_at ?? $ticket->created_at;
+                $timestamp = $ticket->resolved_at ?? $ticket->updated_at ?? $ticket->created_at;
                 $status = $ticket->status ?? 'updated';
 
                 return [

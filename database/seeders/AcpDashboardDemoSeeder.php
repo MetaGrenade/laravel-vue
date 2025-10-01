@@ -301,6 +301,9 @@ class AcpDashboardDemoSeeder extends Seeder
                 'pending' => $now->copy()->subDays($offset + 2),
                 default => $now->copy()->subDay(),
             };
+            $resolvedAt = $status === 'closed' ? $createdAt->copy()->addDays(4) : null;
+            $resolvedBy = $status === 'closed' ? $admin->id : null;
+            $satisfaction = $status === 'closed' ? (($offset % 5) + 1) : null;
 
             $requestor = $userPool[$offset % $userPool->count()];
 
@@ -312,6 +315,9 @@ class AcpDashboardDemoSeeder extends Seeder
                     'status' => $status,
                     'priority' => $priority,
                     'assigned_to' => $assigneeId,
+                    'resolved_at' => $resolvedAt,
+                    'resolved_by' => $resolvedBy,
+                    'customer_satisfaction_rating' => $satisfaction,
                 ]
             );
             $ticketModel->forceFill([
@@ -370,6 +376,9 @@ class AcpDashboardDemoSeeder extends Seeder
                     'status' => $ticket['status'],
                     'priority' => $ticket['priority'],
                     'assigned_to' => $admin->id,
+                    'resolved_at' => $ticket['status'] === 'closed' ? $createdAt->copy()->addDay() : null,
+                    'resolved_by' => $ticket['status'] === 'closed' ? $admin->id : null,
+                    'customer_satisfaction_rating' => $ticket['status'] === 'closed' ? 5 : null,
                 ]
             );
             $ticketModel->forceFill([
