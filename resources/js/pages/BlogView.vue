@@ -15,14 +15,12 @@ type BlogTaxonomyItem = {
 
 type BlogAuthor = {
     id?: number;
-    name?: string | null;
     nickname?: string | null;
 };
 
 type BlogCommentAuthor = {
     id: number;
     nickname?: string | null;
-    name?: string | null;
 };
 
 type BlogComment = {
@@ -45,6 +43,7 @@ type BlogPayload = {
     cover_image?: string | null;
     categories?: BlogTaxonomyItem[];
     tags?: BlogTaxonomyItem[];
+    canonical_url?: string | null;
 };
 
 const props = defineProps<{ blog: BlogPayload }>();
@@ -59,16 +58,9 @@ const tags = computed(() => blog.value.tags ?? []);
 const coverImage = computed(
     () => blog.value.cover_image ?? '/images/default-cover.jpg',
 );
+const metaDescription = computed(() => blog.value.excerpt ?? '');
 
-const authorName = computed(() => {
-    const author = blog.value.user;
-
-    if (!author) {
-        return 'Unknown author';
-    }
-
-    return author.name ?? author.nickname ?? 'Unknown author';
-});
+const authorName = computed(() => blog.value.user?.nickname ?? 'Unknown author');
 
 const publishedAt = computed(() => {
     if (!blog.value.published_at) {
@@ -91,8 +83,20 @@ const buildAbsoluteUrl = (path: string) => {
 };
 
 const shareUrl = computed(() => buildAbsoluteUrl(route('blogs.view', { slug: blog.value.slug })));
+const canonicalUrl = computed(() => blog.value.canonical_url ?? shareUrl.value);
 const encodedShareUrl = computed(() => encodeURIComponent(shareUrl.value));
 const encodedTitle = computed(() => encodeURIComponent(blog.value.title));
+const metaImage = computed(() => {
+    const image = coverImage.value;
+
+    if (!image) {
+        return null;
+    }
+
+    return buildAbsoluteUrl(image);
+});
+const twitterCardType = computed(() => (metaImage.value ? 'summary_large_image' : 'summary'));
+const metaAuthor = computed(() => authorName.value);
 
 const shareLinks = computed(() => ({
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedShareUrl.value}`,
@@ -103,7 +107,21 @@ const shareLinks = computed(() => ({
 
 <template>
     <AppLayout>
-        <Head :title="blog.title" />
+        <Head :title="blog.title">
+            <meta v-if="metaDescription" name="description" :content="metaDescription" />
+            <link rel="canonical" :href="canonicalUrl" />
+            <meta property="og:type" content="article" />
+            <meta property="og:title" :content="blog.title" />
+            <meta v-if="metaDescription" property="og:description" :content="metaDescription" />
+            <meta property="og:url" :content="canonicalUrl" />
+            <meta v-if="metaImage" property="og:image" :content="metaImage" />
+            <meta property="article:author" :content="metaAuthor" />
+            <meta name="twitter:card" :content="twitterCardType" />
+            <meta name="twitter:title" :content="blog.title" />
+            <meta v-if="metaDescription" name="twitter:description" :content="metaDescription" />
+            <meta v-if="metaImage" name="twitter:image" :content="metaImage" />
+            <meta name="twitter:creator" :content="metaAuthor" />
+        </Head>
         <div class="container mx-auto px-4 py-8">
             <!-- Blog Post Content -->
             <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">

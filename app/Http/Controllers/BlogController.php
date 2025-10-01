@@ -181,6 +181,7 @@ class BlogController extends Controller
                 'cover_image' => $blog->cover_image
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
+                'canonical_url' => route('blogs.view', ['slug' => $blog->slug]),
                 'body' => $blog->body,
                 'published_at' => optional($blog->published_at)->toIso8601String(),
                 'user' => $blog->user ? [
