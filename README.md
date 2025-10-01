@@ -1,203 +1,110 @@
 # Laravel Vue Starter
 
-This repository provides a starter kit for building modern web applications with [Laravel](https://laravel.com) and [Vue 3](https://vuejs.org) using the [Laravel Starter Kits (Vue)](https://laravel.com/starter-kits). It leverages Inertia.js for a single-page application (SPA) experience, Vite for rapid asset bundling, and Tailwind CSS for styling.
+A batteries-included starter kit for building modern Laravel + Vue single-page applications. The project ships with a production-ready forum, blog, support center, and admin tooling so teams can focus on features rather than scaffolding. Inertia.js keeps the frontend and backend in sync, Tailwind CSS powers the design system, and first-class TypeScript support ensures maintainable UI code.
 
 ![Forum Page Example](https://i.imgur.com/gYNFkFl.png)
 
-## Features
+## Stack Highlights
+- **Backend – Laravel 12** with Sanctum for API tokens, Spatie Permissions for RBAC, queue/listener scaffolding, and opinionated seeders for fast iteration.
+- **Frontend – Vue 3 + Inertia.js + TypeScript** with Ziggy-powered routing, SSR entry points, and theme initialization in a single SPA shell.
+- **UI & Editor Toolkit – Tailwind CSS, shadcn-inspired components, Radix Vue primitives, Vue Sonner toasts, and Tiptap rich text editing for forum and blog content workflows.
+- **Data Visualization – Unovis (VisX for Vue) for charts and dashboards inside the admin area.
+- **Developer Experience – Vite 6, ESLint + Prettier, Pint, and convenience scripts for running Laravel, queues, SSR, and Vite together.
 
-- **Laravel 12**: Robust backend framework.
-- **Vue 3 with Inertia.js**: Build reactive, single-page applications.
-- **Vite**: Modern build tool for fast development.
-- **Tailwind CSS**: Utility-first CSS framework.
-- **Authentication & Authorization**: Includes session based authentication scaffolding via Laravel Breeze (Vue variant) with role & permission management (using Spatie Permissions).
-- **External API Authentication & Authorization**: Includes token based authentication scaffolding via [Laravel Sanctum](https://laravel.com/docs/12.x/sanctum).
-- **Responsive Design**: Mobile-first design principles.
-- **Admin Control Panel (ACP)**: Example layouts for managing users, blogs, forums, support tickets, external api access tokens and more.
-- **Forum System**: Persistent categories, boards, threads, and posts with moderation tools (publish, lock, pin, delete) plus per-thread/post author editing and reporting workflows.
-- **Forum Seeding Utilities**: A comprehensive `ForumDemoSeeder` seeds realistic boards, long threads, and paginated replies so you can explore the full forum experience locally.
-- **Placeholder Components**: Starter components from shadcn-vue (like `PlaceholderPattern`) simulate content while you integrate dynamic data.
-- **Role & Permission System**: Our project uses [Spatie's Laravel Permission](https://spatie.be/docs/laravel-permission/v6/introduction) [package](https://github.com/spatie/laravel-permission) to provide robust role and permission management. This integration, combined with Laravel Breeze for authentication and our Inertia.js SPA, enables us to enforce access control both on the backend and in our Vue frontend.
+## Application Modules
+- **Forum System**: Boards, threads, post moderation, publishing workflows, and tracking read state with dedicated controllers and routes.
+- **Blog & Previewing**: Public blog listing, tokenized preview links, and authenticated commenting APIs.
+- **Support Center**: Ticket submission, messaging threads, and authenticated access to customer conversations.
+- **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
+- **Authentication & Authorization**: Laravel Breeze for authentication plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
+- **Appearance Management**: System/light/dark modes synced between SSR and the client through a reusable composable.
 
-## Setup & Installation
+## Project Structure
+```
+resources/
+├─ js/
+│  ├─ app.ts              # Inertia SPA bootstrap
+│  ├─ ssr.ts              # Server-side rendering entry
+│  ├─ pages/              # Page-level components (dashboard, forum, ACP, auth, settings)
+│  ├─ layouts/            # Shared shell layouts
+│  ├─ components/         # UI building blocks & shadcn-inspired primitives
+│  ├─ composables/        # Reusable logic (auth, appearance, forms, data fetching)
+│  └─ lib/ & types/       # Client-side helpers and TypeScript contracts
+└─ css/                   # Tailwind entry point and global styles
+```
 
-Follow these steps to set up the project locally:
+## Prerequisites
+- PHP 8.2+ with Composer.
+- Node.js 20+ (LTS recommended) with npm or pnpm for frontend tooling.
+- A database supported by Laravel (MySQL/MariaDB or PostgreSQL work out of the box). Configure credentials in `.env`.
 
-1. **Clone the Repository:**
-
+## Quick Start
+1. **Clone & Install**
    ```bash
    git clone https://github.com/MetaGrenade/laravel-vue.git
    cd laravel-vue
-   ```
-   
-2. Install PHP Dependencies:
-
-   Make sure you have [Composer](https://getcomposer.org/) installed, then run:
-   ```bash
    composer install
-   ```
-   
-3. Install JavaScript Dependencies:
-
-   Ensure that [Node.js](https://nodejs.org/) and npm are installed, then run:
-   ```bash
    npm install
    ```
-
-4. Copy the `.env.example` file to `.env` and configure your database and other environment variables:
-
-   Ensure that [Node.js](https://nodejs.org/) and npm are installed, then run:
+2. **Environment**
    ```bash
    cp .env.example .env
-   ```
-   Update the `.env` file with your database credentials (for example, for MariaDB):
-   ```dotenv
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=your_database_name
-   DB_USERNAME=your_username
-   DB_PASSWORD=your_password
-   ```
-   
-5. Generate Application Key:
-   
-   ```bash
    php artisan key:generate
    ```
-   
-6. Run Database Migrations:
-
+   Update database credentials and any third-party service keys.
+3. **Database**
    ```bash
    php artisan migrate
    ```
-
-   > **Tip:** The forum schema includes pagination-ready relationships for boards, threads, and posts. Run the migrations before seeding demo data.
-
-7. Build Assets & Start the Development Server:
-
-   For development with hot reloading, run:
+4. **Seed Demo Content (optional)**
    ```bash
-   npm run dev
+   php artisan db:seed --class=ForumDemoSeeder
    ```
-   In another terminal, start your Laravel server (or use [Laravel Herd](https://herd.laravel.com)):
-   ```bash
-   php artisan serve
+   The seeder resets forum tables, creates realistic categories/boards, and populates multi-page threads for pagination testing.
+5. **Run the App**
+   - Start Laravel: `php artisan serve`
+   - Start Vite dev server: `npm run dev`
+   - Or run everything (Laravel, queues, and Vite) in one terminal: `composer dev`
+
+## Daily Development Workflow
+- **SPA Bootstrapping**: `resources/js/app.ts` registers Inertia, Ziggy, and the global progress indicator while invoking theme initialization for light/dark support.
+- **SSR Rendering**: `resources/js/ssr.ts` mirrors the client bootstrapping, exposing Ziggy routes globally so `route()` works during server rendering and email previews.
+- **Theming**: `useAppearance()` stores preferences in localStorage and cookies, ensuring consistency between SSR and the browser.
+   ```ts
+   const { appearance, updateAppearance } = useAppearance();
+   updateAppearance('dark');
    ```
+- **Role & Permission Checks**: Use the provided composables to guard UI.
+   ```ts
+   const { hasRole } = useRoles();
+   const { hasPermission } = usePermissions();
 
-## Usage
+   const isAdmin = computed(() => hasRole('admin|super-admin'));
+   const canManageUsers = computed(() => hasPermission('users.acp.manage'));
+   ```
+- **Queues & Background Work**: `composer dev` also starts `queue:listen` so job dispatches from forum moderation or notifications run instantly during development.
 
-- **Authentication:**
-    The project includes authentication scaffolding using Laravel Breeze (Vue variant). Visit `/login` or `/register` to test user authentication.
+## Feature Notes & Endpoints
+- **Forum moderation routes** handle publishing, locking, pinning, reporting, and deletion, guarded by role middleware (`role:admin|editor|moderator`).
+- **Support ticket routes** provide authenticated creation, viewing, and messaging flows for end-users.
+- **Blog previews** use signed tokens so editors can review drafts before publishing.
 
-- **Forum Demo Data:**
-    Populate the forum with realistic categories, boards, and sample discussions by running:
+## Testing & Quality
+- **PHPUnit**: `php artisan test` or `./vendor/bin/phpunit`
+- **Static Analysis & Formatting**:
+  - Lint Vue/TypeScript: `npm run lint`
+  - Check formatting: `npm run format:check`
+  - Fix PHP style: `./vendor/bin/pint`
+  - Format Vue/TS: `npm run format`
+  These commands are pre-configured via npm and Composer scripts for consistent CI enforcement.
 
-    ```bash
-    php artisan db:seed --class=ForumDemoSeeder
-    ```
-
-    The seeder resets the forum tables and creates:
-
-    - Multiple boards with enough threads to exercise the board pagination controls.
-    - At least one thread that contains 20+ replies, ensuring the thread pagination UI has real data.
-    - Moderation-ready discussions with a mix of published, locked, and pinned states for testing.
-
-    After seeding, visit `/forum` for the public experience or `/acp/forums` to review administrative listings. Actions like reporting, editing (for authors of unlocked, published content), and moderator toggles (publish, lock, pin, delete) are wired to live endpoints.
-
-- **Admin Control Panel (ACP):**
-    Access the ACP via routes like `/acp/dashboard`. The ACP layout includes side navigation for managing users, blogs, forums, and permissions.
-
-- **Dynamic Content Integration:**
-    Replace placeholder components (like `PlaceholderPattern`) with dynamic content from your models or API endpoints.
-
-- **Styling & Customization:**
-    Tailwind CSS is used for styling. Feel free to customize the design by modifying the Tailwind configuration or adding your own CSS.
-
-### Using the Permission System in the Vue SPA
-
-Since our frontend is built entirely in Vue with Inertia, we provide two TypeScript composables to facilitate role and permission checks.
-#### useRoles.ts
-```ts
-import { computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
-
-interface Role {
-  id: number;
-  name: string;
-  guard_name: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface AuthUser {
-  id: number;
-  name: string;
-  email: string;
-  roles?: Role[];
-}
-
-export function useRoles() {
-  const page = usePage();
-  const user = computed<AuthUser | null>(() => page.props.auth.user || null);
-
-  /**
-   * Check if the user has any of the given roles. 
-   * Pass multiple roles separated by a pipe (e.g., "admin|moderator").
-   */
-  function hasRole(roles: string): boolean {
-    const rolesToCheck = roles.split('|').map(r => r.trim());
-    return !!(user.value && user.value.roles && user.value.roles.some(r => rolesToCheck.includes(r.name)));
-  }
-
-  return { hasRole };
-}
-```
-
-#### usePermissions.ts
-```ts
-import { computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
-
-export function usePermissions() {
-  const page = usePage();
-  // We assume permissions are shared as an array of permission names.
-  const permissions = computed<string[]>(() => page.props.auth.permissions || []);
-
-  /**
-   * Check if the user has any of the given permissions.
-   * Pass multiple permissions separated by a pipe (e.g., "users.acp.manage|blogs.acp.manage").
-   */
-  function hasPermission(permissionsToCheck: string): boolean {
-    const permissionList = permissionsToCheck.split('|').map(p => p.trim());
-    return permissions.value.some(p => permissionList.includes(p));
-  }
-
-  return { hasPermission };
-}
-```
-
-#### Example Usage in a Component
-```vue
-<script setup lang="ts">
-import { computed } from 'vue';
-import { useRoles } from '@/composables/useRoles';
-import { usePermissions } from '@/composables/usePermissions';
-
-const { hasRole } = useRoles();
-const { hasPermission } = usePermissions();
-
-const isAdmin = computed(() => hasRole('admin|super-admin'));
-const canManageUsers = computed(() => hasPermission('users.acp.manage'));
-
-console.log('User is admin:', isAdmin.value);
-console.log('User can manage users:', canManageUsers.value);
-</script>
-```
+## Production & SSR Builds
+- **Frontend build**: `npm run build` outputs versioned assets for Laravel's Vite integration.
+- **SSR build**: `npm run build:ssr` compiles the SPA and SSR bundle; combine with `composer dev:ssr` when testing server rendering locally.
+- **Env hardening**: Remember to configure HTTPS, queues (e.g., Redis), and mail drivers in `.env` before deploying.
 
 ## Contributing
-
-Contributions are welcome! Please submit issues and pull requests for any improvements or bug fixes. When contributing, please follow the existing code style and add relevant tests.
+Issues and pull requests are welcome! Please include tests or updates to this documentation when modifying setup steps, tooling, or major features.
 
 ## Useful Links
 
@@ -209,17 +116,13 @@ Contributions are welcome! Please submit issues and pull requests for any improv
 - [shadcn-vue Component Library](https://www.shadcn-vue.com/)
 - [Lucide Icons](https://lucide.dev/icons/)
 - [Vue Sonner Toast Component](https://vue-sonner.vercel.app/)
+- [Tiptap Editor](https://tiptap.dev/docs/editor/getting-started/install/vue3)
+
+## Additional Tips
+
+- **Layout Height Utilities**: Ensure `html`, `body`, and `#app` are set to `height: 100%` (or wrap your root layout in `min-h-screen`) so flex layouts and `h-full` panels render as expected across the SPA.
+- **Storage Symlink**: Run `php artisan storage:link` after provisioning to expose public asset uploads (e.g., avatars, attachments) served from `storage/app/public`.
+- **Keep Docs Current**: When introducing new tooling, scripts, or workflows, update this README so onboarding remains frictionless for future contributors.
 
 ## License
-
-This project is open-sourced under the [MIT License](https://en.wikipedia.org/wiki/MIT_License).
-
-## Final Notes
-
-- **Flex & Height Adjustments:**  
-  Ensure that your global CSS (or Tailwind config) sets `html, body, #app { height: 100%; }` or uses `min-h-screen` on the outermost container so that child elements with `h-full` and `flex-1` behave as expected.
-
-- **Further Enhancements:**  
-  As you continue developing, consider adding test suites and refining dynamic data integrations. Keep the README updated with any changes to setup or usage instructions.
-
-This review and README should help guide developers new to the project and outline the next steps for further development. Happy coding!
+This project is open-sourced under the [MIT License](LICENSE.md).
