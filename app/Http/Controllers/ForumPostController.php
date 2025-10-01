@@ -30,8 +30,9 @@ class ForumPostController extends Controller
         ]);
 
         $body = trim($validated['body']);
+        $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
-        if ($body === '') {
+        if ($bodyText === '') {
             throw ValidationException::withMessages([
                 'body' => 'Reply cannot be empty.',
             ]);
@@ -97,8 +98,9 @@ class ForumPostController extends Controller
         ]);
 
         $body = trim($validated['body']);
+        $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
-        if ($body === '') {
+        if ($bodyText === '') {
             throw ValidationException::withMessages([
                 'body' => 'Post content cannot be empty.',
             ]);

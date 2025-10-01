@@ -18,6 +18,7 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination'
 import { Textarea } from '@/components/ui/textarea'
+import RichTextEditor from '@/components/editor/RichTextEditor.vue';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -504,6 +505,15 @@ const postEditForm = useForm({
     body: '',
 });
 
+const richTextToPlainText = (html: string) =>
+    html
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const hasRichTextContent = (html: string) => richTextToPlainText(html) !== '';
+
 watch(postEditDialogOpen, (open) => {
     if (!open) {
         postEditTarget.value = null;
@@ -539,24 +549,26 @@ const submitPostEdit = () => {
         return;
     }
 
-    const trimmed = postEditForm.body.trim();
+    const currentBody = postEditForm.body ?? '';
 
-    if (trimmed === '') {
+    if (!hasRichTextContent(currentBody)) {
         postEditForm.setError('body', 'Please enter some content before saving.');
         return;
     }
 
-    if (trimmed === target.body_raw) {
+    const normalisedBody = currentBody.trim();
+
+    if (normalisedBody === target.body_raw?.trim()) {
         postEditDialogOpen.value = false;
         return;
     }
 
-    postEditForm.body = trimmed;
+    postEditForm.body = normalisedBody;
     activePostActionId.value = target.id;
 
     postEditForm
         .transform(() => ({
-            body: trimmed,
+            body: normalisedBody,
             page: postsMeta.value.current_page,
         }))
         .put(route('forum.posts.update', { board: props.board.slug, thread: props.thread.slug, post: target.id }), {
@@ -588,6 +600,8 @@ const replyForm = useForm({
     body: '',
 });
 
+const replyDraftStorageKey = computed(() => `forum:thread:${props.thread.id}:reply`);
+
 watch(
     () => replyForm.body,
     () => {
@@ -608,7 +622,7 @@ const replySubmitDisabled = computed(() => {
         return true;
     }
 
-    return replyForm.body.trim() === '';
+    return !hasRichTextContent(replyForm.body ?? '');
 });
 
 const submitReply = () => {
@@ -616,21 +630,26 @@ const submitReply = () => {
         return;
     }
 
-    const trimmed = replyForm.body.trim();
+    const currentBody = replyForm.body ?? '';
 
-    if (trimmed === '') {
+    if (!hasRichTextContent(currentBody)) {
         replyForm.setError('body', 'Please enter a reply before submitting.');
         return;
     }
 
     replyForm.clearErrors('body');
-    replyForm.body = trimmed;
+    const normalisedBody = currentBody.trim();
+    replyForm.body = normalisedBody;
 
     replyForm.post(route('forum.posts.store', { board: props.board.slug, thread: props.thread.slug }), {
         preserveScroll: false,
         onSuccess: () => {
             replyForm.reset('body');
             replyForm.clearErrors();
+
+            if (replyDraftStorageKey.value && typeof window !== 'undefined') {
+                window.localStorage.removeItem(replyDraftStorageKey.value);
+            }
         },
     });
 };
@@ -688,12 +707,11 @@ const submitReply = () => {
                 <form class="space-y-5" @submit.prevent="submitPostEdit">
                     <div class="space-y-2">
                         <Label for="post_edit_body">Post content</Label>
-                        <Textarea
+                        <RichTextEditor
                             id="post_edit_body"
                             v-model="postEditForm.body"
-                            rows="8"
-                            placeholder="Share your updated thoughts..."
-                            :disabled="postEditForm.processing"
+                            :placeholder="'Share your updated thoughts...'"
+                            :autofocus="true"
                         />
                         <p v-if="postEditForm.errors.body" class="text-sm text-destructive">
                             {{ postEditForm.errors.body }}
@@ -1210,11 +1228,11 @@ const submitReply = () => {
             <div v-if="showReplyForm" class="mt-8 rounded-xl border p-6 shadow">
                 <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
                 <form class="flex flex-col gap-4" @submit.prevent="submitReply">
-                    <Textarea
+                    <RichTextEditor
+                        id="thread_reply_body"
                         v-model="replyForm.body"
-                        placeholder="Write your reply here..."
-                        class="w-full rounded-md"
-                        :disabled="replyForm.processing"
+                        :placeholder="'Write your reply here...'"
+                        :storage-key="replyDraftStorageKey"
                     />
                     <p v-if="replyForm.errors.body" class="text-sm text-destructive">
                         {{ replyForm.errors.body }}
