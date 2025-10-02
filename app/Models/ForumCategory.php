@@ -29,6 +29,10 @@ class ForumCategory extends Model
         'position',
     ];
 
+    protected $attributes = [
+        'is_published' => true,
+    ];
+
     protected $casts = [
         'is_published' => 'boolean',
     ];
@@ -73,6 +77,10 @@ class ForumCategory extends Model
     public function isEffectivelyPublished(): bool
     {
         $rawValue = $this->getRawOriginal('is_published');
+
+        if ($rawValue === null && array_key_exists('is_published', $this->attributes)) {
+            $rawValue = $this->attributes['is_published'];
+        }
 
         if ($rawValue === null) {
             return true;

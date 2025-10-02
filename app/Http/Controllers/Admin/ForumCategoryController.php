@@ -44,7 +44,7 @@ class ForumCategoryController extends Controller
                 'slug' => $category->slug,
                 'description' => $category->description,
                 'access_permission' => $category->access_permission,
-                'is_published' => $category->is_published,
+                'is_published' => $category->isEffectivelyPublished(),
                 'position' => $category->position,
                 'boards' => $category->boards->map(function (ForumBoard $board) {
                     $latestThread = $board->latestThread;
@@ -190,7 +190,9 @@ class ForumCategoryController extends Controller
     {
         abort_unless($request->user()?->can('forums.acp.publish'), 403);
 
-        if ($category->is_published) {
+        $rawPublished = $category->getRawOriginal('is_published');
+
+        if ($category->isEffectivelyPublished() && $rawPublished !== null) {
             return redirect()
                 ->back()
                 ->with('success', 'Forum category is already published.');
@@ -207,7 +209,7 @@ class ForumCategoryController extends Controller
     {
         abort_unless($request->user()?->can('forums.acp.publish'), 403);
 
-        if (! $category->is_published) {
+        if (! $category->isEffectivelyPublished()) {
             return redirect()
                 ->back()
                 ->with('success', 'Forum category is already unpublished.');
