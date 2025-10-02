@@ -263,7 +263,7 @@ class ForumController extends Controller
         $board->load('category');
 
         $thread->load([
-            'author:id,nickname',
+            'author:id,nickname,avatar_url,forum_signature',
             'board.category:id,title,slug',
             'latestPost' => function ($query) {
                 $query->select('forum_posts.id', 'forum_posts.forum_thread_id', 'forum_posts.created_at');
@@ -272,7 +272,8 @@ class ForumController extends Controller
 
         $posts = $thread->posts()
             ->with(['author' => function ($query) {
-                $query->select('id', 'nickname', 'created_at')->withCount('forumPosts');
+                $query->select('id', 'nickname', 'created_at', 'avatar_url', 'forum_signature')
+                    ->withCount('forumPosts');
             }])
             ->orderBy('created_at')
             ->paginate(10)
@@ -295,14 +296,14 @@ class ForumController extends Controller
                 'created_at' => $post->created_at->toDayDateTimeString(),
                 'edited_at' => optional($post->edited_at)?->toDayDateTimeString(),
                 'number' => $posts->firstItem() ? ($posts->firstItem() + $index) : ($index + 1),
-                'signature' => null,
                 'author' => [
                     'id' => $author?->id,
                     'nickname' => $author?->nickname,
                     'joined_at' => $author?->created_at?->toFormattedDateString(),
                     'forum_posts_count' => $author?->forum_posts_count ?? 0,
                     'primary_role' => $author?->getRoleNames()->first() ?? 'Member',
-                    'avatar_url' => null,
+                    'avatar_url' => $author?->avatar_url,
+                    'forum_signature' => $author?->forum_signature,
                 ],
                 'permissions' => [
                     'canReport' => $user !== null && $user->id !== $post->user_id,
