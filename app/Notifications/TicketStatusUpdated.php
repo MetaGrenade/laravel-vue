@@ -40,10 +40,7 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $subject = match ($this->audience) {
-            'agent' => 'Ticket status updated: ' . $this->ticket->subject,
-            default => 'Support ticket status updated: ' . $this->ticket->subject,
-        };
+        $subject = $this->title();
 
         $greeting = 'Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!';
 
@@ -58,12 +55,6 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
             ],
         };
 
-        $statusLine = sprintf(
-            'Status changed from %s to %s.',
-            $this->formatStatus($this->previousStatus),
-            $this->formatStatus($this->ticket->status)
-        );
-
         $mailMessage = (new MailMessage())
             ->subject($subject)
             ->greeting($greeting);
@@ -73,7 +64,7 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
         }
 
         $mailMessage
-            ->line($statusLine)
+            ->line($this->statusLine())
             ->action('View conversation', $this->conversationUrlFor($notifiable))
             ->line('Thank you for using our support center.');
 
@@ -88,6 +79,9 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
             'audience' => $this->audience,
             'previous_status' => $this->previousStatus,
             'status' => $this->ticket->status,
+            'title' => $this->title(),
+            'thread_title' => $this->title(),
+            'excerpt' => $this->statusLine(),
             'url' => $this->conversationUrlFor($notifiable),
         ];
     }
@@ -118,6 +112,23 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
             : route('support.tickets.show', $this->ticket);
 
         return $route;
+    }
+
+    protected function title(): string
+    {
+        return match ($this->audience) {
+            'agent' => 'Ticket status updated: ' . $this->ticket->subject,
+            default => 'Support ticket status updated: ' . $this->ticket->subject,
+        };
+    }
+
+    protected function statusLine(): string
+    {
+        return sprintf(
+            'Status changed from %s to %s.',
+            $this->formatStatus($this->previousStatus),
+            $this->formatStatus($this->ticket->status)
+        );
     }
 
     protected function formatStatus(string $status): string

@@ -25,6 +25,7 @@ class TicketReplied extends Notification implements ShouldQueue
         protected array $channels = ['mail', 'database'],
     ) {
         $this->message->setRelation('ticket', $this->ticket);
+        $this->message->loadMissing('author');
     }
 
     public function via(object $notifiable): array
@@ -42,8 +43,7 @@ class TicketReplied extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $author = $this->message->author;
-        $authorName = $author?->nickname ?? $author?->email ?? 'A support member';
+        $authorName = $this->authorName();
 
         $subject = match ($this->audience) {
             'agent' => 'New reply on support ticket: ' . $this->ticket->subject,
@@ -89,8 +89,11 @@ class TicketReplied extends Notification implements ShouldQueue
             'ticket_subject' => $this->ticket->subject,
             'message_id' => $this->message->id,
             'message_author_id' => $this->message->user_id,
+            'message_author_name' => $this->authorName(),
             'audience' => $this->audience,
-            'excerpt' => $this->messageExcerpt(),
+            'title' => $this->title(),
+            'thread_title' => $this->title(),
+            'excerpt' => $this->databaseExcerpt(),
             'url' => $this->conversationUrlFor($notifiable),
         ];
     }
@@ -112,6 +115,33 @@ class TicketReplied extends Notification implements ShouldQueue
         $clone->audience = $audience;
 
         return $clone;
+    }
+
+    protected function title(): string
+    {
+        return match ($this->audience) {
+            'agent' => 'New reply on ticket: ' . $this->ticket->subject,
+            default => 'New reply on your ticket: ' . $this->ticket->subject,
+        };
+    }
+
+    protected function databaseExcerpt(): string
+    {
+        if ($excerpt = $this->messageExcerpt()) {
+            return $excerpt;
+        }
+
+        return match ($this->audience) {
+            'agent' => $this->authorName() . ' replied to the ticket.',
+            default => 'Your reply has been added to the conversation.',
+        };
+    }
+
+    protected function authorName(): string
+    {
+        $author = $this->message->author;
+
+        return $author?->nickname ?? $author?->name ?? $author?->email ?? 'A support member';
     }
 
     protected function messageExcerpt(): ?string

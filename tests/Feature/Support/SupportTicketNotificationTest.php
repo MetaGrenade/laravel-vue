@@ -69,6 +69,9 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame($ticket->id, $data['ticket_id']);
             $this->assertSame('owner', $data['audience']);
             $this->assertSame($message->id, $data['message_id']);
+            $this->assertSame('Support ticket opened: Need help with my account', $data['title']);
+            $this->assertSame($data['title'], $data['thread_title']);
+            $this->assertSame('I am unable to access certain features and need assistance.', $data['excerpt']);
 
             $expectedUrl = route('support.tickets.show', $ticket) . '#message-' . $message->id;
             $this->assertSame($expectedUrl, $data['url']);
@@ -123,6 +126,10 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame($ticket->id, $data['ticket_id']);
             $this->assertSame('owner', $data['audience']);
             $this->assertSame($message->id, $data['message_id']);
+            $this->assertSame('New reply on your ticket: Deployment issue', $data['title']);
+            $this->assertSame($data['title'], $data['thread_title']);
+            $this->assertSame('Here is some additional context about the failure logs.', $data['excerpt']);
+            $this->assertSame($owner->nickname, $data['message_author_name']);
 
             $expectedUrl = route('support.tickets.show', $ticket) . '#message-' . $message->id;
             $this->assertSame($expectedUrl, $data['url']);
@@ -138,6 +145,10 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame($ticket->id, $data['ticket_id']);
             $this->assertSame('agent', $data['audience']);
             $this->assertSame($message->id, $data['message_id']);
+            $this->assertSame('New reply on ticket: Deployment issue', $data['title']);
+            $this->assertSame($data['title'], $data['thread_title']);
+            $this->assertSame('Here is some additional context about the failure logs.', $data['excerpt']);
+            $this->assertSame($owner->nickname, $data['message_author_name']);
 
             $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]) . '#message-' . $message->id;
             $this->assertSame($expectedUrl, $data['url']);
@@ -192,6 +203,10 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame($ticket->id, $data['ticket_id']);
             $this->assertSame('owner', $data['audience']);
             $this->assertSame($message->id, $data['message_id']);
+            $this->assertSame('New reply on your ticket: Database connection issue', $data['title']);
+            $this->assertSame($data['title'], $data['thread_title']);
+            $this->assertSame('Thanks for the report! We are investigating now.', $data['excerpt']);
+            $this->assertSame($agent->nickname, $data['message_author_name']);
 
             $expectedUrl = route('support.tickets.show', $ticket) . '#message-' . $message->id;
             $this->assertSame($expectedUrl, $data['url']);
@@ -207,6 +222,10 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame($ticket->id, $data['ticket_id']);
             $this->assertSame('agent', $data['audience']);
             $this->assertSame($message->id, $data['message_id']);
+            $this->assertSame('New reply on ticket: Database connection issue', $data['title']);
+            $this->assertSame($data['title'], $data['thread_title']);
+            $this->assertSame('Thanks for the report! We are investigating now.', $data['excerpt']);
+            $this->assertSame($agent->nickname, $data['message_author_name']);
 
             $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]) . '#message-' . $message->id;
             $this->assertSame($expectedUrl, $data['url']);
@@ -252,6 +271,9 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame('owner', $data['audience']);
             $this->assertSame('pending', $data['previous_status']);
             $this->assertSame('open', $data['status']);
+            $this->assertSame('Support ticket status updated: Login issue', $data['title']);
+            $this->assertSame($data['title'], $data['thread_title']);
+            $this->assertSame('Status changed from Pending to Open.', $data['excerpt']);
 
             $expectedUrl = route('support.tickets.show', $ticket);
             $this->assertSame($expectedUrl, $data['url']);
@@ -271,6 +293,9 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame('agent', $data['audience']);
             $this->assertSame('pending', $data['previous_status']);
             $this->assertSame('open', $data['status']);
+            $this->assertSame('Ticket status updated: Login issue', $data['title']);
+            $this->assertSame($data['title'], $data['thread_title']);
+            $this->assertSame('Status changed from Pending to Open.', $data['excerpt']);
 
             $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]);
             $this->assertSame($expectedUrl, $data['url']);

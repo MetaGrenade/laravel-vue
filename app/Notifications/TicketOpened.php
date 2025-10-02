@@ -89,7 +89,9 @@ class TicketOpened extends Notification implements ShouldQueue
             'ticket_subject' => $this->ticket->subject,
             'message_id' => $this->message?->id,
             'audience' => $this->audience,
-            'excerpt' => $this->messageExcerpt(),
+            'title' => $this->title(),
+            'thread_title' => $this->title(),
+            'excerpt' => $this->databaseExcerpt(),
             'url' => $this->conversationUrlFor($notifiable),
         ];
     }
@@ -111,6 +113,26 @@ class TicketOpened extends Notification implements ShouldQueue
         $clone->audience = $audience;
 
         return $clone;
+    }
+
+    protected function title(): string
+    {
+        return match ($this->audience) {
+            'agent' => 'New support ticket: ' . $this->ticket->subject,
+            default => 'Support ticket opened: ' . $this->ticket->subject,
+        };
+    }
+
+    protected function databaseExcerpt(): string
+    {
+        if ($excerpt = $this->messageExcerpt()) {
+            return $excerpt;
+        }
+
+        return match ($this->audience) {
+            'agent' => 'A new support ticket requires your attention.',
+            default => 'We received your support request and will follow up soon.',
+        };
     }
 
     protected function messageExcerpt(): ?string
