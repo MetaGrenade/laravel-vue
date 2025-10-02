@@ -33,7 +33,7 @@ class SupportTicketNotificationTest extends TestCase
         $ticket = SupportTicket::where('user_id', $user->id)->latest()->first();
         $this->assertNotNull($ticket);
 
-        $message = $ticket->messages()->latest()->first();
+        $message = $ticket->messages()->latest('id')->first();
         $this->assertNotNull($message);
 
         Notification::assertSentTo($user, TicketOpened::class, function (TicketOpened $notification, array $channels) use ($user, $ticket, $message) {
@@ -84,7 +84,7 @@ class SupportTicketNotificationTest extends TestCase
         $response->assertRedirect(route('support.tickets.show', $ticket));
 
         $ticket->refresh();
-        $message = $ticket->messages()->latest()->first();
+        $message = $ticket->messages()->latest('id')->first();
         $this->assertNotNull($message);
 
         Notification::assertSentToTimes($owner, TicketReplied::class, 1);
