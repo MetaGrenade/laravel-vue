@@ -61,6 +61,7 @@ const createBlogs = computed(() => hasPermission('blogs.acp.create'));
 const editBlogs = computed(() => hasPermission('blogs.acp.edit'));
 const publishBlogs = computed(() => hasPermission('blogs.acp.publish'));
 const deleteBlogs = computed(() => hasPermission('blogs.acp.delete'));
+const manageTags = computed(() => createBlogs.value || editBlogs.value);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -247,20 +248,26 @@ const deletePost = (postId: number) => {
 
                 <!-- Blog Posts Management Section -->
                 <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                        <h2 class="text-lg font-semibold mb-2 md:mb-0">Blog Posts</h2>
-                        <div class="flex space-x-2">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
+                        <h2 class="text-lg font-semibold">Blog Posts</h2>
+                        <div class="flex flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-2">
                             <Input
                                 v-model="searchQuery"
                                 placeholder="Search Blogs..."
-                                class="w-full rounded-md"
+                                class="w-full rounded-md md:w-64"
                             />
-                            <!-- Create New Post Button visible only if permission is granted -->
-                            <Link :href="route('acp.blogs.create')" v-if="createBlogs">
-                                <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                    Create New Post
-                                </Button>
-                            </Link>
+                            <div class="flex flex-wrap justify-end gap-2">
+                                <Link v-if="manageTags" :href="route('acp.blog-tags.index')">
+                                    <Button variant="outline" class="text-sm">
+                                        Manage Tags
+                                    </Button>
+                                </Link>
+                                <Link v-if="createBlogs" :href="route('acp.blogs.create')">
+                                    <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                        Create New Post
+                                    </Button>
+                                </Link>
+                            </div>
                         </div>
                     </div>
                     <div class="overflow-x-auto">

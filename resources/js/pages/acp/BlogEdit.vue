@@ -84,6 +84,94 @@ const form = useForm<BlogForm>({
 
 const { formatDate } = useUserTimezone();
 
+const tagOptions = ref<BlogTaxonomyOption[]>([]);
+const refreshingTags = ref(false);
+const refreshTagsError = ref('');
+
+const normalizeTagData = (input: unknown[]): BlogTaxonomyOption[] => {
+    return input
+        .map((raw) => {
+            if (!raw || typeof raw !== 'object') {
+                return null;
+            }
+
+            const candidate = raw as Record<string, unknown>;
+            const id = candidate.id;
+            const name = candidate.name;
+            const slug = candidate.slug;
+
+            if (typeof id !== 'number' || typeof name !== 'string' || typeof slug !== 'string') {
+                return null;
+            }
+
+            return { id, name, slug };
+        })
+        .filter((tag): tag is BlogTaxonomyOption => Boolean(tag));
+};
+
+const applyTagOptions = (tags: BlogTaxonomyOption[]) => {
+    const normalized = tags.map((tag) => ({ ...tag }));
+    tagOptions.value = normalized;
+
+    const validIds = new Set(normalized.map((tag) => tag.id));
+    form.tag_ids = form.tag_ids.filter((id) => validIds.has(id));
+};
+
+applyTagOptions([...props.tags]);
+
+watch(
+    () => props.tags,
+    (tags) => {
+        applyTagOptions([...tags]);
+    },
+    { deep: true },
+);
+
+const extractRawTags = (payload: unknown): unknown[] => {
+    if (Array.isArray(payload)) {
+        return payload;
+    }
+
+    if (payload && typeof payload === 'object' && 'tags' in payload) {
+        const tagsValue = (payload as Record<string, unknown>).tags;
+
+        return Array.isArray(tagsValue) ? tagsValue : [];
+    }
+
+    return [];
+};
+
+const refreshTags = async () => {
+    if (refreshingTags.value) {
+        return;
+    }
+
+    refreshingTags.value = true;
+    refreshTagsError.value = '';
+
+    try {
+        const response = await fetch(route('acp.blog-tags.index'), {
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const payload: unknown = await response.json();
+        const normalized = normalizeTagData(extractRawTags(payload));
+        applyTagOptions(normalized);
+    } catch (error) {
+        console.error('Failed to refresh tags', error);
+        refreshTagsError.value = 'Unable to refresh tags. Please try again.';
+    } finally {
+        refreshingTags.value = false;
+    }
+};
+
 const createdAt = computed(() =>
     props.blog.created_at ? formatDate(props.blog.created_at) : '—'
 );
@@ -159,7 +247,7 @@ watch(
 const selectedCategories = computed(() =>
     props.categories.filter((category) => form.category_ids.includes(category.id)),
 );
-const selectedTags = computed(() => props.tags.filter((tag) => form.tag_ids.includes(tag.id)));
+const selectedTags = computed(() => tagOptions.value.filter((tag) => form.tag_ids.includes(tag.id)));
 
 const previewCover = computed(() => existingCoverImage.value ?? '/images/default-cover.jpg');
 const previewScheduledMessage = computed(() => {
@@ -389,14 +477,29 @@ const handleSubmit = () => {
                                     <InputError :message="form.errors.category_ids" />
                                 </div>
 
-                                <div class="space-y-2">
-                                    <Label>Tags</Label>
-                                    <p class="text-sm text-muted-foreground">
-                                        Use tags to surface cross-cutting topics and campaigns.
-                                    </p>
+                                <div class="space-y-3">
+                                    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                            <Label>Tags</Label>
+                                            <p class="text-sm text-muted-foreground">
+                                                Use tags to surface cross-cutting topics and campaigns.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            class="self-start"
+                                            :disabled="refreshingTags"
+                                            @click="refreshTags"
+                                        >
+                                            <span v-if="refreshingTags">Refreshing…</span>
+                                            <span v-else>Refresh tags</span>
+                                        </Button>
+                                    </div>
                                     <div class="grid gap-2 sm:grid-cols-2">
                                         <label
-                                            v-for="tag in props.tags"
+                                            v-for="tag in tagOptions"
                                             :key="tag.id"
                                             class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
                                         >
@@ -408,10 +511,11 @@ const handleSubmit = () => {
                                             />
                                             <span>{{ tag.name }}</span>
                                         </label>
-                                        <p v-if="props.tags.length === 0" class="text-sm text-muted-foreground sm:col-span-2">
+                                        <p v-if="tagOptions.length === 0" class="text-sm text-muted-foreground sm:col-span-2">
                                             No tags configured yet. Seed some to support editorial organization.
                                         </p>
                                     </div>
+                                    <p v-if="refreshTagsError" class="text-xs text-red-500">{{ refreshTagsError }}</p>
                                     <InputError :message="form.errors.tag_ids" />
                                 </div>
                             </div>
