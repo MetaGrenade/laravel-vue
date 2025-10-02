@@ -9,6 +9,7 @@ use App\Notifications\TicketReplied;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class SupportTicketNotificationTest extends TestCase
@@ -19,8 +20,21 @@ class SupportTicketNotificationTest extends TestCase
     {
         parent::setUp();
 
+        Role::create(['name' => 'moderator', 'guard_name' => 'web']);
         Permission::create(['name' => 'support.acp.view', 'guard_name' => 'web']);
         Permission::create(['name' => 'support.acp.reply', 'guard_name' => 'web']);
+    }
+
+    private function createSupportAgent(array $permissions = []): User
+    {
+        $agent = User::factory()->create(['email_verified_at' => now()]);
+        $agent->assignRole('moderator');
+
+        foreach ($permissions as $permission) {
+            $agent->givePermissionTo($permission);
+        }
+
+        return $agent;
     }
 
     public function test_it_notifies_the_owner_when_a_ticket_is_opened(): void
@@ -69,8 +83,7 @@ class SupportTicketNotificationTest extends TestCase
         Notification::fake();
 
         $owner = User::factory()->create(['email_verified_at' => now()]);
-        $agent = User::factory()->create(['email_verified_at' => now()]);
-        $agent->givePermissionTo('support.acp.view');
+        $agent = $this->createSupportAgent(['support.acp.view']);
 
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
@@ -139,8 +152,7 @@ class SupportTicketNotificationTest extends TestCase
         Notification::fake();
 
         $owner = User::factory()->create(['email_verified_at' => now()]);
-        $agent = User::factory()->create(['email_verified_at' => now()]);
-        $agent->givePermissionTo(['support.acp.reply', 'support.acp.view']);
+        $agent = $this->createSupportAgent(['support.acp.reply', 'support.acp.view']);
 
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
