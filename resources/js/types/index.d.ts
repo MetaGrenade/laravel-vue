@@ -31,7 +31,8 @@ export interface User {
     id: number;
     nickname: string;
     email: string;
-    avatar?: string;
+    avatar_url?: string | null;
+    forum_signature?: string | null;
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;

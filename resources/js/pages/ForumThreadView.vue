@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { type BreadcrumbItem } from '@/types';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type SharedData, type User } from '@/types';
 
 // Import shadcn‑vue components
-import Avatar from '@/components/ui/avatar/Avatar.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Button from '@/components/ui/button/Button.vue';
 import {
     Pagination,
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/pagination'
 import { Textarea } from '@/components/ui/textarea'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue';
+import { useInitials } from '@/composables/useInitials';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -83,6 +84,7 @@ interface PostAuthor {
     forum_posts_count: number;
     primary_role: string | null;
     avatar_url: string | null;
+    forum_signature: string | null;
 }
 
 interface PostPermissions {
@@ -99,7 +101,6 @@ interface ThreadPost {
     created_at: string;
     edited_at: string | null;
     number: number;
-    signature: string | null;
     author: PostAuthor;
     permissions: PostPermissions;
 }
@@ -127,6 +128,72 @@ const props = defineProps<{
     posts: PostsPayload;
     reportReasons: ReportReasonOption[];
 }>();
+
+const page = usePage<SharedData>();
+const authUser = computed(() => page.props.auth.user as User | null);
+const { getInitials } = useInitials();
+
+const forumProfileDialogOpen = ref(false);
+
+const resolveForumProfileDefaults = (user: User | null) => ({
+    nickname: user?.nickname ?? '',
+    email: user?.email ?? '',
+    avatar_url: user?.avatar_url ?? '',
+    forum_signature: user?.forum_signature ?? '',
+});
+
+const forumProfileForm = useForm(resolveForumProfileDefaults(authUser.value));
+
+watch(
+    authUser,
+    (user) => {
+        const defaults = resolveForumProfileDefaults(user);
+        forumProfileForm.defaults(defaults);
+
+        if (!forumProfileDialogOpen.value) {
+            forumProfileForm.reset();
+        }
+    },
+    { immediate: true },
+);
+
+watch(forumProfileDialogOpen, (open) => {
+    if (!open) {
+        forumProfileForm.reset();
+        forumProfileForm.clearErrors();
+    }
+});
+
+watch(
+    () => forumProfileForm.avatar_url,
+    () => {
+        if (forumProfileForm.errors.avatar_url) {
+            forumProfileForm.clearErrors('avatar_url');
+        }
+    },
+);
+
+watch(
+    () => forumProfileForm.forum_signature,
+    () => {
+        if (forumProfileForm.errors.forum_signature) {
+            forumProfileForm.clearErrors('forum_signature');
+        }
+    },
+);
+
+const submitForumProfile = () => {
+    if (!authUser.value || forumProfileForm.processing) {
+        return;
+    }
+
+    forumProfileForm.patch(route('profile.update'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            forumProfileDialogOpen.value = false;
+        },
+    });
+};
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => {
     const trail: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
@@ -696,6 +763,76 @@ const submitReply = () => {
                 </form>
             </DialogContent>
         </Dialog>
+        <Dialog v-model:open="forumProfileDialogOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Forum profile</DialogTitle>
+                    <DialogDescription>
+                        Update your avatar and signature. These details appear next to every post you make.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="space-y-5" @submit.prevent="submitForumProfile">
+                    <div class="flex items-center gap-4">
+                        <Avatar class="h-16 w-16 overflow-hidden rounded-full">
+                            <AvatarImage
+                                v-if="forumProfileForm.avatar_url"
+                                :src="forumProfileForm.avatar_url"
+                                alt="Avatar preview"
+                            />
+                            <AvatarFallback
+                                class="flex h-full w-full items-center justify-center bg-muted text-lg font-semibold uppercase"
+                            >
+                                {{ getInitials(authUser?.nickname ?? 'User') }}
+                            </AvatarFallback>
+                        </Avatar>
+                        <p class="text-sm text-muted-foreground">
+                            Paste a direct link to an image to use as your avatar. Square images look best.
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="forum_profile_avatar">Avatar URL</Label>
+                        <Input
+                            id="forum_profile_avatar"
+                            v-model="forumProfileForm.avatar_url"
+                            type="url"
+                            placeholder="https://example.com/avatar.png"
+                        />
+                        <p v-if="forumProfileForm.errors.avatar_url" class="text-sm text-destructive">
+                            {{ forumProfileForm.errors.avatar_url }}
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="forum_profile_signature">Forum signature</Label>
+                        <Textarea
+                            id="forum_profile_signature"
+                            v-model="forumProfileForm.forum_signature"
+                            rows="4"
+                            maxlength="500"
+                            placeholder="Share a short sign-off, pronouns, or helpful links."
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Plain text only. Your signature is shown below each of your posts.
+                        </p>
+                        <p v-if="forumProfileForm.errors.forum_signature" class="text-sm text-destructive">
+                            {{ forumProfileForm.errors.forum_signature }}
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            :disabled="forumProfileForm.processing"
+                            @click="forumProfileDialogOpen = false"
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" :disabled="forumProfileForm.processing">
+                            Save profile
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
         <Dialog v-model:open="postEditDialogOpen">
             <DialogContent class="sm:max-w-2xl">
                 <DialogHeader>
@@ -928,7 +1065,7 @@ const submitReply = () => {
                         class="h-8 w-8 inline-block ml-2 text-muted-foreground"
                     />
                 </h1>
-                <div class="flex max-w-md space-x-2">
+                <div class="flex flex-wrap justify-end gap-2 md:flex-nowrap">
                     <Button v-if="props.thread.is_locked" variant="secondary" class="cursor-pointer text-yellow-500" disabled>
                         <Lock class="h-8 w-8" />
                         Locked
@@ -938,6 +1075,14 @@ const submitReply = () => {
                             Post Reply
                         </Button>
                     </a>
+                    <Button
+                        v-if="authUser"
+                        variant="outline"
+                        class="cursor-pointer"
+                        @click="forumProfileDialogOpen = true"
+                    >
+                        Edit forum profile
+                    </Button>
                     <DropdownMenu
                         v-if="
                             threadPermissions.canReport ||
@@ -1087,7 +1232,18 @@ const submitReply = () => {
                 >
                     <!-- Left Side: User Info -->
                     <div class="flex-shrink-0 w-full md:w-1/5 border-r pr-4">
-                        <Avatar :src="post.author.avatar_url ?? undefined" alt="User avatar" class="h-24 w-24 rounded-full mb-2" />
+                        <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
+                            <AvatarImage
+                                v-if="post.author.avatar_url"
+                                :src="post.author.avatar_url"
+                                :alt="post.author.nickname ?? 'Forum user'"
+                            />
+                            <AvatarFallback
+                                class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold uppercase text-muted-foreground"
+                            >
+                                {{ getInitials(post.author.nickname ?? 'Member') }}
+                            </AvatarFallback>
+                        </Avatar>
                         <div class="font-bold text-lg">{{ post.author.nickname ?? 'Unknown' }}</div>
                         <div class="text-sm text-gray-500">{{ post.author.primary_role ?? 'Member' }}</div>
                         <div class="mt-2 text-xs text-gray-600">
@@ -1161,8 +1317,11 @@ const submitReply = () => {
                         <!-- Post Body -->
                         <div class="tiptap ProseMirror prose prose-sm dark:prose-invert max-w-none" v-html="post.body"></div>
                         <!-- Forum Signature -->
-                        <div v-if="post.author.signature" class="mt-4 border-t pt-2 text-xs text-gray-500">
-                            {{ post.author.signature }}
+                        <div
+                            v-if="post.author.forum_signature"
+                            class="mt-4 border-t pt-2 text-xs text-gray-500 whitespace-pre-line"
+                        >
+                            {{ post.author.forum_signature }}
                         </div>
                     </div>
                 </div>
