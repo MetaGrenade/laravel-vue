@@ -11,6 +11,9 @@ use App\Models\FaqCategory;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
+use App\Notifications\TicketOpened;
+use App\Notifications\TicketReplied;
+use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -23,6 +26,11 @@ use Inertia\Response;
 class SupportCenterController extends Controller
 {
     use InteractsWithInertiaPagination;
+
+    public function __construct(
+        private SupportTicketNotificationDispatcher $ticketNotifier
+    ) {
+    }
 
     public function index(Request $request): Response
     {
@@ -195,7 +203,10 @@ class SupportCenterController extends Controller
     {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($request, $validated): void {
+        $ticket = null;
+        $message = null;
+
+        DB::transaction(function () use ($request, $validated, &$ticket, &$message): void {
             $ticket = SupportTicket::create([
                 'user_id' => $validated['user_id'],
                 'subject' => $validated['subject'],
@@ -207,6 +218,8 @@ class SupportCenterController extends Controller
                 'user_id' => $ticket->user_id,
                 'body' => $ticket->body,
             ]);
+
+            $message->setRelation('author', $ticket->user);
 
             $attachments = $request->file('attachments', []);
 
@@ -236,6 +249,14 @@ class SupportCenterController extends Controller
 
             $message->touch();
         });
+
+        if ($ticket && $message) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+                return (new TicketOpened($ticket, $message))
+                    ->forAudience($audience)
+                    ->withChannels($channels);
+            });
+        }
 
         return redirect()
             ->route('support')
@@ -333,11 +354,15 @@ class SupportCenterController extends Controller
     ): RedirectResponse {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($request, $ticket, $validated): void {
+        $message = null;
+
+        DB::transaction(function () use ($request, $ticket, $validated, &$message): void {
             $message = $ticket->messages()->create([
                 'user_id' => $request->user()->id,
                 'body' => $validated['body'],
             ]);
+
+            $message->setRelation('author', $request->user());
 
             $attachments = $request->file('attachments', []);
 
@@ -368,6 +393,14 @@ class SupportCenterController extends Controller
             $ticket->touch();
             $message->touch();
         });
+
+        if ($message) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+                return (new TicketReplied($ticket, $message))
+                    ->forAudience($audience)
+                    ->withChannels($channels);
+            });
+        }
 
         return redirect()
             ->route('support.tickets.show', $ticket)

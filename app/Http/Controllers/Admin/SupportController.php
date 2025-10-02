@@ -16,6 +16,10 @@ use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\User;
 use App\Notifications\SupportTicketAgentReply;
+use App\Notifications\TicketOpened;
+use App\Notifications\TicketReplied;
+use App\Notifications\TicketStatusUpdated;
+use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -29,6 +33,11 @@ use Inertia\Response;
 class SupportController extends Controller
 {
     use InteractsWithInertiaPagination;
+
+    public function __construct(
+        private SupportTicketNotificationDispatcher $ticketNotifier
+    ) {
+    }
 
     public function index(Request $request): Response
     {
@@ -191,7 +200,13 @@ class SupportController extends Controller
         $data = $request->validated();
         $data['user_id'] = $data['user_id'] ?? (int) $request->user()->id;
 
-        SupportTicket::create($data);
+        $ticket = SupportTicket::create($data);
+
+        $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket) {
+            return (new TicketOpened($ticket))
+                ->forAudience($audience)
+                ->withChannels($channels);
+        });
 
         return redirect()
             ->route('acp.support.index')
@@ -219,6 +234,8 @@ class SupportController extends Controller
     {
         $validated = $request->validated();
 
+        $previousStatus = $ticket->status;
+
         if (array_key_exists('status', $validated)) {
             $validated += $this->resolutionAttributes($ticket, $validated['status'], (int) $request->user()->id);
         }
@@ -228,6 +245,17 @@ class SupportController extends Controller
         }
 
         $ticket->update($validated);
+
+        if (
+            array_key_exists('status', $validated)
+            && $previousStatus !== $ticket->status
+        ) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $previousStatus) {
+                return (new TicketStatusUpdated($ticket, $previousStatus))
+                    ->forAudience($audience)
+                    ->withChannels($channels);
+            });
+        }
 
         return redirect()
             ->route('acp.support.index')
@@ -409,14 +437,15 @@ class SupportController extends Controller
 
         $validated = $request->validated();
 
-        $agent = $request->user();
         $message = null;
 
-        DB::transaction(function () use ($request, $ticket, $validated, $agent, &$message): void {
+        DB::transaction(function () use ($request, $ticket, $validated, &$message): void {
             $message = $ticket->messages()->create([
-                'user_id' => $agent->id,
+                'user_id' => $request->user()->id,
                 'body' => $validated['body'],
             ]);
+
+            $message->setRelation('author', $request->user());
 
             $attachments = $request->file('attachments', []);
 
@@ -448,13 +477,12 @@ class SupportController extends Controller
             $message->touch();
         });
 
-        $ticket->refresh();
-
-        if ($ticket->user && (int) $ticket->user->id !== (int) $agent->id && $message) {
-            $message->refresh();
-            $message->loadMissing('author');
-
-            $ticket->user->notify(new SupportTicketAgentReply($ticket, $message));
+        if ($message) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+                return (new TicketReplied($ticket, $message))
+                    ->forAudience($audience)
+                    ->withChannels($channels);
+            });
         }
 
         return redirect()
@@ -502,7 +530,17 @@ class SupportController extends Controller
 
         $updates += $this->resolutionAttributes($ticket, $validated['status'], (int) $request->user()->id);
 
+        $previousStatus = $ticket->status;
+
         $ticket->update($updates);
+
+        if ($previousStatus !== $ticket->status) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $previousStatus) {
+                return (new TicketStatusUpdated($ticket, $previousStatus))
+                    ->forAudience($audience)
+                    ->withChannels($channels);
+            });
+        }
 
         $message = match ($validated['status']) {
             'open' => 'Ticket opened.',

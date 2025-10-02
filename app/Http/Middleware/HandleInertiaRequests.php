@@ -73,7 +73,7 @@ class HandleInertiaRequests extends Middleware
                         return [
                             'id' => $notification->id,
                             'type' => $notification->type,
-                            'title' => $data['thread_title'] ?? 'Notification',
+                            'title' => $data['title'] ?? $data['thread_title'] ?? 'Notification',
                             'excerpt' => $data['excerpt'] ?? null,
                             'url' => $data['url'] ?? null,
                             'data' => $data,
