@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,7 +23,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Ellipsis, TicketX, LifeBuoy, Eye, Paperclip } from 'lucide-vue-next';
+import { Ellipsis, TicketX, LifeBuoy, Eye, Paperclip, ChevronDown } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import {
     Pagination,
@@ -53,12 +54,6 @@ interface Ticket {
     customer_satisfaction_rating: number | null;
 }
 
-interface FAQ {
-    id: number;
-    question: string;
-    answer: string;
-}
-
 interface PaginationLinks {
     first: string | null;
     last: string | null;
@@ -72,9 +67,53 @@ interface PaginatedResource<T> {
     links?: PaginationLinks | null;
 }
 
+interface FAQItem {
+    id: number;
+    question: string;
+    answer: string;
+}
+
+interface FAQCategoryFilters {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    order: number;
+    published_faqs_count: number;
+}
+
+interface FAQGroup {
+    category: {
+        id: number;
+        name: string;
+        slug: string;
+        description: string | null;
+        order: number;
+    } | null;
+    faqs: FAQItem[];
+}
+
+interface FAQCategoryOption {
+    id: number | null;
+    name: string;
+    description: string | null;
+    count: number;
+}
+
+interface FAQPayload {
+    groups: FAQGroup[];
+    filters: {
+        categories: FAQCategoryFilters[];
+        selectedCategoryId: number | null;
+        search: string | null;
+        totalPublished: number;
+    };
+    matchingCount: number;
+}
+
 const props = defineProps<{
     tickets: PaginatedResource<Ticket>;
-    faqs: PaginatedResource<FAQ>;
+    faqs: FAQPayload;
     canSubmitTicket: boolean;
 }>();
 
@@ -132,16 +171,74 @@ const readSearchParam = (location: string, key: string): string => {
     }
 };
 
+const readNumberParam = (location: string, key: string): number | null => {
+    const value = readSearchParam(location, key);
+
+    if (value === '') {
+        return null;
+    }
+
+    const parsed = Number.parseInt(value, 10);
+
+    return Number.isNaN(parsed) ? null : parsed;
+};
+
 const ticketSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'tickets_search'));
-const faqSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'faqs_search'));
+const faqFilters = computed(() =>
+    props.faqs?.filters ?? {
+        categories: [] as FAQCategoryFilters[],
+        selectedCategoryId: null,
+        search: null,
+        totalPublished: 0,
+    },
+);
+const faqSearchQuery = ref(
+    faqFilters.value.search ?? readSearchParam(page.props.ziggy.location, 'faqs_search'),
+);
 const ticketsMetaSource = computed(() => props.tickets.meta ?? null);
 const ticketItems = computed(() => props.tickets.data ?? []);
-const faqsMetaSource = computed(() => props.faqs.meta ?? null);
-const faqItems = computed(() => props.faqs.data ?? []);
+const faqGroups = computed(() => props.faqs.groups ?? []);
+const faqCategories = computed(() => faqFilters.value.categories ?? []);
+const selectedFaqCategoryId = ref<number | null>(faqFilters.value.selectedCategoryId ?? null);
+const totalPublishedFaqs = computed(() => faqFilters.value.totalPublished ?? faqCategories.value.reduce(
+    (total, category) => total + category.published_faqs_count,
+    0,
+));
+const faqMatchCount = computed(() => props.faqs.matchingCount ?? faqGroups.value.reduce(
+    (total, group) => total + group.faqs.length,
+    0,
+));
+const faqCategoryOptions = computed<FAQCategoryOption[]>(() => {
+    const categories = faqCategories.value;
+    const total = totalPublishedFaqs.value;
+
+    const options: FAQCategoryOption[] = [
+        {
+            id: null,
+            name: 'All topics',
+            description: null,
+            count: total,
+        },
+    ];
+
+    for (const category of categories) {
+        options.push({
+            id: category.id,
+            name: category.name,
+            description: category.description,
+            count: category.published_faqs_count,
+        });
+    }
+
+    return options;
+});
+const activeFaqCategory = computed(() =>
+    faqCategoryOptions.value.find((option) => option.id === selectedFaqCategoryId.value) ?? null,
+);
 
 interface SupportQueryOverrides {
     tickets_page?: number | null;
-    faqs_page?: number | null;
+    faq_category_id?: number | null;
 }
 
 const buildSupportQuery = (overrides: SupportQueryOverrides = {}) => {
@@ -158,6 +255,16 @@ const buildSupportQuery = (overrides: SupportQueryOverrides = {}) => {
         query.faqs_search = faqsSearch;
     }
 
+    if (Object.prototype.hasOwnProperty.call(overrides, 'faq_category_id')) {
+        const overrideCategory = overrides.faq_category_id;
+
+        if (overrideCategory !== null && overrideCategory !== undefined) {
+            query.faq_category_id = overrideCategory;
+        }
+    } else if (selectedFaqCategoryId.value !== null) {
+        query.faq_category_id = selectedFaqCategoryId.value;
+    }
+
     if (overrides.tickets_page !== undefined) {
         if (overrides.tickets_page && overrides.tickets_page > 1) {
             query.tickets_page = overrides.tickets_page;
@@ -167,18 +274,6 @@ const buildSupportQuery = (overrides: SupportQueryOverrides = {}) => {
 
         if (currentTicketsPage > 1) {
             query.tickets_page = currentTicketsPage;
-        }
-    }
-
-    if (overrides.faqs_page !== undefined) {
-        if (overrides.faqs_page && overrides.faqs_page > 1) {
-            query.faqs_page = overrides.faqs_page;
-        }
-    } else {
-        const currentFaqsPage = faqsMetaSource.value?.current_page ?? 1;
-
-        if (currentFaqsPage > 1) {
-            query.faqs_page = currentFaqsPage;
         }
     }
 
@@ -210,25 +305,7 @@ const {
     },
 });
 
-const {
-    meta: faqsMeta,
-    page: faqsPage,
-    setPage: setFaqsPage,
-    rangeLabel: faqsRangeLabel,
-} = useInertiaPagination({
-    meta: faqsMetaSource,
-    itemsLength: computed(() => faqItems.value.length),
-    defaultPerPage: 10,
-    itemLabel: 'FAQ',
-    itemLabelPlural: 'FAQs',
-    emptyLabel: "No FAQs to display",
-    onNavigate: (page) => {
-        navigateToSupport({ faqs_page: page });
-    },
-});
-
 const showTicketPagination = computed(() => ticketsMeta.value.total > ticketsMeta.value.per_page);
-const showFaqPagination = computed(() => faqsMeta.value.total > faqsMeta.value.per_page);
 
 interface CreateTicketFormPayload {
     subject: string;
@@ -311,17 +388,19 @@ const debouncedTicketsSearch = useDebounceFn(() => {
 }, 300);
 
 const debouncedFaqsSearch = useDebounceFn(() => {
-    navigateToSupport({ faqs_page: 1 });
+    navigateToSupport();
 }, 300);
 
 let skipTicketsSearchWatch = false;
 let skipFaqsSearchWatch = false;
+let skipFaqCategoryWatch = false;
 
 watch(
     () => page.props.ziggy.location,
     (location) => {
         const nextTicketsSearch = readSearchParam(location, 'tickets_search');
         const nextFaqsSearch = readSearchParam(location, 'faqs_search');
+        const nextFaqCategory = readNumberParam(location, 'faq_category_id');
 
         if (ticketSearchQuery.value !== nextTicketsSearch) {
             skipTicketsSearchWatch = true;
@@ -331,6 +410,11 @@ watch(
         if (faqSearchQuery.value !== nextFaqsSearch) {
             skipFaqsSearchWatch = true;
             faqSearchQuery.value = nextFaqsSearch;
+        }
+
+        if (selectedFaqCategoryId.value !== nextFaqCategory) {
+            skipFaqCategoryWatch = true;
+            selectedFaqCategoryId.value = nextFaqCategory;
         }
     },
 );
@@ -351,8 +435,16 @@ watch(faqSearchQuery, () => {
         return;
     }
 
-    setFaqsPage(1, { emitNavigate: false });
     debouncedFaqsSearch();
+});
+
+watch(selectedFaqCategoryId, () => {
+    if (skipFaqCategoryWatch) {
+        skipFaqCategoryWatch = false;
+        return;
+    }
+
+    navigateToSupport({ faq_category_id: selectedFaqCategoryId.value });
 });
 
 const goToTicket = (ticketId: number) => {
@@ -435,6 +527,14 @@ const formatDate = (value: string | null) => {
 
 const formatRating = (rating: number | null) =>
     typeof rating === 'number' ? `${rating}/5` : '—';
+
+const handleFaqCategorySelect = (categoryId: number | null) => {
+    if (selectedFaqCategoryId.value === categoryId) {
+        return;
+    }
+
+    selectedFaqCategoryId.value = categoryId;
+};
 
 </script>
 
@@ -772,88 +872,118 @@ const formatRating = (rating: number | null) =>
 
                 <!-- FAQ Tab -->
                 <TabsContent value="faq" class="space-y-6">
-                    <!-- Search FAQ -->
-                    <div class="flex">
-                        <h3 class="text-2xl font-semibold mb-4">FAQ's</h3>
-                        <Input
-                            v-model="faqSearchQuery"
-                            placeholder="Search FAQs..."
-                            class="w-full md:w-1/3 md:ml-auto"
-                        />
-                    </div>
-
-                    <!-- FAQ List -->
-                    <div class="overflow-x-auto rounded-xl border">
-                        <Table>
-                            <TableHeader class="bg-neutral-900">
-                                <TableRow>
-                                    <TableHead>Question</TableHead>
-                                    <TableHead>Answer</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow
-                                    v-for="faq in faqItems"
-                                    :key="faq.id"
-                                    class="hover:bg-gray-50 dark:hover:bg-gray-900"
-                                >
-                                    <TableCell>{{ faq.question }}</TableCell>
-                                    <TableCell>{{ faq.answer }}</TableCell>
-                                </TableRow>
-                                <TableRow v-if="faqItems.length === 0">
-                                    <TableCell
-                                        colspan="2"
-                                        class="text-center text-sm text-gray-600 dark:text-gray-300"
-                                    >
-                                        No FAQs found.
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                        <div class="text-sm text-muted-foreground text-center md:text-left">
-                            {{ faqsRangeLabel }}
-                        </div>
-                        <Pagination
-                            v-if="showFaqPagination"
-                            v-slot="{ page, pageCount }"
-                            v-model:page="faqsPage"
-                            :items-per-page="Math.max(faqsMeta.per_page, 1)"
-                            :total="faqsMeta.total"
-                            :sibling-count="1"
-                            show-edges
-                        >
-                            <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
-                                <span class="text-sm text-muted-foreground">
-                                    Page {{ page }} of {{ pageCount }}
-                                </span>
-                                <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                                    <PaginationFirst />
-                                    <PaginationPrev />
-
-                                    <template v-for="(item, index) in items" :key="index">
-                                        <PaginationListItem
-                                            v-if="item.type === 'page'"
-                                            :value="item.value"
-                                            as-child
-                                        >
-                                            <Button
-                                                class="w-9 h-9 p-0"
-                                                :variant="item.value === page ? 'default' : 'outline'"
-                                            >
-                                                {{ item.value }}
-                                            </Button>
-                                        </PaginationListItem>
-                                        <PaginationEllipsis v-else :key="`faqs-ellipsis-${index}`" :index="index" />
-                                    </template>
-
-                                    <PaginationNext />
-                                    <PaginationLast />
-                                </PaginationList>
+                    <div class="space-y-6">
+                        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                            <div class="space-y-1">
+                                <h3 class="text-2xl font-semibold">Frequently Asked Questions</h3>
+                                <p class="text-sm text-muted-foreground">
+                                    Browse curated answers by topic or search for what you need.
+                                </p>
                             </div>
-                        </Pagination>
+
+                            <div class="flex w-full flex-col gap-3 md:w-auto">
+                                <Input
+                                    v-model="faqSearchQuery"
+                                    placeholder="Search FAQs..."
+                                    class="w-full"
+                                />
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <Button
+                                        v-for="option in faqCategoryOptions"
+                                        :key="option.id ?? 'all'"
+                                        type="button"
+                                        size="sm"
+                                        class="rounded-full"
+                                        :variant="option.id === selectedFaqCategoryId ? 'default' : 'outline'"
+                                        @click="handleFaqCategorySelect(option.id)"
+                                    >
+                                        <span>{{ option.name }}</span>
+                                        <span class="ml-2 text-xs text-muted-foreground">{{ option.count }}</span>
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="activeFaqCategory?.description"
+                            class="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 p-4 text-sm text-muted-foreground"
+                        >
+                            {{ activeFaqCategory.description }}
+                        </div>
+
+                        <div class="flex flex-col gap-2 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+                            <span>
+                                Showing {{ faqMatchCount }} {{ faqMatchCount === 1 ? 'answer' : 'answers' }}
+                                <template v-if="faqSearchQuery">
+                                    matching “{{ faqSearchQuery }}”
+                                </template>
+                            </span>
+                            <span v-if="selectedFaqCategoryId !== null">
+                                Filtered by {{ activeFaqCategory?.name ?? 'selected category' }}
+                            </span>
+                        </div>
+
+                        <div v-if="faqGroups.length" class="space-y-8">
+                            <section
+                                v-for="group in faqGroups"
+                                :key="group.category?.id ?? 'uncategorized'"
+                                class="space-y-4"
+                            >
+                                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                        <h4 class="text-xl font-semibold">
+                                            {{ group.category?.name ?? 'FAQs' }}
+                                        </h4>
+                                        <p
+                                            v-if="group.category?.description"
+                                            class="text-sm text-muted-foreground"
+                                        >
+                                            {{ group.category.description }}
+                                        </p>
+                                    </div>
+                                    <span class="text-sm text-muted-foreground">
+                                        {{ group.faqs.length }} {{ group.faqs.length === 1 ? 'article' : 'articles' }}
+                                    </span>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <Collapsible
+                                        v-for="(faq, index) in group.faqs"
+                                        :key="faq.id"
+                                        :default-open="index === 0"
+                                    >
+                                        <template #default="{ open }">
+                                            <div class="overflow-hidden rounded-lg border bg-background shadow-sm">
+                                                <CollapsibleTrigger as-child>
+                                                    <button
+                                                        type="button"
+                                                        class="flex w-full items-center justify-between gap-4 px-4 py-3 text-left text-base font-medium"
+                                                    >
+                                                        <span>{{ faq.question }}</span>
+                                                        <ChevronDown
+                                                            class="h-4 w-4 flex-shrink-0 transition-transform duration-200"
+                                                            :class="open ? 'rotate-180' : ''"
+                                                        />
+                                                    </button>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent>
+                                                    <div class="px-4 pb-4 text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                                                        {{ faq.answer }}
+                                                    </div>
+                                                </CollapsibleContent>
+                                            </div>
+                                        </template>
+                                    </Collapsible>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div
+                            v-else
+                            class="rounded-xl border border-dashed border-muted-foreground/40 p-8 text-center text-sm text-muted-foreground"
+                        >
+                            No FAQs match your filters. Try adjusting the search or choosing a different category.
+                        </div>
                     </div>
                 </TabsContent>
             </Tabs>

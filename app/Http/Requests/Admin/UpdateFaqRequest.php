@@ -14,6 +14,7 @@ class UpdateFaqRequest extends FormRequest
     public function rules()
     {
         return [
+            'faq_category_id' => 'sometimes|required|integer|exists:faq_categories,id',
             'question'  => 'sometimes|required|string|max:255',
             'answer'    => 'sometimes|required|string',
             'order'     => 'integer',

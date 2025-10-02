@@ -22,9 +22,16 @@ const props = defineProps<{
         answer: string;
         order: number;
         published: boolean;
+        faq_category_id: number;
         created_at: string;
         updated_at: string;
     };
+    categories: Array<{
+        id: number;
+        name: string;
+        slug: string;
+        description: string | null;
+    }>;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -33,6 +40,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const form = useForm({
+    faq_category_id: props.faq.faq_category_id,
     question: props.faq.question,
     answer: props.faq.answer,
     order: props.faq.order,
@@ -106,6 +114,26 @@ const handleSubmit = () => {
                                 <CardDescription>Control ordering and publish state for this entry.</CardDescription>
                             </CardHeader>
                             <CardContent class="space-y-4">
+                                <div class="grid gap-2">
+                                    <Label for="faq_category_id">Category</Label>
+                                    <select
+                                        id="faq_category_id"
+                                        v-model.number="form.faq_category_id"
+                                        class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        :disabled="!props.categories.length"
+                                        required
+                                    >
+                                        <option
+                                            v-for="category in props.categories"
+                                            :key="category.id"
+                                            :value="category.id"
+                                        >
+                                            {{ category.name }}
+                                        </option>
+                                    </select>
+                                    <InputError :message="form.errors.faq_category_id" />
+                                </div>
+
                                 <div class="grid gap-2">
                                     <Label for="order">Display order</Label>
                                     <Input id="order" v-model.number="form.order" type="number" min="0" />

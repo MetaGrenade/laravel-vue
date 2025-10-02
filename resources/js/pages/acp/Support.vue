@@ -109,6 +109,11 @@ const props = defineProps<{
             answer: string;
             order: number;
             published: boolean;
+            category: {
+                id: number;
+                name: string;
+                slug: string;
+            } | null;
         }>;
         meta?: PaginationMeta | null;
         links?: PaginationLinks | null;
@@ -790,6 +795,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <TableHead>ID</TableHead>
                                             <TableHead>Question</TableHead>
                                             <TableHead>Answer</TableHead>
+                                            <TableHead>Category</TableHead>
                                             <TableHead>Order</TableHead>
                                             <TableHead>Published</TableHead>
                                             <TableHead>Actions</TableHead>
@@ -804,6 +810,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <TableCell>{{ f.id }}</TableCell>
                                             <TableCell>{{ f.question }}</TableCell>
                                             <TableCell>{{ f.answer }}</TableCell>
+                                            <TableCell>{{ f.category?.name ?? '—' }}</TableCell>
                                             <TableCell>{{ f.order }}</TableCell>
                                             <TableCell>{{ f.published ? 'Yes' : 'No' }}</TableCell>
                                             <TableCell class="text-center">
@@ -864,9 +871,9 @@ const unpublishFaq = (faq: FaqItem) => {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="!faqItems.length">
-                                            <TableCell colspan="6" class="text-center text-gray-500">
-                                                No FAQs found.
-                                            </TableCell>
+                                        <TableCell colspan="7" class="text-center text-gray-500">
+                                            No FAQs found.
+                                        </TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
