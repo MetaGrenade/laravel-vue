@@ -309,7 +309,7 @@ const {
 
 function cleanQuery(query: Record<string, unknown>) {
     return Object.fromEntries(
-        Object.entries(query).filter(([_, value]) => {
+        Object.entries(query).filter(([, value]) => {
             if (value === null || value === undefined) {
                 return false;
             }
