@@ -15,6 +15,7 @@ use App\Models\SupportTicketMessageAttachment;
 use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\User;
+use App\Notifications\SupportTicketAgentReply;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;

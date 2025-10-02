@@ -122,6 +122,8 @@ const defaultReportReason = computed(() => reportReasons.value[0]?.value ?? '');
 const hasReportReasons = computed(() => reportReasons.value.length > 0);
 
 const canStartThread = computed(() => Boolean(page.props.auth?.user));
+const hasUnreadThreads = computed(() => props.threads.data.some((thread) => thread.has_unread));
+const boardMarking = ref(false);
 
 const {
     meta: threadsMeta,
@@ -397,6 +399,33 @@ const markThreadAsRead = (thread: ThreadSummary) => {
         search: searchQuery.value || undefined,
     });
 };
+
+const markBoardAsRead = () => {
+    if (!canStartThread.value || !hasUnreadThreads.value || boardMarking.value) {
+        return;
+    }
+
+    boardMarking.value = true;
+
+    const payload: Record<string, unknown> = {
+        page: threadsMeta.value.current_page,
+    };
+
+    const search = searchQuery.value.trim();
+
+    if (search) {
+        payload.search = search;
+    }
+
+    router.post(route('forum.boards.mark-read', { board: props.board.slug }), payload, {
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onFinish: () => {
+            boardMarking.value = false;
+        },
+    });
+};
 </script>
 
 <template>
@@ -537,25 +566,42 @@ const markThreadAsRead = (thread: ThreadSummary) => {
             <!-- Forum Header -->
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
                 <h1 class="text-2xl font-bold text-green-500">{{ props.board.title }}</h1>
-                <div class="flex w-full max-w-md space-x-2">
-                    <Input
-                        v-model="searchQuery"
-                        :placeholder="`Search ${props.board.title}...`"
-                    />
+                <div class="flex w-full flex-col gap-2 md:max-w-2xl md:flex-row md:items-center md:justify-end">
+                    <div class="flex w-full items-center gap-2">
+                        <Input
+                            v-model="searchQuery"
+                            class="flex-1"
+                            :placeholder="`Search ${props.board.title}...`"
+                        />
+                        <template v-if="canStartThread">
+                            <Button
+                                variant="secondary"
+                                class="w-full cursor-pointer md:w-auto"
+                                as-child
+                            >
+                                <Link :href="route('forum.threads.create', { board: props.board.slug })">
+                                    New Thread
+                                </Link>
+                            </Button>
+                        </template>
+                        <template v-else>
+                            <Button variant="secondary" class="w-full cursor-pointer md:w-auto" as-child>
+                                <Link :href="route('login')">
+                                    New Thread
+                                </Link>
+                            </Button>
+                        </template>
+                    </div>
                     <Button
                         v-if="canStartThread"
-                        variant="secondary"
-                        class="cursor-pointer"
-                        as-child
+                        type="button"
+                        variant="outline"
+                        class="w-full gap-2 md:w-auto"
+                        :disabled="boardMarking || !hasUnreadThreads"
+                        @click="markBoardAsRead"
                     >
-                        <Link :href="route('forum.threads.create', { board: props.board.slug })">
-                            New Thread
-                        </Link>
-                    </Button>
-                    <Button v-else variant="secondary" class="cursor-pointer" as-child>
-                        <Link :href="route('login')">
-                            New Thread
-                        </Link>
+                        <CheckCircle2 class="h-4 w-4" />
+                        <span>{{ boardMarking ? 'Marking…' : 'Mark board read' }}</span>
                     </Button>
                 </div>
             </header>
