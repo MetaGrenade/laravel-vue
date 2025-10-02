@@ -7,9 +7,11 @@ use App\Models\ForumPost;
 use App\Models\ForumPostReport;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
+use App\Notifications\ForumThreadUpdated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -59,6 +61,17 @@ class ForumPostController extends Controller
                 'last_read_at' => $post->created_at ?? now(),
             ],
         );
+
+        $thread->loadMissing('board');
+
+        $subscribers = $thread->subscribers()
+            ->where('users.id', '!=', $user->id)
+            ->get();
+
+        if ($subscribers->isNotEmpty()) {
+            Notification::sendNow($subscribers, (new ForumThreadUpdated($thread, $post))->withChannels(['database']));
+            Notification::send($subscribers, (new ForumThreadUpdated($thread, $post))->withChannels(['mail']));
+        }
 
         $postCount = $thread->posts()->count();
         $perPage = 10;

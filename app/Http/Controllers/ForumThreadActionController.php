@@ -112,4 +112,56 @@ class ForumThreadActionController extends Controller
         return redirect()->route('forum.boards.show', $redirectParameters)
             ->with('success', 'Thread marked as read.');
     }
+
+    public function subscribe(Request $request, ForumBoard $board, ForumThread $thread): RedirectResponse
+    {
+        abort_if($thread->forum_board_id !== $board->id, 404);
+
+        $user = $request->user();
+
+        abort_if($user === null, 403);
+
+        $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
+
+        if (!$thread->is_published && !$isModerator) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $thread->subscriptions()->firstOrCreate([
+            'user_id' => $user->id,
+        ]);
+
+        return redirect()->route('forum.threads.show', [
+            'board' => $board->slug,
+            'thread' => $thread->slug,
+            'page' => $validated['page'] ?? null,
+        ])->with('success', 'You are now following this thread.');
+    }
+
+    public function unsubscribe(Request $request, ForumBoard $board, ForumThread $thread): RedirectResponse
+    {
+        abort_if($thread->forum_board_id !== $board->id, 404);
+
+        $user = $request->user();
+
+        abort_if($user === null, 403);
+
+        $validated = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $thread->subscriptions()
+            ->where('user_id', $user->id)
+            ->delete();
+
+        return redirect()->route('forum.threads.show', [
+            'board' => $board->slug,
+            'thread' => $thread->slug,
+            'page' => $validated['page'] ?? null,
+        ])->with('success', 'Thread unfollowed successfully.');
+    }
 }

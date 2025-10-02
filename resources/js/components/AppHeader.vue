@@ -4,7 +4,7 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
     NavigationMenu,
     NavigationMenuItem,
@@ -16,10 +16,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
-import type { BreadcrumbItem, NavItem, SharedData, User } from '@/types';
-import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, Search, Megaphone, Shield, LifeBuoy } from 'lucide-vue-next';
-import { computed } from 'vue';
+import type { BreadcrumbItem, NavItem, NotificationItem, SharedData, User } from '@/types';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { BookOpen, Folder, LayoutGrid, Menu, Search, Megaphone, Shield, LifeBuoy, Bell, Check, Trash2 } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
@@ -31,6 +31,13 @@ const props = withDefaults(defineProps<Props>(), {
 
 const page = usePage<SharedData>();
 const user = computed<User | undefined>(() => page.props.auth?.user ?? undefined);
+
+const notifications = computed<NotificationItem[]>(() => page.props.notifications?.items ?? []);
+const unreadNotificationCount = computed(() => page.props.notifications?.unread_count ?? 0);
+const notificationsHasMore = computed(() => page.props.notifications?.has_more ?? false);
+
+const notificationProcessingIds = ref<Set<string>>(new Set());
+const markAllProcessing = ref(false);
 
 const isCurrentRoute = computed(() => (url: string) => page.url === url);
 
@@ -64,6 +71,112 @@ const rightNavItems: NavItem[] = [
         color: 'rgb(34, 197, 94)', // green
     },
 ];
+
+const setNotificationProcessing = (id: string, processing: boolean) => {
+    if (!id) {
+        return;
+    }
+
+    const next = new Set(notificationProcessingIds.value);
+
+    if (processing) {
+        next.add(id);
+    } else {
+        next.delete(id);
+    }
+
+    notificationProcessingIds.value = next;
+};
+
+const isNotificationProcessing = (id: string) => notificationProcessingIds.value.has(id);
+
+const markNotificationAsRead = (id: string) => {
+    if (!id || isNotificationProcessing(id)) {
+        return;
+    }
+
+    setNotificationProcessing(id, true);
+
+    router.post(
+        route('notifications.read', { notification: id }),
+        {},
+        {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['notifications'],
+            onFinish: () => {
+                setNotificationProcessing(id, false);
+            },
+        },
+    );
+};
+
+const deleteNotification = (id: string) => {
+    if (!id || isNotificationProcessing(id)) {
+        return;
+    }
+
+    setNotificationProcessing(id, true);
+
+    router.delete(route('notifications.destroy', { notification: id }), {
+        preserveScroll: true,
+        preserveState: true,
+        only: ['notifications'],
+        onFinish: () => {
+            setNotificationProcessing(id, false);
+        },
+    });
+};
+
+const markAllNotificationsAsRead = () => {
+    if (unreadNotificationCount.value === 0 || markAllProcessing.value) {
+        return;
+    }
+
+    markAllProcessing.value = true;
+
+    router.post(
+        route('notifications.read-all'),
+        {},
+        {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['notifications'],
+            onFinish: () => {
+                markAllProcessing.value = false;
+            },
+        },
+    );
+};
+
+const viewNotification = (notification: NotificationItem) => {
+    if (!notification.url) {
+        markNotificationAsRead(notification.id);
+        return;
+    }
+
+    if (isNotificationProcessing(notification.id)) {
+        return;
+    }
+
+    setNotificationProcessing(notification.id, true);
+
+    router.post(
+        route('notifications.read', { notification: notification.id }),
+        {},
+        {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['notifications'],
+            onSuccess: () => {
+                router.visit(notification.url as string);
+            },
+            onFinish: () => {
+                setNotificationProcessing(notification.id, false);
+            },
+        },
+    );
+};
 </script>
 
 <template>
@@ -177,6 +290,103 @@ const rightNavItems: NavItem[] = [
                             </template>
                         </div>
                     </div>
+
+                    <DropdownMenu v-if="user">
+                        <DropdownMenuTrigger :as-child="true">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="group relative h-9 w-9 cursor-pointer"
+                                :aria-label="unreadNotificationCount > 0 ? `${unreadNotificationCount} unread notifications` : 'Notifications'"
+                            >
+                                <Bell class="size-5 opacity-80 group-hover:opacity-100" />
+                                <span
+                                    v-if="unreadNotificationCount > 0"
+                                    class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
+                                >
+                                    {{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}
+                                </span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" class="w-80 p-0">
+                            <div class="flex items-center justify-between px-4 py-2">
+                                <p class="text-sm font-semibold text-foreground">Notifications</p>
+                                <Button
+                                    v-if="unreadNotificationCount > 0"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="h-7 px-2 text-xs"
+                                    :disabled="markAllProcessing"
+                                    @click.prevent="markAllNotificationsAsRead"
+                                >
+                                    <Check class="mr-1 h-3.5 w-3.5" />
+                                    Mark all as read
+                                </Button>
+                            </div>
+                            <DropdownMenuSeparator />
+                            <div v-if="notifications.length === 0" class="px-4 py-6 text-center text-sm text-muted-foreground">
+                                You're all caught up!
+                            </div>
+                            <div v-else class="max-h-80 overflow-y-auto">
+                                <div
+                                    v-for="notification in notifications"
+                                    :key="notification.id"
+                                    class="flex items-start gap-3 border-b border-border/40 px-4 py-3 last:border-b-0"
+                                >
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-foreground">
+                                            {{ notification.title }}
+                                        </p>
+                                        <p v-if="notification.excerpt" class="mt-1 text-sm text-muted-foreground">
+                                            {{ notification.excerpt }}
+                                        </p>
+                                        <p
+                                            v-if="notification.created_at_for_humans"
+                                            class="mt-1 text-xs uppercase tracking-wide text-muted-foreground"
+                                        >
+                                            {{ notification.created_at_for_humans }}
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-col items-end gap-1">
+                                        <Button
+                                            v-if="notification.url"
+                                            variant="ghost"
+                                            size="sm"
+                                            class="h-7 px-2 text-xs"
+                                            :disabled="isNotificationProcessing(notification.id)"
+                                            @click.prevent="viewNotification(notification)"
+                                        >
+                                            View
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            class="h-7 px-2 text-xs"
+                                            :disabled="isNotificationProcessing(notification.id)"
+                                            @click.prevent="markNotificationAsRead(notification.id)"
+                                        >
+                                            <Check class="mr-1 h-3 w-3" />
+                                            Mark read
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            class="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                            :disabled="isNotificationProcessing(notification.id)"
+                                            @click.prevent="deleteNotification(notification.id)"
+                                        >
+                                            <Trash2 class="mr-1 h-3 w-3" />
+                                            Dismiss
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                            <DropdownMenuSeparator v-if="notificationsHasMore" />
+                            <div v-if="notificationsHasMore" class="px-4 py-2 text-xs text-muted-foreground">
+                                Showing latest {{ notifications.length }} of {{ unreadNotificationCount }} unread notifications.
+                            </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
                     <DropdownMenu v-if="user">
                         <DropdownMenuTrigger :as-child="true">

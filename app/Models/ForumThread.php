@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -67,5 +68,24 @@ class ForumThread extends Model
     public function reads(): HasMany
     {
         return $this->hasMany(ForumThreadRead::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(ForumThreadSubscription::class);
+    }
+
+    public function subscribers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'forum_thread_subscriptions')->withTimestamps();
+    }
+
+    public function isSubscribedBy(?User $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+
+        return $this->subscriptions()->where('user_id', $user->id)->exists();
     }
 }
