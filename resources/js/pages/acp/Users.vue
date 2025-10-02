@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -7,6 +7,7 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
+import { useDebounceFn } from '@vueuse/core';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -83,11 +84,18 @@ const props = defineProps<{
         banned: number;
         online: number;
     };
+    filters: {
+        search: string | null;
+    };
 }>();
+
+const searchQuery = ref(props.filters.search ?? '');
+let skipSearchWatch = false;
 
 const {
     meta: usersMeta,
     page: usersPage,
+    setPage: setUsersPage,
     rangeLabel: usersRangeLabel,
 } = useInertiaPagination({
     meta: computed(() => props.users.meta ?? null),
@@ -98,7 +106,10 @@ const {
     onNavigate: (page) => {
         router.get(
             route('acp.users.index'),
-            { page },
+            {
+                page,
+                search: searchQuery.value || undefined,
+            },
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -114,17 +125,40 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 // Search filtering
-const searchQuery = ref('');
-const filteredUsers = computed(() => {
-    if (!searchQuery.value) {
-        return props.users.data;
-    }
-    const q = searchQuery.value.toLowerCase();
-    return props.users.data.filter(u =>
-        u.nickname.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        u.roles.some(r => r.name.toLowerCase().includes(q))
+const debouncedSearch = useDebounceFn(() => {
+    router.get(
+        route('acp.users.index'),
+        {
+            search: searchQuery.value || undefined,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        },
     );
+}, 300);
+
+watch(
+    () => props.filters.search ?? '',
+    (value) => {
+        if (searchQuery.value === value) {
+            return;
+        }
+
+        skipSearchWatch = true;
+        searchQuery.value = value;
+    },
+);
+
+watch(searchQuery, () => {
+    if (skipSearchWatch) {
+        skipSearchWatch = false;
+        return;
+    }
+
+    setUsersPage(1, { emitNavigate: false });
+    debouncedSearch();
 });
 
 const banUser = (userId: number) => {
@@ -211,7 +245,7 @@ const stats = [
                             </TableHeader>
                             <TableBody>
                                 <TableRow
-                                    v-for="user in filteredUsers"
+                                    v-for="user in props.users.data"
                                     :key="user.id"
                                 >
                                     <TableCell>{{ user.id }}</TableCell>
@@ -302,7 +336,7 @@ const stats = [
                                         </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
-                                <TableRow v-if="filteredUsers.length === 0">
+                                <TableRow v-if="props.users.data.length === 0">
                                     <TableCell colspan="8" class="text-center text-gray-600 dark:text-gray-300">
                                         No users found.
                                     </TableCell>

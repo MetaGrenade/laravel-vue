@@ -24,10 +24,26 @@ class UsersController extends Controller
     public function index(Request $request): Response
     {
         $perPage = (int) $request->get('per_page', 15);
+        $search = trim((string) $request->query('search', ''));
 
-        $userQuery = User::query();
+        $baseQuery = User::query();
 
-        $users = (clone $userQuery)
+        $filteredQuery = (clone $baseQuery);
+
+        if ($search !== '') {
+            $filteredQuery->where(function ($query) use ($search) {
+                $like = "%{$search}%";
+
+                $query
+                    ->where('nickname', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhereHas('roles', function ($roleQuery) use ($like) {
+                        $roleQuery->where('name', 'like', $like);
+                    });
+            });
+        }
+
+        $users = (clone $filteredQuery)
             ->with(['roles:id,name', 'bannedBy:id,nickname'])
             ->orderByDesc('created_at')
             ->paginate($perPage)
@@ -55,10 +71,10 @@ class UsersController extends Controller
             ->all();
 
         $userStats = [
-            'total' => $users->total(),
-            'unverified' => (clone $userQuery)->whereNull('email_verified_at')->count(),
-            'banned' => (clone $userQuery)->where('is_banned', true)->count(),
-            'online' => (clone $userQuery)->where('last_activity_at', '>=', now()->subMinutes(5))->count(),
+            'total' => (clone $baseQuery)->count(),
+            'unverified' => (clone $baseQuery)->whereNull('email_verified_at')->count(),
+            'banned' => (clone $baseQuery)->where('is_banned', true)->count(),
+            'online' => (clone $baseQuery)->where('last_activity_at', '>=', now()->subMinutes(5))->count(),
         ];
 
         return inertia('acp/Users', [
@@ -66,6 +82,9 @@ class UsersController extends Controller
                 'data' => $userItems,
             ], $this->inertiaPagination($users)),
             'userStats' => $userStats,
+            'filters' => [
+                'search' => $search !== '' ? $search : null,
+            ],
         ]);
     }
 
