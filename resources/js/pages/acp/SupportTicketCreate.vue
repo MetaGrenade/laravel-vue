@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import SupportTicketUserSelect from '@/components/SupportTicketUserSelect.vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Support ACP', href: route('acp.support.index') },
@@ -27,7 +29,11 @@ const form = useForm({
     subject: '',
     body: '',
     priority: 'medium',
+    user_id: null as number | null,
 });
+
+const page = usePage<SharedData>();
+const currentUser = computed(() => page.props.auth.user);
 
 const handleSubmit = () => {
     form.post(route('acp.support.tickets.store'), {
@@ -102,6 +108,23 @@ const handleSubmit = () => {
                             <CardDescription>Set the ticket priority to help the triage process.</CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
+                            <div class="grid gap-2">
+                                <Label for="requester">Requester</Label>
+                                <SupportTicketUserSelect
+                                    input-id="requester"
+                                    v-model="form.user_id"
+                                />
+                                <InputError :message="form.errors.user_id" />
+                                <p class="text-xs text-muted-foreground">
+                                    <template v-if="currentUser">
+                                        Leave blank to file the ticket under yourself ({{ currentUser.nickname }}).
+                                    </template>
+                                    <template v-else>
+                                        Leave blank to file the ticket under yourself.
+                                    </template>
+                                </p>
+                            </div>
+
                             <div class="grid gap-2">
                                 <Label for="priority">Priority</Label>
                                 <select

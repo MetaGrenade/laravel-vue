@@ -86,6 +86,7 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
 
     // Support ACP
     Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');
+    Route::get('acp/support/users/search', [SupportController::class,'searchUsers'])->name('acp.support.users.search');
 
     // Tickets
     Route::get('acp/support/tickets/create', [SupportController::class,'createTicket'])->name('acp.support.tickets.create');
