@@ -601,7 +601,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                         <DropdownMenuSeparator v-if="deleteSupport" />
                                                         <DropdownMenuGroup v-if="deleteSupport">
                                                             <DropdownMenuItem
-                                                                @click="$inertia.delete(route('acp.support.tickets.destroy', { ticket: t.id }))"
+                                                                @select="$inertia.delete(route('acp.support.tickets.destroy', { ticket: t.id }))"
                                                             >
                                                                 <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
@@ -758,7 +758,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                             </Link>
                                                             <DropdownMenuItem
                                                                 v-if="deleteSupport"
-                                                                @click="$inertia.delete(route('acp.support.faqs.destroy', { faq: f.id }))"
+                                                                @select="$inertia.delete(route('acp.support.faqs.destroy', { faq: f.id }))"
                                                             >
                                                                 <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
