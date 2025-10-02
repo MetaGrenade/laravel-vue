@@ -23,6 +23,8 @@ class ForumPostController extends Controller
 
         abort_if($user === null, 403);
 
+        $this->ensureBoardAccessible($request, $board);
+
         abort_if($thread->is_locked || !$thread->is_published, 403);
 
         $validated = $request->validate([
@@ -87,6 +89,8 @@ class ForumPostController extends Controller
 
         abort_if($user === null, 403);
 
+        $this->ensureBoardAccessible($request, $board);
+
         $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
         $canEditAsAuthor = $user->id === $post->user_id && $thread->is_published && !$thread->is_locked;
 
@@ -122,6 +126,8 @@ class ForumPostController extends Controller
 
         abort_if($user === null, 403);
 
+        $this->ensureBoardAccessible($request, $board);
+
         $canDelete = $user->id === $post->user_id || $user->hasAnyRole(['admin', 'editor', 'moderator']);
 
         abort_unless($canDelete, 403);
@@ -142,6 +148,8 @@ class ForumPostController extends Controller
         $user = $request->user();
 
         abort_if($user === null, 403);
+
+        $this->ensureBoardAccessible($request, $board);
 
         $reasons = config('forum.report_reasons', []);
 
@@ -195,5 +203,14 @@ class ForumPostController extends Controller
 
         return redirect()->route('forum.threads.show', $parameters)
             ->with('success', $message);
+    }
+
+    private function ensureBoardAccessible(Request $request, ForumBoard $board): void
+    {
+        $board->loadMissing('category');
+
+        $category = $board->category;
+
+        abort_if($category === null || !$category->canBeViewedBy($request->user()), 404);
     }
 }

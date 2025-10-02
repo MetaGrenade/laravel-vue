@@ -20,9 +20,12 @@ class ForumController extends Controller
 {
     use InteractsWithInertiaPagination;
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $user = $request->user();
+
         $categories = ForumCategory::query()
+            ->visibleTo($user)
             ->with(['boards' => function ($query) {
                 $query->withCount([
                     'publishedThreads as threads_count',
@@ -37,8 +40,13 @@ class ForumController extends Controller
             ->orderBy('position')
             ->get();
 
+        $visibleCategoryIds = $categories->pluck('id');
+
         $trendingThreads = ForumThread::query()
             ->where('is_published', true)
+            ->whereHas('board.category', function ($query) use ($visibleCategoryIds) {
+                $query->whereIn('forum_categories.id', $visibleCategoryIds);
+            })
             ->with(['board:id,slug,title,forum_category_id', 'board.category:id,slug,title', 'author:id,nickname'])
             ->withCount('posts')
             ->orderByDesc('is_pinned')
@@ -50,6 +58,9 @@ class ForumController extends Controller
         $latestPosts = ForumPost::query()
             ->whereHas('thread', function ($query) {
                 $query->where('is_published', true);
+            })
+            ->whereHas('thread.board.category', function ($query) use ($visibleCategoryIds) {
+                $query->whereIn('forum_categories.id', $visibleCategoryIds);
             })
             ->with([
                 'thread:id,slug,title,forum_board_id',
@@ -124,7 +135,9 @@ class ForumController extends Controller
 
     public function showBoard(Request $request, ForumBoard $board): Response
     {
-        $board->load('category');
+        $this->ensureBoardAccessible($request, $board);
+
+        $board->loadMissing('category');
 
         $search = trim((string) $request->query('search', ''));
 
@@ -233,6 +246,8 @@ class ForumController extends Controller
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
 
+        $this->ensureBoardAccessible($request, $board);
+
         $user = $request->user();
 
         $isModerator = $user?->hasAnyRole(['admin', 'editor', 'moderator']);
@@ -260,7 +275,7 @@ class ForumController extends Controller
 
         $request->session()->put($sessionKey, $viewedThreads);
 
-        $board->load('category');
+        $board->loadMissing('category');
 
         $thread->load([
             'author:id,nickname,avatar_url,forum_signature',
@@ -392,7 +407,9 @@ class ForumController extends Controller
 
         abort_if($user === null, 403);
 
-        $board->load('category');
+        $this->ensureBoardAccessible($request, $board);
+
+        $board->loadMissing('category');
 
         return Inertia::render('ForumThreadCreate', [
             'board' => [
@@ -413,6 +430,8 @@ class ForumController extends Controller
         $user = $request->user();
 
         abort_if($user === null, 403);
+
+        $this->ensureBoardAccessible($request, $board);
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -486,5 +505,14 @@ class ForumController extends Controller
             'board' => $board->slug,
             'thread' => $thread->slug,
         ])->with('success', 'Thread created successfully.');
+    }
+
+    private function ensureBoardAccessible(Request $request, ForumBoard $board): void
+    {
+        $board->loadMissing('category');
+
+        $category = $board->category;
+
+        abort_if($category === null || !$category->canBeViewedBy($request->user()), 404);
     }
 }
