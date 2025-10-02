@@ -22,7 +22,16 @@ class SupportTicketNotificationDispatcher
                 $audience = (int) $recipient->id === (int) $ticket->user_id ? 'owner' : 'agent';
                 $channels = $this->preferredNotificationChannels($recipient);
 
-                $recipient->notify($notificationFactory($audience, $channels));
+                $synchronousChannels = array_values(array_intersect($channels, ['database']));
+                $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
+
+                if ($synchronousChannels !== []) {
+                    $recipient->notifyNow($notificationFactory($audience, $synchronousChannels));
+                }
+
+                if ($queuedChannels !== []) {
+                    $recipient->notify($notificationFactory($audience, $queuedChannels));
+                }
             });
     }
 
