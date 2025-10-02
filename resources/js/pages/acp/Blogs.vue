@@ -62,6 +62,7 @@ const editBlogs = computed(() => hasPermission('blogs.acp.edit'));
 const publishBlogs = computed(() => hasPermission('blogs.acp.publish'));
 const deleteBlogs = computed(() => hasPermission('blogs.acp.delete'));
 const manageTags = computed(() => createBlogs.value || editBlogs.value);
+const manageCategories = computed(() => createBlogs.value || editBlogs.value);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -257,6 +258,11 @@ const deletePost = (postId: number) => {
                                 class="w-full rounded-md md:w-64"
                             />
                             <div class="flex flex-wrap justify-end gap-2">
+                                <Link v-if="manageCategories" :href="route('acp.blog-categories.index')">
+                                    <Button variant="outline" class="text-sm">
+                                        Manage Categories
+                                    </Button>
+                                </Link>
                                 <Link v-if="manageTags" :href="route('acp.blog-tags.index')">
                                     <Button variant="outline" class="text-sm">
                                         Manage Tags
