@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { useDebounceFn } from '@vueuse/core';
+import { Toaster, toast } from 'vue-sonner';
 
 // Import shadcn‑vue components
 import Input from '@/components/ui/input/Input.vue';
@@ -81,7 +82,47 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Support', href: '/support' },
 ];
 
-const page = usePage<SharedData>();
+type FlashMessages = {
+    success?: string | null;
+    error?: string | null;
+    info?: string | null;
+};
+
+const page = usePage<SharedData & { flash?: FlashMessages }>();
+
+const flashSuccess = computed(() => page.props.flash?.success ?? '');
+const flashError = computed(() => page.props.flash?.error ?? '');
+const flashInfo = computed(() => page.props.flash?.info ?? '');
+
+watch(
+    flashSuccess,
+    (message) => {
+        if (message) {
+            toast.success(message);
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    flashError,
+    (message) => {
+        if (message) {
+            toast.error(message);
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    flashInfo,
+    (message) => {
+        if (message) {
+            toast.info(message);
+        }
+    },
+    { immediate: true },
+);
 
 const readSearchParam = (location: string, key: string): string => {
     try {
@@ -204,6 +245,7 @@ const form = useForm<CreateTicketFormPayload>({
 });
 
 const attachmentInput = ref<HTMLInputElement | null>(null);
+const closingTicketId = ref<number | null>(null);
 
 const handleAttachmentsChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
@@ -315,6 +357,34 @@ watch(faqSearchQuery, () => {
 
 const goToTicket = (ticketId: number) => {
     router.get(route('support.tickets.show', { ticket: ticketId }));
+};
+
+const closeTicket = (ticket: Ticket) => {
+    if (ticket.status === 'closed' || closingTicketId.value === ticket.id) {
+        return;
+    }
+
+    closingTicketId.value = ticket.id;
+
+    router.patch(
+        route('support.tickets.status.update', { ticket: ticket.id }),
+        { status: 'closed' },
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                const messages = Object.values(errors);
+                if (messages.length > 0) {
+                    const first = Array.isArray(messages[0]) ? messages[0][0] : messages[0];
+                    toast.error(first);
+                } else {
+                    toast.error('Unable to close the ticket right now.');
+                }
+            },
+            onFinish: () => {
+                closingTicketId.value = null;
+            },
+        },
+    );
 };
 
 const statusClass = (status: Ticket['status']) => {
@@ -524,9 +594,24 @@ const formatRating = (rating: number | null) =>
                                                             <Eye class="h-8 w-8" />
                                                             <span>View Ticket</span>
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem class="text-red-500">
+                                                        <DropdownMenuItem
+                                                            class="text-red-500"
+                                                            :disabled="
+                                                                ticket.status === 'closed' ||
+                                                                closingTicketId === ticket.id
+                                                            "
+                                                            @select="closeTicket(ticket)"
+                                                        >
                                                             <TicketX class="h-8 w-8" />
-                                                            <span>Close Ticket</span>
+                                                            <span>
+                                                                {{
+                                                                    closingTicketId === ticket.id
+                                                                        ? 'Closing…'
+                                                                        : ticket.status === 'closed'
+                                                                          ? 'Ticket Closed'
+                                                                          : 'Close Ticket'
+                                                                }}
+                                                            </span>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuGroup>
                                                 </DropdownMenuContent>
@@ -773,5 +858,6 @@ const formatRating = (rating: number | null) =>
                 </TabsContent>
             </Tabs>
         </div>
+        <Toaster richColors />
     </AppLayout>
 </template>
