@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { Toaster, toast } from 'vue-sonner';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -45,6 +45,8 @@ import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/InputError.vue';
+import Input from '@/components/ui/input/Input.vue';
+import { useDebounceFn } from '@vueuse/core';
 
 // dayjs composable for human readable dates
 const { fromNow, formatDate } = useUserTimezone();
@@ -262,60 +264,7 @@ const confirmStatusUpdate = () => {
     );
 };
 
-const currentTicketPage = computed(() => props.tickets.meta?.current_page ?? 1);
-const currentFaqPage = computed(() => props.faqs.meta?.current_page ?? 1);
-
-const {
-    meta: ticketsMeta,
-    page: ticketsPage,
-    rangeLabel: ticketsRangeLabel,
-} = useInertiaPagination({
-    meta: computed(() => props.tickets.meta ?? null),
-    itemsLength: computed(() => props.tickets.data?.length ?? 0),
-    defaultPerPage: 25,
-    itemLabel: 'support ticket',
-    itemLabelPlural: 'support tickets',
-    onNavigate: (page) => {
-        router.get(
-            route('acp.support.index'),
-            {
-                tickets_page: page,
-                faqs_page: currentFaqPage.value,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
-    },
-});
-
-const {
-    meta: faqsMeta,
-    page: faqsPage,
-    rangeLabel: faqsRangeLabel,
-} = useInertiaPagination({
-    meta: computed(() => props.faqs.meta ?? null),
-    itemsLength: computed(() => props.faqs.data?.length ?? 0),
-    defaultPerPage: 25,
-    itemLabel: 'FAQ',
-    itemLabelPlural: 'FAQs',
-    onNavigate: (page) => {
-        router.get(
-            route('acp.support.index'),
-            {
-                tickets_page: currentTicketPage.value,
-                faqs_page: page,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
-    },
-});
+const page = usePage<SharedData>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -324,29 +273,155 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Search state
-const ticketSearchQuery = ref('');
-const faqSearchQuery    = ref('');
+const readSearchParam = (location: string, key: string): string => {
+    try {
+        return new URL(location).searchParams.get(key) ?? '';
+    } catch {
+        return '';
+    }
+};
 
-// Filtered lists
-const filteredTickets = computed(() => {
-    const list = props.tickets.data;
-    if (!ticketSearchQuery.value) return list;
-    const q = ticketSearchQuery.value.toLowerCase();
-    return list.filter((t) =>
-        t.subject.toLowerCase().includes(q) ||
-        (t.user?.nickname?.toLowerCase().includes(q) ?? false) ||
-        t.status.toLowerCase().includes(q)
-    );
+const ticketSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'tickets_search'));
+const faqSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'faqs_search'));
+
+const ticketsMetaSource = computed(() => props.tickets.meta ?? null);
+const faqsMetaSource = computed(() => props.faqs.meta ?? null);
+const ticketItems = computed(() => props.tickets.data ?? []);
+const faqItems = computed(() => props.faqs.data ?? []);
+
+interface SupportQueryOverrides {
+    tickets_page?: number | null;
+    faqs_page?: number | null;
+}
+
+const buildSupportQuery = (overrides: SupportQueryOverrides = {}) => {
+    const query: Record<string, number | string> = {};
+
+    const ticketsSearch = ticketSearchQuery.value.trim();
+    const faqsSearch = faqSearchQuery.value.trim();
+
+    if (ticketsSearch !== '') {
+        query.tickets_search = ticketsSearch;
+    }
+
+    if (faqsSearch !== '') {
+        query.faqs_search = faqsSearch;
+    }
+
+    if (overrides.tickets_page !== undefined) {
+        if (overrides.tickets_page && overrides.tickets_page > 1) {
+            query.tickets_page = overrides.tickets_page;
+        }
+    } else {
+        const currentTicketsPage = ticketsMetaSource.value?.current_page ?? 1;
+
+        if (currentTicketsPage > 1) {
+            query.tickets_page = currentTicketsPage;
+        }
+    }
+
+    if (overrides.faqs_page !== undefined) {
+        if (overrides.faqs_page && overrides.faqs_page > 1) {
+            query.faqs_page = overrides.faqs_page;
+        }
+    } else {
+        const currentFaqsPage = faqsMetaSource.value?.current_page ?? 1;
+
+        if (currentFaqsPage > 1) {
+            query.faqs_page = currentFaqsPage;
+        }
+    }
+
+    return query;
+};
+
+const navigateToSupport = (overrides: SupportQueryOverrides = {}) => {
+    router.get(route('acp.support.index'), buildSupportQuery(overrides), {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
+};
+
+const {
+    meta: ticketsMeta,
+    page: ticketsPage,
+    setPage: setTicketsPage,
+    rangeLabel: ticketsRangeLabel,
+} = useInertiaPagination({
+    meta: ticketsMetaSource,
+    itemsLength: computed(() => ticketItems.value.length),
+    defaultPerPage: 25,
+    itemLabel: 'support ticket',
+    itemLabelPlural: 'support tickets',
+    onNavigate: (page) => {
+        navigateToSupport({ tickets_page: page });
+    },
 });
-const filteredFaqs = computed(() => {
-    const list = props.faqs.data;
-    if (!faqSearchQuery.value) return list;
-    const q = faqSearchQuery.value.toLowerCase();
-    return list.filter((f) =>
-        f.question.toLowerCase().includes(q) ||
-        f.answer.toLowerCase().includes(q)
-    );
+
+const {
+    meta: faqsMeta,
+    page: faqsPage,
+    setPage: setFaqsPage,
+    rangeLabel: faqsRangeLabel,
+} = useInertiaPagination({
+    meta: faqsMetaSource,
+    itemsLength: computed(() => faqItems.value.length),
+    defaultPerPage: 25,
+    itemLabel: 'FAQ',
+    itemLabelPlural: 'FAQs',
+    onNavigate: (page) => {
+        navigateToSupport({ faqs_page: page });
+    },
+});
+
+const debouncedTicketsSearch = useDebounceFn(() => {
+    navigateToSupport({ tickets_page: 1 });
+}, 300);
+
+const debouncedFaqsSearch = useDebounceFn(() => {
+    navigateToSupport({ faqs_page: 1 });
+}, 300);
+
+let skipTicketsSearchWatch = false;
+let skipFaqsSearchWatch = false;
+
+watch(
+    () => page.props.ziggy.location,
+    (location) => {
+        const nextTicketsSearch = readSearchParam(location, 'tickets_search');
+        const nextFaqsSearch = readSearchParam(location, 'faqs_search');
+
+        if (ticketSearchQuery.value !== nextTicketsSearch) {
+            skipTicketsSearchWatch = true;
+            ticketSearchQuery.value = nextTicketsSearch;
+        }
+
+        if (faqSearchQuery.value !== nextFaqsSearch) {
+            skipFaqsSearchWatch = true;
+            faqSearchQuery.value = nextFaqsSearch;
+        }
+    },
+);
+
+watch(ticketSearchQuery, () => {
+    if (skipTicketsSearchWatch) {
+        skipTicketsSearchWatch = false;
+        return;
+    }
+
+    setTicketsPage(1, { emitNavigate: false });
+    debouncedTicketsSearch();
+});
+
+watch(faqSearchQuery, () => {
+    if (skipFaqsSearchWatch) {
+        skipFaqsSearchWatch = false;
+        return;
+    }
+
+    setFaqsPage(1, { emitNavigate: false });
+    debouncedFaqsSearch();
 });
 
 const reorderFaq = (faq: FaqItem, direction: 'up' | 'down') => {
@@ -506,7 +581,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                     </TableHeader>
                                     <TableBody>
                                         <TableRow
-                                            v-for="t in filteredTickets"
+                                            v-for="t in ticketItems"
                                             :key="t.id"
                                         >
                                             <TableCell>{{ t.id }}</TableCell>
@@ -610,7 +685,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                 </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
-                                        <TableRow v-if="!filteredTickets.length">
+                                        <TableRow v-if="!ticketItems.length">
                                             <TableCell colspan="8" class="text-center text-gray-500">
                                                 No tickets found.
                                             </TableCell>
@@ -701,7 +776,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                     </TableHeader>
                                     <TableBody>
                                         <TableRow
-                                            v-for="f in filteredFaqs"
+                                            v-for="f in faqItems"
                                             :key="f.id"
                                             class="hover:bg-gray-50 dark:hover:bg-gray-900"
                                         >
@@ -767,7 +842,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                 </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
-                                        <TableRow v-if="!filteredFaqs.length">
+                                        <TableRow v-if="!faqItems.length">
                                             <TableCell colspan="6" class="text-center text-gray-500">
                                                 No FAQs found.
                                             </TableCell>

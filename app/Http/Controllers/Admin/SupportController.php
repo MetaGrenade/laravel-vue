@@ -26,8 +26,52 @@ class SupportController extends Controller
     {
         $perPage = (int) $request->get('per_page', 25);
 
-        $ticketQuery = SupportTicket::query();
-        $faqQuery = Faq::query();
+        $ticketsSearch = $request->string('tickets_search')->trim();
+        $faqsSearch = $request->string('faqs_search')->trim();
+
+        $ticketsSearchTerm = $ticketsSearch->isNotEmpty() ? $ticketsSearch->value() : null;
+        $faqsSearchTerm = $faqsSearch->isNotEmpty() ? $faqsSearch->value() : null;
+
+        $ticketQuery = SupportTicket::query()
+            ->when($ticketsSearchTerm, function ($query) use ($ticketsSearchTerm) {
+                $escaped = $this->escapeForLike($ticketsSearchTerm);
+                $like = "%{$escaped}%";
+
+                $query->where(function ($query) use ($like) {
+                    $query
+                        ->where('subject', 'like', $like)
+                        ->orWhere('body', 'like', $like)
+                        ->orWhere('status', 'like', $like)
+                        ->orWhere('priority', 'like', $like)
+                        ->orWhereHas('user', function ($query) use ($like) {
+                            $query
+                                ->where('nickname', 'like', $like)
+                                ->orWhere('email', 'like', $like);
+                        })
+                        ->orWhereHas('assignee', function ($query) use ($like) {
+                            $query
+                                ->where('nickname', 'like', $like)
+                                ->orWhere('email', 'like', $like);
+                        })
+                        ->orWhereHas('resolver', function ($query) use ($like) {
+                            $query
+                                ->where('nickname', 'like', $like)
+                                ->orWhere('email', 'like', $like);
+                        });
+                });
+            });
+
+        $faqQuery = Faq::query()
+            ->when($faqsSearchTerm, function ($query) use ($faqsSearchTerm) {
+                $escaped = $this->escapeForLike($faqsSearchTerm);
+                $like = "%{$escaped}%";
+
+                $query->where(function ($query) use ($like) {
+                    $query
+                        ->where('question', 'like', $like)
+                        ->orWhere('answer', 'like', $like);
+                });
+            });
 
         $tickets = (clone $ticketQuery)
             ->with(['user:id,nickname,email', 'assignee:id,nickname,email', 'resolver:id,nickname,email'])
@@ -112,6 +156,11 @@ class SupportController extends Controller
             'supportStats' => $stats,
             'assignableAgents' => $assignableAgents,
         ]);
+    }
+
+    private function escapeForLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     // Tickets
