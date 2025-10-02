@@ -114,6 +114,8 @@ const ratingForm = useForm<{ rating: number | null }>({
     rating: null,
 });
 
+const reopenForm = useForm<Record<string, never>>({});
+
 const isClosed = computed(() => props.ticket.status === 'closed');
 const canRateTicket = computed(() => props.canRate);
 
@@ -190,6 +192,24 @@ const submitRating = () => {
         onSuccess: () => {
             ratingForm.reset('rating');
         },
+    });
+};
+
+const confirmReopenTicket = () => {
+    if (!isClosed.value || reopenForm.processing) {
+        return;
+    }
+
+    if (
+        !window.confirm(
+            'Reopen this ticket to let our support team know you still need help? We will notify the team immediately.',
+        )
+    ) {
+        return;
+    }
+
+    reopenForm.patch(route('support.tickets.reopen', { ticket: props.ticket.id }), {
+        preserveScroll: true,
     });
 };
 
@@ -476,6 +496,28 @@ const formatFileSize = (bytes: number) => {
                             <p v-else class="text-muted-foreground">
                                 We'll invite you to rate your experience once our team resolves this ticket.
                             </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card v-if="isClosed">
+                        <CardHeader>
+                            <CardTitle>Need more help?</CardTitle>
+                            <CardDescription>
+                                Reopen this ticket to continue the conversation with our support team.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-4 text-sm">
+                            <p class="text-muted-foreground">
+                                If the issue resurfaces or you have new information, let us know and we'll jump back in.
+                            </p>
+                            <Button
+                                type="button"
+                                :disabled="reopenForm.processing"
+                                @click="confirmReopenTicket"
+                            >
+                                <span v-if="reopenForm.processing">Reopening…</span>
+                                <span v-else>Reopen ticket</span>
+                            </Button>
                         </CardContent>
                     </Card>
 

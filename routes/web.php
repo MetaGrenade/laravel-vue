@@ -91,6 +91,9 @@ Route::middleware('auth')->group(function () {
 
     Route::patch('support/tickets/{ticket}/status', [SupportCenterController::class, 'updateStatus'])
         ->name('support.tickets.status.update');
+
+    Route::patch('support/tickets/{ticket}/reopen', [SupportCenterController::class, 'reopen'])
+        ->name('support.tickets.reopen');
 });
 
 //AUTH REQUIRED PAGES
