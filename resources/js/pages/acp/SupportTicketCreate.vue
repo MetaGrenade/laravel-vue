@@ -14,6 +14,10 @@ import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import SupportTicketUserSelect from '@/components/SupportTicketUserSelect.vue';
 
+const props = defineProps<{
+    categories: Array<{ id: number; name: string }>;
+}>();
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Support ACP', href: route('acp.support.index') },
     { title: 'Create ticket', href: route('acp.support.tickets.create') },
@@ -25,11 +29,14 @@ const priorityOptions = [
     { label: 'High', value: 'high' },
 ];
 
+const categoryOptions = computed(() => props.categories ?? []);
+
 const form = useForm({
     subject: '',
     body: '',
     priority: 'medium',
     user_id: null as number | null,
+    support_ticket_category_id: null as number | null,
 });
 
 const page = usePage<SharedData>();
@@ -137,6 +144,25 @@ const handleSubmit = () => {
                                     </option>
                                 </select>
                                 <InputError :message="form.errors.priority" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label for="category">Category</Label>
+                                <select
+                                    id="category"
+                                    v-model="form.support_ticket_category_id"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                >
+                                    <option :value="null">Uncategorised</option>
+                                    <option
+                                        v-for="category in categoryOptions"
+                                        :key="category.id"
+                                        :value="category.id"
+                                    >
+                                        {{ category.name }}
+                                    </option>
+                                </select>
+                                <InputError :message="form.errors.support_ticket_category_id" />
                             </div>
 
                             <p class="text-sm text-muted-foreground">

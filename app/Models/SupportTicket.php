@@ -14,6 +14,7 @@ class SupportTicket extends Model
         'body',
         'status',
         'priority',
+        'support_ticket_category_id',
         'assigned_to',
         'resolved_at',
         'resolved_by',
@@ -42,5 +43,10 @@ class SupportTicket extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(SupportTicketMessage::class)->orderBy('created_at');
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(SupportTicketCategory::class, 'support_ticket_category_id');
     }
 }

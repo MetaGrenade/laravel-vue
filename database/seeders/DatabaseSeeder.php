@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
+            SupportTicketCategorySeeder::class,
             TokenLogDemoSeeder::class,
         ]);
     }

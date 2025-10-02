@@ -12,6 +12,7 @@ use App\Http\Requests\Admin\UpdateSupportTicketRequest;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
+use App\Models\SupportTicketCategory;
 use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\User;
@@ -92,7 +93,12 @@ class SupportController extends Controller
             });
 
         $tickets = (clone $ticketQuery)
-            ->with(['user:id,nickname,email', 'assignee:id,nickname,email', 'resolver:id,nickname,email'])
+            ->with([
+                'user:id,nickname,email',
+                'assignee:id,nickname,email',
+                'resolver:id,nickname,email',
+                'category:id,name',
+            ])
             ->orderByDesc('created_at')
             ->paginate($perPage, ['*'], 'tickets_page')
             ->withQueryString();
@@ -110,6 +116,7 @@ class SupportController extends Controller
                     'body' => $ticket->body,
                     'status' => $ticket->status,
                     'priority' => $ticket->priority,
+                    'support_ticket_category_id' => $ticket->support_ticket_category_id,
                     'created_at' => optional($ticket->created_at)->toIso8601String(),
                     'updated_at' => optional($ticket->updated_at)->toIso8601String(),
                     'resolved_at' => optional($ticket->resolved_at)->toIso8601String(),
@@ -129,6 +136,10 @@ class SupportController extends Controller
                         'id' => $ticket->resolver->id,
                         'nickname' => $ticket->resolver->nickname,
                         'email' => $ticket->resolver->email,
+                    ] : null,
+                    'category' => $ticket->category ? [
+                        'id' => $ticket->category->id,
+                        'name' => $ticket->category->name,
                     ] : null,
                 ];
             })
@@ -192,13 +203,19 @@ class SupportController extends Controller
      */
     public function createTicket()
     {
-        return inertia('acp/SupportTicketCreate');
+        $categories = SupportTicketCategory::orderBy('name')
+            ->get(['id', 'name']);
+
+        return inertia('acp/SupportTicketCreate', [
+            'categories' => $categories,
+        ]);
     }
 
     public function storeTicket(StoreSupportTicketRequest $request)
     {
         $data = $request->validated();
         $data['user_id'] = $data['user_id'] ?? (int) $request->user()->id;
+        $data['support_ticket_category_id'] = $data['support_ticket_category_id'] ?? null;
 
         $ticket = SupportTicket::create($data);
 
@@ -219,14 +236,19 @@ class SupportController extends Controller
             'user:id,nickname,email',
             'assignee:id,nickname,email',
             'resolver:id,nickname,email',
+            'category:id,name',
         ]);
 
         $agents = User::orderBy('nickname')
             ->get(['id', 'nickname', 'email']);
 
+        $categories = SupportTicketCategory::orderBy('name')
+            ->get(['id', 'name']);
+
         return inertia('acp/SupportTicketEdit', [
             'ticket' => $ticket,
             'agents' => $agents,
+            'categories' => $categories,
         ]);
     }
 
@@ -242,6 +264,10 @@ class SupportController extends Controller
 
         if (array_key_exists('user_id', $validated)) {
             $validated['user_id'] = $validated['user_id'] ?? (int) $request->user()->id;
+        }
+
+        if (array_key_exists('support_ticket_category_id', $validated)) {
+            $validated['support_ticket_category_id'] = $validated['support_ticket_category_id'] ?? null;
         }
 
         $ticket->update($validated);
@@ -359,6 +385,7 @@ class SupportController extends Controller
             'assignee:id,nickname,email',
             'resolver:id,nickname,email',
             'user:id,nickname,email',
+            'category:id,name',
             'messages.author:id,nickname,email',
             'messages.attachments',
         ]);
@@ -401,6 +428,7 @@ class SupportController extends Controller
                 'body' => $ticket->body,
                 'status' => $ticket->status,
                 'priority' => $ticket->priority,
+                'support_ticket_category_id' => $ticket->support_ticket_category_id,
                 'assigned_to' => $ticket->assigned_to,
                 'created_at' => optional($ticket->created_at)->toIso8601String(),
                 'updated_at' => optional($ticket->updated_at)->toIso8601String(),
@@ -420,6 +448,10 @@ class SupportController extends Controller
                     'id' => $ticket->user->id,
                     'nickname' => $ticket->user->nickname,
                     'email' => $ticket->user->email,
+                ] : null,
+                'category' => $ticket->category ? [
+                    'id' => $ticket->category->id,
+                    'name' => $ticket->category->name,
                 ] : null,
             ],
             'messages' => $messages,
