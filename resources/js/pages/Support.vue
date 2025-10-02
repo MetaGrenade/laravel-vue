@@ -9,6 +9,7 @@ import { useDebounceFn } from '@vueuse/core';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
@@ -191,12 +192,14 @@ const showFaqPagination = computed(() => faqsMeta.value.total > faqsMeta.value.p
 interface CreateTicketFormPayload {
     subject: string;
     body: string;
+    priority: 'low' | 'medium' | 'high';
     attachments: File[];
 }
 
 const form = useForm<CreateTicketFormPayload>({
     subject: '',
     body: '',
+    priority: 'medium',
     attachments: [],
 });
 
@@ -590,7 +593,9 @@ const formatRating = (rating: number | null) =>
                             <h2 class="mb-4 text-xl font-bold" id="create_ticket">Create New Ticket</h2>
                             <form class="flex flex-col gap-4" @submit.prevent="submitTicket">
                                 <div class="space-y-2">
+                                    <Label for="ticket-subject">Subject</Label>
                                     <Input
+                                        id="ticket-subject"
                                         v-model="form.subject"
                                         placeholder="Ticket subject"
                                         class="w-full rounded-md"
@@ -598,6 +603,25 @@ const formatRating = (rating: number | null) =>
                                         required
                                     />
                                     <InputError :message="form.errors.subject" />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="ticket-priority">Priority</Label>
+                                    <select
+                                        id="ticket-priority"
+                                        v-model="form.priority"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
+                                        :disabled="form.processing"
+                                        required
+                                    >
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                    <p class="text-xs text-muted-foreground">
+                                        Higher priority tickets jump the queue for triage, while lower priority requests may
+                                        receive responses during standard support hours.
+                                    </p>
+                                    <InputError :message="form.errors.priority" />
                                 </div>
                                 <div class="space-y-2">
                                     <Textarea
