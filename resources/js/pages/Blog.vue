@@ -260,14 +260,25 @@ const {
                         <h2 class="text-base font-semibold">Browse the library</h2>
                         <p class="text-sm text-muted-foreground">Focus on categories and tags to surface relevant posts.</p>
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        :disabled="!hasActiveFilters"
-                        @click="clearFilters"
-                    >
-                        Clear filters
-                    </Button>
+                    <div class="flex items-center gap-3">
+                        <a
+                            :href="route('blogs.feed')"
+                            rel="alternate"
+                            type="application/atom+xml"
+                            target="_blank"
+                            class="text-sm font-medium text-primary transition hover:text-primary/80"
+                        >
+                            Subscribe via RSS
+                        </a>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            :disabled="!hasActiveFilters"
+                            @click="clearFilters"
+                        >
+                            Clear filters
+                        </Button>
+                    </div>
                 </div>
 
                 <div class="space-y-3">

@@ -18,6 +18,7 @@ Route::get('/', function () {
 
 // Public Blog Routes
 Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
+Route::get('/blogs/feed', [BlogController::class, 'feed'])->name('blogs.feed');
 Route::get('/blogs/preview/{blog}/{token}', [BlogController::class, 'preview'])->name('blogs.preview');
 Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.view');
 

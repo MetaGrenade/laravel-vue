@@ -7,6 +7,7 @@ use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogTag;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Inertia\Inertia;
@@ -30,17 +31,7 @@ class BlogController extends Controller
             ? $sortFilter->toString()
             : 'latest';
 
-        Blog::query()
-            ->where('status', 'scheduled')
-            ->whereNotNull('scheduled_for')
-            ->where('scheduled_for', '<=', now())
-            ->each(function (Blog $dueBlog) {
-                $dueBlog->forceFill([
-                    'status' => 'published',
-                    'published_at' => $dueBlog->scheduled_for,
-                    'scheduled_for' => null,
-                ])->save();
-            });
+        $this->publishDueScheduledBlogs();
 
         $blogsQuery = Blog::query()
             ->where(function ($query) {
@@ -165,6 +156,72 @@ class BlogController extends Controller
             'categories' => $categories,
             'tags' => $tags,
         ]);
+    }
+
+    /**
+     * Provide an Atom feed containing the latest published blog posts.
+     */
+    public function feed(): HttpResponse
+    {
+        $this->publishDueScheduledBlogs();
+
+        $posts = Blog::query()
+            ->where('status', 'published')
+            ->orderByDesc('published_at')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get([
+                'title',
+                'slug',
+                'excerpt',
+                'published_at',
+                'created_at',
+                'updated_at',
+            ]);
+
+        $latestPost = $posts->first();
+        $feedUpdatedAt = $latestPost
+            ? ($latestPost->updated_at ?? $latestPost->published_at ?? $latestPost->created_at ?? now())
+            : now();
+
+        $entries = $posts->map(function (Blog $post) {
+            $publishedAt = $post->published_at ?? $post->created_at ?? now();
+
+            return [
+                'title' => $post->title,
+                'link' => route('blogs.view', ['slug' => $post->slug]),
+                'excerpt' => $post->excerpt,
+                'published_at' => $publishedAt->toAtomString(),
+                'updated_at' => ($post->updated_at ?? $publishedAt)->toAtomString(),
+            ];
+        })->all();
+
+        $xml = view('feeds.blog', [
+            'title' => config('app.name') . ' Blog',
+            'homeUrl' => route('blogs.index'),
+            'selfUrl' => route('blogs.feed'),
+            'updatedAt' => $feedUpdatedAt->toAtomString(),
+            'entries' => $entries,
+        ])->render();
+
+        return response($xml, 200, [
+            'Content-Type' => 'application/atom+xml; charset=UTF-8',
+        ]);
+    }
+
+    protected function publishDueScheduledBlogs(): void
+    {
+        Blog::query()
+            ->where('status', 'scheduled')
+            ->whereNotNull('scheduled_for')
+            ->where('scheduled_for', '<=', now())
+            ->each(function (Blog $dueBlog) {
+                $dueBlog->forceFill([
+                    'status' => 'published',
+                    'published_at' => $dueBlog->scheduled_for,
+                    'scheduled_for' => null,
+                ])->save();
+            });
     }
 
     /**
