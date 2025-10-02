@@ -72,16 +72,12 @@ class ForumCategory extends Model
 
     public function isEffectivelyPublished(): bool
     {
-        $rawValue = $this->getOriginal('is_published');
+        $value = $this->getAttribute('is_published');
 
-        if ($rawValue === null && array_key_exists('is_published', $this->attributes)) {
-            $rawValue = $this->attributes['is_published'];
-        }
-
-        if ($rawValue === null) {
+        if ($value === null) {
             return true;
         }
 
-        return ! in_array($rawValue, [false, 0, '0'], true);
+        return (bool) $value;
     }
 }
