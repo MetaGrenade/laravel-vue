@@ -33,6 +33,8 @@ const form = useForm({
     nickname: user.nickname,
     email: user.email,
     avatar_url: user.avatar_url ?? '',
+    profile_bio: user.profile_bio ?? '',
+    social_links: user.social_links ? user.social_links.map(link => ({ ...link })) : [],
     forum_signature: user.forum_signature ?? '',
 });
 
@@ -40,6 +42,14 @@ const submit = () => {
     form.patch(route('profile.update'), {
         preserveScroll: true,
     });
+};
+
+const addSocialLink = () => {
+    form.social_links.push({ label: '', url: '' });
+};
+
+const removeSocialLink = (index: number) => {
+    form.social_links.splice(index, 1);
 };
 </script>
 
@@ -89,6 +99,74 @@ const submit = () => {
                             Provide a direct link to an image (PNG, JPG, or GIF) to use as your avatar.
                         </p>
                         <InputError class="mt-2" :message="form.errors.avatar_url" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="profile_bio">Author bio</Label>
+                        <Textarea
+                            id="profile_bio"
+                            v-model="form.profile_bio"
+                            class="mt-1 block w-full"
+                            rows="4"
+                            placeholder="Share a few sentences about yourself for readers."
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            This bio may appear alongside your blog posts to introduce you to readers.
+                        </p>
+                        <InputError class="mt-2" :message="form.errors.profile_bio" />
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <Label class="text-sm font-medium">Social links</Label>
+                            <Button type="button" variant="outline" size="sm" @click="addSocialLink">
+                                Add social link
+                            </Button>
+                        </div>
+                        <p class="text-xs text-muted-foreground">
+                            Highlight where readers can continue following your work (e.g., Mastodon, personal site).
+                        </p>
+
+                        <div v-if="form.social_links.length" class="space-y-3">
+                            <div
+                                v-for="(link, index) in form.social_links"
+                                :key="`social-link-${index}`"
+                                class="space-y-3 rounded-md border border-dashed p-3"
+                            >
+                                <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                                    <div class="grid gap-2">
+                                        <Label :for="`social-link-label-${index}`">Label</Label>
+                                        <Input
+                                            :id="`social-link-label-${index}`"
+                                            v-model="form.social_links[index].label"
+                                            type="text"
+                                            placeholder="Mastodon"
+                                        />
+                                        <InputError :message="form.errors[`social_links.${index}.label`]" />
+                                    </div>
+                                    <div class="grid gap-2">
+                                        <Label :for="`social-link-url-${index}`">URL</Label>
+                                        <Input
+                                            :id="`social-link-url-${index}`"
+                                            v-model="form.social_links[index].url"
+                                            type="url"
+                                            placeholder="https://example.social/@username"
+                                        />
+                                        <InputError :message="form.errors[`social_links.${index}.url`]" />
+                                    </div>
+                                </div>
+                                <div class="flex justify-end">
+                                    <Button type="button" variant="ghost" size="sm" @click="removeSocialLink(index)">
+                                        Remove
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                            No social links added yet.
+                        </div>
+                        <InputError :message="form.errors.social_links" />
                     </div>
 
                     <div class="grid gap-2">
