@@ -18,6 +18,8 @@ class TokenController extends Controller
 {
     use InteractsWithInertiaPagination;
 
+    private const TOKEN_LOGS_PER_PAGE = 25;
+
     /**
      * Show list of tokens + stats.
      */
@@ -70,11 +72,51 @@ class TokenController extends Controller
 
         $userList = User::select('id','nickname','email')->get();
 
-        $tokenLogs = TokenLog::query()
+        $tokenLogQuery = TokenLog::query()
             ->with('token:id,name')
-            ->latest()
-            ->limit(50)
-            ->get()
+            ->orderByDesc('created_at');
+
+        $tokenFilter = trim((string) $request->query('token', ''));
+        if ($tokenFilter !== '') {
+            $tokenLogQuery->where(function ($query) use ($tokenFilter) {
+                $query->where('token_name', 'like', "%{$tokenFilter}%")
+                    ->orWhereHas('token', function ($innerQuery) use ($tokenFilter) {
+                        $innerQuery->where('name', 'like', "%{$tokenFilter}%");
+                    });
+            });
+        }
+
+        $statusFilter = trim((string) $request->query('status', ''));
+        if ($statusFilter !== '') {
+            $tokenLogQuery->where('status', $statusFilter);
+        }
+
+        $dateFrom = $request->query('date_from');
+        if (! empty($dateFrom)) {
+            $parsedFrom = rescue(fn () => Carbon::parse($dateFrom), null, false);
+
+            if ($parsedFrom) {
+                $tokenLogQuery->where('created_at', '>=', $parsedFrom->startOfDay());
+            }
+        }
+
+        $dateTo = $request->query('date_to');
+        if (! empty($dateTo)) {
+            $parsedTo = rescue(fn () => Carbon::parse($dateTo), null, false);
+
+            if ($parsedTo) {
+                $tokenLogQuery->where('created_at', '<=', $parsedTo->endOfDay());
+            }
+        }
+
+        $logsPerPage = (int) $request->query('logs_per_page', self::TOKEN_LOGS_PER_PAGE);
+        $logsPerPage = max(1, min($logsPerPage, 100));
+
+        $tokenLogs = $tokenLogQuery
+            ->paginate($logsPerPage, ['*'], 'logs_page')
+            ->withQueryString();
+
+        $tokenLogItems = $tokenLogs->getCollection()
             ->map(function (TokenLog $log) {
                 $tokenName = $log->token_name ?? optional($log->token)->name;
 
@@ -97,7 +139,16 @@ class TokenController extends Controller
             ], $this->inertiaPagination($tokens)),
             'tokenStats' => $tokenStats,
             'userList' => $userList,
-            'tokenLogs' => $tokenLogs,
+            'tokenLogs' => array_merge([
+                'data' => $tokenLogItems,
+            ], $this->inertiaPagination($tokenLogs)),
+            'logFilters' => [
+                'token' => $tokenFilter,
+                'status' => $statusFilter,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'per_page' => $logsPerPage,
+            ],
         ]);
     }
 

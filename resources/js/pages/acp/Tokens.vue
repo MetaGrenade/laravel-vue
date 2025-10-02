@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import dayjs from 'dayjs';
-import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onBeforeUnmount, reactive } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
@@ -89,16 +89,26 @@ interface TokenLog {
     timestamp: string | null;
 }
 
+interface PaginationLinks {
+    first: string | null;
+    last: string | null;
+    prev: string | null;
+    next: string | null;
+}
+
+interface TokenLogFilters {
+    token?: string | null;
+    status?: string | null;
+    date_from?: string | null;
+    date_to?: string | null;
+    per_page?: number | null;
+}
+
 const props = defineProps<{
     tokens: {
         data: Token[];
         meta?: PaginationMeta | null;
-        links?: {
-            first: string | null;
-            last: string | null;
-            prev: string | null;
-            next: string | null;
-        } | null;
+        links?: PaginationLinks | null;
     };
     tokenStats: {
         total: number;
@@ -111,7 +121,12 @@ const props = defineProps<{
         nickname: string;
         email: string;
     }>;
-    tokenLogs: TokenLog[];
+    tokenLogs: {
+        data: TokenLog[];
+        meta?: PaginationMeta | null;
+        links?: PaginationLinks | null;
+    };
+    logFilters?: TokenLogFilters | null;
 }>();
 
 const page = usePage<SharedData & { flash?: { plain_text_token?: string | null; success?: string | null; error?: string | null } }>();
@@ -184,7 +199,65 @@ onBeforeUnmount(() => {
 
 const tokensMetaSource = computed(() => props.tokens.meta ?? null);
 const tokenItems = computed(() => props.tokens.data ?? []);
-const tokenLogsItems = computed(() => props.tokenLogs ?? []);
+
+const LOGS_PER_PAGE_DEFAULT = 25;
+const LOGS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
+const logFiltersState = reactive({
+    token: props.logFilters?.token ?? '',
+    status: props.logFilters?.status ?? '',
+    date_from: props.logFilters?.date_from ?? '',
+    date_to: props.logFilters?.date_to ?? '',
+});
+
+const initialLogsPerPage = props.logFilters?.per_page
+    ?? props.tokenLogs.meta?.per_page
+    ?? LOGS_PER_PAGE_DEFAULT;
+
+const logsPerPage = ref(Number.isFinite(initialLogsPerPage) && initialLogsPerPage ? initialLogsPerPage : LOGS_PER_PAGE_DEFAULT);
+
+const tokenLogsMetaSource = computed(() => props.tokenLogs.meta ?? null);
+const tokenLogsItems = computed(() => props.tokenLogs.data ?? []);
+
+watch(
+    () => props.logFilters,
+    (filters) => {
+        logFiltersState.token = filters?.token ?? '';
+        logFiltersState.status = filters?.status ?? '';
+        logFiltersState.date_from = filters?.date_from ?? '';
+        logFiltersState.date_to = filters?.date_to ?? '';
+
+        if (typeof filters?.per_page === 'number' && filters.per_page > 0) {
+            logsPerPage.value = filters.per_page;
+        }
+    },
+    { deep: true },
+);
+
+watch(
+    () => props.tokenLogs.meta?.per_page,
+    (perPage) => {
+        if (typeof perPage === 'number' && perPage > 0) {
+            logsPerPage.value = perPage;
+        }
+    },
+);
+
+const availableLogStatuses = computed(() => {
+    const statuses = new Set<string>(['success', 'failed']);
+
+    if (logFiltersState.status) {
+        statuses.add(logFiltersState.status);
+    }
+
+    tokenLogsItems.value.forEach((log) => {
+        if (log.status) {
+            statuses.add(log.status);
+        }
+    });
+
+    return Array.from(statuses).sort((a, b) => a.localeCompare(b));
+});
 
 const {
     meta: tokensMeta,
@@ -200,7 +273,7 @@ const {
     onNavigate: (page) => {
         router.get(
             route('acp.tokens.index'),
-            { page },
+            buildQueryParams({ page }),
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -209,6 +282,93 @@ const {
         );
     },
 });
+
+const {
+    meta: tokenLogsMeta,
+    page: tokenLogsPage,
+    setPage: setTokenLogsPage,
+    rangeLabel: tokenLogsRangeLabel,
+} = useInertiaPagination({
+    meta: tokenLogsMetaSource,
+    itemsLength: computed(() => tokenLogsItems.value.length),
+    defaultPerPage: logsPerPage.value || LOGS_PER_PAGE_DEFAULT,
+    itemLabel: 'log entry',
+    itemLabelPlural: 'log entries',
+    onNavigate: (page) => {
+        router.get(
+            route('acp.tokens.index'),
+            buildQueryParams({ logs_page: page }),
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    },
+});
+
+function cleanQuery(query: Record<string, unknown>) {
+    return Object.fromEntries(
+        Object.entries(query).filter(([, value]) => {
+            if (value === null || value === undefined) {
+                return false;
+            }
+
+            if (typeof value === 'string') {
+                return value.trim() !== '';
+            }
+
+            return true;
+        }),
+    );
+}
+
+function buildQueryParams(overrides: Record<string, unknown> = {}) {
+    return cleanQuery({
+        page: tokensPage.value,
+        logs_page: tokenLogsPage.value,
+        logs_per_page: logsPerPage.value,
+        token: logFiltersState.token,
+        status: logFiltersState.status,
+        date_from: logFiltersState.date_from,
+        date_to: logFiltersState.date_to,
+        ...overrides,
+    });
+}
+
+const applyLogFilters = (overrides: Record<string, unknown> = {}) => {
+    setTokenLogsPage(1, { emitNavigate: false });
+
+    router.get(
+        route('acp.tokens.index'),
+        buildQueryParams({ logs_page: 1, ...overrides }),
+        {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        },
+    );
+};
+
+const resetLogFilters = () => {
+    logFiltersState.token = '';
+    logFiltersState.status = '';
+    logFiltersState.date_from = '';
+    logFiltersState.date_to = '';
+    logsPerPage.value = LOGS_PER_PAGE_DEFAULT;
+
+    applyLogFilters({ logs_per_page: LOGS_PER_PAGE_DEFAULT });
+};
+
+const onLogsPerPageChange = (value: number) => {
+    const nextValue = Number.isFinite(value) && value > 0 ? value : LOGS_PER_PAGE_DEFAULT;
+    logsPerPage.value = nextValue;
+    applyLogFilters({ logs_per_page: nextValue });
+};
+
+const showTokenLogsPagination = computed(
+    () => tokenLogsMeta.value.total > tokenLogsMeta.value.per_page,
+);
 
 const totalTokens = computed(() => props.tokenStats.total);
 const activeTokens = computed(() => props.tokenStats.active);
@@ -379,25 +539,6 @@ const lastUsedDisplay = (value?: string | null) => {
 
     return fromNow(value);
 };
-
-const logSearchQuery = ref('');
-const filteredLogs = computed(() => {
-    const logs = tokenLogsItems.value;
-
-    if (!logSearchQuery.value) {
-        return logs;
-    }
-    const q = logSearchQuery.value.toLowerCase();
-    return logs.filter((log) => {
-        const tokenName = log.token_name?.toLowerCase() ?? '';
-        return (
-            tokenName.includes(q) ||
-            log.api_route.toLowerCase().includes(q) ||
-            log.status.toLowerCase().includes(q) ||
-            log.method.toLowerCase().includes(q)
-        );
-    });
-});
 </script>
 
 <template>
@@ -814,15 +955,71 @@ const filteredLogs = computed(() => {
                     <!-- Token Logs Tab -->
                     <TabsContent value="logs" class="space-y-6">
                         <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                                <h2 class="text-lg font-semibold mb-2 md:mb-0">Token Activity Logs</h2>
-                                <div class="flex space-x-2">
-                                    <!-- Search Bar for Logs -->
-                                    <Input
-                                        v-model="logSearchQuery"
-                                        placeholder="Search logs..."
-                                        class="w-full rounded-md"
-                                    />
+                            <div class="flex flex-col gap-4 mb-4">
+                                <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                                    <div>
+                                        <h2 class="text-lg font-semibold">Token Activity Logs</h2>
+                                        <p class="text-sm text-muted-foreground mt-1">
+                                            Filter logs by token name, status, or a specific date range.
+                                        </p>
+                                    </div>
+                                    <form
+                                        class="grid w-full gap-3 md:w-auto md:grid-cols-2 lg:grid-cols-4"
+                                        @submit.prevent="applyLogFilters()"
+                                    >
+                                        <div class="flex flex-col gap-1">
+                                            <Label for="log-token-filter">Token</Label>
+                                            <Input
+                                                id="log-token-filter"
+                                                v-model="logFiltersState.token"
+                                                placeholder="Token name"
+                                                class="w-full rounded-md"
+                                            />
+                                        </div>
+                                        <div class="flex flex-col gap-1">
+                                            <Label for="log-status-filter">Status</Label>
+                                            <select
+                                                id="log-status-filter"
+                                                v-model="logFiltersState.status"
+                                                class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <option value="">All statuses</option>
+                                                <option
+                                                    v-for="statusOption in availableLogStatuses"
+                                                    :key="statusOption"
+                                                    :value="statusOption"
+                                                >
+                                                    {{ statusOption }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="flex flex-col gap-1">
+                                            <Label for="log-date-from">From</Label>
+                                            <Input
+                                                id="log-date-from"
+                                                v-model="logFiltersState.date_from"
+                                                type="datetime-local"
+                                                class="w-full rounded-md"
+                                            />
+                                        </div>
+                                        <div class="flex flex-col gap-1">
+                                            <Label for="log-date-to">To</Label>
+                                            <Input
+                                                id="log-date-to"
+                                                v-model="logFiltersState.date_to"
+                                                type="datetime-local"
+                                                class="w-full rounded-md"
+                                            />
+                                        </div>
+                                        <div class="flex items-center justify-end gap-2 md:col-span-2 lg:col-span-4">
+                                            <Button type="button" variant="outline" @click="resetLogFilters">
+                                                Reset
+                                            </Button>
+                                            <Button type="submit">
+                                                Apply
+                                            </Button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                             <!-- Logs Table -->
@@ -840,7 +1037,7 @@ const filteredLogs = computed(() => {
                                     </TableHeader>
                                     <TableBody>
                                         <TableRow
-                                            v-for="log in filteredLogs"
+                                            v-for="log in tokenLogsItems"
                                             :key="log.id"
                                             class="hover:bg-gray-50 dark:hover:bg-gray-900"
                                         >
@@ -862,13 +1059,72 @@ const filteredLogs = computed(() => {
                                                 </Link>
                                             </TableCell>
                                         </TableRow>
-                                        <TableRow v-if="filteredLogs.length === 0">
+                                        <TableRow v-if="tokenLogsItems.length === 0">
                                             <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">
                                                 No token activity found.
                                             </TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
+                            </div>
+                            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                                <div class="text-sm text-muted-foreground text-center md:text-left">
+                                    {{ tokenLogsRangeLabel }}
+                                </div>
+                                <div class="flex flex-col items-center gap-3 md:flex-row md:items-center">
+                                    <label class="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <span>Per page</span>
+                                        <select
+                                            class="h-9 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                            :value="logsPerPage"
+                                            @change="onLogsPerPageChange(Number(($event.target as HTMLSelectElement).value))"
+                                        >
+                                            <option
+                                                v-for="option in LOGS_PER_PAGE_OPTIONS"
+                                                :key="option"
+                                                :value="option"
+                                            >
+                                                {{ option }}
+                                            </option>
+                                        </select>
+                                    </label>
+                                    <Pagination
+                                        v-if="showTokenLogsPagination"
+                                        v-slot="{ page, pageCount }"
+                                        v-model:page="tokenLogsPage"
+                                        :items-per-page="Math.max(tokenLogsMeta.per_page, 1)"
+                                        :total="tokenLogsMeta.total"
+                                        :sibling-count="1"
+                                        show-edges
+                                    >
+                                        <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
+                                            <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                                            <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                                <PaginationFirst />
+                                                <PaginationPrev />
+
+                                                <template v-for="(item, index) in items" :key="index">
+                                                    <PaginationListItem
+                                                        v-if="item.type === 'page'"
+                                                        :value="item.value"
+                                                        as-child
+                                                    >
+                                                        <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                                            {{ item.value }}
+                                                        </Button>
+                                                    </PaginationListItem>
+                                                    <PaginationEllipsis
+                                                        v-else
+                                                        :index="index"
+                                                    />
+                                                </template>
+
+                                                <PaginationNext />
+                                                <PaginationLast />
+                                            </PaginationList>
+                                        </div>
+                                    </Pagination>
+                                </div>
                             </div>
                         </div>
                     </TabsContent>
