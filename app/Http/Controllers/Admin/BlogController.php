@@ -10,6 +10,7 @@ use App\Models\BlogCategory;
 use App\Models\BlogTag;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,21 @@ class BlogController extends Controller
     public function index(Request $request): Response
     {
         $perPage = (int) $request->get('per_page', 15);
+        $search = trim((string) $request->query('search', ''));
+        $statusFilters = collect(Arr::wrap($request->input('status')))
+            ->flatMap(function ($value) {
+                if (is_string($value) && str_contains($value, ',')) {
+                    return collect(explode(',', $value))->map(fn ($item) => trim($item))->all();
+                }
+
+                return [$value];
+            })
+            ->filter(fn ($value) => is_string($value))
+            ->map(fn ($value) => strtolower($value))
+            ->filter(fn ($value) => in_array($value, ['draft', 'published', 'scheduled', 'archived'], true))
+            ->unique()
+            ->values()
+            ->all();
 
         Blog::query()
             ->where('status', 'scheduled')
@@ -39,10 +55,31 @@ class BlogController extends Controller
                 ])->save();
             });
 
-        $blogQuery = Blog::query();
+        $baseQuery = Blog::query();
+        $filteredQuery = (clone $baseQuery);
+
+        if ($search !== '') {
+            $filteredQuery->where(function ($query) use ($search) {
+                $like = "%{$search}%";
+
+                $query
+                    ->where('title', 'like', $like)
+                    ->orWhere('slug', 'like', $like)
+                    ->orWhere('status', 'like', $like)
+                    ->orWhereHas('user', function ($userQuery) use ($like) {
+                        $userQuery
+                            ->where('nickname', 'like', $like)
+                            ->orWhere('email', 'like', $like);
+                    });
+            });
+        }
+
+        if (!empty($statusFilters)) {
+            $filteredQuery->whereIn('status', $statusFilters);
+        }
 
         // Retrieve blogs with their associated author information.
-        $blogs = (clone $blogQuery)
+        $blogs = (clone $filteredQuery)
             ->with(['user:id,nickname,email'])
             ->orderByDesc('created_at')
             ->paginate($perPage)
@@ -68,11 +105,11 @@ class BlogController extends Controller
             ->all();
 
         $blogStats = [
-            'total' => $blogs->total(),
-            'published' => (clone $blogQuery)->where('status', 'published')->count(),
-            'draft' => (clone $blogQuery)->where('status', 'draft')->count(),
-            'scheduled' => (clone $blogQuery)->where('status', 'scheduled')->count(),
-            'archived' => (clone $blogQuery)->where('status', 'archived')->count(),
+            'total' => (clone $baseQuery)->count(),
+            'published' => (clone $baseQuery)->where('status', 'published')->count(),
+            'draft' => (clone $baseQuery)->where('status', 'draft')->count(),
+            'scheduled' => (clone $baseQuery)->where('status', 'scheduled')->count(),
+            'archived' => (clone $baseQuery)->where('status', 'archived')->count(),
         ];
 
         return inertia('acp/Blogs', [
@@ -80,6 +117,10 @@ class BlogController extends Controller
                 'data' => $blogItems,
             ], $this->inertiaPagination($blogs)),
             'blogStats' => $blogStats,
+            'filters' => [
+                'search' => $search !== '' ? $search : null,
+                'status' => !empty($statusFilters) ? $statusFilters : null,
+            ],
         ]);
     }
 
