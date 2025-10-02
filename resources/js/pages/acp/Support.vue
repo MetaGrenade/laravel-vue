@@ -53,6 +53,7 @@ const { fromNow, formatDate } = useUserTimezone();
 
 // Permission checks
 const { hasPermission } = usePermissions();
+const viewSupport = computed(() => hasPermission('support.acp.view'));
 const createSupport = computed(() => hasPermission('support.acp.create'));
 const editSupport = computed(() => hasPermission('support.acp.edit'));
 const deleteSupport = computed(() => hasPermission('support.acp.delete'));
@@ -630,7 +631,20 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator v-if="assignSupport||prioritySupport" />
+                                                        <DropdownMenuGroup v-if="viewSupport">
+                                                            <Link :href="route('acp.support.tickets.show', { ticket: t.id })">
+                                                                <DropdownMenuItem>
+                                                                    <Eye class="mr-2" /> View conversation
+                                                                </DropdownMenuItem>
+                                                            </Link>
+                                                        </DropdownMenuGroup>
+                                                        <DropdownMenuSeparator
+                                                            v-if="
+                                                                viewSupport &&
+                                                                (assignSupport || prioritySupport || editSupport || statusSupport || deleteSupport)
+                                                            "
+                                                        />
+                                                        <DropdownMenuSeparator v-else-if="assignSupport||prioritySupport" />
                                                         <DropdownMenuGroup v-if="assignSupport||prioritySupport">
                                                         <DropdownMenuItem
                                                             v-if="assignSupport"
