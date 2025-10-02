@@ -31,6 +31,28 @@ type BlogComment = {
     user?: BlogCommentAuthor | null;
 };
 
+type PaginationMeta = {
+    current_page: number;
+    from?: number | null;
+    last_page: number;
+    per_page: number;
+    to?: number | null;
+    total: number;
+};
+
+type PaginationLinks = {
+    first?: string | null;
+    last?: string | null;
+    prev?: string | null;
+    next?: string | null;
+};
+
+type PaginatedComments = {
+    data: BlogComment[];
+    meta: PaginationMeta;
+    links: PaginationLinks;
+};
+
 type BlogPayload = {
     id: number;
     title: string;
@@ -39,7 +61,7 @@ type BlogPayload = {
     body: string;
     published_at?: string | null;
     user?: BlogAuthor | null;
-    comments?: BlogComment[];
+    comments?: PaginatedComments;
     cover_image?: string | null;
     categories?: BlogTaxonomyItem[];
     tags?: BlogTaxonomyItem[];
@@ -51,7 +73,29 @@ const props = defineProps<{ blog: BlogPayload }>();
 const blog = computed(() => props.blog);
 const { formatDate } = useUserTimezone();
 
-const comments = computed(() => blog.value.comments ?? []);
+const comments = computed<PaginatedComments>(() => {
+    if (blog.value.comments) {
+        return blog.value.comments;
+    }
+
+    return {
+        data: [],
+        meta: {
+            current_page: 1,
+            from: null,
+            last_page: 1,
+            per_page: 10,
+            to: null,
+            total: 0,
+        },
+        links: {
+            first: null,
+            last: null,
+            prev: null,
+            next: null,
+        },
+    };
+});
 const categories = computed(() => blog.value.categories ?? []);
 const tags = computed(() => blog.value.tags ?? []);
 
