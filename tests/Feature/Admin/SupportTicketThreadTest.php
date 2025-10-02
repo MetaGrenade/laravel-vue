@@ -85,10 +85,12 @@ class SupportTicketThreadTest extends TestCase
             ->component('acp/SupportTicketView')
             ->where('ticket.id', $ticket->id)
             ->where('ticket.subject', 'Cannot access dashboard')
-            ->where('messages', function (array $messages) use ($customerMessage) {
+            ->where('messages', function ($messages) use ($customerMessage) {
+                $messages = collect($messages);
+
                 $this->assertCount(2, $messages);
 
-                $first = $messages[0];
+                $first = $messages->first();
                 $this->assertSame($customerMessage->id, $first['id']);
                 $this->assertSame('It started failing this morning.', $first['body']);
                 $this->assertFalse($first['is_from_support']);
