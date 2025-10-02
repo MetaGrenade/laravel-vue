@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\UsersController as AdminUserController;
 use App\Http\Controllers\Admin\ForumBoardController;
 use App\Http\Controllers\Admin\ForumCategoryController;
 use App\Http\Controllers\Admin\ForumReportController;
+use App\Http\Controllers\Admin\FaqCategoryController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -111,6 +112,14 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::patch('acp/support/faqs/{faq}/reorder', [SupportController::class,'reorderFaq'])->name('acp.support.faqs.reorder');
     Route::patch('acp/support/faqs/{faq}/publish', [SupportController::class,'publishFaq'])->name('acp.support.faqs.publish');
     Route::patch('acp/support/faqs/{faq}/unpublish', [SupportController::class,'unpublishFaq'])->name('acp.support.faqs.unpublish');
+
+    // FAQ Categories
+    Route::get('acp/support/faq-categories', [FaqCategoryController::class, 'index'])->name('acp.support.faq-categories.index');
+    Route::get('acp/support/faq-categories/create', [FaqCategoryController::class, 'create'])->name('acp.support.faq-categories.create');
+    Route::post('acp/support/faq-categories', [FaqCategoryController::class, 'store'])->name('acp.support.faq-categories.store');
+    Route::get('acp/support/faq-categories/{category}/edit', [FaqCategoryController::class, 'edit'])->name('acp.support.faq-categories.edit');
+    Route::put('acp/support/faq-categories/{category}', [FaqCategoryController::class, 'update'])->name('acp.support.faq-categories.update');
+    Route::delete('acp/support/faq-categories/{category}', [FaqCategoryController::class, 'destroy'])->name('acp.support.faq-categories.destroy');
 
     Route::get('acp/system', [SystemSettingsController::class, 'index'])->name('acp.system');
     Route::put('acp/system', [SystemSettingsController::class, 'update'])->name('acp.system.update');

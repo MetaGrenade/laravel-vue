@@ -13,6 +13,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
 use App\Models\Faq;
+use App\Models\FaqCategory;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -68,6 +69,7 @@ class SupportController extends Controller
             });
 
         $faqQuery = Faq::query()
+            ->with('category:id,name,slug')
             ->when($faqsSearchTerm, function ($query) use ($faqsSearchTerm) {
                 $escaped = $this->escapeForLike($faqsSearchTerm);
                 $like = "%{$escaped}%";
@@ -131,6 +133,11 @@ class SupportController extends Controller
                     'answer' => $faq->answer,
                     'order' => $faq->order,
                     'published' => (bool) $faq->published,
+                    'category' => $faq->category ? [
+                        'id' => $faq->category->id,
+                        'name' => $faq->category->name,
+                        'slug' => $faq->category->slug,
+                    ] : null,
                 ];
             })
             ->values()
@@ -500,7 +507,21 @@ class SupportController extends Controller
      */
     public function createFaq()
     {
-        return inertia('acp/SupportFaqCreate');
+        $categories = FaqCategory::orderBy('order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'description']);
+
+        return inertia('acp/SupportFaqCreate', [
+            'categories' => $categories
+                ->map(fn (FaqCategory $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                    'description' => $category->description,
+                ])
+                ->values()
+                ->all(),
+        ]);
     }
 
     public function storeFaq(StoreFaqRequest $request)
@@ -514,8 +535,30 @@ class SupportController extends Controller
 
     public function editFaq(Faq $faq)
     {
+        $categories = FaqCategory::orderBy('order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'description']);
+
         return inertia('acp/SupportFaqEdit', [
-            'faq' => $faq,
+            'faq' => [
+                'id' => $faq->id,
+                'question' => $faq->question,
+                'answer' => $faq->answer,
+                'order' => $faq->order,
+                'published' => (bool) $faq->published,
+                'faq_category_id' => $faq->faq_category_id,
+                'created_at' => optional($faq->created_at)->toIso8601String(),
+                'updated_at' => optional($faq->updated_at)->toIso8601String(),
+            ],
+            'categories' => $categories
+                ->map(fn (FaqCategory $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                    'description' => $category->description,
+                ])
+                ->values()
+                ->all(),
         ]);
     }
 

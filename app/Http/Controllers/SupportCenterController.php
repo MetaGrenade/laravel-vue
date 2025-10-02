@@ -7,6 +7,7 @@ use App\Http\Requests\StorePublicSupportTicketMessageRequest;
 use App\Http\Requests\StorePublicSupportTicketRatingRequest;
 use App\Http\Requests\StorePublicSupportTicketRequest;
 use App\Models\Faq;
+use App\Models\FaqCategory;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
@@ -28,10 +29,13 @@ class SupportCenterController extends Controller
         $user = $request->user();
 
         $ticketsPerPage = max(1, (int) $request->query('tickets_per_page', 10));
-        $faqsPerPage = max(1, (int) $request->query('faqs_per_page', 10));
-
         $ticketsSearch = $request->string('tickets_search')->trim();
         $faqsSearch = $request->string('faqs_search')->trim();
+        $selectedFaqCategoryId = $request->query('faq_category_id');
+
+        $faqCategoryId = is_numeric($selectedFaqCategoryId) && (int) $selectedFaqCategoryId > 0
+            ? (int) $selectedFaqCategoryId
+            : null;
 
         $ticketsSearchTerm = $ticketsSearch->isNotEmpty() ? $ticketsSearch->value() : null;
         $faqsSearchTerm = $faqsSearch->isNotEmpty() ? $faqsSearch->value() : null;
@@ -89,8 +93,18 @@ class SupportCenterController extends Controller
             ], $this->inertiaPagination($tickets));
         }
 
-        $faqs = Faq::query()
+        $categories = FaqCategory::query()
+            ->withCount([
+                'faqs as published_faqs_count' => fn ($query) => $query->where('published', true),
+            ])
+            ->orderBy('order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'description', 'order']);
+
+        $faqCollection = Faq::query()
+            ->with('category:id,name,slug,description,order')
             ->where('published', true)
+            ->when($faqCategoryId, fn ($query) => $query->where('faq_category_id', $faqCategoryId))
             ->when($faqsSearchTerm, function ($query) use ($faqsSearchTerm) {
                 $escaped = $this->escapeForLike($faqsSearchTerm);
                 $like = "%{$escaped}%";
@@ -102,25 +116,77 @@ class SupportCenterController extends Controller
                 });
             })
             ->orderBy('order')
-            ->paginate($faqsPerPage, ['*'], 'faqs_page')
-            ->withQueryString();
+            ->get();
 
-        $faqItems = $faqs->getCollection()
-            ->map(function (Faq $faq) {
+        $categorySortIndex = $categories
+            ->mapWithKeys(function (FaqCategory $category) {
+                $key = sprintf('%011d-%s', $category->order, mb_strtolower($category->name));
+
+                return [$category->id => $key];
+            });
+
+        $faqGroups = $faqCollection
+            ->groupBy(fn (Faq $faq) => $faq->faq_category_id)
+            ->map(function ($items) {
+                /** @var Faq $first */
+                $first = $items->first();
+
+                $category = $first->category;
+
                 return [
-                    'id' => $faq->id,
-                    'question' => $faq->question,
-                    'answer' => $faq->answer,
+                    'category' => $category ? [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'slug' => $category->slug,
+                        'description' => $category->description,
+                        'order' => $category->order,
+                    ] : null,
+                    'faqs' => $items
+                        ->map(function (Faq $faq) {
+                            return [
+                                'id' => $faq->id,
+                                'question' => $faq->question,
+                                'answer' => $faq->answer,
+                            ];
+                        })
+                        ->values()
+                        ->all(),
                 ];
+            })
+            ->sortBy(function (array $group) use ($categorySortIndex) {
+                $categoryId = $group['category']['id'] ?? null;
+
+                if ($categoryId && $categorySortIndex->has($categoryId)) {
+                    return $categorySortIndex->get($categoryId);
+                }
+
+                return sprintf('%011d-%s', PHP_INT_MAX, $group['category']['name'] ?? '');
             })
             ->values()
             ->all();
 
         return Inertia::render('Support', [
             'tickets' => $ticketsPayload,
-            'faqs' => array_merge([
-                'data' => $faqItems,
-            ], $this->inertiaPagination($faqs)),
+            'faqs' => [
+                'groups' => $faqGroups,
+                'filters' => [
+                    'search' => $faqsSearchTerm,
+                    'selectedCategoryId' => $faqCategoryId,
+                    'categories' => $categories
+                        ->map(fn (FaqCategory $category) => [
+                            'id' => $category->id,
+                            'name' => $category->name,
+                            'slug' => $category->slug,
+                            'description' => $category->description,
+                            'order' => $category->order,
+                            'published_faqs_count' => (int) $category->published_faqs_count,
+                        ])
+                        ->values()
+                        ->all(),
+                    'totalPublished' => (int) $categories->sum('published_faqs_count'),
+                ],
+                'matchingCount' => $faqCollection->count(),
+            ],
             'canSubmitTicket' => (bool) $user,
         ]);
     }

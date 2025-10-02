@@ -13,12 +13,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
+const props = defineProps<{
+    categories: Array<{
+        id: number;
+        name: string;
+        slug: string;
+        description: string | null;
+    }>;
+}>();
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Support ACP', href: route('acp.support.index') },
     { title: 'Create FAQ', href: route('acp.support.faqs.create') },
 ];
 
 const form = useForm({
+    faq_category_id: props.categories[0]?.id ?? null,
     question: '',
     answer: '',
     order: 0,
@@ -92,6 +102,29 @@ const handleSubmit = () => {
                             <CardDescription>Set the display order and choose whether the FAQ is visible.</CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
+                            <div class="grid gap-2">
+                                <Label for="faq_category_id">Category</Label>
+                                <select
+                                    id="faq_category_id"
+                                    v-model.number="form.faq_category_id"
+                                    class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    :disabled="!props.categories.length"
+                                    required
+                                >
+                                    <option
+                                        v-for="category in props.categories"
+                                        :key="category.id"
+                                        :value="category.id"
+                                    >
+                                        {{ category.name }}
+                                    </option>
+                                </select>
+                                <p v-if="!props.categories.length" class="text-sm text-muted-foreground">
+                                    Create a category before adding FAQs.
+                                </p>
+                                <InputError :message="form.errors.faq_category_id" />
+                            </div>
+
                             <div class="grid gap-2">
                                 <Label for="order">Display order</Label>
                                 <Input id="order" v-model.number="form.order" type="number" min="0" />
