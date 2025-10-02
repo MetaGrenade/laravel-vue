@@ -154,6 +154,8 @@ type BlogRow = {
     created_at: string | null;
 };
 
+const manageBlogCategories = computed(() => createBlogs.value || editBlogs.value);
+
 const filteredBlogPosts = computed<BlogRow[]>(() => {
     if (!searchQuery.value) return props.blogs.data;
     const q = searchQuery.value.toLowerCase();
@@ -249,18 +251,23 @@ const deletePost = (postId: number) => {
                 <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                         <h2 class="text-lg font-semibold mb-2 md:mb-0">Blog Posts</h2>
-                        <div class="flex space-x-2">
+                        <div class="flex flex-wrap gap-2 md:flex-nowrap md:items-center">
                             <Input
                                 v-model="searchQuery"
                                 placeholder="Search Blogs..."
                                 class="w-full rounded-md"
                             />
-                            <!-- Create New Post Button visible only if permission is granted -->
-                            <Link :href="route('acp.blogs.create')" v-if="createBlogs">
-                                <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                    Create New Post
-                                </Button>
-                            </Link>
+                            <div class="flex gap-2">
+                                <Link v-if="manageBlogCategories" :href="route('acp.blog-categories.index')">
+                                    <Button variant="outline" class="whitespace-nowrap">Manage categories</Button>
+                                </Link>
+                                <!-- Create New Post Button visible only if permission is granted -->
+                                <Link :href="route('acp.blogs.create')" v-if="createBlogs">
+                                    <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                        Create New Post
+                                    </Button>
+                                </Link>
+                            </div>
                         </div>
                     </div>
                     <div class="overflow-x-auto">

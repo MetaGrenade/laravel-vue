@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CalendarClock, Eye } from 'lucide-vue-next';
+import { CalendarClock, Eye, Loader2, RefreshCcw } from 'lucide-vue-next';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
 type BlogTaxonomyOption = {
@@ -62,6 +62,68 @@ const form = useForm<BlogForm>({
     scheduled_for: '',
 });
 
+const availableCategories = ref<BlogTaxonomyOption[]>([]);
+const categoriesRefreshing = ref(false);
+const refreshCategoriesError = ref<string | null>(null);
+
+const syncCategorySelection = (categories: BlogTaxonomyOption[]) => {
+    const categoryIds = new Set(categories.map((category) => category.id));
+    form.category_ids = form.category_ids.filter((categoryId) => categoryIds.has(categoryId));
+};
+
+watch(
+    () => props.categories,
+    (categories) => {
+        availableCategories.value = [...categories];
+        syncCategorySelection(categories);
+    },
+    { immediate: true },
+);
+
+const parseCategoryOptions = (input: unknown): BlogTaxonomyOption[] => {
+    if (!Array.isArray(input)) {
+        return [];
+    }
+
+    return input
+        .map((item) => item as Record<string, unknown>)
+        .map((item) => ({
+            id: Number(item.id),
+            name: String(item.name ?? ''),
+            slug: String(item.slug ?? ''),
+        }))
+        .filter((item) => Number.isInteger(item.id) && item.name.trim().length > 0);
+};
+
+const refreshCategories = async () => {
+    categoriesRefreshing.value = true;
+    refreshCategoriesError.value = null;
+
+    try {
+        const response = await fetch(route('acp.blog-categories.index'), {
+            headers: {
+                Accept: 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Unable to refresh categories.');
+        }
+
+        const payload = await response.json();
+        const refreshed = parseCategoryOptions(payload?.data ?? []);
+
+        availableCategories.value = refreshed;
+        syncCategorySelection(refreshed);
+    } catch (error) {
+        console.error(error);
+        refreshCategoriesError.value =
+            error instanceof Error ? error.message : 'Unable to refresh categories.';
+    } finally {
+        categoriesRefreshing.value = false;
+    }
+};
+
 const coverImagePreview = ref<string | null>(null);
 const previewOpen = ref(false);
 
@@ -105,7 +167,7 @@ watch(
 const previewCoverImage = computed(() => coverImagePreview.value ?? null);
 const previewCover = computed(() => previewCoverImage.value ?? '/images/default-cover.jpg');
 const selectedCategories = computed(() =>
-    props.categories.filter((category) => form.category_ids.includes(category.id)),
+    availableCategories.value.filter((category) => form.category_ids.includes(category.id)),
 );
 const selectedTags = computed(() => props.tags.filter((tag) => form.tag_ids.includes(tag.id)));
 const previewScheduledMessage = computed(() => {
@@ -263,13 +325,29 @@ const handleSubmit = () => {
 
                             <div class="grid gap-4">
                                 <div class="space-y-2">
-                                    <Label>Categories</Label>
-                                    <p class="text-sm text-muted-foreground">
-                                        Choose one or more categories to help readers browse related topics.
-                                    </p>
+                                    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                            <Label>Categories</Label>
+                                            <p class="text-sm text-muted-foreground">
+                                                Choose one or more categories to help readers browse related topics.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            class="flex items-center gap-2 self-start"
+                                            :disabled="categoriesRefreshing"
+                                            @click="refreshCategories"
+                                        >
+                                            <Loader2 v-if="categoriesRefreshing" class="h-4 w-4 animate-spin" />
+                                            <RefreshCcw v-else class="h-4 w-4" />
+                                            Refresh
+                                        </Button>
+                                    </div>
                                     <div class="grid gap-2 sm:grid-cols-2">
                                         <label
-                                            v-for="category in props.categories"
+                                            v-for="category in availableCategories"
                                             :key="category.id"
                                             class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
                                         >
@@ -281,10 +359,16 @@ const handleSubmit = () => {
                                             />
                                             <span>{{ category.name }}</span>
                                         </label>
-                                        <p v-if="props.categories.length === 0" class="text-sm text-muted-foreground sm:col-span-2">
+                                        <p
+                                            v-if="availableCategories.length === 0"
+                                            class="text-sm text-muted-foreground sm:col-span-2"
+                                        >
                                             No categories available yet. Add some in the database seeder or admin tools.
                                         </p>
                                     </div>
+                                    <p v-if="refreshCategoriesError" class="text-sm text-destructive">
+                                        {{ refreshCategoriesError }}
+                                    </p>
                                     <InputError :message="form.errors.category_ids" />
                                 </div>
 
