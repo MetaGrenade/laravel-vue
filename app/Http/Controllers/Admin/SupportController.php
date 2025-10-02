@@ -426,6 +426,7 @@ class SupportController extends Controller
 
         $message = match ($validated['status']) {
             'open' => 'Ticket opened.',
+            'pending' => 'Ticket marked as pending.',
             'closed' => 'Ticket closed.',
             default => 'Ticket status updated.',
         };
