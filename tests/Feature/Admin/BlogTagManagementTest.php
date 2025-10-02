@@ -160,7 +160,7 @@ class BlogTagManagementTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
             ->component('acp/BlogCreate')
-            ->where('tags', fn (array $tags) => collect($tags)->pluck('id')->contains($tag->id))
+            ->where('tags', fn ($tags) => collect($tags)->pluck('id')->contains($tag->id))
         );
     }
 }
