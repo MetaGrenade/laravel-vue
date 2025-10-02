@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
+use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
 use App\Http\Controllers\Admin\SupportController;
@@ -56,6 +57,14 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/blog-tags/{tag}/edit', [BlogTagController::class, 'edit'])->name('acp.blog-tags.edit');
     Route::put('acp/blog-tags/{tag}', [BlogTagController::class, 'update'])->name('acp.blog-tags.update');
     Route::delete('acp/blog-tags/{tag}', [BlogTagController::class, 'destroy'])->name('acp.blog-tags.destroy');
+
+    // Admin Blog Category Management Routes
+    Route::get('acp/blog-categories', [BlogCategoryController::class, 'index'])->name('acp.blog-categories.index');
+    Route::get('acp/blog-categories/create', [BlogCategoryController::class, 'create'])->name('acp.blog-categories.create');
+    Route::post('acp/blog-categories', [BlogCategoryController::class, 'store'])->name('acp.blog-categories.store');
+    Route::get('acp/blog-categories/{category}/edit', [BlogCategoryController::class, 'edit'])->name('acp.blog-categories.edit');
+    Route::put('acp/blog-categories/{category}', [BlogCategoryController::class, 'update'])->name('acp.blog-categories.update');
+    Route::delete('acp/blog-categories/{category}', [BlogCategoryController::class, 'destroy'])->name('acp.blog-categories.destroy');
 
     Route::get('acp/forums', [ForumCategoryController::class, 'index'])->name('acp.forums.index');
     Route::get('acp/forums/reports', [ForumReportController::class, 'index'])->name('acp.forums.reports.index');
