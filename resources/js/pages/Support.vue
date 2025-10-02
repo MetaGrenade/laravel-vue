@@ -20,7 +20,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Ellipsis, TicketX, LifeBuoy, Eye } from 'lucide-vue-next';
+import { Ellipsis, TicketX, LifeBuoy, Eye, Paperclip } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import {
     Pagination,
@@ -187,16 +187,75 @@ const {
 const showTicketPagination = computed(() => ticketsMeta.value.total > ticketsMeta.value.per_page);
 const showFaqPagination = computed(() => faqsMeta.value.total > faqsMeta.value.per_page);
 
-const form = useForm({
+interface CreateTicketFormPayload {
+    subject: string;
+    body: string;
+    attachments: File[];
+}
+
+const form = useForm<CreateTicketFormPayload>({
     subject: '',
     body: '',
+    attachments: [],
 });
 
+const attachmentInput = ref<HTMLInputElement | null>(null);
+
+const handleAttachmentsChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+
+    form.attachments = target.files ? Array.from(target.files) : [];
+};
+
+const resetAttachmentsInput = () => {
+    if (attachmentInput.value) {
+        attachmentInput.value.value = '';
+    }
+};
+
+const attachmentErrors = computed(() => {
+    const errorEntries = Object.entries(form.errors).filter(([key]) =>
+        key === 'attachments' || key.startsWith('attachments.'),
+    );
+
+    return errorEntries.length > 0 ? errorEntries[0][1] : '';
+});
+
+const formatFileSize = (bytes: number) => {
+    if (!bytes) {
+        return '0 B';
+    }
+
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const size = bytes / Math.pow(1024, exponent);
+
+    const formatted = size >= 10 || exponent === 0 ? size.toFixed(0) : size.toFixed(1);
+
+    return `${formatted} ${units[exponent]}`;
+};
+
 const submitTicket = () => {
+    form.transform((data) => {
+        if (!data.attachments || data.attachments.length === 0) {
+            const payload = { ...data };
+            delete payload.attachments;
+
+            return payload;
+        }
+
+        return data;
+    });
+
     form.post(route('support.tickets.store'), {
         preserveScroll: true,
+        forceFormData: true,
         onSuccess: () => {
             form.reset();
+            resetAttachmentsInput();
+        },
+        onFinish: () => {
+            form.transform((data) => ({ ...data }));
         },
     });
 };
@@ -542,6 +601,32 @@ const formatDate = (value: string | null) => {
                                         required
                                     />
                                     <InputError :message="form.errors.body" />
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <Input
+                                        ref="attachmentInput"
+                                        id="attachments"
+                                        type="file"
+                                        multiple
+                                        :disabled="form.processing"
+                                        accept="image/*,application/pdf,text/plain,text/csv,application/zip,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/x-ndjson"
+                                        @change="handleAttachmentsChange"
+                                    />
+                                    <p class="text-xs text-muted-foreground">
+                                        Attach relevant screenshots or log files (up to 5 files, 10&nbsp;MB each).
+                                    </p>
+                                    <ul v-if="form.attachments.length" class="flex flex-wrap gap-2 text-xs">
+                                        <li
+                                            v-for="file in form.attachments"
+                                            :key="`${file.name}-${file.lastModified}`"
+                                            class="flex items-center gap-2 rounded-md border border-dashed border-muted bg-muted/40 px-2 py-1"
+                                        >
+                                            <Paperclip class="h-3 w-3" />
+                                            <span class="max-w-[10rem] truncate">{{ file.name }}</span>
+                                            <span class="text-muted-foreground">{{ formatFileSize(file.size) }}</span>
+                                        </li>
+                                    </ul>
+                                    <InputError :message="attachmentErrors" />
                                 </div>
                                 <div class="flex justify-end">
                                     <Button

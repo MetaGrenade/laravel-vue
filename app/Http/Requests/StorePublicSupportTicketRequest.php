@@ -27,6 +27,12 @@ class StorePublicSupportTicketRequest extends FormRequest
             'body' => ['required', 'string'],
             'priority' => ['nullable', 'in:low,medium,high'],
             'user_id' => ['required', 'exists:users,id'],
+            'attachments' => ['nullable', 'array', 'max:5'],
+            'attachments.*' => [
+                'file',
+                'max:10240',
+                'mimetypes:image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/zip,application/json,application/x-ndjson,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ],
         ];
     }
 }

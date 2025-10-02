@@ -126,17 +126,47 @@ class SupportCenterController extends Controller
     {
         $validated = $request->validated();
 
-        $ticket = SupportTicket::create([
-            'user_id' => $validated['user_id'],
-            'subject' => $validated['subject'],
-            'body' => $validated['body'],
-            'priority' => $validated['priority'] ?? 'medium',
-        ]);
+        DB::transaction(function () use ($request, $validated): void {
+            $ticket = SupportTicket::create([
+                'user_id' => $validated['user_id'],
+                'subject' => $validated['subject'],
+                'body' => $validated['body'],
+                'priority' => $validated['priority'] ?? 'medium',
+            ]);
 
-        $ticket->messages()->create([
-            'user_id' => $ticket->user_id,
-            'body' => $ticket->body,
-        ]);
+            $message = $ticket->messages()->create([
+                'user_id' => $ticket->user_id,
+                'body' => $ticket->body,
+            ]);
+
+            $attachments = $request->file('attachments', []);
+
+            if ($attachments instanceof UploadedFile) {
+                $attachments = [$attachments];
+            } elseif (! is_array($attachments)) {
+                $attachments = [];
+            }
+
+            $disk = 'public';
+
+            foreach ($attachments as $file) {
+                if (! $file) {
+                    continue;
+                }
+
+                $path = $file->store("support-attachments/{$ticket->id}", $disk);
+
+                $message->attachments()->create([
+                    'disk' => $disk,
+                    'path' => $path,
+                    'name' => $file->getClientOriginalName() ?: $file->hashName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'size' => $file->getSize() ?: 0,
+                ]);
+            }
+
+            $message->touch();
+        });
 
         return redirect()
             ->route('support')
