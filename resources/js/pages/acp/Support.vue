@@ -770,20 +770,30 @@ const unpublishFaq = (faq: FaqItem) => {
                             <!-- Header: Search & Create -->
                             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                                 <h2 class="text-lg font-semibold">FAQ Management</h2>
-                                <div class="flex space-x-2 w-full md:w-auto">
+                                <div class="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-2">
                                     <Input
                                         v-model="faqSearchQuery"
                                         placeholder="Search FAQs..."
-                                        class="flex-1"
+                                        class="w-full md:w-64"
                                     />
-                                    <Link
-                                        v-if="createSupport"
-                                        :href="route('acp.support.faqs.create')"
-                                    >
-                                        <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                            Create FAQ
-                                        </Button>
-                                    </Link>
+                                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-end md:gap-2">
+                                        <Link
+                                            v-if="editSupport || createSupport"
+                                            :href="route('acp.support.faq-categories.index')"
+                                        >
+                                            <Button variant="outline" class="w-full md:w-auto">
+                                                Manage categories
+                                            </Button>
+                                        </Link>
+                                        <Link
+                                            v-if="createSupport"
+                                            :href="route('acp.support.faqs.create')"
+                                        >
+                                            <Button variant="secondary" class="w-full text-sm text-white md:w-auto bg-green-500 hover:bg-green-600">
+                                                Create FAQ
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
 
