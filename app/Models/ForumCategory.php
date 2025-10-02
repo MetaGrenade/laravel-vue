@@ -24,6 +24,10 @@ class ForumCategory extends Model
         'is_published' => 'boolean',
     ];
 
+    protected $attributes = [
+        'is_published' => true,
+    ];
+
     public function boards(): HasMany
     {
         return $this->hasMany(ForumBoard::class)->orderBy('position');
@@ -34,7 +38,10 @@ class ForumCategory extends Model
         $permissionNames = $user?->getAllPermissions()->pluck('name')->all() ?? [];
 
         return $query
-            ->where('is_published', true)
+            ->where(function (Builder $builder) {
+                $builder->where('is_published', true)
+                    ->orWhereNull('is_published');
+            })
             ->where(function (Builder $builder) use ($permissionNames): void {
                 $builder->whereNull('access_permission')
                     ->orWhere('access_permission', '');
@@ -47,7 +54,7 @@ class ForumCategory extends Model
 
     public function canBeViewedBy(?User $user): bool
     {
-        if (!$this->is_published) {
+        if ($this->is_published === false) {
             return false;
         }
 
