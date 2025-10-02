@@ -113,6 +113,70 @@ class ForumThreadActionController extends Controller
             ->with('success', 'Thread marked as read.');
     }
 
+    public function markBoardAsRead(Request $request, ForumBoard $board): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_if($user === null, 403);
+
+        $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
+
+        $validated = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $threads = $board->threads()
+            ->select('forum_threads.id', 'forum_threads.last_posted_at')
+            ->when(!$isModerator, function ($query) {
+                $query->where('forum_threads.is_published', true);
+            })
+            ->with(['latestPost:id,forum_thread_id,created_at'])
+            ->get();
+
+        if ($threads->isNotEmpty()) {
+            $now = now();
+
+            $records = $threads->map(function (ForumThread $thread) use ($user, $now) {
+                $latestPost = $thread->latestPost;
+
+                $readAt = $latestPost?->created_at ?? $now;
+
+                if ($thread->last_posted_at !== null && $thread->last_posted_at->greaterThan($readAt)) {
+                    $readAt = $thread->last_posted_at;
+                }
+
+                return [
+                    'forum_thread_id' => $thread->id,
+                    'user_id' => $user->id,
+                    'last_read_post_id' => $latestPost?->id,
+                    'last_read_at' => $readAt,
+                ];
+            })->all();
+
+            ForumThreadRead::upsert(
+                $records,
+                ['forum_thread_id', 'user_id'],
+                ['last_read_post_id', 'last_read_at']
+            );
+        }
+
+        $search = isset($validated['search']) ? trim((string) $validated['search']) : null;
+        $search = $search === '' ? null : $search;
+
+        $redirectParameters = [
+            'board' => $board->slug,
+            'page' => $validated['page'] ?? null,
+        ];
+
+        if ($search !== null) {
+            $redirectParameters['search'] = $search;
+        }
+
+        return redirect()->route('forum.boards.show', $redirectParameters)
+            ->with('success', 'Board marked as read.');
+    }
+
     public function subscribe(Request $request, ForumBoard $board, ForumThread $thread): RedirectResponse
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
