@@ -44,6 +44,7 @@ class RolePermissionSeeder extends Seeder
             }
             if ($permission == 'users') {
                 Permission::create(['name' => $permission.'.acp.verify']);
+                Permission::create(['name' => $permission.'.acp.ban']);
             }
             if ($permission == 'support') {
                 Permission::create(['name' => $permission.'.acp.assign']);
