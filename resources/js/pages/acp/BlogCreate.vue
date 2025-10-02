@@ -67,9 +67,52 @@ const previewOpen = ref(false);
 
 const { formatDate } = useUserTimezone();
 
+const categoryOptions = ref<BlogTaxonomyOption[]>([]);
+const refreshingCategories = ref(false);
+const refreshCategoriesError = ref('');
+
 const tagOptions = ref<BlogTaxonomyOption[]>([]);
 const refreshingTags = ref(false);
 const refreshTagsError = ref('');
+
+const normalizeCategoryData = (input: unknown[]): BlogTaxonomyOption[] => {
+    return input
+        .map((raw) => {
+            if (!raw || typeof raw !== 'object') {
+                return null;
+            }
+
+            const candidate = raw as Record<string, unknown>;
+            const id = candidate.id;
+            const name = candidate.name;
+            const slug = candidate.slug;
+
+            if (typeof id !== 'number' || typeof name !== 'string' || typeof slug !== 'string') {
+                return null;
+            }
+
+            return { id, name, slug };
+        })
+        .filter((category): category is BlogTaxonomyOption => Boolean(category));
+};
+
+const applyCategoryOptions = (categories: BlogTaxonomyOption[]) => {
+    const normalized = categories.map((category) => ({ ...category }));
+    categoryOptions.value = normalized;
+
+    const validIds = new Set(normalized.map((category) => category.id));
+    form.category_ids = form.category_ids.filter((id) => validIds.has(id));
+};
+
+applyCategoryOptions([...props.categories]);
+
+watch(
+    () => props.categories,
+    (categories) => {
+        applyCategoryOptions([...categories]);
+    },
+    { deep: true },
+);
 
 const normalizeTagData = (input: unknown[]): BlogTaxonomyOption[] => {
     return input
@@ -122,6 +165,51 @@ const extractRawTags = (payload: unknown): unknown[] => {
     }
 
     return [];
+};
+
+const extractRawCategories = (payload: unknown): unknown[] => {
+    if (Array.isArray(payload)) {
+        return payload;
+    }
+
+    if (payload && typeof payload === 'object' && 'categories' in payload) {
+        const categoriesValue = (payload as Record<string, unknown>).categories;
+
+        return Array.isArray(categoriesValue) ? categoriesValue : [];
+    }
+
+    return [];
+};
+
+const refreshCategories = async () => {
+    if (refreshingCategories.value) {
+        return;
+    }
+
+    refreshingCategories.value = true;
+    refreshCategoriesError.value = '';
+
+    try {
+        const response = await fetch(route('acp.blog-categories.index'), {
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const payload: unknown = await response.json();
+        const normalized = normalizeCategoryData(extractRawCategories(payload));
+        applyCategoryOptions(normalized);
+    } catch (error) {
+        console.error('Failed to refresh categories', error);
+        refreshCategoriesError.value = 'Unable to refresh categories. Please try again.';
+    } finally {
+        refreshingCategories.value = false;
+    }
 };
 
 const refreshTags = async () => {
@@ -193,7 +281,7 @@ watch(
 const previewCoverImage = computed(() => coverImagePreview.value ?? null);
 const previewCover = computed(() => previewCoverImage.value ?? '/images/default-cover.jpg');
 const selectedCategories = computed(() =>
-    props.categories.filter((category) => form.category_ids.includes(category.id)),
+    categoryOptions.value.filter((category) => form.category_ids.includes(category.id)),
 );
 const selectedTags = computed(() => tagOptions.value.filter((tag) => form.tag_ids.includes(tag.id)));
 const previewScheduledMessage = computed(() => {
@@ -350,14 +438,29 @@ const handleSubmit = () => {
                             </div>
 
                             <div class="grid gap-4">
-                                <div class="space-y-2">
-                                    <Label>Categories</Label>
-                                    <p class="text-sm text-muted-foreground">
-                                        Choose one or more categories to help readers browse related topics.
-                                    </p>
+                                <div class="space-y-3">
+                                    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                            <Label>Categories</Label>
+                                            <p class="text-sm text-muted-foreground">
+                                                Choose one or more categories to help readers browse related topics.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            class="self-start"
+                                            :disabled="refreshingCategories"
+                                            @click="refreshCategories"
+                                        >
+                                            <span v-if="refreshingCategories">Refreshing…</span>
+                                            <span v-else>Refresh categories</span>
+                                        </Button>
+                                    </div>
                                     <div class="grid gap-2 sm:grid-cols-2">
                                         <label
-                                            v-for="category in props.categories"
+                                            v-for="category in categoryOptions"
                                             :key="category.id"
                                             class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
                                         >
@@ -369,10 +472,16 @@ const handleSubmit = () => {
                                             />
                                             <span>{{ category.name }}</span>
                                         </label>
-                                        <p v-if="props.categories.length === 0" class="text-sm text-muted-foreground sm:col-span-2">
+                                        <p
+                                            v-if="categoryOptions.length === 0"
+                                            class="text-sm text-muted-foreground sm:col-span-2"
+                                        >
                                             No categories available yet. Add some in the database seeder or admin tools.
                                         </p>
                                     </div>
+                                    <p v-if="refreshCategoriesError" class="text-xs text-red-500">
+                                        {{ refreshCategoriesError }}
+                                    </p>
                                     <InputError :message="form.errors.category_ids" />
                                 </div>
 
