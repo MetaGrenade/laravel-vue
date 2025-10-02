@@ -8,11 +8,19 @@ use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class SupportTicketNotificationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Permission::create(['name' => 'support.acp.view', 'guard_name' => 'web']);
+    }
 
     public function test_it_notifies_the_owner_when_a_ticket_is_opened(): void
     {
@@ -61,6 +69,7 @@ class SupportTicketNotificationTest extends TestCase
 
         $owner = User::factory()->create();
         $agent = User::factory()->create();
+        $agent->givePermissionTo('support.acp.view');
 
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
