@@ -72,7 +72,7 @@ class ForumCategory extends Model
 
     public function isEffectivelyPublished(): bool
     {
-        $value = $this->getAttribute('is_published');
+        $value = $this->getRawOriginal('is_published');
 
         if ($value === null) {
             return true;
