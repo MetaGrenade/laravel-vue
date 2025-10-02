@@ -24,6 +24,7 @@ export interface SharedData extends PageProps {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    notifications: NotificationItem[];
     ziggy: Config & { location: string };
 }
 
@@ -39,3 +40,11 @@ export interface User {
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;
+
+export interface NotificationItem {
+    id: string;
+    type: string;
+    data: Record<string, unknown>;
+    created_at: string | null;
+    read_at: string | null;
+}

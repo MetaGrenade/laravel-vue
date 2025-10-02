@@ -45,6 +45,10 @@ Route::middleware('auth')->group(function () {
         ->name('forum.threads.report');
     Route::post('forum/{board:slug}/{thread:slug}/mark-read', [ForumThreadActionController::class, 'markAsRead'])
         ->name('forum.threads.mark-read');
+    Route::post('forum/{board:slug}/{thread:slug}/subscribe', [ForumThreadActionController::class, 'subscribe'])
+        ->name('forum.threads.subscribe');
+    Route::delete('forum/{board:slug}/{thread:slug}/unsubscribe', [ForumThreadActionController::class, 'unsubscribe'])
+        ->name('forum.threads.unsubscribe');
     Route::put('forum/{board:slug}/{thread:slug}', [ForumThreadModerationController::class, 'update'])
         ->name('forum.threads.update');
 

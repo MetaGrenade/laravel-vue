@@ -268,7 +268,7 @@ class ForumController extends Controller
             'latestPost' => function ($query) {
                 $query->select('forum_posts.id', 'forum_posts.forum_thread_id', 'forum_posts.created_at');
             },
-        ]);
+        ])->loadCount('subscriptions');
 
         $posts = $thread->posts()
             ->with(['author' => function ($query) {
@@ -344,6 +344,8 @@ class ForumController extends Controller
             })
             ->values();
 
+        $isSubscribed = $thread->isSubscribedBy($user);
+
         $canModerateThread = (bool) $isModerator;
         $canEditThread = $user !== null && (
             $canModerateThread || (
@@ -372,6 +374,8 @@ class ForumController extends Controller
                 'views' => $thread->views,
                 'author' => $thread->author?->nickname,
                 'last_posted_at' => optional($thread->last_posted_at)->toDayDateTimeString(),
+                'is_subscribed' => $isSubscribed,
+                'subscribers_count' => $thread->subscriptions_count,
                 'permissions' => [
                     'canModerate' => $canModerateThread,
                     'canEdit' => $canEditThread,

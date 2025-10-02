@@ -6,6 +6,7 @@ use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -72,6 +73,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function forumThreadReads(): HasMany
     {
         return $this->hasMany(ForumThreadRead::class);
+    }
+
+    public function forumThreadSubscriptions(): HasMany
+    {
+        return $this->hasMany(ForumThreadSubscription::class);
+    }
+
+    public function subscribedForumThreads(): BelongsToMany
+    {
+        return $this->belongsToMany(ForumThread::class, 'forum_thread_subscriptions')->withTimestamps();
     }
 
     public function blogComments(): HasMany

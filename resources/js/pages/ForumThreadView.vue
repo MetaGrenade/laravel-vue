@@ -44,6 +44,8 @@ import {
     LockOpen,
     Flag,
     MessageSquareLock,
+    Bell,
+    BellOff,
 } from 'lucide-vue-next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
@@ -74,6 +76,8 @@ interface ThreadSummary {
     views: number;
     author: string | null;
     last_posted_at: string | null;
+    is_subscribed: boolean;
+    subscribers_count: number;
     permissions: ThreadPermissions;
 }
 
@@ -351,6 +355,52 @@ const submitThreadReport = () => {
             threadReportDialogOpen.value = false;
         },
     });
+};
+
+const subscribeToThread = () => {
+    if (!authUser.value || threadActionLoading.value) {
+        return;
+    }
+
+    threadActionLoading.value = true;
+
+    router.post(
+        route('forum.threads.subscribe', { board: props.board.slug, thread: props.thread.slug }),
+        {
+            page: postsMeta.value.current_page,
+        },
+        {
+            preserveScroll: true,
+            preserveState: false,
+            replace: true,
+            onFinish: () => {
+                threadActionLoading.value = false;
+            },
+        },
+    );
+};
+
+const unsubscribeFromThread = () => {
+    if (!authUser.value || threadActionLoading.value) {
+        return;
+    }
+
+    threadActionLoading.value = true;
+
+    router.delete(
+        route('forum.threads.unsubscribe', { board: props.board.slug, thread: props.thread.slug }),
+        {
+            page: postsMeta.value.current_page,
+        },
+        {
+            preserveScroll: true,
+            preserveState: false,
+            replace: true,
+            onFinish: () => {
+                threadActionLoading.value = false;
+            },
+        },
+    );
 };
 
 const publishThread = () => {
@@ -1066,6 +1116,10 @@ const submitReply = () => {
                     />
                 </h1>
                 <div class="flex flex-wrap justify-end gap-2 md:flex-nowrap">
+                    <div class="flex flex-col items-end justify-center rounded-md border border-border px-3 py-1">
+                        <span class="text-xs font-medium uppercase text-muted-foreground">Followers</span>
+                        <span class="text-base font-semibold text-foreground">{{ props.thread.subscribers_count }}</span>
+                    </div>
                     <Button v-if="props.thread.is_locked" variant="secondary" class="cursor-pointer text-yellow-500" disabled>
                         <Lock class="h-8 w-8" />
                         Locked
@@ -1075,6 +1129,16 @@ const submitReply = () => {
                             Post Reply
                         </Button>
                     </a>
+                    <Button
+                        v-if="authUser"
+                        :variant="props.thread.is_subscribed ? 'default' : 'outline'"
+                        class="cursor-pointer"
+                        :disabled="threadActionLoading"
+                        @click="props.thread.is_subscribed ? unsubscribeFromThread() : subscribeToThread()"
+                    >
+                        <component :is="props.thread.is_subscribed ? BellOff : Bell" class="mr-2 h-4 w-4" />
+                        {{ props.thread.is_subscribed ? 'Following' : 'Follow thread' }}
+                    </Button>
                     <Button
                         v-if="authUser"
                         variant="outline"
