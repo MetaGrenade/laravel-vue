@@ -120,7 +120,7 @@ class SupportCenterSearchTest extends TestCase
                     && str_contains($url, 'faqs_search=billing')
                     && str_contains($url, 'faq_category_id=' . $billingCategory->id);
             })
-            ->where('tickets.links.first', function ($url) {
+            ->where('tickets.links.first', function ($url) use ($billingCategory) {
                 return is_string($url)
                     && str_contains($url, 'tickets_search=invoice')
                     && str_contains($url, 'faqs_search=billing')
