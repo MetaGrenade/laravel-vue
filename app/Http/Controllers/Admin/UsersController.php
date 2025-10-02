@@ -40,6 +40,7 @@ class UsersController extends Controller
                     'nickname' => $user->nickname,
                     'email' => $user->email,
                     'email_verified_at' => optional($user->email_verified_at)->toIso8601String(),
+                    'last_activity_at' => optional($user->last_activity_at)->toIso8601String(),
                     'is_banned' => $user->is_banned,
                     'banned_at' => optional($user->banned_at)->toIso8601String(),
                     'banned_by' => $user->bannedBy?->only(['id', 'nickname']),
