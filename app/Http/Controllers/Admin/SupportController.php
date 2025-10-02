@@ -17,6 +17,7 @@ use App\Models\FaqCategory;
 use App\Models\User;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
+use App\Notifications\TicketStatusUpdated;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -232,6 +233,8 @@ class SupportController extends Controller
     {
         $validated = $request->validated();
 
+        $previousStatus = $ticket->status;
+
         if (array_key_exists('status', $validated)) {
             $validated += $this->resolutionAttributes($ticket, $validated['status'], (int) $request->user()->id);
         }
@@ -241,6 +244,17 @@ class SupportController extends Controller
         }
 
         $ticket->update($validated);
+
+        if (
+            array_key_exists('status', $validated)
+            && $previousStatus !== $ticket->status
+        ) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $previousStatus) {
+                return (new TicketStatusUpdated($ticket, $previousStatus))
+                    ->forAudience($audience)
+                    ->withChannels($channels);
+            });
+        }
 
         return redirect()
             ->route('acp.support.index')
@@ -515,7 +529,17 @@ class SupportController extends Controller
 
         $updates += $this->resolutionAttributes($ticket, $validated['status'], (int) $request->user()->id);
 
+        $previousStatus = $ticket->status;
+
         $ticket->update($updates);
+
+        if ($previousStatus !== $ticket->status) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $previousStatus) {
+                return (new TicketStatusUpdated($ticket, $previousStatus))
+                    ->forAudience($audience)
+                    ->withChannels($channels);
+            });
+        }
 
         $message = match ($validated['status']) {
             'open' => 'Ticket opened.',

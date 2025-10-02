@@ -6,6 +6,7 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
+use App\Notifications\TicketStatusUpdated;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Permission;
@@ -23,6 +24,7 @@ class SupportTicketNotificationTest extends TestCase
         Role::create(['name' => 'moderator', 'guard_name' => 'web']);
         Permission::create(['name' => 'support.acp.view', 'guard_name' => 'web']);
         Permission::create(['name' => 'support.acp.reply', 'guard_name' => 'web']);
+        Permission::create(['name' => 'support.acp.edit', 'guard_name' => 'web']);
     }
 
     private function createSupportAgent(array $permissions = []): User
@@ -208,6 +210,73 @@ class SupportTicketNotificationTest extends TestCase
 
             $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]) . '#message-' . $message->id;
             $this->assertSame($expectedUrl, $data['url']);
+
+            return true;
+        });
+    }
+
+    public function test_it_notifies_owner_and_agent_when_status_is_updated_from_admin_panel(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $agent = $this->createSupportAgent(['support.acp.edit', 'support.acp.view']);
+
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'subject' => 'Login issue',
+            'body' => 'Cannot login after password reset.',
+            'priority' => 'medium',
+            'status' => 'pending',
+            'assigned_to' => $agent->id,
+        ]);
+
+        $this->from(route('acp.support.tickets.show', $ticket))
+            ->actingAs($agent)
+            ->put(route('acp.support.tickets.status', $ticket), [
+                'status' => 'open',
+            ])
+            ->assertRedirect(route('acp.support.tickets.show', $ticket));
+
+        $ticket->refresh();
+
+        Notification::assertSentToTimes($owner, TicketStatusUpdated::class, 1);
+        Notification::assertSentToTimes($agent, TicketStatusUpdated::class, 1);
+
+        Notification::assertSentTo($owner, TicketStatusUpdated::class, function (TicketStatusUpdated $notification, array $channels) use ($owner, $ticket) {
+            $this->assertSame(['mail', 'database'], $channels);
+
+            $data = $notification->toArray($owner);
+
+            $this->assertSame($ticket->id, $data['ticket_id']);
+            $this->assertSame('owner', $data['audience']);
+            $this->assertSame('pending', $data['previous_status']);
+            $this->assertSame('open', $data['status']);
+
+            $expectedUrl = route('support.tickets.show', $ticket);
+            $this->assertSame($expectedUrl, $data['url']);
+
+            $mailMessage = $notification->toMail($owner);
+            $this->assertSame($expectedUrl, $mailMessage->actionUrl);
+
+            return true;
+        });
+
+        Notification::assertSentTo($agent, TicketStatusUpdated::class, function (TicketStatusUpdated $notification, array $channels) use ($agent, $ticket) {
+            $this->assertSame(['mail', 'database'], $channels);
+
+            $data = $notification->toArray($agent);
+
+            $this->assertSame($ticket->id, $data['ticket_id']);
+            $this->assertSame('agent', $data['audience']);
+            $this->assertSame('pending', $data['previous_status']);
+            $this->assertSame('open', $data['status']);
+
+            $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]);
+            $this->assertSame($expectedUrl, $data['url']);
+
+            $mailMessage = $notification->toMail($agent);
+            $this->assertSame($expectedUrl, $mailMessage->actionUrl);
 
             return true;
         });
