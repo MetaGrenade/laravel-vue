@@ -7,6 +7,7 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
+import Label from '@/components/ui/label/Label.vue';
 import { useDebounceFn } from '@vueuse/core';
 import {
     DropdownMenu,
@@ -86,11 +87,69 @@ const props = defineProps<{
     };
     filters: {
         search: string | null;
+        role?: string | null;
+        verification?: string | null;
+        banned?: string | null;
+        activity_window?: number | null;
     };
+    availableRoles: string[];
 }>();
 
 const searchQuery = ref(props.filters.search ?? '');
 let skipSearchWatch = false;
+
+const roleFilter = ref(props.filters.role ?? 'all');
+let skipRoleWatch = false;
+
+const verificationFilter = ref(props.filters.verification ?? 'all');
+let skipVerificationWatch = false;
+
+const bannedFilter = ref(props.filters.banned ?? 'all');
+let skipBannedWatch = false;
+
+const activityFilter = ref(props.filters.activity_window ? String(props.filters.activity_window) : 'all');
+let skipActivityWatch = false;
+
+const quickVisitOptions = {
+    preserveScroll: true,
+    preserveState: true,
+    replace: true,
+} as const;
+
+const buildQuery = (overrides: Record<string, unknown> = {}) => {
+    const query: Record<string, unknown> = {};
+
+    const trimmedSearch = searchQuery.value.trim();
+    if (trimmedSearch !== '') {
+        query.search = trimmedSearch;
+    }
+
+    if (roleFilter.value !== 'all') {
+        query.role = roleFilter.value;
+    }
+
+    if (verificationFilter.value !== 'all') {
+        query.verification = verificationFilter.value;
+    }
+
+    if (bannedFilter.value !== 'all') {
+        query.banned = bannedFilter.value;
+    }
+
+    if (activityFilter.value !== 'all') {
+        const parsed = Number.parseInt(activityFilter.value, 10);
+
+        if (!Number.isNaN(parsed) && parsed > 0) {
+            query.activity_window = parsed;
+        }
+    }
+
+    return { ...query, ...overrides };
+};
+
+const applyFilters = (overrides: Record<string, unknown> = {}) => {
+    router.get(route('acp.users.index'), buildQuery(overrides), quickVisitOptions);
+};
 
 const {
     meta: usersMeta,
@@ -104,18 +163,7 @@ const {
     itemLabel: 'user',
     itemLabelPlural: 'users',
     onNavigate: (page) => {
-        router.get(
-            route('acp.users.index'),
-            {
-                page,
-                search: searchQuery.value || undefined,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
+        router.get(route('acp.users.index'), buildQuery({ page }), quickVisitOptions);
     },
 });
 
@@ -126,17 +174,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 // Search filtering
 const debouncedSearch = useDebounceFn(() => {
-    router.get(
-        route('acp.users.index'),
-        {
-            search: searchQuery.value || undefined,
-        },
-        {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        },
-    );
+    applyFilters({ page: 1 });
 }, 300);
 
 watch(
@@ -159,6 +197,94 @@ watch(searchQuery, () => {
 
     setUsersPage(1, { emitNavigate: false });
     debouncedSearch();
+});
+
+watch(
+    () => props.filters.role ?? 'all',
+    (value) => {
+        if (roleFilter.value === value) {
+            return;
+        }
+
+        skipRoleWatch = true;
+        roleFilter.value = value;
+    },
+);
+
+watch(roleFilter, () => {
+    if (skipRoleWatch) {
+        skipRoleWatch = false;
+        return;
+    }
+
+    setUsersPage(1, { emitNavigate: false });
+    applyFilters({ page: 1 });
+});
+
+watch(
+    () => props.filters.verification ?? 'all',
+    (value) => {
+        if (verificationFilter.value === value) {
+            return;
+        }
+
+        skipVerificationWatch = true;
+        verificationFilter.value = value;
+    },
+);
+
+watch(verificationFilter, () => {
+    if (skipVerificationWatch) {
+        skipVerificationWatch = false;
+        return;
+    }
+
+    setUsersPage(1, { emitNavigate: false });
+    applyFilters({ page: 1 });
+});
+
+watch(
+    () => props.filters.banned ?? 'all',
+    (value) => {
+        if (bannedFilter.value === value) {
+            return;
+        }
+
+        skipBannedWatch = true;
+        bannedFilter.value = value;
+    },
+);
+
+watch(bannedFilter, () => {
+    if (skipBannedWatch) {
+        skipBannedWatch = false;
+        return;
+    }
+
+    setUsersPage(1, { emitNavigate: false });
+    applyFilters({ page: 1 });
+});
+
+watch(
+    () => (props.filters.activity_window ? String(props.filters.activity_window) : 'all'),
+    (value) => {
+        if (activityFilter.value === value) {
+            return;
+        }
+
+        skipActivityWatch = true;
+        activityFilter.value = value;
+    },
+);
+
+watch(activityFilter, () => {
+    if (skipActivityWatch) {
+        skipActivityWatch = false;
+        return;
+    }
+
+    setUsersPage(1, { emitNavigate: false });
+    applyFilters({ page: 1 });
 });
 
 const banUser = (userId: number) => {
@@ -218,14 +344,73 @@ const stats = [
                 <!-- Users Management Section -->
                 <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
                     <!-- Search Bar using Input Component -->
-                    <div class="relative w-full flex">
-                        <h2 class="text-lg font-semibold mb-2 md:mb-0 w-full">User Management</h2>
-                        <Input
-                            v-model="searchQuery"
-                            type="text"
-                            placeholder="Search Users..."
-                            class="w-full pr-10 max-w-sm"
-                        />
+                    <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                        <div class="flex w-full flex-col gap-2 md:max-w-sm">
+                            <h2 class="text-lg font-semibold">User Management</h2>
+                            <Input
+                                v-model="searchQuery"
+                                type="text"
+                                placeholder="Search users by nickname, email or role..."
+                                class="w-full pr-10"
+                            />
+                        </div>
+
+                        <div class="flex flex-wrap items-end gap-3">
+                            <div class="flex flex-col gap-1">
+                                <Label for="filter-role" class="text-xs uppercase tracking-wide text-muted-foreground">Role</Label>
+                                <select
+                                    id="filter-role"
+                                    v-model="roleFilter"
+                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                >
+                                    <option value="all">All roles</option>
+                                    <option v-for="role in props.availableRoles" :key="role" :value="role">
+                                        {{ role }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="flex flex-col gap-1">
+                                <Label for="filter-verification" class="text-xs uppercase tracking-wide text-muted-foreground">Verification</Label>
+                                <select
+                                    id="filter-verification"
+                                    v-model="verificationFilter"
+                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                >
+                                    <option value="all">All users</option>
+                                    <option value="verified">Verified</option>
+                                    <option value="unverified">Unverified</option>
+                                </select>
+                            </div>
+
+                            <div class="flex flex-col gap-1">
+                                <Label for="filter-ban" class="text-xs uppercase tracking-wide text-muted-foreground">Ban status</Label>
+                                <select
+                                    id="filter-ban"
+                                    v-model="bannedFilter"
+                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                >
+                                    <option value="all">All users</option>
+                                    <option value="banned">Banned</option>
+                                    <option value="not_banned">Not banned</option>
+                                </select>
+                            </div>
+
+                            <div class="flex flex-col gap-1">
+                                <Label for="filter-activity" class="text-xs uppercase tracking-wide text-muted-foreground">Activity</Label>
+                                <select
+                                    id="filter-activity"
+                                    v-model="activityFilter"
+                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                >
+                                    <option value="all">Any time</option>
+                                    <option value="5">Active in last 5 minutes</option>
+                                    <option value="15">Active in last 15 minutes</option>
+                                    <option value="60">Active in last hour</option>
+                                    <option value="1440">Active in last day</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Users Table -->

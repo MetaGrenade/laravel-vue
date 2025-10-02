@@ -25,6 +25,10 @@ class UsersController extends Controller
     {
         $perPage = (int) $request->get('per_page', 15);
         $search = trim((string) $request->query('search', ''));
+        $role = trim((string) $request->query('role', '')) ?: null;
+        $verification = $request->query('verification');
+        $banned = $request->query('banned');
+        $activityWindow = $request->query('activity_window');
 
         $baseQuery = User::query();
 
@@ -41,6 +45,38 @@ class UsersController extends Controller
                         $roleQuery->where('name', 'like', $like);
                     });
             });
+        }
+
+        if ($role !== null) {
+            $filteredQuery->whereHas('roles', function ($roleQuery) use ($role) {
+                $roleQuery->where('name', $role);
+            });
+        }
+
+        if (in_array($verification, ['verified', 'unverified'], true)) {
+            $filteredQuery->when($verification === 'verified', function ($query) {
+                $query->whereNotNull('email_verified_at');
+            }, function ($query) {
+                $query->whereNull('email_verified_at');
+            });
+        } else {
+            $verification = null;
+        }
+
+        if (in_array($banned, ['banned', 'not_banned'], true)) {
+            $filteredQuery->where('is_banned', $banned === 'banned');
+        } else {
+            $banned = null;
+        }
+
+        if ($activityWindow !== null) {
+            $activityWindow = (int) $activityWindow;
+
+            if ($activityWindow > 0) {
+                $filteredQuery->where('last_activity_at', '>=', now()->subMinutes($activityWindow));
+            } else {
+                $activityWindow = null;
+            }
         }
 
         $users = (clone $filteredQuery)
@@ -84,7 +120,12 @@ class UsersController extends Controller
             'userStats' => $userStats,
             'filters' => [
                 'search' => $search !== '' ? $search : null,
+                'role' => $role,
+                'verification' => $verification,
+                'banned' => $banned,
+                'activity_window' => $activityWindow,
             ],
+            'availableRoles' => Role::query()->orderBy('name')->pluck('name')->values()->all(),
         ]);
     }
 
