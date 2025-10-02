@@ -354,6 +354,26 @@ class SupportCenterController extends Controller
         return back()->with('success', 'Ticket closed.');
     }
 
+    public function reopen(Request $request, SupportTicket $ticket): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user && (int) $ticket->user_id === (int) $user->id, 403);
+
+        if ($ticket->status !== 'closed') {
+            return back()->with('info', 'This ticket is already open.');
+        }
+
+        $ticket->update([
+            'status' => 'open',
+            'resolved_at' => null,
+            'resolved_by' => null,
+            'customer_satisfaction_rating' => null,
+        ]);
+
+        return back()->with('success', 'Ticket reopened. We will take another look.');
+    }
+
     private function escapeForLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);

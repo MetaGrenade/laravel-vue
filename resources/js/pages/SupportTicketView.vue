@@ -11,6 +11,14 @@ import InputError from '@/components/InputError.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import Input from '@/components/ui/input/Input.vue';
 import { Paperclip } from 'lucide-vue-next';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 interface TicketAssignee {
     id: number;
@@ -114,8 +122,12 @@ const ratingForm = useForm<{ rating: number | null }>({
     rating: null,
 });
 
+const reopenForm = useForm<Record<string, never>>({});
+
 const isClosed = computed(() => props.ticket.status === 'closed');
 const canRateTicket = computed(() => props.canRate);
+
+const reopenDialogOpen = ref(false);
 
 const handleAttachmentsChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
@@ -190,6 +202,37 @@ const submitRating = () => {
         onSuccess: () => {
             ratingForm.reset('rating');
         },
+    });
+};
+
+const handleReopenDialogChange = (open: boolean) => {
+    if (!open && reopenForm.processing) {
+        return;
+    }
+
+    reopenDialogOpen.value = open;
+
+    if (!open) {
+        reopenForm.clearErrors();
+    }
+};
+
+const openReopenDialog = () => {
+    if (!isClosed.value || reopenForm.processing) {
+        return;
+    }
+
+    handleReopenDialogChange(true);
+};
+
+const submitReopenTicket = () => {
+    if (!isClosed.value || reopenForm.processing) {
+        return;
+    }
+
+    reopenForm.patch(route('support.tickets.reopen', { ticket: props.ticket.id }), {
+        preserveScroll: true,
+        onSuccess: () => handleReopenDialogChange(false),
     });
 };
 
@@ -479,6 +522,24 @@ const formatFileSize = (bytes: number) => {
                         </CardContent>
                     </Card>
 
+                    <Card v-if="isClosed">
+                        <CardHeader>
+                            <CardTitle>Need more help?</CardTitle>
+                            <CardDescription>
+                                Reopen this ticket to continue the conversation with our support team.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-4 text-sm">
+                            <p class="text-muted-foreground">
+                                If the issue resurfaces or you have new information, let us know and we'll jump back in.
+                            </p>
+                            <Button type="button" :disabled="reopenForm.processing" @click="openReopenDialog">
+                                <span v-if="reopenForm.processing">Reopening…</span>
+                                <span v-else>Reopen ticket</span>
+                            </Button>
+                        </CardContent>
+                    </Card>
+
                     <Card>
                         <CardHeader>
                             <CardTitle>Original description</CardTitle>
@@ -493,5 +554,35 @@ const formatFileSize = (bytes: number) => {
                 </div>
             </div>
         </div>
+
+        <Dialog :open="reopenDialogOpen" @update:open="handleReopenDialogChange">
+            <DialogContent class="sm:max-w-[28rem]">
+                <DialogHeader>
+                    <DialogTitle>Reopen this ticket?</DialogTitle>
+                    <DialogDescription>
+                        Let our support team know you still need assistance. We will notify them right away so they can
+                        follow up.
+                    </DialogDescription>
+                </DialogHeader>
+                <p class="text-sm text-muted-foreground">
+                    Reopening the ticket clears the previous resolution details and puts it back in the support queue.
+                    You can always close it again once everything is resolved.
+                </p>
+                <DialogFooter class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        :disabled="reopenForm.processing"
+                        @click="handleReopenDialogChange(false)"
+                    >
+                        Cancel
+                    </Button>
+                    <Button type="button" :disabled="reopenForm.processing" @click="submitReopenTicket">
+                        <span v-if="reopenForm.processing">Reopening…</span>
+                        <span v-else>Reopen ticket</span>
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>
