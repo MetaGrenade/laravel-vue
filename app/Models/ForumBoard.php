@@ -57,4 +57,15 @@ class ForumBoard extends Model
             ->where('is_published', true)
             ->latestOfMany('last_posted_at');
     }
+
+    public function canBeViewedBy(?User $user): bool
+    {
+        $category = $this->relationLoaded('category') ? $this->category : $this->category()->first();
+
+        if ($category === null) {
+            return false;
+        }
+
+        return $category->canBeViewedBy($user);
+    }
 }

@@ -20,6 +20,8 @@ class ForumThreadActionController extends Controller
 
         abort_if($user === null, 403);
 
+        $this->ensureBoardAccessible($request, $board);
+
         $reasons = config('forum.report_reasons', []);
 
         $validated = $request->validate([
@@ -64,6 +66,8 @@ class ForumThreadActionController extends Controller
         $user = $request->user();
 
         abort_if($user === null, 403);
+
+        $this->ensureBoardAccessible($request, $board);
 
         $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
 
@@ -111,5 +115,14 @@ class ForumThreadActionController extends Controller
 
         return redirect()->route('forum.boards.show', $redirectParameters)
             ->with('success', 'Thread marked as read.');
+    }
+
+    private function ensureBoardAccessible(Request $request, ForumBoard $board): void
+    {
+        $board->loadMissing('category');
+
+        $category = $board->category;
+
+        abort_if($category === null || !$category->canBeViewedBy($request->user()), 404);
     }
 }
