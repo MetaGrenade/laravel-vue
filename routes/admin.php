@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
 use App\Http\Controllers\Admin\SupportController;
+use App\Http\Controllers\Admin\SupportTicketCategoryController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TokenController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
@@ -102,6 +103,14 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/support/tickets/{ticket}/assign', [SupportController::class,'assignTicket'])->name('acp.support.tickets.assign');
     Route::put('acp/support/tickets/{ticket}/priority', [SupportController::class,'updateTicketPriority'])->name('acp.support.tickets.priority');
     Route::put('acp/support/tickets/{ticket}/status', [SupportController::class,'updateTicketStatus'])->name('acp.support.tickets.status');
+
+    // Ticket categories
+    Route::get('acp/support/ticket-categories', [SupportTicketCategoryController::class, 'index'])->name('acp.support.ticket-categories.index');
+    Route::get('acp/support/ticket-categories/create', [SupportTicketCategoryController::class, 'create'])->name('acp.support.ticket-categories.create');
+    Route::post('acp/support/ticket-categories', [SupportTicketCategoryController::class, 'store'])->name('acp.support.ticket-categories.store');
+    Route::get('acp/support/ticket-categories/{category}/edit', [SupportTicketCategoryController::class, 'edit'])->name('acp.support.ticket-categories.edit');
+    Route::put('acp/support/ticket-categories/{category}', [SupportTicketCategoryController::class, 'update'])->name('acp.support.ticket-categories.update');
+    Route::delete('acp/support/ticket-categories/{category}', [SupportTicketCategoryController::class, 'destroy'])->name('acp.support.ticket-categories.destroy');
 
     // FAQs
     Route::get('acp/support/faqs/create', [SupportController::class,'createFaq'])->name('acp.support.faqs.create');
