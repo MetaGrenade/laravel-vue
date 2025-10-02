@@ -11,15 +11,6 @@ class ForumCategory extends Model
 {
     use HasFactory;
 
-    protected static function booted(): void
-    {
-        static::creating(function (self $category): void {
-            if (!$category->isDirty('is_published')) {
-                $category->is_published = true;
-            }
-        });
-    }
-
     protected $fillable = [
         'title',
         'slug',
@@ -29,13 +20,18 @@ class ForumCategory extends Model
         'position',
     ];
 
-    protected $attributes = [
-        'is_published' => true,
-    ];
-
     protected $casts = [
         'is_published' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $category): void {
+            if (!$category->isDirty('is_published')) {
+                $category->is_published = true;
+            }
+        });
+    }
 
     public function boards(): HasMany
     {
@@ -63,7 +59,7 @@ class ForumCategory extends Model
 
     public function canBeViewedBy(?User $user): bool
     {
-        if (!$this->isEffectivelyPublished()) {
+        if (! $this->isEffectivelyPublished()) {
             return false;
         }
 
@@ -76,7 +72,7 @@ class ForumCategory extends Model
 
     public function isEffectivelyPublished(): bool
     {
-        $rawValue = $this->getRawOriginal('is_published');
+        $rawValue = $this->getOriginal('is_published');
 
         if ($rawValue === null && array_key_exists('is_published', $this->attributes)) {
             $rawValue = $this->attributes['is_published'];
@@ -86,6 +82,6 @@ class ForumCategory extends Model
             return true;
         }
 
-        return (bool) $rawValue;
+        return ! in_array($rawValue, [false, 0, '0'], true);
     }
 }
