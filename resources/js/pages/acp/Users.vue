@@ -67,6 +67,7 @@ const props = defineProps<{
             nickname: string;
             email: string;
             email_verified_at: string | null;
+            last_activity_at: string | null;
             roles: Array<{ name: string }>;
             created_at: string | null;
             is_banned: boolean;
@@ -202,6 +203,7 @@ const stats = [
                                     <TableHead>Name</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead class="text-center">Roles</TableHead>
+                                    <TableHead class="text-center">Last Active</TableHead>
                                     <TableHead class="text-center">Created</TableHead>
                                     <TableHead class="text-center">Status</TableHead>
                                     <TableHead class="text-center">Actions</TableHead>
@@ -232,6 +234,12 @@ const stats = [
                       >
                         {{ role.name }}
                       </span>
+                                    </TableCell>
+                                    <TableCell class="text-center">
+                                        <span v-if="user.last_activity_at" :title="user.last_activity_at">
+                                            {{ fromNow(user.last_activity_at) }}
+                                        </span>
+                                        <span v-else class="text-muted-foreground">Never</span>
                                     </TableCell>
                                     <TableCell class="text-center">{{ fromNow(user.created_at) }}</TableCell>
                                     <TableCell class="text-center">
@@ -295,7 +303,7 @@ const stats = [
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="filteredUsers.length === 0">
-                                    <TableCell colspan="7" class="text-center text-gray-600 dark:text-gray-300">
+                                    <TableCell colspan="8" class="text-center text-gray-600 dark:text-gray-300">
                                         No users found.
                                     </TableCell>
                                 </TableRow>
