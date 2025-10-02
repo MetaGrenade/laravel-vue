@@ -33,8 +33,11 @@ const props = defineProps<{
         resolved_at: string | null;
         resolved_by: number | null;
         customer_satisfaction_rating: number | null;
+        support_ticket_category_id: number | null;
+        category: { id: number; name: string } | null;
     };
     agents: Array<{ id: number; nickname: string; email: string }>;
+    categories: Array<{ id: number; name: string }>;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -54,6 +57,8 @@ const priorityOptions = [
     { label: 'High', value: 'high' },
 ];
 
+const categoryOptions = computed(() => props.categories ?? []);
+
 const form = useForm({
     subject: props.ticket.subject,
     body: props.ticket.body,
@@ -61,6 +66,7 @@ const form = useForm({
     priority: props.ticket.priority,
     assigned_to: props.ticket.assignee?.id ?? null,
     user_id: props.ticket.user.id ?? null,
+    support_ticket_category_id: props.ticket.support_ticket_category_id ?? null,
 });
 
 const { fromNow, formatDate } = useUserTimezone();
@@ -197,6 +203,25 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                         </option>
                                     </select>
                                     <InputError :message="form.errors.priority" />
+                                </div>
+
+                                <div class="grid gap-2">
+                                    <Label for="support_ticket_category_id">Category</Label>
+                                    <select
+                                        id="support_ticket_category_id"
+                                        v-model="form.support_ticket_category_id"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    >
+                                        <option :value="null">Uncategorised</option>
+                                        <option
+                                            v-for="category in categoryOptions"
+                                            :key="category.id"
+                                            :value="category.id"
+                                        >
+                                            {{ category.name }}
+                                        </option>
+                                    </select>
+                                    <InputError :message="form.errors.support_ticket_category_id" />
                                 </div>
 
                                 <div class="grid gap-2">

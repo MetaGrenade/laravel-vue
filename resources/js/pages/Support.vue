@@ -43,6 +43,16 @@ interface TicketAssignee {
     email: string;
 }
 
+interface TicketCategory {
+    id: number;
+    name: string;
+}
+
+interface TicketCategoryFilterOption {
+    id: number | null;
+    name: string;
+}
+
 interface Ticket {
     id: number;
     subject: string;
@@ -52,6 +62,8 @@ interface Ticket {
     updated_at: string | null;
     assignee: TicketAssignee | null;
     customer_satisfaction_rating: number | null;
+    support_ticket_category_id: number | null;
+    category: TicketCategory | null;
 }
 
 interface PaginationLinks {
@@ -115,6 +127,7 @@ const props = defineProps<{
     tickets: PaginatedResource<Ticket>;
     faqs: FAQPayload;
     canSubmitTicket: boolean;
+    ticketCategories: TicketCategory[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -184,6 +197,9 @@ const readNumberParam = (location: string, key: string): number | null => {
 };
 
 const ticketSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'tickets_search'));
+const ticketCategoryFilter = ref<number | null>(
+    readNumberParam(page.props.ziggy.location, 'ticket_category_id'),
+);
 const faqFilters = computed(() =>
     props.faqs?.filters ?? {
         categories: [] as FAQCategoryFilters[],
@@ -198,6 +214,7 @@ const faqSearchQuery = ref(
 const ticketsMetaSource = computed(() => props.tickets.meta ?? null);
 const ticketItems = computed(() => props.tickets.data ?? []);
 const faqGroups = computed(() => props.faqs.groups ?? []);
+const ticketCategories = computed(() => props.ticketCategories ?? []);
 const faqCategories = computed(() => faqFilters.value.categories ?? []);
 const selectedFaqCategoryId = ref<number | null>(faqFilters.value.selectedCategoryId ?? null);
 const totalPublishedFaqs = computed(() => faqFilters.value.totalPublished ?? faqCategories.value.reduce(
@@ -236,9 +253,28 @@ const activeFaqCategory = computed(() =>
     faqCategoryOptions.value.find((option) => option.id === selectedFaqCategoryId.value) ?? null,
 );
 
+const ticketCategoryOptions = computed<TicketCategoryFilterOption[]>(() => {
+    const options: TicketCategoryFilterOption[] = [
+        {
+            id: null,
+            name: 'All categories',
+        },
+    ];
+
+    for (const category of ticketCategories.value) {
+        options.push({
+            id: category.id,
+            name: category.name,
+        });
+    }
+
+    return options;
+});
+
 interface SupportQueryOverrides {
     tickets_page?: number | null;
     faq_category_id?: number | null;
+    ticket_category_id?: number | null;
 }
 
 const buildSupportQuery = (overrides: SupportQueryOverrides = {}) => {
@@ -263,6 +299,16 @@ const buildSupportQuery = (overrides: SupportQueryOverrides = {}) => {
         }
     } else if (selectedFaqCategoryId.value !== null) {
         query.faq_category_id = selectedFaqCategoryId.value;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(overrides, 'ticket_category_id')) {
+        const overrideTicketCategory = overrides.ticket_category_id;
+
+        if (overrideTicketCategory !== null && overrideTicketCategory !== undefined) {
+            query.ticket_category_id = overrideTicketCategory;
+        }
+    } else if (ticketCategoryFilter.value !== null) {
+        query.ticket_category_id = ticketCategoryFilter.value;
     }
 
     if (overrides.tickets_page !== undefined) {
@@ -312,6 +358,7 @@ interface CreateTicketFormPayload {
     body: string;
     priority: 'low' | 'medium' | 'high';
     attachments: File[];
+    support_ticket_category_id: number | null;
 }
 
 const form = useForm<CreateTicketFormPayload>({
@@ -319,6 +366,7 @@ const form = useForm<CreateTicketFormPayload>({
     body: '',
     priority: 'medium',
     attachments: [],
+    support_ticket_category_id: null,
 });
 
 const attachmentInput = ref<HTMLInputElement | null>(null);
@@ -394,6 +442,7 @@ const debouncedFaqsSearch = useDebounceFn(() => {
 let skipTicketsSearchWatch = false;
 let skipFaqsSearchWatch = false;
 let skipFaqCategoryWatch = false;
+let skipTicketCategoryWatch = false;
 
 watch(
     () => page.props.ziggy.location,
@@ -401,6 +450,7 @@ watch(
         const nextTicketsSearch = readSearchParam(location, 'tickets_search');
         const nextFaqsSearch = readSearchParam(location, 'faqs_search');
         const nextFaqCategory = readNumberParam(location, 'faq_category_id');
+        const nextTicketCategory = readNumberParam(location, 'ticket_category_id');
 
         if (ticketSearchQuery.value !== nextTicketsSearch) {
             skipTicketsSearchWatch = true;
@@ -415,6 +465,11 @@ watch(
         if (selectedFaqCategoryId.value !== nextFaqCategory) {
             skipFaqCategoryWatch = true;
             selectedFaqCategoryId.value = nextFaqCategory;
+        }
+
+        if (ticketCategoryFilter.value !== nextTicketCategory) {
+            skipTicketCategoryWatch = true;
+            ticketCategoryFilter.value = nextTicketCategory;
         }
     },
 );
@@ -445,6 +500,16 @@ watch(selectedFaqCategoryId, () => {
     }
 
     navigateToSupport({ faq_category_id: selectedFaqCategoryId.value });
+});
+
+watch(ticketCategoryFilter, () => {
+    if (skipTicketCategoryWatch) {
+        skipTicketCategoryWatch = false;
+        return;
+    }
+
+    setTicketsPage(1, { emitNavigate: false });
+    navigateToSupport({ ticket_category_id: ticketCategoryFilter.value });
 });
 
 const goToTicket = (ticketId: number) => {
@@ -556,30 +621,45 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                 <!-- My Tickets Tab -->
                 <TabsContent value="tickets" class="space-y-6">
                     <!-- Search and New Ticket Button -->
-                    <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                        <h3 class="text-2xl font-semibold mb-4">My Tickets</h3>
-                        <Input
-                            v-model="ticketSearchQuery"
-                            placeholder="Search your tickets..."
-                            class="w-full md:w-1/3 md:ml-auto"
-                            :disabled="!props.canSubmitTicket"
-                        />
-                        <Button
-                            v-if="props.canSubmitTicket"
-                            variant="secondary"
-                            class="md:ml-auto cursor-pointer"
-                            as-child
-                        >
-                            <a href="#create_ticket">Create New Ticket</a>
-                        </Button>
-                        <Button
-                            v-else
-                            variant="secondary"
-                            class="md:ml-auto cursor-pointer"
-                            as-child
-                        >
-                            <Link :href="route('login')">Sign in to submit</Link>
-                        </Button>
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <h3 class="text-2xl font-semibold">My Tickets</h3>
+                        <div class="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
+                            <Input
+                                v-model="ticketSearchQuery"
+                                placeholder="Search your tickets..."
+                                class="w-full md:w-64"
+                                :disabled="!props.canSubmitTicket"
+                            />
+                            <select
+                                v-model="ticketCategoryFilter"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:w-60"
+                                :disabled="!props.canSubmitTicket"
+                            >
+                                <option
+                                    v-for="category in ticketCategoryOptions"
+                                    :key="category.id ?? 'all'"
+                                    :value="category.id"
+                                >
+                                    {{ category.name }}
+                                </option>
+                            </select>
+                            <Button
+                                v-if="props.canSubmitTicket"
+                                variant="secondary"
+                                class="cursor-pointer md:ml-4"
+                                as-child
+                            >
+                                <a href="#create_ticket">Create New Ticket</a>
+                            </Button>
+                            <Button
+                                v-else
+                                variant="secondary"
+                                class="cursor-pointer md:ml-4"
+                                as-child
+                            >
+                                <Link :href="route('login')">Sign in to submit</Link>
+                            </Button>
+                        </div>
                     </div>
 
                     <template v-if="props.canSubmitTicket">
@@ -633,6 +713,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <TableRow>
                                         <TableHead>ID</TableHead>
                                         <TableHead>Subject</TableHead>
+                                        <TableHead class="text-center">Category</TableHead>
                                         <TableHead class="text-center">Status</TableHead>
                                         <TableHead class="text-center">Priority</TableHead>
                                         <TableHead class="text-center">Assigned</TableHead>
@@ -665,6 +746,9 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                             >
                                                 {{ ticket.subject }}
                                             </Link>
+                                        </TableCell>
+                                        <TableCell class="text-center">
+                                            {{ ticket.category?.name ?? '—' }}
                                         </TableCell>
                                         <TableCell class="text-center">
                                             <span :class="statusClass(ticket.status)">
@@ -719,7 +803,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                         </TableCell>
                                     </TableRow>
                                     <TableRow v-if="ticketItems.length === 0">
-                                        <TableCell colspan="8" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                        <TableCell colspan="9" class="text-center text-sm text-gray-600 dark:text-gray-300">
                                             No tickets found.
                                         </TableCell>
                                     </TableRow>
@@ -788,6 +872,25 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                         required
                                     />
                                     <InputError :message="form.errors.subject" />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="ticket-category">Category</Label>
+                                    <select
+                                        id="ticket-category"
+                                        v-model="form.support_ticket_category_id"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        :disabled="form.processing"
+                                    >
+                                        <option :value="null">Uncategorised</option>
+                                        <option
+                                            v-for="category in ticketCategories"
+                                            :key="category.id"
+                                            :value="category.id"
+                                        >
+                                            {{ category.name }}
+                                        </option>
+                                    </select>
+                                    <InputError :message="form.errors.support_ticket_category_id" />
                                 </div>
                                 <div class="space-y-2">
                                     <Label for="ticket-priority">Priority</Label>

@@ -9,6 +9,7 @@ use App\Http\Requests\StorePublicSupportTicketRequest;
 use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\SupportTicket;
+use App\Models\SupportTicketCategory;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
 use App\Notifications\TicketOpened;
@@ -40,6 +41,7 @@ class SupportCenterController extends Controller
         $ticketsSearch = $request->string('tickets_search')->trim();
         $faqsSearch = $request->string('faqs_search')->trim();
         $selectedFaqCategoryId = $request->query('faq_category_id');
+        $selectedTicketCategoryId = $request->query('ticket_category_id');
 
         $faqCategoryId = is_numeric($selectedFaqCategoryId) && (int) $selectedFaqCategoryId > 0
             ? (int) $selectedFaqCategoryId
@@ -47,6 +49,9 @@ class SupportCenterController extends Controller
 
         $ticketsSearchTerm = $ticketsSearch->isNotEmpty() ? $ticketsSearch->value() : null;
         $faqsSearchTerm = $faqsSearch->isNotEmpty() ? $faqsSearch->value() : null;
+        $ticketCategoryId = is_numeric($selectedTicketCategoryId) && (int) $selectedTicketCategoryId > 0
+            ? (int) $selectedTicketCategoryId
+            : null;
 
         $ticketsPayload = [
             'data' => [],
@@ -57,6 +62,9 @@ class SupportCenterController extends Controller
         if ($user) {
             $tickets = SupportTicket::query()
                 ->where('user_id', $user->id)
+                ->when($ticketCategoryId, function ($query) use ($ticketCategoryId) {
+                    $query->where('support_ticket_category_id', $ticketCategoryId);
+                })
                 ->when($ticketsSearchTerm, function ($query) use ($ticketsSearchTerm) {
                     $escaped = $this->escapeForLike($ticketsSearchTerm);
                     $like = "%{$escaped}%";
@@ -73,7 +81,7 @@ class SupportCenterController extends Controller
                             });
                     });
                 })
-                ->with(['assignee:id,nickname,email'])
+                ->with(['assignee:id,nickname,email', 'category:id,name'])
                 ->orderByDesc('created_at')
                 ->paginate($ticketsPerPage, ['*'], 'tickets_page')
                 ->withQueryString();
@@ -86,6 +94,7 @@ class SupportCenterController extends Controller
                             'subject' => $ticket->subject,
                             'status' => $ticket->status,
                             'priority' => $ticket->priority,
+                            'support_ticket_category_id' => $ticket->support_ticket_category_id,
                             'created_at' => optional($ticket->created_at)->toIso8601String(),
                             'updated_at' => optional($ticket->updated_at)->toIso8601String(),
                             'customer_satisfaction_rating' => $ticket->customer_satisfaction_rating,
@@ -94,12 +103,24 @@ class SupportCenterController extends Controller
                                 'nickname' => $ticket->assignee->nickname,
                                 'email' => $ticket->assignee->email,
                             ] : null,
+                            'category' => $ticket->category ? [
+                                'id' => $ticket->category->id,
+                                'name' => $ticket->category->name,
+                            ] : null,
                         ];
                     })
                     ->values()
                     ->all(),
             ], $this->inertiaPagination($tickets));
         }
+
+        $ticketCategories = SupportTicketCategory::orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (SupportTicketCategory $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+            ])
+            ->all();
 
         $categories = FaqCategory::query()
             ->withCount([
@@ -196,6 +217,7 @@ class SupportCenterController extends Controller
                 'matchingCount' => $faqCollection->count(),
             ],
             'canSubmitTicket' => (bool) $user,
+            'ticketCategories' => $ticketCategories,
         ]);
     }
 
@@ -212,6 +234,7 @@ class SupportCenterController extends Controller
                 'subject' => $validated['subject'],
                 'body' => $validated['body'],
                 'priority' => $validated['priority'] ?? 'medium',
+                'support_ticket_category_id' => $validated['support_ticket_category_id'] ?? null,
             ]);
 
             $message = $ticket->messages()->create([
@@ -272,6 +295,7 @@ class SupportCenterController extends Controller
         $ticket->load([
             'assignee:id,nickname,email',
             'user:id,nickname,email',
+            'category:id,name',
             'messages.author:id,nickname,email',
             'messages.attachments',
         ]);
@@ -328,6 +352,7 @@ class SupportCenterController extends Controller
                 'body' => $ticket->body,
                 'status' => $ticket->status,
                 'priority' => $ticket->priority,
+                'support_ticket_category_id' => $ticket->support_ticket_category_id,
                 'created_at' => optional($ticket->created_at)->toIso8601String(),
                 'updated_at' => optional($ticket->updated_at)->toIso8601String(),
                 'customer_satisfaction_rating' => $ticket->customer_satisfaction_rating,
@@ -340,6 +365,10 @@ class SupportCenterController extends Controller
                     'id' => $ticket->user->id,
                     'nickname' => $ticket->user->nickname,
                     'email' => $ticket->user->email,
+                ] : null,
+                'category' => $ticket->category ? [
+                    'id' => $ticket->category->id,
+                    'name' => $ticket->category->name,
                 ] : null,
             ],
             'messages' => $messages,
