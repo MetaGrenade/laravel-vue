@@ -173,6 +173,9 @@ const submitAssignForm = () => {
 const priorityDialogOpen = ref(false);
 const priorityDialogTicket = ref<Ticket | null>(null);
 const priorityDialogNextPriority = ref<Ticket['priority'] | null>(null);
+const priorityLevels: Ticket['priority'][] = ['low', 'medium', 'high'];
+const formatPriority = (priority: Ticket['priority']) =>
+    `${priority.charAt(0).toUpperCase()}${priority.slice(1)}`;
 
 const handlePriorityDialogChange = (open: boolean) => {
     priorityDialogOpen.value = open;
@@ -184,24 +187,18 @@ const handlePriorityDialogChange = (open: boolean) => {
 };
 
 const openPriorityDialog = (ticket: Ticket) => {
-    const priorityLevels: Ticket['priority'][] = ['low', 'medium', 'high'];
-    const currentIndex = priorityLevels.indexOf(ticket.priority);
-    const nextPriority =
-        currentIndex === -1 || currentIndex + 1 >= priorityLevels.length
-            ? null
-            : priorityLevels[currentIndex + 1];
-
-    if (!nextPriority) {
-        return;
-    }
-
     priorityDialogTicket.value = ticket;
-    priorityDialogNextPriority.value = nextPriority;
+    priorityDialogNextPriority.value = ticket.priority;
     handlePriorityDialogChange(true);
 };
 
 const confirmPriorityUpdate = () => {
     if (!priorityDialogTicket.value || !priorityDialogNextPriority.value) {
+        return;
+    }
+
+    if (priorityDialogNextPriority.value === priorityDialogTicket.value.priority) {
+        handlePriorityDialogChange(false);
         return;
     }
 
@@ -655,11 +652,10 @@ const unpublishFaq = (faq: FaqItem) => {
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
                                                             v-if="prioritySupport"
-                                                            :disabled="t.priority === 'high'"
                                                             @select="openPriorityDialog(t)"
                                                         >
                                                             <SquareChevronUp class="h-8 w-8" />
-                                                            <span>Elevate Priority</span>
+                                                            <span>Update Priority</span>
                                                         </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="editSupport" />
@@ -955,20 +951,43 @@ const unpublishFaq = (faq: FaqItem) => {
         <Dialog :open="priorityDialogOpen" @update:open="handlePriorityDialogChange">
             <DialogContent class="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Elevate priority</DialogTitle>
-                    <DialogDescription v-if="priorityDialogTicket && priorityDialogNextPriority">
-                        Change the priority of ticket <span class="font-medium">#{{ priorityDialogTicket.id }}</span> from
-                        <span class="font-medium">{{ priorityDialogTicket.priority }}</span> to
-                        <span class="font-medium">{{ priorityDialogNextPriority }}</span>.
+                    <DialogTitle>Update ticket priority</DialogTitle>
+                    <DialogDescription v-if="priorityDialogTicket">
+                        Select the priority for ticket <span class="font-medium">#{{ priorityDialogTicket.id }}</span>.
+                        Current priority:
+                        <span class="font-medium">{{ formatPriority(priorityDialogTicket.priority) }}</span>.
                     </DialogDescription>
                 </DialogHeader>
+
+                <div v-if="priorityDialogTicket" class="grid gap-3 py-2">
+                    <div class="grid gap-2">
+                        <Label for="priority-dialog-select">Priority</Label>
+                        <select
+                            id="priority-dialog-select"
+                            v-model="priorityDialogNextPriority"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        >
+                            <option v-for="priority in priorityLevels" :key="priority" :value="priority">
+                                {{ formatPriority(priority) }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
 
                 <DialogFooter class="gap-2">
                     <Button type="button" variant="secondary" @click="handlePriorityDialogChange(false)">
                         Cancel
                     </Button>
-                    <Button type="button" :disabled="!priorityDialogTicket || !priorityDialogNextPriority" @click="confirmPriorityUpdate">
-                        Confirm
+                    <Button
+                        type="button"
+                        :disabled="
+                            !priorityDialogTicket ||
+                            !priorityDialogNextPriority ||
+                            priorityDialogNextPriority === priorityDialogTicket.priority
+                        "
+                        @click="confirmPriorityUpdate"
+                    >
+                        Save changes
                     </Button>
                 </DialogFooter>
             </DialogContent>

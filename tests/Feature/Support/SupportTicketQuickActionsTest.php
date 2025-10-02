@@ -77,6 +77,34 @@ class SupportTicketQuickActionsTest extends TestCase
         $this->assertSame('high', $ticket->fresh()->priority);
     }
 
+    public function test_admin_can_lower_ticket_priority(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $requestor = User::factory()->create();
+
+        $ticket = SupportTicket::create([
+            'user_id' => $requestor->id,
+            'subject' => 'Review ticket priority',
+            'body' => 'Ticket priority should be decreased.',
+            'status' => 'open',
+            'priority' => 'high',
+        ]);
+
+        $response = $this
+            ->actingAs($admin)
+            ->from(route('acp.support.index'))
+            ->put(route('acp.support.tickets.priority', $ticket), [
+                'priority' => 'low',
+            ]);
+
+        $response->assertRedirect(route('acp.support.index'));
+        $response->assertSessionHas('success', 'Ticket priority updated.');
+
+        $this->assertSame('low', $ticket->fresh()->priority);
+    }
+
     public function test_admin_can_toggle_ticket_status(): void
     {
         Carbon::setTestNow('2025-02-15 12:00:00');
