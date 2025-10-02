@@ -36,7 +36,8 @@ class ForumCategory extends Model
         return $query
             ->where('is_published', true)
             ->where(function (Builder $builder) use ($permissionNames): void {
-                $builder->whereNull('access_permission');
+                $builder->whereNull('access_permission')
+                    ->orWhere('access_permission', '');
 
                 if (!empty($permissionNames)) {
                     $builder->orWhereIn('access_permission', $permissionNames);
@@ -50,7 +51,7 @@ class ForumCategory extends Model
             return false;
         }
 
-        if ($this->access_permission === null) {
+        if ($this->access_permission === null || $this->access_permission === '') {
             return true;
         }
 
