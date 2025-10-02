@@ -71,8 +71,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
 
     // Tickets
     Route::get('acp/support/tickets/create', [SupportController::class,'createTicket'])->name('acp.support.tickets.create');
+    Route::get('acp/support/tickets/{ticket}', [SupportController::class,'showTicket'])->name('acp.support.tickets.show');
     Route::get('acp/support/tickets/{ticket}/edit', [SupportController::class,'editTicket'])->name('acp.support.tickets.edit');
     Route::post('acp/support/tickets', [SupportController::class,'storeTicket'])->name('acp.support.tickets.store');
+    Route::post('acp/support/tickets/{ticket}/messages', [SupportController::class,'storeTicketMessage'])->name('acp.support.tickets.messages.store');
     Route::put('acp/support/tickets/{ticket}', [SupportController::class,'updateTicket'])->name('acp.support.tickets.update');
     Route::delete('acp/support/tickets/{ticket}', [SupportController::class,'destroyTicket'])->name('acp.support.tickets.destroy');
     Route::put('acp/support/tickets/{ticket}/assign', [SupportController::class,'assignTicket'])->name('acp.support.tickets.assign');

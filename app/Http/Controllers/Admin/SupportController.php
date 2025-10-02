@@ -5,14 +5,20 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreFaqRequest;
+use App\Http\Requests\Admin\StoreSupportTicketMessageRequest;
 use App\Http\Requests\Admin\StoreSupportTicketRequest;
 use App\Http\Requests\Admin\UpdateFaqRequest;
 use App\Http\Requests\Admin\UpdateSupportTicketRequest;
 use App\Models\SupportTicket;
+use App\Models\SupportTicketMessage;
+use App\Models\SupportTicketMessageAttachment;
 use App\Models\Faq;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -198,6 +204,149 @@ class SupportController extends Controller
         ]);
 
         return back()->with('success', 'Ticket priority updated.');
+    }
+
+    public function showTicket(Request $request, SupportTicket $ticket): Response
+    {
+        abort_unless($request->user()?->can('support.acp.view'), 403);
+
+        $ticket->load([
+            'assignee:id,nickname,email',
+            'resolver:id,nickname,email',
+            'user:id,nickname,email',
+            'messages.author:id,nickname,email',
+            'messages.attachments',
+        ]);
+
+        $messages = $ticket->messages
+            ->map(fn (SupportTicketMessage $message) => $this->formatTicketMessage($ticket, $message))
+            ->values()
+            ->all();
+
+        if (count($messages) === 0) {
+            $messages[] = [
+                'id' => -$ticket->id,
+                'body' => $ticket->body,
+                'created_at' => optional($ticket->created_at)->toIso8601String(),
+                'author' => $ticket->user ? [
+                    'id' => $ticket->user->id,
+                    'nickname' => $ticket->user->nickname,
+                    'email' => $ticket->user->email,
+                ] : null,
+                'is_from_support' => false,
+                'attachments' => [],
+            ];
+        }
+
+        $canReply = $request->user()?->can('support.acp.reply') && $ticket->status !== 'closed';
+
+        return Inertia::render('acp/SupportTicketView', [
+            'ticket' => [
+                'id' => $ticket->id,
+                'subject' => $ticket->subject,
+                'body' => $ticket->body,
+                'status' => $ticket->status,
+                'priority' => $ticket->priority,
+                'created_at' => optional($ticket->created_at)->toIso8601String(),
+                'updated_at' => optional($ticket->updated_at)->toIso8601String(),
+                'resolved_at' => optional($ticket->resolved_at)->toIso8601String(),
+                'resolved_by' => $ticket->resolved_by,
+                'assignee' => $ticket->assignee ? [
+                    'id' => $ticket->assignee->id,
+                    'nickname' => $ticket->assignee->nickname,
+                    'email' => $ticket->assignee->email,
+                ] : null,
+                'resolver' => $ticket->resolver ? [
+                    'id' => $ticket->resolver->id,
+                    'nickname' => $ticket->resolver->nickname,
+                    'email' => $ticket->resolver->email,
+                ] : null,
+                'user' => $ticket->user ? [
+                    'id' => $ticket->user->id,
+                    'nickname' => $ticket->user->nickname,
+                    'email' => $ticket->user->email,
+                ] : null,
+            ],
+            'messages' => $messages,
+            'canReply' => (bool) $canReply,
+        ]);
+    }
+
+    public function storeTicketMessage(
+        StoreSupportTicketMessageRequest $request,
+        SupportTicket $ticket
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('support.acp.reply'), 403);
+
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($request, $ticket, $validated): void {
+            $message = $ticket->messages()->create([
+                'user_id' => $request->user()->id,
+                'body' => $validated['body'],
+            ]);
+
+            $attachments = $request->file('attachments', []);
+
+            if ($attachments instanceof UploadedFile) {
+                $attachments = [$attachments];
+            } elseif (! is_array($attachments)) {
+                $attachments = [];
+            }
+
+            $disk = 'public';
+
+            foreach ($attachments as $file) {
+                if (! $file) {
+                    continue;
+                }
+
+                $path = $file->store("support-attachments/{$ticket->id}", $disk);
+
+                $message->attachments()->create([
+                    'disk' => $disk,
+                    'path' => $path,
+                    'name' => $file->getClientOriginalName() ?: $file->hashName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'size' => $file->getSize() ?: 0,
+                ]);
+            }
+
+            $ticket->touch();
+            $message->touch();
+        });
+
+        return redirect()
+            ->route('acp.support.tickets.show', $ticket)
+            ->with('success', 'Reply sent.');
+    }
+
+    private function formatTicketMessage(SupportTicket $ticket, SupportTicketMessage $message): array
+    {
+        return [
+            'id' => $message->id,
+            'body' => $message->body,
+            'created_at' => optional($message->created_at)->toIso8601String(),
+            'author' => $message->author ? [
+                'id' => $message->author->id,
+                'nickname' => $message->author->nickname,
+                'email' => $message->author->email,
+            ] : null,
+            'is_from_support' => $message->author
+                ? $message->author->id !== $ticket->user_id
+                : true,
+            'attachments' => $message->attachments
+                ->map(function (SupportTicketMessageAttachment $attachment) {
+                    return [
+                        'id' => $attachment->id,
+                        'name' => $attachment->name,
+                        'size' => $attachment->size,
+                        'download_url' => Storage::disk($attachment->disk)->url($attachment->path),
+                    ];
+                })
+                ->values()
+                ->all(),
+        ];
     }
 
     public function updateTicketStatus(Request $request, SupportTicket $ticket): RedirectResponse
