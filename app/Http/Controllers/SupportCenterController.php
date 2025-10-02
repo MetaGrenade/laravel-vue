@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Requests\StorePublicSupportTicketMessageRequest;
+use App\Http\Requests\StorePublicSupportTicketRatingRequest;
 use App\Http\Requests\StorePublicSupportTicketRequest;
 use App\Models\Faq;
 use App\Models\SupportTicket;
@@ -74,6 +75,7 @@ class SupportCenterController extends Controller
                             'priority' => $ticket->priority,
                             'created_at' => optional($ticket->created_at)->toIso8601String(),
                             'updated_at' => optional($ticket->updated_at)->toIso8601String(),
+                            'customer_satisfaction_rating' => $ticket->customer_satisfaction_rating,
                             'assignee' => $ticket->assignee ? [
                                 'id' => $ticket->assignee->id,
                                 'nickname' => $ticket->assignee->nickname,
@@ -240,6 +242,7 @@ class SupportCenterController extends Controller
                 'priority' => $ticket->priority,
                 'created_at' => optional($ticket->created_at)->toIso8601String(),
                 'updated_at' => optional($ticket->updated_at)->toIso8601String(),
+                'customer_satisfaction_rating' => $ticket->customer_satisfaction_rating,
                 'assignee' => $ticket->assignee ? [
                     'id' => $ticket->assignee->id,
                     'nickname' => $ticket->assignee->nickname,
@@ -253,6 +256,7 @@ class SupportCenterController extends Controller
             ],
             'messages' => $messages,
             'canReply' => $ticket->status !== 'closed',
+            'canRate' => $ticket->status === 'closed' && $ticket->customer_satisfaction_rating === null,
         ]);
     }
 
@@ -301,6 +305,21 @@ class SupportCenterController extends Controller
         return redirect()
             ->route('support.tickets.show', $ticket)
             ->with('success', 'Your message has been sent.');
+    }
+
+    public function storeRating(
+        StorePublicSupportTicketRatingRequest $request,
+        SupportTicket $ticket
+    ): RedirectResponse {
+        $validated = $request->validated();
+
+        $ticket->update([
+            'customer_satisfaction_rating' => (int) $validated['rating'],
+        ]);
+
+        return redirect()
+            ->route('support.tickets.show', $ticket)
+            ->with('success', 'Thanks for sharing your feedback.');
     }
 
     private function escapeForLike(string $value): string
