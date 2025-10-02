@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -320,6 +321,37 @@ class SupportCenterController extends Controller
         return redirect()
             ->route('support.tickets.show', $ticket)
             ->with('success', 'Thanks for sharing your feedback.');
+    }
+
+    public function updateStatus(Request $request, SupportTicket $ticket): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user && (int) $ticket->user_id === (int) $user->id, 403);
+
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['closed'])],
+        ]);
+
+        if ($ticket->status === $validated['status']) {
+            return back()->with('info', 'This ticket is already closed.');
+        }
+
+        $updates = [
+            'status' => $validated['status'],
+        ];
+
+        if (! $ticket->resolved_at) {
+            $updates['resolved_at'] = now();
+        }
+
+        if (! $ticket->resolved_by) {
+            $updates['resolved_by'] = $user->id;
+        }
+
+        $ticket->update($updates);
+
+        return back()->with('success', 'Ticket closed.');
     }
 
     private function escapeForLike(string $value): string
