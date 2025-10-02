@@ -15,6 +15,7 @@ use App\Models\SupportTicketMessageAttachment;
 use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\User;
+use App\Notifications\SupportTicketAgentReply;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -408,9 +409,12 @@ class SupportController extends Controller
 
         $validated = $request->validated();
 
-        DB::transaction(function () use ($request, $ticket, $validated): void {
+        $agent = $request->user();
+        $message = null;
+
+        DB::transaction(function () use ($request, $ticket, $validated, $agent, &$message): void {
             $message = $ticket->messages()->create([
-                'user_id' => $request->user()->id,
+                'user_id' => $agent->id,
                 'body' => $validated['body'],
             ]);
 
@@ -443,6 +447,15 @@ class SupportController extends Controller
             $ticket->touch();
             $message->touch();
         });
+
+        $ticket->refresh();
+
+        if ($ticket->user && (int) $ticket->user->id !== (int) $agent->id && $message) {
+            $message->refresh();
+            $message->loadMissing('author');
+
+            $ticket->user->notify(new SupportTicketAgentReply($ticket, $message));
+        }
 
         return redirect()
             ->route('acp.support.tickets.show', $ticket)
