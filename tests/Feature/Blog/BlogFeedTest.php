@@ -3,11 +3,14 @@
 namespace Tests\Feature\Blog;
 
 use App\Models\Blog;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class BlogFeedTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_feed_returns_atom_xml_with_latest_published_posts(): void
     {
         $olderPost = Blog::factory()->published()->create([
