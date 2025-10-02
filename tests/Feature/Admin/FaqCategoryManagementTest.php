@@ -6,6 +6,7 @@ use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\Fluent\AssertableJson;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -37,9 +38,10 @@ class FaqCategoryManagementTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
             ->component('acp/SupportFaqCategories')
-            ->has('categories', 2)
+            ->has('categories', 3)
             ->where('categories.0.name', 'Billing')
-            ->where('categories.1.name', 'Account')
+            ->where('categories.1.name', 'General')
+            ->where('categories.2.name', 'Account')
         );
     }
 
@@ -53,8 +55,15 @@ class FaqCategoryManagementTest extends TestCase
         $response = $this->getJson(route('acp.support.faq-categories.index'));
 
         $response->assertOk()
-            ->assertJsonPath('categories.0.name', 'Getting Started')
-            ->assertJsonPath('categories.0.faqs_count', 1);
+            ->assertJson(fn (AssertableJson $json) => $json
+                ->has('categories', fn (AssertableJson $categories) => $categories
+                    ->first(fn (AssertableJson $category) => $category
+                        ->where('name', 'Getting Started')
+                        ->where('faqs_count', 1)
+                        ->etc()
+                    )
+                )
+            );
     }
 
     public function test_admin_can_create_faq_category(): void
