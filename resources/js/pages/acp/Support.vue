@@ -244,6 +244,10 @@ const statusDialogActionLabel = computed(() => {
         return 'close this ticket';
     }
 
+    if (statusDialogStatus.value === 'pending') {
+        return 'mark this ticket as pending';
+    }
+
     return `mark this ticket as ${statusDialogStatus.value}`;
 });
 
@@ -674,6 +678,13 @@ const unpublishFaq = (faq: FaqItem) => {
                                                                 @select="openStatusDialog(t, 'open')"
                                                             >
                                                                 <Ticket class="mr-2" /> Open Ticket
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                v-if="t.status !== 'pending'"
+                                                                class="text-blue-500"
+                                                                @select="openStatusDialog(t, 'pending')"
+                                                            >
+                                                                <HelpCircle class="mr-2" /> Mark as pending
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 v-if="t.status === 'open'"

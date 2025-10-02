@@ -143,6 +143,46 @@ class SupportTicketQuickActionsTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_admin_can_mark_ticket_as_pending(): void
+    {
+        Carbon::setTestNow('2025-02-15 12:30:00');
+
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $requestor = User::factory()->create();
+
+        $ticket = SupportTicket::create([
+            'user_id' => $requestor->id,
+            'subject' => 'Need to pause work',
+            'body' => 'Waiting on additional customer information.',
+            'status' => 'closed',
+            'priority' => 'medium',
+            'resolved_at' => Carbon::now()->subDay(),
+            'resolved_by' => $admin->id,
+            'customer_satisfaction_rating' => 5,
+        ]);
+
+        $response = $this
+            ->actingAs($admin)
+            ->from(route('acp.support.index'))
+            ->put(route('acp.support.tickets.status', $ticket), [
+                'status' => 'pending',
+            ]);
+
+        $response->assertRedirect(route('acp.support.index'));
+        $response->assertSessionHas('success', 'Ticket marked as pending.');
+
+        $freshTicket = $ticket->fresh();
+
+        $this->assertSame('pending', $freshTicket->status);
+        $this->assertNull($freshTicket->resolved_at);
+        $this->assertNull($freshTicket->resolved_by);
+        $this->assertNull($freshTicket->customer_satisfaction_rating);
+
+        Carbon::setTestNow();
+    }
+
     public function test_admin_reopening_ticket_clears_resolution_metadata(): void
     {
         Carbon::setTestNow('2025-02-15 13:00:00');
