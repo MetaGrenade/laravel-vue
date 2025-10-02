@@ -134,7 +134,7 @@ class SupportTicketNotificationTest extends TestCase
         Notification::assertSentToTimes($owner, TicketReplied::class, 2);
         Notification::assertSentToTimes($agent, TicketReplied::class, 2);
 
-        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message) {
+        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message, $agent) {
             if ($channels !== ['database']) {
                 return false;
             }
@@ -155,7 +155,7 @@ class SupportTicketNotificationTest extends TestCase
             return true;
         });
 
-        Notification::assertSentTo($agent, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($agent, $ticket, $message) {
+        Notification::assertSentTo($agent, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($agent, $ticket, $message, $owner) {
             if ($channels !== ['database']) {
                 return false;
             }
@@ -176,7 +176,7 @@ class SupportTicketNotificationTest extends TestCase
             return true;
         });
 
-        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message) {
+        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message, $agent) {
             if ($channels !== ['mail']) {
                 return false;
             }
@@ -238,7 +238,7 @@ class SupportTicketNotificationTest extends TestCase
         Notification::assertSentToTimes($owner, TicketReplied::class, 2);
         Notification::assertSentToTimes($agent, TicketReplied::class, 2);
 
-        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message) {
+        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message, $agent) {
             if ($channels !== ['database']) {
                 return false;
             }
@@ -280,7 +280,7 @@ class SupportTicketNotificationTest extends TestCase
             return true;
         });
 
-        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message) {
+        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message, $agent) {
             if ($channels !== ['mail']) {
                 return false;
             }
