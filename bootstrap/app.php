@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureSiteIsAvailable;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
+use App\Http\Middleware\PreventBannedUser;
 use App\Http\Middleware\UpdateLastActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -25,18 +26,27 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance']);
 
-        $middleware->api(prepend: [
-            EnsureFrontendRequestsAreStateful::class,
-        ]);
+        $middleware->api(
+            prepend: [
+                EnsureFrontendRequestsAreStateful::class,
+            ],
+            append: [
+                PreventBannedUser::class,
+            ]
+        );
 
         $middleware->web(
+            prepend: [
+                PreventBannedUser::class,
+            ],
             append: [
                 EnsureSiteIsAvailable::class,
                 HandleAppearance::class,
                 HandleInertiaRequests::class,
                 AddLinkHeadersForPreloadedAssets::class,
                 UpdateLastActivity::class,
-            ]);
+            ]
+        );
 
         $middleware->alias([
             'verified' => EnsureEmailIsVerifiedIfRequired::class,
