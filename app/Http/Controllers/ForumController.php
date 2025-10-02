@@ -293,6 +293,7 @@ class ForumController extends Controller
                 'id' => $post->id,
                 'body' => $post->body,
                 'body_raw' => $post->body,
+                'quote_html' => $this->serialiseQuote($post->body),
                 'created_at' => $post->created_at->toDayDateTimeString(),
                 'edited_at' => optional($post->edited_at)?->toDayDateTimeString(),
                 'number' => $posts->firstItem() ? ($posts->firstItem() + $index) : ($index + 1),
@@ -388,6 +389,36 @@ class ForumController extends Controller
             ], $this->inertiaPagination($posts)),
             'reportReasons' => $reportReasons,
         ]);
+    }
+
+    private function serialiseQuote(string $html): string
+    {
+        $cleaned = preg_replace('/<(script|style|iframe)[^>]*>.*?<\/\1>/is', '', $html) ?? '';
+
+        $cleaned = str_ireplace(['<br />', '<br/>', '<br>'], "\n", $cleaned);
+        $cleaned = preg_replace('/<\/(p|div)>/i', "\n\n", $cleaned) ?? $cleaned;
+
+        $text = trim(strip_tags($cleaned));
+
+        if ($text === '') {
+            return '<blockquote><p></p></blockquote><p></p>';
+        }
+
+        $paragraphs = array_filter(array_map('trim', preg_split("/\n{2,}/", $text) ?: []));
+
+        if (empty($paragraphs)) {
+            $paragraphs = [$text];
+        }
+
+        $quoteBody = collect($paragraphs)->map(function (string $paragraph) {
+            $escaped = e($paragraph);
+            $escaped = str_replace(["\r\n", "\r"], "\n", $escaped);
+            $escaped = nl2br($escaped, false);
+
+            return '<p>' . $escaped . '</p>';
+        })->implode('');
+
+        return '<blockquote>' . $quoteBody . '</blockquote><p></p>';
     }
 
     public function createThread(Request $request, ForumBoard $board): Response

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
@@ -46,6 +46,7 @@ import {
     MessageSquareLock,
     Bell,
     BellOff,
+    Quote,
 } from 'lucide-vue-next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
@@ -102,6 +103,7 @@ interface ThreadPost {
     id: number;
     body: string;
     body_raw: string;
+    quote_html: string;
     created_at: string;
     edited_at: string | null;
     number: number;
@@ -711,6 +713,33 @@ const deletePost = (post: ThreadPost) => {
     }
 
     performPostAction(post, 'delete', 'forum.posts.destroy');
+};
+
+const quotePost = (post: ThreadPost) => {
+    if (!threadPermissions.value?.canReply) {
+        return;
+    }
+
+    const quoteHtml = post.quote_html?.trim();
+
+    if (!quoteHtml) {
+        return;
+    }
+
+    const currentBody = replyForm.body ?? '';
+    const hasExistingContent = hasRichTextContent(currentBody);
+
+    if (!hasExistingContent) {
+        replyForm.body = quoteHtml;
+    } else {
+        const trimmed = currentBody.trim();
+        const withSpacer = trimmed.endsWith('<p></p>') ? trimmed : `${trimmed}<p></p>`;
+        replyForm.body = `${withSpacer}${quoteHtml}`;
+    }
+
+    nextTick(() => {
+        document.getElementById('thread_reply_body')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
 };
 
 const replyForm = useForm({
@@ -1326,6 +1355,7 @@ const submitReply = () => {
                                 <div class="text-sm font-medium text-gray-500">#{{ post.number }}</div>
                                 <DropdownMenu
                                     v-if="
+                                        threadPermissions.canReply ||
                                         post.permissions.canReport ||
                                         post.permissions.canEdit ||
                                         post.permissions.canDelete
@@ -1339,6 +1369,24 @@ const submitReply = () => {
                                     <DropdownMenuContent>
                                         <DropdownMenuLabel>Post Actions</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
+                                        <DropdownMenuGroup v-if="threadPermissions.canReply">
+                                            <DropdownMenuItem
+                                                class="text-green-500"
+                                                :disabled="!threadPermissions.canReply"
+                                                @select="quotePost(post)"
+                                            >
+                                                <Quote class="h-4 w-4" />
+                                                <span>Quote</span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuGroup>
+                                        <DropdownMenuSeparator
+                                            v-if="
+                                                threadPermissions.canReply &&
+                                                (post.permissions.canReport ||
+                                                    post.permissions.canEdit ||
+                                                    post.permissions.canDelete)
+                                            "
+                                        />
                                         <DropdownMenuGroup v-if="post.permissions.canReport">
                                             <DropdownMenuItem
                                                 class="text-orange-500"
