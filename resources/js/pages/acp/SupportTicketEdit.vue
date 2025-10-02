@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,9 @@ import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import SupportTicketUserSelect from '@/components/SupportTicketUserSelect.vue';
+
+type TicketUser = { id: number; nickname: string; email: string };
 
 const props = defineProps<{
     ticket: {
@@ -24,7 +27,7 @@ const props = defineProps<{
         assigned_to: number | null;
         assignee: { id: number; nickname: string; email: string } | null;
         resolver: { id: number; nickname: string; email: string } | null;
-        user: { id: number; nickname: string; email: string };
+        user: TicketUser;
         created_at: string;
         updated_at: string;
         resolved_at: string | null;
@@ -57,6 +60,7 @@ const form = useForm({
     status: props.ticket.status,
     priority: props.ticket.priority,
     assigned_to: props.ticket.assignee?.id ?? null,
+    user_id: props.ticket.user.id ?? null,
 });
 
 const { fromNow, formatDate } = useUserTimezone();
@@ -67,10 +71,18 @@ const resolvedAt = computed(() =>
     props.ticket.resolved_at ? formatDate(props.ticket.resolved_at) : null,
 );
 
+const page = usePage<SharedData>();
+const currentUser = computed(() => page.props.auth.user);
+const selectedRequester = ref<TicketUser | null>(props.ticket.user);
+
 const handleSubmit = () => {
     form.put(route('acp.support.tickets.update', { ticket: props.ticket.id }), {
         preserveScroll: true,
     });
+};
+
+const handleRequesterChange = (user: TicketUser | null) => {
+    selectedRequester.value = user;
 };
 </script>
 
@@ -108,6 +120,25 @@ const handleSubmit = () => {
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-6">
+                            <div class="grid gap-2">
+                                <Label for="requester">Requester</Label>
+                                <SupportTicketUserSelect
+                                    input-id="requester"
+                                    v-model="form.user_id"
+                                    :initial-user="props.ticket.user"
+                                    @change="handleRequesterChange"
+                                />
+                                <InputError :message="form.errors.user_id" />
+                                <p class="text-xs text-muted-foreground">
+                                    <template v-if="currentUser">
+                                        Leave blank to reassign the ticket to yourself ({{ currentUser.nickname }}).
+                                    </template>
+                                    <template v-else>
+                                        Leave blank to reassign the ticket to yourself.
+                                    </template>
+                                </p>
+                            </div>
+
                             <div class="grid gap-2">
                                 <Label for="subject">Subject</Label>
                                 <Input
@@ -218,8 +249,18 @@ const handleSubmit = () => {
                                 </div>
                                 <div class="space-y-1">
                                     <span class="font-medium text-foreground">Requester</span>
-                                    <p>{{ props.ticket.user.nickname }}</p>
-                                    <p>{{ props.ticket.user.email }}</p>
+                                    <template v-if="selectedRequester">
+                                        <p>{{ selectedRequester.nickname }}</p>
+                                        <p>{{ selectedRequester.email }}</p>
+                                    </template>
+                                    <template v-else-if="currentUser">
+                                        <p>{{ currentUser.nickname }}</p>
+                                        <p>{{ currentUser.email }}</p>
+                                        <p class="text-xs text-muted-foreground">Will default to you when saved.</p>
+                                    </template>
+                                    <template v-else>
+                                        <p class="text-muted-foreground">Requester will be assigned on save.</p>
+                                    </template>
                                 </div>
                                 <div class="space-y-1">
                                     <span class="font-medium text-foreground">Current status</span>

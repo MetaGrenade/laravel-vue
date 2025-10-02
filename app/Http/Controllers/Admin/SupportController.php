@@ -180,7 +180,10 @@ class SupportController extends Controller
 
     public function storeTicket(StoreSupportTicketRequest $request)
     {
-        SupportTicket::create($request->validated());
+        $data = $request->validated();
+        $data['user_id'] = $data['user_id'] ?? (int) $request->user()->id;
+
+        SupportTicket::create($data);
 
         return redirect()
             ->route('acp.support.index')
@@ -210,6 +213,10 @@ class SupportController extends Controller
 
         if (array_key_exists('status', $validated)) {
             $validated += $this->resolutionAttributes($ticket, $validated['status'], (int) $request->user()->id);
+        }
+
+        if (array_key_exists('user_id', $validated)) {
+            $validated['user_id'] = $validated['user_id'] ?? (int) $request->user()->id;
         }
 
         $ticket->update($validated);
@@ -253,6 +260,59 @@ class SupportController extends Controller
         ]);
 
         return back()->with('success', 'Ticket priority updated.');
+    }
+
+    public function searchUsers(Request $request)
+    {
+        $user = $request->user();
+
+        abort_unless($user && ($user->can('support.acp.create') || $user->can('support.acp.edit')), 403);
+
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:255'],
+            'id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        if ($validated['id'] ?? false) {
+            $found = User::query()
+                ->whereKey($validated['id'])
+                ->get(['id', 'nickname', 'email'])
+                ->map(fn (User $match) => [
+                    'id' => $match->id,
+                    'nickname' => $match->nickname,
+                    'email' => $match->email,
+                ])
+                ->all();
+
+            return response()->json(['data' => $found]);
+        }
+
+        $term = $validated['q'] ?? '';
+
+        if ($term === '') {
+            return response()->json(['data' => []]);
+        }
+
+        $escaped = $this->escapeForLike($term);
+        $like = "%{$escaped}%";
+
+        $results = User::query()
+            ->where(function ($query) use ($like) {
+                $query
+                    ->where('nickname', 'like', $like)
+                    ->orWhere('email', 'like', $like);
+            })
+            ->orderBy('nickname')
+            ->limit(10)
+            ->get(['id', 'nickname', 'email'])
+            ->map(fn (User $match) => [
+                'id' => $match->id,
+                'nickname' => $match->nickname,
+                'email' => $match->email,
+            ])
+            ->all();
+
+        return response()->json(['data' => $results]);
     }
 
     public function showTicket(Request $request, SupportTicket $ticket): Response
