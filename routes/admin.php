@@ -26,6 +26,8 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/users/{user}', [AdminUserController::class, 'update'])->name('acp.users.update');
     Route::delete('acp/users/{user}', [AdminUserController::class, 'destroy'])->name('acp.users.destroy');
     Route::put('acp/users/{user}/verify', [AdminUserController::class, 'verify'])->name('acp.users.verify');
+    Route::put('acp/users/{user}/ban', [AdminUserController::class, 'ban'])->name('acp.users.ban');
+    Route::put('acp/users/{user}/unban', [AdminUserController::class, 'unban'])->name('acp.users.unban');
 
     // Admin Access Control Management Routes
     Route::get('acp/acl', [AdminACLController::class, 'index'])->name('acp.acl.index');

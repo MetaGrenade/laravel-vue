@@ -28,7 +28,15 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import {
-    Users as UsersIcon, UserPlus, UserX, Activity, Ellipsis, Pencil, Trash2, MailCheck
+    Users as UsersIcon,
+    UserPlus,
+    UserX,
+    UserCheck,
+    Activity,
+    Ellipsis,
+    Pencil,
+    Trash2,
+    MailCheck,
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
@@ -42,6 +50,7 @@ const { hasPermission } = usePermissions();
 const editUsers = computed(() => hasPermission('users.acp.edit'));
 const deleteUsers = computed(() => hasPermission('users.acp.delete'));
 const verifyUsers = computed(() => hasPermission('users.acp.verify'));
+const banUsers = computed(() => hasPermission('users.acp.ban'));
 
 // Expect that the admin controller passes a "users" (paginated collection) & "userStats" prop
 type PaginationLinks = {
@@ -60,6 +69,9 @@ const props = defineProps<{
             email_verified_at: string | null;
             roles: Array<{ name: string }>;
             created_at: string | null;
+            is_banned: boolean;
+            banned_at: string | null;
+            banned_by: { id: number; nickname: string } | null;
         }>;
         meta?: PaginationMeta | null;
         links?: PaginationLinks | null;
@@ -113,6 +125,28 @@ const filteredUsers = computed(() => {
         u.roles.some(r => r.name.toLowerCase().includes(q))
     );
 });
+
+const banUser = (userId: number) => {
+    router.put(
+        route('acp.users.ban', { user: userId }),
+        {},
+        {
+            preserveScroll: true,
+            preserveState: false,
+        },
+    );
+};
+
+const unbanUser = (userId: number) => {
+    router.put(
+        route('acp.users.unban', { user: userId }),
+        {},
+        {
+            preserveScroll: true,
+            preserveState: false,
+        },
+    );
+};
 
 // Stats cards array
 const stats = [
@@ -169,6 +203,7 @@ const stats = [
                                     <TableHead>Email</TableHead>
                                     <TableHead class="text-center">Roles</TableHead>
                                     <TableHead class="text-center">Created</TableHead>
+                                    <TableHead class="text-center">Status</TableHead>
                                     <TableHead class="text-center">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -200,6 +235,20 @@ const stats = [
                                     </TableCell>
                                     <TableCell class="text-center">{{ fromNow(user.created_at) }}</TableCell>
                                     <TableCell class="text-center">
+                                        <span
+                                            v-if="user.is_banned"
+                                            class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-500/20 dark:text-red-300"
+                                        >
+                                            Banned
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                                        >
+                                            Active
+                                        </span>
+                                    </TableCell>
+                                    <TableCell class="text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger as-child>
                                                 <Button variant="outline" size="icon">
@@ -220,6 +269,20 @@ const stats = [
                                                     >
                                                         <MailCheck class="mr-2" /> Verify
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        v-if="banUsers && !user.is_banned"
+                                                        class="text-amber-600"
+                                                        @click.prevent="banUser(user.id)"
+                                                    >
+                                                        <UserX class="mr-2" /> Ban
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        v-if="banUsers && user.is_banned"
+                                                        class="text-emerald-600"
+                                                        @click.prevent="unbanUser(user.id)"
+                                                    >
+                                                        <UserCheck class="mr-2" /> Unban
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuSeparator v-if="deleteUsers" />
                                                     <DropdownMenuItem v-if="deleteUsers" class="text-red-500"
                                                         @click="$inertia.delete(route('acp.users.destroy',{ user: user.id }))"
@@ -232,7 +295,7 @@ const stats = [
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="filteredUsers.length === 0">
-                                    <TableCell colspan="6" class="text-center text-gray-600 dark:text-gray-300">
+                                    <TableCell colspan="7" class="text-center text-gray-600 dark:text-gray-300">
                                         No users found.
                                     </TableCell>
                                 </TableRow>

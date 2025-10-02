@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -27,6 +28,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at',
         'is_banned',
         'last_activity_at',
+        'banned_at',
+        'banned_by_id',
     ];
 
     /**
@@ -50,6 +53,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'is_banned' => 'boolean',
             'last_activity_at' => 'datetime',
+            'banned_at' => 'datetime',
         ];
     }
 
@@ -71,6 +75,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function blogComments(): HasMany
     {
         return $this->hasMany(BlogComment::class);
+    }
+
+    public function bannedBy(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'banned_by_id');
     }
 }
 

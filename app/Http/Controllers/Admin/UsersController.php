@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
@@ -26,7 +28,7 @@ class UsersController extends Controller
         $userQuery = User::query();
 
         $users = (clone $userQuery)
-            ->with(['roles:id,name'])
+            ->with(['roles:id,name', 'bannedBy:id,nickname'])
             ->orderByDesc('created_at')
             ->paginate($perPage)
             ->withQueryString();
@@ -38,6 +40,9 @@ class UsersController extends Controller
                     'nickname' => $user->nickname,
                     'email' => $user->email,
                     'email_verified_at' => optional($user->email_verified_at)->toIso8601String(),
+                    'is_banned' => $user->is_banned,
+                    'banned_at' => optional($user->banned_at)->toIso8601String(),
+                    'banned_by' => $user->bannedBy?->only(['id', 'nickname']),
                     'created_at' => optional($user->created_at)->toIso8601String(),
                     'roles' => $user->roles
                         ->map(fn ($role) => ['name' => $role->name])
@@ -114,5 +119,37 @@ class UsersController extends Controller
         $user->update(['email_verified_at' => now()]);
         return redirect()->route('acp.users.index')
             ->with('success','User verified.');
+    }
+
+    public function ban(Request $request, User $user): RedirectResponse
+    {
+        Gate::authorize('users.acp.ban');
+
+        if (! $user->is_banned) {
+            $user->forceFill([
+                'is_banned' => true,
+                'banned_at' => now(),
+                'banned_by_id' => $request->user()->id,
+            ])->save();
+        }
+
+        return redirect()->route('acp.users.index')
+            ->with('success', 'User banned.');
+    }
+
+    public function unban(Request $request, User $user): RedirectResponse
+    {
+        Gate::authorize('users.acp.ban');
+
+        if ($user->is_banned) {
+            $user->forceFill([
+                'is_banned' => false,
+                'banned_at' => null,
+                'banned_by_id' => null,
+            ])->save();
+        }
+
+        return redirect()->route('acp.users.index')
+            ->with('success', 'User unbanned.');
     }
 }
