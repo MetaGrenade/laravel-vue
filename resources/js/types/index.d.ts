@@ -32,6 +32,8 @@ export interface User {
     nickname: string;
     email: string;
     avatar_url?: string | null;
+    profile_bio?: string | null;
+    social_links?: Array<{ label: string; url: string }> | null;
     forum_signature?: string | null;
     email_verified_at: string | null;
     created_at: string;

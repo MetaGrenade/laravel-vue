@@ -23,9 +23,23 @@ type BlogTaxonomyOption = {
     slug: string;
 };
 
+type AuthorSocialLink = {
+    label: string;
+    url: string;
+};
+
+type BlogAuthor = {
+    id?: number;
+    nickname?: string | null;
+    avatar_url?: string | null;
+    profile_bio?: string | null;
+    social_links?: AuthorSocialLink[];
+};
+
 const props = defineProps<{
     categories: BlogTaxonomyOption[];
     tags: BlogTaxonomyOption[];
+    author?: BlogAuthor | null;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -49,6 +63,11 @@ type BlogForm = {
     category_ids: number[];
     tag_ids: number[];
     scheduled_for: string;
+    author: {
+        avatar_url: string;
+        profile_bio: string;
+        social_links: AuthorSocialLink[];
+    };
 };
 
 const form = useForm<BlogForm>({
@@ -60,6 +79,15 @@ const form = useForm<BlogForm>({
     category_ids: [],
     tag_ids: [],
     scheduled_for: '',
+    author: {
+        avatar_url: props.author?.avatar_url ?? '',
+        profile_bio: props.author?.profile_bio ?? '',
+        social_links:
+            props.author?.social_links?.map((link) => ({
+                label: typeof link?.label === 'string' ? link.label : '',
+                url: typeof link?.url === 'string' ? link.url : '',
+            })) ?? [],
+    },
 });
 
 const coverImagePreview = ref<string | null>(null);
@@ -152,6 +180,14 @@ watch(
     },
     { deep: true },
 );
+
+const addAuthorSocialLink = () => {
+    form.author.social_links.push({ label: '', url: '' });
+};
+
+const removeAuthorSocialLink = (index: number) => {
+    form.author.social_links.splice(index, 1);
+};
 
 const extractRawTags = (payload: unknown): unknown[] => {
     if (Array.isArray(payload)) {
@@ -576,6 +612,95 @@ const handleSubmit = () => {
                         <CardFooter class="justify-end">
                             <Button type="submit" :disabled="form.processing">Save blog post</Button>
                         </CardFooter>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Author profile</CardTitle>
+                            <CardDescription>
+                                Curate how {{ props.author?.nickname ?? 'the author' }} is presented to readers.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-4">
+                            <div class="grid gap-2">
+                                <Label for="create_author_avatar_url">Avatar URL</Label>
+                                <Input
+                                    id="create_author_avatar_url"
+                                    v-model="form.author.avatar_url"
+                                    type="url"
+                                    placeholder="https://example.com/avatar.png"
+                                />
+                                <InputError :message="form.errors['author.avatar_url']" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label for="create_author_profile_bio">Author bio</Label>
+                                <Textarea
+                                    id="create_author_profile_bio"
+                                    v-model="form.author.profile_bio"
+                                    placeholder="Share a short biography or mission statement for this author."
+                                    class="min-h-28"
+                                />
+                                <InputError :message="form.errors['author.profile_bio']" />
+                            </div>
+
+                            <div class="space-y-3">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <Label class="text-sm font-medium">Social links</Label>
+                                    <Button type="button" variant="outline" size="sm" @click="addAuthorSocialLink">
+                                        Add link
+                                    </Button>
+                                </div>
+                                <p class="text-xs text-muted-foreground">
+                                    Help readers discover more from this author by linking to key platforms.
+                                </p>
+
+                                <div v-if="form.author.social_links.length" class="space-y-3">
+                                    <div
+                                        v-for="(link, index) in form.author.social_links"
+                                        :key="`create-author-social-link-${index}`"
+                                        class="space-y-3 rounded-md border border-dashed p-3"
+                                    >
+                                        <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                                            <div class="grid gap-2">
+                                                <Label :for="`create-author-social-link-label-${index}`">Label</Label>
+                                                <Input
+                                                    :id="`create-author-social-link-label-${index}`"
+                                                    v-model="form.author.social_links[index].label"
+                                                    type="text"
+                                                    placeholder="Website"
+                                                />
+                                                <InputError :message="form.errors[`author.social_links.${index}.label`]" />
+                                            </div>
+                                            <div class="grid gap-2">
+                                                <Label :for="`create-author-social-link-url-${index}`">URL</Label>
+                                                <Input
+                                                    :id="`create-author-social-link-url-${index}`"
+                                                    v-model="form.author.social_links[index].url"
+                                                    type="url"
+                                                    placeholder="https://example.com/about"
+                                                />
+                                                <InputError :message="form.errors[`author.social_links.${index}.url`]" />
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-end">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                @click="removeAuthorSocialLink(index)"
+                                            >
+                                                Remove
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                                    No social links added yet.
+                                </div>
+                                <InputError :message="form.errors['author.social_links']" />
+                            </div>
+                        </CardContent>
                     </Card>
                 </div>
             </form>

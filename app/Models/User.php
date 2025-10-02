@@ -28,6 +28,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at',
         'avatar_url',
         'forum_signature',
+        'profile_bio',
+        'social_links',
         'is_banned',
         'last_activity_at',
         'banned_at',
@@ -56,6 +58,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_banned' => 'boolean',
             'last_activity_at' => 'datetime',
             'banned_at' => 'datetime',
+            'social_links' => 'array',
         ];
     }
 
