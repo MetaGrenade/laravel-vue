@@ -56,12 +56,9 @@ class FaqCategoryManagementTest extends TestCase
 
         $response->assertOk()
             ->assertJson(fn (AssertableJson $json) => $json
-                ->has('categories', fn (AssertableJson $categories) => $categories
-                    ->first(fn (AssertableJson $category) => $category
-                        ->where('name', 'Getting Started')
-                        ->where('faqs_count', 1)
-                        ->etc()
-                    )
+                ->where('categories', fn (array $categories) => collect($categories)
+                    ->contains(fn (array $category) => $category['name'] === 'Getting Started'
+                        && $category['faqs_count'] === 1)
                 )
             );
     }
