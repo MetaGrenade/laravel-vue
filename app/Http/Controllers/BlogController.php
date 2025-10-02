@@ -286,6 +286,98 @@ class BlogController extends Controller
             ? trim($blog->user->nickname)
             : null;
 
+        $categoryIds = $blog->categories->pluck('id');
+        $tagIds = $blog->tags->pluck('id');
+
+        $recommendationColumns = [
+            'id',
+            'title',
+            'slug',
+            'excerpt',
+            'cover_image',
+            'published_at',
+        ];
+
+        $relatedPosts = collect();
+
+        if ($categoryIds->isNotEmpty() || $tagIds->isNotEmpty()) {
+            $relatedPosts = Blog::query()
+                ->where('id', '!=', $blog->id)
+                ->where('status', 'published')
+                ->where(function ($query) use ($categoryIds, $tagIds) {
+                    if ($categoryIds->isNotEmpty() && $tagIds->isNotEmpty()) {
+                        $query->whereHas('categories', function ($categoryQuery) use ($categoryIds) {
+                            $categoryQuery->whereIn('blog_categories.id', $categoryIds);
+                        })->orWhereHas('tags', function ($tagQuery) use ($tagIds) {
+                            $tagQuery->whereIn('blog_tags.id', $tagIds);
+                        });
+                    } elseif ($categoryIds->isNotEmpty()) {
+                        $query->whereHas('categories', function ($categoryQuery) use ($categoryIds) {
+                            $categoryQuery->whereIn('blog_categories.id', $categoryIds);
+                        });
+                    } elseif ($tagIds->isNotEmpty()) {
+                        $query->whereHas('tags', function ($tagQuery) use ($tagIds) {
+                            $tagQuery->whereIn('blog_tags.id', $tagIds);
+                        });
+                    }
+                })
+                ->orderByDesc('published_at')
+                ->orderByDesc('created_at')
+                ->limit(3)
+                ->get($recommendationColumns);
+        }
+
+        if ($relatedPosts->isEmpty()) {
+            $relatedPosts = Blog::query()
+                ->where('id', '!=', $blog->id)
+                ->where('status', 'published')
+                ->withCount('comments')
+                ->orderByDesc('comments_count')
+                ->orderByDesc('published_at')
+                ->orderByDesc('created_at')
+                ->limit(3)
+                ->get($recommendationColumns);
+
+            if ($relatedPosts->isEmpty()) {
+                $relatedPosts = Blog::query()
+                    ->where('id', '!=', $blog->id)
+                    ->where('status', 'published')
+                    ->orderByDesc('published_at')
+                    ->orderByDesc('created_at')
+                    ->limit(3)
+                    ->get($recommendationColumns);
+            }
+        }
+
+        if ($relatedPosts->count() < 3) {
+            $additional = Blog::query()
+                ->where('id', '!=', $blog->id)
+                ->where('status', 'published')
+                ->whereNotIn('id', $relatedPosts->pluck('id'))
+                ->orderByDesc('published_at')
+                ->orderByDesc('created_at')
+                ->limit(3 - $relatedPosts->count())
+                ->get($recommendationColumns);
+
+            $relatedPosts = $relatedPosts->concat($additional);
+        }
+
+        $recommendations = $relatedPosts
+            ->map(function (Blog $relatedBlog) {
+                return [
+                    'id' => $relatedBlog->id,
+                    'title' => $relatedBlog->title,
+                    'slug' => $relatedBlog->slug,
+                    'excerpt' => $relatedBlog->excerpt,
+                    'cover_image' => $relatedBlog->cover_image
+                        ? Storage::disk('public')->url($relatedBlog->cover_image)
+                        : null,
+                    'published_at' => optional($relatedBlog->published_at)->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all();
+
         $renderTag = static function (string $tag, array $attributes): HtmlString {
             $attributeString = collect($attributes)
                 ->map(fn ($value, $key) => sprintf('%s="%s"', $key, e($value)))
@@ -346,6 +438,7 @@ class BlogController extends Controller
                         'slug' => $tag->slug,
                     ];
                 })->values()->all(),
+                'recommendations' => $recommendations,
                 'comments' => array_merge([
                     'data' => $commentItems,
                 ], $this->inertiaPagination($comments)),

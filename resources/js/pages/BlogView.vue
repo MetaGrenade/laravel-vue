@@ -53,6 +53,15 @@ type PaginatedComments = {
     links: PaginationLinks;
 };
 
+type RecommendedPost = {
+    id: number;
+    title: string;
+    slug: string;
+    excerpt?: string | null;
+    cover_image?: string | null;
+    published_at?: string | null;
+};
+
 type BlogPayload = {
     id: number;
     title: string;
@@ -66,6 +75,7 @@ type BlogPayload = {
     categories?: BlogTaxonomyItem[];
     tags?: BlogTaxonomyItem[];
     canonical_url?: string | null;
+    recommendations?: RecommendedPost[];
 };
 
 const props = defineProps<{ blog: BlogPayload }>();
@@ -98,6 +108,7 @@ const comments = computed<PaginatedComments>(() => {
 });
 const categories = computed(() => blog.value.categories ?? []);
 const tags = computed(() => blog.value.tags ?? []);
+const recommendations = computed<RecommendedPost[]>(() => blog.value.recommendations ?? []);
 
 const coverImage = computed(
     () => blog.value.cover_image ?? '/images/default-cover.jpg',
@@ -241,6 +252,48 @@ const shareLinks = computed(() => ({
                         <span class="sr-only">Share on LinkedIn</span>
                         <span aria-hidden="true">LinkedIn</span>
                     </Button>
+                </div>
+            </div>
+
+            <!-- Recommendations Section -->
+            <div
+                v-if="recommendations.length"
+                class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow"
+            >
+                <h2 class="mb-4 text-2xl font-semibold">Recommended articles</h2>
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <Link
+                        v-for="post in recommendations"
+                        :key="post.id"
+                        :href="route('blogs.view', { slug: post.slug })"
+                        class="group flex h-full flex-col overflow-hidden rounded-lg border border-border/70 bg-card transition hover:border-primary hover:shadow-lg"
+                    >
+                        <div class="aspect-video w-full overflow-hidden bg-muted">
+                            <img
+                                v-if="post.cover_image"
+                                :src="post.cover_image"
+                                :alt="`Cover image for ${post.title}`"
+                                class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                            />
+                            <div v-else class="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                                No cover image
+                            </div>
+                        </div>
+                        <div class="flex flex-1 flex-col p-4">
+                            <h3 class="mb-2 text-lg font-semibold text-foreground group-hover:text-primary">
+                                {{ post.title }}
+                            </h3>
+                            <p v-if="post.excerpt" class="mb-3 line-clamp-3 text-sm text-muted-foreground">
+                                {{ post.excerpt }}
+                            </p>
+                            <span
+                                v-if="post.published_at"
+                                class="mt-auto text-xs uppercase tracking-wide text-muted-foreground"
+                            >
+                                {{ formatDate(post.published_at, 'MMMM D, YYYY') }}
+                            </span>
+                        </div>
+                    </Link>
                 </div>
             </div>
 
