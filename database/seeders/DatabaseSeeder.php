@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'nickname' => 'Test User',
             'email' => 'test@example.com',
+            'avatar_url' => 'https://i.pravatar.cc/150?img=68',
+            'profile_bio' => 'Curious tester keeping an eye on new features.',
         ]);
 
         $this->call([

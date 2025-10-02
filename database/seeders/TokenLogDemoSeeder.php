@@ -26,6 +26,8 @@ class TokenLogDemoSeeder extends Seeder
                     'password' => $password,
                     'email_verified_at' => $now->copy()->subDays(14),
                     'last_activity_at' => $now->copy()->subDay(),
+                    'avatar_url' => 'https://i.pravatar.cc/150?img=12',
+                    'profile_bio' => 'Oversees security tokens and keeps the system tidy.',
                 ]
             );
 
@@ -41,6 +43,8 @@ class TokenLogDemoSeeder extends Seeder
                     'password' => $password,
                     'email_verified_at' => $now->copy()->subDays(30),
                     'last_activity_at' => $now->copy()->subHours(6),
+                    'avatar_url' => 'https://i.pravatar.cc/150?img=33',
+                    'profile_bio' => 'Automation service powering webhooks and integrations.',
                 ]
             );
 
