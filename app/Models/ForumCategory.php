@@ -14,7 +14,7 @@ class ForumCategory extends Model
     protected static function booted(): void
     {
         static::creating(function (self $category): void {
-            if ($category->getRawOriginal('is_published') === null && $category->is_published === null) {
+            if (!$category->isDirty('is_published')) {
                 $category->is_published = true;
             }
         });
@@ -78,6 +78,6 @@ class ForumCategory extends Model
             return true;
         }
 
-        return (bool) $this->is_published;
+        return (bool) $rawValue;
     }
 }
