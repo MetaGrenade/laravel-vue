@@ -51,9 +51,11 @@ const props = defineProps<{
         updated_at: string | null;
         assignee: TicketAssignee | null;
         user: TicketUser | null;
+        customer_satisfaction_rating: number | null;
     };
     messages: TicketMessage[];
     canReply: boolean;
+    canRate: boolean;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -107,6 +109,14 @@ const replyForm = useForm<ReplyFormPayload>({
 
 const attachmentInput = ref<HTMLInputElement | null>(null);
 
+const ratingOptions = [1, 2, 3, 4, 5];
+const ratingForm = useForm<{ rating: number | null }>({
+    rating: null,
+});
+
+const isClosed = computed(() => props.ticket.status === 'closed');
+const canRateTicket = computed(() => props.canRate);
+
 const handleAttachmentsChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
 
@@ -152,6 +162,33 @@ const submitReply = () => {
         },
         onFinish: () => {
             replyForm.transform((data) => ({ ...data }));
+        },
+    });
+};
+
+const selectRating = (value: number) => {
+    if (!canRateTicket.value) {
+        return;
+    }
+
+    ratingForm.rating = value;
+    ratingForm.clearErrors('rating');
+};
+
+const submitRating = () => {
+    if (!canRateTicket.value || ratingForm.processing) {
+        return;
+    }
+
+    if (ratingForm.rating === null) {
+        ratingForm.setError('rating', 'Please select a rating.');
+        return;
+    }
+
+    ratingForm.post(route('support.tickets.rating.store', { ticket: props.ticket.id }), {
+        preserveScroll: true,
+        onSuccess: () => {
+            ratingForm.reset('rating');
         },
     });
 };
@@ -363,6 +400,27 @@ const formatFileSize = (bytes: number) => {
                                 </p>
                             </div>
                             <div>
+                                <p class="text-xs uppercase text-muted-foreground">Customer satisfaction</p>
+                                <p class="font-medium text-foreground">
+                                    {{
+                                        typeof props.ticket.customer_satisfaction_rating === 'number'
+                                            ? `${props.ticket.customer_satisfaction_rating} / 5`
+                                            : 'Not yet rated'
+                                    }}
+                                </p>
+                                <p class="text-muted-foreground">
+                                    <span v-if="typeof props.ticket.customer_satisfaction_rating === 'number'">
+                                        Thanks for letting us know how we did.
+                                    </span>
+                                    <span v-else-if="isClosed">
+                                        Share your experience using the feedback card below.
+                                    </span>
+                                    <span v-else>
+                                        We'll ask for feedback once this ticket is closed.
+                                    </span>
+                                </p>
+                            </div>
+                            <div>
                                 <p class="text-xs uppercase text-muted-foreground">Created</p>
                                 <p class="font-medium text-foreground">{{ formattedCreatedAt }}</p>
                                 <p class="text-muted-foreground">{{ fromNow(props.ticket.created_at) }}</p>
@@ -372,6 +430,52 @@ const formatFileSize = (bytes: number) => {
                                 <p class="font-medium text-foreground">{{ formattedUpdatedAt }}</p>
                                 <p class="text-muted-foreground">{{ fromNow(props.ticket.updated_at) }}</p>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Rate your experience</CardTitle>
+                            <CardDescription>
+                                Let us know how satisfied you are with the resolution of this ticket.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-4 text-sm">
+                            <div v-if="typeof props.ticket.customer_satisfaction_rating === 'number'" class="space-y-2">
+                                <p class="text-lg font-semibold">
+                                    {{ props.ticket.customer_satisfaction_rating }} / 5
+                                </p>
+                                <p class="text-muted-foreground">
+                                    We appreciate your feedback and will use it to keep improving our support.
+                                </p>
+                            </div>
+                            <div v-else-if="canRateTicket" class="space-y-4">
+                                <form class="space-y-4" @submit.prevent="submitRating">
+                                    <div class="flex items-center gap-2">
+                                        <Button
+                                            v-for="value in ratingOptions"
+                                            :key="value"
+                                            type="button"
+                                            :variant="ratingForm.rating === value ? 'default' : 'outline'"
+                                            class="h-10 w-10 p-0"
+                                            :aria-pressed="ratingForm.rating === value"
+                                            :disabled="ratingForm.processing"
+                                            @click="selectRating(value)"
+                                        >
+                                            {{ value }}
+                                        </Button>
+                                    </div>
+                                    <InputError :message="ratingForm.errors.rating" />
+                                    <div class="flex justify-end">
+                                        <Button type="submit" :disabled="ratingForm.processing">
+                                            Submit rating
+                                        </Button>
+                                    </div>
+                                </form>
+                            </div>
+                            <p v-else class="text-muted-foreground">
+                                We'll invite you to rate your experience once our team resolves this ticket.
+                            </p>
                         </CardContent>
                     </Card>
 

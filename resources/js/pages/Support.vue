@@ -48,6 +48,7 @@ interface Ticket {
     created_at: string | null;
     updated_at: string | null;
     assignee: TicketAssignee | null;
+    customer_satisfaction_rating: number | null;
 }
 
 interface FAQ {
@@ -359,6 +360,9 @@ const formatDate = (value: string | null) => {
     }).format(date);
 };
 
+const formatRating = (rating: number | null) =>
+    typeof rating === 'number' ? `${rating}/5` : '—';
+
 </script>
 
 <template>
@@ -460,6 +464,7 @@ const formatDate = (value: string | null) => {
                                         <TableHead class="text-center">Priority</TableHead>
                                         <TableHead class="text-center">Assigned</TableHead>
                                         <TableHead class="text-center">Created At</TableHead>
+                                        <TableHead class="text-center">Rating</TableHead>
                                         <TableHead class="text-center">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -500,6 +505,7 @@ const formatDate = (value: string | null) => {
                                         </TableCell>
                                         <TableCell class="text-center">{{ ticket.assignee?.nickname || '—' }}</TableCell>
                                         <TableCell class="text-center">{{ formatDate(ticket.created_at) }}</TableCell>
+                                        <TableCell class="text-center">{{ formatRating(ticket.customer_satisfaction_rating) }}</TableCell>
                                         <TableCell class="text-center">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger as-child @click.stop>
@@ -525,7 +531,7 @@ const formatDate = (value: string | null) => {
                                         </TableCell>
                                     </TableRow>
                                     <TableRow v-if="ticketItems.length === 0">
-                                        <TableCell colspan="7" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                        <TableCell colspan="8" class="text-center text-sm text-gray-600 dark:text-gray-300">
                                             No tickets found.
                                         </TableCell>
                                     </TableRow>
