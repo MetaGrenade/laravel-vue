@@ -69,7 +69,8 @@ class ForumPostController extends Controller
             ->get();
 
         if ($subscribers->isNotEmpty()) {
-            Notification::send($subscribers, new ForumThreadUpdated($thread, $post));
+            Notification::sendNow($subscribers, (new ForumThreadUpdated($thread, $post))->withChannels(['database']));
+            Notification::send($subscribers, (new ForumThreadUpdated($thread, $post))->withChannels(['mail']));
         }
 
         $postCount = $thread->posts()->count();

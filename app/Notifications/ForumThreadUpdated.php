@@ -14,16 +14,28 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * @param array<int, string> $channels
+     */
     public function __construct(
         protected ForumThread $thread,
         protected ForumPost $post,
+        protected array $channels = ['mail', 'database'],
     ) {
         $this->thread->setRelation('latestPost', $this->post);
     }
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return $this->channels;
+    }
+
+    public function viaQueues(): array
+    {
+        return [
+            'mail' => 'mail',
+            'database' => 'default',
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -57,5 +69,18 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
                 'thread' => $this->thread->slug,
             ]) . '#post-' . $this->post->id,
         ];
+    }
+
+    /**
+     * Limit the notification delivery channels.
+     *
+     * @param array<int, string> $channels
+     */
+    public function withChannels(array $channels): self
+    {
+        $clone = clone $this;
+        $clone->channels = $channels;
+
+        return $clone;
     }
 }

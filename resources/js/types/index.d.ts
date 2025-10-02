@@ -20,14 +20,6 @@ export interface NavItem {
     isActive?: boolean;
 }
 
-export interface SharedData extends PageProps {
-    name: string;
-    quote: { message: string; author: string };
-    auth: Auth;
-    notifications: NotificationItem[];
-    ziggy: Config & { location: string };
-}
-
 export interface User {
     id: number;
     nickname: string;
@@ -44,7 +36,25 @@ export type BreadcrumbItemType = BreadcrumbItem;
 export interface NotificationItem {
     id: string;
     type: string;
+    title: string;
+    excerpt: string | null;
+    url: string | null;
     data: Record<string, unknown>;
     created_at: string | null;
+    created_at_for_humans: string | null;
     read_at: string | null;
+}
+
+export interface NotificationBag {
+    items: NotificationItem[];
+    unread_count: number;
+    has_more: boolean;
+}
+
+export interface SharedData extends PageProps {
+    name: string;
+    quote: { message: string; author: string };
+    auth: Auth;
+    notifications: NotificationBag;
+    ziggy: Config & { location: string };
 }

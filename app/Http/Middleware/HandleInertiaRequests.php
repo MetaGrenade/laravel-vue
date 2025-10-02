@@ -57,17 +57,44 @@ class HandleInertiaRequests extends Middleware
                     ? $request->user()->getAllPermissions()->pluck('name')
                     : [],
             ],
-            'notifications' => $request->user()
-                ? $request->user()->unreadNotifications()->limit(10)->get()->map(static function ($notification) {
-                    return [
-                        'id' => $notification->id,
-                        'type' => $notification->type,
-                        'data' => $notification->data,
-                        'created_at' => optional($notification->created_at)->toDayDateTimeString(),
-                        'read_at' => optional($notification->read_at)?->toDayDateTimeString(),
-                    ];
-                })->values()->all()
-                : [],
+            'notifications' => $request->user() ? (function () use ($request) {
+                $user = $request->user();
+
+                $unreadQuery = $user->unreadNotifications()->latest();
+
+                $unreadCount = (clone $unreadQuery)->count();
+
+                $items = $unreadQuery
+                    ->limit(10)
+                    ->get()
+                    ->map(static function ($notification) {
+                        $data = $notification->data ?? [];
+
+                        return [
+                            'id' => $notification->id,
+                            'type' => $notification->type,
+                            'title' => $data['thread_title'] ?? 'Notification',
+                            'excerpt' => $data['excerpt'] ?? null,
+                            'url' => $data['url'] ?? null,
+                            'data' => $data,
+                            'created_at' => optional($notification->created_at)?->toIso8601String(),
+                            'created_at_for_humans' => optional($notification->created_at)?->diffForHumans(),
+                            'read_at' => optional($notification->read_at)?->toIso8601String(),
+                        ];
+                    })
+                    ->values()
+                    ->all();
+
+                return [
+                    'items' => $items,
+                    'unread_count' => $unreadCount,
+                    'has_more' => $unreadCount > count($items),
+                ];
+            })() : [
+                'items' => [],
+                'unread_count' => 0,
+                'has_more' => false,
+            ],
             'ziggy' => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
