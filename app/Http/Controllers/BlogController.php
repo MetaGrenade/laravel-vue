@@ -338,28 +338,18 @@ class BlogController extends Controller
                 ->limit(3)
                 ->get($recommendationColumns);
 
-            if ($relatedPosts->isEmpty()) {
-                $relatedPosts = Blog::query()
+            if ($relatedPosts->count() < 3) {
+                $latestFallback = Blog::query()
                     ->where('id', '!=', $blog->id)
                     ->where('status', 'published')
+                    ->whereNotIn('id', $relatedPosts->pluck('id'))
                     ->orderByDesc('published_at')
                     ->orderByDesc('created_at')
-                    ->limit(3)
+                    ->limit(3 - $relatedPosts->count())
                     ->get($recommendationColumns);
+
+                $relatedPosts = $relatedPosts->concat($latestFallback);
             }
-        }
-
-        if ($relatedPosts->count() < 3) {
-            $additional = Blog::query()
-                ->where('id', '!=', $blog->id)
-                ->where('status', 'published')
-                ->whereNotIn('id', $relatedPosts->pluck('id'))
-                ->orderByDesc('published_at')
-                ->orderByDesc('created_at')
-                ->limit(3 - $relatedPosts->count())
-                ->get($recommendationColumns);
-
-            $relatedPosts = $relatedPosts->concat($additional);
         }
 
         $recommendations = $relatedPosts
