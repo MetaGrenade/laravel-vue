@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Role {
     id: number;
@@ -27,6 +28,11 @@ interface UserRole {
     name: string;
 }
 
+interface UserSocialLink {
+    label?: string | null;
+    url?: string | null;
+}
+
 interface User {
     id: number;
     nickname: string;
@@ -36,7 +42,19 @@ interface User {
     updated_at?: string;
     last_activity_at?: string | null;
     roles: UserRole[];
+    avatar_url?: string | null;
+    profile_bio?: string | null;
+    social_links?: UserSocialLink[] | null;
 }
+
+type UserForm = {
+    nickname: string;
+    email: string;
+    roles: string[];
+    avatar_url: string;
+    profile_bio: string;
+    social_links: Array<{ label: string; url: string }>;
+};
 
 const props = defineProps<{
     user: User;
@@ -52,10 +70,17 @@ const { hasPermission } = usePermissions();
 const canDeleteUsers = computed(() => hasPermission('users.acp.delete'));
 const canVerifyUsers = computed(() => hasPermission('users.acp.verify'));
 
-const form = useForm({
+const form = useForm<UserForm>({
     nickname: props.user.nickname,
     email: props.user.email,
     roles: props.user.roles.map(role => role.name),
+    avatar_url: props.user.avatar_url ?? '',
+    profile_bio: props.user.profile_bio ?? '',
+    social_links:
+        props.user.social_links?.map((link) => ({
+            label: typeof link?.label === 'string' ? link.label : '',
+            url: typeof link?.url === 'string' ? link.url : '',
+        })) ?? [],
 });
 
 const verifyForm = useForm({});
@@ -95,6 +120,14 @@ const destroyUser = () => {
     deleteForm.delete(route('acp.users.destroy', { user: props.user.id }), {
         preserveScroll: true,
     });
+};
+
+const addSocialLink = () => {
+    form.social_links.push({ label: '', url: '' });
+};
+
+const removeSocialLink = (index: number) => {
+    form.social_links.splice(index, 1);
 };
 </script>
 
@@ -139,6 +172,83 @@ const destroyUser = () => {
                                     <Label for="email">Email</Label>
                                     <Input id="email" v-model="form.email" type="email" autocomplete="email" required />
                                     <InputError :message="form.errors.email" />
+                                </div>
+
+                                <div class="grid gap-2">
+                                    <Label for="avatar_url">Avatar URL</Label>
+                                    <Input
+                                        id="avatar_url"
+                                        v-model="form.avatar_url"
+                                        type="url"
+                                        placeholder="https://example.com/avatar.png"
+                                    />
+                                    <p class="text-xs text-muted-foreground">
+                                        Provide a direct link to an image that will represent the author across the blog.
+                                    </p>
+                                    <InputError :message="form.errors.avatar_url" />
+                                </div>
+
+                                <div class="grid gap-2">
+                                    <Label for="profile_bio">Author bio</Label>
+                                    <Textarea
+                                        id="profile_bio"
+                                        v-model="form.profile_bio"
+                                        placeholder="Share a few sentences about this author’s background or expertise."
+                                        class="min-h-28"
+                                    />
+                                    <InputError :message="form.errors.profile_bio" />
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <Label class="text-sm font-medium">Social links</Label>
+                                        <Button type="button" variant="outline" size="sm" @click="addSocialLink">
+                                            Add social link
+                                        </Button>
+                                    </div>
+                                    <p class="text-xs text-muted-foreground">
+                                        Highlight key destinations where readers can continue following this author.
+                                    </p>
+
+                                    <div v-if="form.social_links.length" class="space-y-3">
+                                        <div
+                                            v-for="(link, index) in form.social_links"
+                                            :key="`social-link-${index}`"
+                                            class="space-y-3 rounded-md border border-dashed p-3"
+                                        >
+                                            <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                                                <div class="grid gap-2">
+                                                    <Label :for="`social-link-label-${index}`">Label</Label>
+                                                    <Input
+                                                        :id="`social-link-label-${index}`"
+                                                        v-model="form.social_links[index].label"
+                                                        type="text"
+                                                        placeholder="Twitter"
+                                                    />
+                                                    <InputError :message="form.errors[`social_links.${index}.label`]" />
+                                                </div>
+                                                <div class="grid gap-2">
+                                                    <Label :for="`social-link-url-${index}`">URL</Label>
+                                                    <Input
+                                                        :id="`social-link-url-${index}`"
+                                                        v-model="form.social_links[index].url"
+                                                        type="url"
+                                                        placeholder="https://social.example/@username"
+                                                    />
+                                                    <InputError :message="form.errors[`social_links.${index}.url`]" />
+                                                </div>
+                                            </div>
+                                            <div class="flex justify-end">
+                                                <Button type="button" variant="ghost" size="sm" @click="removeSocialLink(index)">
+                                                    Remove
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-else class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                                        No social links added yet.
+                                    </div>
+                                    <InputError :message="form.errors.social_links" />
                                 </div>
                             </CardContent>
                         </Card>

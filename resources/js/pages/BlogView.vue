@@ -6,6 +6,7 @@ import Button from '@/components/ui/button/Button.vue';
 import BlogComments from '@/components/blog/BlogComments.vue';
 import { Share2 } from 'lucide-vue-next';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 type BlogTaxonomyItem = {
     id: number;
@@ -13,9 +14,17 @@ type BlogTaxonomyItem = {
     slug: string;
 };
 
+type AuthorSocialLink = {
+    label: string;
+    url: string;
+};
+
 type BlogAuthor = {
     id?: number;
     nickname?: string | null;
+    avatar_url?: string | null;
+    profile_bio?: string | null;
+    social_links?: AuthorSocialLink[];
 };
 
 type BlogCommentAuthor = {
@@ -83,6 +92,8 @@ const props = defineProps<{ blog: BlogPayload }>();
 const blog = computed(() => props.blog);
 const { formatDate } = useUserTimezone();
 
+const author = computed<BlogAuthor | null>(() => blog.value.user ?? null);
+
 const comments = computed<PaginatedComments>(() => {
     if (blog.value.comments) {
         return blog.value.comments;
@@ -115,7 +126,50 @@ const coverImage = computed(
 );
 const metaDescription = computed(() => blog.value.excerpt ?? '');
 
-const authorName = computed(() => blog.value.user?.nickname ?? 'Unknown author');
+const authorName = computed(() => author.value?.nickname ?? 'Unknown author');
+
+const authorAvatarUrl = computed(() => author.value?.avatar_url ?? '');
+
+const authorInitials = computed(() => {
+    const name = authorName.value.trim();
+
+    if (!name) {
+        return '?';
+    }
+
+    return name
+        .split(' ')
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+});
+
+const authorBio = computed(() => {
+    const bio = author.value?.profile_bio ?? '';
+
+    return typeof bio === 'string' ? bio.trim() : '';
+});
+
+const hasAuthorBio = computed(() => authorBio.value.trim().length > 0);
+
+const authorSocialLinks = computed<AuthorSocialLink[]>(() => {
+    const links = author.value?.social_links ?? [];
+
+    return links
+        .map((link) => {
+            const label = typeof link.label === 'string' ? link.label.trim() : '';
+            const url = typeof link.url === 'string' ? link.url.trim() : '';
+
+            return { label, url };
+        })
+        .filter((link) => link.label.length > 0 && link.url.length > 0);
+});
+
+const hasAuthorSocialLinks = computed(() => authorSocialLinks.value.length > 0);
+
+const showAuthorCard = computed(() => Boolean(author.value));
 
 const publishedAt = computed(() => {
     if (!blog.value.published_at) {
@@ -210,6 +264,47 @@ const shareLinks = computed(() => ({
                     {{ blog.excerpt }}
                 </p>
                 <div class="prose max-w-none" v-html="blog.body"></div>
+            </div>
+
+            <div
+                v-if="showAuthorCard"
+                class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow"
+            >
+                <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+                    <Avatar class="h-20 w-20">
+                        <AvatarImage v-if="authorAvatarUrl" :src="authorAvatarUrl" :alt="authorName" />
+                        <AvatarFallback>{{ authorInitials }}</AvatarFallback>
+                    </Avatar>
+                    <div class="flex-1 space-y-4 text-center sm:text-left">
+                        <div class="space-y-1">
+                            <h2 class="text-xl font-semibold text-foreground">About {{ authorName }}</h2>
+                            <p class="text-sm text-muted-foreground">
+                                Insights from one of our community storytellers.
+                            </p>
+                        </div>
+                        <p
+                            v-if="hasAuthorBio"
+                            class="text-sm leading-relaxed text-muted-foreground whitespace-pre-line"
+                        >
+                            {{ authorBio }}
+                        </p>
+                        <div
+                            v-if="hasAuthorSocialLinks"
+                            class="flex flex-wrap justify-center gap-2 sm:justify-start"
+                        >
+                            <a
+                                v-for="link in authorSocialLinks"
+                                :key="`${link.label}-${link.url}`"
+                                :href="link.url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-1 text-sm font-medium text-primary transition hover:border-primary hover:bg-primary/20"
+                            >
+                                <span>{{ link.label }}</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Share Section -->

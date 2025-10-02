@@ -7,6 +7,7 @@ use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogComment;
 use App\Models\BlogTag;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
@@ -44,7 +45,7 @@ class BlogController extends Controller
                     });
             })
             ->with([
-                'user:id,nickname',
+                'user:id,nickname,avatar_url,profile_bio,social_links',
                 'categories:id,name,slug',
                 'tags:id,name,slug',
             ]);
@@ -95,10 +96,7 @@ class BlogController extends Controller
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
                 'published_at' => optional($blog->published_at)->toIso8601String(),
-                'author' => $blog->user ? [
-                    'id' => $blog->user->id,
-                    'nickname' => $blog->user->nickname,
-                ] : null,
+                'author' => $this->transformAuthor($blog->user),
                 'categories' => $blog->categories->map(function (BlogCategory $category) {
                     return [
                         'id' => $category->id,
@@ -231,7 +229,7 @@ class BlogController extends Controller
     public function show($slug): Response
     {
         $blog = Blog::with([
-            'user:id,nickname',
+            'user:id,nickname,avatar_url,profile_bio,social_links',
             'categories:id,name,slug',
             'tags:id,name,slug',
         ])
@@ -410,10 +408,7 @@ class BlogController extends Controller
                 'canonical_url' => $canonicalUrl,
                 'body' => $blog->body,
                 'published_at' => optional($blog->published_at)->toIso8601String(),
-                'user' => $blog->user ? [
-                    'id' => $blog->user->id,
-                    'nickname' => $blog->user->nickname,
-                ] : null,
+                'user' => $this->transformAuthor($blog->user),
                 'categories' => $blog->categories->map(function (BlogCategory $category) {
                     return [
                         'id' => $category->id,
@@ -444,7 +439,7 @@ class BlogController extends Controller
         abort_unless($blog->preview_token && hash_equals($blog->preview_token, $token), 403);
 
         $blog->load([
-            'user:id,nickname',
+            'user:id,nickname,avatar_url,profile_bio,social_links',
             'categories:id,name,slug',
             'tags:id,name,slug',
         ]);
@@ -462,10 +457,7 @@ class BlogController extends Controller
                 'published_at' => optional($blog->published_at)->toIso8601String(),
                 'scheduled_for' => optional($blog->scheduled_for)->toIso8601String(),
                 'status' => $blog->status,
-                'user' => $blog->user ? [
-                    'id' => $blog->user->id,
-                    'nickname' => $blog->user->nickname,
-                ] : null,
+                'user' => $this->transformAuthor($blog->user),
                 'categories' => $blog->categories->map(function (BlogCategory $category) {
                     return [
                         'id' => $category->id,
@@ -482,5 +474,49 @@ class BlogController extends Controller
                 })->values()->all(),
             ],
         ]);
+    }
+
+    private function transformAuthor(?User $user): ?array
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $avatarUrl = is_string($user->avatar_url) ? trim($user->avatar_url) : null;
+        $bio = is_string($user->profile_bio) ? trim($user->profile_bio) : null;
+
+        $socialLinks = collect($user->social_links ?? [])
+            ->map(function ($link) {
+                if (! is_array($link)) {
+                    return null;
+                }
+
+                $label = isset($link['label']) && is_string($link['label'])
+                    ? trim($link['label'])
+                    : null;
+                $url = isset($link['url']) && is_string($link['url'])
+                    ? trim($link['url'])
+                    : null;
+
+                if (! $label || ! $url) {
+                    return null;
+                }
+
+                return [
+                    'label' => $label,
+                    'url' => $url,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        return [
+            'id' => $user->id,
+            'nickname' => $user->nickname,
+            'avatar_url' => $avatarUrl ?: null,
+            'profile_bio' => $bio ?: null,
+            'social_links' => $socialLinks,
+        ];
     }
 }

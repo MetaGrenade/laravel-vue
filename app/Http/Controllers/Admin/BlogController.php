@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\BlogRequest;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogTag;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
@@ -108,6 +109,7 @@ class BlogController extends Controller
                 ])
                 ->values()
                 ->all(),
+            'author' => $this->authorPayload(auth()->user()),
         ]);
     }
 
@@ -168,6 +170,10 @@ class BlogController extends Controller
         $blog->categories()->sync($validated['category_ids'] ?? []);
         $blog->tags()->sync($validated['tag_ids'] ?? []);
 
+        if (array_key_exists('author', $validated)) {
+            $this->updateAuthorProfile($request->user(), $validated['author']);
+        }
+
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post created successfully.');
     }
@@ -177,7 +183,7 @@ class BlogController extends Controller
      */
     public function edit(Blog $blog)
     {
-        $blog->load(['categories:id,name,slug', 'tags:id,name,slug']);
+        $blog->load(['categories:id,name,slug', 'tags:id,name,slug', 'user:id,nickname,avatar_url,profile_bio,social_links']);
 
         if (!$blog->preview_token) {
             $blog->forceFill([
@@ -220,6 +226,7 @@ class BlogController extends Controller
                         'slug' => $tag->slug,
                     ])
                     ->all(),
+                'user' => $this->authorPayload($blog->user),
             ]),
             'categories' => BlogCategory::query()
                 ->orderBy('name')
@@ -309,8 +316,123 @@ class BlogController extends Controller
         $blog->categories()->sync($validated['category_ids'] ?? []);
         $blog->tags()->sync($validated['tag_ids'] ?? []);
 
+        if (array_key_exists('author', $validated)) {
+            $blog->loadMissing('user');
+            $this->updateAuthorProfile($blog->user, $validated['author']);
+        }
+
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post updated successfully.');
+    }
+
+    private function authorPayload(?User $user): ?array
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $avatarUrl = is_string($user->avatar_url) ? trim($user->avatar_url) : null;
+        $bio = is_string($user->profile_bio) ? trim($user->profile_bio) : null;
+
+        $socialLinks = collect($user->social_links ?? [])
+            ->map(function ($link) {
+                if (! is_array($link)) {
+                    return null;
+                }
+
+                $label = isset($link['label']) && is_string($link['label'])
+                    ? trim($link['label'])
+                    : null;
+                $url = isset($link['url']) && is_string($link['url'])
+                    ? trim($link['url'])
+                    : null;
+
+                if (! $label || ! $url) {
+                    return null;
+                }
+
+                return [
+                    'label' => $label,
+                    'url' => $url,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        return [
+            'id' => $user->id,
+            'nickname' => $user->nickname,
+            'avatar_url' => $avatarUrl ?: null,
+            'profile_bio' => $bio ?: null,
+            'social_links' => $socialLinks,
+        ];
+    }
+
+    private function sanitizeAuthorInput($input): array
+    {
+        if (! is_array($input)) {
+            return [];
+        }
+
+        $payload = [];
+
+        if (array_key_exists('avatar_url', $input)) {
+            $avatar = is_string($input['avatar_url']) ? trim($input['avatar_url']) : '';
+            $payload['avatar_url'] = $avatar !== '' ? $avatar : null;
+        }
+
+        if (array_key_exists('profile_bio', $input)) {
+            $bio = is_string($input['profile_bio']) ? trim($input['profile_bio']) : '';
+            $payload['profile_bio'] = $bio !== '' ? $bio : null;
+        }
+
+        if (array_key_exists('social_links', $input)) {
+            $links = collect(is_array($input['social_links']) ? $input['social_links'] : [])
+                ->map(function ($link) {
+                    if (! is_array($link)) {
+                        return null;
+                    }
+
+                    $label = isset($link['label']) && is_string($link['label'])
+                        ? trim($link['label'])
+                        : '';
+                    $url = isset($link['url']) && is_string($link['url'])
+                        ? trim($link['url'])
+                        : '';
+
+                    if ($label === '' || $url === '') {
+                        return null;
+                    }
+
+                    return [
+                        'label' => $label,
+                        'url' => $url,
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+
+            $payload['social_links'] = $links;
+        }
+
+        return $payload;
+    }
+
+    private function updateAuthorProfile(?User $author, $input): void
+    {
+        if (! $author) {
+            return;
+        }
+
+        $payload = $this->sanitizeAuthorInput($input);
+
+        if ($payload === []) {
+            return;
+        }
+
+        $author->forceFill($payload)->save();
     }
 
     /**

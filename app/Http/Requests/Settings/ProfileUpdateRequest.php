@@ -8,6 +8,38 @@ use Illuminate\Validation\Rule;
 
 class ProfileUpdateRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $payload = [];
+
+        if ($this->exists('avatar_url')) {
+            $payload['avatar_url'] = $this->filled('avatar_url') ? $this->input('avatar_url') : null;
+        }
+
+        if ($this->exists('profile_bio')) {
+            $payload['profile_bio'] = $this->filled('profile_bio') ? $this->input('profile_bio') : null;
+        }
+
+        if ($this->exists('social_links')) {
+            $socialLinks = $this->input('social_links');
+
+            if (! is_array($socialLinks)) {
+                $socialLinks = [];
+            } else {
+                $socialLinks = array_values(array_map(
+                    fn ($link) => is_array($link) ? $link : [],
+                    $socialLinks,
+                ));
+            }
+
+            $payload['social_links'] = $socialLinks;
+        }
+
+        if (! empty($payload)) {
+            $this->merge($payload);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -39,6 +71,24 @@ class ProfileUpdateRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:500',
+            ],
+            'profile_bio' => [
+                'nullable',
+                'string',
+            ],
+            'social_links' => [
+                'nullable',
+                'array',
+            ],
+            'social_links.*.label' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'social_links.*.url' => [
+                'nullable',
+                'url',
+                'max:2048',
             ],
         ];
     }
