@@ -11,6 +11,9 @@ use App\Models\FaqCategory;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
+use App\Models\User;
+use App\Notifications\TicketOpened;
+use App\Notifications\TicketReplied;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -195,7 +198,10 @@ class SupportCenterController extends Controller
     {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($request, $validated): void {
+        $ticket = null;
+        $message = null;
+
+        DB::transaction(function () use ($request, $validated, &$ticket, &$message): void {
             $ticket = SupportTicket::create([
                 'user_id' => $validated['user_id'],
                 'subject' => $validated['subject'],
@@ -207,6 +213,8 @@ class SupportCenterController extends Controller
                 'user_id' => $ticket->user_id,
                 'body' => $ticket->body,
             ]);
+
+            $message->setRelation('author', $ticket->user);
 
             $attachments = $request->file('attachments', []);
 
@@ -236,6 +244,14 @@ class SupportCenterController extends Controller
 
             $message->touch();
         });
+
+        if ($ticket && $message) {
+            $this->notifyTicketParticipants($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+                return (new TicketOpened($ticket, $message))
+                    ->forAudience($audience)
+                    ->withChannels($channels);
+            });
+        }
 
         return redirect()
             ->route('support')
@@ -333,11 +349,15 @@ class SupportCenterController extends Controller
     ): RedirectResponse {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($request, $ticket, $validated): void {
+        $message = null;
+
+        DB::transaction(function () use ($request, $ticket, $validated, &$message): void {
             $message = $ticket->messages()->create([
                 'user_id' => $request->user()->id,
                 'body' => $validated['body'],
             ]);
+
+            $message->setRelation('author', $request->user());
 
             $attachments = $request->file('attachments', []);
 
@@ -369,9 +389,50 @@ class SupportCenterController extends Controller
             $message->touch();
         });
 
+        if ($message) {
+            $this->notifyTicketParticipants($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+                return (new TicketReplied($ticket, $message))
+                    ->forAudience($audience)
+                    ->withChannels($channels);
+            });
+        }
+
         return redirect()
             ->route('support.tickets.show', $ticket)
             ->with('success', 'Your message has been sent.');
+    }
+
+    /**
+     * @param callable(string, array<int, string>): \Illuminate\Notifications\Notification $notificationFactory
+     */
+    private function notifyTicketParticipants(SupportTicket $ticket, callable $notificationFactory): void
+    {
+        $ticket->loadMissing(['user', 'assignee']);
+
+        $recipients = collect([$ticket->user, $ticket->assignee])
+            ->filter(fn (?User $user) => $user !== null)
+            ->unique(fn (User $user) => $user->id);
+
+        foreach ($recipients as $recipient) {
+            $audience = (int) $recipient->id === (int) $ticket->user_id ? 'owner' : 'agent';
+            $channels = $this->preferredNotificationChannels($recipient);
+
+            $recipient->notify($notificationFactory($audience, $channels));
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function preferredNotificationChannels(User $user): array
+    {
+        $channels = ['database'];
+
+        if ($user->hasVerifiedEmail()) {
+            array_unshift($channels, 'mail');
+        }
+
+        return array_values(array_unique($channels));
     }
 
     public function storeRating(
