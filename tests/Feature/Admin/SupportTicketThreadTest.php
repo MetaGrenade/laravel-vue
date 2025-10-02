@@ -85,6 +85,13 @@ class SupportTicketThreadTest extends TestCase
             ->component('acp/SupportTicketView')
             ->where('ticket.id', $ticket->id)
             ->where('ticket.subject', 'Cannot access dashboard')
+            ->where('assignableAgents', function ($agents) use ($agent) {
+                $agents = collect($agents);
+
+                $this->assertTrue($agents->contains(fn ($item) => $item['id'] === $agent->id));
+
+                return true;
+            })
             ->where('messages', function ($messages) use ($customerMessage) {
                 $messages = collect($messages);
 
@@ -193,6 +200,33 @@ class SupportTicketThreadTest extends TestCase
             'support_ticket_id' => $ticket->id,
             'user_id' => $agent->id,
             'body' => 'Attempting to respond without permission.',
+        ]);
+    }
+
+    public function test_support_agent_cannot_reply_to_closed_ticket(): void
+    {
+        $agent = $this->createSupportAgent(['support.acp.view', 'support.acp.reply']);
+        $requester = User::factory()->create();
+
+        $ticket = SupportTicket::create([
+            'user_id' => $requester->id,
+            'subject' => 'Closed ticket reply guard',
+            'body' => 'Ensure replies cannot be sent.',
+            'status' => 'closed',
+            'priority' => 'medium',
+        ]);
+
+        $response = $this->actingAs($agent)
+            ->post(route('acp.support.tickets.messages.store', $ticket), [
+                'body' => 'Attempting to reply to a closed ticket.',
+            ]);
+
+        $response->assertForbidden();
+
+        $this->assertDatabaseMissing('support_ticket_messages', [
+            'support_ticket_id' => $ticket->id,
+            'user_id' => $agent->id,
+            'body' => 'Attempting to reply to a closed ticket.',
         ]);
     }
 }

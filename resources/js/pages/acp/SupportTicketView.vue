@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -42,6 +42,7 @@ const props = defineProps<{
         body: string;
         status: 'open' | 'pending' | 'closed';
         priority: 'low' | 'medium' | 'high';
+        assigned_to: number | null;
         created_at: string | null;
         updated_at: string | null;
         resolved_at: string | null;
@@ -52,6 +53,7 @@ const props = defineProps<{
     };
     messages: TicketMessage[];
     canReply: boolean;
+    assignableAgents: TicketParticipant[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -93,6 +95,7 @@ const { formatDate, fromNow } = useUserTimezone();
 const formattedCreatedAt = computed(() => formatDate(props.ticket.created_at));
 const formattedUpdatedAt = computed(() => formatDate(props.ticket.updated_at));
 const formattedResolvedAt = computed(() => formatDate(props.ticket.resolved_at));
+const isClosed = computed(() => props.ticket.status === 'closed');
 
 interface ReplyFormPayload {
     body: string;
@@ -124,6 +127,84 @@ const resetAttachmentsInput = () => {
     if (attachmentInput.value) {
         attachmentInput.value.value = '';
     }
+};
+
+const statusOptions = [
+    { label: 'Open', value: 'open' },
+    { label: 'Pending', value: 'pending' },
+    { label: 'Closed', value: 'closed' },
+];
+
+const priorityOptions = [
+    { label: 'Low', value: 'low' },
+    { label: 'Medium', value: 'medium' },
+    { label: 'High', value: 'high' },
+];
+
+const assignmentForm = useForm<{ assigned_to: number | null }>({
+    assigned_to: props.ticket.assigned_to,
+});
+
+const priorityForm = useForm<{ priority: 'low' | 'medium' | 'high' }>({
+    priority: props.ticket.priority,
+});
+
+const statusForm = useForm<{ status: 'open' | 'pending' | 'closed' }>({
+    status: props.ticket.status,
+});
+
+watch(
+    () => props.ticket.assigned_to,
+    (assignedTo) => {
+        assignmentForm.assigned_to = assignedTo ?? null;
+    },
+    { immediate: true },
+);
+
+watch(
+    () => props.ticket.priority,
+    (priority) => {
+        priorityForm.priority = priority;
+    },
+    { immediate: true },
+);
+
+watch(
+    () => props.ticket.status,
+    (status) => {
+        statusForm.status = status;
+    },
+    { immediate: true },
+);
+
+const updateAssignment = () => {
+    if (isClosed.value) {
+        return;
+    }
+
+    assignmentForm.put(route('acp.support.tickets.assign', { ticket: props.ticket.id }), {
+        preserveScroll: true,
+    });
+};
+
+const updatePriority = () => {
+    if (isClosed.value) {
+        return;
+    }
+
+    priorityForm.put(route('acp.support.tickets.priority', { ticket: props.ticket.id }), {
+        preserveScroll: true,
+    });
+};
+
+const updateStatus = () => {
+    if (isClosed.value) {
+        return;
+    }
+
+    statusForm.put(route('acp.support.tickets.status', { ticket: props.ticket.id }), {
+        preserveScroll: true,
+    });
 };
 
 const submitReply = () => {
@@ -340,6 +421,85 @@ const formatFileSize = (bytes: number) => {
                     </Card>
 
                     <div class="flex flex-col gap-6">
+                        <Card v-if="!isClosed">
+                            <CardHeader>
+                                <CardTitle>Ticket actions</CardTitle>
+                                <CardDescription>Assign, triage, or progress the ticket.</CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-4 text-sm">
+                                <form class="grid gap-2" @submit.prevent="updateAssignment">
+                                    <label for="assigned_to" class="text-xs font-semibold uppercase text-muted-foreground">
+                                        Assigned agent
+                                    </label>
+                                    <select
+                                        id="assigned_to"
+                                        v-model.number="assignmentForm.assigned_to"
+                                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        :disabled="assignmentForm.processing"
+                                    >
+                                        <option :value="null">Unassigned</option>
+                                        <option
+                                            v-for="agent in props.assignableAgents"
+                                            :key="agent.id"
+                                            :value="agent.id"
+                                        >
+                                            {{ agent.nickname || agent.email }}
+                                        </option>
+                                    </select>
+                                    <InputError :message="assignmentForm.errors.assigned_to" />
+                                    <div class="flex justify-end">
+                                        <Button type="submit" size="sm" :disabled="assignmentForm.processing">
+                                            Update assignment
+                                        </Button>
+                                    </div>
+                                </form>
+
+                                <form class="grid gap-2" @submit.prevent="updatePriority">
+                                    <label for="priority" class="text-xs font-semibold uppercase text-muted-foreground">
+                                        Priority
+                                    </label>
+                                    <select
+                                        id="priority"
+                                        v-model="priorityForm.priority"
+                                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        :disabled="priorityForm.processing"
+                                    >
+                                        <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
+                                            {{ option.label }}
+                                        </option>
+                                    </select>
+                                    <InputError :message="priorityForm.errors.priority" />
+                                    <div class="flex justify-end">
+                                        <Button type="submit" size="sm" :disabled="priorityForm.processing">
+                                            Update priority
+                                        </Button>
+                                    </div>
+                                </form>
+
+                                <form class="grid gap-2" @submit.prevent="updateStatus">
+                                    <label for="status" class="text-xs font-semibold uppercase text-muted-foreground">
+                                        Status
+                                    </label>
+                                    <select
+                                        id="status"
+                                        v-model="statusForm.status"
+                                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        :disabled="statusForm.processing"
+                                    >
+                                        <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+                                            {{ option.label }}
+                                        </option>
+                                    </select>
+                                    <InputError :message="statusForm.errors.status" />
+                                    <div class="flex justify-end">
+                                        <Button type="submit" size="sm" :disabled="statusForm.processing">
+                                            Update status
+                                        </Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+
                         <Card>
                             <CardHeader>
                                 <CardTitle>Ticket details</CardTitle>

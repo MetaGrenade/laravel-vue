@@ -240,6 +240,15 @@ class SupportController extends Controller
 
         $canReply = $request->user()?->can('support.acp.reply') && $ticket->status !== 'closed';
 
+        $assignableAgents = User::orderBy('nickname')
+            ->get(['id', 'nickname', 'email'])
+            ->map(fn (User $agent) => [
+                'id' => $agent->id,
+                'nickname' => $agent->nickname,
+                'email' => $agent->email,
+            ])
+            ->all();
+
         return Inertia::render('acp/SupportTicketView', [
             'ticket' => [
                 'id' => $ticket->id,
@@ -247,6 +256,7 @@ class SupportController extends Controller
                 'body' => $ticket->body,
                 'status' => $ticket->status,
                 'priority' => $ticket->priority,
+                'assigned_to' => $ticket->assigned_to,
                 'created_at' => optional($ticket->created_at)->toIso8601String(),
                 'updated_at' => optional($ticket->updated_at)->toIso8601String(),
                 'resolved_at' => optional($ticket->resolved_at)->toIso8601String(),
@@ -269,6 +279,7 @@ class SupportController extends Controller
             ],
             'messages' => $messages,
             'canReply' => (bool) $canReply,
+            'assignableAgents' => $assignableAgents,
         ]);
     }
 
@@ -277,6 +288,7 @@ class SupportController extends Controller
         SupportTicket $ticket
     ): RedirectResponse {
         abort_unless($request->user()?->can('support.acp.reply'), 403);
+        abort_if($ticket->status === 'closed', 403);
 
         $validated = $request->validated();
 
