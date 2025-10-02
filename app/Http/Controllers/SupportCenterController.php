@@ -11,9 +11,9 @@ use App\Models\FaqCategory;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
-use App\Models\User;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
+use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -26,6 +26,11 @@ use Inertia\Response;
 class SupportCenterController extends Controller
 {
     use InteractsWithInertiaPagination;
+
+    public function __construct(
+        private SupportTicketNotificationDispatcher $ticketNotifier
+    ) {
+    }
 
     public function index(Request $request): Response
     {
@@ -246,7 +251,7 @@ class SupportCenterController extends Controller
         });
 
         if ($ticket && $message) {
-            $this->notifyTicketParticipants($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
                 return (new TicketOpened($ticket, $message))
                     ->forAudience($audience)
                     ->withChannels($channels);
@@ -390,7 +395,7 @@ class SupportCenterController extends Controller
         });
 
         if ($message) {
-            $this->notifyTicketParticipants($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
                 return (new TicketReplied($ticket, $message))
                     ->forAudience($audience)
                     ->withChannels($channels);
@@ -400,39 +405,6 @@ class SupportCenterController extends Controller
         return redirect()
             ->route('support.tickets.show', $ticket)
             ->with('success', 'Your message has been sent.');
-    }
-
-    /**
-     * @param callable(string, array<int, string>): \Illuminate\Notifications\Notification $notificationFactory
-     */
-    private function notifyTicketParticipants(SupportTicket $ticket, callable $notificationFactory): void
-    {
-        $ticket->loadMissing(['user', 'assignee']);
-
-        $recipients = collect([$ticket->user, $ticket->assignee])
-            ->filter(fn (?User $user) => $user !== null)
-            ->unique(fn (User $user) => $user->id);
-
-        foreach ($recipients as $recipient) {
-            $audience = (int) $recipient->id === (int) $ticket->user_id ? 'owner' : 'agent';
-            $channels = $this->preferredNotificationChannels($recipient);
-
-            $recipient->notify($notificationFactory($audience, $channels));
-        }
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function preferredNotificationChannels(User $user): array
-    {
-        $channels = ['database'];
-
-        if ($user->hasVerifiedEmail()) {
-            array_unshift($channels, 'mail');
-        }
-
-        return array_values(array_unique($channels));
     }
 
     public function storeRating(

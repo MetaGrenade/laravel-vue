@@ -15,6 +15,9 @@ use App\Models\SupportTicketMessageAttachment;
 use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\User;
+use App\Notifications\TicketOpened;
+use App\Notifications\TicketReplied;
+use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -28,6 +31,11 @@ use Inertia\Response;
 class SupportController extends Controller
 {
     use InteractsWithInertiaPagination;
+
+    public function __construct(
+        private SupportTicketNotificationDispatcher $ticketNotifier
+    ) {
+    }
 
     public function index(Request $request): Response
     {
@@ -190,7 +198,13 @@ class SupportController extends Controller
         $data = $request->validated();
         $data['user_id'] = $data['user_id'] ?? (int) $request->user()->id;
 
-        SupportTicket::create($data);
+        $ticket = SupportTicket::create($data);
+
+        $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket) {
+            return (new TicketOpened($ticket))
+                ->forAudience($audience)
+                ->withChannels($channels);
+        });
 
         return redirect()
             ->route('acp.support.index')
@@ -408,11 +422,15 @@ class SupportController extends Controller
 
         $validated = $request->validated();
 
-        DB::transaction(function () use ($request, $ticket, $validated): void {
+        $message = null;
+
+        DB::transaction(function () use ($request, $ticket, $validated, &$message): void {
             $message = $ticket->messages()->create([
                 'user_id' => $request->user()->id,
                 'body' => $validated['body'],
             ]);
+
+            $message->setRelation('author', $request->user());
 
             $attachments = $request->file('attachments', []);
 
@@ -443,6 +461,14 @@ class SupportController extends Controller
             $ticket->touch();
             $message->touch();
         });
+
+        if ($message) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+                return (new TicketReplied($ticket, $message))
+                    ->forAudience($audience)
+                    ->withChannels($channels);
+            });
+        }
 
         return redirect()
             ->route('acp.support.tickets.show', $ticket)

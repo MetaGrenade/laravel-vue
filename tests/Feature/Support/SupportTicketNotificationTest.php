@@ -20,6 +20,7 @@ class SupportTicketNotificationTest extends TestCase
         parent::setUp();
 
         Permission::create(['name' => 'support.acp.view', 'guard_name' => 'web']);
+        Permission::create(['name' => 'support.acp.reply', 'guard_name' => 'web']);
     }
 
     public function test_it_notifies_the_owner_when_a_ticket_is_opened(): void
@@ -67,8 +68,8 @@ class SupportTicketNotificationTest extends TestCase
     {
         Notification::fake();
 
-        $owner = User::factory()->create();
-        $agent = User::factory()->create();
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $agent = User::factory()->create(['email_verified_at' => now()]);
         $agent->givePermissionTo('support.acp.view');
 
         $ticket = SupportTicket::create([
@@ -128,6 +129,73 @@ class SupportTicketNotificationTest extends TestCase
 
             $mailMessage = $notification->toMail($agent);
             $this->assertSame($expectedUrl, $mailMessage->actionUrl);
+
+            return true;
+        });
+    }
+
+    public function test_it_notifies_owner_when_an_agent_replies_from_admin_panel(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $agent = User::factory()->create(['email_verified_at' => now()]);
+        $agent->givePermissionTo(['support.acp.reply', 'support.acp.view']);
+
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'subject' => 'Database connection issue',
+            'body' => 'The staging database is not responding.',
+            'priority' => 'high',
+            'assigned_to' => $agent->id,
+        ]);
+
+        $ticket->messages()->create([
+            'user_id' => $owner->id,
+            'body' => 'Additional logs attached for review.',
+        ]);
+
+        $this->actingAs($agent);
+
+        $response = $this->post(route('acp.support.tickets.messages.store', $ticket), [
+            'body' => 'Thanks for the report! We are investigating now.',
+        ]);
+
+        $response->assertRedirect(route('acp.support.tickets.show', $ticket));
+
+        $ticket->refresh();
+        $message = $ticket->messages()->latest('id')->first();
+        $this->assertNotNull($message);
+
+        Notification::assertSentToTimes($owner, TicketReplied::class, 1);
+        Notification::assertSentToTimes($agent, TicketReplied::class, 1);
+
+        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message) {
+            $this->assertSame(['mail', 'database'], $channels);
+
+            $data = $notification->toArray($owner);
+
+            $this->assertSame($ticket->id, $data['ticket_id']);
+            $this->assertSame('owner', $data['audience']);
+            $this->assertSame($message->id, $data['message_id']);
+
+            $expectedUrl = route('support.tickets.show', $ticket) . '#message-' . $message->id;
+            $this->assertSame($expectedUrl, $data['url']);
+
+            return true;
+        });
+
+        Notification::assertSentTo($agent, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($agent, $ticket, $message) {
+            $this->assertSame(['mail', 'database'], $channels);
+
+            $data = $notification->toArray($agent);
+
+            $this->assertSame($ticket->id, $data['ticket_id']);
+            $this->assertSame('agent', $data['audience']);
+            $this->assertSame($message->id, $data['message_id']);
+
+            $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]) . '#message-' . $message->id;
+            $this->assertSame($expectedUrl, $data['url']);
 
             return true;
         });
