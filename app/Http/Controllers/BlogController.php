@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Models\Blog;
 use App\Models\BlogCategory;
+use App\Models\BlogComment;
 use App\Models\BlogTag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -176,9 +177,6 @@ class BlogController extends Controller
             'user:id,nickname',
             'categories:id,name,slug',
             'tags:id,name,slug',
-            'comments' => function ($query) {
-                $query->with(['user:id,nickname'])->orderBy('created_at');
-            },
         ])
             ->where('slug', $slug)
             ->where(function ($query) {
@@ -198,6 +196,27 @@ class BlogController extends Controller
                 'scheduled_for' => null,
             ])->save();
         }
+
+        $comments = $blog->comments()
+            ->with(['user:id,nickname'])
+            ->orderBy('created_at')
+            ->paginate(10, ['*'], 'page', 1);
+
+        $commentItems = $comments->getCollection()
+            ->map(function (BlogComment $comment) {
+                return [
+                    'id' => $comment->id,
+                    'body' => $comment->body,
+                    'created_at' => optional($comment->created_at)->toIso8601String(),
+                    'updated_at' => optional($comment->updated_at)->toIso8601String(),
+                    'user' => $comment->user ? [
+                        'id' => $comment->user->id,
+                        'nickname' => $comment->user->nickname,
+                    ] : null,
+                ];
+            })
+            ->values()
+            ->all();
 
         $coverImageUrl = $blog->cover_image
             ? Storage::disk('public')->url($blog->cover_image)
@@ -270,18 +289,9 @@ class BlogController extends Controller
                         'slug' => $tag->slug,
                     ];
                 })->values()->all(),
-                'comments' => $blog->comments->map(function ($comment) {
-                    return [
-                        'id' => $comment->id,
-                        'body' => $comment->body,
-                        'created_at' => optional($comment->created_at)->toIso8601String(),
-                        'updated_at' => optional($comment->updated_at)->toIso8601String(),
-                        'user' => $comment->user ? [
-                            'id' => $comment->user->id,
-                            'nickname' => $comment->user->nickname,
-                        ] : null,
-                    ];
-                })->values(),
+                'comments' => array_merge([
+                    'data' => $commentItems,
+                ], $this->inertiaPagination($comments)),
             ],
         ])->withViewData([
             'metaTags' => $metaTags,

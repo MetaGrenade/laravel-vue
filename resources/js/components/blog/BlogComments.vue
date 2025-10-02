@@ -22,6 +22,46 @@ type BlogComment = {
     user?: CommentUser | null;
 };
 
+type PaginationMeta = {
+    current_page: number;
+    from?: number | null;
+    last_page: number;
+    per_page: number;
+    to?: number | null;
+    total: number;
+};
+
+type PaginationLinks = {
+    first?: string | null;
+    last?: string | null;
+    prev?: string | null;
+    next?: string | null;
+};
+
+type PaginatedComments = {
+    data: BlogComment[];
+    meta: PaginationMeta;
+    links: PaginationLinks;
+};
+
+const defaultMeta: PaginationMeta = {
+    current_page: 1,
+    from: null,
+    last_page: 1,
+    per_page: 10,
+    to: null,
+    total: 0,
+};
+
+const buildMeta = (meta?: Partial<PaginationMeta>): PaginationMeta => ({
+    current_page: meta?.current_page ?? defaultMeta.current_page,
+    from: meta?.from ?? defaultMeta.from,
+    last_page: meta?.last_page ?? defaultMeta.last_page,
+    per_page: meta?.per_page ?? defaultMeta.per_page,
+    to: meta?.to ?? defaultMeta.to,
+    total: meta?.total ?? defaultMeta.total,
+});
+
 type PageProps = {
     auth: {
         user: {
@@ -34,7 +74,7 @@ type PageProps = {
 
 const props = defineProps<{
     blogSlug: string;
-    initialComments: BlogComment[];
+    initialComments: PaginatedComments;
 }>();
 
 const page = usePage<PageProps>();
@@ -42,12 +82,23 @@ const authUser = computed(() => page.props.auth?.user ?? null);
 const roleNames = computed(() => authUser.value?.roles?.map((role) => role.name) ?? []);
 const canModerate = computed(() => roleNames.value.some((role) => ['admin', 'editor', 'moderator'].includes(role)));
 
-const comments = ref<BlogComment[]>([...props.initialComments]);
+const comments = ref<BlogComment[]>([...props.initialComments.data]);
+const pagination = ref<PaginationMeta>(buildMeta(props.initialComments.meta));
+
+const perPage = computed(() => pagination.value.per_page ?? defaultMeta.per_page);
+const hasMore = computed(() => pagination.value.current_page < pagination.value.last_page);
+const isLoadingMore = ref(false);
+const loadMoreError = ref<string | null>(null);
+
+updatePaginationTotals(pagination.value.total);
 
 watch(
     () => props.initialComments,
     (value) => {
-        comments.value = [...value];
+        comments.value = [...value.data];
+        pagination.value = buildMeta(value.meta);
+        updatePaginationTotals(value.meta.total);
+        loadMoreError.value = null;
     },
 );
 
@@ -59,6 +110,73 @@ const sortedComments = computed(() => {
         return aTime - bTime;
     });
 });
+
+function updatePaginationTotals(total: number) {
+    const previous = pagination.value;
+    const perPageValue = perPage.value || defaultMeta.per_page;
+    const lastPage = Math.max(1, Math.ceil(total / perPageValue));
+    const loadedCount = comments.value.length;
+
+    pagination.value = {
+        ...previous,
+        current_page:
+            loadedCount >= total ? lastPage : Math.min(previous.current_page, lastPage),
+        last_page: lastPage,
+        total,
+        from: loadedCount > 0 ? 1 : null,
+        to: loadedCount > 0 ? loadedCount : null,
+    };
+}
+
+const loadMore = async () => {
+    loadMoreError.value = null;
+
+    if (isLoadingMore.value || !hasMore.value) {
+        return;
+    }
+
+    const nextPage = Math.min(pagination.value.current_page + 1, pagination.value.last_page);
+
+    isLoadingMore.value = true;
+
+    try {
+        const response = await fetch(
+            route('blogs.comments.index', {
+                blog: props.blogSlug,
+                page: nextPage,
+                per_page: perPage.value,
+            }),
+            {
+                headers: {
+                    Accept: 'application/json',
+                },
+            },
+        );
+
+        if (!response.ok) {
+            const message = await extractErrorMessage(response);
+            loadMoreError.value = message;
+            toast.error(message);
+            return;
+        }
+
+        const payload: PaginatedComments = await response.json();
+
+        const existingIds = new Set(comments.value.map((comment) => comment.id));
+        const incoming = (payload.data ?? []).filter((comment) => !existingIds.has(comment.id));
+
+        comments.value = [...comments.value, ...incoming];
+        pagination.value = buildMeta(payload.meta);
+        // Links are not stored because we derive pagination state locally.
+        updatePaginationTotals(payload.meta.total);
+    } catch (error) {
+        console.error(error);
+        loadMoreError.value = 'Unable to load more comments right now.';
+        toast.error(loadMoreError.value);
+    } finally {
+        isLoadingMore.value = false;
+    }
+};
 
 const newComment = ref('');
 const submitError = ref<string | null>(null);
@@ -170,7 +288,16 @@ const submitComment = async () => {
         const created = payload?.data as BlogComment | undefined;
 
         if (created) {
-            comments.value = [...comments.value, created];
+            const existingIndex = comments.value.findIndex((comment) => comment.id === created.id);
+
+            if (existingIndex === -1) {
+                comments.value = [...comments.value, created];
+                updatePaginationTotals(pagination.value.total + 1);
+            } else {
+                comments.value = comments.value.map((existing) =>
+                    existing.id === created.id ? created : existing,
+                );
+            }
         }
 
         newComment.value = '';
@@ -291,6 +418,7 @@ const deleteComment = async (commentId: number) => {
         }
 
         comments.value = comments.value.filter((comment) => comment.id !== commentId);
+        updatePaginationTotals(Math.max(pagination.value.total - 1, comments.value.length));
         toast.success('Comment removed.');
 
         if (editingCommentId.value === commentId) {
@@ -398,6 +526,13 @@ const deleteComment = async (commentId: number) => {
                 <p v-else class="mt-4 whitespace-pre-line text-sm text-foreground">
                     {{ comment.body }}
                 </p>
+            </div>
+            <p v-if="loadMoreError" class="text-sm text-destructive">{{ loadMoreError }}</p>
+            <div v-if="hasMore" class="pt-2 text-center">
+                <Button variant="outline" :disabled="isLoadingMore" @click="loadMore">
+                    <span v-if="isLoadingMore">Loading...</span>
+                    <span v-else>Load more comments</span>
+                </Button>
             </div>
         </div>
     </div>

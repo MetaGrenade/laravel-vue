@@ -10,19 +10,39 @@ use Illuminate\Validation\ValidationException;
 
 class BlogCommentController extends Controller
 {
-    public function index(Blog $blog): JsonResponse
+    public function index(Request $request, Blog $blog): JsonResponse
     {
         abort_unless($blog->status === 'published', 404);
+
+        $perPage = (int) $request->integer('per_page', 10);
+        $perPage = max(1, min($perPage, 50));
 
         $comments = $blog->comments()
             ->with(['user:id,nickname'])
             ->orderBy('created_at')
-            ->get()
+            ->paginate($perPage);
+
+        $items = $comments->getCollection()
             ->map(fn (BlogComment $comment) => $this->transformComment($comment))
-            ->values();
+            ->values()
+            ->all();
 
         return response()->json([
-            'data' => $comments,
+            'data' => $items,
+            'meta' => [
+                'current_page' => $comments->currentPage(),
+                'from' => $comments->firstItem(),
+                'last_page' => max($comments->lastPage(), 1),
+                'per_page' => $comments->perPage(),
+                'to' => $comments->lastItem(),
+                'total' => $comments->total(),
+            ],
+            'links' => [
+                'first' => $comments->url(1),
+                'last' => $comments->url(max($comments->lastPage(), 1)),
+                'prev' => $comments->previousPageUrl(),
+                'next' => $comments->nextPageUrl(),
+            ],
         ]);
     }
 
