@@ -131,7 +131,9 @@ class ForumThreadActionController extends Controller
             ->when(!$isModerator, function ($query) {
                 $query->where('forum_threads.is_published', true);
             })
-            ->with(['latestPost:id,forum_thread_id,created_at'])
+            ->with(['latestPost' => function ($query) {
+                $query->select('forum_posts.id', 'forum_posts.forum_thread_id', 'forum_posts.created_at');
+            }])
             ->get();
 
         if ($threads->isNotEmpty()) {
