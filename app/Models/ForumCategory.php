@@ -11,6 +11,15 @@ class ForumCategory extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::creating(function (self $category): void {
+            if ($category->getRawOriginal('is_published') === null && $category->is_published === null) {
+                $category->is_published = true;
+            }
+        });
+    }
+
     protected $fillable = [
         'title',
         'slug',
@@ -22,10 +31,6 @@ class ForumCategory extends Model
 
     protected $casts = [
         'is_published' => 'boolean',
-    ];
-
-    protected $attributes = [
-        'is_published' => true,
     ];
 
     public function boards(): HasMany
