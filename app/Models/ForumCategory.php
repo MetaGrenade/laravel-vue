@@ -54,7 +54,7 @@ class ForumCategory extends Model
 
     public function canBeViewedBy(?User $user): bool
     {
-        if ($this->is_published === false) {
+        if (!$this->isEffectivelyPublished()) {
             return false;
         }
 
@@ -63,5 +63,16 @@ class ForumCategory extends Model
         }
 
         return $user?->can($this->access_permission) ?? false;
+    }
+
+    public function isEffectivelyPublished(): bool
+    {
+        $rawValue = $this->getRawOriginal('is_published');
+
+        if ($rawValue === null) {
+            return true;
+        }
+
+        return (bool) $this->is_published;
     }
 }
