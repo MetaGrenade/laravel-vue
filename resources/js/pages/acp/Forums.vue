@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 import {
     Folder, MessageSquare, CheckCircle, Ellipsis, EyeOff, Shield,
     Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Layers,
@@ -94,42 +95,14 @@ const forumStats = computed(() =>
 
 const categories = computed(() => props.categories);
 const hasCategories = computed(() => categories.value.length > 0);
-const categoryDeleteDialogOpen = ref(false);
-const boardDeleteDialogOpen = ref(false);
-const pendingCategory = ref<ForumCategorySummary | null>(null);
-const pendingBoard = ref<ForumBoardSummary | null>(null);
-const deletingCategoryId = ref<number | null>(null);
-const deletingBoardId = ref<number | null>(null);
-const deleteCategoryTitle = computed(() => {
-    const target = pendingCategory.value;
 
-    if (!target) {
-        return 'Delete category?';
-    }
-
-    return `Delete “${target.title}”?`;
-});
-const deleteBoardTitle = computed(() => {
-    const target = pendingBoard.value;
-
-    if (!target) {
-        return 'Delete board?';
-    }
-
-    return `Delete “${target.title}”?`;
-});
-
-watch(categoryDeleteDialogOpen, (open) => {
-    if (!open) {
-        pendingCategory.value = null;
-    }
-});
-
-watch(boardDeleteDialogOpen, (open) => {
-    if (!open) {
-        pendingBoard.value = null;
-    }
-});
+const {
+    confirmDialogState,
+    confirmDialogDescription,
+    openConfirmDialog,
+    handleConfirmDialogConfirm,
+    handleConfirmDialogCancel,
+} = useConfirmDialog();
 
 const formatRelative = (value: string | null | undefined) => {
     if (!value) {
@@ -151,30 +124,15 @@ const goToCategoryEdit = (categoryId: number) => {
     router.get(route('acp.forums.categories.edit', { category: categoryId }));
 };
 
-const deleteCategory = (category: ForumCategorySummary) => {
-    pendingCategory.value = category;
-    categoryDeleteDialogOpen.value = true;
-};
-
-const cancelDeleteCategory = () => {
-    categoryDeleteDialogOpen.value = false;
-};
-
-const confirmDeleteCategory = () => {
-    const target = pendingCategory.value;
-
-    if (!target) {
-        categoryDeleteDialogOpen.value = false;
-        return;
-    }
-
-    deletingCategoryId.value = target.id;
-    categoryDeleteDialogOpen.value = false;
-
-    router.delete(route('acp.forums.categories.destroy', { category: target.id }), {
-        preserveScroll: true,
-        onFinish: () => {
-            deletingCategoryId.value = null;
+const requestDeleteCategory = (category: ForumCategorySummary) => {
+    openConfirmDialog({
+        title: `Delete “${category.title}”?`,
+        description: 'Deleting this category will remove all boards, threads, and posts within it.',
+        confirmLabel: 'Delete category',
+        onConfirm: () => {
+            router.delete(route('acp.forums.categories.destroy', { category: category.id }), {
+                preserveScroll: true,
+            });
         },
     });
 };
@@ -195,30 +153,15 @@ const goToBoardEdit = (boardId: number) => {
     router.get(route('acp.forums.boards.edit', { board: boardId }));
 };
 
-const deleteBoard = (board: ForumBoardSummary) => {
-    pendingBoard.value = board;
-    boardDeleteDialogOpen.value = true;
-};
-
-const cancelDeleteBoard = () => {
-    boardDeleteDialogOpen.value = false;
-};
-
-const confirmDeleteBoard = () => {
-    const target = pendingBoard.value;
-
-    if (!target) {
-        boardDeleteDialogOpen.value = false;
-        return;
-    }
-
-    deletingBoardId.value = target.id;
-    boardDeleteDialogOpen.value = false;
-
-    router.delete(route('acp.forums.boards.destroy', { board: target.id }), {
-        preserveScroll: true,
-        onFinish: () => {
-            deletingBoardId.value = null;
+const requestDeleteBoard = (board: ForumBoardSummary) => {
+    openConfirmDialog({
+        title: `Delete “${board.title}”?`,
+        description: 'Deleting this board will remove all threads and posts it contains.',
+        confirmLabel: 'Delete board',
+        onConfirm: () => {
+            router.delete(route('acp.forums.boards.destroy', { board: board.id }), {
+                preserveScroll: true,
+            });
         },
     });
 };
@@ -347,7 +290,7 @@ const confirmDeleteBoard = () => {
                                     <DropdownMenuItem
                                         v-if="deleteForums"
                                         class="text-red-500"
-                                        @select="deleteCategory(category)"
+                                        @select="requestDeleteCategory(category)"
                                     >
                                         <Trash2 class="h-4 w-4" />
                                         <span>Delete Category</span>
@@ -446,7 +389,7 @@ const confirmDeleteBoard = () => {
                                             <DropdownMenuItem
                                                 v-if="deleteForums"
                                                 class="text-red-500"
-                                                @select="deleteBoard(board)"
+                                                @select="requestDeleteBoard(board)"
                                             >
                                                 <Trash2 class="h-4 w-4" />
                                                 <span>Delete Board</span>
@@ -472,24 +415,15 @@ const confirmDeleteBoard = () => {
             </div>
         </AdminLayout>
         <ConfirmDialog
-            v-model:open="categoryDeleteDialogOpen"
-            :title="deleteCategoryTitle"
-            description="Deleting this category will remove all boards, threads, and posts within it."
-            confirm-label="Delete category"
-            cancel-label="Cancel"
-            :confirm-disabled="deletingCategoryId !== null"
-            @confirm="confirmDeleteCategory"
-            @cancel="cancelDeleteCategory"
-        />
-        <ConfirmDialog
-            v-model:open="boardDeleteDialogOpen"
-            :title="deleteBoardTitle"
-            description="Deleting this board will remove all threads and posts it contains."
-            confirm-label="Delete board"
-            cancel-label="Cancel"
-            :confirm-disabled="deletingBoardId !== null"
-            @confirm="confirmDeleteBoard"
-            @cancel="cancelDeleteBoard"
+            v-model:open="confirmDialogState.open"
+            :title="confirmDialogState.title"
+            :description="confirmDialogDescription"
+            :confirm-label="confirmDialogState.confirmLabel"
+            :cancel-label="confirmDialogState.cancelLabel"
+            :confirm-variant="confirmDialogState.confirmVariant"
+            :confirm-disabled="confirmDialogState.confirmDisabled"
+            @confirm="handleConfirmDialogConfirm"
+            @cancel="handleConfirmDialogCancel"
         />
     </AppLayout>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue';
 import { useId } from 'radix-vue';
 
 import { Button, type ButtonVariants } from '@/components/ui/button';
@@ -44,15 +44,42 @@ const dialogOpen = computed({
 const dialogId = useId();
 const descriptionId = computed(() => (props.description ? `${dialogId}-description` : undefined));
 
-const cancelButtonRef = ref<HTMLButtonElement | null>(null);
-const confirmButtonRef = ref<HTMLButtonElement | null>(null);
+type FocusCandidate = HTMLElement | ComponentPublicInstance | null;
+
+const cancelButtonRef = ref<FocusCandidate>(null);
+const confirmButtonRef = ref<FocusCandidate>(null);
+
+const focusCandidate = (candidate: FocusCandidate) => {
+    if (!candidate) {
+        return;
+    }
+
+    if (candidate instanceof HTMLElement) {
+        candidate.focus();
+        return;
+    }
+
+    const focusMethod = (candidate as { focus?: () => void }).focus;
+    if (typeof focusMethod === 'function') {
+        focusMethod.call(candidate);
+        return;
+    }
+
+    const instance = candidate as ComponentPublicInstance & {
+        $el?: unknown;
+        el?: unknown;
+    };
+
+    const possibleElement = (instance.$el ?? instance.el) as HTMLElement | undefined;
+    possibleElement?.focus?.();
+};
 
 watch(
     () => dialogOpen.value,
     (isOpen) => {
         if (isOpen) {
             requestAnimationFrame(() => {
-                (cancelButtonRef.value ?? confirmButtonRef.value)?.focus();
+                focusCandidate(cancelButtonRef.value ?? confirmButtonRef.value);
             });
         }
     },
@@ -77,6 +104,7 @@ const handleConfirm = () => {
                     {{ description }}
                 </DialogDescription>
             </DialogHeader>
+            <slot />
             <DialogFooter class="sm:space-x-2">
                 <Button ref="cancelButtonRef" variant="outline" @click="handleCancel">
                     {{ cancelLabel }}
