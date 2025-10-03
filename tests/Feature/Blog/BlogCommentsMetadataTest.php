@@ -41,7 +41,7 @@ class BlogCommentsMetadataTest extends TestCase
         $response->assertJsonPath('data.0.user.id', $commenter->id);
         $response->assertJsonPath('data.0.user.avatar_url', 'https://cdn.example.com/commenter.png');
         $response->assertJsonPath('data.0.user.profile_bio', 'Product designer who loves sharing release notes.');
-        $response->assertJsonPath('data.0.user.name', $commenter->name);
+        $response->assertJsonPath('data.0.user.nickname', $commenter->nickname);
     }
 
     public function test_inertia_comment_payload_includes_profile_metadata(): void
@@ -72,6 +72,6 @@ class BlogCommentsMetadataTest extends TestCase
             ->where('comments.data.0.user.id', $commenter->id)
             ->where('comments.data.0.user.avatar_url', 'https://cdn.example.com/commenter.png')
             ->where('comments.data.0.user.profile_bio', 'Product designer who loves sharing release notes.')
-            ->where('comments.data.0.user.name', $commenter->name));
+            ->where('comments.data.0.user.nickname', $commenter->nickname));
     }
 }
