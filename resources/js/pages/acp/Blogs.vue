@@ -7,6 +7,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
+import { useDebounceFn } from '@vueuse/core';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -103,13 +104,22 @@ const props = defineProps<{
         scheduled: number;
         archived: number;
     };
+    filters: {
+        search: string | null;
+        status: string[] | null;
+    };
 }>();
 
 const hasBlogs = computed(() => (props.blogs.data?.length ?? 0) > 0);
 
+const searchQuery = ref(props.filters.search ?? '');
+const statusFilters = computed(() => props.filters.status ?? []);
+let skipSearchWatch = false;
+
 const {
     meta: blogsMeta,
     page: blogsPage,
+    setPage: setBlogsPage,
     rangeLabel: blogsRangeLabel,
 } = useInertiaPagination({
     meta: computed(() => props.blogs.meta ?? null),
@@ -120,7 +130,11 @@ const {
     onNavigate: (page) => {
         router.get(
             route('acp.blogs.index'),
-            { page },
+            {
+                page,
+                search: searchQuery.value || undefined,
+                status: statusFilters.value.length > 0 ? statusFilters.value : undefined,
+            },
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -140,9 +154,6 @@ const stats = [
 ];
 
 // Search query for filtering blog posts
-const searchQuery = ref('');
-
-// Computed property to filter blog posts based on the search query
 type BlogRow = {
     id: number;
     title: string;
@@ -156,15 +167,43 @@ type BlogRow = {
     created_at: string | null;
 };
 
-const filteredBlogPosts = computed<BlogRow[]>(() => {
-    if (!searchQuery.value) return props.blogs.data;
-    const q = searchQuery.value.toLowerCase();
-    return props.blogs.data.filter((post: BlogRow) =>
-        post.title.toLowerCase().includes(q) ||
-        (post.user?.nickname?.toLowerCase().includes(q) ?? false) ||
-        (post.user?.email?.toLowerCase().includes(q) ?? false) ||
-        post.status.toLowerCase().includes(q)
+const blogRows = computed<BlogRow[]>(() => props.blogs.data ?? []);
+
+const debouncedSearch = useDebounceFn(() => {
+    router.get(
+        route('acp.blogs.index'),
+        {
+            search: searchQuery.value || undefined,
+            status: statusFilters.value.length > 0 ? statusFilters.value : undefined,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        },
     );
+}, 300);
+
+watch(
+    () => props.filters.search ?? '',
+    (value) => {
+        if (searchQuery.value === value) {
+            return;
+        }
+
+        skipSearchWatch = true;
+        searchQuery.value = value;
+    },
+);
+
+watch(searchQuery, () => {
+    if (skipSearchWatch) {
+        skipSearchWatch = false;
+        return;
+    }
+
+    setBlogsPage(1, { emitNavigate: false });
+    debouncedSearch();
 });
 
 const publishPost = (postId: number) => {
@@ -289,7 +328,7 @@ const deletePost = (postId: number) => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow v-for="(post) in filteredBlogPosts" :key="post.id">
+                                <TableRow v-for="(post) in blogRows" :key="post.id">
                                     <TableCell>{{ post.id }}</TableCell>
                                     <TableCell>{{ post.title }}</TableCell>
                                     <TableCell class="text-center">{{ post.user?.nickname ?? '—' }}</TableCell>
@@ -370,7 +409,7 @@ const deletePost = (postId: number) => {
                                         </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
-                                <TableRow v-if="filteredBlogPosts.length === 0">
+                                <TableRow v-if="blogRows.length === 0">
                                     <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">
                                         No blog posts found.
                                     </TableCell>
