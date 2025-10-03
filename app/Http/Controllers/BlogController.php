@@ -280,7 +280,6 @@ class BlogController extends Controller
                     'updated_at' => optional($comment->updated_at)->toIso8601String(),
                     'user' => $user ? [
                         'id' => $user->id,
-                        'name' => $user->name,
                         'nickname' => $user->nickname,
                         'avatar_url' => $avatarUrl,
                         'profile_bio' => $profileBio,
