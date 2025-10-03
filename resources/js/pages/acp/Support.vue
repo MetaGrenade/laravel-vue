@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/dialog';
 import {
     XCircle, HelpCircle, Ticket, TicketX, MessageSquare, CheckCircle, Ellipsis, UserPlus, SquareChevronUp,
-    Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff
+    Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff, X
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
@@ -70,14 +70,17 @@ type PaginationLinks = {
     next: string | null;
 };
 
+type TicketStatus = 'open' | 'pending' | 'closed';
+type TicketPriority = 'low' | 'medium' | 'high';
+
 const props = defineProps<{
     tickets: {
         data: Array<{
             id: number;
             subject: string;
             body: string;
-            status: 'open' | 'pending' | 'closed';
-            priority: 'low' | 'medium' | 'high';
+            status: TicketStatus;
+            priority: TicketPriority;
             created_at: string | null;
             updated_at: string | null;
             resolved_at: string | null;
@@ -133,6 +136,13 @@ const props = defineProps<{
         nickname: string;
         email: string;
     }>;
+    ticketFilters: {
+        status: TicketStatus | null;
+        priority: TicketPriority | null;
+        assignee: number | 'unassigned' | null;
+        date_from: string | null;
+        date_to: string | null;
+    };
 }>();
 
 type Ticket = (typeof props.tickets.data)[number];
@@ -185,6 +195,9 @@ const priorityDialogNextPriority = ref<Ticket['priority'] | null>(null);
 const priorityLevels: Ticket['priority'][] = ['low', 'medium', 'high'];
 const formatPriority = (priority: Ticket['priority']) =>
     `${priority.charAt(0).toUpperCase()}${priority.slice(1)}`;
+
+const formatStatus = (status: Ticket['status']) =>
+    `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
 
 const handlePriorityDialogChange = (open: boolean) => {
     priorityDialogOpen.value = open;
@@ -295,10 +308,134 @@ const readSearchParam = (location: string, key: string): string => {
 const ticketSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'tickets_search'));
 const faqSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'faqs_search'));
 
+const initialStatusFromQuery = readSearchParam(page.props.ziggy.location, 'status');
+const initialPriorityFromQuery = readSearchParam(page.props.ziggy.location, 'priority');
+const initialAssigneeFromQuery = readSearchParam(page.props.ziggy.location, 'assignee');
+const initialDateFromQuery = readSearchParam(page.props.ziggy.location, 'date_from');
+const initialDateToQuery = readSearchParam(page.props.ziggy.location, 'date_to');
+
+const statusFilter = ref(
+    initialStatusFromQuery !== ''
+        ? initialStatusFromQuery
+        : props.ticketFilters.status ?? ''
+);
+const priorityFilter = ref(
+    initialPriorityFromQuery !== ''
+        ? initialPriorityFromQuery
+        : props.ticketFilters.priority ?? ''
+);
+const assigneeFilter = ref(
+    initialAssigneeFromQuery !== ''
+        ? initialAssigneeFromQuery
+        : props.ticketFilters.assignee === null
+            ? ''
+            : String(props.ticketFilters.assignee)
+);
+const dateFromFilter = ref(
+    initialDateFromQuery !== ''
+        ? initialDateFromQuery
+        : props.ticketFilters.date_from ?? ''
+);
+const dateToFilter = ref(
+    initialDateToQuery !== ''
+        ? initialDateToQuery
+        : props.ticketFilters.date_to ?? ''
+);
+
+const ticketStatusOptions: Array<{ value: '' | TicketStatus; label: string }> = [
+    { value: '', label: 'All statuses' },
+    { value: 'open', label: 'Open' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'closed', label: 'Closed' },
+];
+
+const ticketPriorityOptions: Array<{ value: '' | TicketPriority; label: string }> = [
+    { value: '', label: 'All priorities' },
+    { value: 'low', label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high', label: 'High' },
+];
+
+const assigneeOptions = computed(() => {
+    const options: Array<{ value: string; label: string }> = [
+        { value: '', label: 'All assignees' },
+        { value: 'unassigned', label: 'Unassigned' },
+    ];
+
+    props.assignableAgents.forEach((agent) => {
+        options.push({ value: String(agent.id), label: agent.nickname });
+    });
+
+    return options;
+});
+
+const selectFilterClass =
+    'h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
+
 const ticketsMetaSource = computed(() => props.tickets.meta ?? null);
 const faqsMetaSource = computed(() => props.faqs.meta ?? null);
 const ticketItems = computed(() => props.tickets.data ?? []);
 const faqItems = computed(() => props.faqs.data ?? []);
+
+type TicketFilterChipKey = 'status' | 'priority' | 'assignee' | 'date_range';
+
+interface TicketFilterChip {
+    key: TicketFilterChipKey;
+    label: string;
+}
+
+const activeTicketFilterChips = computed<TicketFilterChip[]>(() => {
+    const chips: TicketFilterChip[] = [];
+
+    if (statusFilter.value !== '') {
+        chips.push({
+            key: 'status',
+            label: `Status: ${formatStatus(statusFilter.value as TicketStatus)}`,
+        });
+    }
+
+    if (priorityFilter.value !== '') {
+        chips.push({
+            key: 'priority',
+            label: `Priority: ${formatPriority(priorityFilter.value as TicketPriority)}`,
+        });
+    }
+
+    if (assigneeFilter.value !== '') {
+        let label = 'Assignee: Unassigned';
+
+        if (assigneeFilter.value !== 'unassigned') {
+            const matchedAgent = props.assignableAgents.find((agent) => String(agent.id) === assigneeFilter.value);
+            label = matchedAgent ? `Assignee: ${matchedAgent.nickname}` : `Assignee: #${assigneeFilter.value}`;
+        }
+
+        chips.push({
+            key: 'assignee',
+            label,
+        });
+    }
+
+    if (dateFromFilter.value !== '' || dateToFilter.value !== '') {
+        let label = 'Created';
+
+        if (dateFromFilter.value !== '' && dateToFilter.value !== '') {
+            label = `Created: ${dateFromFilter.value} → ${dateToFilter.value}`;
+        } else if (dateFromFilter.value !== '') {
+            label = `Created: ≥ ${dateFromFilter.value}`;
+        } else if (dateToFilter.value !== '') {
+            label = `Created: ≤ ${dateToFilter.value}`;
+        }
+
+        chips.push({
+            key: 'date_range',
+            label,
+        });
+    }
+
+    return chips;
+});
+
+const hasTicketFilters = computed(() => activeTicketFilterChips.value.length > 0);
 
 interface SupportQueryOverrides {
     tickets_page?: number | null;
@@ -317,6 +454,26 @@ const buildSupportQuery = (overrides: SupportQueryOverrides = {}) => {
 
     if (faqsSearch !== '') {
         query.faqs_search = faqsSearch;
+    }
+
+    if (statusFilter.value !== '') {
+        query.status = statusFilter.value;
+    }
+
+    if (priorityFilter.value !== '') {
+        query.priority = priorityFilter.value;
+    }
+
+    if (assigneeFilter.value !== '') {
+        query.assignee = assigneeFilter.value;
+    }
+
+    if (dateFromFilter.value !== '') {
+        query.date_from = dateFromFilter.value;
+    }
+
+    if (dateToFilter.value !== '') {
+        query.date_to = dateToFilter.value;
     }
 
     if (overrides.tickets_page !== undefined) {
@@ -370,6 +527,11 @@ const {
     },
 });
 
+const navigateTicketsWithFilters = () => {
+    setTicketsPage(1, { emitNavigate: false });
+    navigateToSupport({ tickets_page: 1 });
+};
+
 const {
     meta: faqsMeta,
     page: faqsPage,
@@ -396,12 +558,22 @@ const debouncedFaqsSearch = useDebounceFn(() => {
 
 let skipTicketsSearchWatch = false;
 let skipFaqsSearchWatch = false;
+let skipStatusFilterWatch = false;
+let skipPriorityFilterWatch = false;
+let skipAssigneeFilterWatch = false;
+let skipDateFromFilterWatch = false;
+let skipDateToFilterWatch = false;
 
 watch(
     () => page.props.ziggy.location,
     (location) => {
         const nextTicketsSearch = readSearchParam(location, 'tickets_search');
         const nextFaqsSearch = readSearchParam(location, 'faqs_search');
+        const nextStatus = readSearchParam(location, 'status');
+        const nextPriority = readSearchParam(location, 'priority');
+        const nextAssignee = readSearchParam(location, 'assignee');
+        const nextDateFrom = readSearchParam(location, 'date_from');
+        const nextDateTo = readSearchParam(location, 'date_to');
 
         if (ticketSearchQuery.value !== nextTicketsSearch) {
             skipTicketsSearchWatch = true;
@@ -411,6 +583,31 @@ watch(
         if (faqSearchQuery.value !== nextFaqsSearch) {
             skipFaqsSearchWatch = true;
             faqSearchQuery.value = nextFaqsSearch;
+        }
+
+        if (statusFilter.value !== nextStatus) {
+            skipStatusFilterWatch = true;
+            statusFilter.value = nextStatus;
+        }
+
+        if (priorityFilter.value !== nextPriority) {
+            skipPriorityFilterWatch = true;
+            priorityFilter.value = nextPriority;
+        }
+
+        if (assigneeFilter.value !== nextAssignee) {
+            skipAssigneeFilterWatch = true;
+            assigneeFilter.value = nextAssignee;
+        }
+
+        if (dateFromFilter.value !== nextDateFrom) {
+            skipDateFromFilterWatch = true;
+            dateFromFilter.value = nextDateFrom;
+        }
+
+        if (dateToFilter.value !== nextDateTo) {
+            skipDateToFilterWatch = true;
+            dateToFilter.value = nextDateTo;
         }
     },
 );
@@ -434,6 +631,91 @@ watch(faqSearchQuery, () => {
     setFaqsPage(1, { emitNavigate: false });
     debouncedFaqsSearch();
 });
+
+watch(statusFilter, () => {
+    if (skipStatusFilterWatch) {
+        skipStatusFilterWatch = false;
+        return;
+    }
+
+    navigateTicketsWithFilters();
+});
+
+watch(priorityFilter, () => {
+    if (skipPriorityFilterWatch) {
+        skipPriorityFilterWatch = false;
+        return;
+    }
+
+    navigateTicketsWithFilters();
+});
+
+watch(assigneeFilter, () => {
+    if (skipAssigneeFilterWatch) {
+        skipAssigneeFilterWatch = false;
+        return;
+    }
+
+    navigateTicketsWithFilters();
+});
+
+watch(dateFromFilter, () => {
+    if (skipDateFromFilterWatch) {
+        skipDateFromFilterWatch = false;
+        return;
+    }
+
+    navigateTicketsWithFilters();
+});
+
+watch(dateToFilter, () => {
+    if (skipDateToFilterWatch) {
+        skipDateToFilterWatch = false;
+        return;
+    }
+
+    navigateTicketsWithFilters();
+});
+
+const clearTicketFilter = (key: TicketFilterChipKey) => {
+    if (key === 'status') {
+        skipStatusFilterWatch = true;
+        statusFilter.value = '';
+    } else if (key === 'priority') {
+        skipPriorityFilterWatch = true;
+        priorityFilter.value = '';
+    } else if (key === 'assignee') {
+        skipAssigneeFilterWatch = true;
+        assigneeFilter.value = '';
+    } else if (key === 'date_range') {
+        skipDateFromFilterWatch = true;
+        skipDateToFilterWatch = true;
+        dateFromFilter.value = '';
+        dateToFilter.value = '';
+    }
+
+    navigateTicketsWithFilters();
+};
+
+const resetTicketFilters = () => {
+    if (!hasTicketFilters.value) {
+        return;
+    }
+
+    skipStatusFilterWatch = true;
+    skipPriorityFilterWatch = true;
+    skipAssigneeFilterWatch = true;
+    skipDateFromFilterWatch = true;
+    skipDateToFilterWatch = true;
+
+    statusFilter.value = '';
+    priorityFilter.value = '';
+    assigneeFilter.value = '';
+    dateFromFilter.value = '';
+    dateToFilter.value = '';
+
+    navigateTicketsWithFilters();
+};
 
 const reorderFaq = (faq: FaqItem, direction: 'up' | 'down') => {
     router.patch(
@@ -553,32 +835,106 @@ const unpublishFaq = (faq: FaqItem) => {
                         <div class="rounded-xl border p-4 space-y-4">
 
                             <!-- Header: Search & Create -->
-                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                                <h2 class="text-lg font-semibold">Ticket Management</h2>
-                                <div class="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-2">
-                                    <Input
-                                        v-model="ticketSearchQuery"
-                                        placeholder="Search tickets..."
-                                        class="w-full md:w-64"
-                                    />
-                                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-end md:gap-2">
-                                        <Link
-                                            v-if="editSupport || createSupport"
-                                            :href="route('acp.support.ticket-categories.index')"
-                                        >
-                                            <Button variant="outline" class="w-full md:w-auto">
-                                                Manage categories
-                                            </Button>
-                                        </Link>
-                                        <Link
-                                            v-if="createSupport"
-                                            :href="route('acp.support.tickets.create')"
-                                        >
-                                            <Button variant="secondary" class="w-full text-sm text-white md:w-auto bg-green-500 hover:bg-green-600">
-                                                Create Ticket
-                                            </Button>
-                                        </Link>
+                            <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                                <div class="flex w-full flex-col gap-3">
+                                    <div class="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-2">
+                                        <Input
+                                            v-model="ticketSearchQuery"
+                                            placeholder="Search tickets..."
+                                            class="w-full md:w-60 lg:w-72"
+                                        />
+                                        <div class="flex w-full flex-wrap items-center gap-2">
+                                            <select
+                                                v-model="statusFilter"
+                                                :class="[selectFilterClass, 'md:w-40']"
+                                            >
+                                                <option
+                                                    v-for="option in ticketStatusOptions"
+                                                    :key="option.value === '' ? 'status-all' : option.value"
+                                                    :value="option.value"
+                                                >
+                                                    {{ option.label }}
+                                                </option>
+                                            </select>
+                                            <select
+                                                v-model="priorityFilter"
+                                                :class="[selectFilterClass, 'md:w-40']"
+                                            >
+                                                <option
+                                                    v-for="option in ticketPriorityOptions"
+                                                    :key="option.value === '' ? 'priority-all' : option.value"
+                                                    :value="option.value"
+                                                >
+                                                    {{ option.label }}
+                                                </option>
+                                            </select>
+                                            <select
+                                                v-model="assigneeFilter"
+                                                :class="[selectFilterClass, 'md:w-48']"
+                                            >
+                                                <option
+                                                    v-for="option in assigneeOptions"
+                                                    :key="option.value === '' ? 'assignee-all' : option.value"
+                                                    :value="option.value"
+                                                >
+                                                    {{ option.label }}
+                                                </option>
+                                            </select>
+                                            <Input
+                                                v-model="dateFromFilter"
+                                                type="date"
+                                                class="w-full md:w-40"
+                                            />
+                                            <Input
+                                                v-model="dateToFilter"
+                                                type="date"
+                                                class="w-full md:w-40"
+                                            />
+                                        </div>
                                     </div>
+                                    <div
+                                        v-if="hasTicketFilters"
+                                        class="flex flex-wrap items-center gap-2"
+                                    >
+                                        <Button
+                                            v-for="chip in activeTicketFilterChips"
+                                            :key="chip.key"
+                                            variant="outline"
+                                            size="sm"
+                                            class="flex items-center gap-1"
+                                            @click="clearTicketFilter(chip.key)"
+                                        >
+                                            {{ chip.label }}
+                                            <X class="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            class="flex items-center gap-1"
+                                            @click="resetTicketFilters"
+                                        >
+                                            Clear filters
+                                            <X class="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-2 md:w-auto md:flex-row md:items-center md:justify-end md:gap-2">
+                                    <Link
+                                        v-if="editSupport || createSupport"
+                                        :href="route('acp.support.ticket-categories.index')"
+                                    >
+                                        <Button variant="outline" class="w-full md:w-auto">
+                                            Manage categories
+                                        </Button>
+                                    </Link>
+                                    <Link
+                                        v-if="createSupport"
+                                        :href="route('acp.support.tickets.create')"
+                                    >
+                                        <Button variant="secondary" class="w-full text-sm text-white md:w-auto bg-green-500 hover:bg-green-600">
+                                            Create Ticket
+                                        </Button>
+                                    </Link>
                                 </div>
                             </div>
 

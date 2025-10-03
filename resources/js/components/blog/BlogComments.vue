@@ -4,6 +4,7 @@ import { usePage } from '@inertiajs/vue3';
 import { toast } from 'vue-sonner';
 
 import InputError from '@/components/InputError.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +13,8 @@ import { useUserTimezone } from '@/composables/useUserTimezone';
 type CommentUser = {
     id: number;
     nickname?: string | null;
-    name?: string | null;
+    avatar_url?: string | null;
+    profile_bio?: string | null;
 };
 
 type BlogComment = {
@@ -214,7 +216,32 @@ const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token
 const { formatDate, fromNow } = useUserTimezone();
 
 const commentAuthor = (comment: BlogComment) => {
-    return comment.user?.nickname ?? comment.user?.name ?? 'Unknown user';
+    return comment.user?.nickname ?? 'Unknown user';
+};
+
+const commentInitials = (comment: BlogComment) => {
+    const source = comment.user?.nickname ?? 'U';
+    const parts = source
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part[0] ?? '')
+        .join('');
+
+    return parts.slice(0, 2).toUpperCase() || 'U';
+};
+
+const authorBioSnippet = (comment: BlogComment) => {
+    const bio = comment.user?.profile_bio?.trim();
+
+    if (!bio) {
+        return '';
+    }
+
+    if (bio.length <= 160) {
+        return bio;
+    }
+
+    return `${bio.slice(0, 157)}…`;
 };
 
 const formatCommentTimestamp = (comment: BlogComment) => {
@@ -512,60 +539,79 @@ const confirmDeleteComment = async () => {
                 :key="comment.id"
                 class="rounded-lg border border-sidebar-border/50 dark:border-sidebar-border/80 p-4"
             >
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                        <p class="text-sm font-semibold text-foreground">
-                            {{ commentAuthor(comment) }}
-                        </p>
-                        <p v-if="comment.created_at" class="text-xs text-muted-foreground">
-                            {{ formatCommentTimestamp(comment) }}
-                            <span v-if="isEdited(comment)" class="ml-1 italic">(edited)</span>
-                        </p>
-                    </div>
-                    <div v-if="canManageComment(comment)" class="flex flex-wrap items-center gap-2 text-xs">
-                        <Button
-                            v-if="editingCommentId !== comment.id"
-                            variant="ghost"
-                            size="sm"
-                            class="h-8 px-2"
-                            @click="startEditing(comment)"
-                        >
-                            Edit
-                        </Button>
-                        <template v-else>
-                            <Button variant="ghost" size="sm" class="h-8 px-2" @click="cancelEditing">
-                                Cancel
-                            </Button>
-                            <Button
-                                size="sm"
-                                class="h-8 px-3"
-                                :disabled="isUpdating(comment.id)"
-                                @click="updateComment(comment.id)"
-                            >
-                                <span v-if="isUpdating(comment.id)">Saving...</span>
-                                <span v-else>Save</span>
-                            </Button>
-                        </template>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            class="h-8 px-2 text-destructive hover:text-destructive"
-                            :disabled="isDeleting(comment.id)"
-                            @click="openDeleteDialog(comment)"
-                        >
-                            <span v-if="isDeleting(comment.id)">Removing...</span>
-                            <span v-else>Delete</span>
-                        </Button>
-                    </div>
-                </div>
+                <div class="flex gap-4">
+                    <Avatar size="sm" class="mt-1">
+                        <AvatarImage
+                            v-if="comment.user?.avatar_url"
+                            :src="comment.user.avatar_url"
+                            :alt="`${commentAuthor(comment)} avatar`"
+                        />
+                        <AvatarFallback>{{ commentInitials(comment) }}</AvatarFallback>
+                    </Avatar>
 
-                <div v-if="editingCommentId === comment.id" class="mt-4 space-y-3">
-                    <Textarea v-model="editingContent" rows="4" class="w-full" />
-                    <InputError :message="editError" />
+                    <div class="min-w-0 flex-1 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-foreground">
+                                    {{ commentAuthor(comment) }}
+                                </p>
+                                <p v-if="comment.created_at" class="text-xs text-muted-foreground">
+                                    {{ formatCommentTimestamp(comment) }}
+                                    <span v-if="isEdited(comment)" class="ml-1 italic">(edited)</span>
+                                </p>
+                                <p
+                                    v-if="authorBioSnippet(comment)"
+                                    class="mt-1 text-xs text-muted-foreground"
+                                >
+                                    {{ authorBioSnippet(comment) }}
+                                </p>
+                            </div>
+                            <div v-if="canManageComment(comment)" class="flex flex-wrap items-center gap-2 text-xs">
+                                <Button
+                                    v-if="editingCommentId !== comment.id"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="h-8 px-2"
+                                    @click="startEditing(comment)"
+                                >
+                                    Edit
+                                </Button>
+                                <template v-else>
+                                    <Button variant="ghost" size="sm" class="h-8 px-2" @click="cancelEditing">
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        class="h-8 px-3"
+                                        :disabled="isUpdating(comment.id)"
+                                        @click="updateComment(comment.id)"
+                                    >
+                                        <span v-if="isUpdating(comment.id)">Saving...</span>
+                                        <span v-else>Save</span>
+                                    </Button>
+                                </template>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    class="h-8 px-2 text-destructive hover:text-destructive"
+                                    :disabled="isDeleting(comment.id)"
+                                    @click="openDeleteDialog(comment)"
+                                >
+                                    <span v-if="isDeleting(comment.id)">Removing...</span>
+                                    <span v-else>Delete</span>
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div v-if="editingCommentId === comment.id" class="space-y-3">
+                            <Textarea v-model="editingContent" rows="4" class="w-full" />
+                            <InputError :message="editError" />
+                        </div>
+                        <p v-else class="whitespace-pre-line text-sm text-foreground">
+                            {{ comment.body }}
+                        </p>
+                    </div>
                 </div>
-                <p v-else class="mt-4 whitespace-pre-line text-sm text-foreground">
-                    {{ comment.body }}
-                </p>
             </div>
             <p v-if="loadMoreError" class="text-sm text-destructive">{{ loadMoreError }}</p>
             <div v-if="hasMore" class="pt-2 text-center">
