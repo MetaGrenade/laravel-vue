@@ -29,8 +29,12 @@ Route::prefix('blogs/{blog:slug}/comments')->group(function () {
 
     Route::middleware('auth')->group(function () {
         Route::post('/', [BlogCommentController::class, 'store'])->name('blogs.comments.store');
-        Route::put('/{comment}', [BlogCommentController::class, 'update'])->name('blogs.comments.update');
-        Route::delete('/{comment}', [BlogCommentController::class, 'destroy'])->name('blogs.comments.destroy');
+        Route::put('/{comment}', [BlogCommentController::class, 'update'])
+            ->whereNumber('comment')
+            ->name('blogs.comments.update');
+        Route::delete('/{comment}', [BlogCommentController::class, 'destroy'])
+            ->whereNumber('comment')
+            ->name('blogs.comments.destroy');
         Route::post('/subscriptions', [BlogCommentSubscriptionController::class, 'store'])
             ->name('blogs.comments.subscriptions.store');
         Route::delete('/subscriptions', [BlogCommentSubscriptionController::class, 'destroy'])
