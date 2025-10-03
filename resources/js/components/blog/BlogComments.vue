@@ -12,7 +12,6 @@ import { useUserTimezone } from '@/composables/useUserTimezone';
 type CommentUser = {
     id: number;
     nickname?: string | null;
-    name?: string | null;
     avatar_url?: string | null;
     profile_bio?: string | null;
 };
@@ -196,11 +195,11 @@ const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token
 const { formatDate, fromNow } = useUserTimezone();
 
 const commentAuthor = (comment: BlogComment) => {
-    return comment.user?.nickname ?? comment.user?.name ?? 'Unknown user';
+    return comment.user?.nickname ?? 'Unknown user';
 };
 
 const commentInitials = (comment: BlogComment) => {
-    const source = comment.user?.nickname ?? comment.user?.name ?? 'U';
+    const source = comment.user?.nickname ?? 'U';
     const parts = source
         .split(/\s+/)
         .filter(Boolean)

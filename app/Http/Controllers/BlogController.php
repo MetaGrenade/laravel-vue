@@ -253,13 +253,13 @@ class BlogController extends Controller
         }
 
         $comments = $blog->comments()
-            ->with(['user:id,name,nickname,avatar_url,profile_bio'])
+            ->with(['user:id,nickname,avatar_url,profile_bio'])
             ->orderBy('created_at')
             ->paginate(10, ['*'], 'page', 1);
 
         $commentItems = $comments->getCollection()
             ->map(function (BlogComment $comment) {
-                $comment->loadMissing(['user:id,name,nickname,avatar_url,profile_bio']);
+                $comment->loadMissing(['user:id,nickname,avatar_url,profile_bio']);
 
                 $user = $comment->user;
                 $avatarUrl = null;
@@ -280,7 +280,6 @@ class BlogController extends Controller
                     'updated_at' => optional($comment->updated_at)->toIso8601String(),
                     'user' => $user ? [
                         'id' => $user->id,
-                        'name' => $user->name,
                         'nickname' => $user->nickname,
                         'avatar_url' => $avatarUrl,
                         'profile_bio' => $profileBio,
