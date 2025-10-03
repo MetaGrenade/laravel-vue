@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -33,13 +34,50 @@ const breadcrumbs: BreadcrumbItem[] = [
 const hasTags = computed(() => props.tags.length > 0);
 const { formatDate } = useUserTimezone();
 
-const deleteTag = (tagId: number) => {
-    if (!confirm('Are you sure you want to delete this tag? This action cannot be undone.')) {
+const deleteDialogOpen = ref(false);
+const pendingTag = ref<ManagedTag | null>(null);
+const deletingTagId = ref<number | null>(null);
+const deleteDialogTitle = computed(() => {
+    const target = pendingTag.value;
+
+    if (!target) {
+        return 'Delete tag?';
+    }
+
+    return `Delete “${target.name}”?`;
+});
+
+watch(deleteDialogOpen, (open) => {
+    if (!open) {
+        pendingTag.value = null;
+    }
+});
+
+const deleteTag = (tag: ManagedTag) => {
+    pendingTag.value = tag;
+    deleteDialogOpen.value = true;
+};
+
+const cancelDeleteTag = () => {
+    deleteDialogOpen.value = false;
+};
+
+const confirmDeleteTag = () => {
+    const target = pendingTag.value;
+
+    if (!target) {
+        deleteDialogOpen.value = false;
         return;
     }
 
-    router.delete(route('acp.blog-tags.destroy', { tag: tagId }), {
+    deletingTagId.value = target.id;
+    deleteDialogOpen.value = false;
+
+    router.delete(route('acp.blog-tags.destroy', { tag: target.id }), {
         preserveScroll: true,
+        onFinish: () => {
+            deletingTagId.value = null;
+        },
     });
 };
 </script>
@@ -110,7 +148,7 @@ const deleteTag = (tagId: number) => {
                                                 Edit
                                             </Link>
                                         </Button>
-                                        <Button variant="destructive" size="sm" @click="deleteTag(tag.id)">
+                                        <Button variant="destructive" size="sm" @click="deleteTag(tag)">
                                             <Trash2 class="h-4 w-4" />
                                             Delete
                                         </Button>
@@ -121,6 +159,16 @@ const deleteTag = (tagId: number) => {
                     </div>
                 </CardContent>
             </Card>
+            <ConfirmDialog
+                v-model:open="deleteDialogOpen"
+                :title="deleteDialogTitle"
+                description="This action cannot be undone."
+                confirm-label="Delete"
+                cancel-label="Cancel"
+                :confirm-disabled="deletingTagId !== null"
+                @confirm="confirmDeleteTag"
+                @cancel="cancelDeleteTag"
+            />
         </AdminLayout>
     </AppLayout>
 </template>

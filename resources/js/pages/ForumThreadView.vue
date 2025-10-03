@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
@@ -246,6 +247,23 @@ const activePostActionId = ref<number | null>(null);
 const threadReportDialogOpen = ref(false);
 const postReportDialogOpen = ref(false);
 const postReportTarget = ref<ThreadPost | null>(null);
+const deleteThreadDialogOpen = ref(false);
+const deletePostDialogOpen = ref(false);
+const pendingDeletePost = ref<ThreadPost | null>(null);
+const deleteThreadDialogTitle = computed(
+    () => `Delete "${props.thread.title}"?`,
+);
+const deletePostDialogTitle = computed(() => {
+    const target = pendingDeletePost.value;
+
+    if (!target) {
+        return 'Delete post?';
+    }
+
+    const author = target.author?.nickname ?? 'Unknown user';
+
+    return `Delete post #${target.number} by ${author}?`;
+});
 
 const threadReportForm = useForm({
     reason_category: '',
@@ -302,6 +320,12 @@ watch(postReportDialogOpen, (open) => {
         postReportTarget.value = null;
         postReportForm.reset('reason_category', 'reason', 'evidence_url');
         postReportForm.clearErrors();
+    }
+});
+
+watch(deletePostDialogOpen, (open) => {
+    if (!open) {
+        pendingDeletePost.value = null;
     }
 });
 
@@ -541,11 +565,17 @@ const deleteThread = () => {
         return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete "${props.thread.title}"? This action cannot be undone.`)) {
+    deleteThreadDialogOpen.value = true;
+};
+
+const confirmDeleteThread = () => {
+    if (!threadPermissions.value?.canModerate || threadActionLoading.value) {
+        deleteThreadDialogOpen.value = false;
         return;
     }
 
     threadActionLoading.value = true;
+    deleteThreadDialogOpen.value = false;
 
     const url = route('forum.threads.destroy', { board: props.board.slug, thread: props.thread.slug });
 
@@ -556,6 +586,10 @@ const deleteThread = () => {
             threadActionLoading.value = false;
         },
     });
+};
+
+const cancelDeleteThread = () => {
+    deleteThreadDialogOpen.value = false;
 };
 
 const performPostAction = (
@@ -708,11 +742,29 @@ const deletePost = (post: ThreadPost) => {
         return;
     }
 
-    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+    pendingDeletePost.value = post;
+    deletePostDialogOpen.value = true;
+};
+
+const confirmDeletePost = () => {
+    const target = pendingDeletePost.value;
+
+    if (!target) {
+        deletePostDialogOpen.value = false;
         return;
     }
 
-    performPostAction(post, 'delete', 'forum.posts.destroy');
+    if (!target.permissions.canDelete || activePostActionId.value === target.id) {
+        deletePostDialogOpen.value = false;
+        return;
+    }
+
+    deletePostDialogOpen.value = false;
+    performPostAction(target, 'delete', 'forum.posts.destroy');
+};
+
+const cancelDeletePost = () => {
+    deletePostDialogOpen.value = false;
 };
 
 const quotePost = (post: ThreadPost) => {
@@ -1133,6 +1185,26 @@ const submitReply = () => {
                 </form>
             </DialogContent>
         </Dialog>
+        <ConfirmDialog
+            v-model:open="deleteThreadDialogOpen"
+            :title="deleteThreadDialogTitle"
+            description="Deleting this thread will remove all replies. This action cannot be undone."
+            confirm-label="Delete thread"
+            cancel-label="Cancel"
+            :confirm-disabled="threadActionLoading"
+            @confirm="confirmDeleteThread"
+            @cancel="cancelDeleteThread"
+        />
+        <ConfirmDialog
+            v-model:open="deletePostDialogOpen"
+            :title="deletePostDialogTitle"
+            description="Deleting this post cannot be undone."
+            confirm-label="Delete post"
+            cancel-label="Cancel"
+            :confirm-disabled="activePostActionId === pendingDeletePost?.id"
+            @confirm="confirmDeletePost"
+            @cancel="cancelDeletePost"
+        />
         <div class="p-4 space-y-8">
             <!-- Forum Header -->
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">

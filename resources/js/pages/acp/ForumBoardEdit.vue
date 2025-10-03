@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +38,9 @@ const form = useForm({
 });
 
 const hasCategories = computed(() => props.categories.length > 0);
+const deleteDialogOpen = ref(false);
+const isDeleting = ref(false);
+const deleteDialogTitle = computed(() => `Delete “${props.board.title}”?`);
 
 const handleSubmit = () => {
     form.put(route('acp.forums.boards.update', { board: props.board.id }), {
@@ -45,11 +49,27 @@ const handleSubmit = () => {
 };
 
 const handleDelete = () => {
-    if (confirm('Deleting this board will remove all threads and posts it contains. Do you want to proceed?')) {
-        router.delete(route('acp.forums.boards.destroy', { board: props.board.id }), {
-            preserveScroll: true,
-        });
+    deleteDialogOpen.value = true;
+};
+
+const cancelDelete = () => {
+    deleteDialogOpen.value = false;
+};
+
+const confirmDelete = () => {
+    if (isDeleting.value) {
+        return;
     }
+
+    isDeleting.value = true;
+    deleteDialogOpen.value = false;
+
+    router.delete(route('acp.forums.boards.destroy', { board: props.board.id }), {
+        preserveScroll: true,
+        onFinish: () => {
+            isDeleting.value = false;
+        },
+    });
 };
 </script>
 
@@ -141,6 +161,16 @@ const handleDelete = () => {
                     </CardFooter>
                 </Card>
             </form>
+            <ConfirmDialog
+                v-model:open="deleteDialogOpen"
+                :title="deleteDialogTitle"
+                description="Deleting this board will remove all threads and posts inside it."
+                confirm-label="Delete board"
+                cancel-label="Cancel"
+                :confirm-disabled="isDeleting"
+                @confirm="confirmDelete"
+                @cancel="cancelDelete"
+            />
         </AdminLayout>
     </AppLayout>
 </template>

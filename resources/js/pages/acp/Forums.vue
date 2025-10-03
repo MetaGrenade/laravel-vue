@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import {
     Folder, MessageSquare, CheckCircle, Ellipsis, EyeOff, Shield,
     Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Layers,
@@ -93,6 +94,42 @@ const forumStats = computed(() =>
 
 const categories = computed(() => props.categories);
 const hasCategories = computed(() => categories.value.length > 0);
+const categoryDeleteDialogOpen = ref(false);
+const boardDeleteDialogOpen = ref(false);
+const pendingCategory = ref<ForumCategorySummary | null>(null);
+const pendingBoard = ref<ForumBoardSummary | null>(null);
+const deletingCategoryId = ref<number | null>(null);
+const deletingBoardId = ref<number | null>(null);
+const deleteCategoryTitle = computed(() => {
+    const target = pendingCategory.value;
+
+    if (!target) {
+        return 'Delete category?';
+    }
+
+    return `Delete “${target.title}”?`;
+});
+const deleteBoardTitle = computed(() => {
+    const target = pendingBoard.value;
+
+    if (!target) {
+        return 'Delete board?';
+    }
+
+    return `Delete “${target.title}”?`;
+});
+
+watch(categoryDeleteDialogOpen, (open) => {
+    if (!open) {
+        pendingCategory.value = null;
+    }
+});
+
+watch(boardDeleteDialogOpen, (open) => {
+    if (!open) {
+        pendingBoard.value = null;
+    }
+});
 
 const formatRelative = (value: string | null | undefined) => {
     if (!value) {
@@ -114,16 +151,32 @@ const goToCategoryEdit = (categoryId: number) => {
     router.get(route('acp.forums.categories.edit', { category: categoryId }));
 };
 
-const deleteCategory = (categoryId: number) => {
-    if (
-        confirm(
-            'Deleting this category will also remove all boards, threads, and posts within it. Are you sure you want to continue?',
-        )
-    ) {
-        router.delete(route('acp.forums.categories.destroy', { category: categoryId }), {
-            preserveScroll: true,
-        });
+const deleteCategory = (category: ForumCategorySummary) => {
+    pendingCategory.value = category;
+    categoryDeleteDialogOpen.value = true;
+};
+
+const cancelDeleteCategory = () => {
+    categoryDeleteDialogOpen.value = false;
+};
+
+const confirmDeleteCategory = () => {
+    const target = pendingCategory.value;
+
+    if (!target) {
+        categoryDeleteDialogOpen.value = false;
+        return;
     }
+
+    deletingCategoryId.value = target.id;
+    categoryDeleteDialogOpen.value = false;
+
+    router.delete(route('acp.forums.categories.destroy', { category: target.id }), {
+        preserveScroll: true,
+        onFinish: () => {
+            deletingCategoryId.value = null;
+        },
+    });
 };
 
 const openBoardCreate = (categoryId: number) => {
@@ -142,14 +195,32 @@ const goToBoardEdit = (boardId: number) => {
     router.get(route('acp.forums.boards.edit', { board: boardId }));
 };
 
-const deleteBoard = (boardId: number) => {
-    if (
-        confirm('Deleting this board will remove all threads and posts it contains. Do you want to proceed?')
-    ) {
-        router.delete(route('acp.forums.boards.destroy', { board: boardId }), {
-            preserveScroll: true,
-        });
+const deleteBoard = (board: ForumBoardSummary) => {
+    pendingBoard.value = board;
+    boardDeleteDialogOpen.value = true;
+};
+
+const cancelDeleteBoard = () => {
+    boardDeleteDialogOpen.value = false;
+};
+
+const confirmDeleteBoard = () => {
+    const target = pendingBoard.value;
+
+    if (!target) {
+        boardDeleteDialogOpen.value = false;
+        return;
     }
+
+    deletingBoardId.value = target.id;
+    boardDeleteDialogOpen.value = false;
+
+    router.delete(route('acp.forums.boards.destroy', { board: target.id }), {
+        preserveScroll: true,
+        onFinish: () => {
+            deletingBoardId.value = null;
+        },
+    });
 };
 </script>
 
@@ -276,7 +347,7 @@ const deleteBoard = (boardId: number) => {
                                     <DropdownMenuItem
                                         v-if="deleteForums"
                                         class="text-red-500"
-                                        @select="deleteCategory(category.id)"
+                                        @select="deleteCategory(category)"
                                     >
                                         <Trash2 class="h-4 w-4" />
                                         <span>Delete Category</span>
@@ -350,23 +421,23 @@ const deleteBoard = (boardId: number) => {
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
                                             <DropdownMenuGroup v-if="moveForums">
-                                                <DropdownMenuItem
-                                                    :disabled="boardIndex === 0"
-                                                    @select="reorderBoard(board.id, 'up')"
+                                            <DropdownMenuItem
+                                                :disabled="boardIndex === 0"
+                                                @select="reorderBoard(board.id, 'up')"
                                                 >
                                                     <MoveUp class="h-4 w-4" />
                                                     <span>Move Up</span>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    :disabled="boardIndex === category.boards.length - 1"
-                                                    @select="reorderBoard(board.id, 'down')"
+                                            <DropdownMenuItem
+                                                :disabled="boardIndex === category.boards.length - 1"
+                                                @select="reorderBoard(board.id, 'down')"
                                                 >
                                                     <MoveDown class="h-4 w-4" />
                                                     <span>Move Down</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
                                             <DropdownMenuGroup v-if="editForums">
-                                                <DropdownMenuItem class="text-blue-500" @select="goToBoardEdit(board.id)">
+                                            <DropdownMenuItem class="text-blue-500" @select="goToBoardEdit(board.id)">
                                                     <Pencil class="h-4 w-4" />
                                                     <span>Edit Board</span>
                                                 </DropdownMenuItem>
@@ -375,7 +446,7 @@ const deleteBoard = (boardId: number) => {
                                             <DropdownMenuItem
                                                 v-if="deleteForums"
                                                 class="text-red-500"
-                                                @select="deleteBoard(board.id)"
+                                                @select="deleteBoard(board)"
                                             >
                                                 <Trash2 class="h-4 w-4" />
                                                 <span>Delete Board</span>
@@ -400,5 +471,25 @@ const deleteBoard = (boardId: number) => {
                 </div>
             </div>
         </AdminLayout>
+        <ConfirmDialog
+            v-model:open="categoryDeleteDialogOpen"
+            :title="deleteCategoryTitle"
+            description="Deleting this category will remove all boards, threads, and posts within it."
+            confirm-label="Delete category"
+            cancel-label="Cancel"
+            :confirm-disabled="deletingCategoryId !== null"
+            @confirm="confirmDeleteCategory"
+            @cancel="cancelDeleteCategory"
+        />
+        <ConfirmDialog
+            v-model:open="boardDeleteDialogOpen"
+            :title="deleteBoardTitle"
+            description="Deleting this board will remove all threads and posts it contains."
+            confirm-label="Delete board"
+            cancel-label="Cancel"
+            :confirm-disabled="deletingBoardId !== null"
+            @confirm="confirmDeleteBoard"
+            @cancel="cancelDeleteBoard"
+        />
     </AppLayout>
 </template>
