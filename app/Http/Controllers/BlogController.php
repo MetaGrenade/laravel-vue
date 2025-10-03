@@ -253,20 +253,37 @@ class BlogController extends Controller
         }
 
         $comments = $blog->comments()
-            ->with(['user:id,nickname'])
+            ->with(['user:id,name,nickname,avatar_url,profile_bio'])
             ->orderBy('created_at')
             ->paginate(10, ['*'], 'page', 1);
 
         $commentItems = $comments->getCollection()
             ->map(function (BlogComment $comment) {
+                $comment->loadMissing(['user:id,name,nickname,avatar_url,profile_bio']);
+
+                $user = $comment->user;
+                $avatarUrl = null;
+                $profileBio = null;
+
+                if ($user) {
+                    $avatarCandidate = is_string($user->avatar_url) ? trim($user->avatar_url) : '';
+                    $avatarUrl = $avatarCandidate !== '' ? $avatarCandidate : null;
+
+                    $bioCandidate = is_string($user->profile_bio) ? trim($user->profile_bio) : '';
+                    $profileBio = $bioCandidate !== '' ? $bioCandidate : null;
+                }
+
                 return [
                     'id' => $comment->id,
                     'body' => $comment->body,
                     'created_at' => optional($comment->created_at)->toIso8601String(),
                     'updated_at' => optional($comment->updated_at)->toIso8601String(),
-                    'user' => $comment->user ? [
-                        'id' => $comment->user->id,
-                        'nickname' => $comment->user->nickname,
+                    'user' => $user ? [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'nickname' => $user->nickname,
+                        'avatar_url' => $avatarUrl,
+                        'profile_bio' => $profileBio,
                     ] : null,
                 ];
             })

@@ -18,7 +18,7 @@ class BlogCommentController extends Controller
         $perPage = max(1, min($perPage, 50));
 
         $comments = $blog->comments()
-            ->with(['user:id,nickname,avatar_url,profile_bio'])
+            ->with(['user:id,name,nickname,avatar_url,profile_bio'])
             ->orderBy('created_at')
             ->paginate($perPage);
 
@@ -61,7 +61,7 @@ class BlogCommentController extends Controller
             'body' => $body,
         ]);
 
-        $comment->load(['user:id,nickname,avatar_url,profile_bio']);
+        $comment->load(['user:id,name,nickname,avatar_url,profile_bio']);
 
         return response()->json([
             'data' => $this->transformComment($comment),
@@ -86,7 +86,7 @@ class BlogCommentController extends Controller
             'body' => $body,
         ])->save();
 
-        $comment->load(['user:id,nickname,avatar_url,profile_bio']);
+        $comment->load(['user:id,name,nickname,avatar_url,profile_bio']);
 
         return response()->json([
             'data' => $this->transformComment($comment),
@@ -140,7 +140,7 @@ class BlogCommentController extends Controller
 
     private function transformComment(BlogComment $comment): array
     {
-        $comment->loadMissing(['user:id,nickname,avatar_url,profile_bio']);
+        $comment->loadMissing(['user:id,name,nickname,avatar_url,profile_bio']);
 
         $user = $comment->user;
 
@@ -162,6 +162,7 @@ class BlogCommentController extends Controller
             'updated_at' => optional($comment->updated_at)->toIso8601String(),
             'user' => $user ? [
                 'id' => $user->id,
+                'name' => $user->name,
                 'nickname' => $user->nickname,
                 'avatar_url' => $avatarUrl,
                 'profile_bio' => $profileBio,
