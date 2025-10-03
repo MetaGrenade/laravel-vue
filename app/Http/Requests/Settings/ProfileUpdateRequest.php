@@ -13,11 +13,13 @@ class ProfileUpdateRequest extends FormRequest
         $payload = [];
 
         if ($this->exists('avatar_url')) {
-            $payload['avatar_url'] = $this->filled('avatar_url') ? $this->input('avatar_url') : null;
+            $avatar = is_string($this->input('avatar_url')) ? trim($this->input('avatar_url')) : '';
+            $payload['avatar_url'] = $avatar !== '' ? $avatar : null;
         }
 
         if ($this->exists('profile_bio')) {
-            $payload['profile_bio'] = $this->filled('profile_bio') ? $this->input('profile_bio') : null;
+            $bio = is_string($this->input('profile_bio')) ? trim($this->input('profile_bio')) : '';
+            $payload['profile_bio'] = $bio !== '' ? $bio : null;
         }
 
         if ($this->exists('social_links')) {

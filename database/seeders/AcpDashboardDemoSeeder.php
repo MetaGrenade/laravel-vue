@@ -46,6 +46,8 @@ class AcpDashboardDemoSeeder extends Seeder
                 'password' => $password,
                 'email_verified_at' => $adminCreatedAt,
                 'last_activity_at' => $now->copy()->subDay(),
+                'avatar_url' => 'https://i.pravatar.cc/150?u=acp-dashboard-admin',
+                'profile_bio' => 'Keeps the dashboards humming with fresh insights.',
             ]
         );
         $admin->forceFill([
@@ -69,6 +71,8 @@ class AcpDashboardDemoSeeder extends Seeder
                         'password' => $password,
                         'email_verified_at' => $createdAt,
                         'last_activity_at' => $createdAt->copy()->addDays(10),
+                        'avatar_url' => sprintf('https://i.pravatar.cc/150?u=%s', $email),
+                        'profile_bio' => 'Community member sharing updates throughout the year.',
                     ]
                 );
                 $user->forceFill([
@@ -97,6 +101,8 @@ class AcpDashboardDemoSeeder extends Seeder
                     'password' => $password,
                     'email_verified_at' => $createdAt,
                     'last_activity_at' => $createdAt->copy()->addHours(6),
+                    'avatar_url' => sprintf('https://i.pravatar.cc/150?u=%s', $email),
+                    'profile_bio' => 'Active community voice testing the latest releases.',
                 ]
             );
             $user->forceFill([
