@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,6 +34,10 @@ const form = useForm({
     description: props.category.description ?? '',
 });
 
+const deleteDialogOpen = ref(false);
+const isDeleting = ref(false);
+const deleteDialogTitle = computed(() => `Delete “${props.category.title}”?`);
+
 const handleSubmit = () => {
     form.put(route('acp.forums.categories.update', { category: props.category.id }), {
         preserveScroll: true,
@@ -39,15 +45,27 @@ const handleSubmit = () => {
 };
 
 const handleDelete = () => {
-    if (
-        confirm(
-            'Deleting this category will also remove all boards, threads, and posts within it. Are you sure you want to continue?',
-        )
-    ) {
-        router.delete(route('acp.forums.categories.destroy', { category: props.category.id }), {
-            preserveScroll: true,
-        });
+    deleteDialogOpen.value = true;
+};
+
+const cancelDelete = () => {
+    deleteDialogOpen.value = false;
+};
+
+const confirmDelete = () => {
+    if (isDeleting.value) {
+        return;
     }
+
+    isDeleting.value = true;
+    deleteDialogOpen.value = false;
+
+    router.delete(route('acp.forums.categories.destroy', { category: props.category.id }), {
+        preserveScroll: true,
+        onFinish: () => {
+            isDeleting.value = false;
+        },
+    });
 };
 </script>
 
@@ -122,6 +140,16 @@ const handleDelete = () => {
                     </CardFooter>
                 </Card>
             </form>
+            <ConfirmDialog
+                v-model:open="deleteDialogOpen"
+                :title="deleteDialogTitle"
+                description="Deleting this category removes all boards, threads, and posts within it."
+                confirm-label="Delete category"
+                cancel-label="Cancel"
+                :confirm-disabled="isDeleting"
+                @confirm="confirmDelete"
+                @cancel="cancelDelete"
+            />
         </AdminLayout>
     </AppLayout>
 </template>

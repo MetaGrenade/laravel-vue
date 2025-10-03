@@ -5,6 +5,7 @@ import { toast } from 'vue-sonner';
 
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useUserTimezone } from '@/composables/useUserTimezone';
@@ -189,6 +190,26 @@ const editingContent = ref('');
 const editError = ref<string | null>(null);
 const updatingCommentId = ref<number | null>(null);
 const deletingCommentId = ref<number | null>(null);
+const deleteDialogOpen = ref(false);
+const pendingDeleteComment = ref<BlogComment | null>(null);
+const deleteDialogTitle = computed(() => {
+    const target = pendingDeleteComment.value;
+
+    if (!target) {
+        return 'Delete comment';
+    }
+
+    return `Delete comment from ${commentAuthor(target)}?`;
+});
+
+watch(
+    () => deleteDialogOpen.value,
+    (open) => {
+        if (!open) {
+            pendingDeleteComment.value = null;
+        }
+    },
+);
 
 const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 
@@ -406,31 +427,49 @@ const updateComment = async (commentId: number) => {
     }
 };
 
-const deleteComment = async (commentId: number) => {
+const openDeleteDialog = (comment: BlogComment) => {
     if (!authUser.value) {
         toast.error('You need to sign in to remove a comment.');
         return;
     }
 
-    const target = comments.value.find((comment) => comment.id === commentId);
+    if (!canManageComment(comment)) {
+        toast.error('You are not allowed to remove this comment.');
+        return;
+    }
+
+    pendingDeleteComment.value = comment;
+    deleteDialogOpen.value = true;
+};
+
+const closeDeleteDialog = () => {
+    deleteDialogOpen.value = false;
+    pendingDeleteComment.value = null;
+};
+
+const confirmDeleteComment = async () => {
+    const target = pendingDeleteComment.value;
 
     if (!target) {
         return;
     }
 
+    if (!authUser.value) {
+        toast.error('You need to sign in to remove a comment.');
+        closeDeleteDialog();
+        return;
+    }
+
     if (!canManageComment(target)) {
         toast.error('You are not allowed to remove this comment.');
+        closeDeleteDialog();
         return;
     }
 
-    if (!confirm('Delete this comment?')) {
-        return;
-    }
-
-    deletingCommentId.value = commentId;
+    deletingCommentId.value = target.id;
 
     try {
-        const response = await fetch(route('blogs.comments.destroy', { blog: props.blogSlug, comment: commentId }), {
+        const response = await fetch(route('blogs.comments.destroy', { blog: props.blogSlug, comment: target.id }), {
             method: 'DELETE',
             headers: {
                 Accept: 'application/json',
@@ -444,11 +483,11 @@ const deleteComment = async (commentId: number) => {
             return;
         }
 
-        comments.value = comments.value.filter((comment) => comment.id !== commentId);
+        comments.value = comments.value.filter((comment) => comment.id !== target.id);
         updatePaginationTotals(Math.max(pagination.value.total - 1, comments.value.length));
         toast.success('Comment removed.');
 
-        if (editingCommentId.value === commentId) {
+        if (editingCommentId.value === target.id) {
             cancelEditing();
         }
     } catch (error) {
@@ -456,6 +495,7 @@ const deleteComment = async (commentId: number) => {
         toast.error('Unable to delete the comment right now.');
     } finally {
         deletingCommentId.value = null;
+        closeDeleteDialog();
     }
 };
 </script>
@@ -510,7 +550,7 @@ const deleteComment = async (commentId: number) => {
                     </Avatar>
 
                     <div class="min-w-0 flex-1 space-y-3">
-                        <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
                             <div class="min-w-0">
                                 <p class="text-sm font-semibold text-foreground">
                                     {{ commentAuthor(comment) }}
@@ -555,7 +595,7 @@ const deleteComment = async (commentId: number) => {
                                     size="sm"
                                     class="h-8 px-2 text-destructive hover:text-destructive"
                                     :disabled="isDeleting(comment.id)"
-                                    @click="deleteComment(comment.id)"
+                                    @click="openDeleteDialog(comment)"
                                 >
                                     <span v-if="isDeleting(comment.id)">Removing...</span>
                                     <span v-else>Delete</span>
@@ -582,4 +622,14 @@ const deleteComment = async (commentId: number) => {
             </div>
         </div>
     </div>
+    <ConfirmDialog
+        v-model:open="deleteDialogOpen"
+        :title="deleteDialogTitle"
+        description="This action cannot be undone."
+        confirm-label="Delete"
+        cancel-label="Cancel"
+        :confirm-disabled="deletingCommentId !== null"
+        @confirm="confirmDeleteComment"
+        @cancel="closeDeleteDialog"
+    />
 </template>

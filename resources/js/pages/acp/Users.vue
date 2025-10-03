@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -9,6 +9,7 @@ import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import Label from '@/components/ui/label/Label.vue';
 import { useDebounceFn } from '@vueuse/core';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -43,6 +44,7 @@ import {
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
+import type { ButtonVariants } from '@/components/ui/button';
 
 // dayjs composable for human readable dates
 const { fromNow } = useUserTimezone();
@@ -309,6 +311,55 @@ const unbanUser = (userId: number) => {
     );
 };
 
+const destroyUser = (userId: number) => {
+    router.delete(route('acp.users.destroy', { user: userId }), {
+        preserveScroll: true,
+        preserveState: false,
+    });
+};
+
+type ConfirmDialogOptions = {
+    title: string;
+    description?: string;
+    confirmLabel: string;
+    confirmVariant?: ButtonVariants['variant'];
+    onConfirm: () => void;
+};
+
+const confirmDialogState = reactive({
+    open: false,
+    title: '',
+    description: null as string | null,
+    confirmLabel: 'Confirm',
+    confirmVariant: 'destructive' as ButtonVariants['variant'],
+    onConfirm: null as null | (() => void),
+});
+
+const confirmDialogDescription = computed(() => confirmDialogState.description ?? undefined);
+
+const openConfirmDialog = (options: ConfirmDialogOptions) => {
+    confirmDialogState.title = options.title;
+    confirmDialogState.description = options.description ?? null;
+    confirmDialogState.confirmLabel = options.confirmLabel;
+    confirmDialogState.confirmVariant = options.confirmVariant ?? 'destructive';
+    confirmDialogState.onConfirm = options.onConfirm;
+    confirmDialogState.open = true;
+};
+
+const closeConfirmDialog = () => {
+    confirmDialogState.open = false;
+    confirmDialogState.onConfirm = null;
+};
+
+const handleConfirmDialogConfirm = () => {
+    confirmDialogState.onConfirm?.();
+    closeConfirmDialog();
+};
+
+const handleConfirmDialogCancel = () => {
+    closeConfirmDialog();
+};
+
 // Stats cards array
 const stats = [
     { title: 'Total Users',      value: props.userStats.total,      icon: UsersIcon },
@@ -499,20 +550,44 @@ const stats = [
                                                     <DropdownMenuItem
                                                         v-if="banUsers && !user.is_banned"
                                                         class="text-amber-600"
-                                                        @click.prevent="banUser(user.id)"
+                                                        @click="
+                                                            openConfirmDialog({
+                                                                title: `Ban ${user.nickname}`,
+                                                                description: `Banning ${user.nickname} will immediately revoke their access.`,
+                                                                confirmLabel: 'Ban user',
+                                                                onConfirm: () => banUser(user.id),
+                                                            })
+                                                        "
                                                     >
                                                         <UserX class="mr-2" /> Ban
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         v-if="banUsers && user.is_banned"
                                                         class="text-emerald-600"
-                                                        @click.prevent="unbanUser(user.id)"
+                                                        @click="
+                                                            openConfirmDialog({
+                                                                title: `Unban ${user.nickname}`,
+                                                                description: `Unbanning ${user.nickname} will restore their access.`,
+                                                                confirmLabel: 'Unban user',
+                                                                confirmVariant: 'default',
+                                                                onConfirm: () => unbanUser(user.id),
+                                                            })
+                                                        "
                                                     >
                                                         <UserCheck class="mr-2" /> Unban
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator v-if="deleteUsers" />
-                                                    <DropdownMenuItem v-if="deleteUsers" class="text-red-500"
-                                                        @click="$inertia.delete(route('acp.users.destroy',{ user: user.id }))"
+                                                    <DropdownMenuItem
+                                                        v-if="deleteUsers"
+                                                        class="text-red-500"
+                                                        @click="
+                                                            openConfirmDialog({
+                                                                title: `Delete ${user.nickname}`,
+                                                                description: `This will permanently remove ${user.nickname}'s account and associated data.`,
+                                                                confirmLabel: 'Delete user',
+                                                                onConfirm: () => destroyUser(user.id),
+                                                            })
+                                                        "
                                                     >
                                                         <Trash2 class="mr-2"/> Delete
                                                     </DropdownMenuItem>
@@ -574,6 +649,15 @@ const stats = [
                     </Pagination>
                 </div>
             </div>
+            <ConfirmDialog
+                v-model:open="confirmDialogState.open"
+                :title="confirmDialogState.title"
+                :description="confirmDialogDescription"
+                :confirm-label="confirmDialogState.confirmLabel"
+                :confirm-variant="confirmDialogState.confirmVariant"
+                @confirm="handleConfirmDialogConfirm"
+                @cancel="handleConfirmDialogCancel"
+            />
         </AdminLayout>
     </AppLayout>
 </template>

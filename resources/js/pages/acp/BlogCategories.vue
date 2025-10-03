@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -33,13 +34,50 @@ const breadcrumbs: BreadcrumbItem[] = [
 const hasCategories = computed(() => props.categories.length > 0);
 const { formatDate } = useUserTimezone();
 
-const deleteCategory = (categoryId: number) => {
-    if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+const deleteDialogOpen = ref(false);
+const pendingCategory = ref<ManagedCategory | null>(null);
+const deletingCategoryId = ref<number | null>(null);
+const deleteDialogTitle = computed(() => {
+    const target = pendingCategory.value;
+
+    if (!target) {
+        return 'Delete category?';
+    }
+
+    return `Delete “${target.name}”?`;
+});
+
+watch(deleteDialogOpen, (open) => {
+    if (!open) {
+        pendingCategory.value = null;
+    }
+});
+
+const deleteCategory = (category: ManagedCategory) => {
+    pendingCategory.value = category;
+    deleteDialogOpen.value = true;
+};
+
+const cancelDeleteCategory = () => {
+    deleteDialogOpen.value = false;
+};
+
+const confirmDeleteCategory = () => {
+    const target = pendingCategory.value;
+
+    if (!target) {
+        deleteDialogOpen.value = false;
         return;
     }
 
-    router.delete(route('acp.blog-categories.destroy', { category: categoryId }), {
+    deletingCategoryId.value = target.id;
+    deleteDialogOpen.value = false;
+
+    router.delete(route('acp.blog-categories.destroy', { category: target.id }), {
         preserveScroll: true,
+        onFinish: () => {
+            deletingCategoryId.value = null;
+        },
     });
 };
 </script>
@@ -115,7 +153,7 @@ const deleteCategory = (categoryId: number) => {
                                                 Edit
                                             </Link>
                                         </Button>
-                                        <Button variant="destructive" size="sm" @click="deleteCategory(category.id)">
+                                        <Button variant="destructive" size="sm" @click="deleteCategory(category)">
                                             <Trash2 class="h-4 w-4" />
                                             Delete
                                         </Button>
@@ -126,6 +164,16 @@ const deleteCategory = (categoryId: number) => {
                     </div>
                 </CardContent>
             </Card>
+            <ConfirmDialog
+                v-model:open="deleteDialogOpen"
+                :title="deleteDialogTitle"
+                description="This action cannot be undone."
+                confirm-label="Delete"
+                cancel-label="Cancel"
+                :confirm-disabled="deletingCategoryId !== null"
+                @confirm="confirmDeleteCategory"
+                @cancel="cancelDeleteCategory"
+            />
         </AdminLayout>
     </AppLayout>
 </template>

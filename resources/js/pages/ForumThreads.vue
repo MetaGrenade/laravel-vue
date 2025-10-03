@@ -5,6 +5,7 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -166,6 +167,17 @@ const threadReportForm = useForm({
 const threadEditForm = useForm({
     title: '',
 });
+const threadDeleteDialogOpen = ref(false);
+const pendingThreadDeletion = ref<ThreadSummary | null>(null);
+const deleteThreadDialogTitle = computed(() => {
+    const target = pendingThreadDeletion.value;
+
+    if (!target) {
+        return 'Delete thread?';
+    }
+
+    return `Delete “${target.title}”?`;
+});
 
 const selectedThreadReason = computed(() =>
     reportReasons.value.find((option) => option.value === threadReportForm.reason_category) ?? null,
@@ -184,6 +196,12 @@ watch(
         threadReportForm.page = page;
     },
 );
+
+watch(threadDeleteDialogOpen, (open) => {
+    if (!open) {
+        pendingThreadDeletion.value = null;
+    }
+});
 
 let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -382,11 +400,33 @@ const submitThreadEdit = () => {
 };
 
 const deleteThread = (thread: ThreadSummary) => {
-    if (!window.confirm(`Are you sure you want to delete "${thread.title}"? This action cannot be undone.`)) {
+    if (!thread.permissions.canModerate || activeActionThreadId.value === thread.id) {
         return;
     }
 
-    performThreadAction(thread, 'delete', 'forum.threads.destroy');
+    pendingThreadDeletion.value = thread;
+    threadDeleteDialogOpen.value = true;
+};
+
+const cancelDeleteThread = () => {
+    threadDeleteDialogOpen.value = false;
+};
+
+const confirmThreadDeletion = () => {
+    const target = pendingThreadDeletion.value;
+
+    if (!target) {
+        threadDeleteDialogOpen.value = false;
+        return;
+    }
+
+    if (!target.permissions.canModerate || activeActionThreadId.value === target.id) {
+        threadDeleteDialogOpen.value = false;
+        return;
+    }
+
+    threadDeleteDialogOpen.value = false;
+    performThreadAction(target, 'delete', 'forum.threads.destroy');
 };
 
 const markThreadAsRead = (thread: ThreadSummary) => {
@@ -834,5 +874,15 @@ const markBoardAsRead = () => {
                 </Pagination>
             </div>
         </div>
+        <ConfirmDialog
+            v-model:open="threadDeleteDialogOpen"
+            :title="deleteThreadDialogTitle"
+            description="Deleting this thread will remove all replies. This action cannot be undone."
+            confirm-label="Delete thread"
+            cancel-label="Cancel"
+            :confirm-disabled="activeActionThreadId === pendingThreadDeletion?.id"
+            @confirm="confirmThreadDeletion"
+            @cancel="cancelDeleteThread"
+        />
     </AppLayout>
 </template>

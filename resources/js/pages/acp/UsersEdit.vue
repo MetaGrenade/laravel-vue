@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -85,6 +86,8 @@ const form = useForm<UserForm>({
 
 const verifyForm = useForm({});
 const deleteForm = useForm({});
+const deleteDialogOpen = ref(false);
+const deleteDialogTitle = computed(() => `Delete “${props.user.nickname}”?`);
 
 const { formatDate, fromNow } = useUserTimezone();
 
@@ -113,9 +116,19 @@ const verifyUser = () => {
 };
 
 const destroyUser = () => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+    deleteDialogOpen.value = true;
+};
+
+const cancelDestroyUser = () => {
+    deleteDialogOpen.value = false;
+};
+
+const confirmDestroyUser = () => {
+    if (deleteForm.processing) {
         return;
     }
+
+    deleteDialogOpen.value = false;
 
     deleteForm.delete(route('acp.users.destroy', { user: props.user.id }), {
         preserveScroll: true,
@@ -362,9 +375,19 @@ const removeSocialLink = (index: number) => {
                                 </Button>
                             </CardFooter>
                         </Card>
-                    </div>
-                </div>
-            </form>
+            </div>
+        </div>
+    </form>
+            <ConfirmDialog
+                v-model:open="deleteDialogOpen"
+                :title="deleteDialogTitle"
+                description="Deleting this user will permanently remove their account and associated data."
+                confirm-label="Delete user"
+                cancel-label="Cancel"
+                :confirm-disabled="deleteForm.processing"
+                @confirm="confirmDestroyUser"
+                @cancel="cancelDestroyUser"
+            />
         </AdminLayout>
     </AppLayout>
 </template>
