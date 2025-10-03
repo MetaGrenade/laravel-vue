@@ -24,8 +24,10 @@ use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Stringable;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -49,6 +51,14 @@ class SupportController extends Controller
 
         $ticketsSearchTerm = $ticketsSearch->isNotEmpty() ? $ticketsSearch->value() : null;
         $faqsSearchTerm = $faqsSearch->isNotEmpty() ? $faqsSearch->value() : null;
+
+        $statusFilter = $this->normalizeStatusFilter($request->string('status'));
+        $priorityFilter = $this->normalizePriorityFilter($request->string('priority'));
+        $assigneeFilter = $this->normalizeAssigneeFilter($request->string('assignee'));
+        [$createdFrom, $createdTo] = $this->normalizeDateRange(
+            $request->string('date_from'),
+            $request->string('date_to'),
+        );
 
         $ticketQuery = SupportTicket::query()
             ->when($ticketsSearchTerm, function ($query) use ($ticketsSearchTerm) {
@@ -77,7 +87,20 @@ class SupportController extends Controller
                                 ->orWhere('email', 'like', $like);
                         });
                 });
-            });
+            })
+            ->when($statusFilter, fn ($query, $status) => $query->where('status', $status))
+            ->when($priorityFilter, fn ($query, $priority) => $query->where('priority', $priority))
+            ->when($assigneeFilter !== null, function ($query) use ($assigneeFilter) {
+                if ($assigneeFilter === 'unassigned') {
+                    $query->whereNull('assigned_to');
+
+                    return;
+                }
+
+                $query->where('assigned_to', $assigneeFilter);
+            })
+            ->when($createdFrom, fn ($query, $from) => $query->where('created_at', '>=', $from))
+            ->when($createdTo, fn ($query, $to) => $query->where('created_at', '<=', $to));
 
         $faqQuery = Faq::query()
             ->with('category:id,name,slug')
@@ -189,12 +212,98 @@ class SupportController extends Controller
             ], $this->inertiaPagination($faqs)),
             'supportStats' => $stats,
             'assignableAgents' => $assignableAgents,
+            'ticketFilters' => [
+                'status' => $statusFilter,
+                'priority' => $priorityFilter,
+                'assignee' => $assigneeFilter,
+                'date_from' => optional($createdFrom)?->toDateString(),
+                'date_to' => optional($createdTo)?->toDateString(),
+            ],
         ]);
     }
 
     private function escapeForLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    private function normalizeStatusFilter(Stringable $status): ?string
+    {
+        $statusValue = $status->trim()->lower();
+
+        if ($statusValue->isEmpty()) {
+            return null;
+        }
+
+        return in_array($statusValue->value(), ['open', 'pending', 'closed'], true)
+            ? $statusValue->value()
+            : null;
+    }
+
+    private function normalizePriorityFilter(Stringable $priority): ?string
+    {
+        $priorityValue = $priority->trim()->lower();
+
+        if ($priorityValue->isEmpty()) {
+            return null;
+        }
+
+        return in_array($priorityValue->value(), ['low', 'medium', 'high'], true)
+            ? $priorityValue->value()
+            : null;
+    }
+
+    private function normalizeAssigneeFilter(Stringable $assignee): int|string|null
+    {
+        $assigneeValue = $assignee->trim();
+
+        if ($assigneeValue->isEmpty()) {
+            return null;
+        }
+
+        if ($assigneeValue->value() === 'unassigned') {
+            return 'unassigned';
+        }
+
+        return ctype_digit($assigneeValue->value())
+            ? (int) $assigneeValue->value()
+            : null;
+    }
+
+    private function normalizeDateRange(Stringable $from, Stringable $to): array
+    {
+        $fromValue = $from->trim();
+        $toValue = $to->trim();
+
+        $parsedFrom = null;
+        $parsedTo = null;
+
+        if ($fromValue->isNotEmpty()) {
+            $parsedFrom = $this->parseDateBoundary($fromValue->value(), 'start');
+        }
+
+        if ($toValue->isNotEmpty()) {
+            $parsedTo = $this->parseDateBoundary($toValue->value(), 'end');
+        }
+
+        if ($parsedFrom && $parsedTo && $parsedFrom->greaterThan($parsedTo)) {
+            return [$parsedTo->copy()->startOfDay(), $parsedTo];
+        }
+
+        return [$parsedFrom, $parsedTo];
+    }
+
+    private function parseDateBoundary(string $value, string $boundary): ?Carbon
+    {
+        try {
+            $date = Carbon::parse($value);
+
+            return $boundary === 'start'
+                ? $date->startOfDay()
+                : $date->endOfDay();
+        } catch (\Exception) {
+            return null;
+        }
     }
 
     // Tickets
