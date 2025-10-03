@@ -142,10 +142,10 @@ class SupportTicketFiltersTest extends TestCase
             ->component('acp/Support')
             ->where('tickets.meta.current_page', 2)
             ->where('tickets.meta.total', 2)
-            ->where('tickets.data', function ($tickets) use ($secondTicket) {
+            ->where('tickets.data', function ($tickets) use ($firstTicket) {
                 $ids = collect($tickets)->pluck('id');
 
-                return $ids->contains($secondTicket->id) && $ids->count() === 1;
+                return $ids->contains($firstTicket->id) && $ids->count() === 1;
             })
             ->where('tickets.links.prev', function ($url) use ($agent) {
                 return is_string($url)
