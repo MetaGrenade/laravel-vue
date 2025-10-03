@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
 import BlogComments from '@/components/blog/BlogComments.vue';
 import { Share2 } from 'lucide-vue-next';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { toast } from 'vue-sonner';
 
 type BlogTaxonomyItem = {
     id: number;
@@ -62,6 +63,11 @@ type PaginatedComments = {
     links: PaginationLinks;
 };
 
+type CommentSubscriptionPayload = {
+    is_subscribed: boolean;
+    subscribers_count: number;
+};
+
 type RecommendedPost = {
     id: number;
     title: string;
@@ -85,12 +91,158 @@ type BlogPayload = {
     tags?: BlogTaxonomyItem[];
     canonical_url?: string | null;
     recommendations?: RecommendedPost[];
+    comment_subscription?: CommentSubscriptionPayload;
+};
+
+type PageProps = {
+    auth: {
+        user: {
+            id: number;
+            nickname?: string | null;
+        } | null;
+    };
 };
 
 const props = defineProps<{ blog: BlogPayload }>();
 
 const blog = computed(() => props.blog);
 const { formatDate } = useUserTimezone();
+
+const page = usePage<PageProps>();
+const authUser = computed(() => page.props.auth?.user ?? null);
+
+const commentSubscription = computed<CommentSubscriptionPayload>(() => {
+    const subscription = blog.value.comment_subscription;
+
+    return {
+        is_subscribed: subscription?.is_subscribed ?? false,
+        subscribers_count: subscription?.subscribers_count ?? 0,
+    };
+});
+
+const isSubscribedToComments = ref(commentSubscription.value.is_subscribed);
+const subscriptionLoading = ref(false);
+const subscribersCount = ref(commentSubscription.value.subscribers_count);
+
+watch(
+    () => blog.value.comment_subscription,
+    (value) => {
+        isSubscribedToComments.value = value?.is_subscribed ?? false;
+        subscribersCount.value = value?.subscribers_count ?? 0;
+    },
+);
+
+const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+
+const extractSubscriptionError = async (response: Response): Promise<string> => {
+    try {
+        const payload = await response.json();
+
+        if (payload?.message) {
+            return payload.message;
+        }
+
+        if (payload?.errors) {
+            const firstError = Object.values(payload.errors)[0];
+
+            if (Array.isArray(firstError) && firstError.length > 0) {
+                return String(firstError[0]);
+            }
+        }
+    } catch (error) {
+        console.error(error);
+    }
+
+    if (response.status === 401) {
+        return 'You need to sign in to manage notifications.';
+    }
+
+    if (response.status === 403) {
+        return 'You are not allowed to manage notifications for this post.';
+    }
+
+    return 'We could not update your notification settings. Please try again.';
+};
+
+const subscribeToComments = async () => {
+    if (!authUser.value) {
+        toast.error('Sign in to get notified about new replies.');
+        return;
+    }
+
+    if (subscriptionLoading.value) {
+        return;
+    }
+
+    subscriptionLoading.value = true;
+
+    try {
+        const response = await fetch(route('blogs.comments.subscriptions.store', { blog: blog.value.slug }), {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+        });
+
+        if (!response.ok) {
+            const message = await extractSubscriptionError(response);
+            toast.error(message);
+            return;
+        }
+
+        const payload = await response.json();
+
+        isSubscribedToComments.value = payload?.subscribed ?? true;
+        subscribersCount.value = payload?.subscribers_count ?? subscribersCount.value;
+        toast.success('You will be notified about new replies.');
+    } catch (error) {
+        console.error(error);
+        toast.error('Unable to update your notification settings right now.');
+    } finally {
+        subscriptionLoading.value = false;
+    }
+};
+
+const unsubscribeFromComments = async () => {
+    if (!authUser.value) {
+        toast.error('Sign in to manage your notifications.');
+        return;
+    }
+
+    if (subscriptionLoading.value) {
+        return;
+    }
+
+    subscriptionLoading.value = true;
+
+    try {
+        const response = await fetch(route('blogs.comments.subscriptions.destroy', { blog: blog.value.slug }), {
+            method: 'DELETE',
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+        });
+
+        if (!response.ok) {
+            const message = await extractSubscriptionError(response);
+            toast.error(message);
+            return;
+        }
+
+        const payload = await response.json();
+
+        isSubscribedToComments.value = payload?.subscribed ?? false;
+        subscribersCount.value = payload?.subscribers_count ?? subscribersCount.value;
+        toast.success('You will no longer receive alerts for new replies.');
+    } catch (error) {
+        console.error(error);
+        toast.error('Unable to update your notification settings right now.');
+    } finally {
+        subscriptionLoading.value = false;
+    }
+};
 
 const author = computed<BlogAuthor | null>(() => blog.value.user ?? null);
 
@@ -389,6 +541,44 @@ const shareLinks = computed(() => ({
                             </span>
                         </div>
                     </Link>
+                </div>
+            </div>
+
+            <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="space-y-1">
+                        <h2 class="text-xl font-semibold text-foreground">Stay in the loop</h2>
+                        <p class="text-sm text-muted-foreground">
+                            <template v-if="authUser">
+                                We'll send you a quick alert whenever someone replies here.
+                            </template>
+                            <template v-else>
+                                Sign in to receive alerts when the conversation continues.
+                            </template>
+                        </p>
+                    </div>
+                    <div class="flex flex-col items-start gap-2 sm:items-end">
+                        <span class="text-xs text-muted-foreground">
+                            {{ subscribersCount }}
+                            {{ subscribersCount === 1 ? 'person is following replies' : 'people are following replies' }}
+                        </span>
+                        <Button
+                            v-if="authUser"
+                            :variant="isSubscribedToComments ? 'default' : 'outline'"
+                            :disabled="subscriptionLoading"
+                            @click="isSubscribedToComments ? unsubscribeFromComments() : subscribeToComments()"
+                        >
+                            <span v-if="subscriptionLoading">
+                                {{ isSubscribedToComments ? 'Updating…' : 'Subscribing…' }}
+                            </span>
+                            <span v-else>
+                                {{ isSubscribedToComments ? 'Following replies' : 'Notify me about replies' }}
+                            </span>
+                        </Button>
+                        <Button v-else as="a" :href="route('login')" variant="outline">
+                            Sign in to subscribe
+                        </Button>
+                    </div>
                 </div>
             </div>
 

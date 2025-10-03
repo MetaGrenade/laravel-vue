@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Blog;
 use App\Models\BlogComment;
+use App\Notifications\BlogCommentPosted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class BlogCommentController extends Controller
@@ -62,6 +64,22 @@ class BlogCommentController extends Controller
         ]);
 
         $comment->load(['user:id,nickname,avatar_url,profile_bio']);
+
+        $blog->loadMissing('user');
+
+        $recipients = $blog->commentSubscribers()
+            ->where('users.id', '!=', $user->id)
+            ->get();
+
+        if ($blog->user && $blog->user->id !== $user->id) {
+            $recipients->push($blog->user);
+        }
+
+        $recipients = $recipients->unique('id')->values();
+
+        if ($recipients->isNotEmpty()) {
+            Notification::send($recipients, new BlogCommentPosted($blog, $comment));
+        }
 
         return response()->json([
             'data' => $this->transformComment($comment),

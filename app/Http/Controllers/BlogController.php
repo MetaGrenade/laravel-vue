@@ -226,7 +226,7 @@ class BlogController extends Controller
     /**
      * Show the detailed view for a single blog post.
      */
-    public function show($slug): Response
+    public function show(Request $request, $slug): Response
     {
         $blog = Blog::with([
             'user:id,nickname,avatar_url,profile_bio,social_links',
@@ -243,6 +243,8 @@ class BlogController extends Controller
                     });
             })
             ->firstOrFail();
+
+        $blog->loadCount('commentSubscribers');
 
         if ($blog->status === 'scheduled' && $blog->scheduled_for && $blog->scheduled_for->lessThanOrEqualTo(now())) {
             $blog->forceFill([
@@ -418,6 +420,16 @@ class BlogController extends Controller
         ])->map(fn (array $attributes) => $renderTag('link', $attributes))
             ->all();
 
+        $currentUser = $request->user();
+
+        $isSubscribed = false;
+
+        if ($currentUser) {
+            $isSubscribed = $blog->commentSubscribers()
+                ->where('users.id', $currentUser->id)
+                ->exists();
+        }
+
         return Inertia::render('BlogView', [
             'blog' => [
                 'id' => $blog->id,
@@ -445,6 +457,10 @@ class BlogController extends Controller
                 })->values()->all(),
                 'recommendations' => $recommendations,
                 'comments' => $paginatedComments,
+                'comment_subscription' => [
+                    'is_subscribed' => $isSubscribed,
+                    'subscribers_count' => $blog->comment_subscribers_count,
+                ],
             ],
             'comments' => $paginatedComments,
         ])->withViewData([

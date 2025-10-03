@@ -88,6 +88,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(ForumThread::class, 'forum_thread_subscriptions')->withTimestamps();
     }
 
+    public function subscribedBlogComments(): BelongsToMany
+    {
+        return $this->belongsToMany(Blog::class, 'blog_comment_subscriptions')
+            ->withTimestamps();
+    }
+
     public function blogComments(): HasMany
     {
         return $this->hasMany(BlogComment::class);

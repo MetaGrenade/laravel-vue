@@ -537,6 +537,7 @@ const confirmDeleteComment = async () => {
             <div
                 v-for="comment in sortedComments"
                 :key="comment.id"
+                :id="`comment-${comment.id}`"
                 class="rounded-lg border border-sidebar-border/50 dark:border-sidebar-border/80 p-4"
             >
                 <div class="flex gap-4">
