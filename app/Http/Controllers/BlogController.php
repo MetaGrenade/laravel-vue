@@ -289,6 +289,10 @@ class BlogController extends Controller
             ->values()
             ->all();
 
+        $paginatedComments = array_merge([
+            'data' => $commentItems,
+        ], $this->inertiaPagination($comments));
+
         $coverImageUrl = $blog->cover_image
             ? Storage::disk('public')->url($blog->cover_image)
             : null;
@@ -440,10 +444,9 @@ class BlogController extends Controller
                     ];
                 })->values()->all(),
                 'recommendations' => $recommendations,
-                'comments' => array_merge([
-                    'data' => $commentItems,
-                ], $this->inertiaPagination($comments)),
+                'comments' => $paginatedComments,
             ],
+            'comments' => $paginatedComments,
         ])->withViewData([
             'metaTags' => $metaTags,
             'linkTags' => $linkTags,
