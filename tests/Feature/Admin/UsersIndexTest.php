@@ -227,11 +227,17 @@ class UsersIndexTest extends TestCase
         $response->assertInertia(fn (Assert $page) => $page
             ->component('acp/Users')
             ->where('filters.activity_window', 5)
-            ->where('users.meta.total', 1)
-            ->where('users.data', function ($users) use ($recentUser, $staleUser) {
-                return count($users) === 1
-                    && $users[0]['id'] === $recentUser->id
-                    && $users[0]['id'] !== $staleUser->id;
+            ->where('users.meta.total', 2)
+            ->where('users.data', function ($users) use ($admin, $recentUser, $staleUser) {
+                if (count($users) !== 2) {
+                    return false;
+                }
+
+                $ids = collect($users)->pluck('id');
+
+                return $ids->contains($admin->id)
+                    && $ids->contains($recentUser->id)
+                    && ! $ids->contains($staleUser->id);
             })
         );
 
