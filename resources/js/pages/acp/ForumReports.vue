@@ -12,14 +12,6 @@ import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import { Label } from '@/components/ui/label';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
     Pagination,
     PaginationEllipsis,
     PaginationFirst,
@@ -37,6 +29,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Ellipsis, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-vue-next';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
 const props = defineProps<{
     reports: {
@@ -265,6 +258,19 @@ const openModerationDialog = (report: Report, status: ModerationStatus) => {
     moderationAction.value = 'none';
     moderationDialogOpen.value = true;
 };
+
+const moderationDialogTitle = computed(() =>
+    moderationStatus.value === 'reviewed' ? 'Mark report as reviewed' : 'Dismiss report',
+);
+
+const moderationDialogDescription =
+    'Select an optional moderation action to apply before updating the report status.';
+
+const moderationDialogConfirmLabel = computed(() =>
+    moderationStatus.value === 'reviewed' ? 'Mark as reviewed' : 'Dismiss report',
+);
+
+const isModerationConfirmDisabled = computed(() => moderationTarget.value === null);
 
 const moderationOptions = computed(() => {
     if (!moderationTarget.value) {
@@ -634,44 +640,35 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
             </div>
         </AdminLayout>
 
-        <Dialog :open="moderationDialogOpen" @update:open="(open) => (open ? null : closeModerationDialog())">
-            <DialogContent class="sm:max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>
-                        {{ moderationStatus === 'reviewed' ? 'Mark report as reviewed' : 'Dismiss report' }}
-                    </DialogTitle>
-                    <DialogDescription>
-                        Select an optional moderation action to apply before updating the report status.
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div class="space-y-4">
-                    <div>
-                        <Label for="moderation-action">Moderation action</Label>
-                        <select
-                            id="moderation-action"
-                            v-model="moderationAction"
-                            class="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                        >
-                            <option v-for="option in moderationOptions" :key="option.value" :value="option.value">
-                                {{ option.label }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
-                        <p v-if="moderationTarget?.thread" class="font-medium">{{ moderationTarget.thread.title }}</p>
-                        <p v-else>Associated content is no longer available.</p>
-                    </div>
+        <ConfirmDialog
+            v-model:open="moderationDialogOpen"
+            :title="moderationDialogTitle"
+            :description="moderationDialogDescription"
+            :confirm-label="moderationDialogConfirmLabel"
+            confirm-variant="default"
+            :confirm-disabled="isModerationConfirmDisabled"
+            @confirm="submitModeration"
+            @cancel="closeModerationDialog"
+        >
+            <div v-if="moderationTarget" class="space-y-4 pt-2">
+                <div>
+                    <Label for="moderation-action">Moderation action</Label>
+                    <select
+                        id="moderation-action"
+                        v-model="moderationAction"
+                        class="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    >
+                        <option v-for="option in moderationOptions" :key="option.value" :value="option.value">
+                            {{ option.label }}
+                        </option>
+                    </select>
                 </div>
 
-                <DialogFooter class="gap-2">
-                    <Button type="button" variant="ghost" @click="closeModerationDialog">Cancel</Button>
-                    <Button type="button" @click="submitModeration">
-                        {{ moderationStatus === 'reviewed' ? 'Mark as reviewed' : 'Dismiss report' }}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                <div class="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                    <p v-if="moderationTarget?.thread" class="font-medium">{{ moderationTarget.thread.title }}</p>
+                    <p v-else>Associated content is no longer available.</p>
+                </div>
+            </div>
+        </ConfirmDialog>
     </AppLayout>
 </template>

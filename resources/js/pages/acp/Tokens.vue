@@ -47,6 +47,8 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 // dayjs composable for human readable dates
 const { fromNow } = useUserTimezone();
@@ -532,6 +534,40 @@ const resolveTokenStatus = (token: Token) => {
     };
 };
 
+const {
+    confirmDialogState,
+    confirmDialogDescription,
+    openConfirmDialog,
+    handleConfirmDialogConfirm,
+    handleConfirmDialogCancel,
+} = useConfirmDialog();
+
+const requestTokenRevocation = (token: Token) => {
+    if (revokeForm.processing || token.revoked_at) {
+        return;
+    }
+
+    const tokenLabel = token.name.trim() !== '' ? `“${token.name}”` : `token #${token.id}`;
+
+    openConfirmDialog({
+        title: `Revoke ${tokenLabel}?`,
+        description: `Revoking ${tokenLabel} will immediately prevent further API access using this credential.`,
+        confirmLabel: 'Revoke token',
+        onConfirm: () => revokeToken(token.id),
+    });
+};
+
+const requestTokenDeletion = (token: Token) => {
+    const tokenLabel = token.name.trim() !== '' ? `“${token.name}”` : `token #${token.id}`;
+
+    openConfirmDialog({
+        title: `Delete ${tokenLabel}?`,
+        description: `Deleting ${tokenLabel} will remove its access history. This action cannot be undone.`,
+        confirmLabel: 'Delete token',
+        onConfirm: () => deleteToken(token.id),
+    });
+};
+
 const lastUsedDisplay = (value?: string | null) => {
     if (!value) {
         return 'Never';
@@ -883,7 +919,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                             <DropdownMenuItem
                                                                 class="text-red-500"
                                                                 :disabled="revokeForm.processing || !!token.revoked_at"
-                                                                @click.prevent="revokeToken(token.id)"
+                                                                @click.prevent="requestTokenRevocation(token)"
                                                             >
                                                                 <Ban class="mr-2" /> Revoke
                                                             </DropdownMenuItem>
@@ -892,7 +928,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                         <DropdownMenuItem
                                                             v-if="deleteTokens"
                                                             class="text-red-500"
-                                                            @click.prevent="deleteToken(token.id)"
+                                                            @click.prevent="requestTokenDeletion(token)"
                                                         >
                                                             <Trash2 class="mr-2" /> Delete
                                                         </DropdownMenuItem>
@@ -1131,5 +1167,16 @@ const lastUsedDisplay = (value?: string | null) => {
                 </Tabs>
             </div>
         </AdminLayout>
+        <ConfirmDialog
+            v-model:open="confirmDialogState.open"
+            :title="confirmDialogState.title"
+            :description="confirmDialogDescription"
+            :confirm-label="confirmDialogState.confirmLabel"
+            :cancel-label="confirmDialogState.cancelLabel"
+            :confirm-variant="confirmDialogState.confirmVariant"
+            :confirm-disabled="confirmDialogState.confirmDisabled"
+            @confirm="handleConfirmDialogConfirm"
+            @cancel="handleConfirmDialogCancel"
+        />
     </AppLayout>
 </template>

@@ -36,6 +36,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import {
     XCircle, HelpCircle, Ticket, TicketX, MessageSquare, CheckCircle, Ellipsis, UserPlus, SquareChevronUp,
     Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff, X
@@ -234,6 +235,20 @@ const confirmPriorityUpdate = () => {
     );
 };
 
+const priorityDialogDescription = computed(() => {
+    if (!priorityDialogTicket.value) {
+        return 'Select the priority level to apply to this ticket.';
+    }
+
+    return `Select the priority for ticket #${priorityDialogTicket.value.id}. Current priority: ${formatPriority(priorityDialogTicket.value.priority)}.`;
+});
+
+const isPriorityConfirmDisabled = computed(() =>
+    !priorityDialogTicket.value ||
+    !priorityDialogNextPriority.value ||
+    priorityDialogNextPriority.value === priorityDialogTicket.value.priority,
+);
+
 const statusDialogOpen = ref(false);
 const statusDialogTicket = ref<Ticket | null>(null);
 const statusDialogStatus = ref<Ticket['status'] | null>(null);
@@ -287,6 +302,36 @@ const confirmStatusUpdate = () => {
         },
     );
 };
+
+const statusDialogDescription = computed(() => {
+    if (!statusDialogTicket.value || !statusDialogStatus.value) {
+        return undefined;
+    }
+
+    return `Are you sure you want to ${statusDialogActionLabel.value} for ticket #${statusDialogTicket.value.id}?`;
+});
+
+const statusDialogConfirmLabel = computed(() => {
+    if (!statusDialogStatus.value) {
+        return 'Confirm';
+    }
+
+    if (statusDialogStatus.value === 'open') {
+        return 'Mark as open';
+    }
+
+    if (statusDialogStatus.value === 'closed') {
+        return 'Mark as closed';
+    }
+
+    if (statusDialogStatus.value === 'pending') {
+        return 'Mark as pending';
+    }
+
+    return 'Confirm';
+});
+
+const isStatusConfirmDisabled = computed(() => !statusDialogTicket.value || !statusDialogStatus.value);
 
 const page = usePage<SharedData>();
 
@@ -1348,70 +1393,49 @@ const unpublishFaq = (faq: FaqItem) => {
             </DialogContent>
         </Dialog>
 
-        <Dialog :open="priorityDialogOpen" @update:open="handlePriorityDialogChange">
-            <DialogContent class="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Update ticket priority</DialogTitle>
-                    <DialogDescription v-if="priorityDialogTicket">
-                        Select the priority for ticket <span class="font-medium">#{{ priorityDialogTicket.id }}</span>.
-                        Current priority:
-                        <span class="font-medium">{{ formatPriority(priorityDialogTicket.priority) }}</span>.
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div v-if="priorityDialogTicket" class="grid gap-3 py-2">
-                    <div class="grid gap-2">
-                        <Label for="priority-dialog-select">Priority</Label>
-                        <select
-                            id="priority-dialog-select"
-                            v-model="priorityDialogNextPriority"
-                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                        >
-                            <option v-for="priority in priorityLevels" :key="priority" :value="priority">
-                                {{ formatPriority(priority) }}
-                            </option>
-                        </select>
-                    </div>
-                </div>
-
-                <DialogFooter class="gap-2">
-                    <Button type="button" variant="secondary" @click="handlePriorityDialogChange(false)">
-                        Cancel
-                    </Button>
-                    <Button
-                        type="button"
-                        :disabled="
-                            !priorityDialogTicket ||
-                            !priorityDialogNextPriority ||
-                            priorityDialogNextPriority === priorityDialogTicket.priority
-                        "
-                        @click="confirmPriorityUpdate"
+        <ConfirmDialog
+            v-model:open="priorityDialogOpen"
+            title="Update ticket priority"
+            :description="priorityDialogDescription"
+            confirm-label="Save changes"
+            cancel-label="Cancel"
+            confirm-variant="default"
+            :confirm-disabled="isPriorityConfirmDisabled"
+            @update:open="handlePriorityDialogChange"
+            @confirm="confirmPriorityUpdate"
+            @cancel="handlePriorityDialogChange(false)"
+        >
+            <div v-if="priorityDialogTicket" class="grid gap-3 pt-2">
+                <p class="text-sm text-muted-foreground">
+                    Ticket #{{ priorityDialogTicket.id }} is currently
+                    <span class="font-medium">{{ formatPriority(priorityDialogTicket.priority) }}</span>.
+                </p>
+                <div class="grid gap-2">
+                    <Label for="priority-dialog-select">Priority</Label>
+                    <select
+                        id="priority-dialog-select"
+                        v-model="priorityDialogNextPriority"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     >
-                        Save changes
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                        <option v-for="priority in priorityLevels" :key="priority" :value="priority">
+                            {{ formatPriority(priority) }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+        </ConfirmDialog>
 
-        <Dialog :open="statusDialogOpen" @update:open="handleStatusDialogChange">
-            <DialogContent class="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Update ticket status</DialogTitle>
-                    <DialogDescription v-if="statusDialogTicket && statusDialogStatus">
-                        Are you sure you want to {{ statusDialogActionLabel }} for
-                        ticket <span class="font-medium">#{{ statusDialogTicket.id }}</span>?
-                    </DialogDescription>
-                </DialogHeader>
-
-                <DialogFooter class="gap-2">
-                    <Button type="button" variant="secondary" @click="handleStatusDialogChange(false)">
-                        Cancel
-                    </Button>
-                    <Button type="button" :disabled="!statusDialogTicket || !statusDialogStatus" @click="confirmStatusUpdate">
-                        Confirm
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <ConfirmDialog
+            v-model:open="statusDialogOpen"
+            title="Update ticket status"
+            :description="statusDialogDescription"
+            :confirm-label="statusDialogConfirmLabel"
+            cancel-label="Cancel"
+            confirm-variant="default"
+            :confirm-disabled="isStatusConfirmDisabled"
+            @update:open="handleStatusDialogChange"
+            @confirm="confirmStatusUpdate"
+            @cancel="handleStatusDialogChange(false)"
+        />
     </AppLayout>
 </template>

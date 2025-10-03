@@ -43,6 +43,8 @@ import { usePermissions } from '@/composables/usePermissions';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 dayjs.extend(relativeTime);
 
@@ -159,6 +161,14 @@ const canDelete = computed(() => hasPermission('acl.acp.delete'));
 const roleDialogOpen = ref(false);
 const permissionDialogOpen = ref(false);
 
+const {
+    confirmDialogState,
+    confirmDialogDescription,
+    openConfirmDialog,
+    handleConfirmDialogConfirm,
+    handleConfirmDialogCancel,
+} = useConfirmDialog();
+
 const selectedRole = ref<RoleItem | null>(null);
 const selectedPermission = ref<PermissionItem | null>(null);
 
@@ -172,6 +182,34 @@ const permissionForm = useForm({
     name: '',
     guard_name: 'web',
 });
+
+const confirmRoleDeletion = (role: RoleItem) => {
+    openConfirmDialog({
+        title: `Delete “${role.name}”?`,
+        description:
+            'Deleting this role will remove it from all assigned users. This action cannot be undone.',
+        confirmLabel: 'Delete role',
+        onConfirm: () => {
+            router.delete(route('acp.acl.roles.destroy', { role: role.id }), {
+                preserveScroll: true,
+            });
+        },
+    });
+};
+
+const confirmPermissionDeletion = (permission: PermissionItem) => {
+    openConfirmDialog({
+        title: `Delete “${permission.name}”?`,
+        description:
+            'Deleting this permission will remove it from all roles and users. This action cannot be undone.',
+        confirmLabel: 'Delete permission',
+        onConfirm: () => {
+            router.delete(route('acp.acl.permissions.destroy', { permission: permission.id }), {
+                preserveScroll: true,
+            });
+        },
+    });
+};
 
 const handleRoleDialogChange = (open: boolean) => {
     roleDialogOpen.value = open;
@@ -333,8 +371,10 @@ const filteredPermissions = computed(() => {
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuGroup>
                                                             <DropdownMenuSeparator v-if="canDelete" />
-                                                            <DropdownMenuItem v-if="canDelete" class="text-red-500"
-                                                                @click="$inertia.delete(route('acp.acl.roles.destroy', { role: role.id }))"
+                                                            <DropdownMenuItem
+                                                                v-if="canDelete"
+                                                                class="text-red-500"
+                                                                @click="confirmRoleDeletion(role)"
                                                             >
                                                                 <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
@@ -453,8 +493,10 @@ const filteredPermissions = computed(() => {
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuGroup>
                                                             <DropdownMenuSeparator v-if="canDelete" />
-                                                            <DropdownMenuItem v-if="canDelete" class="text-red-500"
-                                                                @click="$inertia.delete(route('acp.acl.permissions.destroy', { permission: permission.id }))"
+                                                            <DropdownMenuItem
+                                                                v-if="canDelete"
+                                                                class="text-red-500"
+                                                                @click="confirmPermissionDeletion(permission)"
                                                             >
                                                                 <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
@@ -621,6 +663,17 @@ const filteredPermissions = computed(() => {
                     </form>
                 </DialogContent>
             </Dialog>
+            <ConfirmDialog
+                v-model:open="confirmDialogState.open"
+                :title="confirmDialogState.title"
+                :description="confirmDialogDescription"
+                :confirm-label="confirmDialogState.confirmLabel"
+                :cancel-label="confirmDialogState.cancelLabel"
+                :confirm-variant="confirmDialogState.confirmVariant"
+                :confirm-disabled="confirmDialogState.confirmDisabled"
+                @confirm="handleConfirmDialogConfirm"
+                @cancel="handleConfirmDialogCancel"
+            />
         </AdminLayout>
     </AppLayout>
 </template>

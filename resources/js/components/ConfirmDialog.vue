@@ -77,6 +77,7 @@ const handleConfirm = () => {
                     {{ description }}
                 </DialogDescription>
             </DialogHeader>
+            <slot />
             <DialogFooter class="sm:space-x-2">
                 <Button ref="cancelButtonRef" variant="outline" @click="handleCancel">
                     {{ cancelLabel }}
