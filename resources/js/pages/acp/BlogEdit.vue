@@ -116,6 +116,21 @@ const statusOptions: Array<{ label: string; value: BlogStatus }> = [
     { label: 'Archived', value: 'archived' },
 ];
 
+const normalizeSocialLinks = (links?: AuthorSocialLink[] | null): AuthorSocialLink[] => {
+    return (links ?? [])
+        .map((link) => {
+            if (!link || typeof link !== 'object') {
+                return null;
+            }
+
+            const label = typeof link.label === 'string' ? link.label : '';
+            const url = typeof link.url === 'string' ? link.url : '';
+
+            return { label, url };
+        })
+        .filter((link): link is AuthorSocialLink => Boolean(link));
+};
+
 const form = useForm<BlogForm>({
     title: props.blog.title ?? '',
     excerpt: props.blog.excerpt ?? '',
@@ -128,11 +143,7 @@ const form = useForm<BlogForm>({
     author: {
         avatar_url: props.blog.user?.avatar_url ?? '',
         profile_bio: props.blog.user?.profile_bio ?? '',
-        social_links:
-            props.blog.user?.social_links?.map((link) => ({
-                label: typeof link?.label === 'string' ? link.label : '',
-                url: typeof link?.url === 'string' ? link.url : '',
-            })) ?? [],
+        social_links: normalizeSocialLinks(props.blog.user?.social_links),
     },
 });
 
@@ -153,6 +164,8 @@ const refreshCategoriesError = ref('');
 const tagOptions = ref<BlogTaxonomyOption[]>([]);
 const refreshingTags = ref(false);
 const refreshTagsError = ref('');
+
+const coverImagePreview = ref<string | null>(null);
 
 const normalizeCategoryData = (input: unknown[]): BlogTaxonomyOption[] => {
     return input
@@ -189,6 +202,34 @@ watch(
     () => props.categories,
     (categories) => {
         applyCategoryOptions([...categories]);
+    },
+    { deep: true },
+);
+
+const syncFormWithBlog = (blog: BlogPayload) => {
+    form.title = blog.title ?? '';
+    form.excerpt = blog.excerpt ?? '';
+    form.body = blog.body ?? '';
+    form.status = blog.status ?? 'draft';
+    form.category_ids = blog.categories?.map((category) => category.id) ?? [];
+    form.tag_ids = blog.tags?.map((tag) => tag.id) ?? [];
+    form.author.avatar_url = blog.user?.avatar_url ?? '';
+    form.author.profile_bio = blog.user?.profile_bio ?? '';
+    form.author.social_links = normalizeSocialLinks(blog.user?.social_links);
+    form.cover_image = null;
+
+    if (coverImagePreview.value) {
+        URL.revokeObjectURL(coverImagePreview.value);
+        coverImagePreview.value = null;
+    }
+};
+
+syncFormWithBlog(props.blog);
+
+watch(
+    () => props.blog,
+    (blog) => {
+        syncFormWithBlog(blog);
     },
     { deep: true },
 );
@@ -343,7 +384,6 @@ const scheduledAt = computed(() =>
     props.blog.scheduled_for ? formatDate(props.blog.scheduled_for) : '—'
 );
 
-const coverImagePreview = ref<string | null>(null);
 const existingCoverImage = computed(() => coverImagePreview.value ?? props.blog.cover_image_url ?? null);
 
 const previewOpen = ref(false);
