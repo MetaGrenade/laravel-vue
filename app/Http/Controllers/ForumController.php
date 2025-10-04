@@ -10,7 +10,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -126,7 +126,7 @@ class ForumController extends Controller
         ]);
     }
 
-    public function mentionSuggestions(Request $request): AnonymousResourceCollection
+    public function mentionSuggestions(Request $request): JsonResponse
     {
         $user = $request->user();
 
@@ -139,7 +139,9 @@ class ForumController extends Controller
         $query = isset($validated['q']) ? trim((string) $validated['q']) : '';
 
         if ($query === '') {
-            return MentionSuggestionResource::collection(collect());
+            return response()->json([
+                'data' => [],
+            ]);
         }
 
         $escaped = addcslashes($query, '%_');
@@ -161,7 +163,15 @@ class ForumController extends Controller
             })
             ->values();
 
-        return MentionSuggestionResource::collection($users);
+        $suggestions = $users
+            ->map(function (User $mentioned) use ($request) {
+                return (new MentionSuggestionResource($mentioned))->toArray($request);
+            })
+            ->all();
+
+        return response()->json([
+            'data' => $suggestions,
+        ]);
     }
 
     public function showBoard(Request $request, ForumBoard $board): Response
