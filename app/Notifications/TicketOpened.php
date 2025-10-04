@@ -101,18 +101,16 @@ class TicketOpened extends Notification implements ShouldQueue
      */
     public function withChannels(array $channels): self
     {
-        $clone = clone $this;
-        $clone->channels = $channels;
+        $this->channels = $channels;
 
-        return $clone;
+        return $this;
     }
 
     public function forAudience(string $audience): self
     {
-        $clone = clone $this;
-        $clone->audience = $audience;
+        $this->audience = $audience;
 
-        return $clone;
+        return $this;
     }
 
     protected function title(): string

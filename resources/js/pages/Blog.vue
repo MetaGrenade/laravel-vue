@@ -15,6 +15,7 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
+import { useUserTimezone } from '@/composables/useUserTimezone';
 
 interface BlogAuthorSummary {
     id: number;
@@ -33,6 +34,8 @@ interface BlogSummary {
     slug: string;
     excerpt: string | null;
     cover_image: string | null;
+    views: number;
+    last_viewed_at: string | null;
     published_at: string | null;
     author: BlogAuthorSummary | null;
     categories: BlogTaxonomySummary[];
@@ -81,6 +84,11 @@ const activeCategory = computed(() => props.filters?.category ?? null);
 const activeTag = computed(() => props.filters?.tag ?? null);
 const searchInput = ref(props.filters?.search ?? '');
 const sortOrder = ref<BlogSortOption>(props.filters?.sort ?? defaultSort);
+const { fromNow } = useUserTimezone();
+
+const numberFormatter = new Intl.NumberFormat();
+const formatNumber = (value: number | null | undefined) => numberFormatter.format(value ?? 0);
+const formatLastViewed = (value: string | null | undefined) => (value ? fromNow(value) : null);
 
 watch(
     () => props.filters,
@@ -248,6 +256,12 @@ const {
                         <p v-if="featuredBlog.excerpt" class="mt-1 text-sm text-white line-clamp-2">
                             {{ featuredBlog.excerpt }}
                         </p>
+                        <p class="mt-2 text-xs text-white/80">
+                            {{ formatNumber(featuredBlog.views) }} views
+                            <span v-if="formatLastViewed(featuredBlog.last_viewed_at)">
+                                • Last read {{ formatLastViewed(featuredBlog.last_viewed_at) }}
+                            </span>
+                        </p>
                         <span class="sr-only">Read more about {{ featuredBlog.title }}</span>
                     </div>
                 </Link>
@@ -408,6 +422,12 @@ const {
                         </Link>
                         <p v-if="blog.excerpt" class="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3">
                             {{ blog.excerpt }}
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            {{ formatNumber(blog.views) }} views
+                            <span v-if="formatLastViewed(blog.last_viewed_at)">
+                                • Last read {{ formatLastViewed(blog.last_viewed_at) }}
+                            </span>
                         </p>
                         <div v-if="blog.categories.length || blog.tags.length" class="flex flex-wrap gap-2 text-xs">
                             <span

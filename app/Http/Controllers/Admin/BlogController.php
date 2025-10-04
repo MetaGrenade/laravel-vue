@@ -28,6 +28,21 @@ class BlogController extends Controller
     {
         $perPage = (int) $request->get('per_page', 15);
         $search = trim((string) $request->query('search', ''));
+        $sort = strtolower((string) $request->query('sort', 'created_desc'));
+        $allowedSorts = ['created_desc', 'created_asc', 'views_desc', 'views_asc'];
+        if (! in_array($sort, $allowedSorts, true)) {
+            $sort = 'created_desc';
+        }
+
+        $minViewsInput = $request->query('min_views');
+        $maxViewsInput = $request->query('max_views');
+
+        $minViews = is_numeric($minViewsInput) ? max(0, (int) $minViewsInput) : null;
+        $maxViews = is_numeric($maxViewsInput) ? max(0, (int) $maxViewsInput) : null;
+
+        if ($minViews !== null && $maxViews !== null && $maxViews < $minViews) {
+            $maxViews = null;
+        }
         $statusFilters = collect(Arr::wrap($request->input('status')))
             ->flatMap(function ($value) {
                 if (is_string($value) && str_contains($value, ',')) {
@@ -78,10 +93,34 @@ class BlogController extends Controller
             $filteredQuery->whereIn('status', $statusFilters);
         }
 
+        if ($minViews !== null) {
+            $filteredQuery->where('views', '>=', $minViews);
+        }
+
+        if ($maxViews !== null) {
+            $filteredQuery->where('views', '<=', $maxViews);
+        }
+
+        $orderedQuery = (clone $filteredQuery);
+
+        switch ($sort) {
+            case 'created_asc':
+                $orderedQuery->orderBy('created_at');
+                break;
+            case 'views_desc':
+                $orderedQuery->orderByDesc('views')->orderByDesc('created_at');
+                break;
+            case 'views_asc':
+                $orderedQuery->orderBy('views')->orderByDesc('created_at');
+                break;
+            default:
+                $orderedQuery->orderByDesc('created_at');
+                break;
+        }
+
         // Retrieve blogs with their associated author information.
-        $blogs = (clone $filteredQuery)
+        $blogs = $orderedQuery
             ->with(['user:id,nickname,email'])
-            ->orderByDesc('created_at')
             ->paginate($perPage)
             ->withQueryString();
 
@@ -94,6 +133,8 @@ class BlogController extends Controller
                     'status' => $blog->status,
                     'created_at' => optional($blog->created_at)->toIso8601String(),
                     'scheduled_for' => optional($blog->scheduled_for)->toIso8601String(),
+                    'views' => $blog->views,
+                    'last_viewed_at' => optional($blog->last_viewed_at)->toIso8601String(),
                     'user' => $blog->user ? [
                         'id' => $blog->user->id,
                         'nickname' => $blog->user->nickname,
@@ -110,7 +151,49 @@ class BlogController extends Controller
             'draft' => (clone $baseQuery)->where('status', 'draft')->count(),
             'scheduled' => (clone $baseQuery)->where('status', 'scheduled')->count(),
             'archived' => (clone $baseQuery)->where('status', 'archived')->count(),
+            'total_views' => (clone $baseQuery)->sum('views'),
+            'viewed_last_30_days' => (clone $baseQuery)
+                ->whereNotNull('last_viewed_at')
+                ->where('last_viewed_at', '>=', Carbon::now()->subDays(30))
+                ->count(),
         ];
+
+        $trendingWindow = Carbon::now()->subDays(30);
+
+        $trendingPosts = Blog::query()
+            ->where('status', 'published')
+            ->where('views', '>', 0)
+            ->whereNotNull('last_viewed_at')
+            ->where('last_viewed_at', '>=', $trendingWindow)
+            ->orderByDesc('views')
+            ->orderByDesc('last_viewed_at')
+            ->limit(7)
+            ->get(['id', 'title', 'slug', 'views', 'last_viewed_at', 'published_at']);
+
+        if ($trendingPosts->isEmpty()) {
+            $trendingPosts = Blog::query()
+                ->where('status', 'published')
+                ->where('views', '>', 0)
+                ->orderByDesc('views')
+                ->orderByDesc('last_viewed_at')
+                ->limit(7)
+                ->get(['id', 'title', 'slug', 'views', 'last_viewed_at', 'published_at']);
+        }
+
+        $trendingPostsPayload = $trendingPosts
+            ->map(function (Blog $post) {
+                return [
+                    'id' => $post->id,
+                    'title' => $post->title,
+                    'slug' => $post->slug,
+                    'views' => $post->views,
+                    'last_viewed_at' => optional($post->last_viewed_at)->toIso8601String(),
+                    'published_at' => optional($post->published_at)->toIso8601String(),
+                    'label' => Str::limit($post->title, 40),
+                ];
+            })
+            ->values()
+            ->all();
 
         return inertia('acp/Blogs', [
             'blogs' => array_merge([
@@ -120,7 +203,11 @@ class BlogController extends Controller
             'filters' => [
                 'search' => $search !== '' ? $search : null,
                 'status' => !empty($statusFilters) ? $statusFilters : null,
+                'sort' => $sort !== 'created_desc' ? $sort : null,
+                'min_views' => $minViews,
+                'max_views' => $maxViews,
             ],
+            'trendingPosts' => $trendingPostsPayload,
         ]);
     }
 

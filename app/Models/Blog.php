@@ -23,11 +23,14 @@ class Blog extends Model
         'published_at',
         'scheduled_for',
         'preview_token',
+        'views',
+        'last_viewed_at',
     ];
 
     protected $casts = [
         'published_at' => 'datetime',
         'scheduled_for' => 'datetime',
+        'last_viewed_at' => 'datetime',
     ];
 
     /**
