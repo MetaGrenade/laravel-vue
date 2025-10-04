@@ -46,6 +46,8 @@ Route::prefix('blogs/{blog:slug}/comments')->group(function () {
 });
 
 Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
+Route::middleware('auth')->get('forum/mentions', [ForumController::class, 'mentionSuggestions'])
+    ->name('forum.mentions.index');
 Route::get('forum/{board:slug}', [ForumController::class, 'showBoard'])->name('forum.boards.show');
 Route::get('forum/{board:slug}/{thread:slug}', [ForumController::class, 'showThread'])->name('forum.threads.show');
 

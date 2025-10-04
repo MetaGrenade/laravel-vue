@@ -4,12 +4,13 @@ namespace App\Support;
 
 use App\Models\SupportTicket;
 use App\Models\User;
-use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Notification as BaseNotification;
+use Illuminate\Support\Facades\Notification;
 
 class SupportTicketNotificationDispatcher
 {
     /**
-     * @param  callable(string, array<int, string>): Notification  $notificationFactory
+     * @param  callable(string, array<int, string>): BaseNotification  $notificationFactory
      */
     public function dispatch(SupportTicket $ticket, callable $notificationFactory): void
     {
@@ -26,11 +27,11 @@ class SupportTicketNotificationDispatcher
                 $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
 
                 if ($synchronousChannels !== []) {
-                    $recipient->notifyNow($notificationFactory($audience, $synchronousChannels));
+                    Notification::sendNow($recipient, $notificationFactory($audience, $synchronousChannels));
                 }
 
                 if ($queuedChannels !== []) {
-                    $recipient->notify($notificationFactory($audience, $queuedChannels));
+                    Notification::send($recipient, $notificationFactory($audience, $queuedChannels));
                 }
             });
     }
