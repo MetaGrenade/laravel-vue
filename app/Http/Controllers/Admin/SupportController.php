@@ -15,6 +15,7 @@ use App\Models\SupportTicketMessageAttachment;
 use App\Models\SupportTicketCategory;
 use App\Models\Faq;
 use App\Models\FaqCategory;
+use App\Models\FaqFeedback;
 use App\Models\User;
 use App\Notifications\SupportTicketAgentReply;
 use App\Notifications\TicketOpened;
@@ -104,6 +105,10 @@ class SupportController extends Controller
 
         $faqQuery = Faq::query()
             ->with('category:id,name,slug')
+            ->withCount([
+                'feedback as helpful_feedback_count' => fn ($query) => $query->where('is_helpful', true),
+                'feedback as not_helpful_feedback_count' => fn ($query) => $query->where('is_helpful', false),
+            ])
             ->when($faqsSearchTerm, function ($query) use ($faqsSearchTerm) {
                 $escaped = $this->escapeForLike($faqsSearchTerm);
                 $like = "%{$escaped}%";
@@ -177,6 +182,8 @@ class SupportController extends Controller
                     'answer' => $faq->answer,
                     'order' => $faq->order,
                     'published' => (bool) $faq->published,
+                    'helpful_feedback_count' => (int) ($faq->helpful_feedback_count ?? 0),
+                    'not_helpful_feedback_count' => (int) ($faq->not_helpful_feedback_count ?? 0),
                     'category' => $faq->category ? [
                         'id' => $faq->category->id,
                         'name' => $faq->category->name,
@@ -192,6 +199,8 @@ class SupportController extends Controller
             'open' => (clone $ticketQuery)->where('status', 'open')->count(),
             'closed' => (clone $ticketQuery)->where('status', 'closed')->count(),
             'faqs' => $faqs->total(),
+            'faq_helpful_feedback' => FaqFeedback::where('is_helpful', true)->count(),
+            'faq_not_helpful_feedback' => FaqFeedback::where('is_helpful', false)->count(),
         ];
 
         $assignableAgents = User::orderBy('nickname')
