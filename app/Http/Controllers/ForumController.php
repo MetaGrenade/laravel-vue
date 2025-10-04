@@ -164,12 +164,12 @@ class ForumController extends Controller
             }
 
             return [
-                'id' => $mentioned->id,
+                'id' => (int) $mentioned->id,
                 'nickname' => $mentioned->nickname,
                 'avatar_url' => $mentioned->avatar_url,
                 'profile_url' => $profileUrl,
             ];
-        })->values();
+        })->values()->all();
 
         return response()->json([
             'data' => $results,
