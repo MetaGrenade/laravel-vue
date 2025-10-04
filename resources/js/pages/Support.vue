@@ -83,6 +83,9 @@ interface FAQItem {
     id: number;
     question: string;
     answer: string;
+    helpful_feedback_count: number;
+    not_helpful_feedback_count: number;
+    user_feedback: 'helpful' | 'not_helpful' | null;
 }
 
 interface FAQCategoryFilters {
@@ -145,6 +148,7 @@ const page = usePage<SharedData & { flash?: FlashMessages }>();
 const flashSuccess = computed(() => page.props.flash?.success ?? '');
 const flashError = computed(() => page.props.flash?.error ?? '');
 const flashInfo = computed(() => page.props.flash?.info ?? '');
+const isAuthenticated = computed(() => Boolean(page.props.auth?.user));
 
 watch(
     flashSuccess,
@@ -225,6 +229,45 @@ const faqMatchCount = computed(() => props.faqs.matchingCount ?? faqGroups.value
     (total, group) => total + group.faqs.length,
     0,
 ));
+const submittingFaqFeedback = ref<Record<number, boolean>>({});
+
+const submitFaqFeedback = (faq: FAQItem, value: 'helpful' | 'not_helpful') => {
+    if (!isAuthenticated.value) {
+        toast.info('Sign in to share feedback on our FAQs.');
+
+        return;
+    }
+
+    if (submittingFaqFeedback.value[faq.id]) {
+        return;
+    }
+
+    submittingFaqFeedback.value = {
+        ...submittingFaqFeedback.value,
+        [faq.id]: true,
+    };
+
+    router.post(
+        route('support.faqs.feedback.store', { faq: faq.id }),
+        { value },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors) => {
+                const message = Object.values(errors)[0] ??
+                    'Unable to submit feedback right now. Please try again later.';
+
+                toast.error(message);
+            },
+            onFinish: () => {
+                submittingFaqFeedback.value = {
+                    ...submittingFaqFeedback.value,
+                    [faq.id]: false,
+                };
+            },
+        },
+    );
+};
 const faqCategoryOptions = computed<FAQCategoryOption[]>(() => {
     const categories = faqCategories.value;
     const total = totalPublishedFaqs.value;
@@ -1070,8 +1113,78 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                     </button>
                                                 </CollapsibleTrigger>
                                                 <CollapsibleContent>
-                                                    <div class="px-4 pb-4 text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
-                                                        {{ faq.answer }}
+                                                    <div class="px-4 pb-4 space-y-4">
+                                                        <div class="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                                                            {{ faq.answer }}
+                                                        </div>
+                                                        <div class="space-y-3 rounded-lg border border-dashed border-muted/40 bg-muted/20 p-3">
+                                                            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                                <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                                                    Was this helpful?
+                                                                </span>
+                                                                <span class="text-xs text-muted-foreground">
+                                                                    {{ faq.helpful_feedback_count }} helpful ·
+                                                                    {{ faq.not_helpful_feedback_count }} not helpful
+                                                                </span>
+                                                            </div>
+                                                            <div class="flex flex-wrap gap-2">
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    :variant="faq.user_feedback === 'helpful' ? 'default' : 'outline'"
+                                                                    :class="[
+                                                                        faq.user_feedback === 'helpful'
+                                                                            ? 'border-green-500 bg-green-500 text-white hover:bg-green-600'
+                                                                            : 'hover:border-green-500 hover:text-green-600',
+                                                                        'transition-colors',
+                                                                    ]"
+                                                                    :disabled="submittingFaqFeedback[faq.id]"
+                                                                    :aria-busy="submittingFaqFeedback[faq.id] ? 'true' : 'false'"
+                                                                    @click="submitFaqFeedback(faq, 'helpful')"
+                                                                >
+                                                                    Helpful
+                                                                    <span class="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                                                                        {{ faq.helpful_feedback_count }}
+                                                                    </span>
+                                                                </Button>
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    :variant="faq.user_feedback === 'not_helpful' ? 'default' : 'outline'"
+                                                                    :class="[
+                                                                        faq.user_feedback === 'not_helpful'
+                                                                            ? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
+                                                                            : 'hover:border-red-500 hover:text-red-600',
+                                                                        'transition-colors',
+                                                                    ]"
+                                                                    :disabled="submittingFaqFeedback[faq.id]"
+                                                                    :aria-busy="submittingFaqFeedback[faq.id] ? 'true' : 'false'"
+                                                                    @click="submitFaqFeedback(faq, 'not_helpful')"
+                                                                >
+                                                                    Not helpful
+                                                                    <span class="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                                                                        {{ faq.not_helpful_feedback_count }}
+                                                                    </span>
+                                                                </Button>
+                                                            </div>
+                                                            <p
+                                                                v-if="faq.user_feedback"
+                                                                class="text-xs text-muted-foreground"
+                                                            >
+                                                                You marked this answer as
+                                                                <span
+                                                                    class="font-medium"
+                                                                >
+                                                                    {{ faq.user_feedback === 'helpful' ? 'helpful' : 'not helpful' }}
+                                                                </span>.
+                                                            </p>
+                                                            <p
+                                                                v-else-if="!isAuthenticated"
+                                                                class="text-xs text-muted-foreground"
+                                                            >
+                                                                Sign in to add your vote and help us improve our help centre.
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </CollapsibleContent>
                                             </div>

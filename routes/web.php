@@ -121,6 +121,10 @@ Route::middleware('auth')->group(function () {
 
     Route::patch('support/tickets/{ticket}/reopen', [SupportCenterController::class, 'reopen'])
         ->name('support.tickets.reopen');
+
+    Route::post('support/faqs/{faq}/feedback', [SupportCenterController::class, 'storeFaqFeedback'])
+        ->whereNumber('faq')
+        ->name('support.faqs.feedback.store');
 });
 
 //AUTH REQUIRED PAGES

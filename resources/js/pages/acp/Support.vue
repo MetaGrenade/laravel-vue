@@ -39,7 +39,7 @@ import {
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import {
     XCircle, HelpCircle, Ticket, TicketX, MessageSquare, CheckCircle, Ellipsis, UserPlus, SquareChevronUp,
-    Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff, X
+    Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff, X, ThumbsUp, ThumbsDown,
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
@@ -117,6 +117,8 @@ const props = defineProps<{
             answer: string;
             order: number;
             published: boolean;
+            helpful_feedback_count: number;
+            not_helpful_feedback_count: number;
             category: {
                 id: number;
                 name: string;
@@ -131,6 +133,8 @@ const props = defineProps<{
         open: number;
         closed: number;
         faqs: number;
+        faq_helpful_feedback: number;
+        faq_not_helpful_feedback: number;
     };
     assignableAgents: Array<{
         id: number;
@@ -421,6 +425,9 @@ const ticketsMetaSource = computed(() => props.tickets.meta ?? null);
 const faqsMetaSource = computed(() => props.faqs.meta ?? null);
 const ticketItems = computed(() => props.tickets.data ?? []);
 const faqItems = computed(() => props.faqs.data ?? []);
+const totalFaqFeedback = computed(
+    () => props.supportStats.faq_helpful_feedback + props.supportStats.faq_not_helpful_feedback,
+);
 
 type TicketFilterChipKey = 'status' | 'priority' | 'assignee' | 'date_range';
 
@@ -833,7 +840,7 @@ const unpublishFaq = (faq: FaqItem) => {
         <AdminLayout>
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
                     <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
                         <MessageSquare class="h-8 w-8 mr-3 text-gray-600" />
                         <div>
@@ -863,6 +870,25 @@ const unpublishFaq = (faq: FaqItem) => {
                         <div>
                             <div class="text-sm text-gray-500">FAQs</div>
                             <div class="text-xl font-bold">{{ props.supportStats.faqs }}</div>
+                            <div class="text-xs text-gray-500">
+                                {{ totalFaqFeedback }} total votes
+                            </div>
+                        </div>
+                        <PlaceholderPattern />
+                    </div>
+                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
+                        <ThumbsUp class="h-8 w-8 mr-3 text-green-600" />
+                        <div>
+                            <div class="text-sm text-gray-500">Helpful votes</div>
+                            <div class="text-xl font-bold">{{ props.supportStats.faq_helpful_feedback }}</div>
+                        </div>
+                        <PlaceholderPattern />
+                    </div>
+                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
+                        <ThumbsDown class="h-8 w-8 mr-3 text-red-600" />
+                        <div>
+                            <div class="text-sm text-gray-500">Not helpful votes</div>
+                            <div class="text-xl font-bold">{{ props.supportStats.faq_not_helpful_feedback }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
@@ -1225,6 +1251,8 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <TableHead>Category</TableHead>
                                             <TableHead>Order</TableHead>
                                             <TableHead>Published</TableHead>
+                                            <TableHead class="text-center">Helpful</TableHead>
+                                            <TableHead class="text-center">Not helpful</TableHead>
                                             <TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -1240,6 +1268,8 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <TableCell>{{ f.category?.name ?? '—' }}</TableCell>
                                             <TableCell>{{ f.order }}</TableCell>
                                             <TableCell>{{ f.published ? 'Yes' : 'No' }}</TableCell>
+                                            <TableCell class="text-center">{{ f.helpful_feedback_count }}</TableCell>
+                                            <TableCell class="text-center">{{ f.not_helpful_feedback_count }}</TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
@@ -1298,7 +1328,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="!faqItems.length">
-                                        <TableCell colspan="7" class="text-center text-gray-500">
+                                        <TableCell colspan="9" class="text-center text-gray-500">
                                             No FAQs found.
                                         </TableCell>
                                         </TableRow>

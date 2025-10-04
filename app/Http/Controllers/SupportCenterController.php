@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
+use App\Http\Requests\StoreFaqFeedbackRequest;
 use App\Http\Requests\StorePublicSupportTicketMessageRequest;
 use App\Http\Requests\StorePublicSupportTicketRatingRequest;
 use App\Http\Requests\StorePublicSupportTicketRequest;
 use App\Models\Faq;
 use App\Models\FaqCategory;
+use App\Models\FaqFeedback;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketCategory;
 use App\Models\SupportTicketMessage;
@@ -132,6 +134,10 @@ class SupportCenterController extends Controller
 
         $faqCollection = Faq::query()
             ->with('category:id,name,slug,description,order')
+            ->withCount([
+                'feedback as helpful_feedback_count' => fn ($query) => $query->where('is_helpful', true),
+                'feedback as not_helpful_feedback_count' => fn ($query) => $query->where('is_helpful', false),
+            ])
             ->where('published', true)
             ->when($faqCategoryId, fn ($query) => $query->where('faq_category_id', $faqCategoryId))
             ->when($faqsSearchTerm, function ($query) use ($faqsSearchTerm) {
@@ -154,6 +160,16 @@ class SupportCenterController extends Controller
                 return [$category->id => $key];
             });
 
+        $userFeedbackByFaq = collect();
+
+        if ($user) {
+            $userFeedbackByFaq = FaqFeedback::query()
+                ->where('user_id', $user->id)
+                ->whereIn('faq_id', $faqCollection->pluck('id'))
+                ->get()
+                ->keyBy('faq_id');
+        }
+
         $faqGroups = $faqCollection
             ->groupBy(fn (Faq $faq) => $faq->faq_category_id)
             ->map(function ($items) {
@@ -171,11 +187,21 @@ class SupportCenterController extends Controller
                         'order' => $category->order,
                     ] : null,
                     'faqs' => $items
-                        ->map(function (Faq $faq) {
+                        ->map(function (Faq $faq) use ($userFeedbackByFaq) {
+                            $feedback = $userFeedbackByFaq->get($faq->id);
+                            $userFeedback = null;
+
+                            if ($feedback) {
+                                $userFeedback = $feedback->is_helpful ? 'helpful' : 'not_helpful';
+                            }
+
                             return [
                                 'id' => $faq->id,
                                 'question' => $faq->question,
                                 'answer' => $faq->answer,
+                                'helpful_feedback_count' => (int) ($faq->helpful_feedback_count ?? 0),
+                                'not_helpful_feedback_count' => (int) ($faq->not_helpful_feedback_count ?? 0),
+                                'user_feedback' => $userFeedback,
                             ];
                         })
                         ->values()
@@ -219,6 +245,34 @@ class SupportCenterController extends Controller
             'canSubmitTicket' => (bool) $user,
             'ticketCategories' => $ticketCategories,
         ]);
+    }
+
+    public function storeFaqFeedback(StoreFaqFeedbackRequest $request, Faq $faq): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user, 403);
+
+        $isHelpful = $request->validated()['value'] === 'helpful';
+
+        $feedback = $faq->feedback()->firstOrNew([
+            'user_id' => $user->id,
+        ]);
+
+        if ($feedback->exists && $feedback->is_helpful === $isHelpful) {
+            return back()->with('info', 'Thanks! You already told us how helpful this answer was.');
+        }
+
+        $feedback->is_helpful = $isHelpful;
+        $feedback->user()->associate($user);
+
+        $feedback->save();
+
+        $message = $feedback->wasRecentlyCreated
+            ? 'Feedback submitted. Thanks for helping us improve our FAQs!'
+            : 'Feedback updated. Thanks for helping us improve our FAQs!';
+
+        return back()->with('success', $message);
     }
 
     public function store(StorePublicSupportTicketRequest $request): RedirectResponse
