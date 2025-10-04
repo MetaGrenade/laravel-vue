@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SupportTicket extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id',
         'subject',
@@ -48,5 +51,10 @@ class SupportTicket extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(SupportTicketCategory::class, 'support_ticket_category_id');
+    }
+
+    public function audits(): HasMany
+    {
+        return $this->hasMany(SupportTicketAudit::class);
     }
 }
