@@ -21,6 +21,7 @@ use App\Notifications\SupportTicketAgentReply;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
+use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,7 +40,8 @@ class SupportController extends Controller
     use InteractsWithInertiaPagination;
 
     public function __construct(
-        private SupportTicketNotificationDispatcher $ticketNotifier
+        private SupportTicketNotificationDispatcher $ticketNotifier,
+        private SupportTicketAutoAssigner $ticketAssigner,
     ) {
     }
 
@@ -336,6 +338,8 @@ class SupportController extends Controller
         $data['support_ticket_category_id'] = $data['support_ticket_category_id'] ?? null;
 
         $ticket = SupportTicket::create($data);
+
+        $this->ticketAssigner->assign($ticket);
 
         $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket) {
             return (new TicketOpened($ticket))
