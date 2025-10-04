@@ -172,7 +172,7 @@ class SupportCenterController extends Controller
 
         $faqGroups = $faqCollection
             ->groupBy(fn (Faq $faq) => $faq->faq_category_id)
-            ->map(function ($items) {
+            ->map(function ($items) use ($userFeedbackByFaq) {
                 /** @var Faq $first */
                 $first = $items->first();
 
