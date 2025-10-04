@@ -38,6 +38,11 @@ type BlogAuthor = {
     social_links?: AuthorSocialLink[];
 };
 
+type BlogPermissions = {
+    canViewRevisions: boolean;
+    canRestoreRevisions: boolean;
+};
+
 type BlogPayload = {
     id: number;
     title: string;
@@ -77,6 +82,7 @@ const props = defineProps<{
     blog: BlogPayload;
     categories: BlogTaxonomyOption[];
     tags: BlogTaxonomyOption[];
+    permissions: BlogPermissions;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -315,6 +321,8 @@ const existingCoverImage = computed(() => coverImagePreview.value ?? props.blog.
 const previewOpen = ref(false);
 const previewCopied = ref(false);
 
+const canViewRevisions = computed(() => props.permissions?.canViewRevisions ?? false);
+
 const formatForInput = (date: Date) => {
     const pad = (value: number) => value.toString().padStart(2, '0');
     const year = date.getFullYear();
@@ -486,6 +494,11 @@ const handleSubmit = () => {
                     <div class="flex flex-wrap gap-2">
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.blogs.index')">Back to blogs</Link>
+                        </Button>
+                        <Button v-if="canViewRevisions" variant="outline" as-child>
+                            <Link :href="route('acp.blogs.revisions.index', { blog: props.blog.id })">
+                                Revision history
+                            </Link>
                         </Button>
                         <Button
                             type="button"

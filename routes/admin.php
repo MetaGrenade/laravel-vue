@@ -143,3 +143,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/tokens/logs/{tokenLog}', [TokenController::class, 'showLog'])
         ->name('acp.tokens.logs.show');
 });
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('acp/blogs/{blog}/revisions', [AdminBlogController::class, 'revisions'])
+        ->name('acp.blogs.revisions.index');
+    Route::put('acp/blogs/{blog}/revisions/{revision}', [AdminBlogController::class, 'restoreRevision'])
+        ->name('acp.blogs.revisions.restore');
+});

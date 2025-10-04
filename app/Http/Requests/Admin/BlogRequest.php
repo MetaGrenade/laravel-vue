@@ -16,6 +16,18 @@ class BlogRequest extends FormRequest
     {
         $author = $this->input('author');
 
+        $scheduledFor = $this->input('scheduled_for');
+
+        if (is_string($scheduledFor)) {
+            $scheduledFor = trim($scheduledFor);
+
+            if ($scheduledFor === '') {
+                $this->merge(['scheduled_for' => null]);
+            }
+        } elseif ($scheduledFor === null || $this->missing('scheduled_for')) {
+            $this->merge(['scheduled_for' => null]);
+        }
+
         if (is_array($author)) {
             if (! array_key_exists('avatar_url', $author) || ! is_string($author['avatar_url']) || trim($author['avatar_url']) === '') {
                 $author['avatar_url'] = null;
@@ -49,7 +61,7 @@ class BlogRequest extends FormRequest
             'excerpt'  => 'nullable|string',
             'body'  => 'required|string',
             'status'   => 'required|in:draft,scheduled,published,archived',
-            'scheduled_for' => 'required_if:status,scheduled|date|after:now',
+            'scheduled_for' => 'nullable|date|after:now|required_if:status,scheduled',
             'cover_image' => 'nullable|image|max:5120',
             'category_ids' => 'array',
             'category_ids.*' => 'integer|exists:blog_categories,id',

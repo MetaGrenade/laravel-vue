@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Blog;
 use App\Models\ForumPost;
 use App\Models\PersonalAccessToken;
+use App\Policies\BlogPolicy;
 use App\Policies\ForumPostPolicy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -34,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Gate::policy(ForumPost::class, ForumPostPolicy::class);
+        Gate::policy(Blog::class, BlogPolicy::class);
 
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
     }
