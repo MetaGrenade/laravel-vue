@@ -49,7 +49,8 @@ const imageStyle = computed(() => {
     return {
         width: `${width}px`,
         height: `${height}px`,
-        transform: `translate3d(${offset.value.x}px, ${offset.value.y}px, 0)`,
+        transformOrigin: 'center center',
+        transform: `translate(-50%, -50%) translate3d(${offset.value.x}px, ${offset.value.y}px, 0)`,
     };
 });
 
@@ -300,7 +301,7 @@ function queueCropUpdate(): void {
                             ref="imageEl"
                             :src="selectedImage"
                             alt="Selected avatar"
-                            class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none"
+                            class="pointer-events-none absolute left-1/2 top-1/2 select-none"
                             draggable="false"
                             :style="imageStyle"
                             @load="onImageLoad"

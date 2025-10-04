@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -29,22 +29,59 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const page = usePage<SharedData>();
-const user = page.props.auth.user as User;
+const user = computed(() => page.props.auth.user as User);
 
-const avatarPreview = ref(user.avatar_url ?? null);
+const cloneSocialLinks = (links: User['social_links'] | null | undefined) =>
+    Array.isArray(links) ? links.map(link => ({ ...link })) : [];
 
 const form = useForm({
-    nickname: user.nickname,
-    email: user.email,
+    nickname: user.value?.nickname ?? '',
+    email: user.value?.email ?? '',
     avatar: null as File | null,
-    profile_bio: user.profile_bio ?? '',
-    social_links: user.social_links ? user.social_links.map(link => ({ ...link })) : [],
-    forum_signature: user.forum_signature ?? '',
+    profile_bio: user.value?.profile_bio ?? '',
+    social_links: cloneSocialLinks(user.value?.social_links),
+    forum_signature: user.value?.forum_signature ?? '',
 });
 
+const avatarPreview = ref(user.value?.avatar_url ?? null);
+
+const syncFormFromUser = (userData: User) => {
+    const defaults = {
+        nickname: userData.nickname,
+        email: userData.email,
+        avatar: null as File | null,
+        profile_bio: userData.profile_bio ?? '',
+        social_links: cloneSocialLinks(userData.social_links),
+        forum_signature: userData.forum_signature ?? '',
+    };
+
+    form.defaults(defaults);
+    form.nickname = defaults.nickname;
+    form.email = defaults.email;
+    form.avatar = defaults.avatar;
+    form.profile_bio = defaults.profile_bio;
+    form.social_links = defaults.social_links;
+    form.forum_signature = defaults.forum_signature;
+};
+
+watch(
+    user,
+    newUser => {
+        if (!newUser) {
+            return;
+        }
+
+        syncFormFromUser(newUser);
+
+        if (form.avatar === null) {
+            avatarPreview.value = newUser.avatar_url ?? null;
+        }
+    },
+    { immediate: true },
+);
+
 const handleAvatarPreviewUpdate = (value: string | null) => {
-    const currentUser = page.props.auth.user as User;
-    avatarPreview.value = value ?? currentUser.avatar_url ?? null;
+    avatarPreview.value = value ?? user.value?.avatar_url ?? null;
 };
 
 const submit = () => {
@@ -63,8 +100,6 @@ const submit = () => {
         forceFormData: true,
         onSuccess: () => {
             form.reset('avatar');
-            const currentUser = page.props.auth.user as User;
-            avatarPreview.value = currentUser.avatar_url ?? null;
         },
         onFinish: () => {
             form.transform(data => data);
