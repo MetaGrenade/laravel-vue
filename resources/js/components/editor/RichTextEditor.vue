@@ -235,7 +235,7 @@ const createMentionExtension = () =>
               editor: props.editor,
             })
 
-            popup = tippy('body', {
+            popup = tippy(document.body, {
               getReferenceClientRect: props.clientRect ?? undefined,
               appendTo: () => document.body,
               content: component.element,
