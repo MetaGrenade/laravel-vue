@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
+use App\Http\Resources\MentionSuggestionResource;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -125,7 +126,7 @@ class ForumController extends Controller
         ]);
     }
 
-    public function mentionSuggestions(Request $request): JsonResponse
+    public function mentionSuggestions(Request $request): AnonymousResourceCollection
     {
         $user = $request->user();
 
@@ -138,7 +139,7 @@ class ForumController extends Controller
         $query = isset($validated['q']) ? trim((string) $validated['q']) : '';
 
         if ($query === '') {
-            return response()->json(['data' => []]);
+            return MentionSuggestionResource::collection(collect());
         }
 
         $escaped = addcslashes($query, '%_');
@@ -154,32 +155,13 @@ class ForumController extends Controller
             ->orderByRaw('nickname like ? desc', [$escaped . '%'])
             ->orderBy('nickname')
             ->limit(8)
-            ->get();
+            ->get()
+            ->filter(function (User $mentioned) {
+                return filled(trim((string) $mentioned->nickname));
+            })
+            ->values();
 
-        $results = $users->map(function (User $mentioned) {
-            $nickname = is_string($mentioned->nickname) ? trim($mentioned->nickname) : '';
-
-            if ($nickname === '') {
-                return null;
-            }
-
-            $profileUrl = null;
-
-            if (Route::has('members.show')) {
-                $profileUrl = route('members.show', ['user' => $mentioned->getRouteKey()]);
-            }
-
-            return [
-                'id' => $mentioned->getKey(),
-                'nickname' => $nickname,
-                'avatar_url' => $mentioned->avatar_url,
-                'profile_url' => $profileUrl,
-            ];
-        })->filter()->values()->all();
-
-        return response()->json([
-            'data' => $results,
-        ]);
+        return MentionSuggestionResource::collection($users);
     }
 
     public function showBoard(Request $request, ForumBoard $board): Response
