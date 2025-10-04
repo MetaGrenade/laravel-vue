@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch, type HTMLAttributes } from 'vue'
-import { Editor, EditorContent } from '@tiptap/vue-3'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type HTMLAttributes } from 'vue'
+import { Editor, EditorContent, VueRenderer } from '@tiptap/vue-3'
 import Blockquote from '@tiptap/extension-blockquote'
 import Bold from '@tiptap/extension-bold'
 import BulletList from '@tiptap/extension-bullet-list'
@@ -20,9 +20,13 @@ import Placeholder from '@tiptap/extension-placeholder'
 import Strike from '@tiptap/extension-strike'
 import Text from '@tiptap/extension-text'
 import TextStyle from '@tiptap/extension-text-style'
-import { useDebounceFn } from '@vueuse/core'
+import MentionSuggestionList, { type MentionSuggestionItem } from '@/components/editor/MentionSuggestionList.vue'
+import MentionExtension, { type MentionAttributes } from './extensions/mention'
 import { cn } from '@/lib/utils'
-import { Bold as BoldIcon, MessageSquareCode, Code as CodeIcon, Eye, EyeOff, Italic as ItalicIcon, List, ListOrdered, Quote, Redo, Strikethrough, Undo } from 'lucide-vue-next'
+import { useDebounceFn } from '@vueuse/core'
+import { Bold as BoldIcon, Code as CodeIcon, Eye, EyeOff, Italic as ItalicIcon, List, ListOrdered, MessageSquareCode, Quote, Redo, Strikethrough, Undo } from 'lucide-vue-next'
+import tippy, { type Instance as TippyInstance } from 'tippy.js'
+import type { SuggestionProps } from '@tiptap/suggestion'
 
 const props = withDefaults(
   defineProps<{
@@ -49,68 +53,79 @@ const isPreviewing = ref(false)
 const lastSavedAt = ref<Date | null>(null)
 const hasInitialised = ref(false)
 
-const storageKey = computed(() => props.storageKey ?? null)
+const mentionCache = new Map<string, MentionSuggestionItem[]>()
+let mentionAbortController: AbortController | null = null
+let mentionLoading = false
+let updateMentionLoading: ((loading: boolean) => void) | null = null
+let removeEditorKeydownListener: (() => void) | null = null
 
-const createEditor = (initialContent: string) => {
-  editor.value = new Editor({
-    content: initialContent,
-    autofocus: props.autofocus,
-    extensions: [
-      Document,
-      Paragraph,
-      Text,
-      TextStyle,
-      Bold,
-      Italic,
-      Strike,
-      Code,
-      CodeBlock,
-      Blockquote,
-      BulletList,
-      OrderedList,
-      ListItem,
-      HorizontalRule,
-      HardBreak,
-      History,
-      Dropcursor.configure({
-        color: '#6366f1',
-      }),
-      Gapcursor,
-      Placeholder.configure({
-        placeholder: props.placeholder,
-      }),
-    ],
-    editorProps: {
-      attributes: {
-        class:
-          'prose prose-sm dark:prose-invert max-w-none focus:outline-none px-3 py-2 min-h-[16rem]',
+const fetchMentionSuggestions = async (query: string): Promise<MentionSuggestionItem[]> => {
+  const trimmed = query.trim()
+
+  if (trimmed === '' || trimmed.length > 50) {
+    return []
+  }
+
+  if (mentionCache.has(trimmed)) {
+    return mentionCache.get(trimmed) ?? []
+  }
+
+  if (mentionAbortController) {
+    mentionAbortController.abort()
+  }
+
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+  mentionAbortController = controller
+  mentionLoading = true
+  updateMentionLoading?.(true)
+
+  try {
+    const url = route('forum.mentions.index', { q: trimmed })
+    const response = await fetch(url, {
+      signal: controller?.signal,
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
       },
-    },
-    onUpdate: ({ editor: current }) => {
-      const html = current.getHTML()
-      emit('update:modelValue', html)
-      queueAutosave(html)
-    },
-  })
-}
+      credentials: 'same-origin',
+    })
 
-const loadInitialContent = () => {
-  if (typeof window === 'undefined') {
-    return props.modelValue
-  }
-
-  if (storageKey.value) {
-    const stored = window.localStorage.getItem(storageKey.value)
-
-    if (stored && stored.trim() !== '') {
-      emit('update:modelValue', stored)
-      lastSavedAt.value = new Date()
-      return stored
+    if (!response.ok) {
+      throw new Error('Failed to load mention suggestions')
     }
-  }
 
-  return props.modelValue
+    const payload = (await response.json()) as { data?: Array<Record<string, unknown>> }
+    const items = Array.isArray(payload.data) ? payload.data : []
+
+    const mapped = items
+      .map((item) => ({
+        id: item.id as number | string,
+        nickname: (item.nickname as string) ?? '',
+        label: (item.nickname as string) ?? '',
+        profileUrl: (item.profile_url as string | null | undefined) ?? null,
+        avatarUrl: (item.avatar_url as string | null | undefined) ?? null,
+      }))
+      .filter((item): item is MentionSuggestionItem => item.id !== undefined && item.id !== null && item.nickname !== '')
+
+    mentionCache.set(trimmed, mapped)
+    return mapped
+  } catch (error) {
+    if ((error as DOMException)?.name === 'AbortError') {
+      return []
+    }
+
+    return []
+  } finally {
+    if (mentionAbortController === controller) {
+      mentionAbortController = null
+    }
+
+    mentionLoading = false
+    updateMentionLoading?.(false)
+  }
 }
+
+const storageKey = computed(() => props.storageKey ?? null)
 
 const queueAutosave = useDebounceFn((content: string) => {
   if (!storageKey.value || typeof window === 'undefined') {
@@ -152,6 +167,7 @@ const autosaveMessage = computed(() => {
   }
 
   const minutes = Math.round(diff / minute)
+
   if (minutes < 60) {
     return `Draft autosaved ${minutes} minute${minutes === 1 ? '' : 's'} ago.`
   }
@@ -169,29 +185,223 @@ const clearDraft = () => {
   lastSavedAt.value = null
 }
 
-onMounted(() => {
-  const initialContent = loadInitialContent()
-  createEditor(initialContent)
-  hasInitialised.value = true
-})
+const loadInitialContent = () => {
+  if (typeof window === 'undefined') {
+    return props.modelValue
+  }
 
-onBeforeUnmount(() => {
-  editor.value?.destroy()
-})
+  if (storageKey.value) {
+    const stored = window.localStorage.getItem(storageKey.value)
 
-watch(
-  () => props.modelValue,
-  (value) => {
-    if (!editor.value) {
-      return
+    if (stored && stored.trim() !== '') {
+      emit('update:modelValue', stored)
+      lastSavedAt.value = new Date()
+      return stored
     }
+  }
 
-    const current = editor.value.getHTML()
-    if (value !== current && !(value === '' && current === '<p></p>')) {
-      editor.value.commands.setContent(value || '<p></p>', false)
-    }
-  },
-)
+  return props.modelValue
+}
+
+const createMentionExtension = () =>
+  MentionExtension.configure({
+    suggestion: {
+      char: '@',
+      allow: ({ query }) => (query?.length ?? 0) <= 50,
+      items: async ({ query }) => fetchMentionSuggestions(query ?? ''),
+      render: () => {
+        let component: VueRenderer | null = null
+        let popup: TippyInstance | null = null
+        let currentProps: SuggestionProps | null = null
+
+        const getComponentProps = (props: SuggestionProps) => ({
+          items: (props.items ?? []) as MentionSuggestionItem[],
+          command: (item: MentionSuggestionItem) => {
+            props.command({
+              id: item.id,
+              nickname: item.nickname,
+              label: item.label ?? item.nickname,
+              profileUrl: item.profileUrl ?? null,
+            } as MentionAttributes)
+          },
+          query: props.query,
+          loading: mentionLoading,
+        })
+
+        return {
+          onStart: (props) => {
+            component = new VueRenderer(MentionSuggestionList, {
+              props: getComponentProps(props),
+              editor: props.editor,
+            })
+
+            popup = tippy(document.body, {
+              getReferenceClientRect: props.clientRect ?? undefined,
+              appendTo: () => document.body,
+              content: component.element,
+              showOnCreate: true,
+              interactive: true,
+              trigger: 'manual',
+              placement: 'bottom-start',
+            })
+
+            currentProps = props
+
+            updateMentionLoading = (loading: boolean) => {
+              mentionLoading = loading
+
+              if (component && currentProps) {
+                component.updateProps(getComponentProps(currentProps))
+              }
+            }
+          },
+          onUpdate: (props) => {
+            if (!component || !popup) {
+              return
+            }
+
+            currentProps = props
+            component.updateProps(getComponentProps(props))
+
+            const clientRect = props.clientRect?.()
+
+            if (clientRect) {
+              popup.setProps({
+                getReferenceClientRect: props.clientRect ?? undefined,
+              })
+            }
+          },
+          onKeyDown: (props) => {
+            if (component?.ref?.onKeyDown(props)) {
+              return true
+            }
+
+            return false
+          },
+          onExit: () => {
+            popup?.destroy()
+            popup = null
+
+            component?.destroy()
+            component = null
+
+            currentProps = null
+            updateMentionLoading = null
+            mentionLoading = false
+
+            if (mentionAbortController) {
+              mentionAbortController.abort()
+              mentionAbortController = null
+            }
+          },
+        }
+      },
+    },
+  })
+
+const createEditor = (initialContent: string) => {
+  editor.value = new Editor({
+    content: initialContent,
+    autofocus: props.autofocus,
+    extensions: [
+      Document,
+      Paragraph,
+      Text,
+      TextStyle,
+      Bold,
+      Italic,
+      Strike,
+      Code,
+      CodeBlock,
+      Blockquote,
+      BulletList,
+      OrderedList,
+      ListItem,
+      HorizontalRule,
+      HardBreak,
+      History,
+      Dropcursor.configure({
+        color: '#6366f1',
+      }),
+      Gapcursor,
+      createMentionExtension(),
+      Placeholder.configure({
+        placeholder: props.placeholder,
+      }),
+    ],
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none px-3 py-2 min-h-[16rem]',
+      },
+    },
+    onUpdate: ({ editor: current }) => {
+      const html = current.getHTML()
+      emit('update:modelValue', html)
+      queueAutosave(html)
+    },
+  })
+}
+
+const formattingGroups = computed(() => {
+  if (!editor.value) {
+    return []
+  }
+
+  return [
+    [
+      {
+        icon: BoldIcon,
+        label: 'Bold',
+        isActive: () => editor.value?.isActive('bold') ?? false,
+        action: () => editor.value?.chain().focus().toggleBold().run(),
+      },
+      {
+        icon: ItalicIcon,
+        label: 'Italic',
+        isActive: () => editor.value?.isActive('italic') ?? false,
+        action: () => editor.value?.chain().focus().toggleItalic().run(),
+      },
+      {
+        icon: Strikethrough,
+        label: 'Strikethrough',
+        isActive: () => editor.value?.isActive('strike') ?? false,
+        action: () => editor.value?.chain().focus().toggleStrike().run(),
+      },
+      {
+        icon: CodeIcon,
+        label: 'Inline code',
+        isActive: () => editor.value?.isActive('code') ?? false,
+        action: () => editor.value?.chain().focus().toggleCode().run(),
+      },
+    ],
+    [
+      {
+        icon: List,
+        label: 'Bullet list',
+        isActive: () => editor.value?.isActive('bulletList') ?? false,
+        action: () => editor.value?.chain().focus().toggleBulletList().run(),
+      },
+      {
+        icon: ListOrdered,
+        label: 'Numbered list',
+        isActive: () => editor.value?.isActive('orderedList') ?? false,
+        action: () => editor.value?.chain().focus().toggleOrderedList().run(),
+      },
+      {
+        icon: Quote,
+        label: 'Quote',
+        isActive: () => editor.value?.isActive('blockquote') ?? false,
+        action: () => editor.value?.chain().focus().toggleBlockquote().run(),
+      },
+      {
+        icon: MessageSquareCode,
+        label: 'Code block',
+        isActive: () => editor.value?.isActive('codeBlock') ?? false,
+        action: () => editor.value?.chain().focus().toggleCodeBlock().run(),
+      },
+    ],
+  ]
+})
 
 const togglePreview = () => {
   if (!editor.value) {
@@ -200,67 +410,14 @@ const togglePreview = () => {
 
   if (isPreviewing.value) {
     isPreviewing.value = false
-    editor.value.commands.focus('end')
+    void nextTick(() => {
+      editor.value?.commands.focus('end')
+    })
     return
   }
 
   isPreviewing.value = true
 }
-
-const formattingGroups = computed(() => [
-  [
-    {
-      icon: BoldIcon,
-      label: 'Bold',
-      isActive: () => editor.value?.isActive('bold') ?? false,
-      action: () => editor.value?.chain().focus().toggleBold().run(),
-    },
-    {
-      icon: ItalicIcon,
-      label: 'Italic',
-      isActive: () => editor.value?.isActive('italic') ?? false,
-      action: () => editor.value?.chain().focus().toggleItalic().run(),
-    },
-    {
-      icon: Strikethrough,
-      label: 'Strikethrough',
-      isActive: () => editor.value?.isActive('strike') ?? false,
-      action: () => editor.value?.chain().focus().toggleStrike().run(),
-    },
-    {
-      icon: CodeIcon,
-      label: 'Inline code',
-      isActive: () => editor.value?.isActive('code') ?? false,
-      action: () => editor.value?.chain().focus().toggleCode().run(),
-    },
-  ],
-  [
-    {
-      icon: List,
-      label: 'Bullet list',
-      isActive: () => editor.value?.isActive('bulletList') ?? false,
-      action: () => editor.value?.chain().focus().toggleBulletList().run(),
-    },
-    {
-      icon: ListOrdered,
-      label: 'Numbered list',
-      isActive: () => editor.value?.isActive('orderedList') ?? false,
-      action: () => editor.value?.chain().focus().toggleOrderedList().run(),
-    },
-    {
-      icon: Quote,
-      label: 'Quote',
-      isActive: () => editor.value?.isActive('blockquote') ?? false,
-      action: () => editor.value?.chain().focus().toggleBlockquote().run(),
-    },
-    {
-      icon: MessageSquareCode,
-      label: 'Code block',
-      isActive: () => editor.value?.isActive('codeBlock') ?? false,
-      action: () => editor.value?.chain().focus().toggleCodeBlock().run(),
-    },
-  ],
-])
 
 const undo = () => editor.value?.chain().focus().undo().run()
 const redo = () => editor.value?.chain().focus().redo().run()
@@ -270,6 +427,57 @@ const toolbarButtonClass = (active: boolean) =>
     'inline-flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
     active ? 'bg-muted text-foreground shadow-inner' : 'text-muted-foreground',
   )
+
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (!editor.value) {
+      return
+    }
+
+    const current = editor.value.getHTML()
+
+    if (value !== current && !(value === '' && current === '<p></p>')) {
+      editor.value.commands.setContent(value || '<p></p>', false)
+    }
+  },
+)
+
+onMounted(() => {
+  const initialContent = loadInitialContent()
+  createEditor(initialContent)
+
+  const instance = editor.value
+
+  if (instance) {
+    const dom = instance.view.dom
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isPreviewing.value) {
+        event.preventDefault()
+        togglePreview()
+      }
+    }
+
+    dom.addEventListener('keydown', handleKeydown)
+    removeEditorKeydownListener = () => {
+      dom.removeEventListener('keydown', handleKeydown)
+    }
+  }
+
+  hasInitialised.value = true
+})
+
+onBeforeUnmount(() => {
+  if (removeEditorKeydownListener) {
+    removeEditorKeydownListener()
+    removeEditorKeydownListener = null
+  }
+
+  if (editor.value) {
+    editor.value.destroy()
+    editor.value = null
+  }
+})
 </script>
 
 <template>
@@ -277,7 +485,7 @@ const toolbarButtonClass = (active: boolean) =>
     <div class="overflow-hidden rounded-lg border border-border bg-card">
       <div class="flex flex-wrap items-center gap-1 border-b border-border bg-muted/40 px-2 py-1">
         <div class="flex flex-wrap items-center gap-1">
-          <template v-for="group in formattingGroups" :key="group[0].label">
+          <template v-for="group in formattingGroups" :key="group[0]?.label ?? ''">
             <div class="flex items-center gap-1">
               <button
                 v-for="item in group"

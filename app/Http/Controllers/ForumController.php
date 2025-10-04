@@ -3,14 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
+use App\Http\Resources\MentionSuggestionResource;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -119,6 +123,55 @@ class ForumController extends Controller
                     'thread_id' => $post->thread->id,
                 ];
             })->values(),
+        ]);
+    }
+
+    public function mentionSuggestions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_if($user === null, 403);
+
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $query = isset($validated['q']) ? trim((string) $validated['q']) : '';
+
+        if ($query === '') {
+            return response()->json([
+                'data' => [],
+            ]);
+        }
+
+        $escaped = addcslashes($query, '%_');
+
+        $users = User::query()
+            ->select('id', 'nickname', 'avatar_url')
+            ->whereNotNull('nickname')
+            ->where('id', '!=', $user->id)
+            ->where(function ($builder) use ($escaped) {
+                $builder->where('nickname', 'like', $escaped . '%')
+                    ->orWhere('nickname', 'like', '%' . $escaped . '%');
+            })
+            ->orderByRaw('nickname like ? desc', [$escaped . '%'])
+            ->orderBy('nickname')
+            ->limit(8)
+            ->get()
+            ->filter(function (User $mentioned) {
+                return filled(trim((string) $mentioned->nickname));
+            })
+            ->values();
+
+        $suggestions = $users
+            ->map(function (User $mentioned) use ($request) {
+                return (new MentionSuggestionResource($mentioned))->toArray($request);
+            })
+            ->values()
+            ->all();
+
+        return response()->json([
+            'data' => $suggestions,
         ]);
     }
 
@@ -274,6 +327,8 @@ class ForumController extends Controller
             ->with(['author' => function ($query) {
                 $query->select('id', 'nickname', 'created_at', 'avatar_url', 'forum_signature')
                     ->withCount('forumPosts');
+            }, 'mentions' => function ($query) {
+                $query->select('users.id', 'users.nickname');
             }])
             ->orderBy('created_at')
             ->paginate(10)
@@ -312,6 +367,19 @@ class ForumController extends Controller
                     'canDelete' => $user !== null && ($user->id === $post->user_id || $canModerate),
                     'canModerate' => $canModerate,
                 ],
+                'mentions' => $post->mentions->map(function (User $mentioned) {
+                    $profileUrl = null;
+
+                    if (Route::has('members.show')) {
+                        $profileUrl = route('members.show', ['user' => $mentioned->getRouteKey()]);
+                    }
+
+                    return [
+                        'id' => $mentioned->id,
+                        'nickname' => $mentioned->nickname,
+                        'profile_url' => $profileUrl,
+                    ];
+                })->values(),
             ];
         })->values();
 

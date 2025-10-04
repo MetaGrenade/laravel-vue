@@ -7,10 +7,13 @@ use App\Models\ForumPost;
 use App\Models\ForumPostReport;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
+use App\Models\User;
+use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -63,6 +66,13 @@ class ForumPostController extends Controller
         );
 
         $thread->loadMissing('board');
+
+        $mentionedUsers = $this->resolveMentionedUsers($body, $user->id);
+
+        if ($mentionedUsers->isNotEmpty()) {
+            $post->mentions()->sync($mentionedUsers->pluck('id')->all());
+            $this->notifyMentionedUsers($mentionedUsers, $thread, $post);
+        }
 
         $subscribers = $thread->subscribers()
             ->where('users.id', '!=', $user->id)
@@ -119,6 +129,8 @@ class ForumPostController extends Controller
             ]);
         }
 
+        $previousMentionIds = $post->mentions()->pluck('users.id');
+
         if ($body !== $post->body) {
             $post->revisions()->create([
                 'body' => $post->body,
@@ -131,6 +143,17 @@ class ForumPostController extends Controller
             'body' => $body,
             'edited_at' => Carbon::now(),
         ])->save();
+
+        $mentionedUsers = $this->resolveMentionedUsers($body, $user->id);
+
+        $post->mentions()->sync($mentionedUsers->pluck('id')->all());
+
+        $newlyMentionedUsers = $mentionedUsers->filter(fn (User $mentioned) => !$previousMentionIds->contains($mentioned->id));
+
+        if ($newlyMentionedUsers->isNotEmpty()) {
+            $thread->loadMissing('board');
+            $this->notifyMentionedUsers($newlyMentionedUsers, $thread, $post);
+        }
 
         return $this->redirectToThread($board, $thread, $validated['page'] ?? null, 'Post updated successfully.');
     }
@@ -216,5 +239,55 @@ class ForumPostController extends Controller
 
         return redirect()->route('forum.threads.show', $parameters)
             ->with('success', $message);
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function extractMentionNicknames(string $body): Collection
+    {
+        $plainText = html_entity_decode(strip_tags($body));
+
+        preg_match_all('/(?<![\\w@])@([A-Za-z0-9_.-]{2,50})/u', $plainText, $matches);
+
+        return collect($matches[1] ?? [])
+            ->map(fn (string $nickname) => trim($nickname))
+            ->filter(fn (string $nickname) => $nickname !== '')
+            ->unique(fn (string $nickname) => mb_strtolower($nickname))
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    private function resolveMentionedUsers(string $body, int $authorId): Collection
+    {
+        $nicknames = $this->extractMentionNicknames($body);
+
+        if ($nicknames->isEmpty()) {
+            return collect();
+        }
+
+        return User::query()
+            ->whereIn('nickname', $nicknames)
+            ->where('id', '!=', $authorId)
+            ->get()
+            ->unique('id')
+            ->values();
+    }
+
+    /**
+     * @param Collection<int, User> $mentionedUsers
+     */
+    private function notifyMentionedUsers(Collection $mentionedUsers, ForumThread $thread, ForumPost $post): void
+    {
+        if ($mentionedUsers->isEmpty()) {
+            return;
+        }
+
+        $notification = new ForumPostMentioned($thread, $post);
+
+        Notification::sendNow($mentionedUsers, $notification->withChannels(['database']));
+        Notification::send($mentionedUsers, $notification->withChannels(['mail']));
     }
 }

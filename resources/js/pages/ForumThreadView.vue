@@ -100,6 +100,12 @@ interface PostPermissions {
     canModerate: boolean;
 }
 
+interface PostMention {
+    id: number;
+    nickname: string;
+    profile_url: string | null;
+}
+
 interface ThreadPost {
     id: number;
     body: string;
@@ -110,6 +116,7 @@ interface ThreadPost {
     number: number;
     author: PostAuthor;
     permissions: PostPermissions;
+    mentions: PostMention[];
 }
 
 interface PostsPayload {
@@ -141,6 +148,125 @@ const authUser = computed(() => page.props.auth.user as User | null);
 const { getInitials } = useInitials();
 
 const forumProfileDialogOpen = ref(false);
+
+const highlightMentionsInHtml = (body: string, mentions: PostMention[]): string => {
+    if (!body || mentions.length === 0) {
+        return body;
+    }
+
+    if (body.includes('data-type="mention"')) {
+        return body;
+    }
+
+    if (typeof window === 'undefined' || typeof window.DOMParser === 'undefined') {
+        return body;
+    }
+
+    const parser = new window.DOMParser();
+    const doc = parser.parseFromString(body, 'text/html');
+    const root = doc.body ?? doc.documentElement;
+
+    if (!root) {
+        return body;
+    }
+
+    const mentionMap = new Map(mentions.map((mention) => [mention.nickname.toLowerCase(), mention]));
+    const mentionPattern = /(?<![\w@])@([A-Za-z0-9_.-]{2,50})/g;
+    const walker = doc.createTreeWalker(root, window.NodeFilter.SHOW_TEXT);
+    const textNodes: Text[] = [];
+
+    let node = walker.nextNode();
+    while (node) {
+        textNodes.push(node as Text);
+        node = walker.nextNode();
+    }
+
+    textNodes.forEach((textNode) => {
+        const text = textNode.nodeValue ?? '';
+
+        if (text === '') {
+            return;
+        }
+
+        const parent = textNode.parentNode;
+
+        if (!parent) {
+            return;
+        }
+
+        if (parent instanceof Element) {
+            const mentionAncestor = parent.closest('[data-type="mention"]');
+
+            if (mentionAncestor) {
+                return;
+            }
+
+            if (parent.classList.contains('mention')) {
+                return;
+            }
+        }
+
+        const fragments: (string | Node)[] = [];
+        let lastIndex = 0;
+        let match: RegExpExecArray | null;
+
+        mentionPattern.lastIndex = 0;
+
+        while ((match = mentionPattern.exec(text)) !== null) {
+            const nickname = match[1];
+            const mention = mentionMap.get(nickname.toLowerCase());
+
+            if (!mention) {
+                continue;
+            }
+
+            const startIndex = match.index ?? 0;
+
+            if (startIndex > lastIndex) {
+                fragments.push(text.slice(lastIndex, startIndex));
+            }
+
+            const element = doc.createElement(mention.profile_url ? 'a' : 'span');
+            element.className = 'mention text-primary font-medium hover:underline';
+            element.textContent = `@${nickname}`;
+            element.setAttribute('data-type', 'mention');
+            element.setAttribute('data-nickname', mention.nickname);
+            element.setAttribute('data-id', String(mention.id));
+
+            if (mention.profile_url) {
+                element.setAttribute('href', mention.profile_url);
+                element.setAttribute('data-profile-url', mention.profile_url);
+            }
+
+            fragments.push(element);
+            lastIndex = startIndex + match[0].length;
+        }
+
+        if (fragments.length === 0) {
+            return;
+        }
+
+        if (lastIndex < text.length) {
+            fragments.push(text.slice(lastIndex));
+        }
+
+        fragments.forEach((fragment) => {
+            if (typeof fragment === 'string') {
+                parent.insertBefore(doc.createTextNode(fragment), textNode);
+            } else {
+                parent.insertBefore(fragment, textNode);
+            }
+        });
+
+        parent.removeChild(textNode);
+    });
+
+    return root.innerHTML ?? body;
+};
+
+const renderPostBody = (post: ThreadPost): string => {
+    return highlightMentionsInHtml(post.body, post.mentions ?? []);
+};
 
 const resolveForumProfileDefaults = (user: User | null) => ({
     nickname: user?.nickname ?? '',
@@ -1499,7 +1625,7 @@ const submitReply = () => {
                             </div>
                         </div>
                         <!-- Post Body -->
-                        <div class="tiptap ProseMirror prose prose-sm dark:prose-invert max-w-none" v-html="post.body"></div>
+                        <div class="tiptap ProseMirror prose prose-sm dark:prose-invert max-w-none" v-html="renderPostBody(post)"></div>
                         <!-- Forum Signature -->
                         <div
                             v-if="post.author.forum_signature"
