@@ -154,6 +154,10 @@ const highlightMentionsInHtml = (body: string, mentions: PostMention[]): string 
         return body;
     }
 
+    if (body.includes('data-type="mention"')) {
+        return body;
+    }
+
     if (typeof window === 'undefined' || typeof window.DOMParser === 'undefined') {
         return body;
     }
@@ -190,6 +194,18 @@ const highlightMentionsInHtml = (body: string, mentions: PostMention[]): string 
             return;
         }
 
+        if (parent instanceof Element) {
+            const mentionAncestor = parent.closest('[data-type="mention"]');
+
+            if (mentionAncestor) {
+                return;
+            }
+
+            if (parent.classList.contains('mention')) {
+                return;
+            }
+        }
+
         const fragments: (string | Node)[] = [];
         let lastIndex = 0;
         let match: RegExpExecArray | null;
@@ -213,9 +229,13 @@ const highlightMentionsInHtml = (body: string, mentions: PostMention[]): string 
             const element = doc.createElement(mention.profile_url ? 'a' : 'span');
             element.className = 'mention text-primary font-medium hover:underline';
             element.textContent = `@${nickname}`;
+            element.setAttribute('data-type', 'mention');
+            element.setAttribute('data-nickname', mention.nickname);
+            element.setAttribute('data-id', String(mention.id));
 
             if (mention.profile_url) {
                 element.setAttribute('href', mention.profile_url);
+                element.setAttribute('data-profile-url', mention.profile_url);
             }
 
             fragments.push(element);

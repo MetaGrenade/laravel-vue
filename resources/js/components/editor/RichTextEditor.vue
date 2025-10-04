@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch, type HTMLAttributes } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, type HTMLAttributes } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import Blockquote from '@tiptap/extension-blockquote'
 import Bold from '@tiptap/extension-bold'
@@ -21,8 +21,10 @@ import Strike from '@tiptap/extension-strike'
 import Text from '@tiptap/extension-text'
 import TextStyle from '@tiptap/extension-text-style'
 import { useDebounceFn } from '@vueuse/core'
+import MentionSuggestionList, { type MentionSuggestionItem } from '@/components/editor/MentionSuggestionList.vue'
 import { cn } from '@/lib/utils'
 import { Bold as BoldIcon, MessageSquareCode, Code as CodeIcon, Eye, EyeOff, Italic as ItalicIcon, List, ListOrdered, Quote, Redo, Strikethrough, Undo } from 'lucide-vue-next'
+import MentionExtension, { type MentionAttributes } from './extensions/mention'
 
 const props = withDefaults(
   defineProps<{
@@ -48,6 +50,287 @@ const editor = ref<Editor | null>(null)
 const isPreviewing = ref(false)
 const lastSavedAt = ref<Date | null>(null)
 const hasInitialised = ref(false)
+
+const mentionState = reactive({
+  active: false,
+  query: '',
+  range: null as { from: number; to: number } | null,
+  position: { left: 0, top: 0 },
+  items: [] as MentionSuggestionItem[],
+  highlightedIndex: -1,
+  loading: false,
+})
+
+const mentionCache = new Map<string, MentionSuggestionItem[]>()
+let mentionAbortController: AbortController | null = null
+let removeEditorKeydownListener: (() => void) | null = null
+
+const fetchMentionResults = async (query: string) => {
+  if (!mentionState.active) {
+    return
+  }
+
+  if (query === '') {
+    mentionState.items = []
+    mentionState.highlightedIndex = -1
+    mentionState.loading = false
+    return
+  }
+
+  if (mentionCache.has(query)) {
+    mentionState.items = mentionCache.get(query) ?? []
+    mentionState.highlightedIndex = mentionState.items.length > 0 ? 0 : -1
+    mentionState.loading = false
+    return
+  }
+
+  if (mentionAbortController) {
+    mentionAbortController.abort()
+  }
+
+  mentionAbortController = typeof AbortController !== 'undefined' ? new AbortController() : null
+  mentionState.loading = true
+
+  try {
+    const url = query !== '' ? route('forum.mentions.index', { q: query }) : route('forum.mentions.index')
+    const response = await fetch(url, {
+      signal: mentionAbortController?.signal,
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      credentials: 'same-origin',
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to load mention suggestions')
+    }
+
+    const payload = await response.json()
+    const items = Array.isArray(payload.data) ? (payload.data as MentionSuggestionItem[]) : []
+
+    mentionCache.set(query, items)
+    mentionState.items = items
+    mentionState.highlightedIndex = items.length > 0 ? 0 : -1
+  } catch (error) {
+    if ((error as DOMException)?.name === 'AbortError') {
+      return
+    }
+
+    mentionState.items = []
+    mentionState.highlightedIndex = -1
+  } finally {
+    mentionState.loading = false
+  }
+}
+
+const fetchMentionResultsDebounced = useDebounceFn((query: string) => {
+  void fetchMentionResults(query)
+}, 180)
+
+const requestMentionResults = (query: string, immediate = false) => {
+  if (!mentionState.active) {
+    return
+  }
+
+  if (immediate) {
+    fetchMentionResultsDebounced.cancel()
+    void fetchMentionResults(query)
+    return
+  }
+
+  fetchMentionResultsDebounced(query)
+}
+
+const closeMention = () => {
+  mentionState.active = false
+  mentionState.query = ''
+  mentionState.range = null
+  mentionState.items = []
+  mentionState.highlightedIndex = -1
+  mentionState.loading = false
+
+  if (mentionAbortController) {
+    mentionAbortController.abort()
+    mentionAbortController = null
+  }
+
+  fetchMentionResultsDebounced.cancel()
+}
+
+const updateMentionPosition = () => {
+  if (!mentionState.active || !mentionState.range || !editor.value) {
+    return
+  }
+
+  try {
+    const coords = editor.value.view.coordsAtPos(mentionState.range.from)
+
+    if (typeof window !== 'undefined') {
+      mentionState.position.left = coords.left + window.scrollX
+      mentionState.position.top = coords.bottom + window.scrollY
+    } else {
+      mentionState.position.left = coords.left
+      mentionState.position.top = coords.bottom
+    }
+  } catch {
+    // Ignore positioning errors when the cursor leaves the editor.
+  }
+}
+
+const moveMentionHighlight = (direction: 1 | -1) => {
+  if (mentionState.items.length === 0) {
+    mentionState.highlightedIndex = -1
+    return
+  }
+
+  if (mentionState.highlightedIndex === -1) {
+    mentionState.highlightedIndex = direction === 1 ? 0 : mentionState.items.length - 1
+    return
+  }
+
+  mentionState.highlightedIndex =
+    (mentionState.highlightedIndex + direction + mentionState.items.length) % mentionState.items.length
+}
+
+const insertMention = (item: MentionSuggestionItem | undefined) => {
+  if (!editor.value || !mentionState.range || !item) {
+    return
+  }
+
+  const { from, to } = mentionState.range
+  const attrs: MentionAttributes = {
+    id: item.id,
+    nickname: item.nickname,
+    label: item.nickname,
+    profileUrl: item.profile_url ?? null,
+  }
+
+  const chain = editor.value.chain().focus().deleteRange({ from, to }).insertContent([
+    {
+      type: MentionExtension.name,
+      attrs,
+    },
+  ])
+
+  const nextCharacter = editor.value.state.doc.textBetween(to, to + 1, '\u0000', '\u0000')
+  if (nextCharacter === '' || !/^\s$/.test(nextCharacter)) {
+    chain.insertContent(' ')
+  }
+
+  chain.run()
+  closeMention()
+
+  void nextTick(() => {
+    editor.value?.commands.focus()
+  })
+}
+
+const handleMentionSelect = (item: MentionSuggestionItem) => {
+  insertMention(item)
+}
+
+const handleMentionHighlight = (index: number) => {
+  mentionState.highlightedIndex = index
+}
+
+const handleEditorKeyDown = (event: KeyboardEvent) => {
+  if (!mentionState.active) {
+    return
+  }
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    moveMentionHighlight(1)
+    return
+  }
+
+  if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    moveMentionHighlight(-1)
+    return
+  }
+
+  if (event.key === 'Enter' || event.key === 'Tab') {
+    if (mentionState.items.length === 0) {
+      closeMention()
+      return
+    }
+
+    event.preventDefault()
+    const index = mentionState.highlightedIndex === -1 ? 0 : mentionState.highlightedIndex
+    insertMention(mentionState.items[index])
+    return
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeMention()
+    return
+  }
+
+  if (event.key === ' ' || event.key === 'Spacebar') {
+    closeMention()
+  }
+}
+
+const detectMention = () => {
+  if (!editor.value) {
+    return
+  }
+
+  const { state } = editor.value
+  const { selection } = state
+
+  if (!selection.empty) {
+    closeMention()
+    return
+  }
+
+  const $from = selection.$from
+
+  if ($from.nodeBefore?.type?.name === MentionExtension.name) {
+    closeMention()
+    return
+  }
+
+  const from = selection.from
+  const textBefore = state.doc.textBetween(Math.max(0, from - 64), from, '\u0000', '\u0000')
+  const atIndex = textBefore.lastIndexOf('@')
+
+  if (atIndex === -1) {
+    closeMention()
+    return
+  }
+
+  const mentionCandidate = textBefore.slice(atIndex)
+
+  if (!/^@[A-Za-z0-9_.-]*$/.test(mentionCandidate)) {
+    closeMention()
+    return
+  }
+
+  const precedingChar = textBefore[atIndex - 1] ?? ''
+  if (precedingChar && /[A-Za-z0-9_.-@]/.test(precedingChar)) {
+    closeMention()
+    return
+  }
+
+  const query = mentionCandidate.slice(1)
+
+  if (query.length > 50) {
+    closeMention()
+    return
+  }
+
+  const rangeFrom = from - mentionCandidate.length
+  const rangeTo = from
+
+  mentionState.active = true
+  mentionState.range = { from: rangeFrom, to: rangeTo }
+  mentionState.query = query
+  updateMentionPosition()
+}
 
 const storageKey = computed(() => props.storageKey ?? null)
 
@@ -76,6 +359,7 @@ const createEditor = (initialContent: string) => {
         color: '#6366f1',
       }),
       Gapcursor,
+      MentionExtension,
       Placeholder.configure({
         placeholder: props.placeholder,
       }),
@@ -169,14 +453,99 @@ const clearDraft = () => {
   lastSavedAt.value = null
 }
 
+watch(
+  () => mentionState.active,
+  (active) => {
+    if (active) {
+      requestMentionResults(mentionState.query, true)
+      void nextTick(() => {
+        updateMentionPosition()
+      })
+    }
+  },
+)
+
+watch(
+  () => mentionState.query,
+  (query, previous) => {
+    if (!mentionState.active || query === previous) {
+      return
+    }
+
+    requestMentionResults(query)
+  },
+)
+
+watch(
+  () => mentionState.range,
+  () => {
+    if (!mentionState.active) {
+      return
+    }
+
+    void nextTick(() => {
+      updateMentionPosition()
+    })
+  },
+  { deep: true },
+)
+
+watch(
+  () => mentionState.items.length,
+  () => {
+    if (mentionState.items.length === 0) {
+      mentionState.highlightedIndex = -1
+      return
+    }
+
+    if (mentionState.highlightedIndex === -1 || mentionState.highlightedIndex >= mentionState.items.length) {
+      mentionState.highlightedIndex = 0
+    }
+  },
+)
+
 onMounted(() => {
   const initialContent = loadInitialContent()
   createEditor(initialContent)
+
+  const instance = editor.value
+
+  if (instance) {
+    instance.on('selectionUpdate', detectMention)
+    instance.on('transaction', detectMention)
+    instance.on('blur', closeMention)
+
+    const dom = instance.view.dom
+    dom.addEventListener('keydown', handleEditorKeyDown)
+    removeEditorKeydownListener = () => {
+      dom.removeEventListener('keydown', handleEditorKeyDown)
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', updateMentionPosition)
+    window.addEventListener('scroll', updateMentionPosition, true)
+  }
+
   hasInitialised.value = true
 })
 
 onBeforeUnmount(() => {
-  editor.value?.destroy()
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', updateMentionPosition)
+    window.removeEventListener('scroll', updateMentionPosition, true)
+  }
+
+  removeEditorKeydownListener?.()
+
+  closeMention()
+
+  if (editor.value) {
+    editor.value.off('selectionUpdate', detectMention)
+    editor.value.off('transaction', detectMention)
+    editor.value.off('blur', closeMention)
+    editor.value.destroy()
+  }
 })
 
 watch(
@@ -204,6 +573,7 @@ const togglePreview = () => {
     return
   }
 
+  closeMention()
   isPreviewing.value = true
 }
 
@@ -355,6 +725,16 @@ const toolbarButtonClass = (active: boolean) =>
         Discard draft
       </button>
     </div>
+
+    <MentionSuggestionList
+      v-if="mentionState.active && !isPreviewing"
+      :items="mentionState.items"
+      :highlighted-index="mentionState.highlightedIndex"
+      :position="mentionState.position"
+      :loading="mentionState.loading"
+      @select="handleMentionSelect"
+      @highlight="handleMentionHighlight"
+    />
   </div>
 </template>
 

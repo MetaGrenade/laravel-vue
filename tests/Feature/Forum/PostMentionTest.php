@@ -110,6 +110,34 @@ class PostMentionTest extends TestCase
         );
     }
 
+    public function test_mention_suggestions_returns_matching_users(): void
+    {
+        $requester = User::factory()->create();
+        $match = User::factory()->create(['nickname' => 'TargetUser']);
+        $other = User::factory()->create(['nickname' => 'AnotherMember']);
+
+        $response = $this->actingAs($requester)
+            ->getJson(route('forum.mentions.index', ['q' => 'Target']));
+
+        $response->assertOk();
+        $response->assertJson(fn ($json) => $json
+            ->has('data', 1)
+            ->first('data', fn ($jsonItem) => $jsonItem
+                ->where('id', $match->id)
+                ->where('nickname', $match->nickname)
+                ->etc()));
+
+        $response->assertJsonMissing(['id' => $requester->id]);
+        $response->assertJsonMissing(['id' => $other->id]);
+    }
+
+    public function test_mention_suggestions_require_authentication(): void
+    {
+        $response = $this->get(route('forum.mentions.index', ['q' => 'anyone']));
+
+        $response->assertRedirect(route('login'));
+    }
+
     /**
      * @return array{ForumBoard, ForumThread}
      */
