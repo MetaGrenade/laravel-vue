@@ -61,7 +61,7 @@ class BlogRevisionRestoreTest extends TestCase
                     'slug' => 'archived-title',
                     'status' => 'published',
                     'cover_image' => 'covers/example.jpg',
-                    'published_at' => $publishedAt->toIso8601String(),
+                    'published_at' => $publishedAt->format('Y-m-d\TH:i:s.uP'),
                     'scheduled_for' => null,
                     'category_ids' => [$targetCategory->id],
                     'tag_ids' => [$targetTag->id],
