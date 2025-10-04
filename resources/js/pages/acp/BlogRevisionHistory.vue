@@ -206,26 +206,26 @@ const requestRestore = (revisionId: number) => {
                         <div>
                             <h1 class="text-3xl font-bold">Blog revision history</h1>
                             <p class="text-sm text-muted-foreground">
-                                {{ blog.value.title }} · Status: {{ blog.value.status }}
+                                {{ blog.title }} · Status: {{ blog.status }}
                             </p>
                         </div>
                     </div>
                     <div class="text-sm text-muted-foreground md:text-right space-y-1">
-                        <p v-if="blog.value.author">Author: {{ blog.value.author.nickname }}</p>
-                        <p v-if="formatExact(blog.value.created_at)">
-                            Created {{ formatExact(blog.value.created_at) }}
+                        <p v-if="blog.author">Author: {{ blog.author.nickname }}</p>
+                        <p v-if="formatExact(blog.created_at)">
+                            Created {{ formatExact(blog.created_at) }}
                         </p>
-                        <p v-if="formatExact(blog.value.updated_at)">
-                            Updated {{ formatExact(blog.value.updated_at) }}
-                            <span v-if="formatRelative(blog.value.updated_at)">
-                                ({{ formatRelative(blog.value.updated_at) }})
+                        <p v-if="formatExact(blog.updated_at)">
+                            Updated {{ formatExact(blog.updated_at) }}
+                            <span v-if="formatRelative(blog.updated_at)">
+                                ({{ formatRelative(blog.updated_at) }})
                             </span>
                         </p>
-                        <p v-if="formatExact(blog.value.published_at)">
-                            Published {{ formatExact(blog.value.published_at) }}
+                        <p v-if="formatExact(blog.published_at)">
+                            Published {{ formatExact(blog.published_at) }}
                         </p>
-                        <p v-if="formatExact(blog.value.scheduled_for)">
-                            Scheduled for {{ formatExact(blog.value.scheduled_for) }}
+                        <p v-if="formatExact(blog.scheduled_for)">
+                            Scheduled for {{ formatExact(blog.scheduled_for) }}
                         </p>
                     </div>
                 </div>
@@ -237,9 +237,9 @@ const requestRestore = (revisionId: number) => {
                                 <div>
                                     <h2 class="text-xl font-semibold">Current version</h2>
                                     <p class="text-sm text-muted-foreground">
-                                        Last updated {{ formatExact(blog.value.updated_at ?? blog.value.created_at) ?? 'Unknown' }}
-                                        <span v-if="formatRelative(blog.value.updated_at ?? blog.value.created_at)">
-                                            ({{ formatRelative(blog.value.updated_at ?? blog.value.created_at) }})
+                                        Last updated {{ formatExact(blog.updated_at ?? blog.created_at) ?? 'Unknown' }}
+                                        <span v-if="formatRelative(blog.updated_at ?? blog.created_at)">
+                                            ({{ formatRelative(blog.updated_at ?? blog.created_at) }})
                                         </span>
                                     </p>
                                 </div>
@@ -253,21 +253,21 @@ const requestRestore = (revisionId: number) => {
                                 <div class="rounded-lg border bg-muted/30 p-4">
                                     <h3 class="font-semibold">Metadata</h3>
                                     <ul class="mt-2 space-y-1 text-sm">
-                                        <li v-if="!metadataEntries(blog.value.metadata).length" class="text-muted-foreground">
+                                        <li v-if="!metadataEntries(blog.metadata).length" class="text-muted-foreground">
                                             No metadata captured for this version.
                                         </li>
-                                        <li v-for="entry in metadataEntries(blog.value.metadata)" :key="entry.label">
+                                        <li v-for="entry in metadataEntries(blog.metadata)" :key="entry.label">
                                             <span class="font-medium">{{ entry.label }}:</span>
                                             <span>{{ entry.value }}</span>
                                         </li>
                                     </ul>
                                 </div>
 
-                                <div v-if="blog.value.categories.length" class="rounded-lg border bg-muted/30 p-4">
+                                <div v-if="blog.categories.length" class="rounded-lg border bg-muted/30 p-4">
                                     <h3 class="font-semibold">Categories</h3>
                                     <ul class="mt-2 flex flex-wrap gap-2 text-sm">
                                         <li
-                                            v-for="category in blog.value.categories"
+                                            v-for="category in blog.categories"
                                             :key="category.id"
                                             class="rounded-full bg-background px-3 py-1 shadow"
                                         >
@@ -276,11 +276,11 @@ const requestRestore = (revisionId: number) => {
                                     </ul>
                                 </div>
 
-                                <div v-if="blog.value.tags.length" class="rounded-lg border bg-muted/30 p-4">
+                                <div v-if="blog.tags.length" class="rounded-lg border bg-muted/30 p-4">
                                     <h3 class="font-semibold">Tags</h3>
                                     <ul class="mt-2 flex flex-wrap gap-2 text-sm">
                                         <li
-                                            v-for="tag in blog.value.tags"
+                                            v-for="tag in blog.tags"
                                             :key="tag.id"
                                             class="rounded-full bg-background px-3 py-1 shadow"
                                         >
@@ -292,13 +292,13 @@ const requestRestore = (revisionId: number) => {
                                 <div class="rounded-lg border bg-background p-4 shadow-sm">
                                     <h3 class="font-semibold">Excerpt</h3>
                                     <p class="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
-                                        {{ blog.value.excerpt ?? '—' }}
+                                        {{ blog.excerpt ?? '—' }}
                                     </p>
                                 </div>
 
                                 <div class="rounded-lg border bg-background p-4 shadow-sm">
                                     <h3 class="font-semibold">Body</h3>
-                                    <div class="prose prose-sm mt-4 max-w-none" v-html="blog.value.body" />
+                                    <div class="prose prose-sm mt-4 max-w-none" v-html="blog.body" />
                                 </div>
                             </div>
                         </div>
@@ -307,13 +307,13 @@ const requestRestore = (revisionId: number) => {
                             <div class="flex items-center justify-between gap-4">
                                 <h2 class="text-xl font-semibold">Revision history</h2>
                                 <span class="text-sm text-muted-foreground">
-                                    {{ revisions.value.length }}
-                                    {{ revisions.value.length === 1 ? 'revision stored' : 'revisions stored' }}
+                                    {{ revisions.length }}
+                                    {{ revisions.length === 1 ? 'revision stored' : 'revisions stored' }}
                                 </span>
                             </div>
 
                             <div
-                                v-if="revisions.value.length === 0"
+                                v-if="revisions.length === 0"
                                 class="mt-6 rounded-lg border border-dashed p-6 text-center text-muted-foreground"
                             >
                                 No revisions recorded yet. Updates to this blog will appear here automatically.
@@ -429,8 +429,8 @@ const requestRestore = (revisionId: number) => {
                     </div>
 
                     <aside class="space-y-4">
-                        <div v-if="blog.value.cover_image_url" class="overflow-hidden rounded-lg border shadow-sm">
-                            <img :src="blog.value.cover_image_url" alt="Blog cover" class="h-full w-full object-cover" />
+                        <div v-if="blog.cover_image_url" class="overflow-hidden rounded-lg border shadow-sm">
+                            <img :src="blog.cover_image_url" alt="Blog cover" class="h-full w-full object-cover" />
                         </div>
                         <div class="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
                             <p>
