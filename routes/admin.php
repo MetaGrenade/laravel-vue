@@ -48,6 +48,8 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::post('acp/blogs', [AdminBlogController::class, 'store'])->name('acp.blogs.store');
     Route::get('acp/blogs/{blog}/edit', [AdminBlogController::class, 'edit'])->name('acp.blogs.edit');
     Route::put('acp/blogs/{blog}', [AdminBlogController::class, 'update'])->name('acp.blogs.update');
+    Route::get('acp/blogs/{blog}/revisions', [AdminBlogController::class, 'revisions'])->name('acp.blogs.revisions.index');
+    Route::put('acp/blogs/{blog}/revisions/{revision}', [AdminBlogController::class, 'restoreRevision'])->name('acp.blogs.revisions.restore');
     Route::delete('acp/blogs/{blog}', [AdminBlogController::class, 'destroy'])->name('acp.blogs.destroy');
     Route::put('acp/blogs/{blog}/publish', [AdminBlogController::class, 'publish'])->name('acp.blogs.publish');
     Route::put('acp/blogs/{blog}/unpublish', [AdminBlogController::class, 'unpublish'])->name('acp.blogs.unpublish');

@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\BlogRequest;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogTag;
+use App\Models\BlogRevision;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -302,6 +303,11 @@ class BlogController extends Controller
             $this->updateAuthorProfile($request->user(), $validated['author']);
         }
 
+        $blog->refresh();
+        $blog->load('categories:id', 'tags:id');
+
+        BlogRevision::recordSnapshot($blog, $request->user());
+
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post created successfully.');
     }
@@ -376,6 +382,10 @@ class BlogController extends Controller
                 ])
                 ->values()
                 ->all(),
+            'permissions' => [
+                'canViewRevisions' => request()->user()?->can('viewRevisions', $blog) ?? false,
+                'canRestoreRevisions' => request()->user()?->can('restoreRevision', $blog) ?? false,
+            ],
         ]);
     }
 
@@ -449,8 +459,216 @@ class BlogController extends Controller
             $this->updateAuthorProfile($blog->user, $validated['author']);
         }
 
+        $blog->refresh();
+        $blog->load('categories:id', 'tags:id');
+
+        BlogRevision::recordSnapshot($blog, $request->user());
+
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post updated successfully.');
+    }
+
+    public function revisions(Blog $blog): Response
+    {
+        $this->authorize('viewRevisions', $blog);
+
+        $blog->load([
+            'user:id,nickname',
+            'categories:id,name,slug',
+            'tags:id,name,slug',
+        ]);
+
+        $revisionModels = $blog->revisions()
+            ->with('editor:id,nickname')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $categoryIds = $revisionModels
+            ->flatMap(fn (BlogRevision $revision) => (array) ($revision->category_ids ?? []))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $tagIds = $revisionModels
+            ->flatMap(fn (BlogRevision $revision) => (array) ($revision->tag_ids ?? []))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $categoryMap = BlogCategory::query()
+            ->whereIn('id', $categoryIds)
+            ->get(['id', 'name', 'slug'])
+            ->keyBy('id');
+
+        $tagMap = BlogTag::query()
+            ->whereIn('id', $tagIds)
+            ->get(['id', 'name', 'slug'])
+            ->keyBy('id');
+
+        $revisions = $revisionModels
+            ->map(function (BlogRevision $revision) use ($categoryMap, $tagMap) {
+                $categories = collect($revision->category_ids ?? [])
+                    ->map(function ($id) use ($categoryMap) {
+                        $category = $categoryMap->get($id);
+
+                        if (! $category) {
+                            return null;
+                        }
+
+                        return [
+                            'id' => $category->id,
+                            'name' => $category->name,
+                            'slug' => $category->slug,
+                        ];
+                    })
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                $tags = collect($revision->tag_ids ?? [])
+                    ->map(function ($id) use ($tagMap) {
+                        $tag = $tagMap->get($id);
+
+                        if (! $tag) {
+                            return null;
+                        }
+
+                        return [
+                            'id' => $tag->id,
+                            'name' => $tag->name,
+                            'slug' => $tag->slug,
+                        ];
+                    })
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => $revision->id,
+                    'title' => $revision->title,
+                    'slug' => $revision->slug,
+                    'excerpt' => $revision->excerpt,
+                    'body' => $revision->body,
+                    'cover_image' => $revision->cover_image,
+                    'cover_image_url' => $revision->cover_image
+                        ? Storage::disk('public')->url($revision->cover_image)
+                        : null,
+                    'status' => $revision->status,
+                    'published_at' => optional($revision->published_at)?->toIso8601String(),
+                    'scheduled_for' => optional($revision->scheduled_for)?->toIso8601String(),
+                    'edited_at' => optional($revision->edited_at)?->toIso8601String(),
+                    'created_at' => optional($revision->created_at)?->toIso8601String(),
+                    'category_ids' => $revision->category_ids ?? [],
+                    'tag_ids' => $revision->tag_ids ?? [],
+                    'categories' => $categories,
+                    'tags' => $tags,
+                    'metadata' => $revision->metadata ?? [],
+                    'editor' => $revision->editor
+                        ? [
+                            'id' => $revision->editor->id,
+                            'nickname' => $revision->editor->nickname,
+                        ]
+                        : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return inertia('acp/BlogRevisionHistory', [
+            'blog' => [
+                'id' => $blog->id,
+                'title' => $blog->title,
+                'slug' => $blog->slug,
+                'excerpt' => $blog->excerpt,
+                'body' => $blog->body,
+                'status' => $blog->status,
+                'cover_image' => $blog->cover_image,
+                'cover_image_url' => $blog->cover_image
+                    ? Storage::disk('public')->url($blog->cover_image)
+                    : null,
+                'created_at' => optional($blog->created_at)?->toIso8601String(),
+                'updated_at' => optional($blog->updated_at)?->toIso8601String(),
+                'published_at' => optional($blog->published_at)?->toIso8601String(),
+                'scheduled_for' => optional($blog->scheduled_for)?->toIso8601String(),
+                'metadata' => [
+                    'views' => $blog->views,
+                    'last_viewed_at' => optional($blog->last_viewed_at)?->toIso8601String(),
+                    'preview_token' => $blog->preview_token,
+                ],
+                'author' => $blog->user
+                    ? [
+                        'id' => $blog->user->id,
+                        'nickname' => $blog->user->nickname,
+                    ]
+                    : null,
+                'categories' => $blog->categories
+                    ->map(fn (BlogCategory $category) => [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'slug' => $category->slug,
+                    ])
+                    ->values()
+                    ->all(),
+                'tags' => $blog->tags
+                    ->map(fn (BlogTag $tag) => [
+                        'id' => $tag->id,
+                        'name' => $tag->name,
+                        'slug' => $tag->slug,
+                    ])
+                    ->values()
+                    ->all(),
+            ],
+            'permissions' => [
+                'canRestore' => request()->user()?->can('restoreRevision', $blog) ?? false,
+            ],
+            'revisions' => $revisions,
+        ]);
+    }
+
+    public function restoreRevision(Request $request, Blog $blog, BlogRevision $revision): RedirectResponse
+    {
+        $this->authorize('restoreRevision', $blog);
+
+        if ($revision->blog_id !== $blog->id) {
+            abort(404);
+        }
+
+        BlogRevision::recordSnapshot($blog->fresh(['categories:id', 'tags:id']), $request->user());
+
+        $metadata = is_array($revision->metadata) ? $revision->metadata : [];
+        $excerpt = $revision->excerpt ?? null;
+
+        $blog->forceFill([
+            'title' => $revision->title,
+            'slug' => $revision->slug,
+            'excerpt' => $excerpt === '' ? null : $excerpt,
+            'body' => $revision->body,
+            'cover_image' => $revision->cover_image,
+            'status' => $revision->status,
+            'published_at' => $revision->published_at,
+            'scheduled_for' => $revision->scheduled_for,
+        ]);
+
+        $previewToken = Arr::get($metadata, 'preview_token');
+        if (is_string($previewToken) && $previewToken !== '') {
+            $blog->preview_token = $previewToken;
+        }
+
+        $blog->save();
+
+        $blog->categories()->sync($revision->category_ids ?? []);
+        $blog->tags()->sync($revision->tag_ids ?? []);
+
+        $blog->refresh();
+        $blog->load('categories:id', 'tags:id');
+
+        BlogRevision::recordSnapshot($blog, $request->user());
+
+        return redirect()
+            ->route('acp.blogs.revisions.index', ['blog' => $blog->id])
+            ->with('success', 'Blog revision restored successfully.');
     }
 
     private function authorPayload(?User $user): ?array
@@ -585,6 +803,11 @@ class BlogController extends Controller
                 'published_at' => now(),
                 'scheduled_for' => null,
             ])->save();
+
+            $blog->refresh();
+            $blog->load('categories:id', 'tags:id');
+
+            BlogRevision::recordSnapshot($blog, request()->user());
         }
 
         return redirect()->back()->with('success', 'Blog post published successfully.');
@@ -601,6 +824,11 @@ class BlogController extends Controller
                 'published_at' => null,
                 'scheduled_for' => null,
             ])->save();
+
+            $blog->refresh();
+            $blog->load('categories:id', 'tags:id');
+
+            BlogRevision::recordSnapshot($blog, request()->user());
         }
 
         return redirect()->back()->with('success', 'Blog post moved back to draft.');
@@ -617,6 +845,11 @@ class BlogController extends Controller
                 'published_at' => null,
                 'scheduled_for' => null,
             ])->save();
+
+            $blog->refresh();
+            $blog->load('categories:id', 'tags:id');
+
+            BlogRevision::recordSnapshot($blog, request()->user());
         }
 
         return redirect()->back()->with('success', 'Blog post archived successfully.');
@@ -633,6 +866,11 @@ class BlogController extends Controller
                 'published_at' => null,
                 'scheduled_for' => null,
             ])->save();
+
+            $blog->refresh();
+            $blog->load('categories:id', 'tags:id');
+
+            BlogRevision::recordSnapshot($blog, request()->user());
         }
 
         return redirect()->back()->with('success', 'Blog post unarchived successfully.');
