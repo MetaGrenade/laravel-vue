@@ -8,9 +8,11 @@ use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -274,6 +276,8 @@ class ForumController extends Controller
             ->with(['author' => function ($query) {
                 $query->select('id', 'nickname', 'created_at', 'avatar_url', 'forum_signature')
                     ->withCount('forumPosts');
+            }, 'mentions' => function ($query) {
+                $query->select('users.id', 'users.nickname');
             }])
             ->orderBy('created_at')
             ->paginate(10)
@@ -312,6 +316,19 @@ class ForumController extends Controller
                     'canDelete' => $user !== null && ($user->id === $post->user_id || $canModerate),
                     'canModerate' => $canModerate,
                 ],
+                'mentions' => $post->mentions->map(function (User $mentioned) {
+                    $profileUrl = null;
+
+                    if (Route::has('members.show')) {
+                        $profileUrl = route('members.show', ['user' => $mentioned->getRouteKey()]);
+                    }
+
+                    return [
+                        'id' => $mentioned->id,
+                        'nickname' => $mentioned->nickname,
+                        'profile_url' => $profileUrl,
+                    ];
+                })->values(),
             ];
         })->values();
 

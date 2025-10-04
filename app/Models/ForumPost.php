@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ForumPost extends Model
@@ -31,5 +32,11 @@ class ForumPost extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function mentions(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'forum_post_mentions', 'forum_post_id', 'mentioned_user_id')
+            ->withTimestamps();
     }
 }
