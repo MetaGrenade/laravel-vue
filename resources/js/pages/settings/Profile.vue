@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import AvatarUploader from '@/components/profile/AvatarUploader.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
@@ -29,18 +31,44 @@ const breadcrumbs: BreadcrumbItem[] = [
 const page = usePage<SharedData>();
 const user = page.props.auth.user as User;
 
+const avatarPreview = ref(user.avatar_url ?? null);
+
 const form = useForm({
     nickname: user.nickname,
     email: user.email,
-    avatar_url: user.avatar_url ?? '',
+    avatar: null as File | null,
     profile_bio: user.profile_bio ?? '',
     social_links: user.social_links ? user.social_links.map(link => ({ ...link })) : [],
     forum_signature: user.forum_signature ?? '',
 });
 
+const handleAvatarPreviewUpdate = (value: string | null) => {
+    const currentUser = page.props.auth.user as User;
+    avatarPreview.value = value ?? currentUser.avatar_url ?? null;
+};
+
 const submit = () => {
+    form.transform(data => {
+        const transformed: Record<string, unknown> = { ...data };
+
+        if (data.avatar === null) {
+            delete transformed.avatar;
+        }
+
+        return transformed;
+    });
+
     form.patch(route('profile.update'), {
         preserveScroll: true,
+        forceFormData: true,
+        onSuccess: () => {
+            form.reset('avatar');
+            const currentUser = page.props.auth.user as User;
+            avatarPreview.value = currentUser.avatar_url ?? null;
+        },
+        onFinish: () => {
+            form.transform(data => data);
+        },
     });
 };
 
@@ -85,20 +113,14 @@ const removeSocialLink = (index: number) => {
                         <InputError class="mt-2" :message="form.errors.email" />
                     </div>
 
-                    <div class="grid gap-2">
-                        <Label for="avatar_url">Avatar URL</Label>
-                        <Input
-                            id="avatar_url"
-                            v-model="form.avatar_url"
-                            type="url"
-                            class="mt-1 block w-full"
-                            autocomplete="off"
-                            placeholder="https://example.com/avatar.png"
+                    <div class="space-y-3">
+                        <Label class="text-sm font-medium">Avatar</Label>
+                        <AvatarUploader
+                            v-model="form.avatar"
+                            :current-avatar="avatarPreview"
+                            @update:preview="handleAvatarPreviewUpdate"
                         />
-                        <p class="text-xs text-muted-foreground">
-                            Provide a direct link to an image (PNG, JPG, or GIF) to use as your avatar.
-                        </p>
-                        <InputError class="mt-2" :message="form.errors.avatar_url" />
+                        <InputError class="mt-2" :message="form.errors.avatar" />
                     </div>
 
                     <div class="grid gap-2">

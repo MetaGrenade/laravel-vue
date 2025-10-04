@@ -12,11 +12,6 @@ class ProfileUpdateRequest extends FormRequest
     {
         $payload = [];
 
-        if ($this->exists('avatar_url')) {
-            $avatar = is_string($this->input('avatar_url')) ? trim($this->input('avatar_url')) : '';
-            $payload['avatar_url'] = $avatar !== '' ? $avatar : null;
-        }
-
         if ($this->exists('profile_bio')) {
             $bio = is_string($this->input('profile_bio')) ? trim($this->input('profile_bio')) : '';
             $payload['profile_bio'] = $bio !== '' ? $bio : null;
@@ -64,9 +59,10 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
-            'avatar_url' => [
+            'avatar' => [
                 'nullable',
-                'url',
+                'image',
+                'mimes:jpg,jpeg,png,gif,webp',
                 'max:2048',
             ],
             'forum_signature' => [
