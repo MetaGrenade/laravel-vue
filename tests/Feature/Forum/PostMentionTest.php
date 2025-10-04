@@ -115,7 +115,6 @@ class PostMentionTest extends TestCase
     public function test_database_channel_is_persisted_while_mail_is_queued(): void
     {
         Queue::fake();
-        Notification::fakeExcept([ForumPostMentioned::class]);
 
         [$board, $thread] = $this->createForumContext();
 
@@ -153,10 +152,10 @@ class PostMentionTest extends TestCase
         $response->assertOk();
         $response->assertJson(fn ($json) => $json
             ->has('data', 1)
-            ->first('data', fn ($jsonItem) => $jsonItem
+            ->first(fn ($jsonItem) => $jsonItem
                 ->where('id', $match->id)
                 ->where('nickname', $match->nickname)
-                ->etc()));
+                ->etc(), 'data'));
 
         $response->assertJsonMissing(['id' => $requester->id]);
         $response->assertJsonMissing(['id' => $other->id]);
