@@ -8,6 +8,7 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import { useDebounceFn } from '@vueuse/core';
+import { LineChart } from '@/components/ui/chart-line';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -40,15 +41,107 @@ import {
     Archive,
     ArchiveRestore,
     CalendarClock,
+    TrendingUp,
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useConfirmDialog } from '@/composables/useConfirmDialog';
+import { CurveType } from '@unovis/ts';
 
 // dayjs composable for human readable dates
 const { fromNow } = useUserTimezone();
+const numberFormatter = new Intl.NumberFormat();
+const formatNumber = (value: number | null | undefined) => numberFormatter.format(value ?? 0);
+
+const parseViews = (value: string) => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return undefined;
+    }
+
+    const parsed = Number.parseInt(trimmed, 10);
+
+    if (Number.isNaN(parsed) || parsed < 0) {
+        return undefined;
+    }
+
+    return parsed;
+};
+
+const buildQueryParams = (
+    overrides: Partial<{
+        page: number;
+        search: string | null;
+        status: string[] | null;
+        sort: SortOption | null;
+        min_views: number | null;
+        max_views: number | null;
+    }> = {},
+) => {
+    const params: Record<string, unknown> = {};
+
+    const searchValue = overrides.search ?? searchQuery.value;
+    if (searchValue && searchValue.trim() !== '') {
+        params.search = searchValue.trim();
+    }
+
+    const statusValue = overrides.status ?? statusFilters.value;
+    if (statusValue && statusValue.length > 0) {
+        params.status = statusValue;
+    }
+
+    const sortValue = overrides.sort ?? sortOption.value;
+    if (sortValue && sortValue !== defaultSortOption) {
+        params.sort = sortValue;
+    }
+
+    const minViewsValue =
+        overrides.min_views !== undefined ? overrides.min_views : parseViews(minViews.value);
+    if (typeof minViewsValue === 'number') {
+        params.min_views = minViewsValue;
+    }
+
+    const maxViewsValue =
+        overrides.max_views !== undefined ? overrides.max_views : parseViews(maxViews.value);
+    if (typeof maxViewsValue === 'number') {
+        if (typeof params.min_views === 'number' && maxViewsValue < params.min_views) {
+            // Skip conflicting max views filter
+        } else {
+            params.max_views = maxViewsValue;
+        }
+    }
+
+    const pageValue = overrides.page;
+    if (typeof pageValue === 'number' && pageValue > 1) {
+        params.page = pageValue;
+    }
+
+    return params;
+};
+
+const navigateWithFilters = (
+    overrides: Partial<{
+        page: number;
+        search: string | null;
+        status: string[] | null;
+        sort: SortOption | null;
+        min_views: number | null;
+        max_views: number | null;
+    }> = {},
+) => {
+    router.get(
+        route('acp.blogs.index'),
+        buildQueryParams(overrides),
+        {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        },
+    );
+};
 
 // Permission checks
 const { hasPermission } = usePermissions();
@@ -74,6 +167,18 @@ type PaginationLinks = {
     next: string | null;
 };
 
+type SortOption = 'created_desc' | 'created_asc' | 'views_desc' | 'views_asc';
+
+type TrendingPost = {
+    id: number;
+    title: string;
+    slug: string;
+    label: string;
+    views: number;
+    last_viewed_at: string | null;
+    published_at: string | null;
+};
+
 const props = defineProps<{
     blogs: {
         data: Array<{
@@ -87,6 +192,9 @@ const props = defineProps<{
             } | null;
             status: string;
             created_at: string | null;
+            scheduled_for: string | null;
+            views: number;
+            last_viewed_at: string | null;
         }>;
         meta?: PaginationMeta | null;
         links?: PaginationLinks | null;
@@ -97,11 +205,17 @@ const props = defineProps<{
         draft: number;
         scheduled: number;
         archived: number;
+        total_views: number;
+        viewed_last_30_days: number;
     };
     filters: {
         search: string | null;
         status: string[] | null;
+        sort: SortOption | null;
+        min_views: number | null;
+        max_views: number | null;
     };
+    trendingPosts: TrendingPost[];
 }>();
 
 const hasBlogs = computed(() => (props.blogs.data?.length ?? 0) > 0);
@@ -109,6 +223,26 @@ const hasBlogs = computed(() => (props.blogs.data?.length ?? 0) > 0);
 const searchQuery = ref(props.filters.search ?? '');
 const statusFilters = computed(() => props.filters.status ?? []);
 let skipSearchWatch = false;
+const defaultSortOption: SortOption = 'created_desc';
+const sortOption = ref<SortOption>(props.filters.sort ?? defaultSortOption);
+const minViews = ref(
+    typeof props.filters.min_views === 'number' ? String(props.filters.min_views) : '',
+);
+const maxViews = ref(
+    typeof props.filters.max_views === 'number' ? String(props.filters.max_views) : '',
+);
+let skipSortWatch = false;
+let skipViewsWatch = false;
+
+const trendingPosts = computed<TrendingPost[]>(() => props.trendingPosts ?? []);
+const hasTrendingData = computed(() => trendingPosts.value.length > 0);
+const trendingChartData = computed(() =>
+    trendingPosts.value.map((post) => ({
+        label: post.label,
+        Views: post.views,
+    })),
+);
+const trendingChartCategories = ['Views'];
 
 const {
     meta: blogsMeta,
@@ -122,30 +256,20 @@ const {
     itemLabel: 'blog post',
     itemLabelPlural: 'blog posts',
     onNavigate: (page) => {
-        router.get(
-            route('acp.blogs.index'),
-            {
-                page,
-                search: searchQuery.value || undefined,
-                status: statusFilters.value.length > 0 ? statusFilters.value : undefined,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
+        navigateWithFilters({ page });
     },
 });
 
-// Dummy blog statistics with Lucide icons
-const stats = [
+// Blog statistics with Lucide icons
+const stats = computed(() => [
     { title: 'Total Posts', value: props.blogStats.total, icon: FileText },
     { title: 'Published Posts', value: props.blogStats.published, icon: CheckCircle },
     { title: 'Draft Posts', value: props.blogStats.draft, icon: Edit3 },
     { title: 'Scheduled Posts', value: props.blogStats.scheduled, icon: CalendarClock },
     { title: 'Archived Posts', value: props.blogStats.archived, icon: Archive },
-];
+    { title: 'All-time Views', value: props.blogStats.total_views, icon: Eye },
+    { title: 'Posts viewed (30 days)', value: props.blogStats.viewed_last_30_days, icon: TrendingUp },
+]);
 
 // Search query for filtering blog posts
 type BlogRow = {
@@ -159,23 +283,21 @@ type BlogRow = {
     } | null;
     status: string;
     created_at: string | null;
+    scheduled_for: string | null;
+    views: number;
+    last_viewed_at: string | null;
 };
 
 const blogRows = computed<BlogRow[]>(() => props.blogs.data ?? []);
 
 const debouncedSearch = useDebounceFn(() => {
-    router.get(
-        route('acp.blogs.index'),
-        {
-            search: searchQuery.value || undefined,
-            status: statusFilters.value.length > 0 ? statusFilters.value : undefined,
-        },
-        {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        },
-    );
+    setBlogsPage(1, { emitNavigate: false });
+    navigateWithFilters({ page: 1, search: searchQuery.value });
+}, 300);
+
+const debouncedViewsFilter = useDebounceFn(() => {
+    setBlogsPage(1, { emitNavigate: false });
+    navigateWithFilters({ page: 1 });
 }, 300);
 
 watch(
@@ -196,8 +318,56 @@ watch(searchQuery, () => {
         return;
     }
 
-    setBlogsPage(1, { emitNavigate: false });
     debouncedSearch();
+});
+
+watch(
+    () => props.filters.sort ?? defaultSortOption,
+    (value) => {
+        const normalized = (value ?? defaultSortOption) as SortOption;
+
+        if (sortOption.value === normalized) {
+            return;
+        }
+
+        skipSortWatch = true;
+        sortOption.value = normalized;
+    },
+);
+
+watch(sortOption, (value) => {
+    if (skipSortWatch) {
+        skipSortWatch = false;
+        return;
+    }
+
+    setBlogsPage(1, { emitNavigate: false });
+    navigateWithFilters({ page: 1, sort: value });
+});
+
+watch(
+    () => [props.filters.min_views, props.filters.max_views],
+    ([min, max]) => {
+        const normalizedMin = typeof min === 'number' ? String(min) : '';
+        const normalizedMax = typeof max === 'number' ? String(max) : '';
+
+        if (minViews.value === normalizedMin && maxViews.value === normalizedMax) {
+            return;
+        }
+
+        skipViewsWatch = true;
+        minViews.value = normalizedMin;
+        maxViews.value = normalizedMax;
+    },
+);
+
+watch([minViews, maxViews], () => {
+    if (skipViewsWatch) {
+        skipViewsWatch = false;
+        return;
+    }
+
+    debouncedViewsFilter();
 });
 
 const publishPost = (postId: number) => {
@@ -273,23 +443,72 @@ const confirmDeletePost = (post: BlogRow) => {
                         </div>
                         <div>
                             <div class="text-sm text-gray-500">{{ stat.title }}</div>
-                            <div class="text-xl font-bold">{{ stat.value }}</div>
+                            <div class="text-xl font-bold">{{ formatNumber(stat.value) }}</div>
                         </div>
 
                         <PlaceholderPattern />
                     </div>
                 </div>
 
+                <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                    <div class="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h2 class="flex items-center gap-2 text-lg font-semibold">
+                                <TrendingUp class="h-5 w-5 text-muted-foreground" />
+                                Trending posts
+                            </h2>
+                            <p class="text-sm text-muted-foreground">
+                                Top-performing articles from the past 30 days based on view counts.
+                            </p>
+                        </div>
+                        <div class="text-sm text-muted-foreground">
+                            {{ formatNumber(props.blogStats.total_views) }} total views recorded
+                        </div>
+                    </div>
+
+                    <LineChart
+                        v-if="hasTrendingData"
+                        :data="trendingChartData"
+                        index="label"
+                        :categories="trendingChartCategories"
+                        :show-legend="false"
+                        :curve-type="CurveType.Linear"
+                        :y-formatter="(tick) => (typeof tick === 'number' ? formatNumber(tick) : '')"
+                    />
+                    <p v-else class="text-sm text-muted-foreground">
+                        We will chart trends here once posts accumulate enough views.
+                    </p>
+
+                    <ul
+                        v-if="hasTrendingData"
+                        class="mt-4 grid gap-3 md:grid-cols-2"
+                    >
+                        <li
+                            v-for="post in trendingPosts"
+                            :key="post.id"
+                            class="rounded-lg border border-sidebar-border/60 p-3 text-sm dark:border-sidebar-border"
+                        >
+                            <div class="flex flex-col gap-2">
+                                <Link
+                                    :href="route('blogs.view', { slug: post.slug })"
+                                    class="font-medium text-primary hover:underline"
+                                >
+                                    {{ post.title }}
+                                </Link>
+                                <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                    <span>{{ formatNumber(post.views) }} views</span>
+                                    <span v-if="post.last_viewed_at">• Last read {{ fromNow(post.last_viewed_at) }}</span>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
                 <!-- Blog Posts Management Section -->
                 <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
-                        <h2 class="text-lg font-semibold">Blog Posts</h2>
-                        <div class="flex flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-2">
-                            <Input
-                                v-model="searchQuery"
-                                placeholder="Search Blogs..."
-                                class="w-full rounded-md md:w-64"
-                            />
+                    <div class="mb-4 space-y-3">
+                        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <h2 class="text-lg font-semibold">Blog Posts</h2>
                             <div class="flex flex-wrap justify-end gap-2">
                                 <Link v-if="manageCategories" :href="route('acp.blog-categories.index')">
                                     <Button variant="outline" class="text-sm">
@@ -308,6 +527,46 @@ const confirmDeletePost = (post: BlogRow) => {
                                 </Link>
                             </div>
                         </div>
+                        <div class="flex flex-col gap-2 md:flex-row md:items-center md:gap-2">
+                            <Input
+                                v-model="searchQuery"
+                                placeholder="Search blogs..."
+                                class="w-full rounded-md md:w-64"
+                                aria-label="Search blog posts"
+                            />
+                            <label class="w-full md:w-48 text-sm">
+                                <span class="sr-only">Sort blog posts</span>
+                                <select
+                                    v-model="sortOption"
+                                    class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                >
+                                    <option value="created_desc">Newest first</option>
+                                    <option value="created_asc">Oldest first</option>
+                                    <option value="views_desc">Most viewed</option>
+                                    <option value="views_asc">Least viewed</option>
+                                </select>
+                            </label>
+                            <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+                                <Input
+                                    v-model="minViews"
+                                    type="number"
+                                    min="0"
+                                    inputmode="numeric"
+                                    placeholder="Min views"
+                                    aria-label="Filter by minimum views"
+                                    class="w-full rounded-md sm:w-32"
+                                />
+                                <Input
+                                    v-model="maxViews"
+                                    type="number"
+                                    min="0"
+                                    inputmode="numeric"
+                                    placeholder="Max views"
+                                    aria-label="Filter by maximum views"
+                                    class="w-full rounded-md sm:w-32"
+                                />
+                            </div>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <Table>
@@ -317,6 +576,8 @@ const confirmDeletePost = (post: BlogRow) => {
                                     <TableHead>Title</TableHead>
                                     <TableHead class="text-center">Author</TableHead>
                                     <TableHead class="text-center">Created</TableHead>
+                                    <TableHead class="text-center">Views</TableHead>
+                                    <TableHead class="text-center">Last viewed</TableHead>
                                     <TableHead class="text-center">Status</TableHead>
                                     <TableHead class="text-center">Actions</TableHead>
                                 </TableRow>
@@ -327,6 +588,8 @@ const confirmDeletePost = (post: BlogRow) => {
                                     <TableCell>{{ post.title }}</TableCell>
                                     <TableCell class="text-center">{{ post.user?.nickname ?? '—' }}</TableCell>
                                     <TableCell class="text-center">{{ post.created_at ? fromNow(post.created_at) : '—' }}</TableCell>
+                                    <TableCell class="text-center">{{ formatNumber(post.views) }}</TableCell>
+                                    <TableCell class="text-center">{{ post.last_viewed_at ? fromNow(post.last_viewed_at) : '—' }}</TableCell>
                                     <TableCell class="text-center" :class="{
                                         'text-green-500': post.status === 'published',
                                         'text-red-500': post.status === 'archived',
@@ -404,7 +667,7 @@ const confirmDeletePost = (post: BlogRow) => {
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="blogRows.length === 0">
-                                    <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                    <TableCell colspan="8" class="text-center text-sm text-gray-600 dark:text-gray-300">
                                         No blog posts found.
                                     </TableCell>
                                 </TableRow>

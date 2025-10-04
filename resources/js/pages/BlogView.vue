@@ -75,6 +75,8 @@ type RecommendedPost = {
     excerpt?: string | null;
     cover_image?: string | null;
     published_at?: string | null;
+    views?: number;
+    last_viewed_at?: string | null;
 };
 
 type BlogPayload = {
@@ -106,7 +108,12 @@ type PageProps = {
 const props = defineProps<{ blog: BlogPayload }>();
 
 const blog = computed(() => props.blog);
-const { formatDate } = useUserTimezone();
+const { formatDate, fromNow } = useUserTimezone();
+const numberFormatter = new Intl.NumberFormat();
+const formatNumber = (value: number | null | undefined) => numberFormatter.format(value ?? 0);
+const lastViewedAgo = computed(() =>
+    blog.value.last_viewed_at ? fromNow(blog.value.last_viewed_at) : null,
+);
 
 const page = usePage<PageProps>();
 const authUser = computed(() => page.props.auth?.user ?? null);
@@ -393,6 +400,8 @@ const shareLinks = computed(() => ({
                 <div class="mb-4 text-sm text-gray-500 dark:text-gray-400">
                     <span>By <span class="font-medium text-foreground">{{ authorName }}</span></span>
                     <span v-if="publishedAt"> | Published on {{ publishedAt }}</span>
+                    <span v-if="typeof blog.views === 'number'"> | {{ formatNumber(blog.views) }} views</span>
+                    <span v-if="lastViewedAgo"> | Last read {{ lastViewedAgo }}</span>
                 </div>
                 <div v-if="categories.length || tags.length" class="mb-4 flex flex-wrap gap-2 text-xs">
                     <Link

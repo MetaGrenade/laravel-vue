@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -95,6 +96,8 @@ class BlogController extends Controller
                 'cover_image' => $blog->cover_image
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
+                'views' => $blog->views,
+                'last_viewed_at' => optional($blog->last_viewed_at)->toIso8601String(),
                 'published_at' => optional($blog->published_at)->toIso8601String(),
                 'author' => $this->transformAuthor($blog->user),
                 'categories' => $blog->categories->map(function (BlogCategory $category) {
@@ -253,6 +256,8 @@ class BlogController extends Controller
                 'scheduled_for' => null,
             ])->save();
         }
+
+        $this->registerBlogView($request, $blog);
 
         $comments = $blog->comments()
             ->with(['user:id,nickname,avatar_url,profile_bio'])
@@ -439,6 +444,8 @@ class BlogController extends Controller
                 'cover_image' => $coverImageUrl,
                 'canonical_url' => $canonicalUrl,
                 'body' => $blog->body,
+                'views' => $blog->views,
+                'last_viewed_at' => optional($blog->last_viewed_at)->toIso8601String(),
                 'published_at' => optional($blog->published_at)->toIso8601String(),
                 'user' => $this->transformAuthor($blog->user),
                 'categories' => $blog->categories->map(function (BlogCategory $category) {
@@ -467,6 +474,52 @@ class BlogController extends Controller
             'metaTags' => $metaTags,
             'linkTags' => $linkTags,
         ]);
+    }
+
+    protected function registerBlogView(Request $request, Blog $blog): void
+    {
+        $session = $request->session();
+        $sessionKey = 'blog_views';
+        $viewRecords = $session->get($sessionKey, []);
+
+        $record = is_array($viewRecords) ? ($viewRecords[$blog->id] ?? null) : null;
+        $ipAddress = (string) ($request->ip() ?? '');
+        $now = Carbon::now();
+        $cooldownThreshold = $now->copy()->subMinutes(5);
+
+        $shouldIncrement = true;
+
+        if (is_array($record)) {
+            $timestamp = isset($record['timestamp']) && is_string($record['timestamp'])
+                ? Carbon::make($record['timestamp'])
+                : null;
+            $recordedIp = isset($record['ip']) && is_string($record['ip'])
+                ? $record['ip']
+                : '';
+
+            if ($timestamp && $timestamp->greaterThan($cooldownThreshold) && $recordedIp === $ipAddress) {
+                $shouldIncrement = false;
+            }
+        }
+
+        if (! $shouldIncrement) {
+            return;
+        }
+
+        $blog->increment('views', 1, ['last_viewed_at' => $now]);
+        $blog->views = ($blog->views ?? 0) + 1;
+        $blog->last_viewed_at = $now;
+
+        if (! is_array($viewRecords)) {
+            $viewRecords = [];
+        }
+
+        $viewRecords[$blog->id] = [
+            'timestamp' => $now->toIso8601String(),
+            'ip' => $ipAddress,
+        ];
+
+        $session->put($sessionKey, $viewRecords);
     }
 
     public function preview(Blog $blog, string $token): Response
