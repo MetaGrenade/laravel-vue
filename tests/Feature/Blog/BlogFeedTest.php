@@ -34,7 +34,7 @@ class BlogFeedTest extends TestCase
         $this->assertDatabaseHas('blogs', [
             'id' => $scheduledPost->id,
             'status' => 'published',
-            'published_at' => $expectedScheduledPublishedAt,
+            'published_at' => $expectedScheduledPublishedAt->format('Y-m-d H:i:s.u'),
         ]);
 
         $xml = simplexml_load_string($response->getContent());

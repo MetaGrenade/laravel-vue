@@ -10,6 +10,11 @@ class BlogRevision extends Model
 {
     use HasFactory;
 
+    /**
+     * Ensure revision timestamps retain microsecond precision.
+     */
+    protected $dateFormat = 'Y-m-d H:i:s.u';
+
     protected $fillable = [
         'blog_id',
         'editor_id',
