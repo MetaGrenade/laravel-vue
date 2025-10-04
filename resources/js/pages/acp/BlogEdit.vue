@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
@@ -57,6 +57,28 @@ type BlogPayload = {
     user?: BlogAuthor | null;
 };
 
+type BlogRevisionMetadata = {
+    status?: string | null;
+    slug?: string | null;
+    published_at?: string | null;
+    scheduled_for?: string | null;
+};
+
+type BlogRevisionEditor = {
+    id: number;
+    nickname?: string | null;
+    email?: string | null;
+};
+
+type BlogRevisionPayload = {
+    id: number;
+    title: string;
+    excerpt?: string | null;
+    created_at?: string | null;
+    metadata?: BlogRevisionMetadata | null;
+    editor?: BlogRevisionEditor | null;
+};
+
 type BlogForm = {
     title: string;
     excerpt: string;
@@ -77,6 +99,8 @@ const props = defineProps<{
     blog: BlogPayload;
     categories: BlogTaxonomyOption[];
     tags: BlogTaxonomyOption[];
+    revisions: BlogRevisionPayload[];
+    can_restore_revisions: boolean;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -397,6 +421,55 @@ const previewScheduledMessage = computed(() => {
 const previewLink = computed(() => props.blog.preview_url ?? null);
 
 let copyTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const restoringRevisionId = ref<number | null>(null);
+
+const formatRevisionDate = (value?: string | null) => {
+    if (!value) {
+        return '—';
+    }
+
+    return formatDate(value);
+};
+
+const formatRevisionStatus = (status?: string | null) => {
+    if (!status) {
+        return null;
+    }
+
+    return status.charAt(0).toUpperCase() + status.slice(1);
+};
+
+const restoreRevision = (revisionId: number) => {
+    if (!props.can_restore_revisions) {
+        return;
+    }
+
+    if (restoringRevisionId.value !== null) {
+        return;
+    }
+
+    const confirmed = typeof window === 'undefined' ? true : window.confirm(
+        'Restore this revision? This will overwrite the current blog content.'
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    restoringRevisionId.value = revisionId;
+
+    router.post(
+        route('acp.blogs.revisions.restore', { blog: props.blog.id, revision: revisionId }),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                restoringRevisionId.value = null;
+            },
+        },
+    );
+};
 
 const copyPreviewLink = async () => {
     if (!previewLink.value) {
@@ -827,6 +900,57 @@ const handleSubmit = () => {
                                     <span>Scheduled</span>
                                     <span>{{ scheduledAt }}</span>
                                 </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Revision history</CardTitle>
+                                <CardDescription>Review saved versions of this article.</CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-4">
+                                <div v-if="props.revisions.length" class="space-y-4">
+                                    <div
+                                        v-for="revision in props.revisions"
+                                        :key="`revision-${revision.id}`"
+                                        class="space-y-2 rounded-md border border-border p-3"
+                                    >
+                                        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                            <div class="space-y-1">
+                                                <p class="font-medium leading-none">{{ revision.title }}</p>
+                                                <p class="text-xs text-muted-foreground">
+                                                    Saved {{ formatRevisionDate(revision.created_at) }}
+                                                    <template v-if="revision.editor">
+                                                        by {{ revision.editor.nickname ?? revision.editor.email ?? 'Unknown editor' }}
+                                                    </template>
+                                                </p>
+                                                <p v-if="formatRevisionStatus(revision.metadata?.status)" class="text-xs text-muted-foreground">
+                                                    Status: {{ formatRevisionStatus(revision.metadata?.status) }}
+                                                </p>
+                                            </div>
+                                            <Button
+                                                v-if="props.can_restore_revisions"
+                                                type="button"
+                                                size="sm"
+                                                :disabled="restoringRevisionId === revision.id"
+                                                @click="restoreRevision(revision.id)"
+                                            >
+                                                {{ restoringRevisionId === revision.id ? 'Restoring...' : 'Restore' }}
+                                            </Button>
+                                        </div>
+                                        <p v-if="revision.excerpt" class="text-xs text-muted-foreground">
+                                            {{ revision.excerpt }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p v-else class="text-sm text-muted-foreground">No revisions captured yet.</p>
+
+                                <p
+                                    v-if="!props.can_restore_revisions"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    You don't have permission to restore revisions.
+                                </p>
                             </CardContent>
                         </Card>
                     </div>

@@ -75,4 +75,9 @@ class Blog extends Model
         return $this->belongsToMany(BlogTag::class, 'blog_blog_tag')
             ->withTimestamps();
     }
+
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(BlogRevision::class);
+    }
 }

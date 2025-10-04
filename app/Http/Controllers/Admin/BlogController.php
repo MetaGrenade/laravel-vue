@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\BlogRequest;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogTag;
+use App\Models\BlogRevision;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -15,6 +16,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Response;
 
 class BlogController extends Controller
@@ -302,6 +305,8 @@ class BlogController extends Controller
             $this->updateAuthorProfile($request->user(), $validated['author']);
         }
 
+        $this->recordRevision($blog, $request->user());
+
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post created successfully.');
     }
@@ -318,6 +323,37 @@ class BlogController extends Controller
                 'preview_token' => Str::uuid()->toString(),
             ])->save();
         }
+
+        $revisions = $blog->revisions()
+            ->latest()
+            ->with('editor:id,nickname,email')
+            ->take(20)
+            ->get()
+            ->map(function (BlogRevision $revision) {
+                return [
+                    'id' => $revision->id,
+                    'title' => $revision->title,
+                    'excerpt' => $revision->excerpt,
+                    'created_at' => optional($revision->created_at)->toIso8601String(),
+                    'metadata' => [
+                        'status' => Arr::get($revision->metadata, 'status'),
+                        'slug' => Arr::get($revision->metadata, 'slug'),
+                        'published_at' => Arr::get($revision->metadata, 'published_at'),
+                        'scheduled_for' => Arr::get($revision->metadata, 'scheduled_for'),
+                    ],
+                    'editor' => $revision->editor ? [
+                        'id' => $revision->editor->id,
+                        'nickname' => $revision->editor->nickname,
+                        'email' => $revision->editor->email,
+                    ] : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $canRestoreRevisions = auth()->check()
+            ? auth()->user()->hasAnyRole(['admin', 'editor'])
+            : false;
 
         return inertia('acp/BlogEdit', [
             'blog' => array_merge($blog->only([
@@ -376,6 +412,8 @@ class BlogController extends Controller
                 ])
                 ->values()
                 ->all(),
+            'revisions' => $revisions,
+            'can_restore_revisions' => $canRestoreRevisions,
         ]);
     }
 
@@ -449,8 +487,49 @@ class BlogController extends Controller
             $this->updateAuthorProfile($blog->user, $validated['author']);
         }
 
+        $this->recordRevision($blog, $request->user());
+
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post updated successfully.');
+    }
+
+    public function restoreRevision(Request $request, Blog $blog, BlogRevision $revision): RedirectResponse
+    {
+        if ($revision->blog_id !== $blog->id) {
+            abort(404);
+        }
+
+        Gate::authorize('restore', $revision);
+
+        DB::transaction(function () use ($blog, $revision, $request) {
+            $metadata = $revision->metadata ?? [];
+
+            $blog->forceFill([
+                'title' => $revision->title,
+                'slug' => Arr::get($metadata, 'slug', Str::slug($revision->title)),
+                'excerpt' => $revision->excerpt,
+                'body' => $revision->body,
+                'status' => Arr::get($metadata, 'status', $blog->status),
+                'cover_image' => Arr::get($metadata, 'cover_image', $blog->cover_image),
+                'published_at' => $this->resolveMetadataDate(Arr::get($metadata, 'published_at')),
+                'scheduled_for' => $this->resolveMetadataDate(Arr::get($metadata, 'scheduled_for')),
+            ])->save();
+
+            $categoryIds = Arr::get($metadata, 'category_ids');
+            if (is_array($categoryIds)) {
+                $blog->categories()->sync($categoryIds);
+            }
+
+            $tagIds = Arr::get($metadata, 'tag_ids');
+            if (is_array($tagIds)) {
+                $blog->tags()->sync($tagIds);
+            }
+
+            $this->recordRevision($blog, $request->user());
+        });
+
+        return redirect()->route('acp.blogs.edit', ['blog' => $blog->id])
+            ->with('success', 'Revision restored successfully.');
     }
 
     private function authorPayload(?User $user): ?array
@@ -561,6 +640,41 @@ class BlogController extends Controller
         }
 
         $author->forceFill($payload)->save();
+    }
+
+    private function recordRevision(Blog $blog, ?User $editor): void
+    {
+        $metadata = [
+            'slug' => $blog->slug,
+            'status' => $blog->status,
+            'cover_image' => $blog->cover_image,
+            'published_at' => optional($blog->published_at)->toIso8601String(),
+            'scheduled_for' => optional($blog->scheduled_for)->toIso8601String(),
+            'category_ids' => $blog->categories()->orderBy('blog_categories.id')->pluck('blog_categories.id')->values()->all(),
+            'tag_ids' => $blog->tags()->orderBy('blog_tags.id')->pluck('blog_tags.id')->values()->all(),
+        ];
+
+        BlogRevision::create([
+            'blog_id' => $blog->id,
+            'editor_id' => $editor?->id,
+            'title' => $blog->title,
+            'excerpt' => $blog->excerpt,
+            'body' => $blog->body,
+            'metadata' => $metadata,
+        ]);
+    }
+
+    private function resolveMetadataDate($value): ?Carbon
+    {
+        if (! $value) {
+            return null;
+        }
+
+        if ($value instanceof Carbon) {
+            return $value;
+        }
+
+        return Carbon::parse($value);
     }
 
     /**
