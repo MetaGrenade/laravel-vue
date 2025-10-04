@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumThreadActionController;
+use App\Http\Controllers\ForumPostRevisionController;
 use App\Http\Controllers\ForumThreadModerationController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SupportCenterController;
@@ -84,6 +85,10 @@ Route::middleware('auth')->group(function () {
         ->name('forum.posts.destroy');
     Route::post('forum/{board:slug}/{thread:slug}/posts/{post}/report', [ForumPostController::class, 'report'])
         ->name('forum.posts.report');
+    Route::get('forum/{board:slug}/{thread:slug}/posts/{post}/history', [ForumPostRevisionController::class, 'index'])
+        ->name('forum.posts.history');
+    Route::put('forum/{board:slug}/{thread:slug}/posts/{post}/history/{revision}', [ForumPostRevisionController::class, 'restore'])
+        ->name('forum.posts.history.restore');
 });
 
 Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {

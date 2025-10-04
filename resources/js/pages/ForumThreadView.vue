@@ -48,6 +48,7 @@ import {
     Bell,
     BellOff,
     Quote,
+    RotateCcw,
 } from 'lucide-vue-next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
@@ -872,6 +873,24 @@ const deletePost = (post: ThreadPost) => {
     deletePostDialogOpen.value = true;
 };
 
+const viewPostHistory = (post: ThreadPost) => {
+    if (!post.permissions.canModerate) {
+        return;
+    }
+
+    router.get(
+        route('forum.posts.history', {
+            board: props.board.slug,
+            thread: props.thread.slug,
+            post: post.id,
+        }),
+        {},
+        {
+            preserveState: false,
+        },
+    );
+};
+
 const confirmDeletePost = () => {
     const target = pendingDeletePost.value;
 
@@ -1619,6 +1638,23 @@ const submitReply = () => {
                                         >
                                             <Trash2 class="h-4 w-4" />
                                             <span>Delete</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator
+                                            v-if="
+                                                post.permissions.canModerate &&
+                                                (threadPermissions.canReply ||
+                                                    post.permissions.canReport ||
+                                                    post.permissions.canEdit ||
+                                                    post.permissions.canDelete)
+                                            "
+                                        />
+                                        <DropdownMenuItem
+                                            v-if="post.permissions.canModerate"
+                                            class="text-purple-500"
+                                            @select="viewPostHistory(post)"
+                                        >
+                                            <RotateCcw class="h-4 w-4" />
+                                            <span>View Post History</span>
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
