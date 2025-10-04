@@ -207,8 +207,8 @@ const createMentionExtension = () =>
   MentionExtension.configure({
     suggestion: {
       char: '@',
-      allow: ({ query }) => query.length <= 50,
-      items: async ({ query }) => fetchMentionSuggestions(query),
+      allow: ({ query }) => (query?.length ?? 0) <= 50,
+      items: async ({ query }) => fetchMentionSuggestions(query ?? ''),
       render: () => {
         let component: VueRenderer | null = null
         let popup: TippyInstance | null = null
