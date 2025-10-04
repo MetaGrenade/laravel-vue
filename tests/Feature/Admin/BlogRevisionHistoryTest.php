@@ -193,8 +193,12 @@ class BlogRevisionHistoryTest extends TestCase
         $this->assertSame('<p>Original body</p>', $blog->body);
         $this->assertSame('Original excerpt', $blog->excerpt);
         $this->assertSame('draft', $blog->status);
-        $this->assertEqualsCanonicalizing([$originalCategory->id], $blog->categories()->pluck('id')->all());
-        $this->assertEqualsCanonicalizing([$originalTag->id], $blog->tags()->pluck('id')->all());
+        $this->assertEqualsCanonicalizing([
+            $originalCategory->id,
+        ], $blog->categories()->pluck('blog_categories.id')->all());
+        $this->assertEqualsCanonicalizing([
+            $originalTag->id,
+        ], $blog->tags()->pluck('blog_tags.id')->all());
 
         $this->assertSame(3, BlogRevision::query()->count());
         $this->assertSame('Original Title', BlogRevision::query()->latest()->first()->title);
