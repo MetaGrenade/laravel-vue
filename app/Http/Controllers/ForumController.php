@@ -167,6 +167,7 @@ class ForumController extends Controller
             ->map(function (User $mentioned) use ($request) {
                 return (new MentionSuggestionResource($mentioned))->toArray($request);
             })
+            ->values()
             ->all();
 
         return response()->json([
