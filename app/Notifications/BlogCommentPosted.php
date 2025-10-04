@@ -41,14 +41,14 @@ class BlogCommentPosted extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $commentAuthor = $this->comment->user?->nickname ?? 'A community member';
-        $url = route('blogs.view', ['slug' => $this->blog->slug]) . '#comment-' . $this->comment->id;
-        $excerpt = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($this->comment->body)) ?? ''), 200);
+        $commentAuthor = $this->commentAuthor();
+        $url = $this->commentUrl();
+        $excerpt = $this->commentExcerpt(200);
 
         return (new MailMessage())
-            ->subject('New comment on "' . $this->blog->title . '"')
+            ->subject($this->notificationTitle())
             ->greeting('Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!')
-            ->line($commentAuthor . ' just left a new comment on "' . $this->blog->title . '".')
+            ->line($commentAuthor . ' just left a new reply on "' . $this->blog->title . '".')
             ->line($excerpt)
             ->action('Read the reply', $url)
             ->line('You are receiving this email because you opted in to comment notifications for this post.');
@@ -56,14 +56,23 @@ class BlogCommentPosted extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
-        $excerpt = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($this->comment->body)) ?? ''), 140);
+        $commentAuthor = $this->commentAuthor();
+        $excerpt = $this->commentExcerpt();
+        $url = $this->commentUrl();
+        $title = $this->notificationTitle();
+        $excerptLine = $this->excerptLine($commentAuthor, $excerpt);
 
         return [
             'blog_id' => $this->blog->id,
             'blog_title' => $this->blog->title,
             'comment_id' => $this->comment->id,
+            'comment_author_id' => $this->comment->user_id,
+            'comment_author_nickname' => $this->comment->user?->nickname,
             'comment_excerpt' => $excerpt,
-            'url' => route('blogs.view', ['slug' => $this->blog->slug]) . '#comment-' . $this->comment->id,
+            'title' => $title,
+            'thread_title' => $title,
+            'excerpt' => Str::limit($excerptLine, 180),
+            'url' => $url,
         ];
     }
 
@@ -78,5 +87,34 @@ class BlogCommentPosted extends Notification implements ShouldQueue
         $clone->channels = $channels;
 
         return $clone;
+    }
+
+    protected function commentExcerpt(int $limit = 140): string
+    {
+        $body = trim(preg_replace('/\s+/', ' ', strip_tags($this->comment->body)) ?? '');
+
+        return Str::limit($body, $limit);
+    }
+
+    protected function commentUrl(): string
+    {
+        return route('blogs.view', ['slug' => $this->blog->slug]) . '#comment-' . $this->comment->id;
+    }
+
+    protected function commentAuthor(): string
+    {
+        return $this->comment->user?->nickname
+            ?? $this->comment->user?->name
+            ?? 'A community member';
+    }
+
+    protected function notificationTitle(): string
+    {
+        return 'New reply on "' . $this->blog->title . '"';
+    }
+
+    protected function excerptLine(string $commentAuthor, string $excerpt): string
+    {
+        return $commentAuthor . ' replied: ' . $excerpt;
     }
 }
