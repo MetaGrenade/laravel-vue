@@ -161,11 +161,7 @@ class ForumController extends Controller
             })
             ->values();
 
-        $suggestions = $users
-            ->map(fn (User $mentioned) => (new MentionSuggestionResource($mentioned))->toArray($request))
-            ->values();
-
-        return response()->json(['data' => $suggestions]);
+        return MentionSuggestionResource::collection($users);
     }
 
     public function showBoard(Request $request, ForumBoard $board): Response
