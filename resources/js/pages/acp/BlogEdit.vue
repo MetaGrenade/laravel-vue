@@ -5,6 +5,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +14,7 @@ import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CalendarClock, Eye, Link as LinkIcon } from 'lucide-vue-next';
@@ -135,6 +137,14 @@ const form = useForm<BlogForm>({
 });
 
 const { formatDate } = useUserTimezone();
+
+const {
+    confirmDialogState,
+    confirmDialogDescription,
+    openConfirmDialog,
+    handleConfirmDialogConfirm,
+    handleConfirmDialogCancel,
+} = useConfirmDialog();
 
 const categoryOptions = ref<BlogTaxonomyOption[]>([]);
 const refreshingCategories = ref(false);
@@ -449,26 +459,26 @@ const restoreRevision = (revisionId: number) => {
         return;
     }
 
-    const confirmed = typeof window === 'undefined' ? true : window.confirm(
-        'Restore this revision? This will overwrite the current blog content.'
-    );
+    openConfirmDialog({
+        title: 'Restore this revision?',
+        description: 'This will overwrite the current blog content.',
+        confirmLabel: 'Restore revision',
+        confirmVariant: 'destructive',
+        onConfirm: () => {
+            restoringRevisionId.value = revisionId;
 
-    if (!confirmed) {
-        return;
-    }
-
-    restoringRevisionId.value = revisionId;
-
-    router.post(
-        route('acp.blogs.revisions.restore', { blog: props.blog.id, revision: revisionId }),
-        {},
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                restoringRevisionId.value = null;
-            },
+            router.post(
+                route('acp.blogs.revisions.restore', { blog: props.blog.id, revision: revisionId }),
+                {},
+                {
+                    preserveScroll: true,
+                    onFinish: () => {
+                        restoringRevisionId.value = null;
+                    },
+                },
+            );
         },
-    );
+    });
 };
 
 const copyPreviewLink = async () => {
@@ -1036,6 +1046,17 @@ const handleSubmit = () => {
                     </div>
                 </DialogContent>
             </Dialog>
+            <ConfirmDialog
+                v-model:open="confirmDialogState.open"
+                :title="confirmDialogState.title"
+                :description="confirmDialogDescription"
+                :confirm-label="confirmDialogState.confirmLabel"
+                :cancel-label="confirmDialogState.cancelLabel"
+                :confirm-variant="confirmDialogState.confirmVariant"
+                :confirm-disabled="confirmDialogState.confirmDisabled"
+                @confirm="handleConfirmDialogConfirm"
+                @cancel="handleConfirmDialogCancel"
+            />
         </AdminLayout>
     </AppLayout>
 </template>
