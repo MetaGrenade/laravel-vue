@@ -78,7 +78,10 @@ class BlogCommentController extends Controller
         $recipients = $recipients->unique('id')->values();
 
         if ($recipients->isNotEmpty()) {
-            Notification::send($recipients, new BlogCommentPosted($blog, $comment));
+            $notification = new BlogCommentPosted($blog, $comment);
+
+            Notification::sendNow($recipients, $notification->withChannels(['database']));
+            Notification::send($recipients, $notification->withChannels(['mail']));
         }
 
         return response()->json([
