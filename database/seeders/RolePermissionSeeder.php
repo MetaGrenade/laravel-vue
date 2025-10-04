@@ -52,6 +52,7 @@ class RolePermissionSeeder extends Seeder
                 Permission::firstOrCreate(['name' => $permission.'.acp.move']);
                 Permission::firstOrCreate(['name' => $permission.'.acp.publish']);
                 Permission::firstOrCreate(['name' => $permission.'.acp.priority']);
+                Permission::firstOrCreate(['name' => $permission.'.acp.reply']);
                 Permission::firstOrCreate(['name' => $permission.'.acp.status']);
             }
             Permission::firstOrCreate(['name' => $permission.'.acp.delete']);

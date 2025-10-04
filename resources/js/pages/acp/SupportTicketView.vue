@@ -5,7 +5,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Button from '@/components/ui/button/Button.vue';
 import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
@@ -247,6 +247,8 @@ const sortedMessages = computed(() => {
     });
 });
 
+const hasMessages = computed(() => sortedMessages.value.length > 0);
+
 const resolveAuthorLabel = (message: TicketMessage) => {
     if (!message.author) {
         return message.is_from_support
@@ -312,13 +314,13 @@ const formatFileSize = (bytes: number) => {
                 </div>
 
                 <div class="grid gap-6 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
-                    <Card class="flex flex-col">
+                    <Card class="flex h-full flex-col">
                         <CardHeader>
                             <CardTitle>Conversation</CardTitle>
                             <CardDescription>Messages exchanged between staff and the requester.</CardDescription>
                         </CardHeader>
                         <CardContent class="flex flex-1 flex-col gap-6">
-                            <div class="flex flex-col gap-4">
+                            <div v-if="hasMessages" class="flex flex-col gap-4">
                                 <div
                                     v-for="message in sortedMessages"
                                     :key="message.id"
@@ -329,8 +331,7 @@ const formatFileSize = (bytes: number) => {
                                         class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-sm"
                                         :class="message.is_from_support
                                             ? 'bg-primary text-primary-foreground'
-                                            : 'bg-background border'
-                                        "
+                                            : 'bg-background border'"
                                     >
                                         <div class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide">
                                             <span>{{ resolveAuthorLabel(message) }}</span>
@@ -351,8 +352,7 @@ const formatFileSize = (bytes: number) => {
                                                         class="flex items-center gap-2 underline underline-offset-4"
                                                         :class="message.is_from_support
                                                             ? 'text-primary-foreground hover:text-primary-foreground/80'
-                                                            : 'text-primary hover:text-primary/80'
-                                                        "
+                                                            : 'text-primary hover:text-primary/80'"
                                                     >
                                                         <span class="truncate">{{ attachment.name }}</span>
                                                         <span class="whitespace-nowrap text-[0.7rem] opacity-80">
@@ -364,13 +364,16 @@ const formatFileSize = (bytes: number) => {
                                         </div>
                                     </div>
                                 </div>
-
-                                <p v-if="sortedMessages.length === 0" class="text-sm text-muted-foreground">
-                                    There are no messages on this ticket yet.
-                                </p>
                             </div>
-
-                            <form v-if="props.canReply" class="mt-4 flex flex-col gap-3" @submit.prevent="submitReply">
+                            <p v-else class="text-sm text-muted-foreground">
+                                There are no messages on this ticket yet.
+                            </p>
+                        </CardContent>
+                        <CardFooter
+                            v-if="props.canReply"
+                            class="items-stretch border-t border-border/50"
+                        >
+                            <form class="flex w-full flex-col gap-3" @submit.prevent="submitReply">
                                 <label for="message" class="text-sm font-medium">Post a staff reply</label>
                                 <Textarea
                                     id="message"
@@ -379,6 +382,8 @@ const formatFileSize = (bytes: number) => {
                                     class="min-h-32"
                                     :disabled="replyForm.processing"
                                     required
+                                    @keyup.meta.enter="submitReply"
+                                    @keyup.ctrl.enter="submitReply"
                                 />
                                 <InputError :message="replyForm.errors.body" />
                                 <div class="flex flex-col gap-2">
@@ -413,11 +418,15 @@ const formatFileSize = (bytes: number) => {
                                     </Button>
                                 </div>
                             </form>
-
-                            <p v-else class="text-sm text-muted-foreground">
+                        </CardFooter>
+                        <CardFooter
+                            v-else
+                            class="items-start border-t border-border/50"
+                        >
+                            <p class="text-sm text-muted-foreground">
                                 Replies are disabled either because the ticket is closed or you lack reply permissions.
                             </p>
-                        </CardContent>
+                        </CardFooter>
                     </Card>
 
                     <div class="flex flex-col gap-6">
