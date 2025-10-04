@@ -49,4 +49,13 @@ class SupportTicket extends Model
     {
         return $this->belongsTo(SupportTicketCategory::class, 'support_ticket_category_id');
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $ticket): void {
+            foreach ($ticket->messages()->cursor() as $message) {
+                $message->delete();
+            }
+        });
+    }
 }

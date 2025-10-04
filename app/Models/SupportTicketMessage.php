@@ -28,4 +28,13 @@ class SupportTicketMessage extends Model
     {
         return $this->hasMany(SupportTicketMessageAttachment::class);
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $message): void {
+            foreach ($message->attachments()->cursor() as $attachment) {
+                $attachment->delete();
+            }
+        });
+    }
 }
