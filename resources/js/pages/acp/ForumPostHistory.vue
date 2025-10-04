@@ -7,6 +7,8 @@ import { type BreadcrumbItem } from '@/types';
 import Button from '@/components/ui/button/Button.vue';
 import { ArrowLeft, RotateCcw } from 'lucide-vue-next';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 interface BoardSummary {
     id: number;
@@ -91,15 +93,7 @@ const formatRelative = (value: string | null | undefined) => {
     return fromNow(value);
 };
 
-const requestRestore = (revisionId: number) => {
-    if (!canRestore.value) {
-        return;
-    }
-
-    if (!window.confirm('Restore this revision? The current content will be saved as a new revision.')) {
-        return;
-    }
-
+const restoreRevision = (revisionId: number) => {
     router.put(
         route('forum.posts.history.restore', {
             board: props.board.slug,
@@ -112,6 +106,28 @@ const requestRestore = (revisionId: number) => {
             preserveScroll: true,
         },
     );
+};
+
+const {
+    confirmDialogState,
+    confirmDialogDescription,
+    openConfirmDialog,
+    handleConfirmDialogConfirm,
+    handleConfirmDialogCancel,
+} = useConfirmDialog();
+
+const requestRestore = (revisionId: number) => {
+    if (!canRestore.value) {
+        return;
+    }
+
+    openConfirmDialog({
+        title: 'Restore this revision?',
+        description: 'The current content will be saved as a new revision.',
+        confirmLabel: 'Restore revision',
+        confirmVariant: 'default',
+        onConfirm: () => restoreRevision(revisionId),
+    });
 };
 </script>
 
@@ -223,5 +239,16 @@ const requestRestore = (revisionId: number) => {
                 </div>
             </div>
         </AdminLayout>
+        <ConfirmDialog
+            v-model:open="confirmDialogState.open"
+            :title="confirmDialogState.title"
+            :description="confirmDialogDescription"
+            :confirm-label="confirmDialogState.confirmLabel"
+            :cancel-label="confirmDialogState.cancelLabel"
+            :confirm-variant="confirmDialogState.confirmVariant"
+            :confirm-disabled="confirmDialogState.confirmDisabled"
+            @confirm="handleConfirmDialogConfirm"
+            @cancel="handleConfirmDialogCancel"
+        />
     </AppLayout>
 </template>
