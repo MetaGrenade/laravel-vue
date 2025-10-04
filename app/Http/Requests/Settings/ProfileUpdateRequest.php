@@ -46,6 +46,7 @@ class ProfileUpdateRequest extends FormRequest
     {
         return [
             'nickname' => [
+                'sometimes',
                 'required',
                 'string',
                 'max:255',

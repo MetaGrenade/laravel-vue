@@ -132,6 +132,31 @@ class ProfileUpdateTest extends TestCase
         $this->assertNotNull($user->email_verified_at);
     }
 
+    public function test_nickname_field_is_optional_when_not_changed()
+    {
+        $user = User::factory()->create([
+            'nickname' => 'Existing Nickname',
+        ]);
+
+        $originalEmail = $user->email;
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/settings/profile', [
+                'profile_bio' => 'Updated bio',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/settings/profile');
+
+        $user->refresh();
+
+        $this->assertSame('Existing Nickname', $user->nickname);
+        $this->assertSame($originalEmail, $user->email);
+        $this->assertSame('Updated bio', $user->profile_bio);
+    }
+
     public function test_user_can_delete_their_account()
     {
         $user = User::factory()->create();
