@@ -8,6 +8,7 @@ use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumThreadModerationController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SupportCenterController;
 use App\Http\Controllers\UserNotificationController;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,8 @@ use Inertia\Inertia;
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
+
+Route::get('/search', SearchController::class)->name('search');
 
 // Public Blog Routes
 Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');

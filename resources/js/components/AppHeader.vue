@@ -2,6 +2,7 @@
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
+import CommandPalette from '@/components/CommandPalette.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -19,7 +20,7 @@ import { getInitials } from '@/composables/useInitials';
 import type { BreadcrumbItem, NavItem, NotificationItem, SharedData, User } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { BookOpen, Folder, LayoutGrid, Menu, Search, Megaphone, Shield, LifeBuoy, Bell, Check, Trash2 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
@@ -44,6 +45,35 @@ const isCurrentRoute = computed(() => (url: string) => page.url === url);
 const activeItemStyles = computed(
     () => (url: string) => (isCurrentRoute.value(url) ? 'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100' : ''),
 );
+
+const isCommandPaletteOpen = ref(false);
+
+const openCommandPalette = () => {
+    isCommandPaletteOpen.value = true;
+};
+
+const closeCommandPalette = () => {
+    isCommandPaletteOpen.value = false;
+};
+
+const handleSearchShortcut = (event: KeyboardEvent) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        openCommandPalette();
+    }
+
+    if (event.key === 'Escape' && isCommandPaletteOpen.value) {
+        closeCommandPalette();
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('keydown', handleSearchShortcut);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleSearchShortcut);
+});
 
 const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
@@ -181,6 +211,8 @@ const viewNotification = (notification: NotificationItem) => {
 
 <template>
     <div>
+        <CommandPalette v-model:open="isCommandPaletteOpen" />
+
         <!-- Fixed header -->
         <div class="fixed inset-x-0 top-0 z-50 border-b border-sidebar-border/80 bg-white dark:bg-neutral-900">
             <div class="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
@@ -262,7 +294,15 @@ const viewNotification = (notification: NotificationItem) => {
                 <!-- Right side -->
                 <div class="ml-auto flex items-center space-x-2">
                     <div class="relative flex items-center space-x-1">
-                        <Button variant="ghost" size="icon" class="group h-9 w-9 cursor-pointer">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="group h-9 w-9 cursor-pointer"
+                            :title="'Search (Ctrl+K)'"
+                            @click="openCommandPalette"
+                        >
+                            <span class="sr-only">Open search (Ctrl+K)</span>
                             <Search class="size-5 opacity-80 group-hover:opacity-100" />
                         </Button>
 
