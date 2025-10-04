@@ -12,6 +12,11 @@ class Blog extends Model
 {
     use HasFactory;
 
+    /**
+     * Ensure date attributes maintain microsecond precision when stored.
+     */
+    protected $dateFormat = 'Y-m-d H:i:s.u';
+
     protected $fillable = [
         'title',
         'slug',
