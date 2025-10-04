@@ -156,13 +156,11 @@ class ForumController extends Controller
             ->limit(8)
             ->get();
 
-        $results = [];
-
-        foreach ($users as $mentioned) {
+        $results = $users->map(function (User $mentioned) {
             $nickname = is_string($mentioned->nickname) ? trim($mentioned->nickname) : '';
 
             if ($nickname === '') {
-                continue;
+                return null;
             }
 
             $profileUrl = null;
@@ -171,13 +169,13 @@ class ForumController extends Controller
                 $profileUrl = route('members.show', ['user' => $mentioned->getRouteKey()]);
             }
 
-            $results[] = [
+            return [
                 'id' => $mentioned->getKey(),
                 'nickname' => $nickname,
                 'avatar_url' => $mentioned->avatar_url,
                 'profile_url' => $profileUrl,
             ];
-        }
+        })->filter()->values()->all();
 
         return response()->json([
             'data' => $results,
