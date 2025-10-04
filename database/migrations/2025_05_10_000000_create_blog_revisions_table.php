@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('excerpt')->nullable();
             $table->longText('body');
             $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->timestamps(6);
         });
     }
 

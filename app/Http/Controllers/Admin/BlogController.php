@@ -10,6 +10,7 @@ use App\Models\BlogCategory;
 use App\Models\BlogTag;
 use App\Models\BlogRevision;
 use App\Models\User;
+use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -648,8 +649,8 @@ class BlogController extends Controller
             'slug' => $blog->slug,
             'status' => $blog->status,
             'cover_image' => $blog->cover_image,
-            'published_at' => optional($blog->published_at)->toIso8601String(),
-            'scheduled_for' => optional($blog->scheduled_for)->toIso8601String(),
+            'published_at' => $this->formatMetadataDate($blog->published_at),
+            'scheduled_for' => $this->formatMetadataDate($blog->scheduled_for),
             'category_ids' => $blog->categories()->orderBy('blog_categories.id')->pluck('blog_categories.id')->values()->all(),
             'tag_ids' => $blog->tags()->orderBy('blog_tags.id')->pluck('blog_tags.id')->values()->all(),
         ];
@@ -664,6 +665,15 @@ class BlogController extends Controller
         ]);
     }
 
+    private function formatMetadataDate(?Carbon $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        return $value->copy()->format('Y-m-d\TH:i:s.uP');
+    }
+
     private function resolveMetadataDate($value): ?Carbon
     {
         if (! $value) {
@@ -674,7 +684,42 @@ class BlogController extends Controller
             return $value;
         }
 
-        return Carbon::parse($value);
+        if ($value instanceof DateTimeInterface) {
+            return Carbon::createFromInterface($value);
+        }
+
+        if (is_string($value)) {
+            $stringValue = trim($value);
+
+            if ($stringValue === '') {
+                return null;
+            }
+
+            $formats = [
+                'Y-m-d\TH:i:s.uP',
+                'Y-m-d\TH:i:sP',
+                'Y-m-d H:i:s.u',
+                'Y-m-d H:i:s',
+                DateTimeInterface::RFC3339_EXTENDED,
+                DateTimeInterface::ATOM,
+            ];
+
+            foreach ($formats as $format) {
+                try {
+                    return Carbon::createFromFormat($format, $stringValue, config('app.timezone'));
+                } catch (\Throwable $e) {
+                    // Try the next format
+                }
+            }
+
+            try {
+                return Carbon::parse($stringValue);
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     /**

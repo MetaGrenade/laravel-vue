@@ -16,7 +16,7 @@ class CreateBlogsTable extends Migration
             $table->longText('body');
             $table->unsignedBigInteger('user_id');  // Foreign key to users table
             $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
-            $table->timestamp('published_at')->nullable();
+            $table->timestamp('published_at', 6)->nullable();
             $table->timestamps();
 
             // Optional: add a foreign key constraint if desired

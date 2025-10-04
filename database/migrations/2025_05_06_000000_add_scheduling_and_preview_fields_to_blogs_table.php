@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('blogs', function (Blueprint $table) {
-            $table->timestamp('scheduled_for')->nullable()->after('published_at');
+            $table->timestamp('scheduled_for', 6)->nullable()->after('published_at');
             $table->string('preview_token', 64)->nullable()->after('scheduled_for');
         });
     }
