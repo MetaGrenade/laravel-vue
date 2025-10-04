@@ -55,6 +55,12 @@ class Blog extends Model
         return $this->hasMany(BlogComment::class);
     }
 
+    public function commentSubscribers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'blog_comment_subscriptions')
+            ->withTimestamps();
+    }
+
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(BlogCategory::class, 'blog_blog_category')
