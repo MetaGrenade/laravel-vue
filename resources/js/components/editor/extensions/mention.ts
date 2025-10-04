@@ -1,4 +1,5 @@
-import { Node, mergeAttributes } from '@tiptap/core'
+import Mention from '@tiptap/extension-mention'
+import { mergeAttributes } from '@tiptap/core'
 
 export interface MentionAttributes {
   id: number | string
@@ -7,17 +8,7 @@ export interface MentionAttributes {
   profileUrl?: string | null
 }
 
-export const MentionExtension = Node.create({
-  name: 'mention',
-
-  inline: true,
-
-  group: 'inline',
-
-  selectable: false,
-
-  atom: true,
-
+export const MentionExtension = Mention.extend({
   addAttributes() {
     return {
       id: {
@@ -71,22 +62,6 @@ export const MentionExtension = Node.create({
     const attrs = node.attrs as MentionAttributes
 
     return `@${attrs.label ?? attrs.nickname ?? ''}`
-  },
-
-  addCommands() {
-    return {
-      setMention:
-        (attrs: MentionAttributes) =>
-        ({ chain }) =>
-          chain()
-            .insertContent([
-              {
-                type: this.name,
-                attrs,
-              },
-            ])
-            .run(),
-    }
   },
 })
 
