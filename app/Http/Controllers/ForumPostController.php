@@ -119,6 +119,14 @@ class ForumPostController extends Controller
             ]);
         }
 
+        if ($body !== $post->body) {
+            $post->revisions()->create([
+                'body' => $post->body,
+                'edited_at' => $post->edited_at,
+                'edited_by_id' => $user->id,
+            ]);
+        }
+
         $post->forceFill([
             'body' => $body,
             'edited_at' => Carbon::now(),

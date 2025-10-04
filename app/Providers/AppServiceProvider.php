@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\ForumPost;
 use App\Models\PersonalAccessToken;
+use App\Policies\ForumPostPolicy;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 
@@ -29,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
             //force DB timestamps to use 'UTC' timezone for more accurate dayjs conversion to local timezones
             DB::statement("SET time_zone = '+00:00'");
         }
+
+        Gate::policy(ForumPost::class, ForumPostPolicy::class);
 
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
     }
