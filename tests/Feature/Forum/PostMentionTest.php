@@ -9,7 +9,9 @@ use App\Models\ForumThread;
 use App\Models\User;
 use App\Notifications\ForumPostMentioned;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -108,6 +110,35 @@ class PostMentionTest extends TestCase
                 return $data['thread_id'] === $thread->id && $data['post_id'] === $post->id;
             }
         );
+    }
+
+    public function test_database_channel_is_persisted_while_mail_is_queued(): void
+    {
+        Queue::fake();
+        Notification::fakeExcept([ForumPostMentioned::class]);
+
+        [$board, $thread] = $this->createForumContext();
+
+        $replier = User::factory()->create();
+        $mentionedUser = User::factory()->create(['nickname' => 'MentionTarget']);
+
+        $response = $this->actingAs($replier)->post(route('forum.posts.store', [$board, $thread]), [
+            'body' => '<p>Hello @' . $mentionedUser->nickname . '</p>',
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $mentionedUser->id,
+            'notifiable_type' => User::class,
+        ]);
+
+        Queue::assertPushedOn('mail', SendQueuedNotifications::class, function (SendQueuedNotifications $job) use ($mentionedUser) {
+            return $job->notification instanceof ForumPostMentioned
+                && $job->notifiables->count() === 1
+                && optional($job->notifiables->first())->is($mentionedUser)
+                && $job->channels === ['mail'];
+        });
     }
 
     public function test_mention_suggestions_returns_matching_users(): void
