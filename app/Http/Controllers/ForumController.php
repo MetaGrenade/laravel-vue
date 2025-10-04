@@ -156,20 +156,28 @@ class ForumController extends Controller
             ->limit(8)
             ->get();
 
-        $results = $users->map(function (User $mentioned) {
+        $results = [];
+
+        foreach ($users as $mentioned) {
+            $nickname = is_string($mentioned->nickname) ? trim($mentioned->nickname) : '';
+
+            if ($nickname === '') {
+                continue;
+            }
+
             $profileUrl = null;
 
             if (Route::has('members.show')) {
                 $profileUrl = route('members.show', ['user' => $mentioned->getRouteKey()]);
             }
 
-            return [
-                'id' => (int) $mentioned->id,
-                'nickname' => $mentioned->nickname,
+            $results[] = [
+                'id' => $mentioned->getKey(),
+                'nickname' => $nickname,
                 'avatar_url' => $mentioned->avatar_url,
                 'profile_url' => $profileUrl,
             ];
-        })->values()->all();
+        }
 
         return response()->json([
             'data' => $results,
