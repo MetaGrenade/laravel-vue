@@ -12,11 +12,13 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: '/dashboard',
+        target: '_self',
         icon: LayoutGrid,
     },
     {
         title: 'Blog',
         href: '/blogs',
+        target: '_self',
         icon: BookOpen,
     },
 ];
@@ -25,11 +27,13 @@ const footerNavItems: NavItem[] = [
     {
         title: 'Github Repo',
         href: 'https://github.com/laravel/vue-starter-kit',
+        target: '_blank',
         icon: Folder,
     },
     {
         title: 'Documentation',
         href: 'https://laravel.com/docs/starter-kits',
+        target: '_blank',
         icon: BookOpen,
     },
 ];

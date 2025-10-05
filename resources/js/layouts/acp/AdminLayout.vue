@@ -26,46 +26,55 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: '/acp/dashboard',
+        target: '_self',
         icon: LayoutGrid,
     },
     {
         title: 'Users',
         href: '/acp/users',
+        target: '_self',
         icon: User,
     },
     {
         title: 'Access Control',
         href: '/acp/acl',
+        target: '_self',
         icon: Shield,
     },
     {
         title: 'Blogs',
         href: '/acp/blogs',
+        target: '_self',
         icon: BookOpen,
     },
     {
         title: 'Forums',
         href: '/acp/forums',
+        target: '_self',
         icon: MessageSquare,
     },
     {
         title: 'Forum Reports',
         href: '/acp/forums/reports',
+        target: '_self',
         icon: ShieldAlert,
     },
     {
         title: 'Support',
         href: '/acp/support',
+        target: '_self',
         icon: LifeBuoy,
     },
     {
         title: 'Access Tokens',
         href: '/acp/tokens',
+        target: '_self',
         icon: Key,
     },
     {
         title: 'System Settings',
         href: '/acp/system',
+        target: '_self',
         icon: Settings,
     },
 ];
@@ -116,7 +125,7 @@ const filteredNavItems = computed(() => {
                         :class="['w-full justify-start', { 'bg-muted': currentPath === item.href }]"
                         as-child
                     >
-                        <Link :href="item.href" class="flex items-center">
+                        <Link :href="item.href" :target="item.target" class="flex items-center">
                             <!-- Render the icon if available -->
                             <component v-if="item.icon" :is="item.icon" class="mr-2 h-4 w-4" />
                             <span>{{ item.title }}</span>
