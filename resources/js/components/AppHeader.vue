@@ -85,23 +85,23 @@ const rightNavItems: NavItem[] = [
     {
         title: 'Admin',
         href: '/acp',
+        target: '_self',
         icon: Shield,
-        color: 'rgb(197,102,34)', // orange
-        target: '_self'
+        color: 'rgb(197,102,34)' // orange
     },
     {
         title: 'Support',
         href: '/support',
+        target: '_self',
         icon: LifeBuoy,
-        color: 'rgb(197,34,34)', // red,
-        target: '_self'
+        color: 'rgb(197,34,34)' // red,
     },
     {
         title: 'Repository',
         href: 'https://github.com/MetaGrenade/laravel-vue',
+        target: '_blank',
         icon: Folder,
-        color: 'rgb(34, 197, 94)', // green,
-        target: '_blank'
+        color: 'rgb(34, 197, 94)' // green,
     },
 ];
 
