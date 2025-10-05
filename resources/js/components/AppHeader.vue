@@ -76,9 +76,9 @@ onBeforeUnmount(() => {
 });
 
 const mainNavItems: NavItem[] = [
-    { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-    { title: 'Blog',      href: '/blogs',      icon: BookOpen },
-    { title: 'Forum',     href: '/forum',     icon: Megaphone },
+    { title: 'Dashboard', href: '/dashboard',   target: '_self', icon: LayoutGrid },
+    { title: 'Blog',      href: '/blogs',       target: '_self', icon: BookOpen },
+    { title: 'Forum',     href: '/forum',       target: '_self', icon: Megaphone },
 ];
 
 const rightNavItems: NavItem[] = [
@@ -87,18 +87,21 @@ const rightNavItems: NavItem[] = [
         href: '/acp',
         icon: Shield,
         color: 'rgb(197,102,34)', // orange
+        target: '_self'
     },
     {
         title: 'Support',
         href: '/support',
         icon: LifeBuoy,
-        color: 'rgb(197,34,34)', // red
+        color: 'rgb(197,34,34)', // red,
+        target: '_self'
     },
     {
         title: 'Repository',
         href: 'https://github.com/MetaGrenade/laravel-vue',
         icon: Folder,
-        color: 'rgb(34, 197, 94)', // green
+        color: 'rgb(34, 197, 94)', // green,
+        target: '_blank'
     },
 ];
 
@@ -235,6 +238,7 @@ const viewNotification = (notification: NotificationItem) => {
                                         v-for="item in mainNavItems"
                                         :key="item.title"
                                         :href="item.href"
+                                        :target="item.target"
                                         class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
                                         :class="activeItemStyles(item.href)"
                                     >
@@ -247,7 +251,7 @@ const viewNotification = (notification: NotificationItem) => {
                                         v-for="item in rightNavItems"
                                         :key="item.title"
                                         :href="item.href"
-                                        target="_blank"
+                                        :target="item.target"
                                         rel="noopener noreferrer"
                                         class="flex items-center space-x-2 text-sm font-medium"
                                     >
@@ -274,7 +278,7 @@ const viewNotification = (notification: NotificationItem) => {
                                 :key="index"
                                 class="relative flex h-full items-center"
                             >
-                                <Link :href="item.href">
+                                <Link :href="item.href" :target="item.target">
                                     <NavigationMenuLink
                                         :class="[navigationMenuTriggerStyle(), activeItemStyles(item.href), 'h-9 cursor-pointer px-3']"
                                     >
@@ -312,7 +316,7 @@ const viewNotification = (notification: NotificationItem) => {
                                     <Tooltip>
                                         <TooltipTrigger>
                                             <Button variant="ghost" size="icon" as-child class="group h-9 w-9 cursor-pointer">
-                                                <a :href="item.href" target="_blank" rel="noopener noreferrer">
+                                                <a :href="item.href" :target="item.target" rel="noopener noreferrer">
                                                     <span class="sr-only">{{ item.title }}</span>
                                                     <component
                                                         :is="item.icon"
