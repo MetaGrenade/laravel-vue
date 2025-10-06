@@ -14,7 +14,8 @@ A batteries-included starter kit for building modern Laravel + Vue single-page a
 ## Application Modules
 - **Forum System**: Boards, threads, post moderation, publishing workflows, and tracking read state with dedicated controllers and routes.
 - **Blog & Previewing**: Public blog listing, tokenized preview links, and authenticated commenting APIs.
-- **Support Center**: Ticket submission, messaging threads, and authenticated access to customer conversations.
+- **Support Center**: Ticket submission, messaging threads, authenticated access to customer conversations, and configurable
+  assignment rules so tickets auto-route to the right agents.
 - **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
 - **Authentication & Authorization**: Laravel Breeze for authentication plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
 - **Appearance Management**: System/light/dark modes synced between SSR and the client through a reusable composable.
@@ -56,6 +57,8 @@ resources/
    ```bash
    php artisan migrate
    ```
+   The migration set creates the `support_assignment_rules` and `support_ticket_audits` tables used by the support
+   auto-assignment and auditing features.
 4. **Seed Demo Content (optional)**
    ```bash
    php artisan db:seed --class=ForumDemoSeeder
@@ -86,8 +89,33 @@ resources/
 
 ## Feature Notes & Endpoints
 - **Forum moderation routes** handle publishing, locking, pinning, reporting, and deletion, guarded by role middleware (`role:admin|editor|moderator`).
-- **Support ticket routes** provide authenticated creation, viewing, and messaging flows for end-users.
+- **Support ticket routes** provide authenticated creation, viewing, and messaging flows for end-users. Ticket creation in both
+  the public portal and Admin Control Panel automatically runs through the Support Assignment Rules engine.
 - **Blog previews** use signed tokens so editors can review drafts before publishing.
+
+### Support Operations (Assignment & SLA)
+- **Assignment Rules**: Configure agent routing with ordered rules stored in the `support_assignment_rules` table. Rules can
+  target specific categories or priorities and are evaluated top-to-bottom until a match assigns the ticket.
+- **Audit Trail**: All automated changes (assignments, escalations, and SLA-driven reassignments) are captured in the
+  `support_ticket_audits` table for traceability.
+- **SLA Monitoring**: The `MonitorSupportTicketSlas` job runs every fifteen minutes (see `bootstrap/app.php`) and will escalate
+  ticket priorities or reassign unattended tickets based on the thresholds defined in `config/support.php`.
+- **Scheduler Setup**: Ensure the Laravel scheduler is running in production. Add a cron entry for `php artisan schedule:run` (or run
+  `php artisan schedule:work` during development) alongside the queue worker so SLA adjustments happen continuously.
+- **Customising Thresholds**: Update `config/support.php` to tune escalation windows or disable specific behaviours. After editing the
+  configuration, clear the cache (`php artisan config:clear`) so the scheduler picks up the changes.
+
+#### Example: Creating a Support Assignment Rule via Tinker
+```bash
+php artisan tinker
+>>> \App\Models\SupportAssignmentRule::create([
+...     'support_ticket_category_id' => 1, // optional
+...     'priority' => 'high',              // optional
+...     'assigned_to' => 5,                // required user id
+...     'position' => 10,
+... ]);
+```
+Rules with lower `position` values are evaluated first, so place the most specific rules near the top of the list.
 
 ## Testing & Quality
 - **PHPUnit**: `php artisan test` or `./vendor/bin/phpunit`

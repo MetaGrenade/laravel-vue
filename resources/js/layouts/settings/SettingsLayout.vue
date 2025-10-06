@@ -9,14 +9,17 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Profile',
         href: '/settings/profile',
+        target: '_self'
     },
     {
         title: 'Password',
         href: '/settings/password',
+        target: '_self'
     },
     {
         title: 'Appearance',
         href: '/settings/appearance',
+        target: '_self'
     },
 ];
 
@@ -39,7 +42,7 @@ const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.locati
                         :class="['w-full justify-start', { 'bg-muted': currentPath === item.href }]"
                         as-child
                     >
-                        <Link :href="item.href">
+                        <Link :href="item.href" :target="item.target">
                             {{ item.title }}
                         </Link>
                     </Button>

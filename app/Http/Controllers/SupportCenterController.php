@@ -16,6 +16,7 @@ use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
+use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,8 @@ class SupportCenterController extends Controller
     use InteractsWithInertiaPagination;
 
     public function __construct(
-        private SupportTicketNotificationDispatcher $ticketNotifier
+        private SupportTicketNotificationDispatcher $ticketNotifier,
+        private SupportTicketAutoAssigner $ticketAssigner,
     ) {
     }
 
@@ -325,9 +327,13 @@ class SupportCenterController extends Controller
             }
 
             $message->touch();
+
+            $this->ticketAssigner->assign($ticket);
         });
 
         if ($ticket && $message) {
+            $ticket->loadMissing('assignee');
+
             $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
                 return (new TicketOpened($ticket, $message))
                     ->forAudience($audience)

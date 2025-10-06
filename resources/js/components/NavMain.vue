@@ -19,7 +19,7 @@ const page = usePage<SharedData>();
                     as-child :is-active="item.href === page.url"
                     :tooltip="item.title"
                 >
-                    <Link :href="item.href">
+                    <Link :href="item.href" :target="item.target">
                         <component :is="item.icon" />
                         <span>{{ item.title }}</span>
                     </Link>
