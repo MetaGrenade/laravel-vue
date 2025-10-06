@@ -51,7 +51,7 @@ class GlobalSearchService
         return [
             'query' => $normalizedTerm,
             'results' => $results,
-        };
+        ];
     }
 
     private function searchBlogs(string $term, int $perPage, int $page): array
