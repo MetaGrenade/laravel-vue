@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blog;
+use App\Models\SearchQueryAggregate;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Carbon\Carbon;
@@ -27,6 +28,7 @@ class AdminController extends Controller
             'chartData' => $this->buildChartData(),
             'slaMetrics' => $this->buildSlaMetrics(),
             'recentActivities' => $this->recentActivities(),
+            'searchInsights' => $this->buildSearchInsights(),
         ]);
     }
 
@@ -64,6 +66,45 @@ class AdminController extends Controller
             'users' => $userTotals,
             'blogs' => $blogTotals,
             'tickets' => $tickets,
+        ];
+    }
+
+    protected function buildSearchInsights(): array
+    {
+        $topLimit = max(1, (int) config('search.queries.top_queries_limit', 5));
+        $topZeroLimit = max(1, (int) config('search.queries.top_zero_queries_limit', 5));
+
+        $topQueries = SearchQueryAggregate::query()
+            ->orderByDesc('total_count')
+            ->limit($topLimit)
+            ->get(['term', 'total_count', 'zero_result_count', 'last_ran_at'])
+            ->map(fn (SearchQueryAggregate $aggregate) => [
+                'term' => $aggregate->term,
+                'total_count' => $aggregate->total_count,
+                'zero_result_count' => $aggregate->zero_result_count,
+                'last_ran_at' => optional($aggregate->last_ran_at)?->toIso8601String(),
+            ])
+            ->all();
+
+        $topZeroQueries = SearchQueryAggregate::query()
+            ->where('zero_result_count', '>', 0)
+            ->orderByDesc('zero_result_count')
+            ->orderByDesc('last_ran_at')
+            ->limit($topZeroLimit)
+            ->get(['term', 'total_count', 'zero_result_count', 'last_ran_at'])
+            ->map(fn (SearchQueryAggregate $aggregate) => [
+                'term' => $aggregate->term,
+                'total_count' => $aggregate->total_count,
+                'zero_result_count' => $aggregate->zero_result_count,
+                'last_ran_at' => optional($aggregate->last_ran_at)?->toIso8601String(),
+            ])
+            ->all();
+
+        return [
+            'top_queries' => $topQueries,
+            'top_zero_queries' => $topZeroQueries,
+            'zero_result_total' => (int) SearchQueryAggregate::query()->sum('zero_result_count'),
+            'last_aggregated_at' => optional(SearchQueryAggregate::query()->max('updated_at'))?->toIso8601String(),
         ];
     }
 
