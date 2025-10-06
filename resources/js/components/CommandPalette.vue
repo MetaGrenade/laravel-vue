@@ -5,6 +5,7 @@ import { Link } from '@inertiajs/vue3';
 import { useDebounceFn, useVModel } from '@vueuse/core';
 import { Loader2, Search as SearchIcon } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useGlobalSearchQuery } from '@/composables/useGlobalSearchQuery';
 
 type SearchResultItem = {
     id: number | string;
@@ -32,7 +33,7 @@ const emit = defineEmits<{ (e: 'update:open', value: boolean): void }>();
 
 const open = useVModel(props, 'open', emit, { passive: true });
 
-const query = ref('');
+const query = useGlobalSearchQuery();
 const isLoading = ref(false);
 const fetchError = ref<string | null>(null);
 const inputRef = ref<HTMLInputElement | { $el?: HTMLInputElement } | null>(null);
@@ -175,12 +176,16 @@ watch(
     (isOpen) => {
         if (isOpen) {
             focusInput();
+            if (trimmedQuery.value.length >= MIN_QUERY_LENGTH) {
+                debouncedSearch.cancel?.();
+                void performSearch(trimmedQuery.value);
+            }
+
             return;
         }
 
         clearActiveRequest();
         debouncedSearch.cancel?.();
-        query.value = '';
         fetchError.value = null;
         isLoading.value = false;
         resetResults();
@@ -269,8 +274,15 @@ onBeforeUnmount(() => {
                                     </Link>
                                 </li>
                             </ul>
-                            <div v-if="group.hasMore" class="px-4 pb-3 text-xs text-muted-foreground">
-                                Showing top {{ group.items.length }} results.
+                            <div v-if="group.hasMore" class="flex items-center gap-1 px-4 pb-3 text-xs text-muted-foreground">
+                                <span>Showing top {{ group.items.length }} results.</span>
+                                <Link
+                                    :href="route('search.results', { q: trimmedQuery, types: [group.key] })"
+                                    class="font-medium text-foreground underline-offset-2 hover:underline focus:underline"
+                                    @click="closePalette"
+                                >
+                                    View all
+                                </Link>
                             </div>
                         </section>
                     </div>

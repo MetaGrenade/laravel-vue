@@ -10,6 +10,7 @@ use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumPostRevisionController;
 use App\Http\Controllers\ForumThreadModerationController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SearchResultsController;
 use App\Http\Controllers\SupportCenterController;
 use App\Http\Controllers\UserNotificationController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('/search', SearchController::class)->name('search');
+Route::get('/search/results', SearchResultsController::class)->name('search.results');
 
 // Public Blog Routes
 Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
