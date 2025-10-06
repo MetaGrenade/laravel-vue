@@ -57,4 +57,13 @@ class SupportTicket extends Model
     {
         return $this->hasMany(SupportTicketAudit::class);
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $ticket): void {
+            foreach ($ticket->messages()->cursor() as $message) {
+                $message->delete();
+            }
+        });
+    }
 }
