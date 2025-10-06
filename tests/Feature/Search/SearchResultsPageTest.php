@@ -30,9 +30,9 @@ class SearchResultsPageTest extends TestCase
             'created_at' => now(),
         ]);
 
-        $faqCategory = FaqCategory::create([
-            'name' => 'General',
-            'slug' => 'general',
+        $faqCategory = FaqCategory::factory()->create([
+            'name' => 'General Knowledge',
+            'slug' => 'general-knowledge',
             'description' => 'General knowledge base entries.',
             'order' => 1,
         ]);
@@ -168,13 +168,13 @@ class SearchResultsPageTest extends TestCase
             ->component('Search/Results')
             ->where('filters.per_page', 2)
             ->where('results.blogs.meta.current_page', 2)
-            ->where('results.blogs.items', function (array $items) {
+            ->where('results.blogs.items', function ($items) {
                 $titles = collect($items)->pluck('title');
 
                 return $titles->values()->all() === ['Searchable Blog 3', 'Searchable Blog 4'];
             })
             ->where('results.forum_threads.meta.current_page', 3)
-            ->where('results.forum_threads.items', function (array $items) {
+            ->where('results.forum_threads.items', function ($items) {
                 $titles = collect($items)->pluck('title');
 
                 return $titles->values()->all() === ['Searchable Thread 5', 'Searchable Thread 6'];
