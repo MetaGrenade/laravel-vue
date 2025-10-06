@@ -199,7 +199,7 @@ const removeSocialLink = (index: number) => {
                         </p>
 
                         <div v-if="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-green-600">
-                            A new verification link has been sent to your email address.
+                            We've sent a verification email to your new address. Please check your inbox.
                         </div>
                     </div>
 

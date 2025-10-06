@@ -7,6 +7,7 @@ use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,13 +30,21 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user->fill($request->validated());
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
+
+        if ($user instanceof MustVerifyEmail && $user->wasChanged('email')) {
+            $user->sendEmailVerificationNotification();
+
+            return to_route('profile.edit')->with('status', 'verification-link-sent');
+        }
 
         return to_route('profile.edit');
     }

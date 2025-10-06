@@ -3,7 +3,9 @@
 namespace Tests\Feature\Settings;
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase
@@ -36,7 +38,8 @@ class ProfileUpdateTest extends TestCase
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect('/settings/profile');
+            ->assertRedirect('/settings/profile')
+            ->assertSessionHas('status', 'verification-link-sent');
 
         $user->refresh();
 
@@ -45,6 +48,29 @@ class ProfileUpdateTest extends TestCase
         $this->assertNull($user->email_verified_at);
         $this->assertSame('https://cdn.example.com/avatar.png', $user->avatar_url);
         $this->assertSame('Passionate about testing.', $user->profile_bio);
+    }
+
+    public function test_email_verification_notification_is_sent_when_email_is_updated()
+    {
+        Notification::fake();
+
+        $user = User::factory()->create([
+            'email' => 'original@example.com',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/settings/profile', [
+                'nickname' => 'New Nickname',
+                'email' => 'new@example.com',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/settings/profile')
+            ->assertSessionHas('status', 'verification-link-sent');
+
+        Notification::assertSentTo($user, VerifyEmail::class);
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
