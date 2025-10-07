@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BlogTagRequest;
 use App\Models\BlogTag;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,8 @@ class BlogTagController extends Controller
 {
     public function index(Request $request): Response|JsonResponse
     {
+        $formatter = DateFormatter::for($request->user());
+
         $tags = BlogTag::query()
             ->withCount('blogs')
             ->orderBy('name')
@@ -24,8 +27,8 @@ class BlogTagController extends Controller
                 'name' => $tag->name,
                 'slug' => $tag->slug,
                 'blogs_count' => $tag->blogs_count ?? 0,
-                'created_at' => optional($tag->created_at)->toIso8601String(),
-                'updated_at' => optional($tag->updated_at)->toIso8601String(),
+                'created_at' => $formatter->iso($tag->created_at),
+                'updated_at' => $formatter->iso($tag->updated_at),
             ])
             ->values()
             ->all();
@@ -62,13 +65,15 @@ class BlogTagController extends Controller
     {
         $tag->loadCount('blogs');
 
+        $formatter = DateFormatter::for(request()->user());
+
         return inertia('acp/BlogTagEdit', [
             'tag' => [
                 'id' => $tag->id,
                 'name' => $tag->name,
                 'slug' => $tag->slug,
-                'created_at' => optional($tag->created_at)->toIso8601String(),
-                'updated_at' => optional($tag->updated_at)->toIso8601String(),
+                'created_at' => $formatter->iso($tag->created_at),
+                'updated_at' => $formatter->iso($tag->updated_at),
                 'blogs_count' => $tag->blogs_count ?? 0,
             ],
         ]);

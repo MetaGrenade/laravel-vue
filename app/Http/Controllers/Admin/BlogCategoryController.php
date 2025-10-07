@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BlogCategoryRequest;
 use App\Models\BlogCategory;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,8 @@ class BlogCategoryController extends Controller
 {
     public function index(Request $request): Response|JsonResponse
     {
+        $formatter = DateFormatter::for($request->user());
+
         $categories = BlogCategory::query()
             ->withCount('blogs')
             ->orderBy('name')
@@ -24,8 +27,8 @@ class BlogCategoryController extends Controller
                 'name' => $category->name,
                 'slug' => $category->slug,
                 'blogs_count' => $category->blogs_count ?? 0,
-                'created_at' => optional($category->created_at)->toIso8601String(),
-                'updated_at' => optional($category->updated_at)->toIso8601String(),
+                'created_at' => $formatter->iso($category->created_at),
+                'updated_at' => $formatter->iso($category->updated_at),
             ])
             ->values()
             ->all();
@@ -62,13 +65,15 @@ class BlogCategoryController extends Controller
     {
         $category->loadCount('blogs');
 
+        $formatter = DateFormatter::for(request()->user());
+
         return inertia('acp/BlogCategoryEdit', [
             'category' => [
                 'id' => $category->id,
                 'name' => $category->name,
                 'slug' => $category->slug,
-                'created_at' => optional($category->created_at)->toIso8601String(),
-                'updated_at' => optional($category->updated_at)->toIso8601String(),
+                'created_at' => $formatter->iso($category->created_at),
+                'updated_at' => $formatter->iso($category->updated_at),
                 'blogs_count' => $category->blogs_count ?? 0,
             ],
         ]);

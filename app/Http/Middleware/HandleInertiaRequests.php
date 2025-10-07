@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Localization\DateFormatter;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -39,6 +40,9 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
+        $user = $request->user();
+        $formatter = DateFormatter::for($user);
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -52,14 +56,12 @@ class HandleInertiaRequests extends Middleware
                 'plain_text_token' => $request->session()->get('plain_text_token'),
             ],
             'auth' => [
-                'user' => $request->user() ? $request->user()->load('roles') : null,
-                'permissions' => $request->user()
-                    ? $request->user()->getAllPermissions()->pluck('name')
+                'user' => $user ? $user->load('roles') : null,
+                'permissions' => $user
+                    ? $user->getAllPermissions()->pluck('name')
                     : [],
             ],
-            'notifications' => $request->user() ? (function () use ($request) {
-                $user = $request->user();
-
+            'notifications' => $user ? (function () use ($user, $formatter) {
                 $unreadQuery = $user->unreadNotifications()->latest();
 
                 $unreadCount = (clone $unreadQuery)->count();
@@ -67,7 +69,7 @@ class HandleInertiaRequests extends Middleware
                 $items = $unreadQuery
                     ->limit(10)
                     ->get()
-                    ->map(static function ($notification) {
+                    ->map(function ($notification) use ($formatter) {
                         $data = $notification->data ?? [];
 
                         return [
@@ -77,9 +79,9 @@ class HandleInertiaRequests extends Middleware
                             'excerpt' => $data['excerpt'] ?? null,
                             'url' => $data['url'] ?? null,
                             'data' => $data,
-                            'created_at' => optional($notification->created_at)?->toIso8601String(),
-                            'created_at_for_humans' => optional($notification->created_at)?->diffForHumans(),
-                            'read_at' => optional($notification->read_at)?->toIso8601String(),
+                            'created_at' => $formatter->iso($notification->created_at),
+                            'created_at_for_humans' => $formatter->human($notification->created_at),
+                            'read_at' => $formatter->iso($notification->read_at),
                         ];
                     })
                     ->values()

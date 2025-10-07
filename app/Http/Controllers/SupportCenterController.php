@@ -16,6 +16,7 @@ use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
+use App\Support\Localization\DateFormatter;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
@@ -57,6 +58,8 @@ class SupportCenterController extends Controller
             ? (int) $selectedTicketCategoryId
             : null;
 
+        $formatter = DateFormatter::for($request->user());
+
         $ticketsPayload = [
             'data' => [],
             'meta' => null,
@@ -92,15 +95,15 @@ class SupportCenterController extends Controller
 
             $ticketsPayload = array_merge([
                 'data' => $tickets->getCollection()
-                    ->map(function (SupportTicket $ticket) {
+                    ->map(function (SupportTicket $ticket) use ($formatter) {
                         return [
                             'id' => $ticket->id,
                             'subject' => $ticket->subject,
                             'status' => $ticket->status,
                             'priority' => $ticket->priority,
                             'support_ticket_category_id' => $ticket->support_ticket_category_id,
-                            'created_at' => optional($ticket->created_at)->toIso8601String(),
-                            'updated_at' => optional($ticket->updated_at)->toIso8601String(),
+                            'created_at' => $formatter->iso($ticket->created_at),
+                            'updated_at' => $formatter->iso($ticket->updated_at),
                             'customer_satisfaction_rating' => $ticket->customer_satisfaction_rating,
                             'assignee' => $ticket->assignee ? [
                                 'id' => $ticket->assignee->id,
@@ -352,6 +355,8 @@ class SupportCenterController extends Controller
 
         abort_unless($user && $ticket->user_id === $user->id, 403);
 
+        $formatter = DateFormatter::for($request->user());
+
         $ticket->load([
             'assignee:id,nickname,email',
             'user:id,nickname,email',
@@ -361,11 +366,11 @@ class SupportCenterController extends Controller
         ]);
 
         $messages = $ticket->messages
-            ->map(function (SupportTicketMessage $message) use ($ticket) {
+            ->map(function (SupportTicketMessage $message) use ($ticket, $formatter) {
                 return [
                     'id' => $message->id,
                     'body' => $message->body,
-                    'created_at' => optional($message->created_at)->toIso8601String(),
+                    'created_at' => $formatter->iso($message->created_at),
                     'author' => $message->author ? [
                         'id' => $message->author->id,
                         'nickname' => $message->author->nickname,
@@ -394,7 +399,7 @@ class SupportCenterController extends Controller
             $messages[] = [
                 'id' => -$ticket->id,
                 'body' => $ticket->body,
-                'created_at' => optional($ticket->created_at)->toIso8601String(),
+                'created_at' => $formatter->iso($ticket->created_at),
                 'author' => $ticket->user ? [
                     'id' => $ticket->user->id,
                     'nickname' => $ticket->user->nickname,
@@ -413,8 +418,8 @@ class SupportCenterController extends Controller
                 'status' => $ticket->status,
                 'priority' => $ticket->priority,
                 'support_ticket_category_id' => $ticket->support_ticket_category_id,
-                'created_at' => optional($ticket->created_at)->toIso8601String(),
-                'updated_at' => optional($ticket->updated_at)->toIso8601String(),
+                'created_at' => $formatter->iso($ticket->created_at),
+                'updated_at' => $formatter->iso($ticket->updated_at),
                 'customer_satisfaction_rating' => $ticket->customer_satisfaction_rating,
                 'assignee' => $ticket->assignee ? [
                     'id' => $ticket->assignee->id,

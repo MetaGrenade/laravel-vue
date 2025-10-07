@@ -11,6 +11,7 @@ use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
@@ -22,6 +23,8 @@ class ForumCategoryController extends Controller
     public function index(Request $request): Response
     {
         abort_unless($request->user()?->can('forums.acp.view'), 403);
+
+        $formatter = DateFormatter::for($request->user());
 
         $categories = ForumCategory::query()
             ->with(['boards' => function ($query) {
@@ -36,14 +39,14 @@ class ForumCategoryController extends Controller
             ->orderBy('position')
             ->get();
 
-        $categoryItems = $categories->map(function (ForumCategory $category) {
+        $categoryItems = $categories->map(function (ForumCategory $category) use ($formatter) {
             return [
                 'id' => $category->id,
                 'title' => $category->title,
                 'slug' => $category->slug,
                 'description' => $category->description,
                 'position' => $category->position,
-                'boards' => $category->boards->map(function (ForumBoard $board) {
+                'boards' => $category->boards->map(function (ForumBoard $board) use ($formatter) {
                     $latestThread = $board->latestThread;
                     $latestAuthor = $latestThread?->lastPostAuthor ?? $latestThread?->author;
                     $latestTimestamp = $latestThread?->last_posted_at ?? $latestThread?->created_at;
@@ -62,7 +65,7 @@ class ForumCategoryController extends Controller
                                 'id' => $latestAuthor->id,
                                 'nickname' => $latestAuthor->nickname,
                             ] : null,
-                            'posted_at' => optional($latestTimestamp)->toIso8601String(),
+                            'posted_at' => $formatter->iso($latestTimestamp),
                         ] : null,
                     ];
                 })->values()->all(),

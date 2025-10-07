@@ -6,6 +6,7 @@ use App\Models\ForumBoard;
 use App\Models\ForumPost;
 use App\Models\ForumPostRevision;
 use App\Models\ForumThread;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -28,16 +29,18 @@ class ForumPostRevisionController extends Controller
         $post->loadMissing('author:id,nickname');
         $thread->loadMissing('board:id,title,slug', 'board.category:id,title,slug');
 
+        $formatter = DateFormatter::for($request->user());
+
         $revisions = $post->revisions()
             ->with('editor:id,nickname')
             ->orderByDesc('created_at')
             ->get()
-            ->map(function (ForumPostRevision $revision) {
+            ->map(function (ForumPostRevision $revision) use ($formatter) {
                 return [
                     'id' => $revision->id,
                     'body' => $revision->body,
-                    'edited_at' => optional($revision->edited_at)?->toIso8601String(),
-                    'created_at' => optional($revision->created_at)?->toIso8601String(),
+                    'edited_at' => $formatter->iso($revision->edited_at),
+                    'created_at' => $formatter->iso($revision->created_at),
                     'editor' => $revision->editor?->only(['id', 'nickname']),
                 ];
             })
@@ -61,8 +64,8 @@ class ForumPostRevisionController extends Controller
             'post' => [
                 'id' => $post->id,
                 'body' => $post->body,
-                'created_at' => optional($post->created_at)?->toIso8601String(),
-                'edited_at' => optional($post->edited_at)?->toIso8601String(),
+                'created_at' => $formatter->iso($post->created_at),
+                'edited_at' => $formatter->iso($post->edited_at),
                 'author' => $post->author?->only(['id', 'nickname']),
                 'permissions' => [
                     'canRestore' => Gate::allows('restoreRevision', $post),

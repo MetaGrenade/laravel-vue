@@ -7,6 +7,7 @@ use App\Models\Blog;
 use App\Models\SearchQueryAggregate;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Support\Localization\DateFormatter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -22,13 +23,14 @@ class AdminController extends Controller
     public function get(Request $request): Response
     {
         $metrics = $this->buildMetricSnapshot();
+        $formatter = DateFormatter::for($request->user());
 
         return Inertia::render('acp/Dashboard', [
             'metrics' => $metrics,
             'chartData' => $this->buildChartData(),
             'slaMetrics' => $this->buildSlaMetrics(),
-            'recentActivities' => $this->recentActivities(),
-            'searchInsights' => $this->buildSearchInsights(),
+            'recentActivities' => $this->recentActivities($formatter),
+            'searchInsights' => $this->buildSearchInsights($formatter),
         ]);
     }
 
@@ -69,7 +71,7 @@ class AdminController extends Controller
         ];
     }
 
-    protected function buildSearchInsights(): array
+    protected function buildSearchInsights(DateFormatter $formatter): array
     {
         $topLimit = max(1, (int) config('search.queries.top_queries_limit', 5));
         $topZeroLimit = max(1, (int) config('search.queries.top_zero_queries_limit', 5));
@@ -82,7 +84,7 @@ class AdminController extends Controller
                 'term' => $aggregate->term,
                 'total_count' => $aggregate->total_count,
                 'zero_result_count' => $aggregate->zero_result_count,
-                'last_ran_at' => optional($aggregate->last_ran_at)?->toIso8601String(),
+                'last_ran_at' => $formatter->iso($aggregate->last_ran_at),
             ])
             ->all();
 
@@ -96,15 +98,19 @@ class AdminController extends Controller
                 'term' => $aggregate->term,
                 'total_count' => $aggregate->total_count,
                 'zero_result_count' => $aggregate->zero_result_count,
-                'last_ran_at' => optional($aggregate->last_ran_at)?->toIso8601String(),
+                'last_ran_at' => $formatter->iso($aggregate->last_ran_at),
             ])
             ->all();
+
+        $lastAggregatedAt = SearchQueryAggregate::query()->max('updated_at');
 
         return [
             'top_queries' => $topQueries,
             'top_zero_queries' => $topZeroQueries,
             'zero_result_total' => (int) SearchQueryAggregate::query()->sum('zero_result_count'),
-            'last_aggregated_at' => optional(SearchQueryAggregate::query()->max('updated_at'))?->toIso8601String(),
+            'last_aggregated_at' => $lastAggregatedAt
+                ? $formatter->iso(Carbon::parse($lastAggregatedAt))
+                : null,
         ];
     }
 
@@ -338,16 +344,16 @@ class AdminController extends Controller
     /**
      * Gather a concise feed of recent platform activity.
      */
-    protected function recentActivities(): array
+    protected function recentActivities(DateFormatter $formatter): array
     {
         $userActivity = User::latest('created_at')
             ->take(5)
             ->get()
-            ->map(function (User $user) {
+            ->map(function (User $user) use ($formatter) {
                 return [
                     'id' => "user-{$user->id}",
                     'activity' => sprintf('User %s registered', $user->nickname ?? $user->name ?? 'unknown user'),
-                    'time' => optional($user->created_at)->diffForHumans(),
+                    'time' => $formatter->human($user->created_at),
                     'timestamp' => $user->created_at,
                 ];
             });
@@ -355,14 +361,14 @@ class AdminController extends Controller
         $blogActivity = Blog::latest('published_at')
             ->take(5)
             ->get()
-            ->map(function (Blog $blog) {
+            ->map(function (Blog $blog) use ($formatter) {
                 $timestamp = $blog->published_at ?? $blog->created_at;
                 $status = $blog->status === 'published' ? 'published' : 'created';
 
                 return [
                     'id' => "blog-{$blog->id}",
                     'activity' => sprintf('Blog "%s" %s', $blog->title, $status),
-                    'time' => optional($timestamp)->diffForHumans(),
+                    'time' => $formatter->human($timestamp),
                     'timestamp' => $timestamp,
                 ];
             });
@@ -371,14 +377,14 @@ class AdminController extends Controller
             ->orderByDesc(DB::raw('COALESCE(resolved_at, updated_at, created_at)'))
             ->take(5)
             ->get()
-            ->map(function (SupportTicket $ticket) {
+            ->map(function (SupportTicket $ticket) use ($formatter) {
                 $timestamp = $ticket->resolved_at ?? $ticket->updated_at ?? $ticket->created_at;
                 $status = $ticket->status ?? 'updated';
 
                 return [
                     'id' => "ticket-{$ticket->id}",
                     'activity' => sprintf('Ticket "%s" %s', $ticket->subject, $status),
-                    'time' => optional($timestamp)->diffForHumans(),
+                    'time' => $formatter->human($timestamp),
                     'timestamp' => $timestamp,
                 ];
             });

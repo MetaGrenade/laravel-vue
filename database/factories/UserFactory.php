@@ -30,6 +30,8 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'avatar_url' => sprintf('https://i.pravatar.cc/150?img=%d', fake()->numberBetween(1, 70)),
             'profile_bio' => fake()->sentences(2, true),
+            'timezone' => config('app.timezone'),
+            'locale' => config('app.locale'),
             'remember_token' => Str::random(10),
             'is_banned' => false,
         ];

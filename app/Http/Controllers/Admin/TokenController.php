@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateTokenRequest;
 use App\Models\PersonalAccessToken;
 use App\Models\TokenLog;
 use App\Models\User;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -27,6 +28,8 @@ class TokenController extends Controller
     {
         $perPage = (int) $request->get('per_page', 10);
 
+        $formatter = DateFormatter::for($request->user());
+
         $tokenQuery = PersonalAccessToken::query();
 
         // eager‐load owner
@@ -37,16 +40,16 @@ class TokenController extends Controller
             ->withQueryString();
 
         $tokenItems = $tokens->getCollection()
-            ->map(function (PersonalAccessToken $token) {
+            ->map(function (PersonalAccessToken $token) use ($formatter) {
                 $user = $token->tokenable;
 
                 return [
                     'id' => $token->id,
                     'name' => $token->name,
-                    'created_at' => optional($token->created_at)->toIso8601String(),
-                    'last_used_at' => optional($token->last_used_at)->toIso8601String(),
-                    'expires_at' => optional($token->expires_at)->toIso8601String(),
-                    'revoked_at' => optional($token->revoked_at)->toIso8601String(),
+                    'created_at' => $formatter->iso($token->created_at),
+                    'last_used_at' => $formatter->iso($token->last_used_at),
+                    'expires_at' => $formatter->iso($token->expires_at),
+                    'revoked_at' => $formatter->iso($token->revoked_at),
                     'abilities' => $token->abilities ?? [],
                     'user' => $user ? [
                         'id' => $user->id,
@@ -117,7 +120,7 @@ class TokenController extends Controller
             ->withQueryString();
 
         $tokenLogItems = $tokenLogs->getCollection()
-            ->map(function (TokenLog $log) {
+            ->map(function (TokenLog $log) use ($formatter) {
                 $tokenName = $log->token_name ?? optional($log->token)->name;
 
                 return [
@@ -127,7 +130,7 @@ class TokenController extends Controller
                     'method' => $log->method,
                     'status' => $log->status,
                     'http_status' => $log->http_status,
-                    'timestamp' => optional($log->created_at)->toIso8601String(),
+                    'timestamp' => $formatter->iso($log->created_at),
                 ];
             })
             ->values()
@@ -228,6 +231,8 @@ class TokenController extends Controller
 
         $tokenName = $tokenLog->token_name ?? optional($tokenLog->token)->name;
 
+        $formatter = DateFormatter::for(request()->user());
+
         return Inertia::render('acp/TokenLogView', [
             'log' => [
                 'id' => $tokenLog->id,
@@ -236,7 +241,7 @@ class TokenController extends Controller
                 'method' => $tokenLog->method,
                 'status' => $tokenLog->status,
                 'http_status' => $tokenLog->http_status,
-                'timestamp' => optional($tokenLog->created_at)->toIso8601String(),
+                'timestamp' => $formatter->iso($tokenLog->created_at),
                 'ip' => $tokenLog->ip_address,
                 'response_time_ms' => $tokenLog->response_time_ms,
                 'request_payload' => $tokenLog->request_payload,
