@@ -17,6 +17,11 @@ const sidebarNavItems: NavItem[] = [
         target: '_self'
     },
     {
+        title: 'Security',
+        href: '/settings/security',
+        target: '_self'
+    },
+    {
         title: 'Appearance',
         href: '/settings/appearance',
         target: '_self'
@@ -51,8 +56,8 @@ const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.locati
 
             <Separator class="my-6 md:hidden" />
 
-            <div class="flex-1 md:max-w-2xl">
-                <section class="max-w-xl space-y-12">
+            <div class="flex-1">
+                <section class="space-y-12">
                     <slot />
                 </section>
             </div>
