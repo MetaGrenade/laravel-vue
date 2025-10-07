@@ -11,9 +11,21 @@ class StoreSupportTicketMessageRequest extends FormRequest
     {
         $ticket = $this->route('ticket');
 
-        return $ticket instanceof SupportTicket
-            && $this->user()
-            && $this->user()->can('support.acp.reply');
+        if (! $ticket instanceof SupportTicket) {
+            return false;
+        }
+
+        $user = $this->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->can('support.acp.reply')) {
+            return true;
+        }
+
+        return (int) $ticket->assigned_to === (int) $user->id;
     }
 
     public function rules(): array
