@@ -10,6 +10,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,8 +25,10 @@ class ForumController extends Controller
 {
     use InteractsWithInertiaPagination;
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $formatter = DateFormatter::for($request->user());
+
         $categories = ForumCategory::query()
             ->with(['boards' => function ($query) {
                 $query->withCount([
@@ -65,13 +68,13 @@ class ForumController extends Controller
             ->get();
 
         return Inertia::render('Forum', [
-            'categories' => $categories->map(function (ForumCategory $category) {
+            'categories' => $categories->map(function (ForumCategory $category) use ($formatter) {
                 return [
                     'id' => $category->id,
                     'title' => $category->title,
                     'slug' => $category->slug,
                     'description' => $category->description,
-                    'boards' => $category->boards->map(function (ForumBoard $board) {
+                    'boards' => $category->boards->map(function (ForumBoard $board) use ($formatter) {
                         $latestThread = $board->latestThread;
                         $latestPost = $latestThread?->latestPost;
 
@@ -89,13 +92,13 @@ class ForumController extends Controller
                                 'board_slug' => $board->slug,
                                 'author' => $latestThread->author?->nickname,
                                 'last_reply_author' => $latestPost?->author?->nickname,
-                                'last_reply_at' => $latestPost?->created_at?->toDayDateTimeString(),
+                                'last_reply_at' => $formatter->dayDateTime($latestPost?->created_at),
                             ] : null,
                         ];
                     })->values(),
                 ];
             })->values(),
-            'trendingThreads' => $trendingThreads->map(function (ForumThread $thread) {
+            'trendingThreads' => $trendingThreads->map(function (ForumThread $thread) use ($formatter) {
                 return [
                     'id' => $thread->id,
                     'title' => $thread->title,
@@ -108,10 +111,10 @@ class ForumController extends Controller
                     'author' => $thread->author?->nickname,
                     'views' => $thread->views,
                     'replies' => max($thread->posts_count - 1, 0),
-                    'last_reply_at' => optional($thread->last_posted_at)->toDayDateTimeString(),
+                    'last_reply_at' => $formatter->dayDateTime($thread->last_posted_at),
                 ];
             })->values(),
-            'latestPosts' => $latestPosts->map(function (ForumPost $post) {
+            'latestPosts' => $latestPosts->map(function (ForumPost $post) use ($formatter) {
                 return [
                     'id' => $post->id,
                     'title' => $post->thread->title,
@@ -119,7 +122,7 @@ class ForumController extends Controller
                     'board_slug' => $post->thread->board->slug,
                     'board_title' => $post->thread->board->title,
                     'author' => $post->author?->nickname,
-                    'created_at' => $post->created_at->toDayDateTimeString(),
+                    'created_at' => $formatter->dayDateTime($post->created_at),
                     'thread_id' => $post->thread->id,
                 ];
             })->values(),
@@ -184,6 +187,8 @@ class ForumController extends Controller
         $user = $request->user();
         $isModerator = $user?->hasAnyRole(['admin', 'editor', 'moderator']);
 
+        $formatter = DateFormatter::for($user);
+
         $includeReads = $user !== null;
 
         $threadsQuery = $board->threads()
@@ -220,7 +225,7 @@ class ForumController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $threadItems = $threads->getCollection()->map(function (ForumThread $thread) use ($user, $isModerator) {
+        $threadItems = $threads->getCollection()->map(function (ForumThread $thread) use ($user, $isModerator, $formatter) {
             $latestPost = $thread->latestPost;
 
             $hasUnread = $user !== null && $thread->last_posted_at !== null && (
@@ -239,7 +244,7 @@ class ForumController extends Controller
                 'is_published' => $thread->is_published,
                 'has_unread' => $hasUnread,
                 'last_reply_author' => $latestPost?->author?->nickname,
-                'last_reply_at' => $latestPost?->created_at?->toDayDateTimeString(),
+                'last_reply_at' => $formatter->dayDateTime($latestPost?->created_at),
                 'permissions' => [
                     'canReport' => $user !== null && $user->id !== $thread->user_id,
                     'canModerate' => (bool) $isModerator,
@@ -290,6 +295,8 @@ class ForumController extends Controller
 
         $isModerator = $user?->hasAnyRole(['admin', 'editor', 'moderator']);
 
+        $formatter = DateFormatter::for($user);
+
         if (!$thread->is_published && !$isModerator) {
             abort(404);
         }
@@ -334,7 +341,7 @@ class ForumController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator, $thread) {
+        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator, $thread, $formatter) {
             $author = $post->author;
 
             $canModerate = (bool) $isModerator;
@@ -349,13 +356,13 @@ class ForumController extends Controller
                 'body' => $post->body,
                 'body_raw' => $post->body,
                 'quote_html' => $this->serialiseQuote($post->body),
-                'created_at' => $post->created_at->toDayDateTimeString(),
-                'edited_at' => optional($post->edited_at)?->toDayDateTimeString(),
+                'created_at' => $formatter->dayDateTime($post->created_at),
+                'edited_at' => $formatter->dayDateTime($post->edited_at),
                 'number' => $posts->firstItem() ? ($posts->firstItem() + $index) : ($index + 1),
                 'author' => [
                     'id' => $author?->id,
                     'nickname' => $author?->nickname,
-                    'joined_at' => $author?->created_at?->toFormattedDateString(),
+                    'joined_at' => $formatter->date($author?->created_at),
                     'forum_posts_count' => $author?->forum_posts_count ?? 0,
                     'primary_role' => $author?->getRoleNames()->first() ?? 'Member',
                     'avatar_url' => $author?->avatar_url,
@@ -442,7 +449,7 @@ class ForumController extends Controller
                 'is_published' => $thread->is_published,
                 'views' => $thread->views,
                 'author' => $thread->author?->nickname,
-                'last_posted_at' => optional($thread->last_posted_at)->toDayDateTimeString(),
+                'last_posted_at' => $formatter->dayDateTime($thread->last_posted_at),
                 'is_subscribed' => $isSubscribed,
                 'subscribers_count' => $thread->subscriptions_count,
                 'permissions' => [

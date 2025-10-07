@@ -30,13 +30,22 @@ class DateFormatter
         return $this->locale;
     }
 
-    public function iso(?CarbonInterface $date): ?string
+    protected function normalise(?CarbonInterface $date): ?CarbonInterface
     {
         if (! $date) {
             return null;
         }
 
-        return $date->copy()->setTimezone($this->timezone)->toIso8601String();
+        return $date->copy()
+            ->setTimezone($this->timezone)
+            ->locale($this->locale);
+    }
+
+    public function iso(?CarbonInterface $date): ?string
+    {
+        $date = $this->normalise($date);
+
+        return $date?->toIso8601String();
     }
 
     public function human(
@@ -45,13 +54,22 @@ class DateFormatter
         bool $short = false,
         int $parts = 1,
     ): ?string {
-        if (! $date) {
-            return null;
-        }
+        $date = $this->normalise($date);
 
-        return $date->copy()
-            ->setTimezone($this->timezone)
-            ->locale($this->locale)
-            ->diffForHumans(null, $absolute, $short, $parts);
+        return $date?->diffForHumans(null, $absolute, $short, $parts);
+    }
+
+    public function dayDateTime(?CarbonInterface $date): ?string
+    {
+        $date = $this->normalise($date);
+
+        return $date?->isoFormat('ddd, MMM D, YYYY h:mm A');
+    }
+
+    public function date(?CarbonInterface $date): ?string
+    {
+        $date = $this->normalise($date);
+
+        return $date?->isoFormat('LL');
     }
 }
