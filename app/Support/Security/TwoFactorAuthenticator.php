@@ -3,6 +3,7 @@
 namespace App\Support\Security;
 
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
@@ -50,7 +51,7 @@ class TwoFactorAuthenticator
      */
     public static function code(string $secret, ?int $timestamp = null, int $digits = self::DEFAULT_DIGITS): string
     {
-        $timestamp ??= time();
+        $timestamp ??= Carbon::now()->getTimestamp();
         $timeSlice = (int) floor($timestamp / self::DEFAULT_PERIOD);
 
         return self::generateCodeForSlice($secret, $timeSlice, $digits);
@@ -67,7 +68,7 @@ class TwoFactorAuthenticator
             return false;
         }
 
-        $timestamp ??= time();
+        $timestamp ??= Carbon::now()->getTimestamp();
         $timeSlice = (int) floor($timestamp / self::DEFAULT_PERIOD);
 
         for ($i = -$window; $i <= $window; $i++) {
