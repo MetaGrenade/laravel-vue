@@ -180,8 +180,10 @@ const regenerateRecoveryCodes = () => {
                                     {{ session.user_agent ?? 'No user agent information recorded.' }}
                                 </p>
                             </CardContent>
-                            <CardFooter class="flex items-center justify-between">
-                                <span class="text-xs text-muted-foreground">
+                            <CardFooter
+                                class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                                <span class="break-all text-xs text-muted-foreground">
                                     Session ID: {{ session.id }}
                                 </span>
                                 <Button
