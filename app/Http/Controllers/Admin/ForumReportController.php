@@ -267,6 +267,88 @@ class ForumReportController extends Controller
         ]);
     }
 
+    public function bulkUpdateStatus(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->can('forums.acp.view'), 403);
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in(ForumThreadReport::STATUSES)],
+            'reports' => ['required', 'array', 'min:1'],
+            'reports.*.id' => ['required', 'integer'],
+            'reports.*.type' => ['required', 'string', Rule::in(['thread', 'post'])],
+        ]);
+
+        $normalized = collect($validated['reports'])
+            ->map(function (array $report) {
+                return [
+                    'id' => (int) $report['id'],
+                    'type' => $report['type'],
+                ];
+            })
+            ->unique(fn (array $report) => $report['type'] . '-' . $report['id'])
+            ->values();
+
+        if ($normalized->isEmpty()) {
+            return back()->with('success', 'No forum reports required updates.');
+        }
+
+        $timestamp = now();
+        $userId = optional($request->user())->id;
+        $updatedCount = 0;
+
+        $threadIds = $normalized
+            ->where('type', 'thread')
+            ->pluck('id')
+            ->all();
+
+        if (! empty($threadIds)) {
+            ForumThreadReport::query()
+                ->whereIn('id', $threadIds)
+                ->get()
+                ->each(function (ForumThreadReport $report) use ($validated, $timestamp, $userId, &$updatedCount) {
+                    $report->forceFill([
+                        'status' => $validated['status'],
+                        'reviewed_at' => $validated['status'] === ForumThreadReport::STATUS_PENDING ? null : $timestamp,
+                        'reviewed_by' => $validated['status'] === ForumThreadReport::STATUS_PENDING ? null : $userId,
+                    ])->save();
+
+                    if ($report->wasChanged(['status', 'reviewed_at', 'reviewed_by'])) {
+                        $updatedCount++;
+                    }
+                });
+        }
+
+        $postIds = $normalized
+            ->where('type', 'post')
+            ->pluck('id')
+            ->all();
+
+        if (! empty($postIds)) {
+            ForumPostReport::query()
+                ->whereIn('id', $postIds)
+                ->get()
+                ->each(function (ForumPostReport $report) use ($validated, $timestamp, $userId, &$updatedCount) {
+                    $report->forceFill([
+                        'status' => $validated['status'],
+                        'reviewed_at' => $validated['status'] === ForumPostReport::STATUS_PENDING ? null : $timestamp,
+                        'reviewed_by' => $validated['status'] === ForumPostReport::STATUS_PENDING ? null : $userId,
+                    ])->save();
+
+                    if ($report->wasChanged(['status', 'reviewed_at', 'reviewed_by'])) {
+                        $updatedCount++;
+                    }
+                });
+        }
+
+        $message = match ($updatedCount) {
+            0 => 'No forum reports required updates.',
+            1 => 'Updated 1 forum report.',
+            default => "Updated {$updatedCount} forum reports.",
+        };
+
+        return back()->with('success', $message);
+    }
+
     public function updateThread(Request $request, ForumThreadReport $report): RedirectResponse
     {
         $validated = $request->validate([

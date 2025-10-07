@@ -714,6 +714,63 @@ class SupportController extends Controller
         return back()->with('success', $message);
     }
 
+    public function bulkUpdateStatus(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->can('support.acp.status'), 403);
+
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['open', 'pending', 'closed'])],
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:support_tickets,id'],
+        ]);
+
+        $ids = array_values(array_unique(array_map('intval', $validated['ids'])));
+
+        $tickets = SupportTicket::query()
+            ->whereIn('id', $ids)
+            ->get();
+
+        if ($tickets->isEmpty()) {
+            return back()->with('success', 'No support tickets required updates.');
+        }
+
+        $userId = (int) $request->user()->id;
+        $updatedCount = 0;
+
+        DB::transaction(function () use ($tickets, $validated, $userId, &$updatedCount) {
+            foreach ($tickets as $ticket) {
+                $previousStatus = $ticket->status;
+                $resolutionUpdates = $this->resolutionAttributes($ticket, $validated['status'], $userId);
+
+                if ($previousStatus === $validated['status'] && $resolutionUpdates === []) {
+                    continue;
+                }
+
+                $ticket->update(array_merge([
+                    'status' => $validated['status'],
+                ], $resolutionUpdates));
+
+                $updatedCount++;
+
+                if ($previousStatus !== $ticket->status) {
+                    $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $previousStatus) {
+                        return (new TicketStatusUpdated($ticket, $previousStatus))
+                            ->forAudience($audience)
+                            ->withChannels($channels);
+                    });
+                }
+            }
+        });
+
+        $message = match ($updatedCount) {
+            0 => 'No support tickets required updates.',
+            1 => 'Updated 1 support ticket.',
+            default => "Updated {$updatedCount} support tickets.",
+        };
+
+        return back()->with('success', $message);
+    }
+
     // FAQ
     /**
      * Show the form for creating a new FAQ.
