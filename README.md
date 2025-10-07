@@ -53,6 +53,8 @@ resources/
    php artisan key:generate
    ```
    Update database credentials and any third-party service keys.
+   If you plan to enable malware scanning for support attachments, review the
+   file scanner configuration in this step as well.
 3. **Database**
    ```bash
    php artisan migrate
@@ -86,6 +88,53 @@ resources/
    const canManageUsers = computed(() => hasPermission('users.acp.manage'));
    ```
 - **Queues & Background Work**: `composer dev` also starts `queue:listen` so job dispatches from forum moderation or notifications run instantly during development.
+
+## Attachment Malware Scanning
+
+Support ticket uploads pass through a configurable scanning pipeline before the
+files are persisted. The defaults ship with scanning disabled so local
+development is frictionless, but production deployments should enable a real
+scanner and quarantine storage location.
+
+### Configuration Overview
+
+- `config/filescanner.php` controls the default driver and quarantine disk.
+- `.env` variables:
+  - `FILE_SCANNER_DRIVER`: set to the driver key that should handle scans.
+  - `FILE_SCANNER_QUARANTINE_DISK`: storage disk used when quarantining blocked
+    files.
+- The framework container resolves `App\Support\FileScanning\FileScanner` to
+  the driver implementation. The default `null` driver always reports files as
+  clean, so change this binding when you wire up a real scanner.
+
+### Driver Implementation Options
+
+Register a service provider binding for a concrete driver that implements the
+`FileScanner` interface. Popular approaches include:
+
+1. **ClamAV (Self-Hosted)**
+   - Install the ClamAV daemon (`clamd`) on your infrastructure.
+   - Use an adapter package such as [`sunspikes/clamav-validator`](https://github.com/sunspikes/clamav-validator) or write a
+     thin driver that connects to the `clamd` socket/CLI and maps the response
+     to `FileScanResult`.
+   - Set `FILE_SCANNER_DRIVER=clamav` (or any custom name) and update the
+     container binding in `AppServiceProvider` to resolve the new driver when
+     that key is requested.
+
+2. **Cloud Malware Scanning Services**
+   - AWS (Macie/GuardDuty), Azure Defender for Storage, and Google Cloud Storage
+     Threat Detection can scan uploaded objects. Your driver can stream the
+     incoming attachment to the provider, poll for the verdict, and return the
+     result before persisting the file locally.
+   - Alternatively, SaaS APIs such as Cloudmersive or OPSWAT MetaDefender offer
+     REST endpoints for on-demand scans. Use an HTTP client inside the driver to
+     submit the file and translate the response payload into a
+     `FileScanResult`.
+
+Whichever option you choose, ensure blocked files are not stored on the public
+disk and that friendly error messages are surfaced to end users. Feature tests
+under `tests/Feature/Support/SupportTicketAttachmentScanningTest.php` cover the
+expected behaviour for both clean and quarantined uploads.
 
 ## Feature Notes & Endpoints
 - **Forum moderation routes** handle publishing, locking, pinning, reporting, and deletion, guarded by role middleware (`role:admin|editor|moderator`).
