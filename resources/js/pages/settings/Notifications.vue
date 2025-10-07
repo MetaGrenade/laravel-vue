@@ -95,8 +95,8 @@ watch(
     preferences => {
         const channels = buildChannelState(preferences);
 
-        form.setData('channels', channels);
-        form.defaults({ channels: buildChannelState(preferences) });
+        form.channels = channels;
+        form.defaults({ channels });
     },
     { deep: true },
 );
