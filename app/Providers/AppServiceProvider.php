@@ -7,6 +7,8 @@ use App\Models\ForumPost;
 use App\Models\PersonalAccessToken;
 use App\Policies\BlogPolicy;
 use App\Policies\ForumPostPolicy;
+use App\Support\FileScanning\FileScanner;
+use App\Support\FileScanning\NullFileScanner;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -19,7 +21,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(FileScanner::class, function ($app): FileScanner {
+            $driver = $app['config']->get('filescanner.driver', 'null');
+
+            return match ($driver) {
+                default => new NullFileScanner(),
+            };
+        });
     }
 
     /**
