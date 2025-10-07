@@ -10,6 +10,7 @@ use App\Models\BlogCategory;
 use App\Models\BlogTag;
 use App\Models\BlogRevision;
 use App\Models\User;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -34,6 +35,8 @@ class BlogController extends Controller
         if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'created_desc';
         }
+
+        $formatter = DateFormatter::for($request->user());
 
         $minViewsInput = $request->query('min_views');
         $maxViewsInput = $request->query('max_views');
@@ -126,16 +129,16 @@ class BlogController extends Controller
             ->withQueryString();
 
         $blogItems = $blogs->getCollection()
-            ->map(function (Blog $blog) {
+            ->map(function (Blog $blog) use ($formatter) {
                 return [
                     'id' => $blog->id,
                     'title' => $blog->title,
                     'slug' => $blog->slug,
                     'status' => $blog->status,
-                    'created_at' => optional($blog->created_at)->toIso8601String(),
-                    'scheduled_for' => optional($blog->scheduled_for)->toIso8601String(),
+                    'created_at' => $formatter->iso($blog->created_at),
+                    'scheduled_for' => $formatter->iso($blog->scheduled_for),
                     'views' => $blog->views,
-                    'last_viewed_at' => optional($blog->last_viewed_at)->toIso8601String(),
+                    'last_viewed_at' => $formatter->iso($blog->last_viewed_at),
                     'user' => $blog->user ? [
                         'id' => $blog->user->id,
                         'nickname' => $blog->user->nickname,
@@ -182,14 +185,14 @@ class BlogController extends Controller
         }
 
         $trendingPostsPayload = $trendingPosts
-            ->map(function (Blog $post) {
+            ->map(function (Blog $post) use ($formatter) {
                 return [
                     'id' => $post->id,
                     'title' => $post->title,
                     'slug' => $post->slug,
                     'views' => $post->views,
-                    'last_viewed_at' => optional($post->last_viewed_at)->toIso8601String(),
-                    'published_at' => optional($post->published_at)->toIso8601String(),
+                    'last_viewed_at' => $formatter->iso($post->last_viewed_at),
+                    'published_at' => $formatter->iso($post->published_at),
                     'label' => Str::limit($post->title, 40),
                 ];
             })
@@ -325,8 +328,9 @@ class BlogController extends Controller
             ])->save();
         }
 
-        return inertia('acp/BlogEdit', [
-            'blog' => array_merge($blog->only([
+        $formatter = DateFormatter::for(request()->user());
+
+        $blogPayload = array_merge($blog->only([
                 'id',
                 'title',
                 'slug',
@@ -361,7 +365,15 @@ class BlogController extends Controller
                     ])
                     ->all(),
                 'user' => $this->authorPayload($blog->user),
-            ]),
+            ]);
+
+        $blogPayload['created_at'] = $formatter->iso($blog->created_at);
+        $blogPayload['updated_at'] = $formatter->iso($blog->updated_at);
+        $blogPayload['published_at'] = $formatter->iso($blog->published_at);
+        $blogPayload['scheduled_for'] = $formatter->iso($blog->scheduled_for);
+
+        return inertia('acp/BlogEdit', [
+            'blog' => $blogPayload,
             'categories' => BlogCategory::query()
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug'])
@@ -478,6 +490,8 @@ class BlogController extends Controller
             'tags:id,name,slug',
         ]);
 
+        $formatter = DateFormatter::for(request()->user());
+
         $revisionModels = $blog->revisions()
             ->with('editor:id,nickname')
             ->orderByDesc('created_at')
@@ -508,7 +522,7 @@ class BlogController extends Controller
             ->keyBy('id');
 
         $revisions = $revisionModels
-            ->map(function (BlogRevision $revision) use ($categoryMap, $tagMap) {
+            ->map(function (BlogRevision $revision) use ($categoryMap, $tagMap, $formatter) {
                 $categories = collect($revision->category_ids ?? [])
                     ->map(function ($id) use ($categoryMap) {
                         $category = $categoryMap->get($id);
@@ -556,10 +570,10 @@ class BlogController extends Controller
                         ? Storage::disk('public')->url($revision->cover_image)
                         : null,
                     'status' => $revision->status,
-                    'published_at' => optional($revision->published_at)?->toIso8601String(),
-                    'scheduled_for' => optional($revision->scheduled_for)?->toIso8601String(),
-                    'edited_at' => optional($revision->edited_at)?->toIso8601String(),
-                    'created_at' => optional($revision->created_at)?->toIso8601String(),
+                    'published_at' => $formatter->iso($revision->published_at),
+                    'scheduled_for' => $formatter->iso($revision->scheduled_for),
+                    'edited_at' => $formatter->iso($revision->edited_at),
+                    'created_at' => $formatter->iso($revision->created_at),
                     'category_ids' => $revision->category_ids ?? [],
                     'tag_ids' => $revision->tag_ids ?? [],
                     'categories' => $categories,
@@ -588,13 +602,13 @@ class BlogController extends Controller
                 'cover_image_url' => $blog->cover_image
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
-                'created_at' => optional($blog->created_at)?->toIso8601String(),
-                'updated_at' => optional($blog->updated_at)?->toIso8601String(),
-                'published_at' => optional($blog->published_at)?->toIso8601String(),
-                'scheduled_for' => optional($blog->scheduled_for)?->toIso8601String(),
+                'created_at' => $formatter->iso($blog->created_at),
+                'updated_at' => $formatter->iso($blog->updated_at),
+                'published_at' => $formatter->iso($blog->published_at),
+                'scheduled_for' => $formatter->iso($blog->scheduled_for),
                 'metadata' => [
                     'views' => $blog->views,
-                    'last_viewed_at' => optional($blog->last_viewed_at)?->toIso8601String(),
+                    'last_viewed_at' => $formatter->iso($blog->last_viewed_at),
                     'preview_token' => $blog->preview_token,
                 ],
                 'author' => $blog->user

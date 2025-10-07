@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use App\Models\User;
+use App\Support\Localization\PreferenceOptions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,6 +36,16 @@ class ProfileUpdateRequest extends FormRequest
             }
 
             $payload['social_links'] = $socialLinks;
+        }
+
+        if ($this->exists('timezone')) {
+            $timezone = is_string($this->input('timezone')) ? trim($this->input('timezone')) : '';
+            $payload['timezone'] = $timezone;
+        }
+
+        if ($this->exists('locale')) {
+            $locale = is_string($this->input('locale')) ? trim($this->input('locale')) : '';
+            $payload['locale'] = $locale;
         }
 
         if (! empty($payload)) {
@@ -91,6 +102,18 @@ class ProfileUpdateRequest extends FormRequest
                 'nullable',
                 'url',
                 'max:2048',
+            ],
+            'timezone' => [
+                'sometimes',
+                'filled',
+                'string',
+                Rule::in(PreferenceOptions::timezoneValues()),
+            ],
+            'locale' => [
+                'sometimes',
+                'filled',
+                'string',
+                Rule::in(PreferenceOptions::localeValues()),
             ],
         ];
     }

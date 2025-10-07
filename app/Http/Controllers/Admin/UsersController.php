@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -79,6 +80,8 @@ class UsersController extends Controller
             }
         }
 
+        $formatter = DateFormatter::for($request->user());
+
         $users = (clone $filteredQuery)
             ->with(['roles:id,name', 'bannedBy:id,nickname'])
             ->orderByDesc('created_at')
@@ -86,17 +89,17 @@ class UsersController extends Controller
             ->withQueryString();
 
         $userItems = $users->getCollection()
-            ->map(function (User $user) {
+            ->map(function (User $user) use ($formatter) {
                 return [
                     'id' => $user->id,
                     'nickname' => $user->nickname,
                     'email' => $user->email,
-                    'email_verified_at' => optional($user->email_verified_at)->toIso8601String(),
-                    'last_activity_at' => optional($user->last_activity_at)->toIso8601String(),
+                    'email_verified_at' => $formatter->iso($user->email_verified_at),
+                    'last_activity_at' => $formatter->iso($user->last_activity_at),
                     'is_banned' => $user->is_banned,
-                    'banned_at' => optional($user->banned_at)->toIso8601String(),
+                    'banned_at' => $formatter->iso($user->banned_at),
                     'banned_by' => $user->bannedBy?->only(['id', 'nickname']),
-                    'created_at' => optional($user->created_at)->toIso8601String(),
+                    'created_at' => $formatter->iso($user->created_at),
                     'roles' => $user->roles
                         ->map(fn ($role) => ['name' => $role->name])
                         ->values()

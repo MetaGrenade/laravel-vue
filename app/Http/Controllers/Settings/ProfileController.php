@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Support\EmailVerification;
+use App\Support\Localization\PreferenceOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -22,6 +23,8 @@ class ProfileController extends Controller
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => EmailVerification::isRequired(),
             'status' => $request->session()->get('status'),
+            'timezoneOptions' => PreferenceOptions::timezoneOptions(),
+            'localeOptions' => PreferenceOptions::localeOptions(),
         ]);
     }
 

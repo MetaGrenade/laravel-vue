@@ -7,6 +7,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Support\Localization\DateFormatter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -24,11 +25,13 @@ class DashboardController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        $formatter = DateFormatter::for($user);
+
         return Inertia::render('Dashboard', [
             'metrics' => $this->buildMetrics($user),
             'activityChart' => $this->buildActivityChart($user),
-            'recentItems' => $this->recentActivity($user),
-            'recommendedArticles' => $this->recommendedArticles(),
+            'recentItems' => $this->recentActivity($user, $formatter),
+            'recommendedArticles' => $this->recommendedArticles($formatter),
         ]);
     }
 
@@ -133,21 +136,21 @@ class DashboardController extends Controller
     /**
      * Collect the latest items the user interacted with.
      */
-    protected function recentActivity(User $user): array
+    protected function recentActivity(User $user, DateFormatter $formatter): array
     {
         $threads = $user->forumThreads()
             ->with(['board:id,slug'])
             ->latest('updated_at')
             ->take(5)
             ->get()
-            ->map(function (ForumThread $thread) {
+            ->map(function (ForumThread $thread) use ($formatter) {
                 $timestamp = $thread->updated_at ?? $thread->created_at;
 
                 return [
                     'id' => "thread-{$thread->id}",
                     'summary' => sprintf('Updated thread "%s"', $thread->title),
                     'context' => 'Forum thread',
-                    'time' => optional($timestamp)->diffForHumans(),
+                    'time' => $formatter->human($timestamp),
                     'url' => $thread->board
                         ? route('forum.threads.show', [$thread->board->slug, $thread->slug])
                         : null,
@@ -160,7 +163,7 @@ class DashboardController extends Controller
             ->latest('created_at')
             ->take(5)
             ->get()
-            ->map(function (ForumPost $post) {
+            ->map(function (ForumPost $post) use ($formatter) {
                 $thread = $post->thread;
                 $board = $thread?->board;
                 $timestamp = $post->created_at;
@@ -171,7 +174,7 @@ class DashboardController extends Controller
                         ? sprintf('Replied to "%s"', $thread->title)
                         : 'Posted a forum reply',
                     'context' => 'Forum reply',
-                    'time' => optional($timestamp)->diffForHumans(),
+                    'time' => $formatter->human($timestamp),
                     'url' => $thread && $board
                         ? route('forum.threads.show', [$board->slug, $thread->slug]) . "#post-{$post->id}"
                         : null,
@@ -184,7 +187,7 @@ class DashboardController extends Controller
             ->latest('updated_at')
             ->take(5)
             ->get()
-            ->map(function (SupportTicket $ticket) {
+            ->map(function (SupportTicket $ticket) use ($formatter) {
                 $timestamp = $ticket->updated_at ?? $ticket->created_at;
                 $status = $ticket->status ?? 'updated';
 
@@ -192,7 +195,7 @@ class DashboardController extends Controller
                     'id' => "ticket-{$ticket->id}",
                     'summary' => sprintf('Ticket "%s" %s', $ticket->subject, $status),
                     'context' => 'Support',
-                    'time' => optional($timestamp)->diffForHumans(),
+                    'time' => $formatter->human($timestamp),
                     'url' => route('support'),
                     'timestamp' => $timestamp,
                 ];
@@ -211,7 +214,7 @@ class DashboardController extends Controller
     /**
      * Highlight recently published knowledge base articles.
      */
-    protected function recommendedArticles(): array
+    protected function recommendedArticles(DateFormatter $formatter): array
     {
         return Blog::query()
             ->where('status', 'published')
@@ -219,7 +222,7 @@ class DashboardController extends Controller
             ->orderByDesc('created_at')
             ->take(5)
             ->get()
-            ->map(function (Blog $blog) {
+            ->map(function (Blog $blog) use ($formatter) {
                 $timestamp = $blog->published_at ?? $blog->created_at;
 
                 return [
@@ -227,7 +230,7 @@ class DashboardController extends Controller
                     'title' => $blog->title,
                     'excerpt' => $blog->excerpt,
                     'url' => route('blogs.view', $blog->slug),
-                    'published_at' => optional($timestamp)->toIso8601String(),
+                    'published_at' => $formatter->iso($timestamp),
                 ];
             })
             ->all();

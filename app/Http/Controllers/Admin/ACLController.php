@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdatePermissionRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use Illuminate\Http\Request;
+use App\Support\Localization\DateFormatter;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
@@ -25,6 +26,8 @@ class ACLController extends Controller
     {
         $perPage = (int) $request->get('per_page', 15);
 
+        $formatter = DateFormatter::for($request->user());
+
         $roles = Role::query()
             ->with(['permissions:id,name,guard_name'])
             ->orderBy('name')
@@ -37,12 +40,12 @@ class ACLController extends Controller
             ->withQueryString();
 
         $roleItems = $roles->getCollection()
-            ->map(function (Role $role) {
+            ->map(function (Role $role) use ($formatter) {
                 return [
                     'id' => $role->id,
                     'name' => $role->name,
                     'guard_name' => $role->guard_name,
-                    'created_at' => optional($role->created_at)->toIso8601String(),
+                    'created_at' => $formatter->iso($role->created_at),
                     'permissions' => $role->permissions
                         ->map(fn (Permission $permission) => [
                             'id' => $permission->id,
@@ -57,12 +60,12 @@ class ACLController extends Controller
             ->all();
 
         $permissionItems = $permissions->getCollection()
-            ->map(function (Permission $permission) {
+            ->map(function (Permission $permission) use ($formatter) {
                 return [
                     'id' => $permission->id,
                     'name' => $permission->name,
                     'guard_name' => $permission->guard_name,
-                    'created_at' => optional($permission->created_at)->toIso8601String(),
+                    'created_at' => $formatter->iso($permission->created_at),
                 ];
             })
             ->values()

@@ -8,6 +8,7 @@ use App\Models\BlogCategory;
 use App\Models\BlogComment;
 use App\Models\BlogTag;
 use App\Models\User;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
@@ -33,6 +34,8 @@ class BlogController extends Controller
         $sortMode = in_array($sortFilter->toString(), ['latest', 'oldest', 'popular'], true)
             ? $sortFilter->toString()
             : 'latest';
+
+        $formatter = DateFormatter::for($request->user());
 
         $this->publishDueScheduledBlogs();
 
@@ -87,7 +90,7 @@ class BlogController extends Controller
             ->paginate(9)
             ->withQueryString();
 
-        $blogItems = $blogs->getCollection()->map(function (Blog $blog) {
+        $blogItems = $blogs->getCollection()->map(function (Blog $blog) use ($formatter) {
             return [
                 'id' => $blog->id,
                 'title' => $blog->title,
@@ -97,8 +100,8 @@ class BlogController extends Controller
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
                 'views' => $blog->views,
-                'last_viewed_at' => optional($blog->last_viewed_at)->toIso8601String(),
-                'published_at' => optional($blog->published_at)->toIso8601String(),
+                'last_viewed_at' => $formatter->iso($blog->last_viewed_at),
+                'published_at' => $formatter->iso($blog->published_at),
                 'author' => $this->transformAuthor($blog->user),
                 'categories' => $blog->categories->map(function (BlogCategory $category) {
                     return [
@@ -257,6 +260,8 @@ class BlogController extends Controller
             ])->save();
         }
 
+        $formatter = DateFormatter::for($request->user());
+
         $this->registerBlogView($request, $blog);
 
         $comments = $blog->comments()
@@ -265,7 +270,7 @@ class BlogController extends Controller
             ->paginate(10, ['*'], 'page', 1);
 
         $commentItems = $comments->getCollection()
-            ->map(function (BlogComment $comment) {
+            ->map(function (BlogComment $comment) use ($formatter) {
                 $comment->loadMissing(['user:id,nickname,avatar_url,profile_bio']);
 
                 $user = $comment->user;
@@ -283,8 +288,8 @@ class BlogController extends Controller
                 return [
                     'id' => $comment->id,
                     'body' => $comment->body,
-                    'created_at' => optional($comment->created_at)->toIso8601String(),
-                    'updated_at' => optional($comment->updated_at)->toIso8601String(),
+                    'created_at' => $formatter->iso($comment->created_at),
+                    'updated_at' => $formatter->iso($comment->updated_at),
                     'user' => $user ? [
                         'id' => $user->id,
                         'nickname' => $user->nickname,
@@ -378,7 +383,7 @@ class BlogController extends Controller
         }
 
         $recommendations = $relatedPosts
-            ->map(function (Blog $relatedBlog) {
+            ->map(function (Blog $relatedBlog) use ($formatter) {
                 return [
                     'id' => $relatedBlog->id,
                     'title' => $relatedBlog->title,
@@ -387,7 +392,7 @@ class BlogController extends Controller
                     'cover_image' => $relatedBlog->cover_image
                         ? Storage::disk('public')->url($relatedBlog->cover_image)
                         : null,
-                    'published_at' => optional($relatedBlog->published_at)->toIso8601String(),
+                    'published_at' => $formatter->iso($relatedBlog->published_at),
                 ];
             })
             ->values()
@@ -445,8 +450,8 @@ class BlogController extends Controller
                 'canonical_url' => $canonicalUrl,
                 'body' => $blog->body,
                 'views' => $blog->views,
-                'last_viewed_at' => optional($blog->last_viewed_at)->toIso8601String(),
-                'published_at' => optional($blog->published_at)->toIso8601String(),
+                'last_viewed_at' => $formatter->iso($blog->last_viewed_at),
+                'published_at' => $formatter->iso($blog->published_at),
                 'user' => $this->transformAuthor($blog->user),
                 'categories' => $blog->categories->map(function (BlogCategory $category) {
                     return [
@@ -532,6 +537,8 @@ class BlogController extends Controller
             'tags:id,name,slug',
         ]);
 
+        $formatter = DateFormatter::for(request()->user());
+
         return Inertia::render('BlogPreview', [
             'blog' => [
                 'id' => $blog->id,
@@ -542,8 +549,8 @@ class BlogController extends Controller
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
                 'body' => $blog->body,
-                'published_at' => optional($blog->published_at)->toIso8601String(),
-                'scheduled_for' => optional($blog->scheduled_for)->toIso8601String(),
+                'published_at' => $formatter->iso($blog->published_at),
+                'scheduled_for' => $formatter->iso($blog->scheduled_for),
                 'status' => $blog->status,
                 'user' => $this->transformAuthor($blog->user),
                 'categories' => $blog->categories->map(function (BlogCategory $category) {

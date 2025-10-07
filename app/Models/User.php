@@ -31,6 +31,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'forum_signature',
         'profile_bio',
         'social_links',
+        'timezone',
+        'locale',
         'is_banned',
         'last_activity_at',
         'banned_at',

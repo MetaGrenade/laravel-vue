@@ -21,6 +21,7 @@ use App\Notifications\SupportTicketAgentReply;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
+use App\Support\Localization\DateFormatter;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
@@ -62,6 +63,8 @@ class SupportController extends Controller
             $request->string('date_from'),
             $request->string('date_to'),
         );
+
+        $formatter = DateFormatter::for($request->user());
 
         $ticketQuery = SupportTicket::query()
             ->when($ticketsSearchTerm, function ($query) use ($ticketsSearchTerm) {
@@ -139,7 +142,7 @@ class SupportController extends Controller
             ->withQueryString();
 
         $ticketItems = $tickets->getCollection()
-            ->map(function (SupportTicket $ticket) {
+            ->map(function (SupportTicket $ticket) use ($formatter) {
                 return [
                     'id' => $ticket->id,
                     'subject' => $ticket->subject,
@@ -147,9 +150,9 @@ class SupportController extends Controller
                     'status' => $ticket->status,
                     'priority' => $ticket->priority,
                     'support_ticket_category_id' => $ticket->support_ticket_category_id,
-                    'created_at' => optional($ticket->created_at)->toIso8601String(),
-                    'updated_at' => optional($ticket->updated_at)->toIso8601String(),
-                    'resolved_at' => optional($ticket->resolved_at)->toIso8601String(),
+                    'created_at' => $formatter->iso($ticket->created_at),
+                    'updated_at' => $formatter->iso($ticket->updated_at),
+                    'resolved_at' => $formatter->iso($ticket->resolved_at),
                     'resolved_by' => $ticket->resolved_by,
                     'customer_satisfaction_rating' => $ticket->customer_satisfaction_rating,
                     'user' => $ticket->user ? [
@@ -503,6 +506,8 @@ class SupportController extends Controller
     {
         abort_unless($request->user()?->can('support.acp.view'), 403);
 
+        $formatter = DateFormatter::for($request->user());
+
         $ticket->load([
             'assignee:id,nickname,email',
             'resolver:id,nickname,email',
@@ -513,7 +518,7 @@ class SupportController extends Controller
         ]);
 
         $messages = $ticket->messages
-            ->map(fn (SupportTicketMessage $message) => $this->formatTicketMessage($ticket, $message))
+            ->map(fn (SupportTicketMessage $message) => $this->formatTicketMessage($ticket, $message, $formatter))
             ->values()
             ->all();
 
@@ -521,7 +526,7 @@ class SupportController extends Controller
             $messages[] = [
                 'id' => -$ticket->id,
                 'body' => $ticket->body,
-                'created_at' => optional($ticket->created_at)->toIso8601String(),
+                'created_at' => $formatter->iso($ticket->created_at),
                 'author' => $ticket->user ? [
                     'id' => $ticket->user->id,
                     'nickname' => $ticket->user->nickname,
@@ -552,9 +557,9 @@ class SupportController extends Controller
                 'priority' => $ticket->priority,
                 'support_ticket_category_id' => $ticket->support_ticket_category_id,
                 'assigned_to' => $ticket->assigned_to,
-                'created_at' => optional($ticket->created_at)->toIso8601String(),
-                'updated_at' => optional($ticket->updated_at)->toIso8601String(),
-                'resolved_at' => optional($ticket->resolved_at)->toIso8601String(),
+                'created_at' => $formatter->iso($ticket->created_at),
+                'updated_at' => $formatter->iso($ticket->updated_at),
+                'resolved_at' => $formatter->iso($ticket->resolved_at),
                 'resolved_by' => $ticket->resolved_by,
                 'assignee' => $ticket->assignee ? [
                     'id' => $ticket->assignee->id,
@@ -644,12 +649,15 @@ class SupportController extends Controller
             ->with('success', 'Reply sent.');
     }
 
-    private function formatTicketMessage(SupportTicket $ticket, SupportTicketMessage $message): array
-    {
+    private function formatTicketMessage(
+        SupportTicket $ticket,
+        SupportTicketMessage $message,
+        DateFormatter $formatter,
+    ): array {
         return [
             'id' => $message->id,
             'body' => $message->body,
-            'created_at' => optional($message->created_at)->toIso8601String(),
+            'created_at' => $formatter->iso($message->created_at),
             'author' => $message->author ? [
                 'id' => $message->author->id,
                 'nickname' => $message->author->nickname,
@@ -744,6 +752,8 @@ class SupportController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug', 'description']);
 
+        $formatter = DateFormatter::for(request()->user());
+
         return inertia('acp/SupportFaqEdit', [
             'faq' => [
                 'id' => $faq->id,
@@ -752,8 +762,8 @@ class SupportController extends Controller
                 'order' => $faq->order,
                 'published' => (bool) $faq->published,
                 'faq_category_id' => $faq->faq_category_id,
-                'created_at' => optional($faq->created_at)->toIso8601String(),
-                'updated_at' => optional($faq->updated_at)->toIso8601String(),
+                'created_at' => $formatter->iso($faq->created_at),
+                'updated_at' => $formatter->iso($faq->updated_at),
             ],
             'categories' => $categories
                 ->map(fn (FaqCategory $category) => [

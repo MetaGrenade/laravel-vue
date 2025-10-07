@@ -29,6 +29,8 @@ export interface User {
     profile_bio?: string | null;
     social_links?: Array<{ label: string; url: string }> | null;
     forum_signature?: string | null;
+    timezone: string;
+    locale: string;
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;

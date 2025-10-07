@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SupportTicketCategoryRequest;
 use App\Models\SupportTicketCategory;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,8 @@ class SupportTicketCategoryController extends Controller
 {
     public function index(Request $request): Response|JsonResponse
     {
+        $formatter = DateFormatter::for($request->user());
+
         $categories = SupportTicketCategory::query()
             ->withCount('tickets')
             ->orderBy('name')
@@ -22,8 +25,8 @@ class SupportTicketCategoryController extends Controller
                 'id' => $category->id,
                 'name' => $category->name,
                 'tickets_count' => $category->tickets_count ?? 0,
-                'created_at' => optional($category->created_at)->toIso8601String(),
-                'updated_at' => optional($category->updated_at)->toIso8601String(),
+                'created_at' => $formatter->iso($category->created_at),
+                'updated_at' => $formatter->iso($category->updated_at),
             ])
             ->values()
             ->all();
@@ -59,13 +62,15 @@ class SupportTicketCategoryController extends Controller
     {
         $category->loadCount('tickets');
 
+        $formatter = DateFormatter::for(request()->user());
+
         return inertia('acp/SupportTicketCategoryEdit', [
             'category' => [
                 'id' => $category->id,
                 'name' => $category->name,
                 'tickets_count' => $category->tickets_count ?? 0,
-                'created_at' => optional($category->created_at)->toIso8601String(),
-                'updated_at' => optional($category->updated_at)->toIso8601String(),
+                'created_at' => $formatter->iso($category->created_at),
+                'updated_at' => $formatter->iso($category->updated_at),
             ],
         ]);
     }

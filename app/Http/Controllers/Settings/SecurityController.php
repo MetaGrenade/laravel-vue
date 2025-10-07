@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Support\Localization\DateFormatter;
 use App\Support\Security\TwoFactorAuthenticator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -20,18 +21,24 @@ class SecurityController extends Controller
     {
         $user = $request->user();
 
+        $formatter = DateFormatter::for($user);
+
         $sessions = DB::table('sessions')
             ->where('user_id', $user->id)
             ->orderByDesc('last_activity')
             ->get()
-            ->map(fn ($session) => [
-                'id' => $session->id,
-                'ip_address' => $session->ip_address,
-                'user_agent' => $session->user_agent,
-                'last_active_at' => Carbon::createFromTimestamp($session->last_activity)->toIso8601String(),
-                'last_active_for_humans' => Carbon::createFromTimestamp($session->last_activity)->diffForHumans(),
-                'is_current_device' => $session->id === $request->session()->getId(),
-            ])
+            ->map(function ($session) use ($formatter, $request) {
+                $lastActive = Carbon::createFromTimestamp($session->last_activity);
+
+                return [
+                    'id' => $session->id,
+                    'ip_address' => $session->ip_address,
+                    'user_agent' => $session->user_agent,
+                    'last_active_at' => $formatter->iso($lastActive),
+                    'last_active_for_humans' => $formatter->human($lastActive),
+                    'is_current_device' => $session->id === $request->session()->getId(),
+                ];
+            })
             ->values();
 
         $pendingSecret = null;

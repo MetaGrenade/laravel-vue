@@ -12,12 +12,19 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
 
+interface PreferenceOption {
+    value: string;
+    label: string;
+}
+
 interface Props {
     mustVerifyEmail: boolean;
     status?: string;
+    timezoneOptions: PreferenceOption[];
+    localeOptions: PreferenceOption[];
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -29,6 +36,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 const page = usePage<SharedData>();
 const user = page.props.auth.user as User;
 
+const fallbackTimezone = props.timezoneOptions[0]?.value ?? 'UTC';
+const fallbackLocale = props.localeOptions[0]?.value ?? 'en';
+
 const form = useForm({
     nickname: user.nickname,
     email: user.email,
@@ -36,6 +46,8 @@ const form = useForm({
     profile_bio: user.profile_bio ?? '',
     social_links: user.social_links ? user.social_links.map(link => ({ ...link })) : [],
     forum_signature: user.forum_signature ?? '',
+    timezone: user.timezone ?? fallbackTimezone,
+    locale: user.locale ?? fallbackLocale,
 });
 
 const submit = () => {
@@ -83,6 +95,44 @@ const removeSocialLink = (index: number) => {
                             placeholder="Email address"
                         />
                         <InputError class="mt-2" :message="form.errors.email" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="timezone">Timezone</Label>
+                        <select
+                            id="timezone"
+                            v-model="form.timezone"
+                            class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            autocomplete="off"
+                        >
+                            <option
+                                v-for="option in props.timezoneOptions"
+                                :key="`timezone-${option.value}`"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </option>
+                        </select>
+                        <InputError class="mt-2" :message="form.errors.timezone" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="locale">Locale</Label>
+                        <select
+                            id="locale"
+                            v-model="form.locale"
+                            class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            autocomplete="off"
+                        >
+                            <option
+                                v-for="option in props.localeOptions"
+                                :key="`locale-${option.value}`"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </option>
+                        </select>
+                        <InputError class="mt-2" :message="form.errors.locale" />
                     </div>
 
                     <div class="grid gap-2">

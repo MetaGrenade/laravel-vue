@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Blog;
 use App\Models\BlogComment;
+use App\Support\Localization\DateFormatter;
 use App\Notifications\BlogCommentPosted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,13 +20,15 @@ class BlogCommentController extends Controller
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = max(1, min($perPage, 50));
 
+        $formatter = DateFormatter::for($request->user());
+
         $comments = $blog->comments()
             ->with(['user:id,nickname,avatar_url,profile_bio'])
             ->orderBy('created_at')
             ->paginate($perPage);
 
         $items = $comments->getCollection()
-            ->map(fn (BlogComment $comment) => $this->transformComment($comment))
+            ->map(fn (BlogComment $comment) => $this->transformComment($comment, $formatter))
             ->values()
             ->all();
 
@@ -84,8 +87,10 @@ class BlogCommentController extends Controller
             Notification::send($recipients, $notification->withChannels(['mail']));
         }
 
+        $formatter = DateFormatter::for($request->user());
+
         return response()->json([
-            'data' => $this->transformComment($comment),
+            'data' => $this->transformComment($comment, $formatter),
         ], 201);
     }
 
@@ -109,8 +114,10 @@ class BlogCommentController extends Controller
 
         $comment->load(['user:id,nickname,avatar_url,profile_bio']);
 
+        $formatter = DateFormatter::for($request->user());
+
         return response()->json([
-            'data' => $this->transformComment($comment),
+            'data' => $this->transformComment($comment, $formatter),
         ]);
     }
 
@@ -159,7 +166,7 @@ class BlogCommentController extends Controller
         abort_unless($blog->status === 'published', 404);
     }
 
-    private function transformComment(BlogComment $comment): array
+    private function transformComment(BlogComment $comment, DateFormatter $formatter): array
     {
         $comment->loadMissing(['user:id,nickname,avatar_url,profile_bio']);
 
@@ -179,8 +186,8 @@ class BlogCommentController extends Controller
         return [
             'id' => $comment->id,
             'body' => $comment->body,
-            'created_at' => optional($comment->created_at)->toIso8601String(),
-            'updated_at' => optional($comment->updated_at)->toIso8601String(),
+            'created_at' => $formatter->iso($comment->created_at),
+            'updated_at' => $formatter->iso($comment->updated_at),
             'user' => $user ? [
                 'id' => $user->id,
                 'nickname' => $user->nickname,

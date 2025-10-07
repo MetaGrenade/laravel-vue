@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ForumBoard;
 use App\Models\ForumPostReport;
 use App\Models\ForumThreadReport;
+use App\Support\Localization\DateFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -95,11 +96,13 @@ class ForumReportController extends Controller
             });
         }
 
+        $formatter = DateFormatter::for($request->user());
+
         $reports = collect();
 
         if ($type === 'all' || $type === 'thread') {
             $reports = $reports->merge(
-                $threadQuery->get()->map(function (ForumThreadReport $report) {
+                $threadQuery->get()->map(function (ForumThreadReport $report) use ($formatter) {
                     $thread = $report->thread;
 
                     return [
@@ -109,8 +112,8 @@ class ForumReportController extends Controller
                         'reason_category' => $report->reason_category,
                         'reason' => $report->reason,
                         'evidence_url' => $report->evidence_url,
-                        'created_at' => optional($report->created_at)->toIso8601String(),
-                        'reviewed_at' => optional($report->reviewed_at)->toIso8601String(),
+                        'created_at' => $formatter->iso($report->created_at),
+                        'reviewed_at' => $formatter->iso($report->reviewed_at),
                         'reporter' => $report->reporter ? [
                             'id' => $report->reporter->id,
                             'nickname' => $report->reporter->nickname,
@@ -140,7 +143,7 @@ class ForumReportController extends Controller
 
         if ($type === 'all' || $type === 'post') {
             $reports = $reports->merge(
-                $postQuery->get()->map(function (ForumPostReport $report) {
+                $postQuery->get()->map(function (ForumPostReport $report) use ($formatter) {
                     $post = $report->post;
                     $thread = $post?->thread;
 
@@ -151,8 +154,8 @@ class ForumReportController extends Controller
                         'reason_category' => $report->reason_category,
                         'reason' => $report->reason,
                         'evidence_url' => $report->evidence_url,
-                        'created_at' => optional($report->created_at)->toIso8601String(),
-                        'reviewed_at' => optional($report->reviewed_at)->toIso8601String(),
+                        'created_at' => $formatter->iso($report->created_at),
+                        'reviewed_at' => $formatter->iso($report->reviewed_at),
                         'reporter' => $report->reporter ? [
                             'id' => $report->reporter->id,
                             'nickname' => $report->reporter->nickname,
