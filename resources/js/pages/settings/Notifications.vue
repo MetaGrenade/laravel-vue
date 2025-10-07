@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
+import { watch } from 'vue';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
@@ -65,19 +66,40 @@ const sections: Array<{
     },
 ];
 
-const clonePreferences = (key: PreferenceKey): ChannelToggle => ({
-    mail: props.channelPreferences[key].mail,
-    push: props.channelPreferences[key].push,
-    database: props.channelPreferences[key].database,
+const buildChannelState = (preferences: Record<PreferenceKey, ChannelToggle>) => ({
+    support_ticket: {
+        mail: preferences.support_ticket.mail,
+        push: preferences.support_ticket.push,
+        database: preferences.support_ticket.database,
+    },
+    forum_subscription: {
+        mail: preferences.forum_subscription.mail,
+        push: preferences.forum_subscription.push,
+        database: preferences.forum_subscription.database,
+    },
+    blog_subscription: {
+        mail: preferences.blog_subscription.mail,
+        push: preferences.blog_subscription.push,
+        database: preferences.blog_subscription.database,
+    },
 });
 
 const form = useForm({
-    channels: {
-        support_ticket: clonePreferences('support_ticket'),
-        forum_subscription: clonePreferences('forum_subscription'),
-        blog_subscription: clonePreferences('blog_subscription'),
-    },
+    channels: buildChannelState(props.channelPreferences),
 });
+
+form.defaults({ channels: buildChannelState(props.channelPreferences) });
+
+watch(
+    () => props.channelPreferences,
+    preferences => {
+        const channels = buildChannelState(preferences);
+
+        form.setData('channels', channels);
+        form.defaults({ channels: buildChannelState(preferences) });
+    },
+    { deep: true },
+);
 
 const submit = () => {
     form.put(route('notifications.update'), {

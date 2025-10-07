@@ -57,32 +57,77 @@ class NotificationChannelPreferences
     }
 
     /**
+     * Normalise an array of preference overrides into boolean channel toggles.
+     *
+     * @param array<string, mixed> $overrides
+     * @return array<string, bool>
+     */
+    public static function normalize(string $key, array $overrides): array
+    {
+        $defaults = self::defaults($key);
+        $resolved = [];
+
+        foreach ($defaults as $channel => $enabled) {
+            if (!array_key_exists($channel, $overrides)) {
+                $resolved[$channel] = $enabled;
+
+                continue;
+            }
+
+            $value = $overrides[$channel];
+
+            if (is_bool($value)) {
+                $resolved[$channel] = $value;
+
+                continue;
+            }
+
+            if (is_int($value)) {
+                $resolved[$channel] = $value === 1;
+
+                continue;
+            }
+
+            if (is_string($value)) {
+                $normalized = strtolower($value);
+
+                if (in_array($normalized, ['1', 'true', 'on'], true)) {
+                    $resolved[$channel] = true;
+
+                    continue;
+                }
+
+                if (in_array($normalized, ['0', 'false', 'off'], true)) {
+                    $resolved[$channel] = false;
+
+                    continue;
+                }
+            }
+
+            $resolved[$channel] = (bool) $value;
+        }
+
+        return $resolved;
+    }
+
+    /**
      * @return array<string, bool>
      */
     public static function toggles(User $user, string $key): array
     {
         $stored = $user->notification_preferences;
-        $defaults = self::defaults($key);
 
         if (!is_array($stored)) {
-            return $defaults;
+            return self::defaults($key);
         }
 
         $overrides = $stored[$key] ?? [];
 
         if (!is_array($overrides)) {
-            return $defaults;
+            return self::defaults($key);
         }
 
-        $resolved = $defaults;
-
-        foreach ($defaults as $channel => $enabled) {
-            if (array_key_exists($channel, $overrides)) {
-                $resolved[$channel] = (bool) $overrides[$channel];
-            }
-        }
-
-        return $resolved;
+        return self::normalize($key, $overrides);
     }
 
     /**
