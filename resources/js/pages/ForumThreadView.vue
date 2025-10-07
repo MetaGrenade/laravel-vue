@@ -92,6 +92,17 @@ interface PostAuthor {
     primary_role: string | null;
     avatar_url: string | null;
     forum_signature: string | null;
+    reputation_points: number;
+    badges: AuthorBadge[];
+}
+
+interface AuthorBadge {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    points_required: number;
+    awarded_at: string | null;
 }
 
 interface PostPermissions {
@@ -1561,6 +1572,22 @@ const submitReply = () => {
                         </div>
                         <div class="mt-1 text-xs text-gray-600">
                             Posts: <span class="font-medium">{{ post.author.forum_posts_count }}</span>
+                        </div>
+                        <div class="mt-1 text-xs text-gray-600">
+                            Reputation: <span class="font-medium">{{ post.author.reputation_points }}</span>
+                        </div>
+                        <div
+                            v-if="post.author.badges.length > 0"
+                            class="mt-3 flex flex-wrap gap-2"
+                        >
+                            <span
+                                v-for="badge in post.author.badges"
+                                :key="badge.id"
+                                class="inline-flex items-center rounded-full border border-muted-foreground/20 bg-muted px-2 py-1 text-xs text-muted-foreground"
+                                :title="badge.description ?? undefined"
+                            >
+                                {{ badge.name }}
+                            </span>
                         </div>
                     </div>
 
