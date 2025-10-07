@@ -255,14 +255,14 @@ const regenerateRecoveryCodes = () => {
                                     <div v-if="hasPendingSecret" class="space-y-3">
                                         <div class="space-y-1">
                                             <Label>Authenticator secret</Label>
-                                            <Input :value="pendingSecret ?? ''" readonly />
+                                            <Input :model-value="pendingSecret ?? ''" readonly />
                                             <p class="text-xs text-muted-foreground">
                                                 Manually add this key to your authenticator app if you cannot scan a QR code.
                                             </p>
                                         </div>
                                         <div v-if="qrCodeUrl" class="space-y-1">
                                             <Label>otpauth URL</Label>
-                                            <Input :value="qrCodeUrl" readonly />
+                                            <Input :model-value="qrCodeUrl" readonly />
                                             <p class="text-xs text-muted-foreground">
                                                 Use this URL with any QR code generator to produce a scannable code for your authenticator.
                                             </p>

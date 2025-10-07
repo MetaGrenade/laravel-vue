@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class SecuritySettingsTest extends TestCase
@@ -80,5 +81,27 @@ class SecuritySettingsTest extends TestCase
         $this->assertNotEquals($initialRecoveryCodes, $rotatedCodes);
 
         Carbon::setTestNow();
+    }
+
+    /** @test */
+    public function pending_secret_and_qr_code_are_shown_after_generation(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('security.mfa.store'))
+            ->assertRedirect();
+
+        $user->refresh();
+
+        $secret = TwoFactorAuthenticator::decryptSecret($user->two_factor_secret);
+
+        $this->actingAs($user)
+            ->get(route('security.edit'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('settings/Security')
+                ->where('pendingSecret', $secret)
+                ->where('qrCodeUrl', TwoFactorAuthenticator::makeQrCodeUrl($user, $secret))
+            );
     }
 }
