@@ -38,17 +38,18 @@ class NotificationPreferenceController extends Controller
 
         $validated = $request->validated();
 
-        $preferences = $user->notification_preferences ?? [];
+        $preferences = $user->notification_preferences;
+
+        if (!is_array($preferences)) {
+            $preferences = [];
+        }
 
         foreach (NotificationChannelPreferences::keys() as $key) {
             if (!isset($validated['channels'][$key]) || !is_array($validated['channels'][$key])) {
                 continue;
             }
 
-            $preferences[$key] = NotificationChannelPreferences::normalize(
-                $key,
-                $validated['channels'][$key],
-            );
+            $preferences[$key] = $validated['channels'][$key];
         }
 
         $user->forceFill([

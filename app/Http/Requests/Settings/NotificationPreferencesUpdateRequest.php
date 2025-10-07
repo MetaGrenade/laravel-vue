@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Settings;
 
+use App\Support\NotificationChannelPreferences;
 use Illuminate\Foundation\Http\FormRequest;
 
 class NotificationPreferencesUpdateRequest extends FormRequest
@@ -31,5 +32,45 @@ class NotificationPreferencesUpdateRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user() !== null;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $channels = $this->input('channels', []);
+
+        if (!is_array($channels)) {
+            $channels = [];
+        }
+
+        $stored = optional($this->user())->notification_preferences;
+
+        if (!is_array($stored)) {
+            $stored = [];
+        }
+
+        $normalized = [];
+
+        foreach (NotificationChannelPreferences::keys() as $key) {
+            $incoming = $channels[$key] ?? [];
+
+            if (!is_array($incoming)) {
+                $incoming = [];
+            }
+
+            $existing = $stored[$key] ?? [];
+
+            if (!is_array($existing)) {
+                $existing = [];
+            }
+
+            $normalized[$key] = NotificationChannelPreferences::normalize(
+                $key,
+                array_merge($existing, $incoming),
+            );
+        }
+
+        $this->merge([
+            'channels' => array_merge($channels, $normalized),
+        ]);
     }
 }
