@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toRefs, watch } from 'vue';
+import { computed, ref, toRefs, watch } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -13,6 +13,8 @@ import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import { type BreadcrumbItem } from '@/types';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-vue-next';
 
 interface ActiveSession {
     id: string;
@@ -110,6 +112,8 @@ const hasSessions = computed(() => sessions.value.length > 0);
 const hasPendingSecret = computed(() => Boolean(pendingSecret.value));
 const hasRecoveryCodes = computed(() => recoveryCodes.value && recoveryCodes.value.length > 0);
 
+const recoveryOpen = ref(false);
+
 const revokeSession = (sessionId: string) => {
     revokeForm.delete(route('security.sessions.destroy', sessionId), {
         preserveScroll: true,
@@ -140,6 +144,21 @@ const regenerateRecoveryCodes = () => {
         preserveScroll: true,
     });
 };
+
+watch(
+    status,
+    (value) => {
+        if (value === 'two-factor-confirmed' || value === 'recovery-codes-generated') {
+            recoveryOpen.value = true;
+        }
+    }
+);
+
+watch(hasRecoveryCodes, (value) => {
+    if (!value) {
+        recoveryOpen.value = false;
+    }
+});
 </script>
 
 <template>
@@ -309,44 +328,79 @@ const regenerateRecoveryCodes = () => {
                                 </CardContent>
                             </Card>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Recovery codes</CardTitle>
-                                    <CardDescription>
-                                        Use a recovery code if you lose access to your authenticator device.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent class="space-y-4">
-                                    <div v-if="hasRecoveryCodes">
-                                        <p class="text-sm text-muted-foreground">
-                                            Each recovery code can be used once. Print or store them securely before leaving this page.
-                                        </p>
-                                        <ul class="grid gap-2 sm:grid-cols-2">
-                                            <li
-                                                v-for="code in recoveryCodes"
-                                                :key="code"
-                                                class="rounded border bg-muted/40 px-3 py-2 font-mono text-sm"
+                            <Collapsible v-model:open="recoveryOpen">
+                                <template #default="{ open }">
+                                    <Card>
+                                        <CardHeader class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                            <div class="space-y-2">
+                                                <CardTitle>Recovery codes</CardTitle>
+                                                <CardDescription>
+                                                    Use a recovery code if you lose access to your authenticator device.
+                                                </CardDescription>
+                                            </div>
+                                            <CollapsibleTrigger as-child>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    class="w-full sm:w-auto"
+                                                >
+                                                    <span class="flex items-center justify-center gap-2">
+                                                        {{ open ? 'Hide recovery codes' : 'View recovery codes' }}
+                                                        <ChevronDown
+                                                            class="h-4 w-4 transition-transform duration-200"
+                                                            :class="open ? 'rotate-180' : ''"
+                                                        />
+                                                    </span>
+                                                </Button>
+                                            </CollapsibleTrigger>
+                                        </CardHeader>
+                                        <CollapsibleContent>
+                                            <CardContent class="space-y-4">
+                                                <div v-if="hasRecoveryCodes">
+                                                    <p class="text-sm text-muted-foreground">
+                                                        Each recovery code can be used once. Print or store them securely before leaving this page.
+                                                    </p>
+                                                    <ul class="grid gap-2 sm:grid-cols-2">
+                                                        <li
+                                                            v-for="code in recoveryCodes"
+                                                            :key="code"
+                                                            tabindex="0"
+                                                            class="group relative cursor-pointer select-text rounded border border-dashed border-muted/60 bg-muted/40 px-3 py-2 font-mono text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                                        >
+                                                            <span
+                                                                class="block text-transparent transition duration-200 group-hover:text-foreground group-focus-visible:text-foreground selection:text-foreground"
+                                                            >
+                                                                {{ code }}
+                                                            </span>
+                                                            <span
+                                                                aria-hidden="true"
+                                                                class="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-medium text-muted-foreground transition-opacity duration-200 group-hover:opacity-0 group-focus-visible:opacity-0"
+                                                            >
+                                                                Hover or focus to reveal
+                                                            </span>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <p v-else class="text-sm text-muted-foreground">
+                                                    Recovery codes will appear after confirming multi-factor authentication.
+                                                </p>
+                                            </CardContent>
+                                        </CollapsibleContent>
+                                        <CardFooter class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                :disabled="recoveryForm.processing || !twoFactorConfirmed"
+                                                @click="regenerateRecoveryCodes"
                                             >
-                                                {{ code }}
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <p v-else class="text-sm text-muted-foreground">
-                                        Recovery codes will appear after confirming multi-factor authentication.
-                                    </p>
-                                </CardContent>
-                                <CardFooter class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        :disabled="recoveryForm.processing || !twoFactorConfirmed"
-                                        @click="regenerateRecoveryCodes"
-                                    >
-                                        Generate new recovery codes
-                                    </Button>
-                                    <InputError :message="recoveryForm.errors.recovery" />
-                                </CardFooter>
-                            </Card>
+                                                Generate new recovery codes
+                                            </Button>
+                                            <InputError :message="recoveryForm.errors.recovery" />
+                                        </CardFooter>
+                                    </Card>
+                                </template>
+                            </Collapsible>
                         </div>
                     </div>
                 </div>
