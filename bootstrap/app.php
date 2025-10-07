@@ -7,7 +7,9 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
 use App\Http\Middleware\PreventBannedUser;
 use App\Http\Middleware\UpdateLastActivity;
+use App\Jobs\AggregateSearchQueryStats;
 use App\Jobs\MonitorSupportTicketSlas;
+use App\Jobs\PruneSearchQueryLogs;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -60,6 +62,8 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new MonitorSupportTicketSlas())->everyFifteenMinutes();
+        $schedule->job(new AggregateSearchQueryStats())->dailyAt('00:30');
+        $schedule->job(new PruneSearchQueryLogs())->dailyAt('01:00');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

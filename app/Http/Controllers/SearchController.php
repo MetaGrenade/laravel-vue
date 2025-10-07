@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SearchQuery;
 use App\Support\Search\GlobalSearchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class SearchController extends Controller
 {
@@ -29,6 +31,7 @@ class SearchController extends Controller
         }
 
         $term = $query->toString();
+        $normalizedTerm = Str::of($term)->lower()->trim()->toString();
 
         $payload = $this->searchService->search($term, [
             'per_page' => $limit,
@@ -40,6 +43,8 @@ class SearchController extends Controller
         ]);
 
         $results = $payload['results'];
+
+        $this->logQuery($normalizedTerm, $results);
 
         return response()->json([
             'query' => $payload['query'],
@@ -58,6 +63,39 @@ class SearchController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * @param  array<string, array{items: array<int, array<string, mixed>>, meta: array<string, mixed>}>  $results
+     */
+    private function logQuery(string $term, array $results): void
+    {
+        if ($this->shouldSkipLogging($term)) {
+            return;
+        }
+
+        $total = collect($results)
+            ->sum(function (array $group): int {
+                $metaTotal = $group['meta']['total'] ?? null;
+
+                if (is_numeric($metaTotal)) {
+                    return (int) $metaTotal;
+                }
+
+                return count($group['items'] ?? []);
+            });
+
+        SearchQuery::query()->create([
+            'term' => Str::limit($term, 255, ''),
+            'result_count' => max(0, (int) $total),
+        ]);
+    }
+
+    private function shouldSkipLogging(string $term): bool
+    {
+        $minLength = max(1, (int) config('search.queries.minimum_length', 2));
+
+        return Str::of($term)->trim()->length() < $minLength;
     }
 
     /**

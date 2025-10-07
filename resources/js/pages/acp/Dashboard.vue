@@ -68,6 +68,20 @@ type DashboardActivity = {
     time: string | null;
 };
 
+type SearchInsightEntry = {
+    term: string;
+    total_count: number;
+    zero_result_count: number;
+    last_ran_at: string | null;
+};
+
+interface SearchInsights {
+    top_queries: SearchInsightEntry[];
+    top_zero_queries: SearchInsightEntry[];
+    zero_result_total: number;
+    last_aggregated_at: string | null;
+}
+
 interface SlaMetrics {
     queue_aging: QueueAgingMetrics;
     pending_volume: PendingVolumeMetrics;
@@ -79,6 +93,7 @@ interface DashboardProps {
     chartData: DashboardChartDatum[];
     recentActivities: DashboardActivity[];
     slaMetrics: SlaMetrics;
+    searchInsights: SearchInsights;
 }
 
 const props = withDefaults(defineProps<DashboardProps>(), {
@@ -111,6 +126,12 @@ const props = withDefaults(defineProps<DashboardProps>(), {
             trend: [],
         },
     }),
+    searchInsights: () => ({
+        top_queries: [],
+        top_zero_queries: [],
+        zero_result_total: 0,
+        last_aggregated_at: null,
+    }),
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -125,6 +146,24 @@ const numberFormatter = new Intl.NumberFormat();
 const formatNumber = (value: number | null | undefined) => numberFormatter.format(value ?? 0);
 const formatHours = (value: number | null | undefined) =>
     value === null || value === undefined ? '—' : Number(value).toFixed(1);
+const formatDateTime = (value: string | null | undefined) => {
+    if (! value) {
+        return null;
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(date);
+};
 
 const statCards = computed(() => [
     { title: 'Total Users', value: props.metrics.users.total, icon: Users },
@@ -204,6 +243,15 @@ const responseTimeChartData = computed(() => props.slaMetrics.response_times?.tr
 const hasResponseTimeData = computed(() =>
     responseTimeChartData.value.some((point) => point['Average First Response (hrs)'] > 0)
 );
+
+const searchInsights = computed(() => props.searchInsights ?? { top_queries: [], top_zero_queries: [], zero_result_total: 0 });
+const hasSearchInsights = computed(
+    () => (searchInsights.value.top_queries?.length ?? 0) > 0 || (searchInsights.value.top_zero_queries?.length ?? 0) > 0
+);
+const topSearchQueries = computed(() => searchInsights.value.top_queries ?? []);
+const zeroResultQueries = computed(() => searchInsights.value.top_zero_queries ?? []);
+const zeroResultTotal = computed(() => searchInsights.value.zero_result_total ?? 0);
+const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last_aggregated_at));
 </script>
 
 <template>
@@ -321,6 +369,58 @@ const hasResponseTimeData = computed(() =>
                         />
                         <p v-else class="text-sm text-muted-foreground">Not enough data to show trends yet.</p>
                     </div>
+                </div>
+
+                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h2 class="text-lg font-semibold">Search Insights</h2>
+                        <span v-if="lastAggregatedAt" class="text-xs text-muted-foreground"
+                            >Refreshed {{ lastAggregatedAt }}</span
+                        >
+                    </div>
+
+                    <template v-if="hasSearchInsights">
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <h3 class="text-sm font-semibold uppercase text-muted-foreground">Top Queries</h3>
+                                <ul class="mt-2 space-y-3">
+                                    <li v-for="entry in topSearchQueries" :key="entry.term">
+                                        <div class="flex items-start justify-between text-sm">
+                                            <span class="font-medium text-foreground">{{ entry.term }}</span>
+                                            <span class="text-muted-foreground">{{ formatNumber(entry.total_count) }} searches</span>
+                                        </div>
+                                        <p
+                                            v-if="entry.zero_result_count > 0"
+                                            class="text-xs font-medium text-amber-600"
+                                        >
+                                            {{ formatNumber(entry.zero_result_count) }} searches returned no results
+                                        </p>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 class="text-sm font-semibold uppercase text-muted-foreground">Zero Result Hotlist</h3>
+                                <p class="mt-1 text-xs text-muted-foreground">
+                                    {{ formatNumber(zeroResultTotal) }} total zero-result searches in window.
+                                </p>
+                                <ul class="mt-3 space-y-3">
+                                    <li v-for="entry in zeroResultQueries" :key="`zero-${entry.term}`">
+                                        <div class="flex items-start justify-between text-sm">
+                                            <span class="font-medium text-foreground">{{ entry.term }}</span>
+                                            <span class="text-muted-foreground">{{ formatNumber(entry.zero_result_count) }} times</span>
+                                        </div>
+                                        <p v-if="entry.last_ran_at" class="text-xs text-muted-foreground">
+                                            Last seen {{ formatDateTime(entry.last_ran_at) ?? 'recently' }}
+                                        </p>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </template>
+                    <p v-else class="text-sm text-muted-foreground">
+                        Search data will appear after visitors use the global search.
+                    </p>
                 </div>
 
                 <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
