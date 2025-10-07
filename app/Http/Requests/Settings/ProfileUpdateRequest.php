@@ -104,12 +104,14 @@ class ProfileUpdateRequest extends FormRequest
                 'max:2048',
             ],
             'timezone' => [
-                'required',
+                'sometimes',
+                'filled',
                 'string',
                 Rule::in(PreferenceOptions::timezoneValues()),
             ],
             'locale' => [
-                'required',
+                'sometimes',
+                'filled',
                 'string',
                 Rule::in(PreferenceOptions::localeValues()),
             ],
