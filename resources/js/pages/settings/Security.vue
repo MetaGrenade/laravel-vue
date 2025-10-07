@@ -257,7 +257,7 @@ watch(hasRecoveryCodes, (value) => {
                         </div>
 
                         <div v-else>
-                            <Card>
+                            <Card class="mb-4">
                                 <CardHeader>
                                     <CardTitle>
                                         {{ twoFactorConfirmed ? 'Multi-factor authentication is enabled' : 'Finish setup' }}
