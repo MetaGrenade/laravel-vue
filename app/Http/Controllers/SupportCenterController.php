@@ -16,12 +16,14 @@ use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
+use App\Support\FileScanning\FileScanner;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -34,6 +36,7 @@ class SupportCenterController extends Controller
     public function __construct(
         private SupportTicketNotificationDispatcher $ticketNotifier,
         private SupportTicketAutoAssigner $ticketAssigner,
+        private FileScanner $fileScanner,
     ) {
     }
 
@@ -283,8 +286,9 @@ class SupportCenterController extends Controller
 
         $ticket = null;
         $message = null;
+        $blockedAttachments = [];
 
-        DB::transaction(function () use ($request, $validated, &$ticket, &$message): void {
+        DB::transaction(function () use ($request, $validated, &$ticket, &$message, &$blockedAttachments): void {
             $ticket = SupportTicket::create([
                 'user_id' => $validated['user_id'],
                 'subject' => $validated['subject'],
@@ -300,30 +304,12 @@ class SupportCenterController extends Controller
 
             $message->setRelation('author', $ticket->user);
 
-            $attachments = $request->file('attachments', []);
+            $attachments = $this->normalizeAttachments($request->file('attachments', []));
 
-            if ($attachments instanceof UploadedFile) {
-                $attachments = [$attachments];
-            } elseif (! is_array($attachments)) {
-                $attachments = [];
-            }
+            $blocked = $this->persistAttachments($ticket, $message, $attachments);
 
-            $disk = 'public';
-
-            foreach ($attachments as $file) {
-                if (! $file) {
-                    continue;
-                }
-
-                $path = $file->store("support-attachments/{$ticket->id}", $disk);
-
-                $message->attachments()->create([
-                    'disk' => $disk,
-                    'path' => $path,
-                    'name' => $file->getClientOriginalName() ?: $file->hashName(),
-                    'mime_type' => $file->getClientMimeType(),
-                    'size' => $file->getSize() ?: 0,
-                ]);
+            if ($blocked !== []) {
+                $blockedAttachments = array_merge($blockedAttachments, $blocked);
             }
 
             $message->touch();
@@ -341,9 +327,19 @@ class SupportCenterController extends Controller
             });
         }
 
-        return redirect()
+        $response = redirect()
             ->route('support')
             ->with('success', 'Support ticket submitted successfully.');
+
+        if ($blockedAttachments !== []) {
+            $response = $response
+                ->withErrors([
+                    'attachments' => 'Some attachments were blocked by our security scan and were not uploaded.',
+                ])
+                ->with('blocked_attachments', $blockedAttachments);
+        }
+
+        return $response;
     }
 
     public function show(Request $request, SupportTicket $ticket): Response
@@ -444,8 +440,9 @@ class SupportCenterController extends Controller
         $validated = $request->validated();
 
         $message = null;
+        $blockedAttachments = [];
 
-        DB::transaction(function () use ($request, $ticket, $validated, &$message): void {
+        DB::transaction(function () use ($request, $ticket, $validated, &$message, &$blockedAttachments): void {
             $message = $ticket->messages()->create([
                 'user_id' => $request->user()->id,
                 'body' => $validated['body'],
@@ -453,30 +450,12 @@ class SupportCenterController extends Controller
 
             $message->setRelation('author', $request->user());
 
-            $attachments = $request->file('attachments', []);
+            $attachments = $this->normalizeAttachments($request->file('attachments', []));
 
-            if ($attachments instanceof UploadedFile) {
-                $attachments = [$attachments];
-            } elseif (! is_array($attachments)) {
-                $attachments = [];
-            }
+            $blocked = $this->persistAttachments($ticket, $message, $attachments);
 
-            $disk = 'public';
-
-            foreach ($attachments as $file) {
-                if (! $file) {
-                    continue;
-                }
-
-                $path = $file->store("support-attachments/{$ticket->id}", $disk);
-
-                $message->attachments()->create([
-                    'disk' => $disk,
-                    'path' => $path,
-                    'name' => $file->getClientOriginalName() ?: $file->hashName(),
-                    'mime_type' => $file->getClientMimeType(),
-                    'size' => $file->getSize() ?: 0,
-                ]);
+            if ($blocked !== []) {
+                $blockedAttachments = array_merge($blockedAttachments, $blocked);
             }
 
             $ticket->touch();
@@ -491,9 +470,19 @@ class SupportCenterController extends Controller
             });
         }
 
-        return redirect()
+        $response = redirect()
             ->route('support.tickets.show', $ticket)
             ->with('success', 'Your message has been sent.');
+
+        if ($blockedAttachments !== []) {
+            $response = $response
+                ->withErrors([
+                    'attachments' => 'Some attachments were blocked by our security scan and were not uploaded.',
+                ])
+                ->with('blocked_attachments', $blockedAttachments);
+        }
+
+        return $response;
     }
 
     public function storeRating(
@@ -560,6 +549,105 @@ class SupportCenterController extends Controller
         ]);
 
         return back()->with('success', 'Ticket reopened. We will take another look.');
+    }
+
+    /**
+     * @param  UploadedFile|array<int, UploadedFile>|null  $attachments
+     * @return array<int, UploadedFile>
+     */
+    private function normalizeAttachments(mixed $attachments): array
+    {
+        if ($attachments instanceof UploadedFile) {
+            return [$attachments];
+        }
+
+        if (! is_array($attachments)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $attachments,
+            static fn ($file) => $file instanceof UploadedFile,
+        ));
+    }
+
+    /**
+     * @param  array<int, UploadedFile>  $attachments
+     * @return array<int, array{name: string, reason: string}>
+     */
+    private function persistAttachments(
+        SupportTicket $ticket,
+        SupportTicketMessage $message,
+        array $attachments
+    ): array {
+        $blockedAttachments = [];
+
+        if ($attachments === []) {
+            return $blockedAttachments;
+        }
+
+        $disk = 'public';
+        $quarantineDisk = config('filescanner.quarantine_disk', 'local');
+        $quarantineBasePath = trim((string) config('filescanner.quarantine_path', 'quarantine/support-attachments'), '/');
+
+        foreach ($attachments as $file) {
+            $storedFileName = $file->hashName();
+            $originalName = $file->getClientOriginalName() ?: $storedFileName;
+
+            $scanResult = $this->fileScanner->scan($file);
+
+            Log::info('Support attachment scan completed', [
+                'ticket_id' => $ticket->id,
+                'message_id' => $message->id,
+                'original_name' => $file->getClientOriginalName(),
+                'stored_name' => $storedFileName,
+                'status' => $scanResult->status,
+                'meta' => $scanResult->meta,
+            ]);
+
+            if ($scanResult->isBlocked()) {
+                $quarantineDirectory = $quarantineBasePath !== ''
+                    ? $quarantineBasePath.'/'.$ticket->id
+                    : (string) $ticket->id;
+
+                $quarantinePath = Storage::disk($quarantineDisk)->putFileAs(
+                    $quarantineDirectory,
+                    $file,
+                    $storedFileName,
+                );
+
+                Log::warning('Support attachment blocked by scanner', [
+                    'ticket_id' => $ticket->id,
+                    'message_id' => $message->id,
+                    'original_name' => $file->getClientOriginalName(),
+                    'stored_name' => $storedFileName,
+                    'status' => $scanResult->status,
+                    'reason' => $scanResult->message,
+                    'quarantine_disk' => $quarantineDisk,
+                    'quarantine_path' => $quarantinePath,
+                    'meta' => $scanResult->meta,
+                ]);
+
+                $blockedAttachments[] = [
+                    'name' => $originalName,
+                    'reason' => $scanResult->message ?? 'The file failed our security scan and was not uploaded.',
+                ];
+
+                continue;
+            }
+
+            $path = $file->storeAs("support-attachments/{$ticket->id}", $storedFileName, $disk);
+
+            $message->attachments()->create([
+                'disk' => $disk,
+                'path' => $path,
+                'name' => $originalName,
+                'mime_type' => $file->getClientMimeType(),
+                'size' => $file->getSize() ?: 0,
+            ]);
+        }
+
+        return $blockedAttachments;
     }
 
     private function escapeForLike(string $value): string
