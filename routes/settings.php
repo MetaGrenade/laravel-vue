@@ -2,6 +2,10 @@
 
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\SecuritySessionController;
+use App\Http\Controllers\Settings\TwoFactorController;
+use App\Http\Controllers\Settings\TwoFactorRecoveryCodeController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -18,4 +22,16 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/Appearance');
     })->name('appearance');
+
+    Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
+
+    Route::delete('settings/security/sessions/{session}', [SecuritySessionController::class, 'destroy'])
+        ->name('security.sessions.destroy');
+
+    Route::post('settings/security/mfa', [TwoFactorController::class, 'store'])->name('security.mfa.store');
+    Route::post('settings/security/mfa/confirm', [TwoFactorController::class, 'confirm'])->name('security.mfa.confirm');
+    Route::delete('settings/security/mfa', [TwoFactorController::class, 'destroy'])->name('security.mfa.destroy');
+
+    Route::post('settings/security/recovery-codes', [TwoFactorRecoveryCodeController::class, 'store'])
+        ->name('security.recovery-codes.store');
 });

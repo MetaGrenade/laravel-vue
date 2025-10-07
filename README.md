@@ -93,6 +93,20 @@ resources/
   the public portal and Admin Control Panel automatically runs through the Support Assignment Rules engine.
 - **Blog previews** use signed tokens so editors can review drafts before publishing.
 
+### Account Security
+- **Security settings**: Manage active browser sessions, enable time-based one-time password (TOTP) multi-factor authentication,
+  and rotate recovery codes from `/settings/security`. Recovery codes are generated locally and encrypted before storage so
+  users must download them immediately after confirmation.
+- **Session management**: The sessions panel lists every active session stored in the database. Revoking a session removes it
+  from the table and invalidates its cookie, forcing re-authentication on that device. The current session is highlighted and
+  protected from accidental revocation.
+- **MFA enrollment flow**:
+  1. Generate a fresh secret which exposes a manual key and otpauth URL for QR creation.
+  2. Confirm the secret by submitting a 6-digit code from an authenticator app (e.g., 1Password, Google Authenticator).
+  3. Store the displayed recovery codes—each is single-use and can be regenerated on demand after confirmation.
+- **Disabling MFA**: Clearing multi-factor authentication wipes the stored secret and recovery codes immediately, returning the
+  account to password-only authentication.
+
 ### Support Operations (Assignment & SLA)
 - **Assignment Rules**: Configure agent routing with ordered rules stored in the `support_assignment_rules` table. Rules can
   target specific categories or priorities and are evaluated top-to-bottom until a match assigns the ticket.
