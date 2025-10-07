@@ -95,12 +95,12 @@ class BlogCommentController extends Controller
                 $synchronousChannels = array_values(array_intersect($channels, ['database']));
                 $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
 
-                if ($synchronousChannels !== []) {
-                    Notification::sendNow($recipient, $notification->withChannels($synchronousChannels));
+                foreach ($synchronousChannels as $channel) {
+                    Notification::sendNow($recipient, $notification->withChannels([$channel]));
                 }
 
-                if ($queuedChannels !== []) {
-                    Notification::send($recipient, $notification->withChannels($queuedChannels));
+                foreach ($queuedChannels as $channel) {
+                    Notification::send($recipient, $notification->withChannels([$channel]));
                 }
             });
         }

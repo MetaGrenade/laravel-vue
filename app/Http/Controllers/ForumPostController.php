@@ -92,12 +92,12 @@ class ForumPostController extends Controller
                 $synchronousChannels = array_values(array_intersect($channels, ['database']));
                 $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
 
-                if ($synchronousChannels !== []) {
-                    Notification::sendNow($subscriber, $notification->withChannels($synchronousChannels));
+                foreach ($synchronousChannels as $channel) {
+                    Notification::sendNow($subscriber, $notification->withChannels([$channel]));
                 }
 
-                if ($queuedChannels !== []) {
-                    Notification::send($subscriber, $notification->withChannels($queuedChannels));
+                foreach ($queuedChannels as $channel) {
+                    Notification::send($subscriber, $notification->withChannels([$channel]));
                 }
             });
         }

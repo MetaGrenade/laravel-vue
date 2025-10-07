@@ -591,7 +591,13 @@ class SupportController extends Controller
         StoreSupportTicketMessageRequest $request,
         SupportTicket $ticket
     ): RedirectResponse {
-        abort_unless($request->user()?->can('support.acp.reply'), 403);
+        $user = $request->user();
+
+        abort_if($user === null, 403);
+
+        $canReply = $user->can('support.acp.reply') || ((int) $ticket->assigned_to === (int) $user->id);
+
+        abort_unless($canReply, 403);
         abort_if($ticket->status === 'closed', 403);
 
         $validated = $request->validated();
