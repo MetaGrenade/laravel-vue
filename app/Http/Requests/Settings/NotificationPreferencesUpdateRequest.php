@@ -13,9 +13,18 @@ class NotificationPreferencesUpdateRequest extends FormRequest
     {
         return [
             'channels' => ['required', 'array'],
-            'channels.mail' => ['required', 'boolean'],
-            'channels.push' => ['required', 'boolean'],
-            'channels.database' => ['required', 'boolean'],
+            'channels.support_ticket' => ['required', 'array'],
+            'channels.support_ticket.mail' => ['required', 'boolean'],
+            'channels.support_ticket.push' => ['required', 'boolean'],
+            'channels.support_ticket.database' => ['required', 'boolean'],
+            'channels.forum_subscription' => ['required', 'array'],
+            'channels.forum_subscription.mail' => ['required', 'boolean'],
+            'channels.forum_subscription.push' => ['required', 'boolean'],
+            'channels.forum_subscription.database' => ['required', 'boolean'],
+            'channels.blog_subscription' => ['required', 'array'],
+            'channels.blog_subscription.mail' => ['required', 'boolean'],
+            'channels.blog_subscription.push' => ['required', 'boolean'],
+            'channels.blog_subscription.database' => ['required', 'boolean'],
         ];
     }
 

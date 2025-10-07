@@ -18,9 +18,21 @@ class NotificationPreferencesTest extends TestCase
 
         $response = $this->put(route('notifications.update'), [
             'channels' => [
-                'mail' => true,
-                'push' => false,
-                'database' => true,
+                'support_ticket' => [
+                    'mail' => true,
+                    'push' => false,
+                    'database' => true,
+                ],
+                'forum_subscription' => [
+                    'mail' => false,
+                    'push' => true,
+                    'database' => true,
+                ],
+                'blog_subscription' => [
+                    'mail' => true,
+                    'push' => false,
+                    'database' => false,
+                ],
             ],
         ]);
 
@@ -31,6 +43,16 @@ class NotificationPreferencesTest extends TestCase
                 'mail' => true,
                 'push' => false,
                 'database' => true,
+            ],
+            'forum_subscription' => [
+                'mail' => false,
+                'push' => true,
+                'database' => true,
+            ],
+            'blog_subscription' => [
+                'mail' => true,
+                'push' => false,
+                'database' => false,
             ],
         ], $user->fresh()->notification_preferences);
     }

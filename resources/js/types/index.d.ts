@@ -40,6 +40,16 @@ export interface User {
             push?: boolean;
             database?: boolean;
         };
+        forum_subscription?: {
+            mail?: boolean;
+            push?: boolean;
+            database?: boolean;
+        };
+        blog_subscription?: {
+            mail?: boolean;
+            push?: boolean;
+            database?: boolean;
+        };
         [key: string]: unknown;
     } | null;
 }

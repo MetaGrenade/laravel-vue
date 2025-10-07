@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\NotificationPreferencesUpdateRequest;
+use App\Support\NotificationChannelPreferences;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,21 +16,17 @@ class NotificationPreferenceController extends Controller
     {
         $user = $request->user();
 
-        $rawPreferences = $user?->notification_preferences;
+        abort_if($user === null, 403);
 
-        $preferences = [];
+        $channelPreferences = [];
 
-        if (is_array($rawPreferences) && is_array($rawPreferences['support_ticket'] ?? null)) {
-            $preferences = $rawPreferences['support_ticket'];
+        foreach (NotificationChannelPreferences::keys() as $key) {
+            $channelPreferences[$key] = NotificationChannelPreferences::toggles($user, $key);
         }
 
         return Inertia::render('settings/Notifications', [
-            'channelPreferences' => [
-                'mail' => (bool) ($preferences['mail'] ?? true),
-                'push' => (bool) ($preferences['push'] ?? false),
-                'database' => (bool) ($preferences['database'] ?? true),
-            ],
-            'emailIsVerified' => $user?->hasVerifiedEmail() ?? false,
+            'channelPreferences' => $channelPreferences,
+            'emailIsVerified' => $user->hasVerifiedEmail(),
         ]);
     }
 
@@ -37,9 +34,17 @@ class NotificationPreferenceController extends Controller
     {
         $user = $request->user();
 
+        abort_if($user === null, 403);
+
+        $validated = $request->validated();
+
         $preferences = $user->notification_preferences ?? [];
 
-        $preferences['support_ticket'] = $request->validated('channels');
+        foreach (NotificationChannelPreferences::keys() as $key) {
+            if (isset($validated['channels'][$key])) {
+                $preferences[$key] = $validated['channels'][$key];
+            }
+        }
 
         $user->notification_preferences = $preferences;
         $user->save();

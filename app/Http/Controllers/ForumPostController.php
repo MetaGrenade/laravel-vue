@@ -10,6 +10,7 @@ use App\Models\ForumThreadRead;
 use App\Models\User;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
+use App\Support\NotificationChannelPreferences;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -79,8 +80,26 @@ class ForumPostController extends Controller
             ->get();
 
         if ($subscribers->isNotEmpty()) {
-            Notification::sendNow($subscribers, (new ForumThreadUpdated($thread, $post))->withChannels(['database']));
-            Notification::send($subscribers, (new ForumThreadUpdated($thread, $post))->withChannels(['mail']));
+            $subscribers->unique('id')->each(function (User $subscriber) use ($thread, $post) {
+                $channels = NotificationChannelPreferences::resolveChannels($subscriber, 'forum_subscription');
+
+                if ($channels === []) {
+                    return;
+                }
+
+                $notification = new ForumThreadUpdated($thread, $post);
+
+                $synchronousChannels = array_values(array_intersect($channels, ['database']));
+                $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
+
+                if ($synchronousChannels !== []) {
+                    Notification::sendNow($subscriber, $notification->withChannels($synchronousChannels));
+                }
+
+                if ($queuedChannels !== []) {
+                    Notification::send($subscriber, $notification->withChannels($queuedChannels));
+                }
+            });
         }
 
         $postCount = $thread->posts()->count();

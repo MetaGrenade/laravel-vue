@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Support\NotificationChannelPreferences;
 use Illuminate\Notifications\Notification as BaseNotification;
 use Illuminate\Support\Facades\Notification;
 
@@ -41,33 +42,6 @@ class SupportTicketNotificationDispatcher
      */
     private function preferredNotificationChannels(User $user): array
     {
-        $preferences = $user->notification_preferences ?? [];
-
-        $supportTicketPreferences = array_merge(
-            [
-                'mail' => true,
-                'push' => false,
-                'database' => true,
-            ],
-            is_array($preferences['support_ticket'] ?? null)
-                ? $preferences['support_ticket']
-                : [],
-        );
-
-        $channels = [];
-
-        if (($supportTicketPreferences['mail'] ?? false) && $user->hasVerifiedEmail()) {
-            $channels[] = 'mail';
-        }
-
-        if ($supportTicketPreferences['push'] ?? false) {
-            $channels[] = 'broadcast';
-        }
-
-        if ($supportTicketPreferences['database'] ?? false) {
-            $channels[] = 'database';
-        }
-
-        return array_values(array_unique($channels));
+        return NotificationChannelPreferences::resolveChannels($user, 'support_ticket');
     }
 }

@@ -119,4 +119,42 @@ class BlogCommentNotificationsTest extends TestCase
 
         Notification::assertNotSentTo($commentAuthor, BlogCommentPosted::class);
     }
+
+    public function test_blog_subscription_notification_preferences_are_respected(): void
+    {
+        Notification::fake();
+
+        $blog = Blog::factory()->published()->create();
+        $subscriber = User::factory()->create([
+            'email_verified_at' => now(),
+            'notification_preferences' => [
+                'blog_subscription' => [
+                    'mail' => false,
+                    'push' => true,
+                    'database' => false,
+                ],
+            ],
+        ]);
+        $author = User::factory()->create();
+
+        $blog->commentSubscribers()->attach($subscriber->id);
+
+        $this->actingAs($author)
+            ->postJson(route('blogs.comments.store', ['blog' => $blog->slug]), [
+                'body' => 'Appreciate the update!',
+            ])
+            ->assertCreated();
+
+        Notification::assertSentToTimes($subscriber, BlogCommentPosted::class, 1);
+
+        Notification::assertSentTo(
+            $subscriber,
+            BlogCommentPosted::class,
+            function (BlogCommentPosted $notification, array $channels) {
+                sort($channels);
+
+                return $channels === ['broadcast'];
+            }
+        );
+    }
 }

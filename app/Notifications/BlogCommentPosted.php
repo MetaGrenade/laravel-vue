@@ -6,6 +6,7 @@ use App\Models\Blog;
 use App\Models\BlogComment;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
@@ -36,6 +37,7 @@ class BlogCommentPosted extends Notification implements ShouldQueue
         return [
             'mail' => 'mail',
             'database' => 'default',
+            'broadcast' => 'default',
         ];
     }
 
@@ -52,6 +54,11 @@ class BlogCommentPosted extends Notification implements ShouldQueue
             ->line($excerpt)
             ->action('Read the reply', $url)
             ->line('You are receiving this email because you opted in to comment notifications for this post.');
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toArray($notifiable));
     }
 
     public function toArray(object $notifiable): array

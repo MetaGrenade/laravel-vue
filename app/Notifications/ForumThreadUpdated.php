@@ -6,6 +6,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
@@ -35,6 +36,7 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
         return [
             'mail' => 'mail',
             'database' => 'default',
+            'broadcast' => 'default',
         ];
     }
 
@@ -53,6 +55,11 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
             ->line(Str::limit(strip_tags($this->post->body), 200))
             ->action('View reply', $url)
             ->line('You are receiving this email because you opted to follow this thread.');
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toArray($notifiable));
     }
 
     public function toArray(object $notifiable): array
