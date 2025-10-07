@@ -7,6 +7,7 @@ use App\Models\SupportTicketMessage;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
@@ -38,6 +39,7 @@ class TicketReplied extends Notification implements ShouldQueue
         return [
             'mail' => 'mail',
             'database' => 'default',
+            'broadcast' => 'default',
         ];
     }
 
@@ -96,6 +98,11 @@ class TicketReplied extends Notification implements ShouldQueue
             'excerpt' => $this->databaseExcerpt(),
             'url' => $this->conversationUrlFor($notifiable),
         ];
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toArray($notifiable));
     }
 
     /**

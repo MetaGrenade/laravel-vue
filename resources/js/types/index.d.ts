@@ -34,6 +34,14 @@ export interface User {
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
+    notification_preferences?: {
+        support_ticket?: {
+            mail?: boolean;
+            push?: boolean;
+            database?: boolean;
+        };
+        [key: string]: unknown;
+    } | null;
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;

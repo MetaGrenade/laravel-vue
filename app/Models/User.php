@@ -37,6 +37,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'last_activity_at',
         'banned_at',
         'banned_by_id',
+        'notification_preferences',
     ];
 
     /**
@@ -65,6 +66,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'banned_at' => 'datetime',
             'social_links' => 'array',
             'two_factor_confirmed_at' => 'datetime',
+            'notification_preferences' => 'array',
         ];
     }
 

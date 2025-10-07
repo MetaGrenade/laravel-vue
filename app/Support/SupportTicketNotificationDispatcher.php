@@ -41,10 +41,31 @@ class SupportTicketNotificationDispatcher
      */
     private function preferredNotificationChannels(User $user): array
     {
-        $channels = ['database'];
+        $preferences = $user->notification_preferences ?? [];
 
-        if ($user->hasVerifiedEmail()) {
-            array_unshift($channels, 'mail');
+        $supportTicketPreferences = array_merge(
+            [
+                'mail' => true,
+                'push' => false,
+                'database' => true,
+            ],
+            is_array($preferences['support_ticket'] ?? null)
+                ? $preferences['support_ticket']
+                : [],
+        );
+
+        $channels = [];
+
+        if (($supportTicketPreferences['mail'] ?? false) && $user->hasVerifiedEmail()) {
+            $channels[] = 'mail';
+        }
+
+        if ($supportTicketPreferences['push'] ?? false) {
+            $channels[] = 'broadcast';
+        }
+
+        if ($supportTicketPreferences['database'] ?? false) {
+            $channels[] = 'database';
         }
 
         return array_values(array_unique($channels));

@@ -403,5 +403,102 @@ class SupportTicketNotificationTest extends TestCase
             return true;
         });
     }
+
+    public function test_owner_notification_preferences_are_respected(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create([
+            'email_verified_at' => now(),
+            'notification_preferences' => [
+                'support_ticket' => [
+                    'mail' => false,
+                    'push' => true,
+                    'database' => true,
+                ],
+            ],
+        ]);
+
+        $agent = $this->createSupportAgent(['support.acp.view']);
+
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'subject' => 'API outage',
+            'body' => 'Production API is unavailable.',
+            'priority' => 'high',
+            'assigned_to' => $agent->id,
+        ]);
+
+        $ticket->messages()->create([
+            'user_id' => $agent->id,
+            'body' => 'We are investigating the issue.',
+        ]);
+
+        $this->actingAs($owner);
+
+        $response = $this->post(route('support.tickets.messages.store', $ticket), [
+            'body' => 'Thanks for the quick update.',
+        ]);
+
+        $response->assertRedirect(route('support.tickets.show', $ticket));
+
+        Notification::assertSentToTimes($owner, TicketReplied::class, 2);
+
+        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) {
+            return $channels === ['database'];
+        });
+
+        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) {
+            return $channels === ['broadcast'];
+        });
+    }
+
+    public function test_assigned_agent_notification_preferences_are_respected(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+
+        $agent = $this->createSupportAgent(['support.acp.view']);
+        $agent->notification_preferences = [
+            'support_ticket' => [
+                'mail' => true,
+                'push' => true,
+                'database' => false,
+            ],
+        ];
+        $agent->save();
+
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'subject' => 'Deployment pipeline failure',
+            'body' => 'The deployment pipeline failed with exit code 1.',
+            'priority' => 'medium',
+            'assigned_to' => $agent->id,
+        ]);
+
+        $ticket->messages()->create([
+            'user_id' => $owner->id,
+            'body' => 'Initial report about the failure.',
+        ]);
+
+        $this->actingAs($agent);
+
+        $response = $this->post(route('acp.support.tickets.messages.store', $ticket), [
+            'body' => 'Please try rerunning the job with verbose logging enabled.',
+        ]);
+
+        $response->assertRedirect(route('acp.support.tickets.show', ['ticket' => $ticket->id]));
+
+        Notification::assertSentToTimes($agent, TicketReplied::class, 1);
+
+        Notification::assertSentTo($agent, TicketReplied::class, function (TicketReplied $notification, array $channels) {
+            sort($channels);
+
+            return $channels === ['broadcast', 'mail'];
+        });
+    }
 }
 
