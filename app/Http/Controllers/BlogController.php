@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogComment;
+use App\Models\BlogView;
 use App\Models\BlogTag;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
@@ -483,6 +484,8 @@ class BlogController extends Controller
 
     protected function registerBlogView(Request $request, Blog $blog): void
     {
+        $this->recordUserBlogView($request->user(), $blog);
+
         $session = $request->session();
         $sessionKey = 'blog_views';
         $viewRecords = $session->get($sessionKey, []);
@@ -525,6 +528,23 @@ class BlogController extends Controller
         ];
 
         $session->put($sessionKey, $viewRecords);
+    }
+
+    protected function recordUserBlogView(?User $user, Blog $blog): void
+    {
+        if (! $user) {
+            return;
+        }
+
+        $view = BlogView::query()->firstOrNew([
+            'user_id' => $user->id,
+            'blog_id' => $blog->id,
+        ]);
+
+        $view->view_count = ((int) $view->view_count) + 1;
+        $view->last_viewed_at = Carbon::now();
+
+        $view->save();
     }
 
     public function preview(Blog $blog, string $token): Response
