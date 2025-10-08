@@ -52,7 +52,7 @@ class TokenController extends Controller
             ->withQueryString();
 
         $tokenItems = $tokens->getCollection()
-            ->map(function (PersonalAccessToken $token) use ($formatter) {
+            ->map(function (PersonalAccessToken $token) use ($formatter, $hourlyUsage, $dailyUsage) {
                 $user = $token->tokenable;
 
                 return [
