@@ -16,16 +16,26 @@ return new class extends Migration {
                 ->nullable()
                 ->constrained('support_ticket_categories')
                 ->nullOnDelete();
-            $table->foreignId('support_team_id')
-                ->nullable()
-                ->constrained('support_teams')
-                ->nullOnDelete();
             $table->timestamps();
+        });
+
+        Schema::create('support_response_template_support_team', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('support_response_template_id')
+                ->constrained('support_response_templates')
+                ->cascadeOnDelete();
+            $table->foreignId('support_team_id')
+                ->constrained('support_teams')
+                ->cascadeOnDelete();
+            $table->timestamps();
+
+            $table->unique(['support_response_template_id', 'support_team_id'], 'support_template_team_unique');
         });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('support_response_template_support_team');
         Schema::dropIfExists('support_response_templates');
     }
 };

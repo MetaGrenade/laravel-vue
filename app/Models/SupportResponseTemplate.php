@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class SupportResponseTemplate extends Model
 {
@@ -15,7 +16,6 @@ class SupportResponseTemplate extends Model
         'body',
         'is_active',
         'support_ticket_category_id',
-        'support_team_id',
     ];
 
     protected $casts = [
@@ -27,8 +27,9 @@ class SupportResponseTemplate extends Model
         return $this->belongsTo(SupportTicketCategory::class, 'support_ticket_category_id');
     }
 
-    public function team(): BelongsTo
+    public function teams(): BelongsToMany
     {
-        return $this->belongsTo(SupportTeam::class);
+        return $this->belongsToMany(SupportTeam::class, 'support_response_template_support_team')
+            ->withTimestamps();
     }
 }

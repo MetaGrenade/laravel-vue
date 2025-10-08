@@ -17,16 +17,26 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { Pencil, PlusCircle, Trash2, Users } from 'lucide-vue-next';
 
+interface SupportTeamMember {
+    id: number;
+    nickname: string;
+    email: string;
+}
+
 interface SupportTeamItem {
     id: number;
     name: string;
     templates_count: number;
+    members_count: number;
+    member_ids: number[];
+    members: SupportTeamMember[];
     created_at: string | null;
     updated_at: string | null;
 }
 
 const props = defineProps<{
     teams: SupportTeamItem[];
+    agents: SupportTeamMember[];
     can: {
         create: boolean;
         edit: boolean;
@@ -46,6 +56,7 @@ const hasTeamActions = computed(() => props.can.edit || props.can.delete);
 
 const createForm = useForm({
     name: '',
+    member_ids: [] as number[],
 });
 
 const submitCreate = () => {
@@ -67,6 +78,7 @@ const editDialogOpen = ref(false);
 
 const editForm = useForm({
     name: '',
+    member_ids: [] as number[],
 });
 
 const openEditDialog = (team: SupportTeamItem) => {
@@ -78,6 +90,7 @@ const openEditDialog = (team: SupportTeamItem) => {
     editForm.reset();
     editForm.clearErrors();
     editForm.name = team.name;
+    editForm.member_ids = [...team.member_ids];
     editDialogOpen.value = true;
 };
 
@@ -156,6 +169,14 @@ const deleteDialogTitle = computed(() => {
 const cancelDeleteTeam = () => {
     deleteDialogOpen.value = false;
 };
+
+const memberSummary = (team: SupportTeamItem) => {
+    if (!team.members || team.members.length === 0) {
+        return 'No members yet';
+    }
+
+    return team.members.map((member) => member.nickname).join(', ');
+};
 </script>
 
 <template>
@@ -209,6 +230,24 @@ const cancelDeleteTeam = () => {
                                 />
                                 <InputError :message="createForm.errors.name" />
                             </div>
+                            <div class="grid gap-2">
+                                <Label for="team_members">Team members</Label>
+                                <select
+                                    id="team_members"
+                                    v-model="createForm.member_ids"
+                                    :disabled="createForm.processing"
+                                    multiple
+                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                >
+                                    <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
+                                        {{ agent.nickname }} ({{ agent.email }})
+                                    </option>
+                                </select>
+                                <p class="text-xs text-muted-foreground">
+                                    Leave empty to add members later.
+                                </p>
+                                <InputError :message="createForm.errors.member_ids" />
+                            </div>
                             <CardFooter class="justify-end px-0 pb-0">
                                 <Button type="submit" :disabled="createForm.processing">Create team</Button>
                             </CardFooter>
@@ -234,6 +273,7 @@ const cancelDeleteTeam = () => {
                                         <TableRow>
                                             <TableHead class="w-1/3">Name</TableHead>
                                             <TableHead>Templates</TableHead>
+                                            <TableHead>Members</TableHead>
                                             <TableHead>Updated</TableHead>
                                             <TableHead v-if="hasTeamActions" class="text-right">Actions</TableHead>
                                         </TableRow>
@@ -250,6 +290,14 @@ const cancelDeleteTeam = () => {
                                             </TableCell>
                                             <TableCell>
                                                 <span class="text-sm text-muted-foreground">{{ team.templates_count }}</span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div class="flex flex-col text-sm text-muted-foreground">
+                                                    <span>{{ team.members_count }}</span>
+                                                    <span class="text-xs" :title="memberSummary(team)">
+                                                        {{ memberSummary(team) }}
+                                                    </span>
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <span class="text-sm text-muted-foreground">
@@ -314,6 +362,24 @@ const cancelDeleteTeam = () => {
                                     required
                                 />
                                 <InputError :message="editForm.errors.name" />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="edit_team_members">Team members</Label>
+                                <select
+                                    id="edit_team_members"
+                                    v-model="editForm.member_ids"
+                                    :disabled="editForm.processing"
+                                    multiple
+                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                >
+                                    <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
+                                        {{ agent.nickname }} ({{ agent.email }})
+                                    </option>
+                                </select>
+                                <p class="text-xs text-muted-foreground">
+                                    Leave empty to clear all members.
+                                </p>
+                                <InputError :message="editForm.errors.member_ids" />
                             </div>
                             <CardFooter class="justify-end gap-2 px-0 pb-0">
                                 <Button type="button" variant="outline" :disabled="editForm.processing" @click="closeEditDialog">

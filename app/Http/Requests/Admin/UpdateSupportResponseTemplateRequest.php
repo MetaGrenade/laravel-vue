@@ -10,8 +10,11 @@ class UpdateSupportResponseTemplateRequest extends FormRequest
     {
         $payload = [
             'support_ticket_category_id' => $this->normalizeNullableInt('support_ticket_category_id'),
-            'support_team_id' => $this->normalizeNullableInt('support_team_id'),
         ];
+
+        if ($this->has('support_team_ids')) {
+            $payload['support_team_ids'] = $this->normalizeIdsArray($this->input('support_team_ids'));
+        }
 
         if ($this->has('is_active')) {
             $value = $this->input('is_active');
@@ -36,7 +39,8 @@ class UpdateSupportResponseTemplateRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
             'support_ticket_category_id' => ['nullable', 'integer', 'exists:support_ticket_categories,id'],
-            'support_team_id' => ['nullable', 'integer', 'exists:support_teams,id'],
+            'support_team_ids' => ['array'],
+            'support_team_ids.*' => ['integer', 'exists:support_teams,id'],
             'is_active' => ['required', 'boolean'],
         ];
     }
@@ -54,5 +58,27 @@ class UpdateSupportResponseTemplateRequest extends FormRequest
         }
 
         return $value !== null ? (int) $value : null;
+    }
+
+    /**
+     * @param  mixed  $value
+     * @return array<int, int>
+     */
+    private function normalizeIdsArray(mixed $value): array
+    {
+        if ($value === null || $value === '' || $value === 'null') {
+            return [];
+        }
+
+        if (! is_array($value)) {
+            $value = [$value];
+        }
+
+        return collect($value)
+            ->filter(fn ($id) => $id !== null && $id !== '' && $id !== 'null')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 }

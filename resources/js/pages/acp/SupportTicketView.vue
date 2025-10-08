@@ -49,9 +49,9 @@ interface SupportTemplateMeta {
     body: string;
     is_active: boolean;
     support_ticket_category_id: number | null;
-    support_team_id: number | null;
+    support_team_ids: number[];
     category: { id: number; name: string } | null;
-    team: { id: number; name: string } | null;
+    teams: { id: number; name: string }[];
 }
 
 const props = defineProps<{
@@ -75,6 +75,7 @@ const props = defineProps<{
     canReply: boolean;
     assignableAgents: TicketParticipant[];
     templates: SupportTemplateMeta[];
+    agentTeamIds: number[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -128,6 +129,8 @@ const replyForm = useForm<ReplyFormPayload>({
     attachments: [],
 });
 
+const agentTeamIdsSet = computed(() => new Set(props.agentTeamIds ?? []));
+
 const availableTemplates = computed(() => {
     const categoryId = props.ticket.support_ticket_category_id;
     const templates = props.templates ?? [];
@@ -140,6 +143,15 @@ const availableTemplates = computed(() => {
             }
 
             return template.support_ticket_category_id === categoryId;
+        })
+        .filter((template) => {
+            if (!template.support_team_ids || template.support_team_ids.length === 0) {
+                return true;
+            }
+
+            const teams = agentTeamIdsSet.value;
+
+            return template.support_team_ids.some((teamId) => teams.has(teamId));
         });
 });
 
@@ -147,13 +159,21 @@ const templateGroups = computed(() => {
     const groups = new Map<string, SupportTemplateMeta[]>();
 
     for (const template of availableTemplates.value) {
-        const groupName = template.team?.name ?? 'General';
+        const targetTeams = template.teams && template.teams.length > 0 ? template.teams : [{ id: 0, name: 'General' }];
 
-        if (!groups.has(groupName)) {
-            groups.set(groupName, []);
+        for (const team of targetTeams) {
+            const groupName = team.name ?? 'General';
+
+            if (!groups.has(groupName)) {
+                groups.set(groupName, []);
+            }
+
+            const group = groups.get(groupName)!;
+
+            if (!group.includes(template)) {
+                group.push(template);
+            }
         }
-
-        groups.get(groupName)!.push(template);
     }
 
     const entries = Array.from(groups.entries()).map(([name, items]) => ({

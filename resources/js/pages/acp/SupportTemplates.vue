@@ -30,9 +30,9 @@ interface TemplateItem {
     body: string;
     is_active: boolean;
     support_ticket_category_id: number | null;
-    support_team_id: number | null;
+    support_team_ids: number[];
     category: TemplateTeamOrCategory | null;
-    team: TemplateTeamOrCategory | null;
+    teams: TemplateTeamOrCategory[];
     created_at: string | null;
     updated_at: string | null;
 }
@@ -62,7 +62,7 @@ const createForm = useForm({
     title: '',
     body: '',
     support_ticket_category_id: null as number | null,
-    support_team_id: null as number | null,
+    support_team_ids: [] as number[],
     is_active: true,
 });
 
@@ -87,7 +87,7 @@ const editForm = useForm({
     title: '',
     body: '',
     support_ticket_category_id: null as number | null,
-    support_team_id: null as number | null,
+    support_team_ids: [] as number[],
     is_active: true,
 });
 
@@ -102,7 +102,7 @@ const openEditDialog = (template: TemplateItem) => {
     editForm.title = template.title;
     editForm.body = template.body;
     editForm.support_ticket_category_id = template.support_ticket_category_id;
-    editForm.support_team_id = template.support_team_id;
+    editForm.support_team_ids = [...template.support_team_ids];
     editForm.is_active = template.is_active;
     editDialogOpen.value = true;
 };
@@ -180,7 +180,13 @@ const deleteDialogTitle = computed(() => {
 });
 
 const categoryName = (template: TemplateItem) => template.category?.name ?? 'All categories';
-const teamName = (template: TemplateItem) => template.team?.name ?? 'All teams';
+const teamNames = (template: TemplateItem) => {
+    if (!template.teams || template.teams.length === 0) {
+        return 'All teams';
+    }
+
+    return template.teams.map((team) => team.name).join(', ');
+};
 
 const cancelDeleteTemplate = () => {
     deleteDialogOpen.value = false;
@@ -270,19 +276,22 @@ const cancelDeleteTemplate = () => {
                                 </div>
 
                                 <div class="grid gap-2">
-                                    <Label for="template_team">Team</Label>
+                                    <Label for="template_team">Teams</Label>
                                     <select
                                         id="template_team"
-                                        v-model="createForm.support_team_id"
+                                        v-model="createForm.support_team_ids"
                                         :disabled="createForm.processing"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        multiple
+                                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                     >
-                                        <option :value="null">All teams</option>
                                         <option v-for="team in props.teams" :key="team.id" :value="team.id">
                                             {{ team.name }}
                                         </option>
                                     </select>
-                                    <InputError :message="createForm.errors.support_team_id" />
+                                    <p class="text-xs text-muted-foreground">
+                                        Leave empty to make the template available to every team.
+                                    </p>
+                                    <InputError :message="createForm.errors.support_team_ids" />
                                 </div>
                             </div>
 
@@ -321,7 +330,7 @@ const cancelDeleteTemplate = () => {
                                         <TableRow>
                                             <TableHead class="w-1/3">Title</TableHead>
                                             <TableHead>Category</TableHead>
-                                            <TableHead>Team</TableHead>
+                                            <TableHead>Teams</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead>Updated</TableHead>
                                             <TableHead v-if="hasTemplateActions" class="text-right">Actions</TableHead>
@@ -338,7 +347,7 @@ const cancelDeleteTemplate = () => {
                                                 </div>
                                             </TableCell>
                                             <TableCell>{{ categoryName(template) }}</TableCell>
-                                            <TableCell>{{ teamName(template) }}</TableCell>
+                                            <TableCell>{{ teamNames(template) }}</TableCell>
                                             <TableCell>
                                                 <span
                                                     :class="[
@@ -443,19 +452,22 @@ const cancelDeleteTemplate = () => {
                                     <InputError :message="editForm.errors.support_ticket_category_id" />
                                 </div>
                                 <div class="grid gap-2">
-                                    <Label for="edit_team">Team</Label>
+                                    <Label for="edit_team">Teams</Label>
                                     <select
                                         id="edit_team"
-                                        v-model="editForm.support_team_id"
+                                        v-model="editForm.support_team_ids"
                                         :disabled="editForm.processing"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        multiple
+                                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                     >
-                                        <option :value="null">All teams</option>
                                         <option v-for="team in props.teams" :key="team.id" :value="team.id">
                                             {{ team.name }}
                                         </option>
                                     </select>
-                                    <InputError :message="editForm.errors.support_team_id" />
+                                    <p class="text-xs text-muted-foreground">
+                                        Leave empty to keep the template available to all teams.
+                                    </p>
+                                    <InputError :message="editForm.errors.support_team_ids" />
                                 </div>
                             </div>
                             <div class="flex items-center justify-between rounded-md border border-border/60 bg-muted/40 p-3">

@@ -58,7 +58,7 @@ class SupportController extends Controller
         $formatter = DateFormatter::for($request->user());
 
         $templates = SupportResponseTemplate::query()
-            ->with(['category:id,name', 'team:id,name'])
+            ->with(['category:id,name', 'teams:id,name'])
             ->orderBy('title')
             ->get()
             ->map(function (SupportResponseTemplate $template) use ($formatter) {
@@ -68,15 +68,18 @@ class SupportController extends Controller
                     'body' => $template->body,
                     'is_active' => $template->is_active,
                     'support_ticket_category_id' => $template->support_ticket_category_id,
-                    'support_team_id' => $template->support_team_id,
                     'category' => $template->category ? [
                         'id' => $template->category->id,
                         'name' => $template->category->name,
                     ] : null,
-                    'team' => $template->team ? [
-                        'id' => $template->team->id,
-                        'name' => $template->team->name,
-                    ] : null,
+                    'support_team_ids' => $template->teams->pluck('id')->all(),
+                    'teams' => $template->teams
+                        ->map(fn (SupportTeam $team) => [
+                            'id' => $team->id,
+                            'name' => $team->name,
+                        ])
+                        ->values()
+                        ->all(),
                     'created_at' => $formatter->iso($template->created_at),
                     'updated_at' => $formatter->iso($template->updated_at),
                 ];
@@ -118,7 +121,13 @@ class SupportController extends Controller
 
     public function storeTemplate(StoreSupportResponseTemplateRequest $request): RedirectResponse
     {
-        SupportResponseTemplate::create($request->validated());
+        $validated = $request->validated();
+        $teamIds = $validated['support_team_ids'] ?? [];
+        unset($validated['support_team_ids']);
+
+        /** @var SupportResponseTemplate $template */
+        $template = SupportResponseTemplate::create($validated);
+        $template->teams()->sync($teamIds);
 
         return redirect()
             ->route('acp.support.templates.index')
@@ -129,7 +138,12 @@ class SupportController extends Controller
         UpdateSupportResponseTemplateRequest $request,
         SupportResponseTemplate $template
     ): RedirectResponse {
-        $template->update($request->validated());
+        $validated = $request->validated();
+        $teamIds = $validated['support_team_ids'] ?? [];
+        unset($validated['support_team_ids']);
+
+        $template->update($validated);
+        $template->teams()->sync($teamIds);
 
         return redirect()
             ->route('acp.support.templates.index')
@@ -154,7 +168,8 @@ class SupportController extends Controller
         $formatter = DateFormatter::for($request->user());
 
         $teams = SupportTeam::query()
-            ->withCount('templates')
+            ->withCount(['templates', 'members'])
+            ->with(['members:id,nickname,email'])
             ->orderBy('name')
             ->get()
             ->map(function (SupportTeam $team) use ($formatter) {
@@ -162,6 +177,16 @@ class SupportController extends Controller
                     'id' => $team->id,
                     'name' => $team->name,
                     'templates_count' => $team->templates_count,
+                    'members_count' => $team->members_count,
+                    'member_ids' => $team->members->pluck('id')->all(),
+                    'members' => $team->members
+                        ->map(fn (User $member) => [
+                            'id' => $member->id,
+                            'nickname' => $member->nickname,
+                            'email' => $member->email,
+                        ])
+                        ->values()
+                        ->all(),
                     'created_at' => $formatter->iso($team->created_at),
                     'updated_at' => $formatter->iso($team->updated_at),
                 ];
@@ -169,8 +194,18 @@ class SupportController extends Controller
             ->values()
             ->all();
 
+        $assignableAgents = User::orderBy('nickname')
+            ->get(['id', 'nickname', 'email'])
+            ->map(fn (User $agent) => [
+                'id' => $agent->id,
+                'nickname' => $agent->nickname,
+                'email' => $agent->email,
+            ])
+            ->all();
+
         return Inertia::render('acp/SupportTeams', [
             'teams' => $teams,
+            'agents' => $assignableAgents,
             'can' => [
                 'create' => (bool) $request->user()?->can('support_teams.acp.create'),
                 'edit' => (bool) $request->user()?->can('support_teams.acp.edit'),
@@ -181,7 +216,13 @@ class SupportController extends Controller
 
     public function storeTeam(StoreSupportTeamRequest $request): RedirectResponse
     {
-        SupportTeam::create($request->validated());
+        $validated = $request->validated();
+        $memberIds = $validated['member_ids'] ?? [];
+        unset($validated['member_ids']);
+
+        /** @var SupportTeam $team */
+        $team = SupportTeam::create($validated);
+        $team->members()->sync($memberIds);
 
         return redirect()
             ->route('acp.support.teams.index')
@@ -190,7 +231,12 @@ class SupportController extends Controller
 
     public function updateTeam(UpdateSupportTeamRequest $request, SupportTeam $team): RedirectResponse
     {
-        $team->update($request->validated());
+        $validated = $request->validated();
+        $memberIds = $validated['member_ids'] ?? [];
+        unset($validated['member_ids']);
+
+        $team->update($validated);
+        $team->members()->sync($memberIds);
 
         return redirect()
             ->route('acp.support.teams.index')
@@ -711,16 +757,24 @@ class SupportController extends Controller
             ->all();
 
         $templates = [];
+        $agentTeamIds = $request->user()?->supportTeams()->pluck('support_teams.id')->all() ?? [];
 
         if ($request->user()?->can('support_templates.acp.view')) {
             $templates = SupportResponseTemplate::query()
-                ->with(['category:id,name', 'team:id,name'])
+                ->with(['category:id,name', 'teams:id,name'])
                 ->where('is_active', true)
                 ->where(function ($query) use ($ticket) {
                     $query->whereNull('support_ticket_category_id');
 
                     if ($ticket->support_ticket_category_id) {
                         $query->orWhere('support_ticket_category_id', $ticket->support_ticket_category_id);
+                    }
+                })
+                ->where(function ($query) use ($agentTeamIds) {
+                    $query->whereDoesntHave('teams');
+
+                    if (! empty($agentTeamIds)) {
+                        $query->orWhereHas('teams', fn ($relation) => $relation->whereIn('support_teams.id', $agentTeamIds));
                     }
                 })
                 ->orderBy('title')
@@ -732,15 +786,18 @@ class SupportController extends Controller
                         'body' => $template->body,
                         'is_active' => $template->is_active,
                         'support_ticket_category_id' => $template->support_ticket_category_id,
-                        'support_team_id' => $template->support_team_id,
+                        'support_team_ids' => $template->teams->pluck('id')->all(),
                         'category' => $template->category ? [
                             'id' => $template->category->id,
                             'name' => $template->category->name,
                         ] : null,
-                        'team' => $template->team ? [
-                            'id' => $template->team->id,
-                            'name' => $template->team->name,
-                        ] : null,
+                        'teams' => $template->teams
+                            ->map(fn (SupportTeam $team) => [
+                                'id' => $team->id,
+                                'name' => $team->name,
+                            ])
+                            ->values()
+                            ->all(),
                     ];
                 })
                 ->values()
@@ -784,6 +841,7 @@ class SupportController extends Controller
             'canReply' => (bool) $canReply,
             'assignableAgents' => $assignableAgents,
             'templates' => $templates,
+            'agentTeamIds' => $agentTeamIds,
         ]);
     }
 
