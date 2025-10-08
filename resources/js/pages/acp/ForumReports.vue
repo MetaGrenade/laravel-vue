@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import type { CheckboxRootProps } from 'radix-vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
@@ -11,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Pagination,
     PaginationEllipsis,
@@ -28,7 +30,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Ellipsis, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-vue-next';
+import { Ellipsis, RotateCcw, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-vue-next';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
 const props = defineProps<{
@@ -141,6 +143,115 @@ watch(
 );
 
 const { fromNow } = useUserTimezone();
+
+type ReportStatus = 'pending' | 'reviewed' | 'dismissed';
+
+const reportItems = computed(() => props.reports.data ?? []);
+const reportKey = (report: Report) => `${report.type}:${report.id}`;
+
+type CheckboxState = CheckboxRootProps['checked'];
+
+const selectedReportKeys = ref<string[]>([]);
+
+watch(
+    reportItems,
+    (items) => {
+        const validKeys = new Set(items.map((item) => reportKey(item)));
+        selectedReportKeys.value = selectedReportKeys.value.filter((key) => validKeys.has(key));
+    },
+    { immediate: true },
+);
+
+const hasReportSelection = computed(() => selectedReportKeys.value.length > 0);
+const allReportsSelected = computed(
+    () => reportItems.value.length > 0 && selectedReportKeys.value.length === reportItems.value.length,
+);
+const reportHeaderCheckboxState = computed<CheckboxState>(() => {
+    if (allReportsSelected.value) {
+        return true;
+    }
+
+    if (selectedReportKeys.value.length > 0) {
+        return 'indeterminate';
+    }
+
+    return false;
+});
+
+const reportSelectionLabel = computed(() => {
+    const count = selectedReportKeys.value.length;
+
+    if (count === 0) {
+        return 'Select reports to enable bulk actions.';
+    }
+
+    return count === 1 ? '1 report selected.' : `${count} reports selected.`;
+});
+
+const bulkReportForm = useForm<{ status: ReportStatus; reports: Array<{ id: number; type: Report['type'] }> }>({
+    status: 'reviewed',
+    reports: [],
+});
+
+const updateReportSelection = (report: Report, checked: boolean) => {
+    const key = reportKey(report);
+
+    if (checked) {
+        if (!selectedReportKeys.value.includes(key)) {
+            selectedReportKeys.value = [...selectedReportKeys.value, key];
+        }
+
+        return;
+    }
+
+    selectedReportKeys.value = selectedReportKeys.value.filter((value) => value !== key);
+};
+
+const toggleAllReports = (checked: boolean) => {
+    if (checked) {
+        selectedReportKeys.value = reportItems.value.map((item) => reportKey(item));
+
+        return;
+    }
+
+    selectedReportKeys.value = [];
+};
+
+const submitBulkReportStatus = (status: ReportStatus) => {
+    const keys = Array.from(new Set(selectedReportKeys.value));
+
+    if (keys.length === 0) {
+        return;
+    }
+
+    const payload = keys
+        .map((key) => {
+            const [type, id] = key.split(':');
+            const numericId = Number.parseInt(id ?? '', 10);
+
+            if (Number.isNaN(numericId)) {
+                return null;
+            }
+
+            return { id: numericId, type: type as Report['type'] };
+        })
+        .filter((value): value is { id: number; type: Report['type'] } => value !== null);
+
+    if (payload.length === 0) {
+        return;
+    }
+
+    bulkReportForm.status = status;
+    bulkReportForm.reports = payload;
+
+    bulkReportForm.patch(route('acp.forums.reports.bulk-status'), {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            selectedReportKeys.value = [];
+        },
+    });
+};
 
 const reasonLookup = computed<Record<string, string>>(() => {
     const lookup: Record<string, string> = {};
@@ -463,10 +574,55 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                         </form>
 
                         <div v-if="hasReports" class="space-y-4">
+                            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                <p class="text-sm text-muted-foreground">{{ reportSelectionLabel }}</p>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            variant="outline"
+                                            :disabled="!hasReportSelection || bulkReportForm.processing"
+                                        >
+                                            Bulk status
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" class="w-56">
+                                        <DropdownMenuLabel>Set report status</DropdownMenuLabel>
+                                        <DropdownMenuItem
+                                            :disabled="bulkReportForm.processing"
+                                            @select="submitBulkReportStatus('reviewed')"
+                                        >
+                                            <ShieldCheck class="mr-2 h-4 w-4" />
+                                            <span>Mark reviewed</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            :disabled="bulkReportForm.processing"
+                                            @select="submitBulkReportStatus('dismissed')"
+                                        >
+                                            <ShieldX class="mr-2 h-4 w-4" />
+                                            <span>Dismiss reports</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            :disabled="bulkReportForm.processing"
+                                            @select="submitBulkReportStatus('pending')"
+                                        >
+                                            <RotateCcw class="mr-2 h-4 w-4" />
+                                            <span>Reopen reports</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                             <div class="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead class="w-12">
+                                                <Checkbox
+                                                    :checked="reportHeaderCheckboxState"
+                                                    :disabled="reportItems.length === 0"
+                                                    aria-label="Select all forum reports"
+                                                    @update:checked="toggleAllReports"
+                                                />
+                                            </TableHead>
                                             <TableHead class="w-40">Type & reason</TableHead>
                                             <TableHead>Content</TableHead>
                                             <TableHead class="w-48">Reporter</TableHead>
@@ -474,7 +630,18 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow v-for="report in props.reports.data" :key="`${report.type}-${report.id}`" class="align-top">
+                                        <TableRow
+                                            v-for="report in reportItems"
+                                            :key="`${report.type}-${report.id}`"
+                                            class="align-top"
+                                        >
+                                            <TableCell class="align-middle">
+                                                <Checkbox
+                                                    :checked="selectedReportKeys.includes(reportKey(report))"
+                                                    aria-label="Select forum report"
+                                                    @update:checked="(checked) => updateReportSelection(report, checked)"
+                                                />
+                                            </TableCell>
                                             <TableCell>
                                                 <div class="space-y-2">
                                                     <div class="flex items-center gap-2">

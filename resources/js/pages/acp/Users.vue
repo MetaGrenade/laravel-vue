@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
@@ -10,6 +10,7 @@ import Button from '@/components/ui/button/Button.vue';
 import Label from '@/components/ui/label/Label.vue';
 import { useDebounceFn } from '@vueuse/core';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import type { CheckboxRootProps } from 'radix-vue';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -20,6 +21,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Pagination,
     PaginationEllipsis,
@@ -367,6 +369,96 @@ const stats = [
     { title: 'Banned Users',     value: props.userStats.banned,     icon: UserX },
     { title: 'Online Users',     value: props.userStats.online,     icon: Activity },
 ];
+
+const userItems = computed(() => props.users.data ?? []);
+
+type CheckboxState = CheckboxRootProps['checked'];
+type BulkAction = 'verify' | 'ban' | 'unban' | 'delete';
+
+const selectedUserIds = ref<number[]>([]);
+
+watch(
+    userItems,
+    (items) => {
+        const validIds = new Set(items.map((item) => item.id));
+        selectedUserIds.value = selectedUserIds.value.filter((id) => validIds.has(id));
+    },
+    { immediate: true },
+);
+
+const hasUserSelection = computed(() => selectedUserIds.value.length > 0);
+const allUsersSelected = computed(
+    () => userItems.value.length > 0 && selectedUserIds.value.length === userItems.value.length,
+);
+
+const userHeaderCheckboxState = computed<CheckboxState>(() => {
+    if (allUsersSelected.value) {
+        return true;
+    }
+
+    if (selectedUserIds.value.length > 0) {
+        return 'indeterminate';
+    }
+
+    return false;
+});
+
+const userSelectionLabel = computed(() => {
+    const count = selectedUserIds.value.length;
+
+    if (count === 0) {
+        return 'Select users to enable bulk actions.';
+    }
+
+    return count === 1 ? '1 user selected.' : `${count} users selected.`;
+});
+
+const bulkActionForm = useForm<{ ids: number[]; action: BulkAction }>({
+    ids: [],
+    action: 'verify',
+});
+
+const updateUserSelection = (userId: number, checked: boolean) => {
+    if (checked) {
+        if (!selectedUserIds.value.includes(userId)) {
+            selectedUserIds.value = [...selectedUserIds.value, userId];
+        }
+
+        return;
+    }
+
+    selectedUserIds.value = selectedUserIds.value.filter((id) => id !== userId);
+};
+
+const toggleAllUsers = (checked: boolean) => {
+    if (checked) {
+        selectedUserIds.value = userItems.value.map((item) => item.id);
+
+        return;
+    }
+
+    selectedUserIds.value = [];
+};
+
+const submitBulkAction = (action: BulkAction) => {
+    const ids = Array.from(new Set(selectedUserIds.value));
+
+    if (ids.length === 0) {
+        return;
+    }
+
+    bulkActionForm.ids = ids;
+    bulkActionForm.action = action;
+
+    bulkActionForm.patch(route('acp.users.bulk-update'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            selectedUserIds.value = [];
+        },
+    });
+};
+
+const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || deleteUsers.value);
 </script>
 
 <template>
@@ -464,11 +556,72 @@ const stats = [
                         </div>
                     </div>
 
+                    <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <p class="text-sm text-muted-foreground">{{ userSelectionLabel }}</p>
+
+                        <DropdownMenu v-if="hasBulkActions">
+                            <DropdownMenuTrigger as-child>
+                                <Button
+                                    variant="outline"
+                                    :disabled="!hasUserSelection || bulkActionForm.processing"
+                                >
+                                    Bulk actions
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" class="w-52">
+                                <DropdownMenuLabel>Apply to selected</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                    v-if="verifyUsers"
+                                    :disabled="bulkActionForm.processing"
+                                    @select="submitBulkAction('verify')"
+                                >
+                                    <MailCheck class="mr-2 h-4 w-4" />
+                                    <span>Verify email</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator v-if="verifyUsers && (banUsers || deleteUsers)" />
+                                <DropdownMenuItem
+                                    v-if="banUsers"
+                                    :disabled="bulkActionForm.processing"
+                                    @select="submitBulkAction('ban')"
+                                >
+                                    <UserX class="mr-2 h-4 w-4" />
+                                    <span>Ban users</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    v-if="banUsers"
+                                    :disabled="bulkActionForm.processing"
+                                    @select="submitBulkAction('unban')"
+                                >
+                                    <UserCheck class="mr-2 h-4 w-4" />
+                                    <span>Unban users</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator v-if="deleteUsers && (verifyUsers || banUsers)" />
+                                <DropdownMenuItem
+                                    v-if="deleteUsers"
+                                    class="text-red-500"
+                                    :disabled="bulkActionForm.processing"
+                                    @select="submitBulkAction('delete')"
+                                >
+                                    <Trash2 class="mr-2 h-4 w-4" />
+                                    <span>Delete users</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
                     <!-- Users Table -->
                     <div class="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead class="w-12">
+                                        <Checkbox
+                                            :checked="userHeaderCheckboxState"
+                                            :disabled="userItems.length === 0"
+                                            aria-label="Select all users"
+                                            @update:checked="toggleAllUsers"
+                                        />
+                                    </TableHead>
                                     <TableHead>ID</TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Email</TableHead>
@@ -481,9 +634,16 @@ const stats = [
                             </TableHeader>
                             <TableBody>
                                 <TableRow
-                                    v-for="user in props.users.data"
+                                    v-for="user in userItems"
                                     :key="user.id"
                                 >
+                                    <TableCell class="align-middle">
+                                        <Checkbox
+                                            :checked="selectedUserIds.includes(user.id)"
+                                            aria-label="Select user"
+                                            @update:checked="(checked) => updateUserSelection(user.id, checked)"
+                                        />
+                                    </TableCell>
                                     <TableCell>{{ user.id }}</TableCell>
                                     <TableCell>
                                         <Link
@@ -596,8 +756,8 @@ const stats = [
                                         </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
-                                <TableRow v-if="props.users.data.length === 0">
-                                    <TableCell colspan="8" class="text-center text-gray-600 dark:text-gray-300">
+                                <TableRow v-if="userItems.length === 0">
+                                    <TableCell colspan="9" class="text-center text-gray-600 dark:text-gray-300">
                                         No users found.
                                     </TableCell>
                                 </TableRow>

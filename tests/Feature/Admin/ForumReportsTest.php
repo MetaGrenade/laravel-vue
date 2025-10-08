@@ -10,6 +10,7 @@ use App\Models\ForumThread;
 use App\Models\ForumThreadReport;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
@@ -189,5 +190,89 @@ class ForumReportsTest extends TestCase
         $this->assertSoftDeleted('forum_posts', [
             'id' => $post->id,
         ]);
+    }
+
+    public function test_moderator_can_bulk_update_reports(): void
+    {
+        Carbon::setTestNow('2025-02-15 09:00:00');
+
+        $moderator = $this->createModerator();
+        $reporter = User::factory()->create();
+        $postAuthor = User::factory()->create();
+
+        $thread = $this->seedForumHierarchy($postAuthor);
+
+        $post = ForumPost::create([
+            'forum_thread_id' => $thread->id,
+            'user_id' => $postAuthor->id,
+            'body' => 'This post also needs review.',
+        ]);
+
+        $threadReport = ForumThreadReport::create([
+            'forum_thread_id' => $thread->id,
+            'reporter_id' => $reporter->id,
+            'reason_category' => 'spam',
+            'status' => ForumThreadReport::STATUS_PENDING,
+        ]);
+
+        $postReport = ForumPostReport::create([
+            'forum_post_id' => $post->id,
+            'reporter_id' => $reporter->id,
+            'reason_category' => 'abuse',
+            'status' => ForumPostReport::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($moderator)
+            ->from(route('acp.forums.reports.index'))
+            ->patch(route('acp.forums.reports.bulk-status'), [
+                'status' => ForumThreadReport::STATUS_REVIEWED,
+                'reports' => [
+                    ['id' => $threadReport->id, 'type' => 'thread'],
+                    ['id' => $postReport->id, 'type' => 'post'],
+                ],
+            ]);
+
+        $response->assertRedirect(route('acp.forums.reports.index'));
+        $response->assertSessionHas('success', 'Updated 2 forum reports.');
+
+        $threadReport->refresh();
+        $postReport->refresh();
+
+        $this->assertSame(ForumThreadReport::STATUS_REVIEWED, $threadReport->status);
+        $this->assertSame($moderator->id, $threadReport->reviewed_by);
+        $this->assertNotNull($threadReport->reviewed_at);
+        $this->assertTrue($threadReport->reviewed_at->equalTo(Carbon::now()));
+
+        $this->assertSame(ForumPostReport::STATUS_REVIEWED, $postReport->status);
+        $this->assertSame($moderator->id, $postReport->reviewed_by);
+        $this->assertNotNull($postReport->reviewed_at);
+        $this->assertTrue($postReport->reviewed_at->equalTo(Carbon::now()));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_user_without_permission_cannot_bulk_update_reports(): void
+    {
+        $user = User::factory()->create();
+        $reporter = User::factory()->create();
+
+        $thread = $this->seedForumHierarchy($reporter);
+
+        $threadReport = ForumThreadReport::create([
+            'forum_thread_id' => $thread->id,
+            'reporter_id' => $reporter->id,
+            'reason_category' => 'spam',
+            'status' => ForumThreadReport::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->patch(route('acp.forums.reports.bulk-status'), [
+                'status' => ForumThreadReport::STATUS_REVIEWED,
+                'reports' => [
+                    ['id' => $threadReport->id, 'type' => 'thread'],
+                ],
+            ]);
+
+        $response->assertForbidden();
     }
 }

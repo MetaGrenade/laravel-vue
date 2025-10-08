@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Response;
 
 class BlogController extends Controller
@@ -806,23 +807,58 @@ class BlogController extends Controller
             ->with('success', 'Blog post deleted successfully.');
     }
 
+    public function bulkUpdateStatus(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->can('blogs.acp.publish'), 403);
+
+        $validated = $request->validate([
+            'action' => ['required', 'string', Rule::in(['publish', 'unpublish', 'archive', 'unarchive'])],
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:blogs,id'],
+        ]);
+
+        $ids = array_values(array_unique(array_map('intval', $validated['ids'])));
+
+        $blogs = Blog::query()
+            ->whereIn('id', $ids)
+            ->get();
+
+        if ($blogs->isEmpty()) {
+            return back()->with('success', 'No blog posts required updates.');
+        }
+
+        $actor = $request->user();
+        $updatedCount = 0;
+
+        foreach ($blogs as $blog) {
+            $changed = match ($validated['action']) {
+                'publish' => $this->publishBlog($blog, $actor),
+                'unpublish' => $this->unpublishBlog($blog, $actor),
+                'archive' => $this->archiveBlog($blog, $actor),
+                'unarchive' => $this->unarchiveBlog($blog, $actor),
+                default => false,
+            };
+
+            if ($changed) {
+                $updatedCount++;
+            }
+        }
+
+        $message = match ($updatedCount) {
+            0 => 'No blog posts required updates.',
+            1 => 'Updated 1 blog post.',
+            default => "Updated {$updatedCount} blog posts.",
+        };
+
+        return back()->with('success', $message);
+    }
+
     /**
      * Publish the specified blog post.
      */
     public function publish(Blog $blog): RedirectResponse
     {
-        if ($blog->status !== 'published') {
-            $blog->forceFill([
-                'status' => 'published',
-                'published_at' => now(),
-                'scheduled_for' => null,
-            ])->save();
-
-            $blog->refresh();
-            $blog->load('categories:id', 'tags:id');
-
-            BlogRevision::recordSnapshot($blog, request()->user());
-        }
+        $this->publishBlog($blog, request()->user());
 
         return redirect()->back()->with('success', 'Blog post published successfully.');
     }
@@ -832,18 +868,7 @@ class BlogController extends Controller
      */
     public function unpublish(Blog $blog): RedirectResponse
     {
-        if ($blog->status !== 'draft') {
-            $blog->forceFill([
-                'status' => 'draft',
-                'published_at' => null,
-                'scheduled_for' => null,
-            ])->save();
-
-            $blog->refresh();
-            $blog->load('categories:id', 'tags:id');
-
-            BlogRevision::recordSnapshot($blog, request()->user());
-        }
+        $this->unpublishBlog($blog, request()->user());
 
         return redirect()->back()->with('success', 'Blog post moved back to draft.');
     }
@@ -853,18 +878,7 @@ class BlogController extends Controller
      */
     public function archive(Blog $blog): RedirectResponse
     {
-        if ($blog->status !== 'archived') {
-            $blog->forceFill([
-                'status' => 'archived',
-                'published_at' => null,
-                'scheduled_for' => null,
-            ])->save();
-
-            $blog->refresh();
-            $blog->load('categories:id', 'tags:id');
-
-            BlogRevision::recordSnapshot($blog, request()->user());
-        }
+        $this->archiveBlog($blog, request()->user());
 
         return redirect()->back()->with('success', 'Blog post archived successfully.');
     }
@@ -874,19 +888,88 @@ class BlogController extends Controller
      */
     public function unarchive(Blog $blog): RedirectResponse
     {
-        if ($blog->status === 'archived') {
-            $blog->forceFill([
-                'status' => 'draft',
-                'published_at' => null,
-                'scheduled_for' => null,
-            ])->save();
-
-            $blog->refresh();
-            $blog->load('categories:id', 'tags:id');
-
-            BlogRevision::recordSnapshot($blog, request()->user());
-        }
+        $this->unarchiveBlog($blog, request()->user());
 
         return redirect()->back()->with('success', 'Blog post unarchived successfully.');
+    }
+
+    protected function publishBlog(Blog $blog, ?User $actor): bool
+    {
+        if ($blog->status === 'published') {
+            return false;
+        }
+
+        $blog->forceFill([
+            'status' => 'published',
+            'published_at' => now(),
+            'scheduled_for' => null,
+        ])->save();
+
+        $this->recordBlogSnapshot($blog, $actor);
+
+        return true;
+    }
+
+    protected function unpublishBlog(Blog $blog, ?User $actor): bool
+    {
+        if ($blog->status === 'draft') {
+            return false;
+        }
+
+        $blog->forceFill([
+            'status' => 'draft',
+            'published_at' => null,
+            'scheduled_for' => null,
+        ])->save();
+
+        $this->recordBlogSnapshot($blog, $actor);
+
+        return true;
+    }
+
+    protected function archiveBlog(Blog $blog, ?User $actor): bool
+    {
+        if ($blog->status === 'archived') {
+            return false;
+        }
+
+        $blog->forceFill([
+            'status' => 'archived',
+            'published_at' => null,
+            'scheduled_for' => null,
+        ])->save();
+
+        $this->recordBlogSnapshot($blog, $actor);
+
+        return true;
+    }
+
+    protected function unarchiveBlog(Blog $blog, ?User $actor): bool
+    {
+        if ($blog->status !== 'archived') {
+            return false;
+        }
+
+        $blog->forceFill([
+            'status' => 'draft',
+            'published_at' => null,
+            'scheduled_for' => null,
+        ])->save();
+
+        $this->recordBlogSnapshot($blog, $actor);
+
+        return true;
+    }
+
+    protected function recordBlogSnapshot(Blog $blog, ?User $actor): void
+    {
+        if (! $actor) {
+            return;
+        }
+
+        $blog->refresh();
+        $blog->load('categories:id', 'tags:id');
+
+        BlogRevision::recordSnapshot($blog, $actor);
     }
 }

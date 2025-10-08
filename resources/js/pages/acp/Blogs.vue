@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import type { CheckboxRootProps } from 'radix-vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useDebounceFn } from '@vueuse/core';
 import { LineChart } from '@/components/ui/chart-line';
 import {
@@ -290,6 +292,94 @@ type BlogRow = {
 
 const blogRows = computed<BlogRow[]>(() => props.blogs.data ?? []);
 
+type CheckboxState = CheckboxRootProps['checked'];
+
+const selectedBlogIds = ref<number[]>([]);
+
+watch(
+    blogRows,
+    (rows) => {
+        const validIds = new Set(rows.map((row) => row.id));
+        selectedBlogIds.value = selectedBlogIds.value.filter((id) => validIds.has(id));
+    },
+    { immediate: true },
+);
+
+const hasBlogSelection = computed(() => selectedBlogIds.value.length > 0);
+const allBlogsSelected = computed(
+    () => blogRows.value.length > 0 && selectedBlogIds.value.length === blogRows.value.length,
+);
+const blogHeaderCheckboxState = computed<CheckboxState>(() => {
+    if (allBlogsSelected.value) {
+        return true;
+    }
+
+    if (selectedBlogIds.value.length > 0) {
+        return 'indeterminate';
+    }
+
+    return false;
+});
+
+const blogSelectionLabel = computed(() => {
+    if (!publishBlogs.value) {
+        return 'Bulk actions require publish access.';
+    }
+
+    const count = selectedBlogIds.value.length;
+
+    if (count === 0) {
+        return 'Select blog posts to enable bulk actions.';
+    }
+
+    return count === 1 ? '1 blog selected.' : `${count} blogs selected.`;
+});
+
+const bulkBlogForm = useForm<{ ids: number[]; action: 'publish' | 'unpublish' | 'archive' | 'unarchive' }>({
+    ids: [],
+    action: 'publish',
+});
+
+const updateBlogSelection = (blogId: number, checked: boolean) => {
+    if (checked) {
+        if (!selectedBlogIds.value.includes(blogId)) {
+            selectedBlogIds.value = [...selectedBlogIds.value, blogId];
+        }
+
+        return;
+    }
+
+    selectedBlogIds.value = selectedBlogIds.value.filter((id) => id !== blogId);
+};
+
+const toggleAllBlogs = (checked: boolean) => {
+    if (checked) {
+        selectedBlogIds.value = blogRows.value.map((row) => row.id);
+
+        return;
+    }
+
+    selectedBlogIds.value = [];
+};
+
+const submitBulkBlogAction = (action: 'publish' | 'unpublish' | 'archive' | 'unarchive') => {
+    const ids = Array.from(new Set(selectedBlogIds.value));
+
+    if (ids.length === 0) {
+        return;
+    }
+
+    bulkBlogForm.ids = ids;
+    bulkBlogForm.action = action;
+
+    bulkBlogForm.patch(route('acp.blogs.bulk-status'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            selectedBlogIds.value = [];
+        },
+    });
+};
+
 const debouncedSearch = useDebounceFn(() => {
     setBlogsPage(1, { emitNavigate: false });
     navigateWithFilters({ page: 1, search: searchQuery.value });
@@ -568,10 +658,62 @@ const confirmDeletePost = (post: BlogRow) => {
                             </div>
                         </div>
                     </div>
+                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <p class="text-sm text-muted-foreground">{{ blogSelectionLabel }}</p>
+                        <DropdownMenu v-if="publishBlogs">
+                            <DropdownMenuTrigger as-child>
+                                <Button
+                                    variant="outline"
+                                    :disabled="!hasBlogSelection || bulkBlogForm.processing"
+                                >
+                                    Bulk status
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" class="w-56">
+                                <DropdownMenuLabel>Set blog status</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                    :disabled="bulkBlogForm.processing"
+                                    @select="submitBulkBlogAction('publish')"
+                                >
+                                    <Eye class="mr-2 h-4 w-4" />
+                                    <span>Publish now</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    :disabled="bulkBlogForm.processing"
+                                    @select="submitBulkBlogAction('unpublish')"
+                                >
+                                    <EyeOff class="mr-2 h-4 w-4" />
+                                    <span>Move to draft</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    :disabled="bulkBlogForm.processing"
+                                    @select="submitBulkBlogAction('archive')"
+                                >
+                                    <Archive class="mr-2 h-4 w-4" />
+                                    <span>Archive posts</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    :disabled="bulkBlogForm.processing"
+                                    @select="submitBulkBlogAction('unarchive')"
+                                >
+                                    <ArchiveRestore class="mr-2 h-4 w-4" />
+                                    <span>Restore to draft</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                     <div class="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead class="w-12">
+                                        <Checkbox
+                                            :checked="blogHeaderCheckboxState"
+                                            :disabled="!publishBlogs || blogRows.length === 0"
+                                            aria-label="Select all blog posts"
+                                            @update:checked="toggleAllBlogs"
+                                        />
+                                    </TableHead>
                                     <TableHead>ID</TableHead>
                                     <TableHead>Title</TableHead>
                                     <TableHead class="text-center">Author</TableHead>
@@ -584,6 +726,14 @@ const confirmDeletePost = (post: BlogRow) => {
                             </TableHeader>
                             <TableBody>
                                 <TableRow v-for="(post) in blogRows" :key="post.id">
+                                    <TableCell class="align-middle">
+                                        <Checkbox
+                                            :checked="selectedBlogIds.includes(post.id)"
+                                            :disabled="!publishBlogs"
+                                            aria-label="Select blog post"
+                                            @update:checked="(checked) => updateBlogSelection(post.id, checked)"
+                                        />
+                                    </TableCell>
                                     <TableCell>{{ post.id }}</TableCell>
                                     <TableCell>{{ post.title }}</TableCell>
                                     <TableCell class="text-center">{{ post.user?.nickname ?? '—' }}</TableCell>
@@ -667,7 +817,7 @@ const confirmDeletePost = (post: BlogRow) => {
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="blogRows.length === 0">
-                                    <TableCell colspan="8" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                    <TableCell colspan="9" class="text-center text-sm text-gray-600 dark:text-gray-300">
                                         No blog posts found.
                                     </TableCell>
                                 </TableRow>

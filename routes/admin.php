@@ -31,6 +31,7 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/users/{user}/verify', [AdminUserController::class, 'verify'])->name('acp.users.verify');
     Route::put('acp/users/{user}/ban', [AdminUserController::class, 'ban'])->name('acp.users.ban');
     Route::put('acp/users/{user}/unban', [AdminUserController::class, 'unban'])->name('acp.users.unban');
+    Route::patch('acp/users/bulk', [AdminUserController::class, 'bulkUpdate'])->name('acp.users.bulk-update');
 
     // Admin Access Control Management Routes
     Route::get('acp/acl', [AdminACLController::class, 'index'])->name('acp.acl.index');
@@ -54,6 +55,7 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/blogs/{blog}/unpublish', [AdminBlogController::class, 'unpublish'])->name('acp.blogs.unpublish');
     Route::put('acp/blogs/{blog}/archive', [AdminBlogController::class, 'archive'])->name('acp.blogs.archive');
     Route::put('acp/blogs/{blog}/unarchive', [AdminBlogController::class, 'unarchive'])->name('acp.blogs.unarchive');
+    Route::patch('acp/blogs/bulk/status', [AdminBlogController::class, 'bulkUpdateStatus'])->name('acp.blogs.bulk-status');
 
     // Admin Blog Tag Management Routes
     Route::get('acp/blog-tags', [BlogTagController::class, 'index'])->name('acp.blog-tags.index');
@@ -73,6 +75,7 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
 
     Route::get('acp/forums', [ForumCategoryController::class, 'index'])->name('acp.forums.index');
     Route::get('acp/forums/reports', [ForumReportController::class, 'index'])->name('acp.forums.reports.index');
+    Route::patch('acp/forums/reports/bulk/status', [ForumReportController::class, 'bulkUpdateStatus'])->name('acp.forums.reports.bulk-status');
     Route::patch('acp/forums/reports/threads/{report}', [ForumReportController::class, 'updateThread'])->name('acp.forums.reports.threads.update');
     Route::patch('acp/forums/reports/posts/{report}', [ForumReportController::class, 'updatePost'])->name('acp.forums.reports.posts.update');
     Route::get('acp/forums/categories/create', [ForumCategoryController::class, 'create'])->name('acp.forums.categories.create');
@@ -104,6 +107,7 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/support/tickets/{ticket}/assign', [SupportController::class,'assignTicket'])->name('acp.support.tickets.assign');
     Route::put('acp/support/tickets/{ticket}/priority', [SupportController::class,'updateTicketPriority'])->name('acp.support.tickets.priority');
     Route::put('acp/support/tickets/{ticket}/status', [SupportController::class,'updateTicketStatus'])->name('acp.support.tickets.status');
+    Route::patch('acp/support/tickets/bulk/status', [SupportController::class,'bulkUpdateStatus'])->name('acp.support.tickets.bulk-status');
 
     // Ticket categories
     Route::get('acp/support/ticket-categories', [SupportTicketCategoryController::class, 'index'])->name('acp.support.ticket-categories.index');

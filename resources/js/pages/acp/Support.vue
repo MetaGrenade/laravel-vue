@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import type { CheckboxRootProps } from 'radix-vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -9,6 +10,7 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Button from '@/components/ui/button/Button.vue';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Pagination,
     PaginationEllipsis,
@@ -424,6 +426,90 @@ const selectFilterClass =
 const ticketsMetaSource = computed(() => props.tickets.meta ?? null);
 const faqsMetaSource = computed(() => props.faqs.meta ?? null);
 const ticketItems = computed(() => props.tickets.data ?? []);
+
+type CheckboxState = CheckboxRootProps['checked'];
+
+const selectedTicketIds = ref<number[]>([]);
+
+watch(
+    ticketItems,
+    (items) => {
+        const validIds = new Set(items.map((item) => item.id));
+        selectedTicketIds.value = selectedTicketIds.value.filter((id) => validIds.has(id));
+    },
+    { immediate: true },
+);
+
+const hasTicketSelection = computed(() => selectedTicketIds.value.length > 0);
+const allTicketsSelected = computed(
+    () => ticketItems.value.length > 0 && selectedTicketIds.value.length === ticketItems.value.length,
+);
+const ticketHeaderCheckboxState = computed<CheckboxState>(() => {
+    if (allTicketsSelected.value) {
+        return true;
+    }
+
+    if (selectedTicketIds.value.length > 0) {
+        return 'indeterminate';
+    }
+
+    return false;
+});
+
+const ticketSelectionLabel = computed(() => {
+    const count = selectedTicketIds.value.length;
+
+    if (count === 0) {
+        return 'Select tickets to enable bulk actions.';
+    }
+
+    return count === 1 ? '1 ticket selected.' : `${count} tickets selected.`;
+});
+
+const bulkStatusForm = useForm<{ ids: number[]; status: TicketStatus }>({
+    ids: [],
+    status: 'open',
+});
+
+const updateTicketSelection = (ticketId: number, checked: boolean) => {
+    if (checked) {
+        if (!selectedTicketIds.value.includes(ticketId)) {
+            selectedTicketIds.value = [...selectedTicketIds.value, ticketId];
+        }
+
+        return;
+    }
+
+    selectedTicketIds.value = selectedTicketIds.value.filter((id) => id !== ticketId);
+};
+
+const toggleAllTickets = (checked: boolean) => {
+    if (checked) {
+        selectedTicketIds.value = ticketItems.value.map((item) => item.id);
+
+        return;
+    }
+
+    selectedTicketIds.value = [];
+};
+
+const submitBulkTicketStatus = (status: TicketStatus) => {
+    const ids = Array.from(new Set(selectedTicketIds.value));
+
+    if (ids.length === 0) {
+        return;
+    }
+
+    bulkStatusForm.ids = ids;
+    bulkStatusForm.status = status;
+
+    bulkStatusForm.patch(route('acp.support.tickets.bulk-status'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            selectedTicketIds.value = [];
+        },
+    });
+};
 const faqItems = computed(() => props.faqs.data ?? []);
 const totalFaqFeedback = computed(
     () => props.supportStats.faq_helpful_feedback + props.supportStats.faq_not_helpful_feedback,
@@ -1010,10 +1096,55 @@ const unpublishFaq = (faq: FaqItem) => {
                             </div>
 
                             <!-- Tickets Table -->
+                            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                <p class="text-sm text-muted-foreground">{{ ticketSelectionLabel }}</p>
+                                <DropdownMenu v-if="statusSupport">
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            variant="outline"
+                                            :disabled="!hasTicketSelection || bulkStatusForm.processing"
+                                        >
+                                            Bulk status
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" class="w-52">
+                                        <DropdownMenuLabel>Set ticket status</DropdownMenuLabel>
+                                        <DropdownMenuItem
+                                            :disabled="bulkStatusForm.processing"
+                                            @select="submitBulkTicketStatus('open')"
+                                        >
+                                            <Ticket class="mr-2 h-4 w-4" />
+                                            <span>Mark open</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            :disabled="bulkStatusForm.processing"
+                                            @select="submitBulkTicketStatus('pending')"
+                                        >
+                                            <HelpCircle class="mr-2 h-4 w-4" />
+                                            <span>Mark pending</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            :disabled="bulkStatusForm.processing"
+                                            @select="submitBulkTicketStatus('closed')"
+                                        >
+                                            <TicketX class="mr-2 h-4 w-4" />
+                                            <span>Close tickets</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                             <div class="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead class="w-12">
+                                                <Checkbox
+                                                    :checked="ticketHeaderCheckboxState"
+                                                    :disabled="ticketItems.length === 0"
+                                                    aria-label="Select all support tickets"
+                                                    @update:checked="toggleAllTickets"
+                                                />
+                                            </TableHead>
                                             <TableHead>ID</TableHead>
                                             <TableHead>Subject</TableHead>
                                             <TableHead>Submitted By</TableHead>
@@ -1033,6 +1164,13 @@ const unpublishFaq = (faq: FaqItem) => {
                                             v-for="t in ticketItems"
                                             :key="t.id"
                                         >
+                                            <TableCell class="align-middle">
+                                                <Checkbox
+                                                    :checked="selectedTicketIds.includes(t.id)"
+                                                    aria-label="Select support ticket"
+                                                    @update:checked="(checked) => updateTicketSelection(t.id, checked)"
+                                                />
+                                            </TableCell>
                                             <TableCell>{{ t.id }}</TableCell>
                                             <TableCell>{{ t.subject }}</TableCell>
                                             <TableCell>{{ t.user?.nickname ?? '—' }}</TableCell>
@@ -1155,7 +1293,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="!ticketItems.length">
-                                            <TableCell colspan="8" class="text-center text-gray-500">
+                                            <TableCell colspan="13" class="text-center text-gray-500">
                                                 No tickets found.
                                             </TableCell>
                                         </TableRow>
