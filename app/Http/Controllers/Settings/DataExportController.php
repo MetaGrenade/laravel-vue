@@ -47,6 +47,12 @@ class DataExportController extends Controller
             abort(404);
         }
 
+        if ($export->hasExpired()) {
+            $export->purgeExpiredFile();
+
+            abort(410);
+        }
+
         if (! Storage::disk('local')->exists($export->file_path)) {
             abort(404);
         }

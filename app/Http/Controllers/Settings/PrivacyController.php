@@ -27,6 +27,7 @@ class PrivacyController extends Controller
                     'failure_reason' => $export->failure_reason,
                     'created_at' => $export->created_at?->toIso8601String(),
                     'completed_at' => $export->completed_at?->toIso8601String(),
+                    'download_expires_at' => $export->downloadExpiresAt()?->toIso8601String(),
                     'download_url' => $export->isReady()
                         ? URL::temporarySignedRoute('privacy.exports.download', now()->addMinutes(30), ['export' => $export->id])
                         : null,

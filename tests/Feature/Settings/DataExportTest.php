@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -140,5 +141,72 @@ class DataExportTest extends TestCase
         $this->assertCount(1, $payload['blog_comments']);
         $this->assertCount(1, $payload['support_tickets']);
         $this->assertStringContainsString('resource_type', $csv);
+    }
+
+    public function test_completed_exports_expire_after_ttl(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+
+        /** @var DataExport $export */
+        $export = DataExport::factory()
+            ->for($user)
+            ->completed()
+            ->create([
+                'file_path' => 'exports/expired.zip',
+                'completed_at' => now()->subMinutes(DataExport::DOWNLOAD_TTL_MINUTES + 1),
+            ]);
+
+        Storage::disk('local')->put($export->file_path, 'contents');
+
+        $response = $this->actingAs($user)->get(route('privacy.index'));
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('settings/Privacy')
+            ->where('exports.0.download_url', null)
+        );
+
+        Storage::disk('local')->assertMissing('exports/expired.zip');
+
+        $this->assertDatabaseHas('data_exports', [
+            'id' => $export->id,
+            'file_path' => null,
+        ]);
+    }
+
+    public function test_download_after_ttl_is_rejected_and_file_removed(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+
+        /** @var DataExport $export */
+        $export = DataExport::factory()
+            ->for($user)
+            ->completed()
+            ->create([
+                'file_path' => 'exports/expired.zip',
+                'completed_at' => now()->subMinutes(DataExport::DOWNLOAD_TTL_MINUTES + 1),
+            ]);
+
+        Storage::disk('local')->put($export->file_path, 'contents');
+
+        $signedUrl = URL::temporarySignedRoute(
+            'privacy.exports.download',
+            now()->addMinutes(5),
+            ['export' => $export->id]
+        );
+
+        $this->actingAs($user)
+            ->get($signedUrl)
+            ->assertStatus(410);
+
+        Storage::disk('local')->assertMissing('exports/expired.zip');
+
+        $this->assertDatabaseHas('data_exports', [
+            'id' => $export->id,
+            'file_path' => null,
+        ]);
     }
 }
