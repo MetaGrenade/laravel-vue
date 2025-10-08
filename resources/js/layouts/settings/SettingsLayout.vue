@@ -16,9 +16,14 @@ const sidebarNavItems: NavItem[] = [
         href: '/settings/password',
         target: '_self'
     },
-    {
+    { 
         title: 'Security',
         href: '/settings/security',
+        target: '_self'
+    },
+    {
+        title: 'Privacy',
+        href: '/settings/privacy',
         target: '_self'
     },
     {
