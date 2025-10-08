@@ -56,6 +56,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const { formatDate } = useUserTimezone();
 
 const hasTemplates = computed(() => props.templates.length > 0);
+const hasTemplateActions = computed(() => props.can.edit || props.can.delete);
 
 const createForm = useForm({
     title: '',
@@ -221,6 +222,7 @@ const cancelDeleteTemplate = () => {
                     </CardHeader>
                     <CardContent class="space-y-6">
                         <form
+                            v-if="props.can.create"
                             id="support-template-create"
                             class="grid gap-4 rounded-lg border border-border/60 p-4"
                             @submit.prevent="submitCreate"
@@ -299,6 +301,10 @@ const cancelDeleteTemplate = () => {
                             </CardFooter>
                         </form>
 
+                        <div v-else class="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-sm text-muted-foreground">
+                            You can view existing response templates but do not have permission to create new ones.
+                        </div>
+
                         <div>
                             <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                                 Existing templates
@@ -318,7 +324,7 @@ const cancelDeleteTemplate = () => {
                                             <TableHead>Team</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead>Updated</TableHead>
-                                            <TableHead class="text-right">Actions</TableHead>
+                                            <TableHead v-if="hasTemplateActions" class="text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -350,7 +356,7 @@ const cancelDeleteTemplate = () => {
                                                     {{ template.updated_at ? formatDate(template.updated_at, 'MMM D, YYYY h:mm A') : '—' }}
                                                 </span>
                                             </TableCell>
-                                            <TableCell class="flex justify-end gap-2">
+                                            <TableCell v-if="hasTemplateActions" class="flex justify-end gap-2">
                                                 <Button
                                                     v-if="props.can.edit"
                                                     variant="outline"

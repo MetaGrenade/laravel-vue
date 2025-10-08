@@ -65,6 +65,8 @@ const prioritySupport = computed(() => hasPermission('support.acp.priority'));
 const statusSupport = computed(() => hasPermission('support.acp.status'));
 const moveSupport = computed(() => hasPermission('support.acp.move'));
 const publishSupport = computed(() => hasPermission('support.acp.publish'));
+const manageSupportTemplates = computed(() => hasPermission('support_templates.acp.view'));
+const manageSupportTeams = computed(() => hasPermission('support_teams.acp.view'));
 
 type PaginationLinks = {
     first: string | null;
@@ -1077,11 +1079,19 @@ const unpublishFaq = (faq: FaqItem) => {
                                 </div>
                                 <div class="flex flex-col gap-2 md:w-auto md:flex-row md:items-center md:justify-end md:gap-2">
                                     <Link
-                                        v-if="editSupport || createSupport"
+                                        v-if="manageSupportTemplates"
                                         :href="route('acp.support.templates.index')"
                                     >
                                         <Button variant="outline" class="w-full md:w-auto">
                                             Manage templates
+                                        </Button>
+                                    </Link>
+                                    <Link
+                                        v-if="manageSupportTeams"
+                                        :href="route('acp.support.teams.index')"
+                                    >
+                                        <Button variant="outline" class="w-full md:w-auto">
+                                            Manage teams
                                         </Button>
                                     </Link>
                                     <Link

@@ -6,10 +6,12 @@ use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreFaqRequest;
 use App\Http\Requests\Admin\StoreSupportResponseTemplateRequest;
+use App\Http\Requests\Admin\StoreSupportTeamRequest;
 use App\Http\Requests\Admin\StoreSupportTicketMessageRequest;
 use App\Http\Requests\Admin\StoreSupportTicketRequest;
 use App\Http\Requests\Admin\UpdateFaqRequest;
 use App\Http\Requests\Admin\UpdateSupportResponseTemplateRequest;
+use App\Http\Requests\Admin\UpdateSupportTeamRequest;
 use App\Http\Requests\Admin\UpdateSupportTicketRequest;
 use App\Models\SupportResponseTemplate;
 use App\Models\SupportTicket;
@@ -51,7 +53,7 @@ class SupportController extends Controller
 
     public function templates(Request $request): Response
     {
-        abort_unless($request->user()?->can('support.acp.view'), 403);
+        abort_unless($request->user()?->can('support_templates.acp.view'), 403);
 
         $formatter = DateFormatter::for($request->user());
 
@@ -107,9 +109,9 @@ class SupportController extends Controller
             'categories' => $categories,
             'teams' => $teams,
             'can' => [
-                'create' => (bool) $request->user()?->can('support.acp.create'),
-                'edit' => (bool) $request->user()?->can('support.acp.edit'),
-                'delete' => (bool) $request->user()?->can('support.acp.delete'),
+                'create' => (bool) $request->user()?->can('support_templates.acp.create'),
+                'edit' => (bool) $request->user()?->can('support_templates.acp.edit'),
+                'delete' => (bool) $request->user()?->can('support_templates.acp.delete'),
             ],
         ]);
     }
@@ -136,13 +138,74 @@ class SupportController extends Controller
 
     public function destroyTemplate(Request $request, SupportResponseTemplate $template): RedirectResponse
     {
-        abort_unless($request->user()?->can('support.acp.delete'), 403);
+        abort_unless($request->user()?->can('support_templates.acp.delete'), 403);
 
         $template->delete();
 
         return redirect()
             ->route('acp.support.templates.index')
             ->with('success', 'Response template deleted.');
+    }
+
+    public function teams(Request $request): Response
+    {
+        abort_unless($request->user()?->can('support_teams.acp.view'), 403);
+
+        $formatter = DateFormatter::for($request->user());
+
+        $teams = SupportTeam::query()
+            ->withCount('templates')
+            ->orderBy('name')
+            ->get()
+            ->map(function (SupportTeam $team) use ($formatter) {
+                return [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                    'templates_count' => $team->templates_count,
+                    'created_at' => $formatter->iso($team->created_at),
+                    'updated_at' => $formatter->iso($team->updated_at),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return Inertia::render('acp/SupportTeams', [
+            'teams' => $teams,
+            'can' => [
+                'create' => (bool) $request->user()?->can('support_teams.acp.create'),
+                'edit' => (bool) $request->user()?->can('support_teams.acp.edit'),
+                'delete' => (bool) $request->user()?->can('support_teams.acp.delete'),
+            ],
+        ]);
+    }
+
+    public function storeTeam(StoreSupportTeamRequest $request): RedirectResponse
+    {
+        SupportTeam::create($request->validated());
+
+        return redirect()
+            ->route('acp.support.teams.index')
+            ->with('success', 'Support team created.');
+    }
+
+    public function updateTeam(UpdateSupportTeamRequest $request, SupportTeam $team): RedirectResponse
+    {
+        $team->update($request->validated());
+
+        return redirect()
+            ->route('acp.support.teams.index')
+            ->with('success', 'Support team updated.');
+    }
+
+    public function destroyTeam(Request $request, SupportTeam $team): RedirectResponse
+    {
+        abort_unless($request->user()?->can('support_teams.acp.delete'), 403);
+
+        $team->delete();
+
+        return redirect()
+            ->route('acp.support.teams.index')
+            ->with('success', 'Support team deleted.');
     }
 
     public function index(Request $request): Response
@@ -647,38 +710,42 @@ class SupportController extends Controller
             ])
             ->all();
 
-        $templates = SupportResponseTemplate::query()
-            ->with(['category:id,name', 'team:id,name'])
-            ->where('is_active', true)
-            ->where(function ($query) use ($ticket) {
-                $query->whereNull('support_ticket_category_id');
+        $templates = [];
 
-                if ($ticket->support_ticket_category_id) {
-                    $query->orWhere('support_ticket_category_id', $ticket->support_ticket_category_id);
-                }
-            })
-            ->orderBy('title')
-            ->get()
-            ->map(function (SupportResponseTemplate $template) {
-                return [
-                    'id' => $template->id,
-                    'title' => $template->title,
-                    'body' => $template->body,
-                    'is_active' => $template->is_active,
-                    'support_ticket_category_id' => $template->support_ticket_category_id,
-                    'support_team_id' => $template->support_team_id,
-                    'category' => $template->category ? [
-                        'id' => $template->category->id,
-                        'name' => $template->category->name,
-                    ] : null,
-                    'team' => $template->team ? [
-                        'id' => $template->team->id,
-                        'name' => $template->team->name,
-                    ] : null,
-                ];
-            })
-            ->values()
-            ->all();
+        if ($request->user()?->can('support_templates.acp.view')) {
+            $templates = SupportResponseTemplate::query()
+                ->with(['category:id,name', 'team:id,name'])
+                ->where('is_active', true)
+                ->where(function ($query) use ($ticket) {
+                    $query->whereNull('support_ticket_category_id');
+
+                    if ($ticket->support_ticket_category_id) {
+                        $query->orWhere('support_ticket_category_id', $ticket->support_ticket_category_id);
+                    }
+                })
+                ->orderBy('title')
+                ->get()
+                ->map(function (SupportResponseTemplate $template) {
+                    return [
+                        'id' => $template->id,
+                        'title' => $template->title,
+                        'body' => $template->body,
+                        'is_active' => $template->is_active,
+                        'support_ticket_category_id' => $template->support_ticket_category_id,
+                        'support_team_id' => $template->support_team_id,
+                        'category' => $template->category ? [
+                            'id' => $template->category->id,
+                            'name' => $template->category->name,
+                        ] : null,
+                        'team' => $template->team ? [
+                            'id' => $template->team->id,
+                            'name' => $template->team->name,
+                        ] : null,
+                    ];
+                })
+                ->values()
+                ->all();
+        }
 
         return Inertia::render('acp/SupportTicketView', [
             'ticket' => [

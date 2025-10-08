@@ -25,7 +25,7 @@ class StoreSupportResponseTemplateRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()->can('support.acp.create');
+        return $this->user()->can('support_templates.acp.create');
     }
 
     public function rules(): array

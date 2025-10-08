@@ -27,7 +27,7 @@ class UpdateSupportResponseTemplateRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()->can('support.acp.edit');
+        return $this->user()->can('support_templates.acp.edit');
     }
 
     public function rules(): array
