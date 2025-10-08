@@ -1078,6 +1078,14 @@ const unpublishFaq = (faq: FaqItem) => {
                                 <div class="flex flex-col gap-2 md:w-auto md:flex-row md:items-center md:justify-end md:gap-2">
                                     <Link
                                         v-if="editSupport || createSupport"
+                                        :href="route('acp.support.templates.index')"
+                                    >
+                                        <Button variant="outline" class="w-full md:w-auto">
+                                            Manage templates
+                                        </Button>
+                                    </Link>
+                                    <Link
+                                        v-if="editSupport || createSupport"
                                         :href="route('acp.support.ticket-categories.index')"
                                     >
                                         <Button variant="outline" class="w-full md:w-auto">

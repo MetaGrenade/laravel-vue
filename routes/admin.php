@@ -96,6 +96,11 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');
     Route::get('acp/support/users/search', [SupportController::class,'searchUsers'])->name('acp.support.users.search');
 
+    Route::get('acp/support/templates', [SupportController::class, 'templates'])->name('acp.support.templates.index');
+    Route::post('acp/support/templates', [SupportController::class, 'storeTemplate'])->name('acp.support.templates.store');
+    Route::put('acp/support/templates/{template}', [SupportController::class, 'updateTemplate'])->name('acp.support.templates.update');
+    Route::delete('acp/support/templates/{template}', [SupportController::class, 'destroyTemplate'])->name('acp.support.templates.destroy');
+
     // Tickets
     Route::get('acp/support/tickets/create', [SupportController::class,'createTicket'])->name('acp.support.tickets.create');
     Route::get('acp/support/tickets/{ticket}', [SupportController::class,'showTicket'])->name('acp.support.tickets.show');
