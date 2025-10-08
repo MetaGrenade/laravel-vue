@@ -29,6 +29,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at',
         'avatar_url',
         'forum_signature',
+        'reputation_points',
         'profile_bio',
         'social_links',
         'timezone',
@@ -65,6 +66,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'banned_at' => 'datetime',
             'social_links' => 'array',
             'two_factor_confirmed_at' => 'datetime',
+            'reputation_points' => 'integer',
         ];
     }
 
@@ -86,6 +88,18 @@ class User extends Authenticatable implements MustVerifyEmail
     public function forumThreadSubscriptions(): HasMany
     {
         return $this->hasMany(ForumThreadSubscription::class);
+    }
+
+    public function reputationEvents(): HasMany
+    {
+        return $this->hasMany(ReputationEvent::class);
+    }
+
+    public function badges(): BelongsToMany
+    {
+        return $this->belongsToMany(Badge::class)
+            ->withPivot('awarded_at')
+            ->withTimestamps();
     }
 
     public function subscribedForumThreads(): BelongsToMany

@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ForumBoardController;
 use App\Http\Controllers\Admin\ForumCategoryController;
 use App\Http\Controllers\Admin\ForumReportController;
 use App\Http\Controllers\Admin\FaqCategoryController;
+use App\Http\Controllers\Admin\BadgeController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -132,6 +133,13 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
 
     Route::get('acp/system', [SystemSettingsController::class, 'index'])->name('acp.system');
     Route::put('acp/system', [SystemSettingsController::class, 'update'])->name('acp.system.update');
+
+    Route::get('acp/reputation/badges', [BadgeController::class, 'index'])->name('acp.reputation.badges.index');
+    Route::get('acp/reputation/badges/create', [BadgeController::class, 'create'])->name('acp.reputation.badges.create');
+    Route::post('acp/reputation/badges', [BadgeController::class, 'store'])->name('acp.reputation.badges.store');
+    Route::get('acp/reputation/badges/{badge}/edit', [BadgeController::class, 'edit'])->name('acp.reputation.badges.edit');
+    Route::put('acp/reputation/badges/{badge}', [BadgeController::class, 'update'])->name('acp.reputation.badges.update');
+    Route::delete('acp/reputation/badges/{badge}', [BadgeController::class, 'destroy'])->name('acp.reputation.badges.destroy');
 
     // Tokens
     Route::get('acp/tokens', [TokenController::class,'index'])->name('acp.tokens.index');

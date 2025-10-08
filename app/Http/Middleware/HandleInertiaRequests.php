@@ -56,7 +56,7 @@ class HandleInertiaRequests extends Middleware
                 'plain_text_token' => $request->session()->get('plain_text_token'),
             ],
             'auth' => [
-                'user' => $user ? $user->load('roles') : null,
+                'user' => $user ? $user->load(['roles', 'badges']) : null,
                 'permissions' => $user
                     ? $user->getAllPermissions()->pluck('name')
                     : [],

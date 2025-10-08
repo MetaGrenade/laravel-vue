@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Resources\MentionSuggestionResource;
+use App\Models\Badge;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
@@ -11,6 +12,8 @@ use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
+use Illuminate\Support\Carbon;
+use App\Support\Reputation\ReputationManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +27,10 @@ use Inertia\Response;
 class ForumController extends Controller
 {
     use InteractsWithInertiaPagination;
+
+    public function __construct(private readonly ReputationManager $reputation)
+    {
+    }
 
     public function index(Request $request): Response
     {
@@ -332,8 +339,11 @@ class ForumController extends Controller
 
         $posts = $thread->posts()
             ->with(['author' => function ($query) {
-                $query->select('id', 'nickname', 'created_at', 'avatar_url', 'forum_signature')
-                    ->withCount('forumPosts');
+                $query->select('id', 'nickname', 'created_at', 'avatar_url', 'forum_signature', 'reputation_points')
+                    ->withCount('forumPosts')
+                    ->with(['badges' => function ($badgeQuery) {
+                        $badgeQuery->select('badges.id', 'badges.name', 'badges.slug', 'badges.description', 'badges.points_required');
+                    }]);
             }, 'mentions' => function ($query) {
                 $query->select('users.id', 'users.nickname');
             }])
@@ -367,6 +377,23 @@ class ForumController extends Controller
                     'primary_role' => $author?->getRoleNames()->first() ?? 'Member',
                     'avatar_url' => $author?->avatar_url,
                     'forum_signature' => $author?->forum_signature,
+                    'reputation_points' => $author?->reputation_points ?? 0,
+                    'badges' => ($author?->badges ?? collect())->map(function (Badge $badge) use ($formatter) {
+                        $awardedAt = $badge->pivot?->awarded_at;
+
+                        if ($awardedAt !== null && ! $awardedAt instanceof Carbon) {
+                            $awardedAt = Carbon::parse($awardedAt);
+                        }
+
+                        return [
+                            'id' => $badge->id,
+                            'name' => $badge->name,
+                            'slug' => $badge->slug,
+                            'description' => $badge->description,
+                            'points_required' => $badge->points_required,
+                            'awarded_at' => $formatter->dayDateTime($awardedAt),
+                        ];
+                    })->values(),
                 ],
                 'permissions' => [
                     'canReport' => $user !== null && $user->id !== $post->user_id,
@@ -590,6 +617,10 @@ class ForumController extends Controller
                     'last_read_at' => $initialPost->created_at ?? now(),
                 ],
             );
+
+            $this->reputation->record('forum_post_created', $user, $initialPost, [
+                'thread_id' => $thread->id,
+            ]);
         }
 
         return redirect()->route('forum.threads.show', [

@@ -10,6 +10,7 @@ use App\Models\ForumThreadRead;
 use App\Models\User;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
+use App\Support\Reputation\ReputationManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -20,6 +21,10 @@ use Illuminate\Validation\ValidationException;
 
 class ForumPostController extends Controller
 {
+    public function __construct(private readonly ReputationManager $reputation)
+    {
+    }
+
     public function store(Request $request, ForumBoard $board, ForumThread $thread): RedirectResponse
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
@@ -82,6 +87,10 @@ class ForumPostController extends Controller
             Notification::sendNow($subscribers, (new ForumThreadUpdated($thread, $post))->withChannels(['database']));
             Notification::send($subscribers, (new ForumThreadUpdated($thread, $post))->withChannels(['mail']));
         }
+
+        $this->reputation->record('forum_post_created', $user, $post, [
+            'thread_id' => $thread->id,
+        ]);
 
         $postCount = $thread->posts()->count();
         $perPage = 10;

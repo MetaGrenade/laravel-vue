@@ -24,6 +24,7 @@ class RolePermissionSeeder extends Seeder
             'blogs',
             'forums',
             'support',
+            'reputation',
             'tokens',
             'system'
         ];

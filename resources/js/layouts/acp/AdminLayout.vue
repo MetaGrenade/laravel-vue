@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -21,6 +21,7 @@ const manageForums = computed(() => hasPermission('forums.acp.view'));
 const manageSupport = computed(() => hasPermission('support.acp.view'));
 const manageTokens = computed(() => hasPermission('tokens.acp.view'));
 const manageSystem = computed(() => hasPermission('system.acp.view'));
+const manageReputation = computed(() => hasPermission('reputation.acp.view'));
 
 const sidebarNavItems: NavItem[] = [
     {
@@ -58,6 +59,12 @@ const sidebarNavItems: NavItem[] = [
         href: '/acp/forums/reports',
         target: '_self',
         icon: ShieldAlert,
+    },
+    {
+        title: 'Badges',
+        href: '/acp/reputation/badges',
+        target: '_self',
+        icon: Award,
     },
     {
         title: 'Support',
@@ -98,6 +105,8 @@ const filteredNavItems = computed(() => {
                 return manageForums.value;
             case 'Forum Reports':
                 return manageForums.value;
+            case 'Badges':
+                return manageReputation.value || isAdmin.value;
             case 'Support':
                 return manageSupport.value;
             case 'Access Tokens':
