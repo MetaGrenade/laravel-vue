@@ -32,6 +32,18 @@ class TokenController extends Controller
 
         $tokenQuery = PersonalAccessToken::query();
 
+        $hourlyUsage = TokenLog::query()
+            ->selectRaw('personal_access_token_id, COUNT(*) as aggregate')
+            ->where('created_at', '>=', now()->subHour())
+            ->groupBy('personal_access_token_id')
+            ->pluck('aggregate', 'personal_access_token_id');
+
+        $dailyUsage = TokenLog::query()
+            ->selectRaw('personal_access_token_id, COUNT(*) as aggregate')
+            ->where('created_at', '>=', now()->subDay())
+            ->groupBy('personal_access_token_id')
+            ->pluck('aggregate', 'personal_access_token_id');
+
         // eager‐load owner
         $tokens = (clone $tokenQuery)
             ->with('tokenable:id,nickname,email')
@@ -51,6 +63,10 @@ class TokenController extends Controller
                     'expires_at' => $formatter->iso($token->expires_at),
                     'revoked_at' => $formatter->iso($token->revoked_at),
                     'abilities' => $token->abilities ?? [],
+                    'hourly_quota' => $token->hourly_quota,
+                    'daily_quota' => $token->daily_quota,
+                    'hourly_usage' => (int) ($hourlyUsage[$token->id] ?? 0),
+                    'daily_usage' => (int) ($dailyUsage[$token->id] ?? 0),
                     'user' => $user ? [
                         'id' => $user->id,
                         'nickname' => $user->nickname,
@@ -170,6 +186,11 @@ class TokenController extends Controller
             $data['expires_at'] ? Carbon::parse($data['expires_at']) : null
         );
 
+        $newToken->accessToken->forceFill([
+            'hourly_quota' => $data['hourly_quota'] ?? null,
+            'daily_quota' => $data['daily_quota'] ?? null,
+        ])->save();
+
         return redirect()->route('acp.tokens.index')
             ->with('success', 'Token created.')
             ->with('plain_text_token', $newToken->plainTextToken);
@@ -186,6 +207,8 @@ class TokenController extends Controller
             'name' => $data['name'],
             'abilities' => $data['abilities'] ?? [],
             'expires_at' => $data['expires_at'] ? Carbon::parse($data['expires_at']) : null,
+            'hourly_quota' => $data['hourly_quota'] ?? null,
+            'daily_quota' => $data['daily_quota'] ?? null,
         ]);
 
         if ($data['clear_revocation'] ?? false) {

@@ -49,6 +49,7 @@ import {
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useConfirmDialog } from '@/composables/useConfirmDialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // dayjs composable for human readable dates
 const { fromNow } = useUserTimezone();
@@ -79,6 +80,10 @@ interface Token {
     expires_at?: string | null;
     revoked_at?: string | null;
     abilities?: string[];
+    hourly_quota?: number | null;
+    daily_quota?: number | null;
+    hourly_usage?: number;
+    daily_usage?: number;
 }
 
 interface TokenLog {
@@ -372,6 +377,74 @@ const showTokenLogsPagination = computed(
     () => tokenLogsMeta.value.total > tokenLogsMeta.value.per_page,
 );
 
+const numberFormatter = new Intl.NumberFormat();
+const QUOTA_WARNING_THRESHOLD = 0.8;
+
+const isQuotaConfigured = (quota?: number | null): quota is number =>
+    typeof quota === 'number' && Number.isFinite(quota) && quota > 0;
+
+const usageRatio = (usage: number | undefined, quota?: number | null): number => {
+    if (!isQuotaConfigured(quota)) {
+        return 0;
+    }
+
+    return (usage ?? 0) / quota;
+};
+
+const usagePercent = (usage: number | undefined, quota?: number | null): number => {
+    if (!isQuotaConfigured(quota)) {
+        return 0;
+    }
+
+    return Math.min(100, Math.round(usageRatio(usage, quota) * 100));
+};
+
+const usageBarClass = (usage: number | undefined, quota?: number | null): string => {
+    const ratio = usageRatio(usage, quota);
+
+    if (ratio >= 1) {
+        return 'bg-red-500';
+    }
+
+    if (ratio >= QUOTA_WARNING_THRESHOLD) {
+        return 'bg-amber-500';
+    }
+
+    return 'bg-emerald-500';
+};
+
+const formatNumber = (value?: number | null): string => numberFormatter.format(value ?? 0);
+
+const quotaUsageLabel = (usage: number | undefined, quota?: number | null): string => {
+    if (!isQuotaConfigured(quota)) {
+        return `${formatNumber(usage)} used`;
+    }
+
+    return `${formatNumber(usage)} / ${formatNumber(quota)}`;
+};
+
+const normalizeQuotaValue = (value: number | null): number | null => {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+        return null;
+    }
+
+    return Math.floor(value);
+};
+
+const tokenApproachingQuota = (token: Token): boolean => {
+    if (isQuotaConfigured(token.hourly_quota) && usageRatio(token.hourly_usage, token.hourly_quota) >= QUOTA_WARNING_THRESHOLD) {
+        return true;
+    }
+
+    if (isQuotaConfigured(token.daily_quota) && usageRatio(token.daily_usage, token.daily_quota) >= QUOTA_WARNING_THRESHOLD) {
+        return true;
+    }
+
+    return false;
+};
+
+const tokensApproachingQuota = computed(() => tokenItems.value.filter(tokenApproachingQuota));
+
 const totalTokens = computed(() => props.tokenStats.total);
 const activeTokens = computed(() => props.tokenStats.active);
 const expiredTokens = computed(() => props.tokenStats.expired);
@@ -409,11 +482,15 @@ const createTokenForm = useForm({
     user_id: defaultUserId as number | '',
     expires_at: '',
     abilities: [] as string[],
+    hourly_quota: null as number | null,
+    daily_quota: null as number | null,
 });
 const abilityInput = ref('');
 
 const resetCreateTokenForm = () => {
     createTokenForm.reset();
+    createTokenForm.hourly_quota = null;
+    createTokenForm.daily_quota = null;
     abilityInput.value = '';
     createTokenForm.clearErrors();
 };
@@ -429,6 +506,9 @@ const submitCreateToken = () => {
         .split(',')
         .map((ability) => ability.trim())
         .filter(Boolean);
+
+    createTokenForm.hourly_quota = normalizeQuotaValue(createTokenForm.hourly_quota);
+    createTokenForm.daily_quota = normalizeQuotaValue(createTokenForm.daily_quota);
 
     createTokenForm.post(route('acp.tokens.store'), {
         preserveScroll: true,
@@ -446,6 +526,8 @@ const editTokenForm = useForm({
     expires_at: '',
     abilities: [] as string[],
     clear_revocation: false,
+    hourly_quota: null as number | null,
+    daily_quota: null as number | null,
 });
 const editAbilityInput = ref('');
 
@@ -453,6 +535,8 @@ const resetEditTokenForm = () => {
     editTokenForm.reset();
     editTokenForm.abilities = [];
     editTokenForm.clear_revocation = false;
+    editTokenForm.hourly_quota = null;
+    editTokenForm.daily_quota = null;
     editTokenForm.clearErrors();
     editAbilityInput.value = '';
     editingTokenId.value = null;
@@ -473,6 +557,8 @@ const openEditDialog = (token: Token) => {
         ? dayjs(token.expires_at).format('YYYY-MM-DDTHH:mm')
         : '';
     editTokenForm.clear_revocation = false;
+    editTokenForm.hourly_quota = token.hourly_quota ?? null;
+    editTokenForm.daily_quota = token.daily_quota ?? null;
     editAbilityInput.value = (token.abilities ?? []).join(', ');
     editTokenForm.clearErrors();
     editDialogOpen.value = true;
@@ -487,6 +573,9 @@ const submitEditToken = () => {
         .split(',')
         .map((ability) => ability.trim())
         .filter(Boolean);
+
+    editTokenForm.hourly_quota = normalizeQuotaValue(editTokenForm.hourly_quota);
+    editTokenForm.daily_quota = normalizeQuotaValue(editTokenForm.daily_quota);
 
     editTokenForm.put(route('acp.tokens.update', { token: editingTokenId.value }), {
         preserveScroll: true,
@@ -758,6 +847,37 @@ const lastUsedDisplay = (value?: string | null) => {
                                                 />
                                                 <InputError :message="createTokenForm.errors.expires_at" />
                                             </div>
+
+                                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                <div class="space-y-2">
+                                                    <Label for="token-hourly-quota">Hourly quota</Label>
+                                                    <Input
+                                                        id="token-hourly-quota"
+                                                        v-model.number="createTokenForm.hourly_quota"
+                                                        type="number"
+                                                        min="1"
+                                                        placeholder="Unlimited"
+                                                    />
+                                                    <p class="text-xs text-muted-foreground">
+                                                        Leave blank for unlimited requests per hour.
+                                                    </p>
+                                                    <InputError :message="createTokenForm.errors.hourly_quota" />
+                                                </div>
+                                                <div class="space-y-2">
+                                                    <Label for="token-daily-quota">Daily quota</Label>
+                                                    <Input
+                                                        id="token-daily-quota"
+                                                        v-model.number="createTokenForm.daily_quota"
+                                                        type="number"
+                                                        min="1"
+                                                        placeholder="Unlimited"
+                                                    />
+                                                    <p class="text-xs text-muted-foreground">
+                                                        Leave blank for unlimited requests per day.
+                                                    </p>
+                                                    <InputError :message="createTokenForm.errors.daily_quota" />
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <DialogFooter class="gap-2 sm:gap-4">
@@ -819,6 +939,37 @@ const lastUsedDisplay = (value?: string | null) => {
                                                 <InputError :message="editTokenForm.errors.expires_at" />
                                             </div>
 
+                                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                <div class="space-y-2">
+                                                    <Label for="edit-token-hourly-quota">Hourly quota</Label>
+                                                    <Input
+                                                        id="edit-token-hourly-quota"
+                                                        v-model.number="editTokenForm.hourly_quota"
+                                                        type="number"
+                                                        min="1"
+                                                        placeholder="Unlimited"
+                                                    />
+                                                    <p class="text-xs text-muted-foreground">
+                                                        Leave blank to keep hourly requests unlimited.
+                                                    </p>
+                                                    <InputError :message="editTokenForm.errors.hourly_quota" />
+                                                </div>
+                                                <div class="space-y-2">
+                                                    <Label for="edit-token-daily-quota">Daily quota</Label>
+                                                    <Input
+                                                        id="edit-token-daily-quota"
+                                                        v-model.number="editTokenForm.daily_quota"
+                                                        type="number"
+                                                        min="1"
+                                                        placeholder="Unlimited"
+                                                    />
+                                                    <p class="text-xs text-muted-foreground">
+                                                        Leave blank to keep daily requests unlimited.
+                                                    </p>
+                                                    <InputError :message="editTokenForm.errors.daily_quota" />
+                                                </div>
+                                            </div>
+
                                             <div
                                                 v-if="editingToken?.revoked_at"
                                                 class="flex items-center space-x-2 rounded-md border border-dashed border-muted p-3"
@@ -849,6 +1000,36 @@ const lastUsedDisplay = (value?: string | null) => {
 
                     <!-- Token List Tab -->
                     <TabsContent value="tokens" class="space-y-6">
+                        <Alert
+                            v-if="tokensApproachingQuota.length"
+                            variant="warning"
+                            class="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
+                        >
+                            <AlertTitle class="text-sm font-semibold">Usage approaching configured quotas</AlertTitle>
+                            <AlertDescription>
+                                <ul class="mt-2 space-y-1">
+                                    <li
+                                        v-for="token in tokensApproachingQuota"
+                                        :key="`quota-warning-${token.id}`"
+                                        class="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <span class="font-medium">{{ token.name }}</span>
+                                        <span class="text-xs text-muted-foreground">
+                                            <template v-if="isQuotaConfigured(token.hourly_quota)">
+                                                Hourly: {{ quotaUsageLabel(token.hourly_usage, token.hourly_quota) }}
+                                                ({{ usagePercent(token.hourly_usage, token.hourly_quota) }}%)
+                                            </template>
+                                            <template v-if="isQuotaConfigured(token.daily_quota)">
+                                                <span v-if="isQuotaConfigured(token.hourly_quota)"> · </span>
+                                                Daily: {{ quotaUsageLabel(token.daily_usage, token.daily_quota) }}
+                                                ({{ usagePercent(token.daily_usage, token.daily_quota) }}%)
+                                            </template>
+                                        </span>
+                                    </li>
+                                </ul>
+                            </AlertDescription>
+                        </Alert>
+
                         <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
                             <!-- Search Bar -->
                             <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
@@ -872,6 +1053,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                             <TableHead class="text-center">Created</TableHead>
                                             <TableHead class="text-center">Last Used</TableHead>
                                             <TableHead class="text-center">Status</TableHead>
+                                            <TableHead class="w-64">Usage</TableHead>
                                             <TableHead class="text-center">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -898,6 +1080,45 @@ const lastUsedDisplay = (value?: string | null) => {
                                                 >
                                                     {{ resolveTokenStatus(token).label }}
                                                 </span>
+                                            </TableCell>
+                                            <TableCell class="align-top">
+                                                <div
+                                                    v-if="isQuotaConfigured(token.hourly_quota) || isQuotaConfigured(token.daily_quota)"
+                                                    class="space-y-3"
+                                                >
+                                                    <div v-if="isQuotaConfigured(token.hourly_quota)" class="space-y-1">
+                                                        <div class="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                                            <span>Hourly</span>
+                                                            <span>{{ quotaUsageLabel(token.hourly_usage, token.hourly_quota) }}</span>
+                                                        </div>
+                                                        <div class="h-2 w-full overflow-hidden rounded-full bg-muted">
+                                                            <div
+                                                                class="h-full rounded-full transition-all duration-300"
+                                                                :class="usageBarClass(token.hourly_usage, token.hourly_quota)"
+                                                                :style="{ width: `${usagePercent(token.hourly_usage, token.hourly_quota)}%` }"
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                    <div v-if="isQuotaConfigured(token.daily_quota)" class="space-y-1">
+                                                        <div class="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                                            <span>Daily</span>
+                                                            <span>{{ quotaUsageLabel(token.daily_usage, token.daily_quota) }}</span>
+                                                        </div>
+                                                        <div class="h-2 w-full overflow-hidden rounded-full bg-muted">
+                                                            <div
+                                                                class="h-full rounded-full transition-all duration-300"
+                                                                :class="usageBarClass(token.daily_usage, token.daily_quota)"
+                                                                :style="{ width: `${usagePercent(token.daily_usage, token.daily_quota)}%` }"
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    v-else
+                                                    class="text-xs font-medium text-muted-foreground"
+                                                >
+                                                    Unlimited
+                                                </div>
                                             </TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
