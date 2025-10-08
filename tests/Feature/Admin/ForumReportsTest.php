@@ -191,7 +191,6 @@ class ForumReportsTest extends TestCase
             'id' => $post->id,
         ]);
     }
-}
 
     public function test_moderator_can_bulk_update_reports(): void
     {
