@@ -6,6 +6,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
 use App\Http\Middleware\PreventBannedUser;
+use App\Http\Middleware\ThrottleTokenUsage;
 use App\Http\Middleware\UpdateLastActivity;
 use App\Jobs\AggregateSearchQueryStats;
 use App\Jobs\MonitorSupportTicketSlas;
@@ -54,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'verified' => EnsureEmailIsVerifiedIfRequired::class,
+            'token.throttle' => ThrottleTokenUsage::class,
             'token.activity' => LogTokenActivity::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
