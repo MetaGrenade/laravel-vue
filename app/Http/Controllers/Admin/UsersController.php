@@ -11,6 +11,7 @@ use App\Support\Localization\DateFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
@@ -215,5 +216,108 @@ class UsersController extends Controller
 
         return redirect()->route('acp.users.index')
             ->with('success', 'User unbanned.');
+    }
+
+    public function bulkUpdate(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'action' => ['required', Rule::in(['verify', 'ban', 'unban', 'delete'])],
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:users,id'],
+        ]);
+
+        $action = $validated['action'];
+
+        match ($action) {
+            'verify' => Gate::authorize('users.acp.verify'),
+            'ban', 'unban' => Gate::authorize('users.acp.ban'),
+            'delete' => Gate::authorize('users.acp.delete'),
+        };
+
+        $ids = array_values(array_unique(array_map('intval', $validated['ids'])));
+
+        $users = User::query()
+            ->whereIn('id', $ids)
+            ->get();
+
+        if ($users->isEmpty()) {
+            return back()->with('success', 'No users required updates.');
+        }
+
+        $actorId = (int) $request->user()->id;
+        $now = now();
+        $updatedCount = 0;
+
+        foreach ($users as $user) {
+            $changed = false;
+
+            switch ($action) {
+                case 'verify':
+                    if ($user->email_verified_at === null) {
+                        $user->forceFill(['email_verified_at' => $now])->save();
+                        $changed = true;
+                    }
+
+                    break;
+
+                case 'ban':
+                    if (! $user->is_banned) {
+                        $user->forceFill([
+                            'is_banned' => true,
+                            'banned_at' => $now,
+                            'banned_by_id' => $actorId,
+                        ])->save();
+                        $changed = true;
+                    }
+
+                    break;
+
+                case 'unban':
+                    if ($user->is_banned) {
+                        $user->forceFill([
+                            'is_banned' => false,
+                            'banned_at' => null,
+                            'banned_by_id' => null,
+                        ])->save();
+                        $changed = true;
+                    }
+
+                    break;
+
+                case 'delete':
+                    $user->delete();
+                    $changed = true;
+                    break;
+            }
+
+            if ($changed) {
+                $updatedCount++;
+            }
+        }
+
+        $message = match ($action) {
+            'verify' => match ($updatedCount) {
+                0 => 'No users required verification updates.',
+                1 => 'Verified 1 user.',
+                default => "Verified {$updatedCount} users.",
+            },
+            'ban' => match ($updatedCount) {
+                0 => 'No users required ban updates.',
+                1 => 'Banned 1 user.',
+                default => "Banned {$updatedCount} users.",
+            },
+            'unban' => match ($updatedCount) {
+                0 => 'No users required unban updates.',
+                1 => 'Unbanned 1 user.',
+                default => "Unbanned {$updatedCount} users.",
+            },
+            'delete' => match ($updatedCount) {
+                0 => 'No users were deleted.',
+                1 => 'Deleted 1 user.',
+                default => "Deleted {$updatedCount} users.",
+            },
+        };
+
+        return back()->with('success', $message);
     }
 }
