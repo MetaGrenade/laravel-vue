@@ -12,6 +12,7 @@ use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
+use Illuminate\Support\Carbon;
 use App\Support\Reputation\ReputationManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -378,13 +379,19 @@ class ForumController extends Controller
                     'forum_signature' => $author?->forum_signature,
                     'reputation_points' => $author?->reputation_points ?? 0,
                     'badges' => ($author?->badges ?? collect())->map(function (Badge $badge) use ($formatter) {
+                        $awardedAt = $badge->pivot?->awarded_at;
+
+                        if ($awardedAt !== null && ! $awardedAt instanceof Carbon) {
+                            $awardedAt = Carbon::parse($awardedAt);
+                        }
+
                         return [
                             'id' => $badge->id,
                             'name' => $badge->name,
                             'slug' => $badge->slug,
                             'description' => $badge->description,
                             'points_required' => $badge->points_required,
-                            'awarded_at' => $formatter->dayDateTime($badge->pivot?->awarded_at),
+                            'awarded_at' => $formatter->dayDateTime($awardedAt),
                         ];
                     })->values(),
                 ],
