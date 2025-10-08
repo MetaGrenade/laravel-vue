@@ -21,15 +21,20 @@ return new class extends Migration {
 
         Schema::create('support_response_template_support_team', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('support_response_template_id')
-                ->constrained('support_response_templates')
-                ->cascadeOnDelete();
-            $table->foreignId('support_team_id')
-                ->constrained('support_teams')
-                ->cascadeOnDelete();
+            $table->foreignId('support_response_template_id');
+            $table->foreignId('support_team_id');
             $table->timestamps();
 
             $table->unique(['support_response_template_id', 'support_team_id'], 'support_template_team_unique');
+
+            $table->foreign('support_response_template_id', 'srt_team_template_fk')
+                ->references('id')
+                ->on('support_response_templates')
+                ->cascadeOnDelete();
+            $table->foreign('support_team_id', 'srt_team_team_fk')
+                ->references('id')
+                ->on('support_teams')
+                ->cascadeOnDelete();
         });
     }
 
