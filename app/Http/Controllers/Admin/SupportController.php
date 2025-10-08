@@ -17,7 +17,6 @@ use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\FaqFeedback;
 use App\Models\User;
-use App\Notifications\SupportTicketAgentReply;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
@@ -637,6 +636,8 @@ class SupportController extends Controller
         });
 
         if ($message) {
+            $message = $message->refresh();
+
             $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
                 return (new TicketReplied($ticket, $message))
                     ->forAudience($audience)
