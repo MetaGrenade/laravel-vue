@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Blog;
+use App\Models\BlogView;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\SupportTicket;
@@ -31,7 +32,7 @@ class DashboardController extends Controller
             'metrics' => $this->buildMetrics($user),
             'activityChart' => $this->buildActivityChart($user),
             'recentItems' => $this->recentActivity($user, $formatter),
-            'recommendedArticles' => $this->recommendedArticles($formatter),
+            'recommendedArticles' => $this->recommendedArticles($user, $formatter),
         ]);
     }
 
@@ -214,14 +215,71 @@ class DashboardController extends Controller
     /**
      * Highlight recently published knowledge base articles.
      */
-    protected function recommendedArticles(DateFormatter $formatter): array
+    protected function recommendedArticles(User $user, DateFormatter $formatter): array
     {
-        return Blog::query()
-            ->where('status', 'published')
-            ->orderByDesc('published_at')
-            ->orderByDesc('created_at')
+        $viewedBlogIds = BlogView::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('last_viewed_at')
+            ->pluck('blog_id');
+
+        $articles = collect();
+
+        if ($viewedBlogIds->isNotEmpty()) {
+            $recentViewedIds = $viewedBlogIds->take(50);
+
+            $preferredCategoryIds = DB::table('blog_blog_category')
+                ->whereIn('blog_id', $recentViewedIds)
+                ->pluck('blog_category_id')
+                ->unique();
+
+            $preferredTagIds = DB::table('blog_blog_tag')
+                ->whereIn('blog_id', $recentViewedIds)
+                ->pluck('blog_tag_id')
+                ->unique();
+
+            if ($preferredCategoryIds->isNotEmpty() || $preferredTagIds->isNotEmpty()) {
+                $articles = Blog::query()
+                    ->where('status', 'published')
+                    ->whereNotIn('id', $viewedBlogIds->all())
+                    ->where(function ($query) use ($preferredCategoryIds, $preferredTagIds) {
+                        if ($preferredCategoryIds->isNotEmpty()) {
+                            $query->whereHas('categories', function ($categoryQuery) use ($preferredCategoryIds) {
+                                $categoryQuery->whereIn('blog_categories.id', $preferredCategoryIds);
+                            });
+                        }
+
+                        if ($preferredTagIds->isNotEmpty()) {
+                            $method = $preferredCategoryIds->isNotEmpty() ? 'orWhereHas' : 'whereHas';
+
+                            $query->{$method}('tags', function ($tagQuery) use ($preferredTagIds) {
+                                $tagQuery->whereIn('blog_tags.id', $preferredTagIds);
+                            });
+                        }
+                    })
+                    ->orderByDesc('published_at')
+                    ->orderByDesc('created_at')
+                    ->take(5)
+                    ->get();
+            }
+        }
+
+        if ($articles->count() < 5) {
+            $fallback = Blog::query()
+                ->where('status', 'published')
+                ->when($viewedBlogIds->isNotEmpty(), fn ($query) => $query->whereNotIn('id', $viewedBlogIds->all()))
+                ->withCount('comments')
+                ->orderByDesc('comments_count')
+                ->orderByDesc('published_at')
+                ->orderByDesc('created_at')
+                ->take(5 - $articles->count())
+                ->get();
+
+            $articles = $articles->concat($fallback);
+        }
+
+        return $articles
+            ->unique('id')
             ->take(5)
-            ->get()
             ->map(function (Blog $blog) use ($formatter) {
                 $timestamp = $blog->published_at ?? $blog->created_at;
 
@@ -233,6 +291,7 @@ class DashboardController extends Controller
                     'published_at' => $formatter->iso($timestamp),
                 ];
             })
+            ->values()
             ->all();
     }
 }

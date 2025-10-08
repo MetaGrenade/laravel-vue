@@ -58,6 +58,11 @@ class Blog extends Model
         return $this->hasMany(BlogComment::class);
     }
 
+    public function views(): HasMany
+    {
+        return $this->hasMany(BlogView::class);
+    }
+
     public function commentSubscribers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'blog_comment_subscriptions')
