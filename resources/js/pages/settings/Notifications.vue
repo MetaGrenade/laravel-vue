@@ -60,7 +60,10 @@ const form = useForm<{ preferences: Record<string, Record<string, boolean>> }>({
 watch(
     initialPreferences,
     (preferences) => {
-        form.setData('preferences', clonePreferences(preferences));
+        const snapshot = clonePreferences(preferences);
+
+        form.defaults({ preferences: clonePreferences(preferences) });
+        form.setData('preferences', snapshot);
     },
     { immediate: true },
 );
@@ -112,7 +115,7 @@ const submit = () => {
                                         </p>
                                     </div>
                                     <Switch
-                                        v-model:checked="form.preferences[category.key][channel.key]"
+                                        v-model="form.preferences[category.key][channel.key]"
                                         :aria-label="`Toggle ${channel.label} notifications for ${category.label}`"
                                     />
                                 </div>
