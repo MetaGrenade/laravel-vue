@@ -4,11 +4,13 @@ namespace App\Jobs;
 
 use App\Models\DataExport;
 use App\Models\User;
+use App\Notifications\UserDataExportReady;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -63,6 +65,13 @@ class GenerateUserDataExport implements ShouldQueue
                 'file_path' => $relativePath,
                 'completed_at' => now(),
             ]);
+
+            $export->refresh();
+
+            $notification = new UserDataExportReady($export);
+
+            Notification::sendNow($user, $notification->withChannels(['database']));
+            Notification::send($user, $notification->withChannels(['mail']));
         } catch (Throwable $exception) {
             $export->update([
                 'status' => DataExport::STATUS_FAILED,
