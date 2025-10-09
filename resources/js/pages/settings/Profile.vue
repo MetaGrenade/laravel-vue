@@ -56,103 +56,34 @@ const form = useForm({
     locale: user.locale ?? fallbackLocale,
 });
 
-type FormValue =
-    | string
-    | number
-    | boolean
-    | null
-    | Date
-    | File
-    | Blob
-    | FormValue[]
-    | FormValueRecord
-    | undefined;
-
-interface FormValueRecord {
-    [key: string]: FormValue;
-}
-
-const appendFormValue = (formData: FormData, key: string, value: FormValue): void => {
-    if (value === undefined) {
-        return;
-    }
-
-    if (value === null) {
-        formData.append(key, '');
-        return;
-    }
-
-    if (value instanceof Date) {
-        formData.append(key, value.toISOString());
-        return;
-    }
-
-    if (value instanceof File || value instanceof Blob) {
-        formData.append(key, value);
-        return;
-    }
-
-    if (Array.isArray(value)) {
-        value.forEach((entry, index) => {
-            appendFormValue(formData, `${key}[${index}]`, entry);
-        });
-
-        return;
-    }
-
-    if (typeof value === 'object') {
-        Object.entries(value).forEach(([nestedKey, nestedValue]) => {
-            appendFormValue(formData, `${key}[${nestedKey}]`, nestedValue);
-        });
-
-        return;
-    }
-
-    if (typeof value === 'boolean') {
-        formData.append(key, value ? '1' : '0');
-        return;
-    }
-
-    formData.append(key, String(value));
-};
-
-const objectToFormData = (source: FormValueRecord): FormData => {
-    const formData = new FormData();
-
-    Object.entries(source).forEach(([key, value]) => {
-        appendFormValue(formData, key, value);
-    });
-
-    return formData;
-};
+type ProfileFormData = ReturnType<typeof form.data>;
 
 const submit = () => {
-    const data = form.data();
-    const payload: FormValueRecord = { ...data } as unknown as FormValueRecord;
+    form
+        .transform((data: ProfileFormData) => {
+            const payload: Record<string, unknown> = { ...data };
 
-    if (form.avatar instanceof File) {
-        payload.avatar = form.avatar;
-    } else {
-        delete payload.avatar;
-    }
+            if (!(data.avatar instanceof File)) {
+                delete payload.avatar;
+            }
 
-    if (form.remove_avatar) {
-        payload.remove_avatar = true;
-    } else {
-        delete payload.remove_avatar;
-    }
+            if (!data.remove_avatar) {
+                delete payload.remove_avatar;
+            }
 
-    const formData = objectToFormData(payload);
-    formData.append('_method', 'patch');
-
-    form.submit('post', route('profile.update'), {
-        data: formData,
-        preserveScroll: true,
-        onSuccess: () => {
-            form.avatar = null;
-            form.remove_avatar = false;
-        },
-    });
+            return payload;
+        })
+        .patch(route('profile.update'), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                form.avatar = null;
+                form.remove_avatar = false;
+            },
+            onFinish: () => {
+                form.transform(data => data);
+            },
+        });
 };
 
 const addSocialLink = () => {
