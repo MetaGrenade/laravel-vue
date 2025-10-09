@@ -56,39 +56,101 @@ const form = useForm({
     locale: user.locale ?? fallbackLocale,
 });
 
-const submit = () => {
-    form.transform(data => {
-        type FormPayload = ReturnType<typeof form.data> & {
-            avatar?: File | null;
-            remove_avatar?: boolean;
-        };
+type FormValue =
+    | string
+    | number
+    | boolean
+    | null
+    | Date
+    | File
+    | Blob
+    | FormValue[]
+    | FormValueRecord
+    | undefined;
 
-        const payload: FormPayload = { ...data } as FormPayload;
+interface FormValueRecord {
+    [key: string]: FormValue;
+}
 
-        if (form.avatar instanceof File) {
-            payload.avatar = form.avatar;
-        } else {
-            delete payload.avatar;
-        }
+const appendFormValue = (formData: FormData, key: string, value: FormValue): void => {
+    if (value === undefined) {
+        return;
+    }
 
-        if (form.remove_avatar) {
-            payload.remove_avatar = true;
-        } else {
-            delete payload.remove_avatar;
-        }
+    if (value === null) {
+        formData.append(key, '');
+        return;
+    }
 
-        return payload;
+    if (value instanceof Date) {
+        formData.append(key, value.toISOString());
+        return;
+    }
+
+    if (value instanceof File || value instanceof Blob) {
+        formData.append(key, value);
+        return;
+    }
+
+    if (Array.isArray(value)) {
+        value.forEach((entry, index) => {
+            appendFormValue(formData, `${key}[${index}]`, entry);
+        });
+
+        return;
+    }
+
+    if (typeof value === 'object') {
+        Object.entries(value).forEach(([nestedKey, nestedValue]) => {
+            appendFormValue(formData, `${key}[${nestedKey}]`, nestedValue);
+        });
+
+        return;
+    }
+
+    if (typeof value === 'boolean') {
+        formData.append(key, value ? '1' : '0');
+        return;
+    }
+
+    formData.append(key, String(value));
+};
+
+const objectToFormData = (source: FormValueRecord): FormData => {
+    const formData = new FormData();
+
+    Object.entries(source).forEach(([key, value]) => {
+        appendFormValue(formData, key, value);
     });
 
-    form.patch(route('profile.update'), {
+    return formData;
+};
+
+const submit = () => {
+    const data = form.data();
+    const payload: FormValueRecord = { ...data } as unknown as FormValueRecord;
+
+    if (form.avatar instanceof File) {
+        payload.avatar = form.avatar;
+    } else {
+        delete payload.avatar;
+    }
+
+    if (form.remove_avatar) {
+        payload.remove_avatar = true;
+    } else {
+        delete payload.remove_avatar;
+    }
+
+    const formData = objectToFormData(payload);
+    formData.append('_method', 'patch');
+
+    form.submit('post', route('profile.update'), {
+        data: formData,
         preserveScroll: true,
-        forceFormData: true,
         onSuccess: () => {
             form.avatar = null;
             form.remove_avatar = false;
-        },
-        onFinish: () => {
-            form.transform(data => data);
         },
     });
 };

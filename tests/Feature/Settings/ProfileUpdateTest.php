@@ -122,6 +122,36 @@ class ProfileUpdateTest extends TestCase
         Storage::disk('public')->assertExists($user->avatarStoragePath());
     }
 
+    public function test_avatar_upload_with_string_flags_persists_the_new_path()
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create([
+            'avatar_url' => null,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/settings/profile', [
+                'nickname' => $user->nickname,
+                'email' => $user->email,
+                'avatar_url' => '',
+                'remove_avatar' => 'false',
+                'avatar' => UploadedFile::fake()->image('avatar.jpg', 192, 192),
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/settings/profile');
+
+        $user->refresh();
+
+        $this->assertNotNull($user->avatarStoragePath());
+        $this->assertNotNull($user->avatar_url);
+        $this->assertStringStartsWith('avatars/', $user->avatarStoragePath());
+        Storage::disk('public')->assertExists($user->avatarStoragePath());
+    }
+
     public function test_uploading_an_avatar_removes_the_previous_file()
     {
         Storage::fake('public');

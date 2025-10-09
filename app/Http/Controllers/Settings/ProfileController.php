@@ -38,7 +38,7 @@ class ProfileController extends Controller
         $validated = $request->validated();
 
         $uploadedAvatar = $request->file('avatar');
-        $shouldRemoveAvatar = (bool) ($validated['remove_avatar'] ?? false);
+        $shouldRemoveAvatar = $request->boolean('remove_avatar');
 
         unset($validated['avatar'], $validated['remove_avatar']);
 
