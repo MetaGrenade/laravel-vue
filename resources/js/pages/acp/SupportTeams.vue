@@ -184,7 +184,7 @@ const memberSummary = (team: SupportTeamItem) => {
         <Head title="Manage support teams" />
 
         <AdminLayout>
-            <div class="flex flex-col gap-6">
+            <div class="flex flex-1 flex-col gap-6">
                 <Card>
                     <CardHeader class="relative overflow-hidden">
                         <PlaceholderPattern class="absolute inset-0 opacity-10" />
