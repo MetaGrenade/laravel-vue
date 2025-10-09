@@ -15,7 +15,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -87,24 +86,7 @@ class ForumPostController extends Controller
             $notification = new ForumThreadUpdated($thread, $post);
 
             $subscribers->each(function (User $subscriber) use ($notification): void {
-                $subscriber->loadMissing('notificationSettings');
-
-                $channels = $subscriber->preferredNotificationChannelsFor('forums', ['database', 'mail']);
-
-                if ($channels === []) {
-                    return;
-                }
-
-                $synchronousChannels = array_values(array_intersect($channels, ['database']));
-                $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
-
-                if ($synchronousChannels !== []) {
-                    Notification::sendNow($subscriber, $notification->withChannels($synchronousChannels));
-                }
-
-                if ($queuedChannels !== []) {
-                    Notification::send($subscriber, $notification->withChannels($queuedChannels));
-                }
+                $subscriber->notifyThroughPreferences($notification, 'forums', ['database', 'mail']);
             });
         }
 
@@ -317,24 +299,7 @@ class ForumPostController extends Controller
         $notification = new ForumPostMentioned($thread, $post);
 
         $mentionedUsers->each(function (User $mentionedUser) use ($notification): void {
-            $mentionedUser->loadMissing('notificationSettings');
-
-            $channels = $mentionedUser->preferredNotificationChannelsFor('forums', ['database', 'mail']);
-
-            if ($channels === []) {
-                return;
-            }
-
-            $synchronousChannels = array_values(array_intersect($channels, ['database']));
-            $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
-
-            if ($synchronousChannels !== []) {
-                Notification::sendNow($mentionedUser, $notification->withChannels($synchronousChannels));
-            }
-
-            if ($queuedChannels !== []) {
-                Notification::send($mentionedUser, $notification->withChannels($queuedChannels));
-            }
+            $mentionedUser->notifyThroughPreferences($notification, 'forums', ['database', 'mail']);
         });
     }
 }

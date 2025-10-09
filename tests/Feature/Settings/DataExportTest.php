@@ -253,4 +253,39 @@ class DataExportTest extends TestCase
             'file_path' => null,
         ]);
     }
+
+    public function test_generate_user_data_export_respects_notification_preferences(): void
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $user->notificationSettings()->create([
+            'category' => 'privacy',
+            'channel_mail' => true,
+            'channel_push' => false,
+            'channel_database' => false,
+        ]);
+
+        $export = DataExport::factory()->for($user)->create();
+
+        (new GenerateUserDataExport($export->id))->handle();
+
+        Notification::assertSentToTimes($user, UserDataExportReady::class, 1);
+
+        Notification::assertSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) use ($user) {
+            if ($channels !== ['mail']) {
+                return false;
+            }
+
+            $mailMessage = $notification->toMail($user);
+
+            return $mailMessage->subject === 'Your data export is ready';
+        });
+
+        Notification::assertNotSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) {
+            return in_array('database', $channels, true);
+        });
+    }
 }

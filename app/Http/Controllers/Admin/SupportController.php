@@ -552,10 +552,9 @@ class SupportController extends Controller
 
         $this->ticketAssigner->assign($ticket);
 
-        $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket) {
+        $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket) {
             return (new TicketOpened($ticket))
-                ->forAudience($audience)
-                ->withChannels($channels);
+                ->forAudience($audience);
         });
 
         return redirect()
@@ -609,10 +608,9 @@ class SupportController extends Controller
             array_key_exists('status', $validated)
             && $previousStatus !== $ticket->status
         ) {
-            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $previousStatus) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $previousStatus) {
                 return (new TicketStatusUpdated($ticket, $previousStatus))
-                    ->forAudience($audience)
-                    ->withChannels($channels);
+                    ->forAudience($audience);
             });
         }
 
@@ -897,10 +895,9 @@ class SupportController extends Controller
         if ($message) {
             $message = $message->refresh();
 
-            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $message) {
                 return (new TicketReplied($ticket, $message))
-                    ->forAudience($audience)
-                    ->withChannels($channels);
+                    ->forAudience($audience);
             });
         }
 
@@ -957,10 +954,9 @@ class SupportController extends Controller
         $ticket->update($updates);
 
         if ($previousStatus !== $ticket->status) {
-            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $previousStatus) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $previousStatus) {
                 return (new TicketStatusUpdated($ticket, $previousStatus))
-                    ->forAudience($audience)
-                    ->withChannels($channels);
+                    ->forAudience($audience);
             });
         }
 
@@ -1013,10 +1009,9 @@ class SupportController extends Controller
                 $updatedCount++;
 
                 if ($previousStatus !== $ticket->status) {
-                    $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $previousStatus) {
+                    $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $previousStatus) {
                         return (new TicketStatusUpdated($ticket, $previousStatus))
-                            ->forAudience($audience)
-                            ->withChannels($channels);
+                            ->forAudience($audience);
                     });
                 }
             }

@@ -10,7 +10,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -43,8 +42,6 @@ class GenerateUserDataExport implements ShouldQueue
             throw new RuntimeException('User not found for export.');
         }
 
-        $user->loadMissing('notificationSettings');
-
         try {
             $payload = $this->buildPayload($user);
             $csvContent = $this->buildCsv($payload);
@@ -76,18 +73,7 @@ class GenerateUserDataExport implements ShouldQueue
 
             $notification = new UserDataExportReady($export);
 
-            $channels = $user->preferredNotificationChannelsFor('privacy', ['database', 'mail']);
-
-            $synchronousChannels = array_values(array_intersect($channels, ['database']));
-            $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
-
-            if ($synchronousChannels !== []) {
-                Notification::sendNow($user, $notification->withChannels($synchronousChannels));
-            }
-
-            if ($queuedChannels !== []) {
-                Notification::send($user, $notification->withChannels($queuedChannels));
-            }
+            $user->notifyThroughPreferences($notification, 'privacy', ['database', 'mail']);
         } catch (Throwable $exception) {
             $export->update([
                 'status' => DataExport::STATUS_FAILED,

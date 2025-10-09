@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Notifications\BlogCommentPosted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class BlogCommentController extends Controller
@@ -85,24 +84,7 @@ class BlogCommentController extends Controller
             $notification = new BlogCommentPosted($blog, $comment);
 
             $recipients->each(function (User $recipient) use ($notification): void {
-                $recipient->loadMissing('notificationSettings');
-
-                $channels = $recipient->preferredNotificationChannelsFor('blogs', ['database', 'mail']);
-
-                if ($channels === []) {
-                    return;
-                }
-
-                $synchronousChannels = array_values(array_intersect($channels, ['database']));
-                $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
-
-                if ($synchronousChannels !== []) {
-                    Notification::sendNow($recipient, $notification->withChannels($synchronousChannels));
-                }
-
-                if ($queuedChannels !== []) {
-                    Notification::send($recipient, $notification->withChannels($queuedChannels));
-                }
+                $recipient->notifyThroughPreferences($notification, 'blogs', ['database', 'mail']);
             });
         }
 
