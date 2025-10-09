@@ -409,7 +409,7 @@ class SupportTicketNotificationTest extends TestCase
         Notification::fake();
 
         $owner = User::factory()->create(['email_verified_at' => now()]);
-        $agent = $this->createSupportAgent(['support.acp.view']);
+        $agent = $this->createSupportAgent(['support.acp.reply', 'support.acp.view']);
 
         $owner->notificationSettings()->create([
             'category' => 'support',
@@ -433,11 +433,11 @@ class SupportTicketNotificationTest extends TestCase
 
         $this->actingAs($agent);
 
-        $response = $this->post(route('support.tickets.messages.store', $ticket), [
+        $response = $this->post(route('acp.support.tickets.messages.store', $ticket), [
             'body' => 'Thanks for reporting this. We are investigating.',
         ]);
 
-        $response->assertRedirect(route('support.tickets.show', $ticket));
+        $response->assertRedirect(route('acp.support.tickets.show', $ticket));
 
         Notification::assertSentToTimes($owner, TicketReplied::class, 1);
         Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) {
