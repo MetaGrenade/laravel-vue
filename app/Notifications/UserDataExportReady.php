@@ -85,7 +85,7 @@ class UserDataExportReady extends Notification implements ShouldQueue
 
     protected function downloadUrl(): ?string
     {
-        if (! $this->export->isReady()) {
+        if (! $this->export->file_path || $this->export->hasExpired()) {
             return null;
         }
 
