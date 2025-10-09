@@ -14,14 +14,14 @@ class SupportTicketNotificationDispatcher
      */
     public function dispatch(SupportTicket $ticket, callable $notificationFactory): void
     {
-        $ticket->loadMissing(['user', 'assignee']);
+        $ticket->loadMissing(['user.notificationSettings', 'assignee.notificationSettings']);
 
         collect([$ticket->user, $ticket->assignee])
             ->filter(fn (?User $user) => $user !== null)
             ->unique(fn (User $user) => $user->id)
             ->each(function (User $recipient) use ($ticket, $notificationFactory): void {
                 $audience = (int) $recipient->id === (int) $ticket->user_id ? 'owner' : 'agent';
-                $channels = $this->preferredNotificationChannels($recipient);
+                $channels = $recipient->preferredNotificationChannelsFor('support', ['mail', 'database']);
 
                 $synchronousChannels = array_values(array_intersect($channels, ['database']));
                 $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
@@ -36,17 +36,4 @@ class SupportTicketNotificationDispatcher
             });
     }
 
-    /**
-     * @return array<int, string>
-     */
-    private function preferredNotificationChannels(User $user): array
-    {
-        $channels = ['database'];
-
-        if ($user->hasVerifiedEmail()) {
-            array_unshift($channels, 'mail');
-        }
-
-        return array_values(array_unique($channels));
-    }
 }

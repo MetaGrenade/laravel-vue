@@ -143,5 +143,52 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(DataErasureRequest::class);
     }
+
+    public function notificationSettings(): HasMany
+    {
+        return $this->hasMany(UserNotificationSetting::class);
+    }
+
+    /**
+     * @param  list<string>|null  $candidateChannels
+     * @return list<string>
+     */
+    public function preferredNotificationChannelsFor(string $category, ?array $candidateChannels = null): array
+    {
+        $categoryConfig = (array) config('notification-preferences.categories', []);
+        $channelConfig = (array) config('notification-preferences.channels', []);
+
+        $allowedChannels = $candidateChannels
+            ?? ($categoryConfig[$category]['channels'] ?? array_keys($channelConfig));
+
+        if ($allowedChannels === []) {
+            return [];
+        }
+
+        $settings = $this->notificationSettings->firstWhere('category', $category);
+
+        $channels = [];
+
+        foreach ($allowedChannels as $channel) {
+            if (! isset($channelConfig[$channel])) {
+                continue;
+            }
+
+            $defaultEnabled = (bool) ($channelConfig[$channel]['default'] ?? true);
+            $enabled = $settings ? $settings->isChannelEnabled($channel) : $defaultEnabled;
+
+            if (! $enabled) {
+                continue;
+            }
+
+            if ($channel === 'mail' && ! $this->hasVerifiedEmail()) {
+                continue;
+            }
+
+            $channels[] = $channel;
+        }
+
+        return array_values(array_unique($channels));
+    }
 }
 

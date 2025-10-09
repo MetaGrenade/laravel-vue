@@ -39,6 +39,12 @@ class GenerateUserDataExport implements ShouldQueue
 
         $user = $export->user;
 
+        if (! $user) {
+            throw new RuntimeException('User not found for export.');
+        }
+
+        $user->loadMissing('notificationSettings');
+
         try {
             $payload = $this->buildPayload($user);
             $csvContent = $this->buildCsv($payload);
@@ -70,8 +76,18 @@ class GenerateUserDataExport implements ShouldQueue
 
             $notification = new UserDataExportReady($export);
 
-            Notification::sendNow($user, $notification->withChannels(['database']));
-            Notification::send($user, $notification->withChannels(['mail']));
+            $channels = $user->preferredNotificationChannelsFor('privacy', ['database', 'mail']);
+
+            $synchronousChannels = array_values(array_intersect($channels, ['database']));
+            $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
+
+            if ($synchronousChannels !== []) {
+                Notification::sendNow($user, $notification->withChannels($synchronousChannels));
+            }
+
+            if ($queuedChannels !== []) {
+                Notification::send($user, $notification->withChannels($queuedChannels));
+            }
         } catch (Throwable $exception) {
             $export->update([
                 'status' => DataExport::STATUS_FAILED,

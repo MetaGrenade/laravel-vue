@@ -84,8 +84,28 @@ class ForumPostController extends Controller
             ->get();
 
         if ($subscribers->isNotEmpty()) {
-            Notification::sendNow($subscribers, (new ForumThreadUpdated($thread, $post))->withChannels(['database']));
-            Notification::send($subscribers, (new ForumThreadUpdated($thread, $post))->withChannels(['mail']));
+            $notification = new ForumThreadUpdated($thread, $post);
+
+            $subscribers->each(function (User $subscriber) use ($notification): void {
+                $subscriber->loadMissing('notificationSettings');
+
+                $channels = $subscriber->preferredNotificationChannelsFor('forums', ['database', 'mail']);
+
+                if ($channels === []) {
+                    return;
+                }
+
+                $synchronousChannels = array_values(array_intersect($channels, ['database']));
+                $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
+
+                if ($synchronousChannels !== []) {
+                    Notification::sendNow($subscriber, $notification->withChannels($synchronousChannels));
+                }
+
+                if ($queuedChannels !== []) {
+                    Notification::send($subscriber, $notification->withChannels($queuedChannels));
+                }
+            });
         }
 
         $this->reputation->record('forum_post_created', $user, $post, [
@@ -296,7 +316,25 @@ class ForumPostController extends Controller
 
         $notification = new ForumPostMentioned($thread, $post);
 
-        Notification::sendNow($mentionedUsers, $notification->withChannels(['database']));
-        Notification::send($mentionedUsers, $notification->withChannels(['mail']));
+        $mentionedUsers->each(function (User $mentionedUser) use ($notification): void {
+            $mentionedUser->loadMissing('notificationSettings');
+
+            $channels = $mentionedUser->preferredNotificationChannelsFor('forums', ['database', 'mail']);
+
+            if ($channels === []) {
+                return;
+            }
+
+            $synchronousChannels = array_values(array_intersect($channels, ['database']));
+            $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
+
+            if ($synchronousChannels !== []) {
+                Notification::sendNow($mentionedUser, $notification->withChannels($synchronousChannels));
+            }
+
+            if ($queuedChannels !== []) {
+                Notification::send($mentionedUser, $notification->withChannels($queuedChannels));
+            }
+        });
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Blog;
 use App\Models\BlogComment;
 use App\Support\Localization\DateFormatter;
+use App\Models\User;
 use App\Notifications\BlogCommentPosted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -83,8 +84,26 @@ class BlogCommentController extends Controller
         if ($recipients->isNotEmpty()) {
             $notification = new BlogCommentPosted($blog, $comment);
 
-            Notification::sendNow($recipients, $notification->withChannels(['database']));
-            Notification::send($recipients, $notification->withChannels(['mail']));
+            $recipients->each(function (User $recipient) use ($notification): void {
+                $recipient->loadMissing('notificationSettings');
+
+                $channels = $recipient->preferredNotificationChannelsFor('blogs', ['database', 'mail']);
+
+                if ($channels === []) {
+                    return;
+                }
+
+                $synchronousChannels = array_values(array_intersect($channels, ['database']));
+                $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
+
+                if ($synchronousChannels !== []) {
+                    Notification::sendNow($recipient, $notification->withChannels($synchronousChannels));
+                }
+
+                if ($queuedChannels !== []) {
+                    Notification::send($recipient, $notification->withChannels($queuedChannels));
+                }
+            });
         }
 
         $formatter = DateFormatter::for($request->user());
