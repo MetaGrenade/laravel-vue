@@ -63,13 +63,17 @@ const submit = () => {
             remove_avatar?: boolean;
         };
 
-        const payload = { ...form.data() } as FormPayload;
+        const payload = form.data() as FormPayload;
 
-        if (!form.avatar) {
+        if (form.avatar) {
+            payload.avatar = form.avatar;
+        } else {
             delete payload.avatar;
         }
 
-        if (!form.remove_avatar) {
+        if (form.remove_avatar) {
+            payload.remove_avatar = true;
+        } else {
             delete payload.remove_avatar;
         }
 
