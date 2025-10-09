@@ -403,5 +403,94 @@ class SupportTicketNotificationTest extends TestCase
             return true;
         });
     }
-}
 
+    public function test_owner_notification_channels_respect_preferences(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $agent = $this->createSupportAgent(['support.acp.reply', 'support.acp.view']);
+
+        $owner->notificationSettings()->create([
+            'category' => 'support',
+            'channel_mail' => false,
+            'channel_push' => false,
+            'channel_database' => true,
+        ]);
+
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'subject' => 'Application outage',
+            'body' => 'The app is unavailable for my team.',
+            'priority' => 'high',
+            'assigned_to' => $agent->id,
+        ]);
+
+        $ticket->messages()->create([
+            'user_id' => $owner->id,
+            'body' => 'Initial report of the outage.',
+        ]);
+
+        $this->actingAs($agent);
+
+        $response = $this->post(route('acp.support.tickets.messages.store', $ticket), [
+            'body' => 'Thanks for reporting this. We are investigating.',
+        ]);
+
+        $response->assertRedirect(route('acp.support.tickets.show', $ticket));
+
+        Notification::assertSentToTimes($owner, TicketReplied::class, 1);
+        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) {
+            return $channels === ['database'];
+        });
+
+        Notification::assertNotSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) {
+            return $channels === ['mail'];
+        });
+    }
+
+    public function test_assigned_agent_notification_channels_respect_preferences(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $agent = $this->createSupportAgent(['support.acp.view']);
+
+        $agent->notificationSettings()->create([
+            'category' => 'support',
+            'channel_mail' => true,
+            'channel_push' => false,
+            'channel_database' => false,
+        ]);
+
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'subject' => 'Billing follow up',
+            'body' => 'Need a copy of last month invoices.',
+            'priority' => 'low',
+            'assigned_to' => $agent->id,
+        ]);
+
+        $ticket->messages()->create([
+            'user_id' => $owner->id,
+            'body' => 'Requesting invoices for March.',
+        ]);
+
+        $this->actingAs($owner);
+
+        $response = $this->post(route('support.tickets.messages.store', $ticket), [
+            'body' => 'Following up to see if there are any updates.',
+        ]);
+
+        $response->assertRedirect(route('support.tickets.show', $ticket));
+
+        Notification::assertSentToTimes($agent, TicketReplied::class, 1);
+        Notification::assertSentTo($agent, TicketReplied::class, function (TicketReplied $notification, array $channels) {
+            return $channels === ['mail'];
+        });
+
+        Notification::assertNotSentTo($agent, TicketReplied::class, function (TicketReplied $notification, array $channels) {
+            return $channels === ['database'];
+        });
+    }
+}

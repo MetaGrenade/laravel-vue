@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Blog;
 use App\Models\BlogComment;
 use App\Support\Localization\DateFormatter;
+use App\Models\User;
 use App\Notifications\BlogCommentPosted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class BlogCommentController extends Controller
@@ -83,8 +83,9 @@ class BlogCommentController extends Controller
         if ($recipients->isNotEmpty()) {
             $notification = new BlogCommentPosted($blog, $comment);
 
-            Notification::sendNow($recipients, $notification->withChannels(['database']));
-            Notification::send($recipients, $notification->withChannels(['mail']));
+            $recipients->each(function (User $recipient) use ($notification): void {
+                $recipient->notifyThroughPreferences($notification, 'blogs', ['database', 'mail']);
+            });
         }
 
         $formatter = DateFormatter::for($request->user());

@@ -14,15 +14,28 @@ class SupportTicketAgentReply extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * @param  array<int, string>  $channels
+     */
     public function __construct(
         protected SupportTicket $ticket,
-        protected SupportTicketMessage $message
+        protected SupportTicketMessage $message,
+        protected array $channels = ['mail', 'database'],
     ) {
+        $this->message->setRelation('ticket', $this->ticket);
     }
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return $this->channels;
+    }
+
+    public function viaQueues(): array
+    {
+        return [
+            'mail' => 'mail',
+            'database' => 'default',
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -47,5 +60,16 @@ class SupportTicketAgentReply extends Notification implements ShouldQueue
             'message_id' => $this->message->id,
             'message_preview' => Str::limit((string) $this->message->body, 120),
         ];
+    }
+
+    /**
+     * @param  array<int, string>  $channels
+     */
+    public function withChannels(array $channels): self
+    {
+        $clone = clone $this;
+        $clone->channels = $channels;
+
+        return $clone;
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Controllers\Settings\SecuritySessionController;
 use App\Http\Controllers\Settings\TwoFactorController;
 use App\Http\Controllers\Settings\TwoFactorRecoveryCodeController;
 use App\Http\Controllers\Settings\PrivacyController;
+use App\Http\Controllers\Settings\NotificationSettingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -25,6 +26,11 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/Appearance');
     })->name('appearance');
+
+    Route::get('settings/notifications', [NotificationSettingsController::class, 'edit'])
+        ->name('settings.notifications.edit');
+    Route::put('settings/notifications', [NotificationSettingsController::class, 'update'])
+        ->name('settings.notifications.update');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
 

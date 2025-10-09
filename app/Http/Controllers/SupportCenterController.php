@@ -337,10 +337,9 @@ class SupportCenterController extends Controller
         if ($ticket && $message) {
             $ticket->loadMissing('assignee');
 
-            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $message) {
                 return (new TicketOpened($ticket, $message))
-                    ->forAudience($audience)
-                    ->withChannels($channels);
+                    ->forAudience($audience);
             });
         }
 
@@ -489,10 +488,9 @@ class SupportCenterController extends Controller
         });
 
         if ($message) {
-            $this->ticketNotifier->dispatch($ticket, function (string $audience, array $channels) use ($ticket, $message) {
+            $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $message) {
                 return (new TicketReplied($ticket, $message))
-                    ->forAudience($audience)
-                    ->withChannels($channels);
+                    ->forAudience($audience);
             });
         }
 

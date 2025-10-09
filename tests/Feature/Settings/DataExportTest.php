@@ -187,6 +187,62 @@ class DataExportTest extends TestCase
         $this->assertStringContainsString('resource_type', $csv);
     }
 
+    public function test_generate_user_data_export_job_honors_notification_preferences(): void
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+
+        $user->notificationSettings()->create([
+            'category' => 'privacy',
+            'channel_mail' => false,
+            'channel_push' => true,
+            'channel_database' => true,
+        ]);
+
+        $export = DataExport::factory()->for($user)->create();
+
+        $job = new GenerateUserDataExport($export->id);
+        $job->handle();
+
+        Notification::assertSentToTimes($user, UserDataExportReady::class, 1);
+
+        Notification::assertSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) {
+            return $channels === ['database'];
+        });
+
+        Notification::assertNotSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) {
+            return in_array('mail', $channels, true);
+        });
+    }
+
+    public function test_generate_user_data_export_job_skips_disabled_channels(): void
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+
+        $user->notificationSettings()->create([
+            'category' => 'privacy',
+            'channel_mail' => false,
+            'channel_push' => false,
+            'channel_database' => false,
+        ]);
+
+        $export = DataExport::factory()->for($user)->create();
+
+        $job = new GenerateUserDataExport($export->id);
+        $job->handle();
+
+        Notification::assertNothingSent();
+    }
+
     public function test_completed_exports_expire_after_ttl(): void
     {
         Storage::fake('local');
@@ -252,5 +308,40 @@ class DataExportTest extends TestCase
             'id' => $export->id,
             'file_path' => null,
         ]);
+    }
+
+    public function test_generate_user_data_export_respects_notification_preferences(): void
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $user->notificationSettings()->create([
+            'category' => 'privacy',
+            'channel_mail' => true,
+            'channel_push' => false,
+            'channel_database' => false,
+        ]);
+
+        $export = DataExport::factory()->for($user)->create();
+
+        (new GenerateUserDataExport($export->id))->handle();
+
+        Notification::assertSentToTimes($user, UserDataExportReady::class, 1);
+
+        Notification::assertSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) use ($user) {
+            if ($channels !== ['mail']) {
+                return false;
+            }
+
+            $mailMessage = $notification->toMail($user);
+
+            return $mailMessage->subject === 'Your data export is ready';
+        });
+
+        Notification::assertNotSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) {
+            return in_array('database', $channels, true);
+        });
     }
 }

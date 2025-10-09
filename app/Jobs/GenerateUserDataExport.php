@@ -10,7 +10,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -38,6 +37,10 @@ class GenerateUserDataExport implements ShouldQueue
         ]);
 
         $user = $export->user;
+
+        if (! $user) {
+            throw new RuntimeException('User not found for export.');
+        }
 
         try {
             $payload = $this->buildPayload($user);
@@ -70,8 +73,7 @@ class GenerateUserDataExport implements ShouldQueue
 
             $notification = new UserDataExportReady($export);
 
-            Notification::sendNow($user, $notification->withChannels(['database']));
-            Notification::send($user, $notification->withChannels(['mail']));
+            $user->notifyThroughPreferences($notification, 'privacy', ['database', 'mail']);
         } catch (Throwable $exception) {
             $export->update([
                 'status' => DataExport::STATUS_FAILED,

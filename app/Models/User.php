@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notification as BaseNotification;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -142,6 +144,104 @@ class User extends Authenticatable implements MustVerifyEmail
     public function dataErasureRequests(): HasMany
     {
         return $this->hasMany(DataErasureRequest::class);
+    }
+
+    public function notificationSettings(): HasMany
+    {
+        return $this->hasMany(UserNotificationSetting::class);
+    }
+
+    /**
+     * @param  list<string>|null  $candidateChannels
+     * @return list<string>
+     */
+    public function preferredNotificationChannelsFor(string $category, ?array $candidateChannels = null): array
+    {
+        $this->loadMissing('notificationSettings');
+
+        $categoryConfig = (array) config('notification-preferences.categories', []);
+        $channelConfig = (array) config('notification-preferences.channels', []);
+
+        $allowedChannels = $candidateChannels
+            ?? ($categoryConfig[$category]['channels'] ?? array_keys($channelConfig));
+
+        if ($allowedChannels === []) {
+            return [];
+        }
+
+        $settings = $this->notificationSettings->firstWhere('category', $category);
+
+        $channels = [];
+
+        foreach ($allowedChannels as $channel) {
+            if (! isset($channelConfig[$channel])) {
+                continue;
+            }
+
+            $defaultEnabled = (bool) ($channelConfig[$channel]['default'] ?? true);
+            $enabled = $settings ? $settings->isChannelEnabled($channel) : $defaultEnabled;
+
+            if (! $enabled) {
+                continue;
+            }
+
+            if ($channel === 'mail' && ! $this->hasVerifiedEmail()) {
+                continue;
+            }
+
+            $channels[] = $channel;
+        }
+
+        return array_values(array_unique($channels));
+    }
+
+    /**
+     * Send the given notification using the recipient's preferred channels for the category.
+     *
+     * @param  array<int, string>|null  $candidateChannels
+     */
+    public function notifyThroughPreferences(BaseNotification $notification, string $category, ?array $candidateChannels = null): void
+    {
+        $channels = $this->preferredNotificationChannelsFor($category, $candidateChannels);
+
+        if ($channels === []) {
+            return;
+        }
+
+        $synchronousChannels = array_values(array_intersect($channels, ['database']));
+        $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
+
+        if ($synchronousChannels !== []) {
+            NotificationFacade::sendNow(
+                $this,
+                $this->cloneNotificationWithChannels($notification, $synchronousChannels)
+            );
+        }
+
+        if ($queuedChannels !== []) {
+            NotificationFacade::send(
+                $this,
+                $this->cloneNotificationWithChannels($notification, $queuedChannels)
+            );
+        }
+    }
+
+    /**
+     * @param  array<int, string>  $channels
+     */
+    protected function cloneNotificationWithChannels(BaseNotification $notification, array $channels): BaseNotification
+    {
+        $instance = clone $notification;
+
+        if (method_exists($instance, 'withChannels')) {
+            return $instance->withChannels($channels);
+        }
+
+        if (property_exists($instance, 'channels')) {
+            $instance->channels = $channels;
+        }
+
+        return $instance;
     }
 }
 
