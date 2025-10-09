@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\Settings\DataErasureRequestController;
+use App\Http\Controllers\Settings\DataExportController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\SecuritySessionController;
 use App\Http\Controllers\Settings\TwoFactorController;
 use App\Http\Controllers\Settings\TwoFactorRecoveryCodeController;
+use App\Http\Controllers\Settings\PrivacyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -24,6 +27,18 @@ Route::middleware('auth')->group(function () {
     })->name('appearance');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
+
+    Route::get('settings/privacy', PrivacyController::class)->name('privacy.index');
+
+    Route::post('settings/privacy/exports', [DataExportController::class, 'store'])
+        ->name('privacy.exports.store');
+
+    Route::get('settings/privacy/exports/{export}/download', [DataExportController::class, 'download'])
+        ->middleware('signed')
+        ->name('privacy.exports.download');
+
+    Route::post('settings/privacy/erasure', [DataErasureRequestController::class, 'store'])
+        ->name('privacy.erasure.store');
 
     Route::delete('settings/security/sessions/{session}', [SecuritySessionController::class, 'destroy'])
         ->name('security.sessions.destroy');

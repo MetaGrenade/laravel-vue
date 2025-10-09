@@ -128,5 +128,20 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(SupportTeam::class, 'support_team_user')
             ->withTimestamps();
     }
+
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class);
+    }
+
+    public function dataExports(): HasMany
+    {
+        return $this->hasMany(DataExport::class);
+    }
+
+    public function dataErasureRequests(): HasMany
+    {
+        return $this->hasMany(DataErasureRequest::class);
+    }
 }
 
