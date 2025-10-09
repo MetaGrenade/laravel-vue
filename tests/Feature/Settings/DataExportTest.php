@@ -8,10 +8,13 @@ use App\Models\BlogComment;
 use App\Models\DataExport;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Notifications\UserDataExportReady;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 use ZipArchive;
@@ -104,6 +107,10 @@ class DataExportTest extends TestCase
     public function test_generate_user_data_export_job_creates_archive(): void
     {
         Storage::fake('local');
+        Notification::fake();
+
+        $now = Carbon::parse('2024-01-02 03:04:05');
+        Carbon::setTestNow($now);
 
         $user = User::factory()->create([
             'nickname' => 'Download Tester',
@@ -118,12 +125,49 @@ class DataExportTest extends TestCase
         $job = new GenerateUserDataExport($export->id);
         $job->handle();
 
+        Carbon::setTestNow();
+
         $export->refresh();
 
         $this->assertEquals(DataExport::STATUS_COMPLETED, $export->status);
         $this->assertNotNull($export->file_path);
         $this->assertNotNull($export->completed_at);
         $this->assertTrue(Storage::disk('local')->exists($export->file_path));
+
+        Notification::assertSentToTimes($user, UserDataExportReady::class, 2);
+
+        $expectedExpiry = $now->copy()->addMinutes(DataExport::DOWNLOAD_TTL_MINUTES)->toIso8601String();
+
+        Notification::assertSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) use ($user, $export, $expectedExpiry) {
+            if ($channels !== ['database']) {
+                return false;
+            }
+
+            $data = $notification->toArray($user);
+
+            $this->assertSame($export->id, $data['export_id']);
+            $this->assertSame('Your data export is ready', $data['title']);
+            $this->assertSame($data['title'], $data['thread_title']);
+            $this->assertSame(route('privacy.index'), $data['url']);
+            $this->assertNotNull($data['download_url']);
+            $this->assertStringContainsString('settings/privacy/exports/' . $export->id . '/download', $data['download_url']);
+            $this->assertSame($expectedExpiry, $data['download_expires_at']);
+
+            return true;
+        });
+
+        Notification::assertSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) use ($user, $export) {
+            if ($channels !== ['mail']) {
+                return false;
+            }
+
+            $mailMessage = $notification->toMail($user);
+
+            $this->assertSame('Your data export is ready', $mailMessage->subject);
+            $this->assertStringContainsString('settings/privacy/exports/' . $export->id . '/download', $mailMessage->actionUrl);
+
+            return true;
+        });
 
         $zip = new ZipArchive();
         $this->assertTrue($zip->open(Storage::disk('local')->path($export->file_path)) === true);
