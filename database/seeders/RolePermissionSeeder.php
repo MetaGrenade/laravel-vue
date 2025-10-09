@@ -24,9 +24,11 @@ class RolePermissionSeeder extends Seeder
             'blogs',
             'forums',
             'support',
+            'support_teams',
+            'support_templates',
             'reputation',
             'tokens',
-            'system'
+            'system',
         ];
 
         foreach ($permissions as $permission) {
