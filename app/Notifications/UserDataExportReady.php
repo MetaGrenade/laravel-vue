@@ -13,6 +13,8 @@ class UserDataExportReady extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    protected ?string $downloadUrl = null;
+
     /**
      * @param  array<int, string>  $channels
      */
@@ -20,6 +22,7 @@ class UserDataExportReady extends Notification implements ShouldQueue
         protected DataExport $export,
         protected array $channels = ['mail', 'database'],
     ) {
+        $this->downloadUrl = $this->generateDownloadUrl();
     }
 
     public function via(object $notifiable): array
@@ -84,6 +87,11 @@ class UserDataExportReady extends Notification implements ShouldQueue
     }
 
     protected function downloadUrl(): ?string
+    {
+        return $this->downloadUrl;
+    }
+
+    protected function generateDownloadUrl(): ?string
     {
         if (! $this->export->file_path || $this->export->hasExpired()) {
             return null;
