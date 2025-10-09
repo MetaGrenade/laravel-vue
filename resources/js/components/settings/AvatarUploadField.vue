@@ -46,11 +46,12 @@ const selectedFile = ref<File | null>(null);
 const rawImageUrl = ref<string | null>(null);
 const imageDimensions = ref<ImageDimensions | null>(null);
 const zoom = ref(1);
-const outputSize = ref(256);
+const outputSize = ref(128);
 const localPreview = ref<string | null>(props.preview ?? null);
 const managedPreviewUrl = ref<string | null>(null);
 
 const position = reactive({ x: 0, y: 0 });
+const focalPoint = reactive({ x: 0.5, y: 0.5 });
 const dragState = ref<{
     pointerId: number;
     startX: number;
@@ -111,35 +112,17 @@ watch(rawImageUrl, async value => {
     resetPosition();
 });
 
-watch(zoom, (nextZoom, previousZoom) => {
+watch(zoom, nextZoom => {
     if (!imageDimensions.value || !rawImageUrl.value) {
         return;
     }
 
-    const before = calculateDisplaySize(previousZoom);
-    const after = calculateDisplaySize(nextZoom);
-
-    if (before.width === 0 || before.height === 0) {
-        resetPosition();
-        return;
-    }
-
-    const centerX = -position.x + cropSize / 2;
-    const centerY = -position.y + cropSize / 2;
-
-    const ratioX = centerX / before.width;
-    const ratioY = centerY / before.height;
-
-    const newCenterX = after.width * ratioX;
-    const newCenterY = after.height * ratioY;
-
-    const nextPosition = clampPosition({
-        x: cropSize / 2 - newCenterX,
-        y: cropSize / 2 - newCenterY,
-    });
+    const nextSize = calculateDisplaySize(nextZoom);
+    const nextPosition = positionFromFocalPoint(focalPoint, nextSize);
 
     position.x = nextPosition.x;
     position.y = nextPosition.y;
+    updateFocalPoint();
 });
 
 const displayedPreview = computed(() => props.preview ?? localPreview.value);
@@ -166,7 +149,7 @@ const imageStyle = computed(() => {
     };
 });
 
-const outputSizeOptions = [128, 192, 256, 320, 384, 448, 512];
+const outputSizeOptions = [96, 128, 160, 192, 224, 256];
 
 function openFileDialog() {
     fileInput.value?.click();
@@ -217,18 +200,21 @@ function resetPosition() {
     if (!imageDimensions.value) {
         position.x = 0;
         position.y = 0;
+        focalPoint.x = 0.5;
+        focalPoint.y = 0.5;
         return;
     }
 
     const { width, height } = displaySize.value;
 
-    const initial = clampPosition({
-        x: (cropSize - width) / 2,
-        y: (cropSize - height) / 2,
-    });
+    focalPoint.x = 0.5;
+    focalPoint.y = 0.5;
+
+    const initial = positionFromFocalPoint(focalPoint, { width, height });
 
     position.x = initial.x;
     position.y = initial.y;
+    updateFocalPoint();
 }
 
 function calculateDisplaySize(currentZoom: number) {
@@ -247,8 +233,8 @@ function calculateDisplaySize(currentZoom: number) {
     };
 }
 
-function clampPosition(candidate: { x: number; y: number }) {
-    const { width, height } = displaySize.value;
+function clampPosition(candidate: { x: number; y: number }, size = displaySize.value) {
+    const { width, height } = size;
 
     const minX = Math.min(0, cropSize - width);
     const maxX = Math.max(0, 0);
@@ -299,6 +285,7 @@ function drag(event: PointerEvent) {
 
     position.x = nextPosition.x;
     position.y = nextPosition.y;
+    updateFocalPoint();
 }
 
 function endDrag(event: PointerEvent) {
@@ -398,6 +385,8 @@ function cancelCrop() {
     releaseObjectUrl(rawImageUrl.value);
     rawImageUrl.value = null;
     selectedFile.value = null;
+    focalPoint.x = 0.5;
+    focalPoint.y = 0.5;
 }
 
 function clearAvatar() {
@@ -455,6 +444,37 @@ function mimeTypeToExtension(mimeType: string) {
 
 function formatOutputSizeLabel(size: number) {
     return `${size} × ${size}`;
+}
+
+function positionFromFocalPoint(point: { x: number; y: number }, size: ImageDimensions) {
+    const candidate = {
+        x: cropSize / 2 - size.width * point.x,
+        y: cropSize / 2 - size.height * point.y,
+    };
+
+    return clampPosition(candidate, size);
+}
+
+function updateFocalPoint() {
+    const { width, height } = displaySize.value;
+
+    if (width === 0 || height === 0) {
+        return;
+    }
+
+    const centerX = -position.x + cropSize / 2;
+    const centerY = -position.y + cropSize / 2;
+
+    focalPoint.x = clamp01(centerX / width);
+    focalPoint.y = clamp01(centerY / height);
+}
+
+function clamp01(value: number) {
+    if (Number.isNaN(value)) {
+        return 0.5;
+    }
+
+    return Math.min(1, Math.max(0, value));
 }
 
 async function loadImage(url: string) {
