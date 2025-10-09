@@ -7,10 +7,18 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Button from '@/components/ui/button/Button.vue';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import Input from '@/components/ui/input/Input.vue';
-import { Paperclip } from 'lucide-vue-next';
+import { Paperclip, Sparkles } from 'lucide-vue-next';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
 interface TicketParticipant {
@@ -35,6 +43,17 @@ interface TicketMessage {
     attachments: TicketMessageAttachment[];
 }
 
+interface SupportTemplateMeta {
+    id: number;
+    title: string;
+    body: string;
+    is_active: boolean;
+    support_ticket_category_id: number | null;
+    support_team_ids: number[];
+    category: { id: number; name: string } | null;
+    teams: { id: number; name: string }[];
+}
+
 const props = defineProps<{
     ticket: {
         id: number;
@@ -42,6 +61,7 @@ const props = defineProps<{
         body: string;
         status: 'open' | 'pending' | 'closed';
         priority: 'low' | 'medium' | 'high';
+        support_ticket_category_id: number | null;
         assigned_to: number | null;
         created_at: string | null;
         updated_at: string | null;
@@ -54,6 +74,8 @@ const props = defineProps<{
     messages: TicketMessage[];
     canReply: boolean;
     assignableAgents: TicketParticipant[];
+    templates: SupportTemplateMeta[];
+    agentTeamIds: number[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -106,6 +128,91 @@ const replyForm = useForm<ReplyFormPayload>({
     body: '',
     attachments: [],
 });
+
+const agentTeamIdsSet = computed(() => new Set(props.agentTeamIds ?? []));
+
+const availableTemplates = computed(() => {
+    const categoryId = props.ticket.support_ticket_category_id;
+    const templates = props.templates ?? [];
+
+    return templates
+        .filter((template) => template.is_active)
+        .filter((template) => {
+            if (!template.support_ticket_category_id) {
+                return true;
+            }
+
+            return template.support_ticket_category_id === categoryId;
+        })
+        .filter((template) => {
+            if (!template.support_team_ids || template.support_team_ids.length === 0) {
+                return true;
+            }
+
+            const teams = agentTeamIdsSet.value;
+
+            return template.support_team_ids.some((teamId) => teams.has(teamId));
+        });
+});
+
+const templateGroups = computed(() => {
+    const groups = new Map<string, SupportTemplateMeta[]>();
+
+    for (const template of availableTemplates.value) {
+        const targetTeams = template.teams && template.teams.length > 0 ? template.teams : [{ id: 0, name: 'General' }];
+
+        for (const team of targetTeams) {
+            const groupName = team.name ?? 'General';
+
+            if (!groups.has(groupName)) {
+                groups.set(groupName, []);
+            }
+
+            const group = groups.get(groupName)!;
+
+            if (!group.includes(template)) {
+                group.push(template);
+            }
+        }
+    }
+
+    const entries = Array.from(groups.entries()).map(([name, items]) => ({
+        name,
+        items: [...items].sort((a, b) => a.title.localeCompare(b.title)),
+    }));
+
+    return entries.sort((a, b) => {
+        if (a.name === 'General') {
+            return -1;
+        }
+
+        if (b.name === 'General') {
+            return 1;
+        }
+
+        return a.name.localeCompare(b.name);
+    });
+});
+
+const hasTemplateOptions = computed(() =>
+    templateGroups.value.some((group) => group.items.length > 0),
+);
+
+const applyTemplate = (template: SupportTemplateMeta) => {
+    const currentBody = replyForm.body ?? '';
+    const existing = currentBody.trim().length > 0 ? currentBody.replace(/\s+$/, '') : '';
+    const templateBody = template.body.trim();
+
+    if (existing.length === 0) {
+        replyForm.body = templateBody;
+    } else if (templateBody.length === 0) {
+        replyForm.body = existing;
+    } else {
+        replyForm.body = `${existing}\n\n${templateBody}`;
+    }
+
+    replyForm.clearErrors('body');
+};
 
 const attachmentInput = ref<HTMLInputElement | null>(null);
 
@@ -374,7 +481,45 @@ const formatFileSize = (bytes: number) => {
                             class="items-stretch border-t border-border/50"
                         >
                             <form class="flex w-full flex-col gap-3" @submit.prevent="submitReply">
-                                <label for="message" class="text-sm font-medium">Post a staff reply</label>
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <label for="message" class="text-sm font-medium">Post a staff reply</label>
+                                    <DropdownMenu v-if="hasTemplateOptions">
+                                        <DropdownMenuTrigger as-child>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                class="flex items-center gap-2"
+                                                :disabled="replyForm.processing"
+                                            >
+                                                <Sparkles class="h-4 w-4" />
+                                                Insert template
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" class="w-80 max-h-80 overflow-y-auto">
+                                            <template v-for="(group, index) in templateGroups" :key="group.name">
+                                                <DropdownMenuLabel class="text-xs uppercase text-muted-foreground">
+                                                    {{ group.name === 'General' ? 'All teams' : group.name }}
+                                                </DropdownMenuLabel>
+                                                <DropdownMenuItem
+                                                    v-for="template in group.items"
+                                                    :key="template.id"
+                                                    class="whitespace-normal py-2"
+                                                    :title="template.body"
+                                                    @select="applyTemplate(template)"
+                                                >
+                                                    <div class="flex flex-col gap-1">
+                                                        <span class="font-medium">{{ template.title }}</span>
+                                                        <span class="text-xs text-muted-foreground">
+                                                            {{ template.category?.name ?? 'All categories' }}
+                                                        </span>
+                                                    </div>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator v-if="index < templateGroups.length - 1" />
+                                            </template>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                                 <Textarea
                                     id="message"
                                     v-model="replyForm.body"

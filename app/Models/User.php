@@ -123,6 +123,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(self::class, 'banned_by_id');
     }
 
+    public function supportTeams(): BelongsToMany
+    {
+        return $this->belongsToMany(SupportTeam::class, 'support_team_user')
+            ->withTimestamps();
+    }
+
     public function supportTickets(): HasMany
     {
         return $this->hasMany(SupportTicket::class);

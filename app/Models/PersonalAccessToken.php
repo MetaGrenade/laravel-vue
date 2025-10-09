@@ -16,5 +16,7 @@ class PersonalAccessToken extends SanctumPersonalAccessToken
         'last_used_at' => 'datetime',
         'expires_at' => 'datetime',
         'revoked_at' => 'datetime',
+        'hourly_quota' => 'integer',
+        'daily_quota' => 'integer',
     ];
 }
