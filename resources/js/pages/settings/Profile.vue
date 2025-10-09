@@ -57,15 +57,15 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.transform(() => {
+    form.transform(data => {
         type FormPayload = ReturnType<typeof form.data> & {
             avatar?: File | null;
             remove_avatar?: boolean;
         };
 
-        const payload = form.data() as FormPayload;
+        const payload: FormPayload = { ...data } as FormPayload;
 
-        if (form.avatar) {
+        if (form.avatar instanceof File) {
             payload.avatar = form.avatar;
         } else {
             delete payload.avatar;
