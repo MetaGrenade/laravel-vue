@@ -48,6 +48,10 @@ class ProfileUpdateRequest extends FormRequest
             $payload['locale'] = $locale;
         }
 
+        if ($this->exists('remove_avatar')) {
+            $payload['remove_avatar'] = filter_var($this->input('remove_avatar'), FILTER_VALIDATE_BOOLEAN);
+        }
+
         if (! empty($payload)) {
             $this->merge($payload);
         }
@@ -79,6 +83,16 @@ class ProfileUpdateRequest extends FormRequest
                 'nullable',
                 'url',
                 'max:2048',
+            ],
+            'avatar' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,gif,webp',
+                'max:5120',
+            ],
+            'remove_avatar' => [
+                'sometimes',
+                'boolean',
             ],
             'forum_signature' => [
                 'nullable',

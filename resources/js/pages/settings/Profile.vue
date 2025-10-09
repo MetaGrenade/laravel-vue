@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
+import AvatarUploadField from '@/components/settings/AvatarUploadField.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,10 +41,14 @@ const user = page.props.auth.user as User;
 const fallbackTimezone = props.timezoneOptions[0]?.value ?? 'UTC';
 const fallbackLocale = props.localeOptions[0]?.value ?? 'en';
 
+const avatarPreview = ref(user.avatar_url ?? '');
+
 const form = useForm({
     nickname: user.nickname,
     email: user.email,
     avatar_url: user.avatar_url ?? '',
+    avatar: null as File | null,
+    remove_avatar: false,
     profile_bio: user.profile_bio ?? '',
     social_links: user.social_links ? user.social_links.map(link => ({ ...link })) : [],
     forum_signature: user.forum_signature ?? '',
@@ -51,8 +57,29 @@ const form = useForm({
 });
 
 const submit = () => {
+    form.transform(data => {
+        const payload = { ...data };
+
+        if (!payload.avatar) {
+            delete payload.avatar;
+        }
+
+        if (!payload.remove_avatar) {
+            delete payload.remove_avatar;
+        }
+
+        return payload;
+    });
+
     form.patch(route('profile.update'), {
         preserveScroll: true,
+        onSuccess: () => {
+            form.avatar = null;
+            form.remove_avatar = false;
+        },
+        onFinish: () => {
+            form.transform(data => data);
+        },
     });
 };
 
@@ -63,6 +90,44 @@ const addSocialLink = () => {
 const removeSocialLink = (index: number) => {
     form.social_links.splice(index, 1);
 };
+
+const clearAvatarError = () => {
+    form.clearErrors('avatar');
+};
+
+const handleAvatarPreviewChange = (value: string | null) => {
+    avatarPreview.value = value ?? '';
+
+    if (value) {
+        form.remove_avatar = false;
+    }
+};
+
+const handleAvatarRemoval = () => {
+    form.remove_avatar = true;
+    form.avatar = null;
+    form.clearErrors('avatar');
+};
+
+watch(
+    () => form.avatar,
+    value => {
+        if (value) {
+            form.remove_avatar = false;
+            form.clearErrors('avatar');
+        }
+    },
+);
+
+watch(
+    () => page.props.auth.user?.avatar_url ?? '',
+    value => {
+        if (!form.avatar && !form.remove_avatar) {
+            avatarPreview.value = value;
+            form.avatar_url = value;
+        }
+    },
+);
 </script>
 
 <template>
@@ -135,21 +200,18 @@ const removeSocialLink = (index: number) => {
                         <InputError class="mt-2" :message="form.errors.locale" />
                     </div>
 
-                    <div class="grid gap-2">
-                        <Label for="avatar_url">Avatar URL</Label>
-                        <Input
-                            id="avatar_url"
-                            v-model="form.avatar_url"
-                            type="url"
-                            class="mt-1 block w-full"
-                            autocomplete="off"
-                            placeholder="https://example.com/avatar.png"
-                        />
-                        <p class="text-xs text-muted-foreground">
-                            Provide a direct link to an image (PNG, JPG, or GIF) to use as your avatar.
-                        </p>
-                        <InputError class="mt-2" :message="form.errors.avatar_url" />
-                    </div>
+                    <AvatarUploadField
+                        v-model="form.avatar"
+                        :preview="avatarPreview || null"
+                        :disabled="form.processing"
+                        :error="form.errors.avatar"
+                        label="Avatar"
+                        description="Upload or adjust the image that represents you across the site."
+                        remove-label="Remove avatar"
+                        @preview-change="handleAvatarPreviewChange"
+                        @clear-error="clearAvatarError"
+                        @remove-avatar="handleAvatarRemoval"
+                    />
 
                     <div class="grid gap-2">
                         <Label for="profile_bio">Author bio</Label>

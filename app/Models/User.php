@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -12,6 +13,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notification as BaseNotification;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -70,6 +73,58 @@ class User extends Authenticatable implements MustVerifyEmail
             'two_factor_confirmed_at' => 'datetime',
             'reputation_points' => 'integer',
         ];
+    }
+
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if (! is_string($value) || $value === '') {
+                    return null;
+                }
+
+                if (Str::startsWith($value, ['http://', 'https://', '//', 'data:'])) {
+                    return $value;
+                }
+
+                $normalized = ltrim($value, '/');
+
+                if ($normalized === '') {
+                    return null;
+                }
+
+                if (Str::startsWith($normalized, 'storage/')) {
+                    return '/' . $normalized;
+                }
+
+                return Storage::disk('public')->url($normalized);
+            },
+        );
+    }
+
+    public function avatarStoragePath(): ?string
+    {
+        $raw = $this->getRawOriginal('avatar_url');
+
+        if (! is_string($raw) || $raw === '') {
+            return null;
+        }
+
+        $normalized = ltrim($raw, '/');
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (Str::startsWith($normalized, ['http://', 'https://', '//', 'data:'])) {
+            return null;
+        }
+
+        if (Str::startsWith($normalized, 'storage/')) {
+            $normalized = Str::after($normalized, 'storage/');
+        }
+
+        return $normalized;
     }
 
     public function forumThreads(): HasMany

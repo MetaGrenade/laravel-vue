@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Support\EmailVerification;
 use App\Support\Localization\PreferenceOptions;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,14 +35,38 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
+        $validated = $request->validated();
 
-        $user->fill($request->validated());
+        $uploadedAvatar = $request->file('avatar');
+        $shouldRemoveAvatar = (bool) ($validated['remove_avatar'] ?? false);
+
+        unset($validated['avatar'], $validated['remove_avatar']);
+
+        $previousAvatarPath = $user->avatarStoragePath();
+
+        if ($uploadedAvatar) {
+            $newPath = $uploadedAvatar->store('avatars', 'public');
+            $validated['avatar_url'] = $newPath;
+            $shouldRemoveAvatar = false;
+        } elseif ($shouldRemoveAvatar) {
+            $validated['avatar_url'] = null;
+        }
+
+        $user->fill($validated);
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
         }
 
         $user->save();
+
+        $currentAvatarPath = $user->avatarStoragePath();
+
+        if ($uploadedAvatar && $previousAvatarPath && $previousAvatarPath !== $currentAvatarPath) {
+            Storage::disk('public')->delete($previousAvatarPath);
+        } elseif ($shouldRemoveAvatar && $previousAvatarPath) {
+            Storage::disk('public')->delete($previousAvatarPath);
+        }
 
         if ($user instanceof MustVerifyEmail && $user->wasChanged('email')) {
             $user->sendEmailVerificationNotification();
