@@ -78,6 +78,7 @@ const submit = () => {
 
     form.patch(route('profile.update'), {
         preserveScroll: true,
+        forceFormData: true,
         onSuccess: () => {
             form.avatar = null;
             form.remove_avatar = false;
@@ -105,6 +106,7 @@ const handleAvatarPreviewChange = (value: string | null) => {
 
     if (value) {
         form.remove_avatar = false;
+        form.avatar_url = '';
     }
 };
 
