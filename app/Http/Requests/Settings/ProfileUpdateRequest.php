@@ -89,6 +89,7 @@ class ProfileUpdateRequest extends FormRequest
                 'image',
                 'mimes:jpg,jpeg,png,gif,webp',
                 'max:5120',
+                'dimensions:min_width=96,min_height=96,max_width=256,max_height=256',
             ],
             'remove_avatar' => [
                 'sometimes',

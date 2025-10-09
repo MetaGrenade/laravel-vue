@@ -106,7 +106,7 @@ class ProfileUpdateTest extends TestCase
             ->patch('/settings/profile', [
                 'nickname' => 'Test User',
                 'email' => $user->email,
-                'avatar' => UploadedFile::fake()->image('avatar.png', 600, 600),
+                'avatar' => UploadedFile::fake()->image('avatar.png', 128, 128),
             ]);
 
         $response
@@ -137,7 +137,7 @@ class ProfileUpdateTest extends TestCase
             ->patch('/settings/profile', [
                 'nickname' => 'Updated User',
                 'email' => $user->email,
-                'avatar' => UploadedFile::fake()->image('replacement.jpg', 512, 512),
+                'avatar' => UploadedFile::fake()->image('replacement.jpg', 128, 128),
             ]);
 
         $response
@@ -178,6 +178,46 @@ class ProfileUpdateTest extends TestCase
         $this->assertNull($user->avatarStoragePath());
         $this->assertNull($user->avatar_url);
         Storage::disk('public')->assertMissing('avatars/remove-me.png');
+    }
+
+    public function test_avatar_must_meet_minimum_dimensions()
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+
+        $response = $this
+            ->from('/settings/profile')
+            ->actingAs($user)
+            ->patch('/settings/profile', [
+                'nickname' => 'Test User',
+                'email' => $user->email,
+                'avatar' => UploadedFile::fake()->image('avatar.png', 64, 64),
+            ]);
+
+        $response
+            ->assertSessionHasErrors('avatar')
+            ->assertRedirect('/settings/profile');
+    }
+
+    public function test_avatar_must_not_exceed_maximum_dimensions()
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+
+        $response = $this
+            ->from('/settings/profile')
+            ->actingAs($user)
+            ->patch('/settings/profile', [
+                'nickname' => 'Test User',
+                'email' => $user->email,
+                'avatar' => UploadedFile::fake()->image('avatar.png', 300, 300),
+            ]);
+
+        $response
+            ->assertSessionHasErrors('avatar')
+            ->assertRedirect('/settings/profile');
     }
 
     public function test_user_can_delete_their_account()

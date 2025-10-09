@@ -206,7 +206,7 @@ watch(
                         :disabled="form.processing"
                         :error="form.errors.avatar"
                         label="Avatar"
-                        description="Upload or adjust the image that represents you across the site."
+                        description="Upload a square image between 96px and 256px to represent you across the site."
                         remove-label="Remove avatar"
                         @preview-change="handleAvatarPreviewChange"
                         @clear-error="clearAvatarError"
