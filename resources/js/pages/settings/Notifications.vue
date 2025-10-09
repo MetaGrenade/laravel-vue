@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -38,7 +38,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
     },
 ];
 
-const initialPreferences = computed(() => {
+const initialPreferences = computed<Record<string, Record<string, boolean>>>(() => {
     return props.categories.reduce<Record<string, Record<string, boolean>>>((acc, category) => {
         acc[category.key] = category.channels.reduce<Record<string, boolean>>((channelsAcc, channel) => {
             channelsAcc[channel.key] = channel.enabled;
@@ -50,9 +50,20 @@ const initialPreferences = computed(() => {
     }, {});
 });
 
-const form = useForm({
-    preferences: initialPreferences.value,
+const clonePreferences = (preferences: Record<string, Record<string, boolean>>) =>
+    JSON.parse(JSON.stringify(preferences)) as Record<string, Record<string, boolean>>;
+
+const form = useForm<{ preferences: Record<string, Record<string, boolean>> }>({
+    preferences: clonePreferences(initialPreferences.value),
 });
+
+watch(
+    initialPreferences,
+    (preferences) => {
+        form.setData('preferences', clonePreferences(preferences));
+    },
+    { immediate: true },
+);
 
 const submit = () => {
     form.put(route('settings.notifications.update'), {
