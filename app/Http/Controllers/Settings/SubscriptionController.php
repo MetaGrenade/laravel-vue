@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BillingInvoice;
 use App\Models\SubscriptionPlan;
 use App\Support\Billing\SubscriptionManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
@@ -67,7 +68,7 @@ class SubscriptionController extends Controller
         ]);
     }
 
-    public function setupIntent(Request $request): Response
+    public function setupIntent(Request $request): JsonResponse
     {
         $intent = $request->user()->createSetupIntent();
 
