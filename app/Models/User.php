@@ -172,6 +172,8 @@ class User extends Authenticatable implements MustVerifyEmail
         $settings = $this->notificationSettings->firstWhere('category', $category);
 
         $channels = [];
+        $mailAdded = false;
+        $broadcastAdded = false;
 
         foreach ($allowedChannels as $channel) {
             if (! isset($channelConfig[$channel])) {
@@ -185,13 +187,36 @@ class User extends Authenticatable implements MustVerifyEmail
                 continue;
             }
 
-            if ($channel === 'mail' && ! $this->hasVerifiedEmail()) {
+            if ($channel === 'mail') {
+                if (! $this->hasVerifiedEmail()) {
+                    continue;
+                }
+
+                $channels[] = 'mail';
+                $mailAdded = true;
+
                 continue;
             }
 
-            $normalizedChannel = $channel === 'push' ? 'broadcast' : $channel;
+            if ($channel === 'push') {
+                $channels[] = 'broadcast';
+                $broadcastAdded = true;
 
-            $channels[] = $normalizedChannel;
+                continue;
+            }
+
+            $channels[] = $channel;
+        }
+
+        if (
+            $mailAdded
+            && ! $broadcastAdded
+            && in_array('push', $allowedChannels, true)
+        ) {
+            // Ensure the UI still receives a real-time update when the user only enables
+            // mail notifications. Even if the push preference is disabled, we broadcast
+            // alongside mail so that the front-end can react without waiting for a reload.
+            $channels[] = 'broadcast';
         }
 
         return array_values(array_unique($channels));
