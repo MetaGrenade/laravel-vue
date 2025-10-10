@@ -22,7 +22,7 @@ class SupportTicketNotificationDispatcher
                 $audience = (int) $recipient->id === (int) $ticket->user_id ? 'owner' : 'agent';
                 $notification = $notificationFactory($audience);
 
-                $recipient->notifyThroughPreferences($notification, 'support', ['mail', 'database']);
+                $recipient->notifyThroughPreferences($notification, 'support', ['database', 'mail', 'push']);
             });
     }
 

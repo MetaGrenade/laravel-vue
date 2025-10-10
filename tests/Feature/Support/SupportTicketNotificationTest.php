@@ -86,7 +86,10 @@ class SupportTicketNotificationTest extends TestCase
         });
 
         Notification::assertSentTo($user, TicketOpened::class, function (TicketOpened $notification, array $channels) use ($user, $ticket, $message) {
-            if ($channels !== ['mail']) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            if ($sortedChannels !== ['broadcast', 'mail']) {
                 return false;
             }
 
@@ -177,7 +180,10 @@ class SupportTicketNotificationTest extends TestCase
         });
 
         Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message, $agent) {
-            if ($channels !== ['mail']) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            if ($sortedChannels !== ['broadcast', 'mail']) {
                 return false;
             }
 
@@ -190,7 +196,10 @@ class SupportTicketNotificationTest extends TestCase
         });
 
         Notification::assertSentTo($agent, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($agent, $ticket, $message) {
-            if ($channels !== ['mail']) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            if ($sortedChannels !== ['broadcast', 'mail']) {
                 return false;
             }
 
@@ -281,7 +290,10 @@ class SupportTicketNotificationTest extends TestCase
         });
 
         Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message, $agent) {
-            if ($channels !== ['mail']) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            if ($sortedChannels !== ['broadcast', 'mail']) {
                 return false;
             }
 
@@ -294,7 +306,10 @@ class SupportTicketNotificationTest extends TestCase
         });
 
         Notification::assertSentTo($agent, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($agent, $ticket, $message) {
-            if ($channels !== ['mail']) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            if ($sortedChannels !== ['broadcast', 'mail']) {
                 return false;
             }
 
@@ -378,7 +393,10 @@ class SupportTicketNotificationTest extends TestCase
         });
 
         Notification::assertSentTo($owner, TicketStatusUpdated::class, function (TicketStatusUpdated $notification, array $channels) use ($owner, $ticket) {
-            if ($channels !== ['mail']) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            if ($sortedChannels !== ['broadcast', 'mail']) {
                 return false;
             }
 
@@ -391,7 +409,10 @@ class SupportTicketNotificationTest extends TestCase
         });
 
         Notification::assertSentTo($agent, TicketStatusUpdated::class, function (TicketStatusUpdated $notification, array $channels) use ($agent, $ticket) {
-            if ($channels !== ['mail']) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            if ($sortedChannels !== ['broadcast', 'mail']) {
                 return false;
             }
 

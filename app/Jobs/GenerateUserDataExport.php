@@ -73,7 +73,7 @@ class GenerateUserDataExport implements ShouldQueue
 
             $notification = new UserDataExportReady($export);
 
-            $user->notifyThroughPreferences($notification, 'privacy', ['database', 'mail']);
+            $user->notifyThroughPreferences($notification, 'privacy', ['database', 'mail', 'push']);
         } catch (Throwable $exception) {
             $export->update([
                 'status' => DataExport::STATUS_FAILED,

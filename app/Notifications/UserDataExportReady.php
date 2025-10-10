@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\DataExport;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\URL;
@@ -20,14 +21,17 @@ class UserDataExportReady extends Notification implements ShouldQueue
      */
     public function __construct(
         protected DataExport $export,
-        protected array $channels = ['mail', 'database'],
+        protected array $channels = ['mail', 'database', 'push'],
     ) {
         $this->downloadUrl = $this->generateDownloadUrl();
     }
 
     public function via(object $notifiable): array
     {
-        return $this->channels;
+        return array_map(
+            static fn (string $channel) => $channel === 'push' ? 'broadcast' : $channel,
+            $this->channels,
+        );
     }
 
     public function viaQueues(): array
@@ -35,6 +39,7 @@ class UserDataExportReady extends Notification implements ShouldQueue
         return [
             'mail' => 'mail',
             'database' => 'default',
+            'broadcast' => 'default',
         ];
     }
 
@@ -63,16 +68,12 @@ class UserDataExportReady extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
-        return [
-            'export_id' => $this->export->id,
-            'status' => $this->export->status,
-            'title' => 'Your data export is ready',
-            'thread_title' => 'Your data export is ready',
-            'excerpt' => 'Download your privacy data export before it expires.',
-            'url' => route('privacy.index'),
-            'download_url' => $this->downloadUrl(),
-            'download_expires_at' => $this->export->downloadExpiresAt()?->toIso8601String(),
-        ];
+        return $this->payload();
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->payload());
     }
 
     /**
@@ -104,5 +105,23 @@ class UserDataExportReady extends Notification implements ShouldQueue
             $expiresAt,
             ['export' => $this->export->id]
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function payload(): array
+    {
+        return [
+            'export_id' => $this->export->id,
+            'status' => $this->export->status,
+            'title' => 'Your data export is ready',
+            'thread_title' => 'Your data export is ready',
+            'excerpt' => 'Download your privacy data export before it expires.',
+            'url' => route('privacy.index'),
+            'download_url' => $this->downloadUrl(),
+            'download_expires_at' => $this->export->downloadExpiresAt()?->toIso8601String(),
+            'created_at' => optional($this->export->completed_at ?? $this->export->updated_at ?? now())->toIso8601String(),
+        ];
     }
 }
