@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notification as BaseNotification;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Laravel\Cashier\Billable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
@@ -220,15 +219,14 @@ class User extends Authenticatable implements MustVerifyEmail
         $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
 
         if ($synchronousChannels !== []) {
-            NotificationFacade::sendNow(
-                $this,
-                $this->cloneNotificationWithChannels($notification, $synchronousChannels)
+            $this->notifyNow(
+                $this->cloneNotificationWithChannels($notification, $synchronousChannels),
+                $synchronousChannels
             );
         }
 
         if ($queuedChannels !== []) {
-            NotificationFacade::send(
-                $this,
+            $this->notify(
                 $this->cloneNotificationWithChannels($notification, $queuedChannels)
             );
         }
