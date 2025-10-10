@@ -29,6 +29,7 @@ class RolePermissionSeeder extends Seeder
             'reputation',
             'tokens',
             'system',
+            'billing',
         ];
 
         foreach ($permissions as $permission) {

@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\ForumCategoryController;
 use App\Http\Controllers\Admin\ForumReportController;
 use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\BadgeController;
+use App\Http\Controllers\Admin\BillingController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -95,6 +96,8 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     // Support ACP
     Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');
     Route::get('acp/support/users/search', [SupportController::class,'searchUsers'])->name('acp.support.users.search');
+
+    Route::get('acp/billing/invoices', [BillingController::class, 'invoices'])->name('acp.billing.invoices.index');
 
     Route::get('acp/support/templates', [SupportController::class, 'templates'])->name('acp.support.templates.index');
     Route::post('acp/support/templates', [SupportController::class, 'storeTemplate'])->name('acp.support.templates.store');
