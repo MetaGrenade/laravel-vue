@@ -69,6 +69,16 @@ resources/
    - Start Vite dev server: `npm run dev`
    - Or run everything (Laravel, queues, and Vite) in one terminal: `composer dev`
 
+## HTTP API & Swagger Docs
+- **Versioned endpoints** live under `/api/v1`. Public consumers can fetch published blog posts and forum threads, while
+  authenticated clients may create personal access tokens and retrieve their profile details.
+- **Token management**: exchange valid web credentials for a Sanctum token using `POST /api/v1/auth/token`, then include the
+  resulting bearer token in the `Authorization` header for protected routes (`GET /api/v1/profile`, `DELETE /api/v1/auth/token`).
+- **Interactive documentation** is available at [`/api/docs`](http://localhost:8000/api/docs) once the Laravel server is
+  running. The page embeds Swagger UI and reads the generated OpenAPI schema from `/api/docs/openapi.json`.
+- **Generate or refresh the OpenAPI schema** with `php artisan api:docs`. The command writes the latest description to
+  `storage/app/api-docs/openapi.json`, which the Swagger UI consumes.
+
 ## Daily Development Workflow
 - **SPA Bootstrapping**: `resources/js/app.ts` registers Inertia, Ziggy, and the global progress indicator while invoking theme initialization for light/dark support.
 - **SSR Rendering**: `resources/js/ssr.ts` mirrors the client bootstrapping, exposing Ziggy routes globally so `route()` works during server rendering and email previews.
