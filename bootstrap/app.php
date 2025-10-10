@@ -67,7 +67,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
         ]);
     })
-    ->withEvents(function (Events $events) {
+    ->withEvents(configure: function (Events $events) {
         $events->listen(Login::class, [LogSuccessfulLogin::class, 'handle']);
         $events->listen(PaymentProcessed::class, [LogPaymentActivity::class, 'handle']);
     })
