@@ -1,85 +1,100 @@
 <?php
 
+namespace Tests\Feature\Settings;
+
 use App\Models\BillingInvoice;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Support\Billing\SubscriptionManager;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Mockery;
+use Tests\TestCase;
 
-test('billing page lists available plans and invoices', function () {
-    $user = User::factory()->create([
-        'stripe_id' => 'cus_test123',
-    ]);
+class BillingSettingsTest extends TestCase
+{
+    use RefreshDatabase;
 
-    $plan = SubscriptionPlan::factory()->create([
-        'stripe_price_id' => 'price_basic_test',
-        'price' => 1900,
-        'currency' => 'USD',
-    ]);
+    public function test_billing_page_lists_available_plans_and_invoices(): void
+    {
+        $user = User::factory()->create([
+            'stripe_id' => 'cus_test123',
+        ]);
 
-    BillingInvoice::factory()->for($user)->for($plan, 'plan')->create([
-        'stripe_id' => 'in_test123',
-        'total' => 1900,
-        'currency' => 'USD',
-    ]);
+        $plan = SubscriptionPlan::factory()->create([
+            'stripe_price_id' => 'price_basic_test',
+            'price' => 1900,
+            'currency' => 'USD',
+        ]);
 
-    $response = $this->actingAs($user)->get(route('settings.billing.index'));
+        BillingInvoice::factory()->for($user)->for($plan, 'plan')->create([
+            'stripe_id' => 'in_test123',
+            'total' => 1900,
+            'currency' => 'USD',
+        ]);
 
-    $response->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->component('settings/Billing')
-        ->has('plans', 1, fn (Assert $planPage) => $planPage
-            ->where('id', $plan->id)
-            ->where('stripe_price_id', 'price_basic_test')
-            ->etc()
-        )
-        ->has('invoices', 1, fn (Assert $invoice) => $invoice
-            ->where('stripe_id', 'in_test123')
-            ->etc()
-        )
-    );
-});
+        $response = $this->actingAs($user)->get(route('settings.billing.index'));
 
-test('user can request a subscription setup intent', function () {
-    $user = User::factory()->create();
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('settings/Billing')
+            ->has('plans', 1, fn (Assert $planPage) => $planPage
+                ->where('id', $plan->id)
+                ->where('stripe_price_id', 'price_basic_test')
+                ->etc()
+            )
+            ->has('invoices', 1, fn (Assert $invoice) => $invoice
+                ->where('stripe_id', 'in_test123')
+                ->etc()
+            )
+        );
+    }
 
-    $response = $this->actingAs($user)->post(route('settings.billing.intent'));
+    public function test_user_can_request_a_subscription_setup_intent(): void
+    {
+        $user = User::factory()->create();
 
-    $response->assertOk();
-    expect($response->json('client_secret'))->not->toBeNull();
-});
+        $response = $this->actingAs($user)->post(route('settings.billing.intent'));
 
-test('subscription manager handles subscription actions', function () {
-    $user = User::factory()->create();
-    $plan = SubscriptionPlan::factory()->create();
+        $response->assertOk();
+        expect($response->json('client_secret'))->not->toBeNull();
+    }
 
-    $manager = Mockery::mock(SubscriptionManager::class);
-    $manager->shouldReceive('create')
-        ->once()
-        ->with($user, Mockery::on(fn ($argument) => $argument->is($plan)), 'pm_test', ['coupon' => 'PROMO'])
-        ->andReturnNull();
-    $manager->shouldReceive('cancel')->once()->with($user);
-    $manager->shouldReceive('resume')->once()->with($user);
+    public function test_subscription_manager_handles_subscription_actions(): void
+    {
+        $user = User::factory()->create();
+        $plan = SubscriptionPlan::factory()->create();
 
-    $this->app->instance(SubscriptionManager::class, $manager);
+        $manager = Mockery::mock(SubscriptionManager::class);
+        $manager->shouldReceive('create')
+            ->once()
+            ->with($user, Mockery::on(fn ($argument) => $argument->is($plan)), 'pm_test', ['coupon' => 'PROMO'])
+            ->andReturnNull();
+        $manager->shouldReceive('cancel')->once()->with($user);
+        $manager->shouldReceive('resume')->once()->with($user);
 
-    $this->actingAs($user)
-        ->post(route('settings.billing.subscribe'), [
-            'plan_id' => $plan->id,
-            'payment_method' => 'pm_test',
-            'coupon' => 'PROMO',
-        ])
-        ->assertNoContent();
+        $this->app->instance(SubscriptionManager::class, $manager);
 
-    $this->actingAs($user)
-        ->post(route('settings.billing.cancel'))
-        ->assertNoContent();
+        $this->actingAs($user)
+            ->post(route('settings.billing.subscribe'), [
+                'plan_id' => $plan->id,
+                'payment_method' => 'pm_test',
+                'coupon' => 'PROMO',
+            ])
+            ->assertNoContent();
 
-    $this->actingAs($user)
-        ->post(route('settings.billing.resume'))
-        ->assertNoContent();
-});
+        $this->actingAs($user)
+            ->post(route('settings.billing.cancel'))
+            ->assertNoContent();
 
-afterEach(function () {
-    Mockery::close();
-});
+        $this->actingAs($user)
+            ->post(route('settings.billing.resume'))
+            ->assertNoContent();
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+
+        parent::tearDown();
+    }
+}
