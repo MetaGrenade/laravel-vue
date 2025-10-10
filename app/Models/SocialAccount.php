@@ -16,6 +16,7 @@ class SocialAccount extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'provider',
         'provider_id',
         'name',
