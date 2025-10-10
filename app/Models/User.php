@@ -208,17 +208,6 @@ class User extends Authenticatable implements MustVerifyEmail
             $channels[] = $channel;
         }
 
-        if (
-            $mailAdded
-            && ! $broadcastAdded
-            && in_array('push', $allowedChannels, true)
-        ) {
-            // Ensure the UI still receives a real-time update when the user only enables
-            // mail notifications. Even if the push preference is disabled, we broadcast
-            // alongside mail so that the front-end can react without waiting for a reload.
-            $channels[] = 'broadcast';
-        }
-
         return array_values(array_unique($channels));
     }
 
