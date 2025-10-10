@@ -22,6 +22,8 @@ class ForumThreadController extends Controller
 
     public function show(ForumThread $thread): ForumThreadResource
     {
+        abort_if(! $thread->is_published, 404);
+
         $thread->loadMissing(['board', 'author', 'latestPost.author']);
 
         return new ForumThreadResource($thread);
