@@ -239,14 +239,16 @@ const updatePresenceMembers = (members: ThreadPresenceMember[]) => {
     presenceMembers.value = normaliseMembers(members);
 };
 
-const leaveThreadPresence = () => {
-    if (activePresenceChannelName) {
-        leaveEchoChannel(activePresenceChannelName);
+const leaveThreadPresence = (channelName: string | null | undefined = activePresenceChannelName) => {
+    if (channelName) {
+        leaveEchoChannel(channelName);
     }
 
-    presenceChannel = null;
-    activePresenceChannelName = null;
-    presenceMembers.value = [];
+    if (!channelName || channelName === activePresenceChannelName) {
+        presenceChannel = null;
+        activePresenceChannelName = null;
+        presenceMembers.value = [];
+    }
 };
 
 const joinThreadPresence = () => {
@@ -343,8 +345,11 @@ watch(
 
 watch(
     () => props.thread.id,
-    () => {
-        leaveThreadPresence();
+    (_, previousThreadId) => {
+        const previousChannelName =
+            typeof previousThreadId === 'number' ? `forum.threads.${previousThreadId}` : activePresenceChannelName;
+
+        leaveThreadPresence(previousChannelName);
         joinThreadPresence();
     },
 );
