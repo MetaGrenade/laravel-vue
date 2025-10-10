@@ -97,8 +97,6 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');
     Route::get('acp/support/users/search', [SupportController::class,'searchUsers'])->name('acp.support.users.search');
 
-    Route::get('acp/billing/invoices', [BillingController::class, 'invoices'])->name('acp.billing.invoices.index');
-
     Route::get('acp/support/templates', [SupportController::class, 'templates'])->name('acp.support.templates.index');
     Route::post('acp/support/templates', [SupportController::class, 'storeTemplate'])->name('acp.support.templates.store');
     Route::put('acp/support/templates/{template}', [SupportController::class, 'updateTemplate'])->name('acp.support.templates.update');
@@ -174,4 +172,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('acp.blogs.revisions.index');
     Route::put('acp/blogs/{blog}/revisions/{revision}', [AdminBlogController::class, 'restoreRevision'])
         ->name('acp.blogs.revisions.restore');
+});
+
+Route::middleware(['auth', 'can:billing.acp.view'])->group(function () {
+    Route::get('acp/billing/invoices', [BillingController::class, 'invoices'])->name('acp.billing.invoices.index');
 });

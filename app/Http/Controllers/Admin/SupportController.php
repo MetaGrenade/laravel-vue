@@ -29,11 +29,11 @@ use App\Notifications\TicketStatusUpdated;
 use App\Support\Localization\DateFormatter;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
+use App\Support\Database\Transaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Validation\Rule;
@@ -854,7 +854,7 @@ class SupportController extends Controller
 
         $message = null;
 
-        DB::transaction(function () use ($request, $ticket, $validated, &$message): void {
+        Transaction::run(function () use ($request, $ticket, $validated, &$message): void {
             $message = $ticket->messages()->create([
                 'user_id' => $request->user()->id,
                 'body' => $validated['body'],
@@ -993,7 +993,7 @@ class SupportController extends Controller
         $userId = (int) $request->user()->id;
         $updatedCount = 0;
 
-        DB::transaction(function () use ($tickets, $validated, $userId, &$updatedCount) {
+        Transaction::run(function () use ($tickets, $validated, $userId, &$updatedCount) {
             foreach ($tickets as $ticket) {
                 $previousStatus = $ticket->status;
                 $resolutionUpdates = $this->resolutionAttributes($ticket, $validated['status'], $userId);

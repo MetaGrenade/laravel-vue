@@ -5,6 +5,7 @@ namespace App\Support\Reputation;
 use App\Models\Badge;
 use App\Models\ReputationEvent;
 use App\Models\User;
+use App\Support\Database\Transaction;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
@@ -31,7 +32,7 @@ class ReputationManager
             return null;
         }
 
-        return $this->db->transaction(function () use ($eventKey, $user, $source, $metadata, $points) {
+        return Transaction::run(function () use ($eventKey, $user, $source, $metadata, $points) {
             $event = ReputationEvent::create([
                 'user_id' => $user->id,
                 'event' => $eventKey,
@@ -46,7 +47,7 @@ class ReputationManager
             $this->syncBadges($user->fresh(['badges']));
 
             return $event;
-        });
+        }, $this->db);
     }
 
     public function syncBadges(User $user): void

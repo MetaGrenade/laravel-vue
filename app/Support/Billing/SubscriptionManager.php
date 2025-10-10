@@ -10,7 +10,7 @@ use Laravel\Cashier\Subscription;
 
 class SubscriptionManager
 {
-    public function create(User $user, SubscriptionPlan $plan, string $paymentMethod, array $options = []): Subscription
+    public function create(User $user, SubscriptionPlan $plan, string $paymentMethod, array $options = []): ?Subscription
     {
         if ($paymentMethod === '') {
             throw IncompletePayment::invalidPaymentMethod();
