@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\SupportTicketCategoryController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TokenController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
+use App\Http\Controllers\Admin\UserSocialAccountController;
 use App\Http\Controllers\Admin\ForumBoardController;
 use App\Http\Controllers\Admin\ForumCategoryController;
 use App\Http\Controllers\Admin\ForumReportController;
@@ -32,6 +33,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/users/{user}/ban', [AdminUserController::class, 'ban'])->name('acp.users.ban');
     Route::put('acp/users/{user}/unban', [AdminUserController::class, 'unban'])->name('acp.users.unban');
     Route::patch('acp/users/bulk', [AdminUserController::class, 'bulkUpdate'])->name('acp.users.bulk-update');
+    Route::post('acp/users/{user}/social-accounts', [UserSocialAccountController::class, 'store'])
+        ->name('acp.users.social-accounts.store');
+    Route::delete('acp/users/{user}/social-accounts/{socialAccount}', [UserSocialAccountController::class, 'destroy'])
+        ->name('acp.users.social-accounts.destroy');
 
     // Admin Access Control Management Routes
     Route::get('acp/acl', [AdminACLController::class, 'index'])->name('acp.acl.index');
