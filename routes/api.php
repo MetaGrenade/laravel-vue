@@ -38,3 +38,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/forum/threads/{thread:slug}', [ForumThreadController::class, 'show'])
         ->name('forum.threads.show');
 });
+
+Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity'])
+    ->get('/user', UserProfileController::class)
+    ->name('api.user.show');
