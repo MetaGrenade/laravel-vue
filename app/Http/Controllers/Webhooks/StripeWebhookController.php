@@ -6,6 +6,7 @@ use App\Models\BillingInvoice;
 use App\Models\BillingWebhookCall;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -14,6 +15,21 @@ use Laravel\Cashier\Subscription;
 
 class StripeWebhookController extends CashierWebhookController
 {
+    public function __invoke(Request $request): Response
+    {
+        $secret = (string) config('cashier.webhook.secret', '');
+
+        if ($secret === '') {
+            return new Response('Webhook signing secret not configured', 500);
+        }
+
+        if (! $this->hasValidSignature($request, $secret)) {
+            return new Response('Invalid signature', 400);
+        }
+
+        return parent::__invoke($request);
+    }
+
     protected function handleInvoicePaymentSucceeded(array $payload): Response
     {
         $invoice = $this->storeInvoice($payload, 'paid');
@@ -99,5 +115,51 @@ class StripeWebhookController extends CashierWebhookController
                 'processed_at' => now(),
             ]
         );
+    }
+
+    protected function hasValidSignature(Request $request, string $secret): bool
+    {
+        $signatureHeader = (string) $request->header('Stripe-Signature', '');
+
+        if ($signatureHeader === '') {
+            return false;
+        }
+
+        $timestamp = null;
+        $signatures = [];
+
+        foreach (explode(',', $signatureHeader) as $part) {
+            [$key, $value] = array_pad(explode('=', trim($part), 2), 2, null);
+
+            if ($key === 't') {
+                $timestamp = is_numeric($value) ? (int) $value : null;
+            }
+
+            if ($key !== null && str_starts_with($key, 'v') && $value !== null) {
+                $signatures[] = $value;
+            }
+        }
+
+        if ($timestamp === null || $signatures === []) {
+            return false;
+        }
+
+        $tolerance = (int) config('cashier.webhook.tolerance', 300);
+
+        if ($tolerance > 0 && abs(now()->timestamp - $timestamp) > $tolerance) {
+            return false;
+        }
+
+        $payload = $request->getContent();
+        $signedPayload = $timestamp.'.'.$payload;
+        $expectedSignature = hash_hmac('sha256', $signedPayload, $secret);
+
+        foreach ($signatures as $signature) {
+            if (hash_equals($expectedSignature, $signature)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

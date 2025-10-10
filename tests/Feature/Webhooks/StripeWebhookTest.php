@@ -14,13 +14,28 @@ function stripeFixture(string $name): array
     return json_decode(File::get($path), true, flags: JSON_THROW_ON_ERROR);
 }
 
+function stripeSignatureHeader(array $payload, string $secret, ?int $timestamp = null): string
+{
+    $timestamp ??= time();
+    $body = json_encode($payload, JSON_THROW_ON_ERROR);
+    $signature = hash_hmac('sha256', $timestamp.'.'.$body, $secret);
+
+    return "t={$timestamp},v1={$signature}";
+}
+
 test('invoice payment failed webhook persists invoice details', function () {
+    config(['cashier.webhook.secret' => 'whsec_test']);
+
     SubscriptionPlan::factory()->create(['stripe_price_id' => 'price_starter']);
     $user = User::factory()->create(['stripe_id' => 'cus_test123']);
 
     $payload = stripeFixture('invoice_payment_failed');
 
-    $response = $this->postJson(route('stripe.webhook'), $payload);
+    $response = $this->postJson(
+        route('stripe.webhook'),
+        $payload,
+        ['Stripe-Signature' => stripeSignatureHeader($payload, 'whsec_test')]
+    );
 
     $response->assertOk();
 
@@ -35,6 +50,8 @@ test('invoice payment failed webhook persists invoice details', function () {
 });
 
 test('subscription deletion webhook cancels subscription', function () {
+    config(['cashier.webhook.secret' => 'whsec_test']);
+
     $user = User::factory()->create(['stripe_id' => 'cus_test123']);
 
     $subscription = Subscription::create([
@@ -48,7 +65,11 @@ test('subscription deletion webhook cancels subscription', function () {
 
     $payload = stripeFixture('customer_subscription_deleted');
 
-    $response = $this->postJson(route('stripe.webhook'), $payload);
+    $response = $this->postJson(
+        route('stripe.webhook'),
+        $payload,
+        ['Stripe-Signature' => stripeSignatureHeader($payload, 'whsec_test')]
+    );
 
     $response->assertOk();
 
@@ -59,4 +80,21 @@ test('subscription deletion webhook cancels subscription', function () {
 
     $webhook = BillingWebhookCall::firstWhere('stripe_id', 'evt_test_deleted');
     expect($webhook)->not->toBeNull();
+});
+
+test('webhook rejects requests with invalid signature', function () {
+    config(['cashier.webhook.secret' => 'whsec_test']);
+
+    $payload = stripeFixture('invoice_payment_failed');
+
+    $response = $this->postJson(
+        route('stripe.webhook'),
+        $payload,
+        ['Stripe-Signature' => 't=123,v1=invalid']
+    );
+
+    $response->assertStatus(400);
+
+    expect(BillingInvoice::count())->toBe(0)
+        ->and(BillingWebhookCall::count())->toBe(0);
 });
