@@ -12,11 +12,16 @@ use App\Jobs\AggregateSearchQueryStats;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneSearchQueryLogs;
 use Illuminate\Foundation\Application;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Foundation\Configuration\Events;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Console\Scheduling\Schedule;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+use App\Events\Payments\PaymentProcessed;
+use App\Listeners\LogPaymentActivity;
+use App\Listeners\LogSuccessfulLogin;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -61,6 +66,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
         ]);
+    })
+    ->withEvents(function (Events $events) {
+        $events->listen(Login::class, [LogSuccessfulLogin::class, 'handle']);
+        $events->listen(PaymentProcessed::class, [LogPaymentActivity::class, 'handle']);
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new MonitorSupportTicketSlas())->everyFifteenMinutes();

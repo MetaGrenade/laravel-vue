@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ForumBoard;
 use App\Models\ForumThread;
+use App\Support\Audit\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +17,21 @@ class ForumThreadModerationController extends Controller
 
         if (!$thread->is_published) {
             $thread->forceFill(['is_published' => true])->save();
+
+            AuditLogger::log(
+                'forum.thread.published',
+                'Thread published',
+                $this->auditThreadContext($board, $thread, [
+                    'changes' => [
+                        'is_published' => [
+                            'from' => false,
+                            'to' => true,
+                        ],
+                    ],
+                ]),
+                $request->user(),
+                $thread,
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread published successfully.');
@@ -27,6 +43,21 @@ class ForumThreadModerationController extends Controller
 
         if ($thread->is_published) {
             $thread->forceFill(['is_published' => false])->save();
+
+            AuditLogger::log(
+                'forum.thread.unpublished',
+                'Thread unpublished',
+                $this->auditThreadContext($board, $thread, [
+                    'changes' => [
+                        'is_published' => [
+                            'from' => true,
+                            'to' => false,
+                        ],
+                    ],
+                ]),
+                $request->user(),
+                $thread,
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread unpublished successfully.');
@@ -38,6 +69,21 @@ class ForumThreadModerationController extends Controller
 
         if (!$thread->is_locked) {
             $thread->forceFill(['is_locked' => true])->save();
+
+            AuditLogger::log(
+                'forum.thread.locked',
+                'Thread locked',
+                $this->auditThreadContext($board, $thread, [
+                    'changes' => [
+                        'is_locked' => [
+                            'from' => false,
+                            'to' => true,
+                        ],
+                    ],
+                ]),
+                $request->user(),
+                $thread,
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread locked successfully.');
@@ -49,6 +95,21 @@ class ForumThreadModerationController extends Controller
 
         if ($thread->is_locked) {
             $thread->forceFill(['is_locked' => false])->save();
+
+            AuditLogger::log(
+                'forum.thread.unlocked',
+                'Thread unlocked',
+                $this->auditThreadContext($board, $thread, [
+                    'changes' => [
+                        'is_locked' => [
+                            'from' => true,
+                            'to' => false,
+                        ],
+                    ],
+                ]),
+                $request->user(),
+                $thread,
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread unlocked successfully.');
@@ -60,6 +121,21 @@ class ForumThreadModerationController extends Controller
 
         if (!$thread->is_pinned) {
             $thread->forceFill(['is_pinned' => true])->save();
+
+            AuditLogger::log(
+                'forum.thread.pinned',
+                'Thread pinned',
+                $this->auditThreadContext($board, $thread, [
+                    'changes' => [
+                        'is_pinned' => [
+                            'from' => false,
+                            'to' => true,
+                        ],
+                    ],
+                ]),
+                $request->user(),
+                $thread,
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread pinned successfully.');
@@ -71,6 +147,21 @@ class ForumThreadModerationController extends Controller
 
         if ($thread->is_pinned) {
             $thread->forceFill(['is_pinned' => false])->save();
+
+            AuditLogger::log(
+                'forum.thread.unpinned',
+                'Thread unpinned',
+                $this->auditThreadContext($board, $thread, [
+                    'changes' => [
+                        'is_pinned' => [
+                            'from' => true,
+                            'to' => false,
+                        ],
+                    ],
+                ]),
+                $request->user(),
+                $thread,
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread unpinned successfully.');
@@ -101,10 +192,27 @@ class ForumThreadModerationController extends Controller
             ]);
         }
 
+        $originalTitle = $thread->title;
+
         if ($title !== $thread->title) {
             $thread->forceFill([
                 'title' => $title,
             ])->save();
+
+            AuditLogger::log(
+                'forum.thread.title_updated',
+                'Thread title updated',
+                $this->auditThreadContext($board, $thread, [
+                    'changes' => [
+                        'title' => [
+                            'from' => $originalTitle,
+                            'to' => $title,
+                        ],
+                    ],
+                ]),
+                $request->user(),
+                $thread,
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread title updated successfully.');
@@ -114,6 +222,14 @@ class ForumThreadModerationController extends Controller
     {
         $this->ensureThreadBelongsToBoard($board, $thread);
 
+        AuditLogger::log(
+            'forum.thread.deleted',
+            'Thread deleted',
+            $this->auditThreadContext($board, $thread),
+            $request->user(),
+            $thread,
+        );
+
         $thread->delete();
 
         return $this->redirectToBoard($request, $board, 'Thread deleted successfully.');
@@ -122,6 +238,17 @@ class ForumThreadModerationController extends Controller
     private function ensureThreadBelongsToBoard(ForumBoard $board, ForumThread $thread): void
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
+    }
+
+    private function auditThreadContext(ForumBoard $board, ForumThread $thread, array $extra = []): array
+    {
+        return array_merge([
+            'board_id' => $board->id,
+            'board_slug' => $board->slug,
+            'thread_id' => $thread->id,
+            'thread_slug' => $thread->slug,
+            'thread_title' => $thread->title,
+        ], $extra);
     }
 
     private function redirectToBoard(Request $request, ForumBoard $board, string $message): RedirectResponse

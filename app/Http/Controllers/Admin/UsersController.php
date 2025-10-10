@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
+use App\Support\Audit\AuditLogger;
 use App\Support\Localization\DateFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -150,7 +151,23 @@ class UsersController extends Controller
     public function store(StoreUserRequest $request)
     {
         $user = User::create($request->validated());
-        $user->syncRoles($request->roles ?? []);
+        $roles = array_values(array_filter($request->roles ?? [], fn ($role) => is_string($role) && $role !== ''));
+        $user->syncRoles($roles);
+
+        if ($roles !== []) {
+            AuditLogger::log(
+                'user.roles.assigned',
+                'Roles assigned to new user',
+                [
+                    'target_user_id' => $user->id,
+                    'target_user_email' => $user->email,
+                    'assigned_roles' => $roles,
+                ],
+                $request->user(),
+                $user,
+            );
+        }
+
         return redirect()->route('acp.users.index')
             ->with('success','User created.');
     }
@@ -160,8 +177,33 @@ class UsersController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user)
     {
+        $previousRoles = $user->roles->pluck('name')->sort()->values()->all();
+
         $user->update($request->validated());
-        $user->syncRoles($request->roles ?? []);
+        $roles = array_values(array_filter($request->roles ?? [], fn ($role) => is_string($role) && $role !== ''));
+        $user->syncRoles($roles);
+        $user->load('roles');
+
+        $currentRoles = $user->roles->pluck('name')->sort()->values()->all();
+        $addedRoles = array_values(array_diff($currentRoles, $previousRoles));
+        $removedRoles = array_values(array_diff($previousRoles, $currentRoles));
+
+        if ($addedRoles !== [] || $removedRoles !== []) {
+            AuditLogger::log(
+                'user.roles.updated',
+                'User roles updated',
+                [
+                    'target_user_id' => $user->id,
+                    'target_user_email' => $user->email,
+                    'added_roles' => $addedRoles,
+                    'removed_roles' => $removedRoles,
+                    'current_roles' => $currentRoles,
+                ],
+                $request->user(),
+                $user,
+            );
+        }
+
         return redirect()->route('acp.users.index')
             ->with('success','User updated.');
     }

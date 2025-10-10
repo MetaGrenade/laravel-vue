@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdatePermissionRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use Illuminate\Http\Request;
+use App\Support\Audit\AuditLogger;
 use App\Support\Localization\DateFormatter;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -111,6 +112,21 @@ class ACLController extends Controller
         $role = Role::create($request->validated());
         $role->syncPermissions($request->permissions ?? []);
 
+        $role->load('permissions');
+
+        AuditLogger::log(
+            'acl.role.created',
+            'Role created',
+            [
+                'role_id' => $role->id,
+                'name' => $role->name,
+                'guard_name' => $role->guard_name,
+                'permissions' => $role->permissions->pluck('name')->sort()->values()->all(),
+            ],
+            $request->user(),
+            $role,
+        );
+
         return redirect()->route('acp.acl.index')->with('success', 'Role created.');
     }
 
@@ -119,16 +135,77 @@ class ACLController extends Controller
      */
     public function updateRole(UpdateRoleRequest $request, Role $role)
     {
+        $originalName = $role->name;
+        $originalGuard = $role->guard_name;
+        $originalPermissions = $role->permissions->pluck('name')->sort()->values()->all();
+
         $role->update($request->validated());
         $role->syncPermissions($request->permissions ?? []);
+
+        $role->load('permissions');
+
+        $changes = [];
+
+        if ($role->name !== $originalName) {
+            $changes['name'] = [
+                'from' => $originalName,
+                'to' => $role->name,
+            ];
+        }
+
+        if ($role->guard_name !== $originalGuard) {
+            $changes['guard_name'] = [
+                'from' => $originalGuard,
+                'to' => $role->guard_name,
+            ];
+        }
+
+        $currentPermissions = $role->permissions->pluck('name')->sort()->values()->all();
+        $addedPermissions = array_values(array_diff($currentPermissions, $originalPermissions));
+        $removedPermissions = array_values(array_diff($originalPermissions, $currentPermissions));
+
+        if ($addedPermissions !== [] || $removedPermissions !== []) {
+            $changes['permissions'] = [
+                'added' => $addedPermissions,
+                'removed' => $removedPermissions,
+            ];
+        }
+
+        if ($changes !== []) {
+            AuditLogger::log(
+                'acl.role.updated',
+                'Role updated',
+                [
+                    'role_id' => $role->id,
+                    'name' => $role->name,
+                    'guard_name' => $role->guard_name,
+                    'changes' => $changes,
+                ],
+                $request->user(),
+                $role,
+            );
+        }
+
         return back()->with('success', 'Role updated.');
     }
 
     /**
      * Delete a Role.
      */
-    public function destroyRole(Role $role)
+    public function destroyRole(Request $request, Role $role)
     {
+        AuditLogger::log(
+            'acl.role.deleted',
+            'Role deleted',
+            [
+                'role_id' => $role->id,
+                'name' => $role->name,
+                'guard_name' => $role->guard_name,
+            ],
+            $request->user(),
+            $role,
+        );
+
         $role->delete();
         return back()->with('success', 'Role deleted.');
     }
@@ -138,7 +215,19 @@ class ACLController extends Controller
      */
     public function storePermission(StorePermissionRequest $request)
     {
-        Permission::create($request->validated());
+        $permission = Permission::create($request->validated());
+
+        AuditLogger::log(
+            'acl.permission.created',
+            'Permission created',
+            [
+                'permission_id' => $permission->id,
+                'name' => $permission->name,
+                'guard_name' => $permission->guard_name,
+            ],
+            $request->user(),
+            $permission,
+        );
 
         return redirect()->route('acp.acl.index')->with('success', 'Permission created.');
     }
@@ -148,15 +237,54 @@ class ACLController extends Controller
      */
     public function updatePermission(UpdatePermissionRequest $request, Permission $permission)
     {
+        $original = $permission->only(['name', 'guard_name']);
+
         $permission->update($request->validated());
+
+        $changes = [];
+
+        foreach (['name', 'guard_name'] as $attribute) {
+            if ($permission->{$attribute} !== $original[$attribute]) {
+                $changes[$attribute] = [
+                    'from' => $original[$attribute],
+                    'to' => $permission->{$attribute},
+                ];
+            }
+        }
+
+        if ($changes !== []) {
+            AuditLogger::log(
+                'acl.permission.updated',
+                'Permission updated',
+                [
+                    'permission_id' => $permission->id,
+                    'changes' => $changes,
+                ],
+                $request->user(),
+                $permission,
+            );
+        }
+
         return back()->with('success', 'Permission updated.');
     }
 
     /**
      * Delete a Permission.
      */
-    public function destroyPermission(Permission $permission)
+    public function destroyPermission(Request $request, Permission $permission)
     {
+        AuditLogger::log(
+            'acl.permission.deleted',
+            'Permission deleted',
+            [
+                'permission_id' => $permission->id,
+                'name' => $permission->name,
+                'guard_name' => $permission->guard_name,
+            ],
+            $request->user(),
+            $permission,
+        );
+
         $permission->delete();
         return back()->with('success', 'Permission deleted.');
     }

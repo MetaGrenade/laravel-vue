@@ -10,11 +10,13 @@ use App\Models\ForumThreadRead;
 use App\Models\User;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
+use App\Support\Audit\AuditLogger;
 use App\Support\Reputation\ReputationManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -126,6 +128,8 @@ class ForumPostController extends Controller
 
         abort_unless($isModerator || $canEditAsAuthor, 403);
 
+        $moderatedByStaff = $isModerator && $user->id !== $post->user_id;
+
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:5000'],
             'page' => ['nullable', 'integer', 'min:1'],
@@ -141,6 +145,7 @@ class ForumPostController extends Controller
         }
 
         $previousMentionIds = $post->mentions()->pluck('users.id');
+        $originalBody = $post->body;
 
         if ($body !== $post->body) {
             $post->revisions()->create([
@@ -154,6 +159,23 @@ class ForumPostController extends Controller
             'body' => $body,
             'edited_at' => Carbon::now(),
         ])->save();
+
+        if ($moderatedByStaff && $originalBody !== $body) {
+            AuditLogger::log(
+                'forum.post.updated',
+                'Post updated by moderator',
+                $this->auditPostContext($board, $thread, $post, [
+                    'changes' => [
+                        'body' => [
+                            'previous_excerpt' => Str::limit(strip_tags($originalBody), 120),
+                            'current_excerpt' => Str::limit(strip_tags($body), 120),
+                        ],
+                    ],
+                ]),
+                $user,
+                $post,
+            );
+        }
 
         $mentionedUsers = $this->resolveMentionedUsers($body, $user->id);
 
@@ -177,13 +199,32 @@ class ForumPostController extends Controller
 
         abort_if($user === null, 403);
 
-        $canDelete = $user->id === $post->user_id || $user->hasAnyRole(['admin', 'editor', 'moderator']);
+        $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
+        $canDelete = $user->id === $post->user_id || $isModerator;
 
         abort_unless($canDelete, 403);
 
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
+
+        $moderatedByStaff = $isModerator && $user->id !== $post->user_id;
+
+        if ($moderatedByStaff) {
+            AuditLogger::log(
+                'forum.post.deleted',
+                'Post removed by moderator',
+                $this->auditPostContext($board, $thread, $post, [
+                    'changes' => [
+                        'body' => [
+                            'previous_excerpt' => Str::limit(strip_tags($post->body), 120),
+                        ],
+                    ],
+                ]),
+                $user,
+                $post,
+            );
+        }
 
         $post->delete();
 
@@ -229,6 +270,18 @@ class ForumPostController extends Controller
         );
 
         return $this->redirectToThread($board, $thread, $validated['page'] ?? null, 'Post reported to the moderation team.');
+    }
+
+    private function auditPostContext(ForumBoard $board, ForumThread $thread, ForumPost $post, array $extra = []): array
+    {
+        return array_merge([
+            'board_id' => $board->id,
+            'board_slug' => $board->slug,
+            'thread_id' => $thread->id,
+            'thread_slug' => $thread->slug,
+            'post_id' => $post->id,
+            'original_author_id' => $post->user_id,
+        ], $extra);
     }
 
     private function ensureHierarchy(ForumBoard $board, ForumThread $thread, ForumPost $post): void
