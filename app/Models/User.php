@@ -189,7 +189,9 @@ class User extends Authenticatable implements MustVerifyEmail
                 continue;
             }
 
-            $channels[] = $channel;
+            $normalizedChannel = $channel === 'push' ? 'broadcast' : $channel;
+
+            $channels[] = $normalizedChannel;
         }
 
         return array_values(array_unique($channels));

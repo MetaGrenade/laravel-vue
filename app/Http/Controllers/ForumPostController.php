@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ForumPostCreated;
 use App\Models\ForumBoard;
 use App\Models\ForumPost;
 use App\Models\ForumPostReport;
@@ -86,9 +87,11 @@ class ForumPostController extends Controller
             $notification = new ForumThreadUpdated($thread, $post);
 
             $subscribers->each(function (User $subscriber) use ($notification): void {
-                $subscriber->notifyThroughPreferences($notification, 'forums', ['database', 'mail']);
+                $subscriber->notifyThroughPreferences($notification, 'forums', ['database', 'mail', 'push']);
             });
         }
+
+        ForumPostCreated::dispatch($thread, $post);
 
         $this->reputation->record('forum_post_created', $user, $post, [
             'thread_id' => $thread->id,
@@ -299,7 +302,7 @@ class ForumPostController extends Controller
         $notification = new ForumPostMentioned($thread, $post);
 
         $mentionedUsers->each(function (User $mentionedUser) use ($notification): void {
-            $mentionedUser->notifyThroughPreferences($notification, 'forums', ['database', 'mail']);
+            $mentionedUser->notifyThroughPreferences($notification, 'forums', ['database', 'mail', 'push']);
         });
     }
 }

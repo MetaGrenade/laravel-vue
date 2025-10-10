@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
@@ -52,6 +52,8 @@ import {
 } from 'lucide-vue-next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
+import { getEcho, leaveEchoChannel } from '@/lib/echo';
+import type { PresenceChannel } from 'laravel-echo';
 
 interface BoardSummary {
     title: string;
@@ -131,6 +133,24 @@ interface ThreadPost {
     mentions: PostMention[];
 }
 
+interface ThreadPresenceMember {
+    id: number;
+    nickname: string | null;
+    avatar_url: string | null;
+}
+
+interface LivePostEvent {
+    thread_id: number;
+    thread_title: string;
+    post: {
+        id: number;
+        author: { id: number | null; nickname: string | null; avatar_url: string | null };
+        excerpt: string | null;
+        created_at: string | null;
+        url: string;
+    };
+}
+
 interface PostsPayload {
     data: ThreadPost[];
     meta?: PaginationMeta | null;
@@ -158,6 +178,171 @@ const props = defineProps<{
 const page = usePage<SharedData>();
 const authUser = computed(() => page.props.auth.user as User | null);
 const { getInitials } = useInitials();
+
+const presenceMembers = ref<ThreadPresenceMember[]>([]);
+const presencePreviewMembers = computed(() => presenceMembers.value.slice(0, 4));
+const presenceCount = computed(() => presenceMembers.value.length);
+const presenceNamesSummary = computed(() => {
+    if (presenceMembers.value.length === 0) {
+        return '';
+    }
+
+    const currentUserId = authUser.value?.id ?? null;
+    const names = presenceMembers.value.map((member) => {
+        if (currentUserId !== null && member.id === currentUserId) {
+            return 'You';
+        }
+
+        return member.nickname ?? 'Community member';
+    });
+
+    if (names.length <= 3) {
+        return names.join(', ');
+    }
+
+    return `${names.slice(0, 3).join(', ')} and ${names.length - 3} more`;
+});
+const liveReplyNotice = ref<LivePostEvent | null>(null);
+const liveReplyAuthorName = computed(() => liveReplyNotice.value?.post.author?.nickname ?? 'Someone');
+const liveReplyExcerpt = computed(() => liveReplyNotice.value?.post.excerpt ?? null);
+const liveReplyUrl = computed(() => liveReplyNotice.value?.post.url ?? null);
+
+let presenceChannel: PresenceChannel | null = null;
+
+const threadPresenceChannelName = computed(() => `forum.threads.${props.thread.id}`);
+
+const normaliseMembers = (members: ThreadPresenceMember[]): ThreadPresenceMember[] => {
+    const mapped = members
+        .map((member) => ({
+            id: Number(member.id),
+            nickname: member.nickname ?? null,
+            avatar_url: member.avatar_url ?? null,
+        }))
+        .filter((member) => Number.isFinite(member.id));
+
+    const unique = new Map<number, ThreadPresenceMember>();
+
+    mapped.forEach((member) => {
+        unique.set(member.id, member);
+    });
+
+    return Array.from(unique.values()).sort((a, b) => {
+        const nameA = (a.nickname ?? '').toLowerCase();
+        const nameB = (b.nickname ?? '').toLowerCase();
+
+        return nameA.localeCompare(nameB);
+    });
+};
+
+const updatePresenceMembers = (members: ThreadPresenceMember[]) => {
+    presenceMembers.value = normaliseMembers(members);
+};
+
+const leaveThreadPresence = () => {
+    leaveEchoChannel(threadPresenceChannelName.value);
+    presenceChannel = null;
+    presenceMembers.value = [];
+};
+
+const joinThreadPresence = () => {
+    const echo = getEcho();
+
+    if (!echo || !authUser.value) {
+        leaveThreadPresence();
+        return;
+    }
+
+    if (presenceChannel) {
+        return;
+    }
+
+    presenceChannel = echo.join(threadPresenceChannelName.value)
+        .here((members: ThreadPresenceMember[]) => {
+            updatePresenceMembers(members);
+        })
+        .joining((member: ThreadPresenceMember) => {
+            updatePresenceMembers([...presenceMembers.value, member]);
+        })
+        .leaving((member: ThreadPresenceMember) => {
+            updatePresenceMembers(presenceMembers.value.filter((existing) => existing.id !== Number(member.id)));
+        })
+        .listen('.ForumPostCreated', (event: LivePostEvent) => {
+            if (event.thread_id !== props.thread.id) {
+                return;
+            }
+
+            if (event.post.author?.id && authUser.value?.id === event.post.author.id) {
+                return;
+            }
+
+            liveReplyNotice.value = event;
+        });
+};
+
+const dismissLiveReplyNotice = () => {
+    liveReplyNotice.value = null;
+};
+
+const viewLiveReply = () => {
+    const url = liveReplyUrl.value;
+
+    if (!url) {
+        return;
+    }
+
+    let relativeUrl = url;
+
+    if (typeof window !== 'undefined') {
+        try {
+            const parsed = new URL(url, window.location.origin);
+
+            if (parsed.origin === window.location.origin) {
+                relativeUrl = parsed.pathname + parsed.search + parsed.hash;
+            }
+        } catch {
+            // Ignore malformed URLs and fall back to the provided value.
+        }
+    }
+
+    router.visit(relativeUrl, {
+        preserveScroll: true,
+        onFinish: () => {
+            dismissLiveReplyNotice();
+        },
+    });
+};
+
+watch(
+    () => authUser.value?.id,
+    () => {
+        leaveThreadPresence();
+        joinThreadPresence();
+    },
+    { immediate: true },
+);
+
+watch(
+    () => props.posts.data,
+    () => {
+        liveReplyNotice.value = null;
+    },
+);
+
+watch(
+    () => props.thread.id,
+    () => {
+        leaveThreadPresence();
+        joinThreadPresence();
+    },
+);
+
+onMounted(() => {
+    joinThreadPresence();
+});
+
+onBeforeUnmount(() => {
+    leaveThreadPresence();
+});
 
 const forumProfileDialogOpen = ref(false);
 
@@ -1377,6 +1562,35 @@ const submitReply = () => {
                         <span class="text-xs font-medium uppercase text-muted-foreground">Followers</span>
                         <span class="text-base font-semibold text-foreground">{{ props.thread.subscribers_count }}</span>
                     </div>
+                    <div
+                        v-if="authUser && presenceCount > 0"
+                        class="flex items-center gap-3 rounded-md border border-border px-3 py-1"
+                    >
+                        <div class="flex -space-x-2">
+                            <Avatar
+                                v-for="member in presencePreviewMembers"
+                                :key="member.id"
+                                class="border-2 border-background"
+                                :title="member.nickname ?? 'Online member'"
+                            >
+                                <AvatarImage
+                                    v-if="member.avatar_url"
+                                    :src="member.avatar_url"
+                                    :alt="member.nickname ?? 'Online member'"
+                                />
+                                <AvatarFallback>
+                                    {{ getInitials(member.nickname ?? 'Online member') }}
+                                </AvatarFallback>
+                            </Avatar>
+                        </div>
+                        <div class="flex flex-col text-right">
+                            <span class="text-xs font-medium uppercase text-muted-foreground">Online now</span>
+                            <span class="text-base font-semibold text-foreground">{{ presenceCount }}</span>
+                            <span v-if="presenceNamesSummary" class="text-xs text-muted-foreground">
+                                {{ presenceNamesSummary }}
+                            </span>
+                        </div>
+                    </div>
                     <Button v-if="props.thread.is_locked" variant="secondary" class="cursor-pointer text-yellow-500" disabled>
                         <Lock class="h-8 w-8" />
                         Locked
@@ -1508,6 +1722,25 @@ const submitReply = () => {
                     </DropdownMenu>
                 </div>
             </header>
+            <Alert
+                v-if="liveReplyNotice"
+                class="flex flex-col gap-2 border border-primary/40 bg-primary/10 text-foreground"
+            >
+                <AlertTitle>New reply from {{ liveReplyAuthorName }}</AlertTitle>
+                <AlertDescription class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <p v-if="liveReplyExcerpt" class="text-sm text-muted-foreground md:flex-1">
+                        {{ liveReplyExcerpt }}
+                    </p>
+                    <div class="flex items-center gap-2 md:justify-end">
+                        <Button size="sm" :disabled="!liveReplyUrl" @click="viewLiveReply">
+                            View reply
+                        </Button>
+                        <Button size="sm" variant="outline" @click="dismissLiveReplyNotice">
+                            Dismiss
+                        </Button>
+                    </div>
+                </AlertDescription>
+            </Alert>
             <!-- Top Pagination and Search -->
             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
                 <div class="text-sm text-muted-foreground text-center md:text-left">

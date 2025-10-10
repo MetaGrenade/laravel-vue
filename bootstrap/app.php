@@ -28,6 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withBroadcasting(function () {
+        require __DIR__.'/../routes/channels.php';
+    })
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance']);
 
