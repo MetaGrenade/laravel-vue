@@ -22,6 +22,8 @@ class BlogController extends Controller
 
     public function show(Blog $blog): BlogResource
     {
+        abort_if($blog->status !== 'published', 404);
+
         $blog->loadMissing(['user', 'categories', 'tags']);
 
         return new BlogResource($blog);
