@@ -208,6 +208,7 @@ const liveReplyExcerpt = computed(() => liveReplyNotice.value?.post.excerpt ?? n
 const liveReplyUrl = computed(() => liveReplyNotice.value?.post.url ?? null);
 
 let presenceChannel: PresenceChannel | null = null;
+let activePresenceChannelName: string | null = null;
 
 const threadPresenceChannelName = computed(() => `forum.threads.${props.thread.id}`);
 
@@ -239,8 +240,12 @@ const updatePresenceMembers = (members: ThreadPresenceMember[]) => {
 };
 
 const leaveThreadPresence = () => {
-    leaveEchoChannel(threadPresenceChannelName.value);
+    if (activePresenceChannelName) {
+        leaveEchoChannel(activePresenceChannelName);
+    }
+
     presenceChannel = null;
+    activePresenceChannelName = null;
     presenceMembers.value = [];
 };
 
@@ -252,11 +257,19 @@ const joinThreadPresence = () => {
         return;
     }
 
-    if (presenceChannel) {
+    const channelName = threadPresenceChannelName.value;
+
+    if (presenceChannel && activePresenceChannelName === channelName) {
         return;
     }
 
-    presenceChannel = echo.join(threadPresenceChannelName.value)
+    if (presenceChannel) {
+        leaveThreadPresence();
+    }
+
+    activePresenceChannelName = channelName;
+
+    presenceChannel = echo.join(channelName)
         .here((members: ThreadPresenceMember[]) => {
             updatePresenceMembers(members);
         })
