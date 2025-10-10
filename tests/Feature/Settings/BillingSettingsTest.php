@@ -56,7 +56,7 @@ class BillingSettingsTest extends TestCase
         $response = $this->actingAs($user)->post(route('settings.billing.intent'));
 
         $response->assertOk();
-        expect($response->json('client_secret'))->not->toBeNull();
+        $this->assertNotNull($response->json('client_secret'));
     }
 
     public function test_subscription_manager_handles_subscription_actions(): void

@@ -53,12 +53,12 @@ class StripeWebhookTest extends TestCase
 
         $invoice = BillingInvoice::firstWhere('stripe_id', 'in_test_failed');
 
-        expect($invoice)->not->toBeNull()
-            ->and($invoice->status)->toBe('failed')
-            ->and($invoice->user_id)->toBe($user->id);
+        $this->assertNotNull($invoice);
+        $this->assertSame('failed', $invoice->status);
+        $this->assertSame($user->id, $invoice->user_id);
 
         $webhook = BillingWebhookCall::firstWhere('stripe_id', 'evt_test_failed');
-        expect($webhook)->not->toBeNull();
+        $this->assertNotNull($webhook);
     }
 
     public function test_subscription_deletion_webhook_cancels_subscription(): void
@@ -88,11 +88,11 @@ class StripeWebhookTest extends TestCase
 
         $subscription->refresh();
 
-        expect($subscription->stripe_status)->toBe('canceled')
-            ->and($subscription->cancelled())->toBeTrue();
+        $this->assertSame('canceled', $subscription->stripe_status);
+        $this->assertTrue($subscription->cancelled());
 
         $webhook = BillingWebhookCall::firstWhere('stripe_id', 'evt_test_deleted');
-        expect($webhook)->not->toBeNull();
+        $this->assertNotNull($webhook);
     }
 
     public function test_webhook_rejects_requests_with_invalid_signature(): void
@@ -109,7 +109,7 @@ class StripeWebhookTest extends TestCase
 
         $response->assertStatus(400);
 
-        expect(BillingInvoice::count())->toBe(0)
-            ->and(BillingWebhookCall::count())->toBe(0);
+        $this->assertSame(0, BillingInvoice::count());
+        $this->assertSame(0, BillingWebhookCall::count());
     }
 }
