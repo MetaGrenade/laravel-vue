@@ -53,7 +53,16 @@ class StripeWebhookController extends CashierWebhookController
 
         if ($subscription) {
             $subscription->stripe_status = 'canceled';
-            $subscription->cancel(now());
+
+            $secret = (string) config('cashier.secret', '');
+
+            if ($secret !== '') {
+                $subscription->cancel(now());
+            } else {
+                $subscription->forceFill([
+                    'ends_at' => now(),
+                ])->save();
+            }
         }
 
         $this->storeWebhook($payload, $subscription?->user_id);
