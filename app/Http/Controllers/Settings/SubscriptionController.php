@@ -90,20 +90,20 @@ class SubscriptionController extends Controller
             'coupon' => $data['coupon'] ?? null,
         ]);
 
-        return response()->noContent();
+        return to_route('settings.billing.index');
     }
 
     public function cancel(Request $request): Response
     {
         $this->subscriptions->cancel($request->user());
 
-        return response()->noContent();
+        return to_route('settings.billing.index');
     }
 
     public function resume(Request $request): Response
     {
         $this->subscriptions->resume($request->user());
 
-        return response()->noContent();
+        return to_route('settings.billing.index');
     }
 }

@@ -80,15 +80,15 @@ class BillingSettingsTest extends TestCase
                 'payment_method' => 'pm_test',
                 'coupon' => 'PROMO',
             ])
-            ->assertNoContent();
+            ->assertRedirect(route('settings.billing.index'));
 
         $this->actingAs($user)
             ->post(route('settings.billing.cancel'))
-            ->assertNoContent();
+            ->assertRedirect(route('settings.billing.index'));
 
         $this->actingAs($user)
             ->post(route('settings.billing.resume'))
-            ->assertNoContent();
+            ->assertRedirect(route('settings.billing.index'));
     }
 
     protected function tearDown(): void
