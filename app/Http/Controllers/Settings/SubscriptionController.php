@@ -7,6 +7,7 @@ use App\Models\BillingInvoice;
 use App\Models\SubscriptionPlan;
 use App\Support\Billing\SubscriptionManager;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
