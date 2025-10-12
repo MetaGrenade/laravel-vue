@@ -27,7 +27,7 @@ class StripeWebhookController extends CashierWebhookController
             return new Response('Invalid signature', 400);
         }
 
-        return parent::__invoke($request);
+        return parent::handleWebhook($request);
     }
 
     protected function handleInvoicePaymentSucceeded(array $payload): Response
