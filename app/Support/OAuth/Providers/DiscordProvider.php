@@ -14,7 +14,7 @@ class DiscordProvider extends AbstractOAuth2Provider
 
     protected function authorizationUrl(): string
     {
-        return 'https://discord.com/api/oauth2/authorize';
+        return 'https://discord.com/oauth2/authorize';
     }
 
     protected function tokenUrl(): string
