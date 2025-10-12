@@ -8,7 +8,7 @@ use App\Models\SubscriptionPlan;
 use App\Support\Billing\SubscriptionManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -75,7 +75,7 @@ class SubscriptionController extends Controller
         return response()->json($intent);
     }
 
-    public function store(Request $request): Response
+    public function store(Request $request): RedirectResponse
     {
         $data = Validator::make($request->all(), [
             'plan_id' => ['required', 'exists:subscription_plans,id'],
@@ -93,14 +93,14 @@ class SubscriptionController extends Controller
         return to_route('settings.billing.index');
     }
 
-    public function cancel(Request $request): Response
+    public function cancel(Request $request): RedirectResponse
     {
         $this->subscriptions->cancel($request->user());
 
         return to_route('settings.billing.index');
     }
 
-    public function resume(Request $request): Response
+    public function resume(Request $request): RedirectResponse
     {
         $this->subscriptions->resume($request->user());
 
