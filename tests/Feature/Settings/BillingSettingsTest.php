@@ -11,6 +11,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Mockery;
 use Tests\TestCase;
 use Laravel\Cashier\Exceptions\IncompletePayment;
+use Laravel\Cashier\Payment;
 
 class BillingSettingsTest extends TestCase
 {
@@ -102,8 +103,7 @@ class BillingSettingsTest extends TestCase
         $user = User::factory()->create();
         $plan = SubscriptionPlan::factory()->create();
 
-        $exception = new IncompletePayment('Requires action.');
-        $exception->payment = class_exists(\Stripe\PaymentIntent::class)
+        $paymentIntent = class_exists(\Stripe\PaymentIntent::class)
             ? \Stripe\PaymentIntent::constructFrom([
                 'id' => 'pi_test_123',
                 'client_secret' => 'pi_secret_123',
@@ -112,6 +112,17 @@ class BillingSettingsTest extends TestCase
                 'id' => 'pi_test_123',
                 'client_secret' => 'pi_secret_123',
             ];
+
+        if (class_exists(Payment::class)) {
+            $payment = Mockery::mock(Payment::class);
+            $payment->shouldReceive('asStripePaymentIntent')->andReturn($paymentIntent);
+
+            $exception = new IncompletePayment($payment, 'Requires action.');
+        } else {
+            $exception = Mockery::mock(IncompletePayment::class);
+            $exception->shouldIgnoreMissing();
+            $exception->payment = $paymentIntent;
+        }
 
         $manager = Mockery::mock(SubscriptionManager::class);
         $manager->shouldReceive('create')

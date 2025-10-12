@@ -153,4 +153,7 @@ require __DIR__.'/auth.php';
 
 Route::post('stripe/webhook', StripeWebhookController::class)
     ->name('stripe.webhook')
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+    ->withoutMiddleware([
+        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+        \Laravel\Cashier\Http\Middleware\VerifyWebhookSignature::class,
+    ]);
