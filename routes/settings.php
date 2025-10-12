@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\DataErasureRequestController;
 use App\Http\Controllers\Settings\DataExportController;
+use App\Http\Controllers\Settings\LinkedSocialAccountController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -55,4 +56,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('settings/security/recovery-codes', [TwoFactorRecoveryCodeController::class, 'store'])
         ->name('security.recovery-codes.store');
+
+    Route::delete('settings/security/social/{provider}', [LinkedSocialAccountController::class, 'destroy'])
+        ->name('settings.social.unlink');
 });

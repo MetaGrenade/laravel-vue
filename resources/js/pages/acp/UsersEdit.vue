@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -16,6 +16,8 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { Textarea } from '@/components/ui/textarea';
+import { LoaderCircle } from 'lucide-vue-next';
+import { Separator } from '@/components/ui/separator';
 
 interface Role {
     id: number;
@@ -34,6 +36,24 @@ interface UserSocialLink {
     url?: string | null;
 }
 
+interface SocialAccount {
+    id: number;
+    provider: string;
+    provider_id: string;
+    name?: string | null;
+    nickname?: string | null;
+    email?: string | null;
+    avatar?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+}
+
+interface SocialProviderOption {
+    key: string;
+    label: string;
+    description?: string | null;
+}
+
 interface User {
     id: number;
     nickname: string;
@@ -46,6 +66,7 @@ interface User {
     avatar_url?: string | null;
     profile_bio?: string | null;
     social_links?: UserSocialLink[] | null;
+    social_accounts: SocialAccount[];
 }
 
 type UserForm = {
@@ -60,6 +81,7 @@ type UserForm = {
 const props = defineProps<{
     user: User;
     allRoles: Role[];
+    availableSocialProviders: SocialProviderOption[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -88,6 +110,68 @@ const verifyForm = useForm({});
 const deleteForm = useForm({});
 const deleteDialogOpen = ref(false);
 const deleteDialogTitle = computed(() => `Delete “${props.user.nickname}”?`);
+
+const attachForm = useForm({
+    provider: props.availableSocialProviders[0]?.key ?? '',
+    provider_id: '',
+    name: '',
+    nickname: '',
+    email: '',
+    avatar: '',
+});
+
+const detachForm = useForm({});
+const removingAccountId = ref<number | null>(null);
+
+watch(
+    () => props.availableSocialProviders,
+    (providers) => {
+        if (!providers.length) {
+            attachForm.provider = '';
+            return;
+        }
+
+        if (!providers.find(provider => provider.key === attachForm.provider)) {
+            attachForm.provider = providers[0].key;
+        }
+    },
+    { immediate: true }
+);
+
+const providerLookup = computed(() => {
+    const entries = new Map<string, SocialProviderOption>();
+
+    props.availableSocialProviders.forEach((option) => {
+        entries.set(option.key, option);
+    });
+
+    return entries;
+});
+
+const providerLabel = (key: string) => providerLookup.value.get(key)?.label ?? key;
+
+const attachAccount = () => {
+    attachForm.post(route('acp.users.social-accounts.store', { user: props.user.id }), {
+        preserveScroll: true,
+        onSuccess: () => {
+            attachForm.reset('provider_id', 'name', 'nickname', 'email', 'avatar');
+        },
+    });
+};
+
+const detachAccount = (accountId: number) => {
+    removingAccountId.value = accountId;
+
+    detachForm.delete(route('acp.users.social-accounts.destroy', {
+        user: props.user.id,
+        socialAccount: accountId,
+    }), {
+        preserveScroll: true,
+        onFinish: () => {
+            removingAccountId.value = null;
+        },
+    });
+};
 
 const { formatDate, fromNow } = useUserTimezone();
 
@@ -303,6 +387,112 @@ const removeSocialLink = (index: number) => {
                     </div>
 
                     <div class="flex flex-col gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Connected providers</CardTitle>
+                                <CardDescription>Manage OAuth identities linked to this user.</CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-4">
+                                <div v-if="props.user.social_accounts.length" class="space-y-3">
+                                    <div
+                                        v-for="account in props.user.social_accounts"
+                                        :key="account.id"
+                                        class="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div class="space-y-1">
+                                            <p class="font-medium leading-tight">{{ providerLabel(account.provider) }}</p>
+                                            <p class="text-xs text-muted-foreground">
+                                                Provider ID: {{ account.provider_id }}
+                                            </p>
+                                            <p v-if="account.nickname || account.name" class="text-sm text-muted-foreground">
+                                                {{ account.nickname ?? account.name }}
+                                            </p>
+                                            <p v-if="account.email" class="text-sm text-muted-foreground">
+                                                {{ account.email }}
+                                            </p>
+                                            <p v-if="account.created_at" class="text-xs text-muted-foreground">
+                                                Linked {{ formatDate(account.created_at) }}
+                                            </p>
+                                        </div>
+
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            :disabled="detachForm.processing && removingAccountId === account.id"
+                                            @click="detachAccount(account.id)"
+                                        >
+                                            <LoaderCircle
+                                                v-if="detachForm.processing && removingAccountId === account.id"
+                                                class="mr-2 h-4 w-4 animate-spin"
+                                            />
+                                            Disconnect
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div v-else class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                                    No providers are currently linked to this user.
+                                </div>
+
+                                <Separator />
+
+                                <form class="space-y-4" @submit.prevent="attachAccount">
+                                    <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                                        <div class="grid gap-2">
+                                            <Label for="provider">Provider</Label>
+                                            <select
+                                                id="provider"
+                                                v-model="attachForm.provider"
+                                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <option v-for="provider in props.availableSocialProviders" :key="provider.key" :value="provider.key">
+                                                    {{ provider.label }}
+                                                </option>
+                                            </select>
+                                            <InputError :message="attachForm.errors.provider" />
+                                        </div>
+                                        <div class="grid gap-2">
+                                            <Label for="provider_id">Provider identifier</Label>
+                                            <Input id="provider_id" v-model="attachForm.provider_id" type="text" required />
+                                            <InputError :message="attachForm.errors.provider_id" />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                                        <div class="grid gap-2">
+                                            <Label for="provider_name">Name</Label>
+                                            <Input id="provider_name" v-model="attachForm.name" type="text" placeholder="Display name" />
+                                            <InputError :message="attachForm.errors.name" />
+                                        </div>
+                                        <div class="grid gap-2">
+                                            <Label for="provider_nickname">Nickname</Label>
+                                            <Input id="provider_nickname" v-model="attachForm.nickname" type="text" placeholder="Username" />
+                                            <InputError :message="attachForm.errors.nickname" />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                                        <div class="grid gap-2">
+                                            <Label for="provider_email">Email</Label>
+                                            <Input id="provider_email" v-model="attachForm.email" type="email" placeholder="user@example.com" />
+                                            <InputError :message="attachForm.errors.email" />
+                                        </div>
+                                        <div class="grid gap-2">
+                                            <Label for="provider_avatar">Avatar URL</Label>
+                                            <Input id="provider_avatar" v-model="attachForm.avatar" type="url" placeholder="https://..." />
+                                            <InputError :message="attachForm.errors.avatar" />
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-end">
+                                        <Button type="submit" :disabled="attachForm.processing || !attachForm.provider">
+                                            <LoaderCircle v-if="attachForm.processing" class="mr-2 h-4 w-4 animate-spin" />
+                                            Attach provider
+                                        </Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+
                         <Card>
                             <CardHeader>
                                 <CardTitle>Account status</CardTitle>

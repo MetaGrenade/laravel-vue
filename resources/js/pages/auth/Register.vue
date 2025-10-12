@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
+import { Separator } from '@/components/ui/separator';
 
 const form = useForm({
     nickname: '',
@@ -14,6 +15,16 @@ const form = useForm({
     password: '',
     password_confirmation: '',
 });
+
+const socialProviders = [
+    { key: 'google', label: 'Sign up with Google' },
+    { key: 'discord', label: 'Sign up with Discord' },
+    { key: 'steam', label: 'Sign up with Steam' },
+];
+
+const redirectToProvider = (provider: string) => {
+    window.location.href = route('oauth.redirect', { provider });
+};
 
 const submit = () => {
     form.post(route('register'), {
@@ -27,6 +38,27 @@ const submit = () => {
         <Head title="Register" />
 
         <form @submit.prevent="submit" class="flex flex-col gap-6">
+            <div class="grid gap-4">
+                <div class="grid gap-2">
+                    <Button
+                        v-for="provider in socialProviders"
+                        :key="provider.key"
+                        type="button"
+                        variant="outline"
+                        class="w-full"
+                        @click="redirectToProvider(provider.key)"
+                    >
+                        {{ provider.label }}
+                    </Button>
+                </div>
+
+                <div class="flex items-center gap-3 text-xs uppercase tracking-wide text-muted-foreground">
+                    <Separator class="flex-1" />
+                    <span>Or continue with email</span>
+                    <Separator class="flex-1" />
+                </div>
+            </div>
+
             <div class="grid gap-6">
                 <div class="grid gap-2">
                     <Label for="nickname">Nickname</Label>
