@@ -64,7 +64,7 @@ class SubscriptionController extends Controller
                 'stripe_status' => $subscription->stripe_status,
                 'stripe_price' => $subscription->stripe_price,
                 'on_grace_period' => $subscription->onGracePeriod(),
-                'cancelled' => $subscription->cancelled(),
+                'cancelled' => $subscription->canceled(),
                 'ends_at' => optional($subscription->ends_at)?->toIso8601String(),
             ] : null,
             'invoices' => $invoices,

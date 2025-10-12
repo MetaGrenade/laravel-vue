@@ -88,7 +88,7 @@ class StripeWebhookTest extends TestCase
         $subscription->refresh();
 
         $this->assertSame('canceled', $subscription->stripe_status);
-        $this->assertTrue($subscription->cancelled());
+        $this->assertTrue($subscription->canceled());
 
         $webhook = BillingWebhookCall::firstWhere('stripe_id', 'evt_test_deleted');
         $this->assertNotNull($webhook);
