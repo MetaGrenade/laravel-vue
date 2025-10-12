@@ -16,6 +16,8 @@ class SubscriptionManager
             throw IncompletePayment::invalidPaymentMethod();
         }
 
+        $user->createOrGetStripeCustomer();
+
         $builder = $user->newSubscription($this->subscriptionName(), $plan->stripe_price_id);
 
         if ($coupon = Arr::get($options, 'coupon')) {
@@ -25,6 +27,8 @@ class SubscriptionManager
         if ($trialDays = Arr::get($options, 'trial_days')) {
             $builder->trialDays((int) $trialDays);
         }
+
+        $user->updateDefaultPaymentMethod($paymentMethod);
 
         return $builder->create($paymentMethod, [
             'metadata' => [

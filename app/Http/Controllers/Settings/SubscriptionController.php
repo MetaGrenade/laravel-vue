@@ -7,11 +7,12 @@ use App\Models\BillingInvoice;
 use App\Models\SubscriptionPlan;
 use App\Support\Billing\SubscriptionManager;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Laravel\Cashier\Exceptions\IncompletePayment;
 
 class SubscriptionController extends Controller
 {
@@ -72,10 +73,13 @@ class SubscriptionController extends Controller
     {
         $intent = $request->user()->createSetupIntent();
 
-        return response()->json($intent);
+        return response()->json([
+            'id' => $intent->id,
+            'client_secret' => $intent->client_secret,
+        ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse
     {
         $data = Validator::make($request->all(), [
             'plan_id' => ['required', 'exists:subscription_plans,id'],
@@ -86,11 +90,27 @@ class SubscriptionController extends Controller
         /** @var SubscriptionPlan $plan */
         $plan = SubscriptionPlan::findOrFail($data['plan_id']);
 
-        $this->subscriptions->create($request->user(), $plan, $data['payment_method'], [
-            'coupon' => $data['coupon'] ?? null,
-        ]);
+        try {
+            $subscription = $this->subscriptions->create($request->user(), $plan, $data['payment_method'], [
+                'coupon' => $data['coupon'] ?? null,
+            ]);
+        } catch (IncompletePayment $exception) {
+            return response()->json([
+                'status' => 'requires_action',
+                'payment_intent_id' => $exception->payment?->id,
+                'client_secret' => $exception->payment?->client_secret,
+            ], 409);
+        }
 
-        return to_route('settings.billing.index');
+        return response()->json([
+            'status' => 'success',
+            'subscription' => $subscription ? [
+                'id' => $subscription->id,
+                'name' => $subscription->name,
+                'stripe_status' => $subscription->stripe_status,
+                'stripe_id' => $subscription->stripe_id,
+            ] : null,
+        ]);
     }
 
     public function cancel(Request $request): RedirectResponse

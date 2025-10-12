@@ -56,7 +56,7 @@ class StripeWebhookController extends CashierWebhookController
             $subscription->cancel(now());
         }
 
-        $this->storeWebhook($payload, $subscription?->owner_id);
+        $this->storeWebhook($payload, $subscription?->user_id);
 
         return new Response('Webhook handled', 200);
     }

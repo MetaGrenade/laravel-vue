@@ -1130,29 +1130,133 @@
         },
         {
             "name": "laravel/cashier",
-            "version": "15.4.0",
+            "version": "v15.4.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laravel/cashier-stripe.git",
+                "reference": "v15.4.0"
+            },
             "dist": {
-                "type": "path",
-                "url": "packages/laravel/cashier",
-                "reference": "e2996b8a5ecc60e7c730325c7729bb9b9d9dc832"
+                "type": "zip",
+                "url": "https://api.github.com/repos/laravel/cashier-stripe/zipball/v15.4.0",
+                "reference": "v15.4.0",
+                "shasum": ""
             },
             "require": {
-                "php": ">=8.2"
+                "php": "^8.2",
+                "ext-json": "*",
+                "illuminate/console": "^12.0",
+                "illuminate/contracts": "^12.0",
+                "illuminate/database": "^12.0",
+                "illuminate/http": "^12.0",
+                "illuminate/support": "^12.0",
+                "nesbot/carbon": "^2.72",
+                "stripe/stripe-php": "^14.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.13",
+                "mockery/mockery": "^1.4",
+                "orchestra/testbench": "^9.0",
+                "pestphp/pest": "^2.0"
             },
             "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Laravel\\Cashier\\CashierServiceProvider"
+                    ]
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "Laravel\\Cashier\\": "src/"
                 }
             },
+            "autoload-dev": {
+                "psr-4": {
+                    "Laravel\\Cashier\\Tests\\": "tests/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
-            "description": "In-app subscription billing utilities for Stripe (stub)",
-            "transport-options": {
-                "symlink": false,
-                "relative": true
-            }
+            "authors": [
+                {
+                    "name": "Taylor Otwell",
+                    "email": "taylor@laravel.com"
+                },
+                {
+                    "name": "Mohamed Said",
+                    "email": "mohamed@laravel.com"
+                }
+            ],
+            "description": "Laravel Cashier provides an expressive, fluent interface to Stripe's subscription billing services.",
+            "keywords": [
+                "billing",
+                "laravel",
+                "stripe"
+            ],
+            "support": {
+                "issues": "https://github.com/laravel/cashier-stripe/issues",
+                "source": "https://github.com/laravel/cashier-stripe/tree/v15.4.0"
+            },
+            "time": "2024-10-01T00:00:00+00:00"
+        },
+        {
+            "name": "stripe/stripe-php",
+            "version": "v14.9.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/stripe/stripe-php.git",
+                "reference": "v14.9.0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/stripe/stripe-php/zipball/v14.9.0",
+                "reference": "v14.9.0",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "php": ">=7.2.5"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "phpunit/phpunit": "^9.5"
+            },
+            "suggest": {
+                "ext-gmp": "Required for certain advanced features."
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Stripe\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Stripe",
+                    "homepage": "https://stripe.com"
+                }
+            ],
+            "description": "Stripe PHP Library",
+            "homepage": "https://github.com/stripe/stripe-php",
+            "keywords": [
+                "api",
+                "payments",
+                "stripe"
+            ],
+            "support": {
+                "issues": "https://github.com/stripe/stripe-php/issues",
+                "source": "https://github.com/stripe/stripe-php/tree/v14.9.0"
+            },
+            "time": "2024-09-01T00:00:00+00:00"
         },
         {
             "name": "laravel/framework",

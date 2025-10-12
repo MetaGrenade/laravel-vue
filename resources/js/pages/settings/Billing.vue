@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+type StripeInstance = any;
+type StripeElementsInstance = any;
+type StripePaymentElementInstance = any;
 
 interface Plan {
     id: number;
@@ -48,13 +51,71 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const paymentMethod = ref('');
 const coupon = ref('');
 const subscribing = ref(false);
 const canceling = ref(false);
 const resuming = ref(false);
 const setupLoading = ref(false);
 const setupIntentSecret = ref<string | null>(null);
+const paymentError = ref<string | null>(null);
+const successMessage = ref<string | null>(null);
+const confirmingPayment = ref(false);
+
+const stripe = shallowRef<StripeInstance | null>(null);
+const elements = shallowRef<StripeElementsInstance | null>(null);
+const paymentElement = shallowRef<StripePaymentElementInstance | null>(null);
+const paymentElementReady = ref(false);
+const lastStripeKey = ref<string | null>(null);
+
+const page = usePage<{ billing?: { stripeKey?: string | null } }>();
+const stripeKey = computed(() => page.props.billing?.stripeKey ?? null);
+const isStripeConfigured = computed(() => Boolean(stripeKey.value));
+
+let stripeScriptPromise: Promise<void> | null = null;
+
+const ensureStripeJsLoaded = async () => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    if ((window as any).Stripe) {
+        return;
+    }
+
+    if (!stripeScriptPromise) {
+        stripeScriptPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://js.stripe.com/v3';
+            script.async = true;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Unable to load Stripe.js'));
+            document.head.appendChild(script);
+        });
+    }
+
+    await stripeScriptPromise;
+};
+
+const resolveStripe = async (): Promise<StripeInstance | null> => {
+    if (!stripeKey.value) {
+        return null;
+    }
+
+    await ensureStripeJsLoaded();
+
+    const factory = (window as any).Stripe as ((key: string) => StripeInstance) | undefined;
+
+    if (!factory) {
+        return null;
+    }
+
+    if (!stripe.value || lastStripeKey.value !== stripeKey.value) {
+        stripe.value = factory(stripeKey.value);
+        lastStripeKey.value = stripeKey.value;
+    }
+
+    return stripe.value;
+};
 
 const initialPlanId = props.subscription
     ? props.plans.find(plan => plan.stripe_price_id === props.subscription?.stripe_price)?.id ?? null
@@ -79,8 +140,60 @@ const formatCurrency = (amount: number, currency: string) => {
     return formatter.format(amount / 100);
 };
 
+const teardownElements = () => {
+    paymentElementReady.value = false;
+
+    if (paymentElement.value) {
+        paymentElement.value.destroy();
+        paymentElement.value = null;
+    }
+
+    if (elements.value) {
+        elements.value = null;
+    }
+};
+
+const mountPaymentElement = async (secret: string) => {
+    if (!stripeKey.value) {
+        return;
+    }
+
+    let stripeInstance: StripeInstance | null = null;
+
+    try {
+        stripeInstance = await resolveStripe();
+    } catch (error: unknown) {
+        paymentError.value = error instanceof Error ? error.message : 'Stripe.js failed to load.';
+        return;
+    }
+
+    if (!stripeInstance) {
+        paymentError.value = 'Stripe.js could not be initialised. Check your publishable key.';
+        return;
+    }
+
+    teardownElements();
+
+    elements.value = stripeInstance.elements({
+        clientSecret: secret,
+    });
+
+    paymentElement.value = elements.value.create('payment');
+    paymentElement.value.mount('#payment-element');
+    paymentElement.value.on('ready', () => {
+        paymentElementReady.value = true;
+    });
+};
+
 const fetchSetupIntent = async () => {
+    if (!stripeKey.value) {
+        paymentError.value = 'Stripe publishable key is not configured.';
+        return;
+    }
+
     setupLoading.value = true;
+    paymentError.value = null;
+
     try {
         const response = await fetch(route('settings.billing.intent'), {
             method: 'POST',
@@ -92,46 +205,117 @@ const fetchSetupIntent = async () => {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to create setup intent');
+            throw new Error('Unable to create setup intent');
         }
 
         const data = await response.json();
         setupIntentSecret.value = data.client_secret ?? null;
-    } catch (error) {
+        if (setupIntentSecret.value) {
+            await mountPaymentElement(setupIntentSecret.value);
+        }
+    } catch (error: unknown) {
         console.error(error);
+        paymentError.value = error instanceof Error ? error.message : 'Failed to prepare the payment form.';
     } finally {
         setupLoading.value = false;
     }
 };
 
-const subscribe = () => {
-    if (!selectedPlanId.value) {
+const subscribe = async () => {
+    if (!selectedPlanId.value || !stripe.value || !elements.value) {
+        paymentError.value = 'Select a plan and ensure the payment form is ready.';
         return;
     }
 
     subscribing.value = true;
-    router.post(
-        route('settings.billing.subscribe'),
-        {
-            plan_id: selectedPlanId.value,
-            payment_method: paymentMethod.value,
-            coupon: coupon.value || null,
-        },
-        {
+    paymentError.value = null;
+    successMessage.value = null;
+
+    try {
+        const { error: submitError } = await elements.value.submit();
+
+        if (submitError) {
+            paymentError.value = submitError.message ?? 'Your payment details need attention.';
+            return;
+        }
+
+        const confirmation = await stripe.value.confirmSetup({
+            elements: elements.value,
+            redirect: 'if_required',
+        });
+
+        if (confirmation.error) {
+            paymentError.value = confirmation.error.message ?? 'Stripe rejected the payment method.';
+            return;
+        }
+
+        const paymentMethodId = confirmation.setupIntent?.payment_method;
+
+        if (!paymentMethodId) {
+            paymentError.value = 'Stripe did not return a payment method identifier.';
+            return;
+        }
+
+        const response = await fetch(route('settings.billing.subscribe'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
+            },
+            body: JSON.stringify({
+                plan_id: selectedPlanId.value,
+                payment_method: paymentMethodId,
+                coupon: coupon.value || null,
+            }),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (response.status === 409 && payload?.status === 'requires_action' && payload?.client_secret) {
+            confirmingPayment.value = true;
+            const result = await stripe.value.confirmCardPayment(payload.client_secret, { payment_method: paymentMethodId });
+            confirmingPayment.value = false;
+
+            if (result.error) {
+                paymentError.value = result.error.message ?? 'Additional confirmation failed.';
+                return;
+            }
+
+            successMessage.value = 'Payment confirmed! Refreshing your subscription details.';
+            await router.reload({
+                only: ['subscription', 'invoices'],
+                preserveScroll: true,
+            });
+            await fetchSetupIntent();
+            coupon.value = '';
+            return;
+        }
+
+        if (!response.ok) {
+            const firstError = payload?.errors ? Object.values(payload.errors as Record<string, string[]>)[0]?.[0] : null;
+            paymentError.value = payload?.message ?? firstError ?? 'Unable to activate the subscription.';
+            return;
+        }
+
+        successMessage.value = 'Subscription activated successfully.';
+        coupon.value = '';
+
+        await router.reload({
+            only: ['subscription', 'invoices'],
             preserveScroll: true,
-            onFinish: () => {
-                subscribing.value = false;
-            },
-            onSuccess: () => {
-                paymentMethod.value = '';
-                coupon.value = '';
-            },
-        },
-    );
+        });
+
+        await fetchSetupIntent();
+    } finally {
+        subscribing.value = false;
+    }
 };
 
 const cancel = () => {
     canceling.value = true;
+    paymentError.value = null;
     router.post(
         route('settings.billing.cancel'),
         {},
@@ -140,12 +324,17 @@ const cancel = () => {
             onFinish: () => {
                 canceling.value = false;
             },
+            onSuccess: async () => {
+                successMessage.value = 'Subscription will cancel at the end of the current period.';
+                await fetchSetupIntent();
+            },
         },
     );
 };
 
 const resume = () => {
     resuming.value = true;
+    paymentError.value = null;
     router.post(
         route('settings.billing.resume'),
         {},
@@ -154,9 +343,35 @@ const resume = () => {
             onFinish: () => {
                 resuming.value = false;
             },
+            onSuccess: async () => {
+                successMessage.value = 'Subscription resumed successfully.';
+                await fetchSetupIntent();
+            },
         },
     );
 };
+
+watch(stripeKey, async newKey => {
+    if (!newKey) {
+        teardownElements();
+        setupIntentSecret.value = null;
+        return;
+    }
+
+    if (!setupIntentSecret.value) {
+        await fetchSetupIntent();
+    }
+});
+
+onMounted(async () => {
+    if (isStripeConfigured.value) {
+        await fetchSetupIntent();
+    }
+});
+
+onBeforeUnmount(() => {
+    teardownElements();
+});
 </script>
 
 <template>
@@ -220,40 +435,66 @@ const resume = () => {
                 <div class="space-y-4">
                     <HeadingSmall
                         title="Payment details"
-                        description="Add a Stripe payment method ID to activate your subscription."
+                        description="Securely add or update your payment method through Stripe."
                     />
                     <div class="grid gap-4">
-                        <div class="grid gap-2">
-                            <label class="text-sm font-medium" for="payment-method">Payment method ID</label>
-                            <Input
-                                id="payment-method"
-                                v-model="paymentMethod"
-                                placeholder="pm_..."
-                                class="w-full"
-                            />
+                        <div
+                            v-if="!isStripeConfigured"
+                            class="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground"
+                        >
+                            Add your Stripe publishable key to the environment to enable the payment form.
                         </div>
-                        <div class="grid gap-2">
-                            <label class="text-sm font-medium" for="coupon">Coupon (optional)</label>
-                            <Input
-                                id="coupon"
-                                v-model="coupon"
-                                placeholder="PROMO2025"
-                                class="w-full"
-                            />
-                        </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <Button :disabled="subscribing" @click="subscribe">
-                                <span v-if="subscribing">Activating...</span>
-                                <span v-else>Activate subscription</span>
-                            </Button>
-                            <Button variant="outline" :disabled="setupLoading" @click="fetchSetupIntent">
-                                <span v-if="setupLoading">Generating...</span>
-                                <span v-else>Generate setup intent</span>
-                            </Button>
-                        </div>
-                        <p v-if="setupIntentSecret" class="rounded bg-muted px-3 py-2 text-xs font-mono">
-                            Client secret: {{ setupIntentSecret }}
-                        </p>
+                        <template v-else>
+                            <div class="grid gap-2">
+                                <label class="text-sm font-medium" for="payment-element">Payment method</label>
+                                <div
+                                    id="payment-element"
+                                    class="rounded-lg border border-border bg-card p-4 shadow-sm"
+                                />
+                                <p v-if="!paymentElementReady" class="text-sm text-muted-foreground">
+                                    Loading the secure payment form…
+                                </p>
+                            </div>
+                            <div class="grid gap-2">
+                                <label class="text-sm font-medium" for="coupon">Coupon (optional)</label>
+                                <Input
+                                    id="coupon"
+                                    v-model="coupon"
+                                    placeholder="PROMO2025"
+                                    class="w-full"
+                                />
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <Button
+                                    :disabled="subscribing || !paymentElementReady || confirmingPayment"
+                                    @click="subscribe"
+                                >
+                                    <span v-if="subscribing">Activating...</span>
+                                    <span v-else-if="confirmingPayment">Confirming…</span>
+                                    <span v-else>Activate subscription</span>
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    :disabled="setupLoading || subscribing"
+                                    @click="fetchSetupIntent"
+                                >
+                                    <span v-if="setupLoading">Refreshing…</span>
+                                    <span v-else>Refresh payment form</span>
+                                </Button>
+                            </div>
+                            <p
+                                v-if="paymentError"
+                                class="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                            >
+                                {{ paymentError }}
+                            </p>
+                            <p
+                                v-if="successMessage"
+                                class="rounded border border-emerald-400/40 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+                            >
+                                {{ successMessage }}
+                            </p>
+                        </template>
                     </div>
                 </div>
 
