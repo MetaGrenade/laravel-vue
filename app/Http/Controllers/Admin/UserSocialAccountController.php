@@ -19,18 +19,23 @@ class UserSocialAccountController extends Controller
 
         $data = $request->validated();
 
-        $account = SocialAccount::query()
+        $account = $user->socialAccounts()->firstOrNew([
+            'provider' => $data['provider'],
+        ]);
+
+        $conflict = SocialAccount::query()
             ->where('provider', $data['provider'])
             ->where('provider_id', $data['provider_id'])
+            ->when($account->exists, fn ($query) => $query->whereKeyNot($account->getKey()))
             ->first();
 
-        if (! $account) {
-            $account = new SocialAccount([
-                'provider' => $data['provider'],
-                'provider_id' => $data['provider_id'],
+        if ($conflict && $conflict->user_id !== $user->getKey()) {
+            return back()->withErrors([
+                'provider_id' => 'That account is already linked to a different user.',
             ]);
         }
 
+        $account->provider_id = $data['provider_id'];
         $account->user()->associate($user);
         $account->fill([
             'name' => $data['name'] ?? null,
