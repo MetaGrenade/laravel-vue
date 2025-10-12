@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Mockery;
 use Tests\TestCase;
+use Laravel\Cashier\Exceptions\IncompletePayment;
 
 class BillingSettingsTest extends TestCase
 {
@@ -57,6 +58,7 @@ class BillingSettingsTest extends TestCase
 
         $response->assertOk();
         $this->assertNotNull($response->json('client_secret'));
+        $this->assertNotNull($response->json('id'));
     }
 
     public function test_subscription_manager_handles_subscription_actions(): void
@@ -75,12 +77,16 @@ class BillingSettingsTest extends TestCase
         $this->app->instance(SubscriptionManager::class, $manager);
 
         $this->actingAs($user)
-            ->post(route('settings.billing.subscribe'), [
+            ->postJson(route('settings.billing.subscribe'), [
                 'plan_id' => $plan->id,
                 'payment_method' => 'pm_test',
                 'coupon' => 'PROMO',
             ])
-            ->assertRedirect(route('settings.billing.index'));
+            ->assertOk()
+            ->assertJson([
+                'status' => 'success',
+                'subscription' => null,
+            ]);
 
         $this->actingAs($user)
             ->post(route('settings.billing.cancel'))
@@ -89,6 +95,42 @@ class BillingSettingsTest extends TestCase
         $this->actingAs($user)
             ->post(route('settings.billing.resume'))
             ->assertRedirect(route('settings.billing.index'));
+    }
+
+    public function test_subscription_creation_returns_client_secret_when_confirmation_required(): void
+    {
+        $user = User::factory()->create();
+        $plan = SubscriptionPlan::factory()->create();
+
+        $exception = new IncompletePayment('Requires action.');
+        $exception->payment = class_exists(\Stripe\PaymentIntent::class)
+            ? \Stripe\PaymentIntent::constructFrom([
+                'id' => 'pi_test_123',
+                'client_secret' => 'pi_secret_123',
+            ])
+            : (object) [
+                'id' => 'pi_test_123',
+                'client_secret' => 'pi_secret_123',
+            ];
+
+        $manager = Mockery::mock(SubscriptionManager::class);
+        $manager->shouldReceive('create')
+            ->once()
+            ->andThrow($exception);
+
+        $this->app->instance(SubscriptionManager::class, $manager);
+
+        $this->actingAs($user)
+            ->postJson(route('settings.billing.subscribe'), [
+                'plan_id' => $plan->id,
+                'payment_method' => 'pm_requires_action',
+            ])
+            ->assertStatus(409)
+            ->assertJson([
+                'status' => 'requires_action',
+                'payment_intent_id' => 'pi_test_123',
+                'client_secret' => 'pi_secret_123',
+            ]);
     }
 
     protected function tearDown(): void

@@ -176,18 +176,29 @@ php artisan tinker
 Rules with lower `position` values are evaluated first, so place the most specific rules near the top of the list.
 
 ### Billing & Subscription Management
-- **Stripe Credentials**: Populate `STRIPE_KEY`, `STRIPE_SECRET`, and `STRIPE_WEBHOOK_SECRET` in `.env`. Additional plan and
-  product IDs live in `config/billing.php`.
-- **Cashier Stub Repository**: The project vendors a path-based copy of Laravel Cashier inside `packages/laravel/cashier`. The
-  `composer.json` repository override ensures installs do not hit external networks.
-- **Configuration**: Cashier-specific toggles live in `config/cashier.php`. Plan metadata, feature descriptions, and default
-  trial windows live in `config/billing.php`.
-- **Webhooks**: Stripe webhook events post to `/webhooks/stripe`. The `StripeWebhookController` verifies the
-  `Stripe-Signature` header before dispatching events. Logged payloads are stored in `billing_webhook_calls` for auditing.
-- **Testing Fixtures**: Sample webhook JSON lives in `tests/Fixtures/stripe/`. Feature tests under
-  `tests/Feature/Webhooks/StripeWebhookTest.php` and `tests/Feature/Settings/BillingSettingsTest.php` cover subscription flows,
-  invoice syncing, and webhook validation.
-- **Queues & Jobs**: Webhook handling and subscription updates rely on queued jobs. Ensure `queue:listen` (or a Supervisor job)
+- **Stripe credentials**: Populate `STRIPE_KEY`, `STRIPE_SECRET`, and `STRIPE_WEBHOOK_SECRET` in `.env`. Map each
+  `subscription_plans` record to the correct Stripe Price ID via `config/billing.php` (or a seeder override) so subscriptions
+  bill against real products.
+- **Cashier installation**: The application now depends on the official `laravel/cashier` package. Run `composer install` and
+  publish the vendor migrations via `php artisan vendor:publish --tag="cashier-migrations"` followed by
+  `php artisan migrate` to ensure Cashier's tables (`subscriptions`, `subscription_items`, etc.) are present.
+- **Payment collection**: `/settings/billing` renders Stripe's Payment Element. Users create PaymentMethods client-side and the
+  backend finalises subscriptions through Cashier's `newSubscription()->create()` API, including SCA flows. No plain text
+  payment method IDs are accepted.
+- **Webhooks**: Stripe should forward events (e.g., `invoice.payment_succeeded`, `customer.subscription.deleted`) to
+  `/stripe/webhook`. Use the Stripe CLI during development:
+
+  ```bash
+  stripe listen --forward-to http://localhost:8000/stripe/webhook \
+    --events invoice.payment_succeeded,invoice.payment_failed,customer.subscription.deleted
+  ```
+
+  Webhook payloads are persisted to `billing_webhook_calls` for auditing, and the handler reconciles invoices in
+  `billing_invoices`.
+- **Testing fixtures**: Sample webhook JSON lives in `tests/Fixtures/stripe/`. Feature tests under
+  `tests/Feature/Webhooks/StripeWebhookTest.php` exercise invoice and subscription webhook flows. Use Stripe's test keys when
+  exercising end-to-end subscription flows locally.
+- **Queues & jobs**: Webhook handling and subscription updates rely on queued jobs. Ensure `queue:listen` (or a Supervisor job)
   is running in development and production so invoice syncing happens promptly.
 
 ## Testing & Quality
