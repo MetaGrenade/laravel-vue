@@ -6,8 +6,10 @@ use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Models\SocialAccount;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
+use App\Support\OAuth\ProviderRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -136,11 +138,58 @@ class UsersController extends Controller
     /**
      * Show the form for editing the specified user.
      */
-    public function edit(User $user)
+    public function edit(Request $request, User $user)
     {
+        $formatter = DateFormatter::for($request->user());
+
+        $user->loadMissing(['roles', 'socialAccounts']);
+
+        $socialAccounts = $user->socialAccounts
+            ->sortBy('provider')
+            ->values()
+            ->map(function (SocialAccount $account) use ($formatter) {
+                return [
+                    'id' => $account->id,
+                    'provider' => $account->provider,
+                    'provider_id' => $account->provider_id,
+                    'name' => $account->name,
+                    'nickname' => $account->nickname,
+                    'email' => $account->email,
+                    'avatar' => $account->avatar,
+                    'created_at' => $formatter->iso($account->created_at),
+                    'updated_at' => $formatter->iso($account->updated_at),
+                ];
+            })
+            ->all();
+
+        $userData = [
+            'id' => $user->id,
+            'nickname' => $user->nickname,
+            'email' => $user->email,
+            'email_verified_at' => $formatter->iso($user->email_verified_at),
+            'created_at' => $formatter->iso($user->created_at),
+            'updated_at' => $formatter->iso($user->updated_at),
+            'last_activity_at' => $formatter->iso($user->last_activity_at),
+            'avatar_url' => $user->avatar_url,
+            'profile_bio' => $user->profile_bio,
+            'social_links' => $user->social_links,
+            'roles' => $user->roles->map(fn ($role) => $role->only(['id', 'name']))->values()->all(),
+            'social_accounts' => $socialAccounts,
+        ];
+
+        $providers = collect(ProviderRegistry::all())
+            ->map(fn ($meta, $key) => [
+                'key' => $key,
+                'label' => $meta['label'] ?? ucfirst($key),
+                'description' => $meta['description'] ?? null,
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('acp/UsersEdit', [
-            'user'      => $user->load('roles'),
-            'allRoles'  => Role::all(),
+            'user' => $userData,
+            'allRoles' => Role::all(),
+            'availableSocialProviders' => $providers,
         ]);
     }
 

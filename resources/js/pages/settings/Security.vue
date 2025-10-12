@@ -14,7 +14,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-vue-next';
+import { ChevronDown, LoaderCircle } from 'lucide-vue-next';
 
 interface ActiveSession {
     id: string;
@@ -33,6 +33,22 @@ interface Props {
     qrCodeUrl: string | null;
     recoveryCodes: string[];
     status?: string | null;
+    socialAccounts: Array<{
+        id: number;
+        provider: string;
+        provider_id: string;
+        name?: string | null;
+        nickname?: string | null;
+        email?: string | null;
+        avatar?: string | null;
+        linked_at?: string | null;
+        updated_at?: string | null;
+    }>;
+    availableSocialProviders: Array<{
+        key: string;
+        label: string;
+        description?: string | null;
+    }>;
 }
 
 const props = defineProps<Props>();
@@ -44,6 +60,8 @@ const {
     qrCodeUrl,
     recoveryCodes,
     status,
+    socialAccounts,
+    availableSocialProviders,
 } = toRefs(props);
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -76,32 +94,68 @@ const statusDetails = computed(() => {
             return {
                 title: 'Session revoked',
                 description: 'The selected session has been signed out.',
+                variant: 'default' as const,
             };
         case 'current-session-retained':
             return {
                 title: 'Active session preserved',
                 description: 'You cannot revoke the session currently in use.',
+                variant: 'warning' as const,
             };
         case 'two-factor-secret-generated':
             return {
                 title: 'Verification required',
                 description:
                     'Scan the secret with your authenticator app and confirm using a 6-digit code to finish enrolling.',
+                variant: 'default' as const,
             };
         case 'two-factor-confirmed':
             return {
                 title: 'Multi-factor authentication enabled',
                 description: 'Authenticator codes and recovery codes are now active for your account.',
+                variant: 'default' as const,
             };
         case 'two-factor-disabled':
             return {
                 title: 'Multi-factor authentication disabled',
                 description: 'Authenticator codes and existing recovery codes have been cleared.',
+                variant: 'warning' as const,
             };
         case 'recovery-codes-generated':
             return {
                 title: 'Recovery codes refreshed',
                 description: 'Store the new recovery codes in a safe location.',
+                variant: 'default' as const,
+            };
+        case 'social-account-linked':
+            return {
+                title: 'Account connected',
+                description: 'Your profile is now linked to the selected provider.',
+                variant: 'default' as const,
+            };
+        case 'social-account-unlinked':
+            return {
+                title: 'Account disconnected',
+                description: 'The provider has been removed from your account.',
+                variant: 'warning' as const,
+            };
+        case 'social-account-conflict':
+            return {
+                title: 'Unable to connect account',
+                description: 'That provider is already linked to a different account. Ask an administrator for assistance.',
+                variant: 'destructive' as const,
+            };
+        case 'social-account-error':
+            return {
+                title: 'Authentication failed',
+                description: 'We could not complete the sign-in with that provider. Please try again.',
+                variant: 'destructive' as const,
+            };
+        case 'social-account-missing':
+            return {
+                title: 'Link not found',
+                description: 'The selected provider was not linked to your account.',
+                variant: 'warning' as const,
             };
         default:
             return null;
@@ -111,6 +165,8 @@ const statusDetails = computed(() => {
 const hasSessions = computed(() => sessions.value.length > 0);
 const hasPendingSecret = computed(() => Boolean(pendingSecret.value));
 const hasRecoveryCodes = computed(() => recoveryCodes.value && recoveryCodes.value.length > 0);
+const linkedAccounts = computed(() => socialAccounts.value ?? []);
+const providerMetadata = computed(() => availableSocialProviders.value ?? []);
 
 const recoveryOpen = ref(false);
 
@@ -145,6 +201,27 @@ const regenerateRecoveryCodes = () => {
     });
 };
 
+const unlinkForm = useForm({});
+const unlinkingProvider = ref<string | null>(null);
+
+const connectProvider = (provider: string) => {
+    window.location.href = route('oauth.redirect', { provider });
+};
+
+const unlinkProvider = (provider: string) => {
+    unlinkingProvider.value = provider;
+
+    unlinkForm.delete(route('settings.social.unlink', { provider }), {
+        preserveScroll: true,
+        onFinish: () => {
+            unlinkingProvider.value = null;
+        },
+    });
+};
+
+const providerAccount = (provider: string) =>
+    linkedAccounts.value.find(account => account.provider === provider) ?? null;
+
 watch(
     status,
     (value) => {
@@ -173,7 +250,18 @@ watch(hasRecoveryCodes, (value) => {
                         description="Review and revoke devices currently authenticated with your account."
                     />
 
-                    <Alert v-if="statusDetails" class="border-l-4 border-l-primary bg-muted/40">
+                    <Alert
+                        v-if="statusDetails"
+                        :variant="statusDetails.variant ?? 'default'"
+                        class="border-l-4"
+                        :class="
+                            statusDetails.variant === 'destructive'
+                                ? 'border-l-destructive'
+                                : statusDetails.variant === 'warning'
+                                  ? 'border-l-amber-500'
+                                  : 'border-l-primary bg-muted/40'
+                        "
+                    >
                         <AlertTitle class="font-semibold">{{ statusDetails.title }}</AlertTitle>
                         <AlertDescription>{{ statusDetails.description }}</AlertDescription>
                     </Alert>
@@ -228,6 +316,78 @@ watch(hasRecoveryCodes, (value) => {
                             </CardHeader>
                         </Card>
                     </div>
+                </div>
+
+                <div class="space-y-4">
+                    <HeadingSmall
+                        title="Connected accounts"
+                        description="Link trusted providers for quicker sign-ins and community integrations."
+                    />
+
+                    <Card>
+                        <CardContent class="space-y-4">
+                            <div
+                                v-for="provider in providerMetadata"
+                                :key="provider.key"
+                                class="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                                <div class="space-y-2">
+                                    <div>
+                                        <p class="font-medium leading-tight">{{ provider.label }}</p>
+                                        <p v-if="provider.description" class="text-sm text-muted-foreground">
+                                            {{ provider.description }}
+                                        </p>
+                                    </div>
+
+                                    <div v-if="providerAccount(provider.key)" class="text-sm text-muted-foreground">
+                                        <p class="font-medium text-foreground">
+                                            Linked as
+                                            {{
+                                                providerAccount(provider.key)?.nickname
+                                                    ?? providerAccount(provider.key)?.name
+                                                    ?? providerAccount(provider.key)?.email
+                                                    ?? providerAccount(provider.key)?.provider_id
+                                            }}
+                                        </p>
+                                        <p v-if="providerAccount(provider.key)?.email" class="text-xs text-muted-foreground">
+                                            {{ providerAccount(provider.key)?.email }}
+                                        </p>
+                                        <p v-if="providerAccount(provider.key)?.linked_at" class="text-xs text-muted-foreground">
+                                            Linked on {{ providerAccount(provider.key)?.linked_at }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                    <Button
+                                        v-if="providerAccount(provider.key)"
+                                        variant="outline"
+                                        size="sm"
+                                        :disabled="unlinkForm.processing && unlinkingProvider === provider.key"
+                                        @click="unlinkProvider(provider.key)"
+                                    >
+                                        <LoaderCircle
+                                            v-if="unlinkForm.processing && unlinkingProvider === provider.key"
+                                            class="mr-2 h-4 w-4 animate-spin"
+                                        />
+                                        Disconnect
+                                    </Button>
+                                    <Button
+                                        v-else
+                                        variant="secondary"
+                                        size="sm"
+                                        @click="connectProvider(provider.key)"
+                                    >
+                                        Connect
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div v-if="providerMetadata.length === 0" class="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                                No social providers are configured. Configure OAuth credentials in your environment settings.
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 <Separator />

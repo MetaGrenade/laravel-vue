@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ApiDocumentationController;
 use App\Http\Controllers\BlogCommentController;
 use App\Http\Controllers\BlogCommentSubscriptionController;
 use App\Http\Controllers\BlogController;
@@ -16,6 +17,10 @@ use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::view('/api/docs', 'api.docs')->name('api.docs');
+Route::get('/api/docs/openapi.json', ApiDocumentationController::class)
+    ->name('api.docs.schema');
 
 //PUBLIC PAGES
 Route::get('/', function () {
