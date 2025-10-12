@@ -56,7 +56,7 @@ class SubscriptionManager
             return;
         }
 
-        if (! $subscription->cancelled() || $subscription->ended()) {
+        if (! $subscription->canceled() || $subscription->ended()) {
             return;
         }
 
