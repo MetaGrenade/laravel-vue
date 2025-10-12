@@ -22,6 +22,7 @@ return [
 
     'webhook' => [
         'secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'cli_secret' => env('STRIPE_CLI_WEBHOOK_SECRET'),
         'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
         'jobs' => [
             'invoice.payment_succeeded' => null,

@@ -36,7 +36,10 @@ class StripeWebhookTest extends TestCase
 
     public function test_invoice_payment_failed_webhook_persists_invoice_details(): void
     {
-        config(['cashier.webhook.secret' => 'whsec_test']);
+        config([
+            'cashier.webhook.secret' => 'whsec_test',
+            'cashier.webhook.cli_secret' => null,
+        ]);
 
         SubscriptionPlan::factory()->create(['stripe_price_id' => 'price_starter']);
         $user = User::factory()->create(['stripe_id' => 'cus_test123']);
@@ -63,7 +66,10 @@ class StripeWebhookTest extends TestCase
 
     public function test_subscription_deletion_webhook_cancels_subscription(): void
     {
-        config(['cashier.webhook.secret' => 'whsec_test']);
+        config([
+            'cashier.webhook.secret' => 'whsec_test',
+            'cashier.webhook.cli_secret' => null,
+        ]);
 
         $user = User::factory()->create(['stripe_id' => 'cus_test123']);
 
@@ -96,7 +102,10 @@ class StripeWebhookTest extends TestCase
 
     public function test_webhook_rejects_requests_with_invalid_signature(): void
     {
-        config(['cashier.webhook.secret' => 'whsec_test']);
+        config([
+            'cashier.webhook.secret' => 'whsec_test',
+            'cashier.webhook.cli_secret' => null,
+        ]);
 
         $payload = $this->stripeFixture('invoice_payment_failed');
 
@@ -107,6 +116,57 @@ class StripeWebhookTest extends TestCase
         );
 
         $response->assertStatus(400);
+
+        $this->assertSame(0, BillingInvoice::count());
+        $this->assertSame(0, BillingWebhookCall::count());
+    }
+
+    public function test_webhook_accepts_cli_secret_when_primary_secret_missing(): void
+    {
+        config([
+            'cashier.webhook.secret' => null,
+            'cashier.webhook.cli_secret' => 'whsec_cli',
+        ]);
+
+        SubscriptionPlan::factory()->create(['stripe_price_id' => 'price_starter']);
+        $user = User::factory()->create(['stripe_id' => 'cus_test123']);
+
+        $payload = $this->stripeFixture('invoice_payment_failed');
+
+        $response = $this->postJson(
+            route('stripe.webhook'),
+            $payload,
+            ['Stripe-Signature' => $this->stripeSignatureHeader($payload, 'whsec_cli')]
+        );
+
+        $response->assertOk();
+
+        $invoice = BillingInvoice::firstWhere('stripe_id', 'in_test_failed');
+
+        $this->assertNotNull($invoice);
+        $this->assertSame('failed', $invoice->status);
+        $this->assertSame($user->id, $invoice->user_id);
+
+        $webhook = BillingWebhookCall::firstWhere('stripe_id', 'evt_test_failed');
+        $this->assertNotNull($webhook);
+    }
+
+    public function test_webhook_returns_server_error_when_no_secret_configured(): void
+    {
+        config([
+            'cashier.webhook.secret' => null,
+            'cashier.webhook.cli_secret' => null,
+        ]);
+
+        $payload = $this->stripeFixture('invoice_payment_failed');
+
+        $response = $this->postJson(
+            route('stripe.webhook'),
+            $payload,
+            ['Stripe-Signature' => 't=123,v1=invalid']
+        );
+
+        $response->assertStatus(500);
 
         $this->assertSame(0, BillingInvoice::count());
         $this->assertSame(0, BillingWebhookCall::count());
