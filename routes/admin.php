@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogTagController;
@@ -24,6 +25,7 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::redirect('acp', '/acp/dashboard');
 
     Route::get('acp/dashboard', [AdminController::class, 'get'])->name('acp.dashboard');
+    Route::get('acp/audit-log', [ActivityLogController::class, 'index'])->name('acp.audit-log.index');
 
     // Admin User Management Routes
     Route::get('acp/users', [AdminUserController::class, 'index'])->name('acp.users.index');

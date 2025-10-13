@@ -7,6 +7,7 @@ use App\Models\ForumThread;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use function activity;
 
 class ForumThreadModerationController extends Controller
 {
@@ -16,6 +17,18 @@ class ForumThreadModerationController extends Controller
 
         if (!$thread->is_published) {
             $thread->forceFill(['is_published' => true])->save();
+
+            $this->logThreadEvent(
+                $request,
+                $board,
+                $thread,
+                'forum.thread.published',
+                sprintf('Thread "%s" published', $thread->title),
+                [
+                    'old' => ['is_published' => false],
+                    'attributes' => ['is_published' => true],
+                ],
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread published successfully.');
@@ -27,6 +40,18 @@ class ForumThreadModerationController extends Controller
 
         if ($thread->is_published) {
             $thread->forceFill(['is_published' => false])->save();
+
+            $this->logThreadEvent(
+                $request,
+                $board,
+                $thread,
+                'forum.thread.unpublished',
+                sprintf('Thread "%s" unpublished', $thread->title),
+                [
+                    'old' => ['is_published' => true],
+                    'attributes' => ['is_published' => false],
+                ],
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread unpublished successfully.');
@@ -38,6 +63,18 @@ class ForumThreadModerationController extends Controller
 
         if (!$thread->is_locked) {
             $thread->forceFill(['is_locked' => true])->save();
+
+            $this->logThreadEvent(
+                $request,
+                $board,
+                $thread,
+                'forum.thread.locked',
+                sprintf('Thread "%s" locked', $thread->title),
+                [
+                    'old' => ['is_locked' => false],
+                    'attributes' => ['is_locked' => true],
+                ],
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread locked successfully.');
@@ -49,6 +86,18 @@ class ForumThreadModerationController extends Controller
 
         if ($thread->is_locked) {
             $thread->forceFill(['is_locked' => false])->save();
+
+            $this->logThreadEvent(
+                $request,
+                $board,
+                $thread,
+                'forum.thread.unlocked',
+                sprintf('Thread "%s" unlocked', $thread->title),
+                [
+                    'old' => ['is_locked' => true],
+                    'attributes' => ['is_locked' => false],
+                ],
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread unlocked successfully.');
@@ -60,6 +109,18 @@ class ForumThreadModerationController extends Controller
 
         if (!$thread->is_pinned) {
             $thread->forceFill(['is_pinned' => true])->save();
+
+            $this->logThreadEvent(
+                $request,
+                $board,
+                $thread,
+                'forum.thread.pinned',
+                sprintf('Thread "%s" pinned', $thread->title),
+                [
+                    'old' => ['is_pinned' => false],
+                    'attributes' => ['is_pinned' => true],
+                ],
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread pinned successfully.');
@@ -71,6 +132,18 @@ class ForumThreadModerationController extends Controller
 
         if ($thread->is_pinned) {
             $thread->forceFill(['is_pinned' => false])->save();
+
+            $this->logThreadEvent(
+                $request,
+                $board,
+                $thread,
+                'forum.thread.unpinned',
+                sprintf('Thread "%s" unpinned', $thread->title),
+                [
+                    'old' => ['is_pinned' => true],
+                    'attributes' => ['is_pinned' => false],
+                ],
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread unpinned successfully.');
@@ -102,9 +175,23 @@ class ForumThreadModerationController extends Controller
         }
 
         if ($title !== $thread->title) {
+            $previousTitle = $thread->title;
+
             $thread->forceFill([
                 'title' => $title,
             ])->save();
+
+            $this->logThreadEvent(
+                $request,
+                $board,
+                $thread,
+                'forum.thread.title_updated',
+                sprintf('Thread "%s" retitled', $thread->title),
+                [
+                    'old' => ['title' => $previousTitle],
+                    'attributes' => ['title' => $thread->title],
+                ],
+            );
         }
 
         return $this->redirectAfterAction($request, $board, $thread, 'Thread title updated successfully.');
@@ -114,7 +201,24 @@ class ForumThreadModerationController extends Controller
     {
         $this->ensureThreadBelongsToBoard($board, $thread);
 
+        $snapshot = [
+            'id' => $thread->id,
+            'title' => $thread->title,
+            'slug' => $thread->slug,
+        ];
+
         $thread->delete();
+
+        $this->logThreadEvent(
+            $request,
+            $board,
+            $thread,
+            'forum.thread.deleted',
+            sprintf('Thread "%s" deleted', $snapshot['title']),
+            [
+                'old' => $snapshot,
+            ],
+        );
 
         return $this->redirectToBoard($request, $board, 'Thread deleted successfully.');
     }
@@ -169,5 +273,41 @@ class ForumThreadModerationController extends Controller
         }
 
         return $this->redirectToBoard($request, $board, $message);
+    }
+
+    private function logThreadEvent(
+        Request $request,
+        ForumBoard $board,
+        ForumThread $thread,
+        string $event,
+        string $message,
+        array $properties = []
+    ): void {
+        $actor = $request->user();
+
+        if (! $actor) {
+            return;
+        }
+
+        $baseProperties = [
+            'attributes' => array_merge([
+                'thread_id' => $thread->id,
+                'thread_slug' => $thread->slug,
+                'thread_title' => $thread->title,
+                'board_id' => $board->id,
+                'board_slug' => $board->slug,
+            ], $properties['attributes'] ?? []),
+        ];
+
+        if (isset($properties['old'])) {
+            $baseProperties['old'] = $properties['old'];
+        }
+
+        activity('forum')
+            ->event($event)
+            ->performedOn($thread)
+            ->causedBy($actor)
+            ->withProperties($baseProperties)
+            ->log($message);
     }
 }

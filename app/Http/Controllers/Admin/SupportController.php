@@ -30,16 +30,20 @@ use App\Support\Localization\DateFormatter;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use App\Support\Database\Transaction;
+use DateTimeInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use function activity;
 
 class SupportController extends Controller
 {
@@ -602,7 +606,28 @@ class SupportController extends Controller
             $validated['support_ticket_category_id'] = $validated['support_ticket_category_id'] ?? null;
         }
 
+        $trackedKeys = array_keys($validated);
+        $originalValues = Arr::only($ticket->getAttributes(), $trackedKeys);
+
         $ticket->update($validated);
+
+        $ticket->refresh();
+
+        $newValues = Arr::only($ticket->getAttributes(), $trackedKeys);
+
+        $oldChanges = [];
+        $newChanges = [];
+
+        foreach ($newValues as $key => $value) {
+            $before = $originalValues[$key] ?? null;
+            $normalisedBefore = $this->normaliseAuditValue($before);
+            $normalisedAfter = $this->normaliseAuditValue($value);
+
+            if ($normalisedBefore !== $normalisedAfter) {
+                $oldChanges[$key] = $normalisedBefore;
+                $newChanges[$key] = $normalisedAfter;
+            }
+        }
 
         if (
             array_key_exists('status', $validated)
@@ -612,6 +637,32 @@ class SupportController extends Controller
                 return (new TicketStatusUpdated($ticket, $previousStatus))
                     ->forAudience($audience);
             });
+
+            $this->logTicketActivity(
+                $request,
+                $ticket,
+                'support.ticket.status_updated',
+                sprintf('Ticket "%s" status changed', $ticket->subject),
+                [
+                    'old' => ['status' => $previousStatus],
+                    'attributes' => ['status' => $ticket->status],
+                ],
+            );
+
+            unset($oldChanges['status'], $newChanges['status']);
+        }
+
+        if ($oldChanges !== []) {
+            $this->logTicketActivity(
+                $request,
+                $ticket,
+                'support.ticket.updated',
+                sprintf('Ticket "%s" updated', $ticket->subject),
+                [
+                    'old' => $oldChanges,
+                    'attributes' => $newChanges,
+                ],
+            );
         }
 
         return redirect()
@@ -619,9 +670,25 @@ class SupportController extends Controller
             ->with('success', 'Ticket updated.');
     }
 
-    public function destroyTicket(SupportTicket $ticket)
+    public function destroyTicket(Request $request, SupportTicket $ticket)
     {
+        $snapshot = [
+            'id' => $ticket->id,
+            'subject' => $ticket->subject,
+            'status' => $ticket->status,
+            'priority' => $ticket->priority,
+        ];
+
         $ticket->delete();
+
+        $this->logTicketActivity(
+            $request,
+            $ticket,
+            'support.ticket.deleted',
+            sprintf('Ticket "%s" deleted', $snapshot['subject'] ?? $ticket->id),
+            ['old' => $snapshot],
+        );
+
         return back()->with('success','Ticket deleted.');
     }
 
@@ -631,6 +698,8 @@ class SupportController extends Controller
             'assigned_to' => ['nullable', 'exists:users,id'],
         ]);
 
+        $previousAssignee = $ticket->assigned_to;
+
         $ticket->update([
             'assigned_to' => $validated['assigned_to'] ?? null,
         ]);
@@ -638,6 +707,19 @@ class SupportController extends Controller
         $message = $ticket->assigned_to
             ? 'Ticket assigned to agent.'
             : 'Ticket unassigned.';
+
+        if (($validated['assigned_to'] ?? null) !== $previousAssignee) {
+            $this->logTicketActivity(
+                $request,
+                $ticket,
+                'support.ticket.assigned',
+                sprintf('Ticket "%s" assignment updated', $ticket->subject),
+                [
+                    'old' => ['assigned_to' => $previousAssignee],
+                    'attributes' => ['assigned_to' => $ticket->assigned_to],
+                ],
+            );
+        }
 
         return back()->with('success', $message);
     }
@@ -648,9 +730,24 @@ class SupportController extends Controller
             'priority' => ['required', Rule::in(['low', 'medium', 'high'])],
         ]);
 
+        $previousPriority = $ticket->priority;
+
         $ticket->update([
             'priority' => $validated['priority'],
         ]);
+
+        if ($previousPriority !== $ticket->priority) {
+            $this->logTicketActivity(
+                $request,
+                $ticket,
+                'support.ticket.priority_updated',
+                sprintf('Ticket "%s" priority updated', $ticket->subject),
+                [
+                    'old' => ['priority' => $previousPriority],
+                    'attributes' => ['priority' => $ticket->priority],
+                ],
+            );
+        }
 
         return back()->with('success', 'Ticket priority updated.');
     }
@@ -899,6 +996,21 @@ class SupportController extends Controller
                 return (new TicketReplied($ticket, $message))
                     ->forAudience($audience);
             });
+
+            $this->logTicketActivity(
+                $request,
+                $ticket,
+                'support.ticket.message_added',
+                sprintf('Reply added to ticket "%s"', $ticket->subject),
+                [
+                    'attributes' => [
+                        'message_id' => $message->id,
+                        'author_id' => $message->user_id,
+                        'attachments' => $message->attachments()->count(),
+                        'excerpt' => Str::limit(strip_tags($message->body ?? ''), 120),
+                    ],
+                ],
+            );
         }
 
         return redirect()
@@ -958,6 +1070,17 @@ class SupportController extends Controller
                 return (new TicketStatusUpdated($ticket, $previousStatus))
                     ->forAudience($audience);
             });
+
+            $this->logTicketActivity(
+                $request,
+                $ticket,
+                'support.ticket.status_updated',
+                sprintf('Ticket "%s" status changed', $ticket->subject),
+                [
+                    'old' => ['status' => $previousStatus],
+                    'attributes' => ['status' => $ticket->status],
+                ],
+            );
         }
 
         $message = match ($validated['status']) {
@@ -992,8 +1115,9 @@ class SupportController extends Controller
 
         $userId = (int) $request->user()->id;
         $updatedCount = 0;
+        $updatedTicketIds = [];
 
-        Transaction::run(function () use ($tickets, $validated, $userId, &$updatedCount) {
+        Transaction::run(function () use ($tickets, $validated, $userId, &$updatedCount, &$updatedTicketIds) {
             foreach ($tickets as $ticket) {
                 $previousStatus = $ticket->status;
                 $resolutionUpdates = $this->resolutionAttributes($ticket, $validated['status'], $userId);
@@ -1007,6 +1131,7 @@ class SupportController extends Controller
                 ], $resolutionUpdates));
 
                 $updatedCount++;
+                $updatedTicketIds[] = $ticket->id;
 
                 if ($previousStatus !== $ticket->status) {
                     $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $previousStatus) {
@@ -1022,6 +1147,28 @@ class SupportController extends Controller
             1 => 'Updated 1 support ticket.',
             default => "Updated {$updatedCount} support tickets.",
         };
+
+        if ($updatedTicketIds !== []) {
+            $referenceTicket = $tickets->firstWhere('id', $updatedTicketIds[0]);
+
+            if ($referenceTicket) {
+                $this->logTicketActivity(
+                    $request,
+                    $referenceTicket,
+                    'support.ticket.status_bulk_updated',
+                    sprintf('Bulk status update applied to %d tickets', $updatedCount),
+                    [
+                        'attributes' => [
+                            'status' => $validated['status'],
+                            'ticket_ids' => $updatedTicketIds,
+                        ],
+                        'extra' => [
+                            'updated_count' => $updatedCount,
+                        ],
+                    ],
+                );
+            }
+        }
 
         return back()->with('success', $message);
     }
@@ -1186,5 +1333,70 @@ class SupportController extends Controller
         }
 
         return [];
+    }
+}
+
+    protected function normaliseAuditValue(mixed $value): mixed
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format(DateTimeInterface::ATOM);
+        }
+
+        return $value;
+    }
+
+    protected function normaliseAuditArray(array $values): array
+    {
+        $normalised = [];
+
+        foreach ($values as $key => $value) {
+            if (is_array($value)) {
+                $normalised[$key] = $this->normaliseAuditArray($value);
+            } else {
+                $normalised[$key] = $this->normaliseAuditValue($value);
+            }
+        }
+
+        return $normalised;
+    }
+
+    protected function logTicketActivity(
+        Request $request,
+        SupportTicket $ticket,
+        string $event,
+        string $message,
+        array $properties = []
+    ): void {
+        $actor = $request->user();
+
+        if (! $actor) {
+            return;
+        }
+
+        $attributes = $properties['attributes'] ?? [];
+
+        $baseProperties = [
+            'attributes' => $this->normaliseAuditArray(array_merge([
+                'ticket_id' => $ticket->id,
+                'status' => $ticket->status,
+                'priority' => $ticket->priority,
+                'assigned_to' => $ticket->assigned_to,
+            ], $attributes)),
+        ];
+
+        if (isset($properties['old'])) {
+            $baseProperties['old'] = $this->normaliseAuditArray($properties['old']);
+        }
+
+        if (isset($properties['extra'])) {
+            $baseProperties['extra'] = $this->normaliseAuditArray($properties['extra']);
+        }
+
+        activity('support')
+            ->event($event)
+            ->performedOn($ticket)
+            ->causedBy($actor)
+            ->withProperties($baseProperties)
+            ->log($message);
     }
 }

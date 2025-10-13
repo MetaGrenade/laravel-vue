@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, History } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -30,6 +30,12 @@ const sidebarNavItems: NavItem[] = [
         href: '/acp/dashboard',
         target: '_self',
         icon: LayoutGrid,
+    },
+    {
+        title: 'Audit Log',
+        href: '/acp/audit-log',
+        target: '_self',
+        icon: History,
     },
     {
         title: 'Users',
@@ -102,6 +108,8 @@ const filteredNavItems = computed(() => {
         switch(item.title) {
             case 'Dashboard':
                 return isAdmin.value;
+            case 'Audit Log':
+                return manageSystem.value;
             case 'Users':
                 return manageUsers.value;
             case 'Access Control':

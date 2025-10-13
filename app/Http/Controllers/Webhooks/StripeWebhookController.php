@@ -12,6 +12,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
 use Laravel\Cashier\Subscription;
+use function activity;
 
 class StripeWebhookController extends CashierWebhookController
 {
@@ -35,6 +36,15 @@ class StripeWebhookController extends CashierWebhookController
         $invoice = $this->storeInvoice($payload, 'paid');
         $this->storeWebhook($payload, $invoice?->user_id);
 
+        if ($invoice) {
+            $this->logInvoiceActivity(
+                $invoice,
+                'billing.invoice.paid',
+                sprintf('Invoice %s marked as paid', $invoice->stripe_id ?? $invoice->id),
+                $payload,
+            );
+        }
+
         return new Response('Webhook handled', 200);
     }
 
@@ -42,6 +52,15 @@ class StripeWebhookController extends CashierWebhookController
     {
         $invoice = $this->storeInvoice($payload, 'failed');
         $this->storeWebhook($payload, $invoice?->user_id);
+
+        if ($invoice) {
+            $this->logInvoiceActivity(
+                $invoice,
+                'billing.invoice.failed',
+                sprintf('Invoice %s payment failed', $invoice->stripe_id ?? $invoice->id),
+                $payload,
+            );
+        }
 
         return new Response('Webhook handled', 200);
     }
@@ -66,6 +85,10 @@ class StripeWebhookController extends CashierWebhookController
         }
 
         $this->storeWebhook($payload, $subscription?->user_id);
+
+        if ($subscription) {
+            $this->logSubscriptionCancellation($subscription, $payload);
+        }
 
         return new Response('Webhook handled', 200);
     }
@@ -107,6 +130,55 @@ class StripeWebhookController extends CashierWebhookController
                 'data' => $invoice,
             ]
         );
+    }
+
+    protected function logInvoiceActivity(BillingInvoice $invoice, string $event, string $message, array $payload = []): void
+    {
+        $properties = [
+            'attributes' => [
+                'invoice_id' => $invoice->id,
+                'stripe_id' => $invoice->stripe_id,
+                'status' => $invoice->status,
+                'total' => $invoice->total,
+                'currency' => $invoice->currency,
+                'user_id' => $invoice->user_id,
+                'subscription_plan_id' => $invoice->subscription_plan_id,
+            ],
+        ];
+
+        if ($payload !== []) {
+            $properties['payload'] = Arr::only($payload, ['id', 'type', 'created']);
+        }
+
+        activity('billing')
+            ->event($event)
+            ->performedOn($invoice)
+            ->causedBy($invoice->user)
+            ->withProperties($properties)
+            ->log($message);
+    }
+
+    protected function logSubscriptionCancellation(Subscription $subscription, array $payload = []): void
+    {
+        $properties = [
+            'attributes' => [
+                'subscription_id' => $subscription->id,
+                'stripe_id' => $subscription->stripe_id,
+                'status' => $subscription->stripe_status,
+                'user_id' => $subscription->user_id,
+            ],
+        ];
+
+        if ($payload !== []) {
+            $properties['payload'] = Arr::only($payload, ['id', 'type', 'created']);
+        }
+
+        activity('billing')
+            ->event('billing.subscription.canceled')
+            ->performedOn($subscription)
+            ->causedBy($subscription->user)
+            ->withProperties($properties)
+            ->log(sprintf('Subscription %s canceled', $subscription->stripe_id ?? $subscription->id));
     }
 
     protected function storeWebhook(array $payload, ?int $userId = null): void
