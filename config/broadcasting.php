@@ -67,6 +67,28 @@ return [
                     $options['useTLS'] = filter_var($forcedTls, FILTER_VALIDATE_BOOL);
                 }
 
+                $verifySsl = env('PUSHER_VERIFY_SSL');
+
+                $clientOptions = [];
+
+                if ($verifySsl !== null && $verifySsl !== '') {
+                    $verifySsl = filter_var($verifySsl, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+
+                    if ($verifySsl !== null) {
+                        $clientOptions['verify'] = $verifySsl;
+                    }
+                }
+
+                $caBundle = env('PUSHER_CA_BUNDLE');
+
+                if ($caBundle !== null && $caBundle !== '') {
+                    $clientOptions['verify'] = $caBundle;
+                }
+
+                if ($clientOptions !== []) {
+                    $options['client_options'] = $clientOptions;
+                }
+
                 return $options;
             }),
         ],
