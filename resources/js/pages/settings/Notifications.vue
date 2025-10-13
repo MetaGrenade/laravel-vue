@@ -63,7 +63,7 @@ watch(
         const snapshot = clonePreferences(preferences);
 
         form.defaults({ preferences: clonePreferences(preferences) });
-        form.setData('preferences', snapshot);
+        form.preferences = snapshot;
     },
     { immediate: true },
 );
