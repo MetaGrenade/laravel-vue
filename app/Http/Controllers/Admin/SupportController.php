@@ -1334,7 +1334,6 @@ class SupportController extends Controller
 
         return [];
     }
-}
 
     protected function normaliseAuditValue(mixed $value): mixed
     {
