@@ -75,7 +75,7 @@ class StripeWebhookTest extends TestCase
 
         $subscription = Subscription::create([
             'user_id' => $user->id,
-            'name' => config('billing.subscription_name', 'default'),
+            'type' => config('billing.subscription_name', 'default'),
             'stripe_id' => 'sub_test123',
             'stripe_status' => 'active',
             'stripe_price' => 'price_starter',
