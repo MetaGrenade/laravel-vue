@@ -1,0 +1,32 @@
+{
+    "id": "evt_test_succeeded",
+    "object": "event",
+    "type": "invoice.payment_succeeded",
+    "data": {
+        "object": {
+            "id": "in_test_paid",
+            "object": "invoice",
+            "status": "paid",
+            "amount_due": 3200,
+            "subtotal": 3000,
+            "tax": 200,
+            "customer": "cus_test123",
+            "currency": "usd",
+            "due_date": 1736985600,
+            "status_transitions": {
+                "paid_at": 1737072000
+            },
+            "lines": {
+                "data": [
+                    {
+                        "id": "il_test",
+                        "object": "line_item",
+                        "price": {
+                            "id": "price_starter"
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

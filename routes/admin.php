@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ForumCategoryController;
 use App\Http\Controllers\Admin\ForumReportController;
 use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\BadgeController;
+use App\Http\Controllers\Admin\BillingController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -176,4 +177,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('acp.blogs.revisions.index');
     Route::put('acp/blogs/{blog}/revisions/{revision}', [AdminBlogController::class, 'restoreRevision'])
         ->name('acp.blogs.revisions.restore');
+});
+
+Route::middleware(['auth', 'can:billing.acp.view'])->group(function () {
+    Route::get('acp/billing/invoices', [BillingController::class, 'invoices'])->name('acp.billing.invoices.index');
 });

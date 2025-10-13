@@ -16,13 +16,13 @@ use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
+use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -287,7 +287,7 @@ class SupportCenterController extends Controller
         $ticket = null;
         $message = null;
 
-        DB::transaction(function () use ($request, $validated, &$ticket, &$message): void {
+        Transaction::run(function () use ($request, $validated, &$ticket, &$message): void {
             $ticket = SupportTicket::create([
                 'user_id' => $validated['user_id'],
                 'subject' => $validated['subject'],
@@ -449,7 +449,7 @@ class SupportCenterController extends Controller
 
         $message = null;
 
-        DB::transaction(function () use ($request, $ticket, $validated, &$message): void {
+        Transaction::run(function () use ($request, $ticket, $validated, &$message): void {
             $message = $ticket->messages()->create([
                 'user_id' => $request->user()->id,
                 'body' => $validated['body'],

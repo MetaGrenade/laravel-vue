@@ -11,6 +11,7 @@ use App\Http\Controllers\Settings\TwoFactorController;
 use App\Http\Controllers\Settings\TwoFactorRecoveryCodeController;
 use App\Http\Controllers\Settings\PrivacyController;
 use App\Http\Controllers\Settings\NotificationSettingsController;
+use App\Http\Controllers\Settings\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -36,6 +37,12 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
 
     Route::get('settings/privacy', PrivacyController::class)->name('privacy.index');
+
+    Route::get('settings/billing', [SubscriptionController::class, 'index'])->name('settings.billing.index');
+    Route::post('settings/billing/setup-intent', [SubscriptionController::class, 'setupIntent'])->name('settings.billing.intent');
+    Route::post('settings/billing/subscribe', [SubscriptionController::class, 'store'])->name('settings.billing.subscribe');
+    Route::post('settings/billing/cancel', [SubscriptionController::class, 'cancel'])->name('settings.billing.cancel');
+    Route::post('settings/billing/resume', [SubscriptionController::class, 'resume'])->name('settings.billing.resume');
 
     Route::post('settings/privacy/exports', [DataExportController::class, 'store'])
         ->name('privacy.exports.store');

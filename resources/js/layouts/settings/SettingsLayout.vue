@@ -36,6 +36,11 @@ const sidebarNavItems: NavItem[] = [
         href: '/settings/appearance',
         target: '_self'
     },
+    {
+        title: 'Billing',
+        href: '/settings/billing',
+        target: '_self'
+    },
 ];
 
 const page = usePage();
