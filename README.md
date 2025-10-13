@@ -106,11 +106,15 @@ dispatch but nothing will be pushed to clients. To enable realtime notifications
    VITE_BROADCAST_DRIVER=pusher
    VITE_PUSHER_APP_KEY="${PUSHER_APP_KEY}"
    VITE_PUSHER_APP_CLUSTER="${PUSHER_APP_CLUSTER}"
-   VITE_PUSHER_HOST="${PUSHER_HOST}"    # Leave empty to use the cluster host
-   VITE_PUSHER_PORT="${PUSHER_PORT}"
+   VITE_PUSHER_HOST="${PUSHER_HOST}"    # Remove this line entirely to use the cluster host
+   VITE_PUSHER_PORT="${PUSHER_PORT}"    # Remove to fall back to 443 (https) or 80 (http)
    VITE_PUSHER_SCHEME="${PUSHER_SCHEME}"
    VITE_PUSHER_FORCE_TLS="${PUSHER_FORCE_TLS}"
    ```
+
+   ⚠️ **Do not set host/port to blank strings.** Laravel Echo reads the variables directly and will
+   attempt to connect to `ws://:0` if they are present but empty. When you want the defaults,
+   delete the lines from `.env.local` so Vite omits them from the build entirely.
 
 4. **Restart local tooling**
    After editing `.env` and `.env.local`, restart `php artisan serve` and Vite so both processes pick up
