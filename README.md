@@ -182,9 +182,6 @@ Rules with lower `position` values are evaluated first, so place the most specif
 - **Stripe CLI**: When running `stripe listen` locally, export the printed signing secret to `STRIPE_CLI_WEBHOOK_SECRET`
   (or append it to a comma-separated `STRIPE_WEBHOOK_SECRET`). The webhook handler checks both values so you can keep
   your production secret alongside the ephemeral CLI secret without editing `.env` between sessions.
-- **Cashier installation**: The application now depends on the official `laravel/cashier` package. Run `composer install` and
-  publish the vendor migrations via `php artisan vendor:publish --tag="cashier-migrations"` followed by
-  `php artisan migrate` to ensure Cashier's tables (`subscriptions`, `subscription_items`, etc.) are present.
 - **Payment collection**: `/settings/billing` renders Stripe's Payment Element. Users create PaymentMethods client-side and the
   backend finalises subscriptions through Cashier's `newSubscription()->create()` API, including SCA flows. No plain text
   payment method IDs are accepted.
