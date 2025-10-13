@@ -4,6 +4,12 @@ return [
     'default' => value(function () {
         $configuredDriver = env('BROADCAST_CONNECTION');
 
+        $hasPusherCredentials = env('PUSHER_APP_ID') && env('PUSHER_APP_KEY') && env('PUSHER_APP_SECRET');
+
+        if ($configuredDriver === 'pusher' && ! $hasPusherCredentials) {
+            $configuredDriver = null;
+        }
+
         if ($configuredDriver && $configuredDriver !== 'log') {
             return $configuredDriver;
         }
