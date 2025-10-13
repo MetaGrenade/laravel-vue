@@ -35,25 +35,40 @@ return [
             'key' => env('PUSHER_APP_KEY'),
             'secret' => env('PUSHER_APP_SECRET'),
             'app_id' => env('PUSHER_APP_ID'),
-            'options' => [
-                'cluster' => env('PUSHER_APP_CLUSTER'),
-                'host' => env('PUSHER_HOST'),
-                'port' => env('PUSHER_PORT', value(function () {
-                    $scheme = env('PUSHER_SCHEME', 'https');
+            'options' => value(function () {
+                $scheme = env('PUSHER_SCHEME', 'https');
 
-                    return $scheme === 'https' ? 443 : 80;
-                })),
-                'scheme' => env('PUSHER_SCHEME', 'https'),
-                'useTLS' => value(function () {
-                    $forcedTls = env('PUSHER_FORCE_TLS');
+                $options = [
+                    'cluster' => env('PUSHER_APP_CLUSTER'),
+                    'scheme' => $scheme,
+                ];
 
-                    if ($forcedTls === null) {
-                        return env('PUSHER_SCHEME', 'https') === 'https';
-                    }
+                $host = env('PUSHER_HOST');
 
-                    return filter_var($forcedTls, FILTER_VALIDATE_BOOL);
-                }),
-            ],
+                if ($host !== null && $host !== '') {
+                    $options['host'] = $host;
+                }
+
+                $port = env('PUSHER_PORT');
+
+                if ($port === null || $port === '') {
+                    $options['port'] = $scheme === 'https' ? 443 : 80;
+                } else {
+                    $options['port'] = (int) $port;
+                }
+
+                $forcedTls = env('PUSHER_FORCE_TLS');
+
+                if ($scheme !== 'https') {
+                    $options['useTLS'] = false;
+                } elseif ($forcedTls === null || $forcedTls === '') {
+                    $options['useTLS'] = true;
+                } else {
+                    $options['useTLS'] = filter_var($forcedTls, FILTER_VALIDATE_BOOL);
+                }
+
+                return $options;
+            }),
         ],
 
         'ably' => [
