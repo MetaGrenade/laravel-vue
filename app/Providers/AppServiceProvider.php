@@ -7,6 +7,7 @@ use App\Models\ForumPost;
 use App\Models\PersonalAccessToken;
 use App\Policies\BlogPolicy;
 use App\Policies\ForumPostPolicy;
+use App\Support\Billing\SubscriptionManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -19,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(SubscriptionManager::class, fn () => new SubscriptionManager());
     }
 
     /**

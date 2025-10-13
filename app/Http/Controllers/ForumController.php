@@ -11,12 +11,13 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
+use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
-use Illuminate\Support\Carbon;
 use App\Support\Reputation\ReputationManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -581,7 +582,7 @@ class ForumController extends Controller
 
         $initialPost = null;
 
-        DB::transaction(function () use ($board, $user, $title, $slug, $body, $bodyText, &$thread, &$initialPost) {
+        Transaction::run(function () use ($board, $user, $title, $slug, $body, $bodyText, &$thread, &$initialPost) {
             $excerptSource = $bodyText;
 
             $thread = ForumThread::create([

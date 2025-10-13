@@ -10,11 +10,13 @@ use App\Http\Controllers\Admin\SupportTicketCategoryController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TokenController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
+use App\Http\Controllers\Admin\UserSocialAccountController;
 use App\Http\Controllers\Admin\ForumBoardController;
 use App\Http\Controllers\Admin\ForumCategoryController;
 use App\Http\Controllers\Admin\ForumReportController;
 use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\BadgeController;
+use App\Http\Controllers\Admin\BillingController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -32,6 +34,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/users/{user}/ban', [AdminUserController::class, 'ban'])->name('acp.users.ban');
     Route::put('acp/users/{user}/unban', [AdminUserController::class, 'unban'])->name('acp.users.unban');
     Route::patch('acp/users/bulk', [AdminUserController::class, 'bulkUpdate'])->name('acp.users.bulk-update');
+    Route::post('acp/users/{user}/social-accounts', [UserSocialAccountController::class, 'store'])
+        ->name('acp.users.social-accounts.store');
+    Route::delete('acp/users/{user}/social-accounts/{socialAccount}', [UserSocialAccountController::class, 'destroy'])
+        ->name('acp.users.social-accounts.destroy');
 
     // Admin Access Control Management Routes
     Route::get('acp/acl', [AdminACLController::class, 'index'])->name('acp.acl.index');
@@ -171,4 +177,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('acp.blogs.revisions.index');
     Route::put('acp/blogs/{blog}/revisions/{revision}', [AdminBlogController::class, 'restoreRevision'])
         ->name('acp.blogs.revisions.restore');
+});
+
+Route::middleware(['auth', 'can:billing.acp.view'])->group(function () {
+    Route::get('acp/billing/invoices', [BillingController::class, 'invoices'])->name('acp.billing.invoices.index');
 });

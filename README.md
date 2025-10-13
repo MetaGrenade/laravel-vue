@@ -16,6 +16,7 @@ A batteries-included starter kit for building modern Laravel + Vue single-page a
 - **Blog & Previewing**: Public blog listing, tokenized preview links, and authenticated commenting APIs.
 - **Support Center**: Ticket submission, messaging threads, authenticated access to customer conversations, and configurable
   assignment rules so tickets auto-route to the right agents.
+- **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
 - **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
 - **Authentication & Authorization**: Laravel Breeze for authentication plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
 - **Appearance Management**: System/light/dark modes synced between SSR and the client through a reusable composable.
@@ -57,8 +58,8 @@ resources/
    ```bash
    php artisan migrate
    ```
-   The migration set creates the `support_assignment_rules` and `support_ticket_audits` tables used by the support
-   auto-assignment and auditing features.
+   The migration set creates the `support_assignment_rules`, `support_ticket_audits`, and subscription billing tables used by
+   the support operations and Stripe integration features.
 4. **Seed Demo Content (optional)**
    ```bash
    php artisan db:seed --class=ForumDemoSeeder
@@ -68,6 +69,47 @@ resources/
    - Start Laravel: `php artisan serve`
    - Start Vite dev server: `npm run dev`
    - Or run everything (Laravel, queues, and Vite) in one terminal: `composer dev`
+
+## HTTP API & Swagger Docs
+- **Versioned endpoints** live under `/api/v1`. Public consumers can fetch published blog posts and forum threads, while
+  authenticated clients may create personal access tokens and retrieve their profile details.
+- **Token management**: exchange valid web credentials for a Sanctum token using `POST /api/v1/auth/token`, then include the
+  resulting bearer token in the `Authorization` header for protected routes (`GET /api/v1/profile`, `DELETE /api/v1/auth/token`).
+- **Interactive documentation** is available at [`/api/docs`](http://localhost:8000/api/docs) once the Laravel server is
+  running. The page embeds Swagger UI and reads the generated OpenAPI schema from `/api/docs/openapi.json`.
+- **Generate or refresh the OpenAPI schema** with `php artisan api:docs`. The command writes the latest description to
+  `storage/app/api-docs/openapi.json`, which the Swagger UI consumes.
+
+## OAuth & Social Login
+The starter ships with first-party integrations for Google, Discord, and Steam built on top of the custom OAuth service layer under `app/Support/OAuth`. Configure each provider before attempting to sign in or link identities.
+
+1. **Register credentials with each provider**
+    - Create a Google OAuth client and enable the People API.
+    - Configure a Discord application with the `identify` and `email` scopes enabled.
+    - Generate a Steam Web API key from the Steam partner portal.
+
+2. **Update environment variables**
+   Edit your `.env` file and paste the provider credentials. Callback URLs default to `${APP_URL}/auth/oauth/{provider}/callback` so you can reuse the same redirect across environments.
+   ```ini
+   GOOGLE_CLIENT_ID=...
+   GOOGLE_CLIENT_SECRET=...
+   GOOGLE_REDIRECT_URI="${APP_URL}/auth/oauth/google/callback"
+   DISCORD_CLIENT_ID=...
+   DISCORD_CLIENT_SECRET=...
+   DISCORD_REDIRECT_URI="${APP_URL}/auth/oauth/discord/callback"
+   STEAM_API_KEY=...
+   STEAM_REDIRECT_URI="${APP_URL}/auth/oauth/steam/callback"
+   ```
+
+3. **Verify service configuration**
+   The provider credentials are consumed through `config/services.php`, so the application can resolve tokens during the OAuth handshake. Custom providers are registered via `App\Providers\OAuthServiceProvider` and exposed through `/auth/oauth/{provider}/redirect` and `/auth/oauth/{provider}/callback` routes handled by `SocialLoginController`.
+
+4. **Linking identities**
+    - **End users** can link or unlink accounts from the security settings screen at `/settings/security`, which calls the `settings.security.social` routes.
+    - **Administrators** can assign provider identities while editing a user in the ACP (`/acp/users/{id}/edit`). The controller reuses existing rows per provider and protects against attaching IDs that are already linked to other accounts.
+
+5. **Steam return URL requirements**
+   Steam expects an exact match for the return URL. If you deploy the application to a different host name, update `STEAM_REDIRECT_URI` accordingly and add the domain in the Steam partner dashboard to avoid 403 responses during the handshake.
 
 ## Daily Development Workflow
 - **SPA Bootstrapping**: `resources/js/app.ts` registers Inertia, Ziggy, and the global progress indicator while invoking theme initialization for light/dark support.
@@ -92,6 +134,8 @@ resources/
 - **Support ticket routes** provide authenticated creation, viewing, and messaging flows for end-users. Ticket creation in both
   the public portal and Admin Control Panel automatically runs through the Support Assignment Rules engine.
 - **Blog previews** use signed tokens so editors can review drafts before publishing.
+- **Billing settings** live under `/settings/billing` and expose plan selection, payment method updates, invoices, and
+  cancellation flows for authenticated customers. ACP users can review invoices at `/acp/billing/invoices`.
 
 ### Account Security
 - **Security settings**: Manage active browser sessions, enable time-based one-time password (TOTP) multi-factor authentication,
@@ -130,6 +174,32 @@ php artisan tinker
 ... ]);
 ```
 Rules with lower `position` values are evaluated first, so place the most specific rules near the top of the list.
+
+### Billing & Subscription Management
+- **Stripe credentials**: Populate `STRIPE_KEY`, `STRIPE_SECRET`, and `STRIPE_WEBHOOK_SECRET` in `.env`. Map each
+  `subscription_plans` record to the correct Stripe Price ID via `config/billing.php` (or a seeder override) so subscriptions
+  bill against real products.
+- **Stripe CLI**: When running `stripe listen` locally, export the printed signing secret to `STRIPE_CLI_WEBHOOK_SECRET`
+  (or append it to a comma-separated `STRIPE_WEBHOOK_SECRET`). The webhook handler checks both values so you can keep
+  your production secret alongside the ephemeral CLI secret without editing `.env` between sessions.
+- **Payment collection**: `/settings/billing` renders Stripe's Payment Element. Users create PaymentMethods client-side and the
+  backend finalises subscriptions through Cashier's `newSubscription()->create()` API, including SCA flows. No plain text
+  payment method IDs are accepted.
+- **Webhooks**: Stripe should forward events (e.g., `invoice.payment_succeeded`, `customer.subscription.deleted`) to
+  `/stripe/webhook`. Use the Stripe CLI during development:
+
+  ```bash
+  stripe listen --forward-to http://localhost:8000/stripe/webhook \
+    --events invoice.payment_succeeded,invoice.payment_failed,customer.subscription.deleted
+  ```
+
+  Webhook payloads are persisted to `billing_webhook_calls` for auditing, and the handler reconciles invoices in
+  `billing_invoices`.
+- **Testing fixtures**: Sample webhook JSON lives in `tests/Fixtures/stripe/`. Feature tests under
+  `tests/Feature/Webhooks/StripeWebhookTest.php` exercise invoice and subscription webhook flows. Use Stripe's test keys when
+  exercising end-to-end subscription flows locally.
+- **Queues & jobs**: Webhook handling and subscription updates rely on queued jobs. Ensure `queue:listen` (or a Supervisor job)
+  is running in development and production so invoice syncing happens promptly.
 
 ## Testing & Quality
 - **PHPUnit**: `php artisan test` or `./vendor/bin/phpunit`

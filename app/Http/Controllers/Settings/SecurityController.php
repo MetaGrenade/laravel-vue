@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Support\Localization\DateFormatter;
+use App\Support\OAuth\ProviderRegistry;
 use App\Support\Security\TwoFactorAuthenticator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -19,7 +20,7 @@ class SecurityController extends Controller
      */
     public function edit(Request $request): Response
     {
-        $user = $request->user();
+        $user = $request->user()->loadMissing('socialAccounts');
 
         $formatter = DateFormatter::for($user);
 
@@ -59,6 +60,35 @@ class SecurityController extends Controller
             }
         }
 
+        $socialAccounts = $user->socialAccounts
+            ->sortBy('provider')
+            ->values()
+            ->map(function ($account) use ($formatter) {
+                return [
+                    'id' => $account->id,
+                    'provider' => $account->provider,
+                    'provider_id' => $account->provider_id,
+                    'name' => $account->name,
+                    'nickname' => $account->nickname,
+                    'email' => $account->email,
+                    'avatar' => $account->avatar,
+                    'linked_at' => $formatter->iso($account->created_at),
+                    'updated_at' => $formatter->iso($account->updated_at),
+                ];
+            })
+            ->all();
+
+        $providers = collect(ProviderRegistry::all())
+            ->map(function ($meta, $key) {
+                return [
+                    'key' => $key,
+                    'label' => $meta['label'] ?? ucfirst($key),
+                    'description' => $meta['description'] ?? null,
+                ];
+            })
+            ->values()
+            ->all();
+
         return Inertia::render('settings/Security', [
             'sessions' => $sessions,
             'twoFactorEnabled' => ! is_null($user->two_factor_secret),
@@ -67,6 +97,8 @@ class SecurityController extends Controller
             'qrCodeUrl' => $qrCodeUrl,
             'recoveryCodes' => $recoveryCodes,
             'status' => $request->session()->get('status'),
+            'socialAccounts' => $socialAccounts,
+            'availableSocialProviders' => $providers,
         ]);
     }
 }
