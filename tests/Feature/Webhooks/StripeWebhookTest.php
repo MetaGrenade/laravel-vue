@@ -34,6 +34,37 @@ class StripeWebhookTest extends TestCase
         return "t={$timestamp},v1={$signature}";
     }
 
+    public function test_invoice_payment_succeeded_webhook_persists_invoice_details(): void
+    {
+        config([
+            'cashier.webhook.secret' => 'whsec_test',
+            'cashier.webhook.cli_secret' => null,
+        ]);
+
+        SubscriptionPlan::factory()->create(['stripe_price_id' => 'price_starter']);
+        $user = User::factory()->create(['stripe_id' => 'cus_test123']);
+
+        $payload = $this->stripeFixture('invoice_payment_succeeded');
+
+        $response = $this->postJson(
+            route('stripe.webhook'),
+            $payload,
+            ['Stripe-Signature' => $this->stripeSignatureHeader($payload, 'whsec_test')]
+        );
+
+        $response->assertOk();
+
+        $invoice = BillingInvoice::firstWhere('stripe_id', 'in_test_paid');
+
+        $this->assertNotNull($invoice);
+        $this->assertSame('paid', $invoice->status);
+        $this->assertSame($user->id, $invoice->user_id);
+        $this->assertSame(1737072000, $invoice->paid_at?->timestamp);
+
+        $webhook = BillingWebhookCall::firstWhere('stripe_id', 'evt_test_succeeded');
+        $this->assertNotNull($webhook);
+    }
+
     public function test_invoice_payment_failed_webhook_persists_invoice_details(): void
     {
         config([
