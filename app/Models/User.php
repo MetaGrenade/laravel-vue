@@ -184,6 +184,8 @@ class User extends Authenticatable implements MustVerifyEmail
         $settings = $this->notificationSettings->firstWhere('category', $category);
 
         $channels = [];
+        $mailAdded = false;
+        $broadcastAdded = false;
 
         foreach ($allowedChannels as $channel) {
             if (! isset($channelConfig[$channel])) {
@@ -197,7 +199,21 @@ class User extends Authenticatable implements MustVerifyEmail
                 continue;
             }
 
-            if ($channel === 'mail' && ! $this->hasVerifiedEmail()) {
+            if ($channel === 'mail') {
+                if (! $this->hasVerifiedEmail()) {
+                    continue;
+                }
+
+                $channels[] = 'mail';
+                $mailAdded = true;
+
+                continue;
+            }
+
+            if ($channel === 'push') {
+                $channels[] = 'broadcast';
+                $broadcastAdded = true;
+
                 continue;
             }
 

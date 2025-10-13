@@ -5,8 +5,10 @@ namespace App\Notifications;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\User;
+use App\Notifications\Concerns\SendsBroadcastsSynchronously;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
@@ -14,6 +16,7 @@ use Illuminate\Support\Str;
 class TicketReplied extends Notification implements ShouldQueue
 {
     use Queueable;
+    use SendsBroadcastsSynchronously;
 
     /**
      * @param array<int, string> $channels
@@ -22,7 +25,7 @@ class TicketReplied extends Notification implements ShouldQueue
         protected SupportTicket $ticket,
         protected SupportTicketMessage $message,
         protected string $audience = 'owner',
-        protected array $channels = ['mail', 'database'],
+        protected array $channels = ['mail', 'database', 'push'],
     ) {
         $this->message->setRelation('ticket', $this->ticket);
         $this->message->loadMissing('author');
@@ -30,7 +33,10 @@ class TicketReplied extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $this->channels;
+        return array_map(
+            static fn (string $channel) => $channel === 'push' ? 'broadcast' : $channel,
+            $this->channels,
+        );
     }
 
     public function viaQueues(): array
@@ -38,6 +44,7 @@ class TicketReplied extends Notification implements ShouldQueue
         return [
             'mail' => 'mail',
             'database' => 'default',
+            'broadcast' => 'default',
         ];
     }
 
@@ -84,18 +91,12 @@ class TicketReplied extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
-        return [
-            'ticket_id' => $this->ticket->id,
-            'ticket_subject' => $this->ticket->subject,
-            'message_id' => $this->message->id,
-            'message_author_id' => $this->message->user_id,
-            'message_author_name' => $this->authorName(),
-            'audience' => $this->audience,
-            'title' => $this->title(),
-            'thread_title' => $this->title(),
-            'excerpt' => $this->databaseExcerpt(),
-            'url' => $this->conversationUrlFor($notifiable),
-        ];
+        return $this->payload($notifiable);
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->payload($notifiable));
     }
 
     /**
@@ -113,6 +114,26 @@ class TicketReplied extends Notification implements ShouldQueue
         $this->audience = $audience;
 
         return $this;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function payload(object $notifiable): array
+    {
+        return [
+            'ticket_id' => $this->ticket->id,
+            'ticket_subject' => $this->ticket->subject,
+            'message_id' => $this->message->id,
+            'message_author_id' => $this->message->user_id,
+            'message_author_name' => $this->authorName(),
+            'audience' => $this->audience,
+            'title' => $this->title(),
+            'thread_title' => $this->title(),
+            'excerpt' => $this->databaseExcerpt(),
+            'url' => $this->conversationUrlFor($notifiable),
+            'created_at' => optional($this->message->created_at)->toIso8601String(),
+        ];
     }
 
     protected function title(): string

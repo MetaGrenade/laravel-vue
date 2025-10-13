@@ -4,8 +4,10 @@ namespace App\Notifications;
 
 use App\Models\ForumPost;
 use App\Models\ForumThread;
+use App\Notifications\Concerns\SendsBroadcastsSynchronously;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
@@ -13,6 +15,7 @@ use Illuminate\Support\Str;
 class ForumThreadUpdated extends Notification implements ShouldQueue
 {
     use Queueable;
+    use SendsBroadcastsSynchronously;
 
     /**
      * @param array<int, string> $channels
@@ -20,14 +23,17 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
     public function __construct(
         protected ForumThread $thread,
         protected ForumPost $post,
-        protected array $channels = ['mail', 'database'],
+        protected array $channels = ['mail', 'database', 'push'],
     ) {
         $this->thread->setRelation('latestPost', $this->post);
     }
 
     public function via(object $notifiable): array
     {
-        return $this->channels;
+        return array_map(
+            static fn (string $channel) => $channel === 'push' ? 'broadcast' : $channel,
+            $this->channels,
+        );
     }
 
     public function viaQueues(): array
@@ -35,6 +41,7 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
         return [
             'mail' => 'mail',
             'database' => 'default',
+            'broadcast' => 'default',
         ];
     }
 
@@ -57,18 +64,12 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
-        $excerpt = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($this->post->body)) ?? ''), 140);
+        return $this->payload();
+    }
 
-        return [
-            'thread_id' => $this->thread->id,
-            'thread_title' => $this->thread->title,
-            'post_id' => $this->post->id,
-            'excerpt' => $excerpt,
-            'url' => route('forum.threads.show', [
-                'board' => $this->thread->board?->slug ?? $this->thread->board->slug,
-                'thread' => $this->thread->slug,
-            ]) . '#post-' . $this->post->id,
-        ];
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->payload());
     }
 
     /**
@@ -82,5 +83,27 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
         $clone->channels = $channels;
 
         return $clone;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function payload(): array
+    {
+        $excerpt = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($this->post->body)) ?? ''), 140);
+        $title = 'New reply in "' . $this->thread->title . '"';
+
+        return [
+            'thread_id' => $this->thread->id,
+            'thread_title' => $this->thread->title,
+            'post_id' => $this->post->id,
+            'excerpt' => $excerpt,
+            'title' => $title,
+            'url' => route('forum.threads.show', [
+                'board' => $this->thread->board?->slug ?? $this->thread->board->slug,
+                'thread' => $this->thread->slug,
+            ]) . '#post-' . $this->post->id,
+            'created_at' => optional($this->post->created_at)->toIso8601String(),
+        ];
     }
 }

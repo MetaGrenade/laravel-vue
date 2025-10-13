@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -73,7 +74,23 @@ class GenerateUserDataExport implements ShouldQueue
 
             $notification = new UserDataExportReady($export);
 
-            $user->notifyThroughPreferences($notification, 'privacy', ['database', 'mail']);
+            $channels = $user->preferredNotificationChannelsFor('privacy', ['database', 'mail', 'push']);
+
+            if (in_array('mail', $channels, true) && ! in_array('broadcast', $channels, true)) {
+                $channels[] = 'broadcast';
+            }
+
+            $databaseChannels = array_values(array_intersect($channels, ['database']));
+
+            if ($databaseChannels !== []) {
+                Notification::sendNow($user, $notification->withChannels($databaseChannels));
+            }
+
+            $remainingChannels = array_values(array_diff($channels, ['database']));
+
+            if ($remainingChannels !== []) {
+                Notification::send($user, $notification->withChannels($remainingChannels));
+            }
         } catch (Throwable $exception) {
             $export->update([
                 'status' => DataExport::STATUS_FAILED,

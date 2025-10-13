@@ -157,7 +157,10 @@ class DataExportTest extends TestCase
         });
 
         Notification::assertSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) use ($user, $export) {
-            if ($channels !== ['mail']) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            if ($sortedChannels !== ['broadcast', 'mail']) {
                 return false;
             }
 
@@ -208,10 +211,14 @@ class DataExportTest extends TestCase
         $job = new GenerateUserDataExport($export->id);
         $job->handle();
 
-        Notification::assertSentToTimes($user, UserDataExportReady::class, 1);
+        Notification::assertSentToTimes($user, UserDataExportReady::class, 2);
 
         Notification::assertSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) {
             return $channels === ['database'];
+        });
+
+        Notification::assertSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) {
+            return $channels === ['broadcast'];
         });
 
         Notification::assertNotSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) {
@@ -331,7 +338,10 @@ class DataExportTest extends TestCase
         Notification::assertSentToTimes($user, UserDataExportReady::class, 1);
 
         Notification::assertSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) use ($user) {
-            if ($channels !== ['mail']) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            if ($sortedChannels !== ['broadcast', 'mail']) {
                 return false;
             }
 

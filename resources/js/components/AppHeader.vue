@@ -17,10 +17,19 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
+import { getEcho } from '@/lib/echo';
 import type { BreadcrumbItem, NavItem, NotificationItem, SharedData, User } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { BookOpen, Folder, LayoutGrid, Menu, Search, Megaphone, Shield, LifeBuoy, Bell, Check, Trash2 } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+
+interface BroadcastNotificationPayload {
+    id: string;
+    type: string;
+    data?: Record<string, unknown>;
+    created_at?: string;
+    read_at?: string | null;
+}
 
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
@@ -33,9 +42,15 @@ const props = withDefaults(defineProps<Props>(), {
 const page = usePage<SharedData>();
 const user = computed<User | undefined>(() => page.props.auth?.user ?? undefined);
 
-const notifications = computed<NotificationItem[]>(() => page.props.notifications?.items ?? []);
-const unreadNotificationCount = computed(() => page.props.notifications?.unread_count ?? 0);
-const notificationsHasMore = computed(() => page.props.notifications?.has_more ?? false);
+const notificationsState = reactive({
+    items: [] as NotificationItem[],
+    unreadCount: 0,
+    hasMore: false,
+});
+
+const notifications = computed<NotificationItem[]>(() => notificationsState.items);
+const unreadNotificationCount = computed(() => notificationsState.unreadCount);
+const notificationsHasMore = computed(() => notificationsState.hasMore);
 
 const notificationProcessingIds = ref<Set<string>>(new Set());
 const markAllProcessing = ref(false);
@@ -67,12 +82,105 @@ const handleSearchShortcut = (event: KeyboardEvent) => {
     }
 };
 
+const synchroniseNotifications = () => {
+    const bag = page.props.notifications;
+
+    notificationsState.items = (bag?.items ?? []).slice();
+    notificationsState.unreadCount = bag?.unread_count ?? 0;
+    notificationsState.hasMore = bag?.has_more ?? false;
+};
+
+const handleIncomingNotification = (notification: BroadcastNotificationPayload) => {
+    if (!notification?.id) {
+        return;
+    }
+
+    const data = (notification.data ?? {}) as Record<string, unknown>;
+    const createdAt = notification.created_at ?? new Date().toISOString();
+    const titleCandidate = typeof data.title === 'string' ? data.title : undefined;
+    const fallbackTitle = typeof data.thread_title === 'string' ? String(data.thread_title) : 'Notification';
+
+    const item: NotificationItem = {
+        id: notification.id,
+        type: notification.type,
+        title: titleCandidate ?? fallbackTitle,
+        excerpt: typeof data.excerpt === 'string' ? data.excerpt : null,
+        url: typeof data.url === 'string' ? data.url : null,
+        data,
+        created_at: createdAt,
+        created_at_for_humans: 'Just now',
+        read_at: notification.read_at ?? null,
+    };
+
+    const existing = notificationsState.items.filter((candidate) => candidate.id !== item.id);
+    notificationsState.items = [item, ...existing].slice(0, 10);
+    notificationsState.unreadCount = notificationsState.unreadCount + 1;
+    notificationsState.hasMore = notificationsState.unreadCount > notificationsState.items.length;
+};
+
+let notificationChannelName: string | null = null;
+
+const leaveNotificationChannel = () => {
+    if (!notificationChannelName) {
+        return;
+    }
+
+    const echo = getEcho();
+
+    if (echo) {
+        echo.leave(notificationChannelName);
+    }
+
+    notificationChannelName = null;
+};
+
+const subscribeToNotificationChannel = () => {
+    const echo = getEcho();
+    const currentUser = user.value;
+
+    if (!echo || !currentUser) {
+        leaveNotificationChannel();
+        return;
+    }
+
+    const channelName = `private-App.Models.User.${currentUser.id}`;
+
+    if (notificationChannelName === channelName) {
+        return;
+    }
+
+    leaveNotificationChannel();
+
+    notificationChannelName = channelName;
+
+    echo.private(channelName).notification((notification: BroadcastNotificationPayload) => {
+        handleIncomingNotification(notification);
+    });
+};
+
+watch(
+    () => page.props.notifications,
+    () => {
+        synchroniseNotifications();
+    },
+    { immediate: true, deep: true },
+);
+
+watch(
+    () => user.value?.id,
+    () => {
+        subscribeToNotificationChannel();
+    },
+);
+
 onMounted(() => {
     window.addEventListener('keydown', handleSearchShortcut);
+    subscribeToNotificationChannel();
 });
 
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleSearchShortcut);
+    leaveNotificationChannel();
 });
 
 const mainNavItems: NavItem[] = [

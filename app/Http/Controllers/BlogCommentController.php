@@ -84,7 +84,7 @@ class BlogCommentController extends Controller
             $notification = new BlogCommentPosted($blog, $comment);
 
             $recipients->each(function (User $recipient) use ($notification): void {
-                $recipient->notifyThroughPreferences($notification, 'blogs', ['database', 'mail']);
+                $recipient->notifyThroughPreferences($notification, 'blogs', ['database', 'mail', 'push']);
             });
         }
 

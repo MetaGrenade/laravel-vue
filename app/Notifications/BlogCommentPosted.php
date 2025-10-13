@@ -4,8 +4,10 @@ namespace App\Notifications;
 
 use App\Models\Blog;
 use App\Models\BlogComment;
+use App\Notifications\Concerns\SendsBroadcastsSynchronously;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
@@ -13,6 +15,7 @@ use Illuminate\Support\Str;
 class BlogCommentPosted extends Notification implements ShouldQueue
 {
     use Queueable;
+    use SendsBroadcastsSynchronously;
 
     /**
      * @param array<int, string> $channels
@@ -20,7 +23,7 @@ class BlogCommentPosted extends Notification implements ShouldQueue
     public function __construct(
         protected Blog $blog,
         protected BlogComment $comment,
-        protected array $channels = ['mail', 'database'],
+        protected array $channels = ['mail', 'database', 'push'],
     ) {
         $this->comment->setRelation('blog', $this->blog);
         $this->comment->loadMissing('user:id,nickname');
@@ -28,7 +31,10 @@ class BlogCommentPosted extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $this->channels;
+        return array_map(
+            static fn (string $channel) => $channel === 'push' ? 'broadcast' : $channel,
+            $this->channels,
+        );
     }
 
     public function viaQueues(): array
@@ -36,6 +42,7 @@ class BlogCommentPosted extends Notification implements ShouldQueue
         return [
             'mail' => 'mail',
             'database' => 'default',
+            'broadcast' => 'default',
         ];
     }
 
@@ -56,6 +63,32 @@ class BlogCommentPosted extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
+        return $this->payload();
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->payload());
+    }
+
+    /**
+     * Limit the notification delivery channels.
+     *
+     * @param array<int, string> $channels
+     */
+    public function withChannels(array $channels): self
+    {
+        $clone = clone $this;
+        $clone->channels = $channels;
+
+        return $clone;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function payload(): array
+    {
         $commentAuthor = $this->commentAuthor();
         $excerpt = $this->commentExcerpt();
         $url = $this->commentUrl();
@@ -73,20 +106,8 @@ class BlogCommentPosted extends Notification implements ShouldQueue
             'thread_title' => $title,
             'excerpt' => Str::limit($excerptLine, 180),
             'url' => $url,
+            'created_at' => optional($this->comment->created_at)->toIso8601String(),
         ];
-    }
-
-    /**
-     * Limit the notification delivery channels.
-     *
-     * @param array<int, string> $channels
-     */
-    public function withChannels(array $channels): self
-    {
-        $clone = clone $this;
-        $clone->channels = $channels;
-
-        return $clone;
     }
 
     protected function commentExcerpt(int $limit = 140): string

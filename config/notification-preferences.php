@@ -8,8 +8,8 @@ return [
             'default' => true,
         ],
         'push' => [
-            'label' => 'Push',
-            'description' => 'Receive push notifications on supported devices.',
+            'label' => 'Browser alerts',
+            'description' => 'Receive real-time notifications while you are signed in.',
             'default' => true,
         ],
         'database' => [

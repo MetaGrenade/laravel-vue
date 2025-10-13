@@ -4,8 +4,10 @@ namespace App\Notifications;
 
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Notifications\Concerns\SendsBroadcastsSynchronously;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
@@ -13,6 +15,7 @@ use Illuminate\Support\Str;
 class TicketStatusUpdated extends Notification implements ShouldQueue
 {
     use Queueable;
+    use SendsBroadcastsSynchronously;
 
     /**
      * @param  array<int, string>  $channels
@@ -21,13 +24,16 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
         protected SupportTicket $ticket,
         protected string $previousStatus,
         protected string $audience = 'owner',
-        protected array $channels = ['mail', 'database'],
+        protected array $channels = ['mail', 'database', 'push'],
     ) {
     }
 
     public function via(object $notifiable): array
     {
-        return $this->channels;
+        return array_map(
+            static fn (string $channel) => $channel === 'push' ? 'broadcast' : $channel,
+            $this->channels,
+        );
     }
 
     public function viaQueues(): array
@@ -35,6 +41,7 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
         return [
             'mail' => 'mail',
             'database' => 'default',
+            'broadcast' => 'default',
         ];
     }
 
@@ -73,17 +80,12 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
-        return [
-            'ticket_id' => $this->ticket->id,
-            'ticket_subject' => $this->ticket->subject,
-            'audience' => $this->audience,
-            'previous_status' => $this->previousStatus,
-            'status' => $this->ticket->status,
-            'title' => $this->title(),
-            'thread_title' => $this->title(),
-            'excerpt' => $this->statusLine(),
-            'url' => $this->conversationUrlFor($notifiable),
-        ];
+        return $this->payload($notifiable);
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->payload($notifiable));
     }
 
     /**
@@ -103,6 +105,25 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
         $clone->audience = $audience;
 
         return $clone;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function payload(object $notifiable): array
+    {
+        return [
+            'ticket_id' => $this->ticket->id,
+            'ticket_subject' => $this->ticket->subject,
+            'audience' => $this->audience,
+            'previous_status' => $this->previousStatus,
+            'status' => $this->ticket->status,
+            'title' => $this->title(),
+            'thread_title' => $this->title(),
+            'excerpt' => $this->statusLine(),
+            'url' => $this->conversationUrlFor($notifiable),
+            'created_at' => optional($this->ticket->updated_at ?? $this->ticket->created_at)->toIso8601String(),
+        ];
     }
 
     protected function conversationUrlFor(object $notifiable): string
