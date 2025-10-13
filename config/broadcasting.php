@@ -20,6 +20,8 @@ return [
             return $configuredDriver ?: 'log';
         }
 
+        $hasPusherCredentials = env('PUSHER_APP_ID') && env('PUSHER_APP_KEY') && env('PUSHER_APP_SECRET');
+
         if ($hasPusherCredentials) {
             return 'pusher';
         }
