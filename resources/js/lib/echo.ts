@@ -52,7 +52,10 @@ const createEchoInstance = (): Echo | null => {
     const scheme = (import.meta.env.VITE_PUSHER_SCHEME as string | undefined) ?? 'https';
     const portValue = import.meta.env.VITE_PUSHER_PORT as string | undefined;
     const port = Number(portValue ?? (scheme === 'https' ? 443 : 80));
-    const forceTls = booleanEnv(import.meta.env.VITE_PUSHER_FORCE_TLS) || scheme === 'https';
+    const forceTlsEnv = import.meta.env.VITE_PUSHER_FORCE_TLS;
+    const forceTls = forceTlsEnv === undefined
+        ? scheme === 'https'
+        : booleanEnv(forceTlsEnv);
     const csrfToken = getCsrfToken();
 
     return new Echo({

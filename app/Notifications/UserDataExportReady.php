@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\DataExport;
+use App\Notifications\Concerns\SendsBroadcastsSynchronously;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\URL;
 class UserDataExportReady extends Notification implements ShouldQueue
 {
     use Queueable;
+    use SendsBroadcastsSynchronously;
 
     protected ?string $downloadUrl = null;
 

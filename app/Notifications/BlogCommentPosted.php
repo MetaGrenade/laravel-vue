@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Blog;
 use App\Models\BlogComment;
+use App\Notifications\Concerns\SendsBroadcastsSynchronously;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
@@ -14,6 +15,7 @@ use Illuminate\Support\Str;
 class BlogCommentPosted extends Notification implements ShouldQueue
 {
     use Queueable;
+    use SendsBroadcastsSynchronously;
 
     /**
      * @param array<int, string> $channels
