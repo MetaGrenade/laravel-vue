@@ -70,6 +70,57 @@ resources/
    - Start Vite dev server: `npm run dev`
    - Or run everything (Laravel, queues, and Vite) in one terminal: `composer dev`
 
+### Realtime Broadcasting & Pusher Setup
+The starter comes pre-wired for private and presence channels using Laravel Echo and Pusher. If Pusher
+credentials are missing the app safely falls back to the log broadcaster, so broadcasts will still
+dispatch but nothing will be pushed to clients. To enable realtime notifications:
+
+1. **Create a Pusher app**
+   - [Sign in to Pusher Channels](https://dashboard.pusher.com/) and create an app that matches your
+     development region.
+   - Copy the **App ID**, **Key**, **Secret**, and **Cluster** values.
+
+2. **Configure backend environment variables**
+   Update the `.env` file with the credentials you copied. Optional values let you point to a Pusher
+   compatible service or self-hosted stack.
+   ```ini
+   BROADCAST_CONNECTION=pusher
+   PUSHER_APP_ID=your-app-id
+   PUSHER_APP_KEY=your-app-key
+   PUSHER_APP_SECRET=your-app-secret
+   PUSHER_APP_CLUSTER=mt1        # Change if your app uses a different cluster
+   PUSHER_HOST=                  # Set when using a custom host (e.g. laravel-websockets)
+   PUSHER_PORT=                  # Defaults to 443 for https / 80 for http when left blank
+   PUSHER_SCHEME=https           # Set to http when tunneling over plain websockets
+   PUSHER_FORCE_TLS=true         # Override when terminating TLS elsewhere
+   PUSHER_VERIFY_SSL=true        # Disable only when using self-signed certificates in dev
+   # PUSHER_CA_BUNDLE=/path/to/cacert.pem
+   ```
+   The `config/broadcasting.php` helper will automatically coerce ports, TLS flags, and certificate
+   verification settings based on these values.
+
+3. **Sync frontend Vite environment variables**
+   Echo reads matching `VITE_` variables in `resources/js/lib/echo.ts`. Mirror the backend values so
+   the client can connect to the same websocket endpoint.
+   ```ini
+   VITE_BROADCAST_DRIVER=pusher
+   VITE_PUSHER_APP_KEY="${PUSHER_APP_KEY}"
+   VITE_PUSHER_APP_CLUSTER="${PUSHER_APP_CLUSTER}"
+   VITE_PUSHER_HOST="${PUSHER_HOST}"    # Remove this line entirely to use the cluster host
+   VITE_PUSHER_PORT="${PUSHER_PORT}"    # Remove to fall back to 443 (https) or 80 (http)
+   VITE_PUSHER_SCHEME="${PUSHER_SCHEME}"
+   VITE_PUSHER_FORCE_TLS="${PUSHER_FORCE_TLS}"
+   ```
+
+   ⚠️ **Do not set host/port to blank strings.** Laravel Echo reads the variables directly and will
+   attempt to connect to `ws://:0` if they are present but empty. When you want the defaults,
+   delete the lines from `.env.local` so Vite omits them from the build entirely.
+
+4. **Restart local tooling**
+   After editing `.env` and `.env.local`, restart `php artisan serve` and Vite so both processes pick up
+   the changes. New private channel subscriptions will now authenticate through `/broadcasting/auth`
+   and emit toast notifications in realtime.
+
 ## HTTP API & Swagger Docs
 - **Versioned endpoints** live under `/api/v1`. Public consumers can fetch published blog posts and forum threads, while
   authenticated clients may create personal access tokens and retrieve their profile details.
