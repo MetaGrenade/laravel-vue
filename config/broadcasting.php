@@ -1,7 +1,27 @@
 <?php
 
 return [
-    'default' => env('BROADCAST_CONNECTION', 'log'),
+    'default' => value(function () {
+        $configuredDriver = env('BROADCAST_CONNECTION');
+
+        if ($configuredDriver && $configuredDriver !== 'log') {
+            return $configuredDriver;
+        }
+
+        $forceLog = filter_var(env('BROADCAST_FORCE_LOG', false), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+
+        if ($forceLog === true) {
+            return $configuredDriver ?: 'log';
+        }
+
+        $hasPusherCredentials = env('PUSHER_APP_ID') && env('PUSHER_APP_KEY') && env('PUSHER_APP_SECRET');
+
+        if ($hasPusherCredentials) {
+            return 'pusher';
+        }
+
+        return $configuredDriver ?: 'log';
+    }),
 
     'connections' => [
         'pusher' => [
@@ -12,9 +32,21 @@ return [
             'options' => [
                 'cluster' => env('PUSHER_APP_CLUSTER'),
                 'host' => env('PUSHER_HOST'),
-                'port' => env('PUSHER_PORT', 443),
+                'port' => env('PUSHER_PORT', value(function () {
+                    $scheme = env('PUSHER_SCHEME', 'https');
+
+                    return $scheme === 'https' ? 443 : 80;
+                })),
                 'scheme' => env('PUSHER_SCHEME', 'https'),
-                'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
+                'useTLS' => value(function () {
+                    $forcedTls = env('PUSHER_FORCE_TLS');
+
+                    if ($forcedTls === null) {
+                        return env('PUSHER_SCHEME', 'https') === 'https';
+                    }
+
+                    return filter_var($forcedTls, FILTER_VALIDATE_BOOL);
+                }),
             ],
         ],
 
