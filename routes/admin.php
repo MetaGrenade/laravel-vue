@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\ForumReportController;
 use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BillingController;
+use App\Http\Controllers\Admin\SubscriptionPlanController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -179,6 +180,16 @@ Route::middleware(['auth'])->group(function () {
         ->name('acp.blogs.revisions.restore');
 });
 
-Route::middleware(['auth', 'can:billing.acp.view'])->group(function () {
-    Route::get('acp/billing/invoices', [BillingController::class, 'invoices'])->name('acp.billing.invoices.index');
-});
+Route::middleware(['auth', 'can:billing.acp.view'])
+    ->prefix('acp/billing')
+    ->name('acp.billing.')
+    ->group(function () {
+        Route::get('invoices', [BillingController::class, 'invoices'])->name('invoices.index');
+
+        Route::get('plans', [SubscriptionPlanController::class, 'index'])->name('plans.index');
+        Route::get('plans/create', [SubscriptionPlanController::class, 'create'])->name('plans.create');
+        Route::post('plans', [SubscriptionPlanController::class, 'store'])->name('plans.store');
+        Route::get('plans/{plan}/edit', [SubscriptionPlanController::class, 'edit'])->name('plans.edit');
+        Route::put('plans/{plan}', [SubscriptionPlanController::class, 'update'])->name('plans.update');
+        Route::delete('plans/{plan}', [SubscriptionPlanController::class, 'destroy'])->name('plans.destroy');
+    });
