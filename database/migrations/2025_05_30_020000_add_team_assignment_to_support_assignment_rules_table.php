@@ -8,15 +8,6 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('support_assignment_rules', function (Blueprint $table) {
-            $table->string('assignee_type', 20)->default('user')->after('priority');
-            $table->foreignId('support_team_id')
-                ->nullable()
-                ->after('assigned_to')
-                ->constrained('support_teams')
-                ->nullOnDelete();
-        });
-
         $driver = Schema::getConnection()->getDriverName();
 
         if ($driver === 'sqlite') {
@@ -68,6 +59,15 @@ return new class extends Migration {
 
             return;
         }
+
+        Schema::table('support_assignment_rules', function (Blueprint $table) {
+            $table->string('assignee_type', 20)->default('user')->after('priority');
+            $table->foreignId('support_team_id')
+                ->nullable()
+                ->after('assigned_to')
+                ->constrained('support_teams')
+                ->nullOnDelete();
+        });
 
         if ($driver === 'pgsql') {
             DB::statement('ALTER TABLE support_assignment_rules ALTER COLUMN assigned_to DROP NOT NULL');
