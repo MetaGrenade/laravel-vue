@@ -18,6 +18,16 @@ class DataErasureRequest extends Model
     /**
      * @var list<string>
      */
+    public const STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_PROCESSING,
+        self::STATUS_COMPLETED,
+        self::STATUS_REJECTED,
+    ];
+
+    /**
+     * @var list<string>
+     */
     protected $fillable = [
         'user_id',
         'status',
