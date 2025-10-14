@@ -1079,38 +1079,72 @@ const unpublishFaq = (faq: FaqItem) => {
                                     </div>
                                 </div>
                                 <div class="flex flex-col gap-2 md:w-auto md:flex-row md:items-center md:justify-end md:gap-2">
-                                    <Link
-                                        v-if="manageSupportTemplates"
-                                        :href="route('acp.support.templates.index')"
+                                    <DropdownMenu
+                                        v-if="
+                                            manageSupportTemplates ||
+                                            manageSupportAssignmentRules ||
+                                            manageSupportTeams ||
+                                            editSupport ||
+                                            createSupport
+                                        "
                                     >
-                                        <Button variant="outline" class="w-full md:w-auto">
-                                            Manage templates
-                                        </Button>
-                                    </Link>
-                                    <Link
-                                        v-if="manageSupportAssignmentRules"
-                                        :href="route('acp.support.assignment-rules.index')"
-                                    >
-                                        <Button variant="outline" class="w-full md:w-auto">
-                                            Manage assignment rules
-                                        </Button>
-                                    </Link>
-                                    <Link
-                                        v-if="manageSupportTeams"
-                                        :href="route('acp.support.teams.index')"
-                                    >
-                                        <Button variant="outline" class="w-full md:w-auto">
-                                            Manage teams
-                                        </Button>
-                                    </Link>
-                                    <Link
-                                        v-if="editSupport || createSupport"
-                                        :href="route('acp.support.ticket-categories.index')"
-                                    >
-                                        <Button variant="outline" class="w-full md:w-auto">
-                                            Manage categories
-                                        </Button>
-                                    </Link>
+                                        <DropdownMenuTrigger as-child>
+                                            <Button variant="outline" class="w-full md:w-auto">
+                                                Manage
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" class="w-56">
+                                            <DropdownMenuLabel>Manage support</DropdownMenuLabel>
+                                            <DropdownMenuItem
+                                                v-if="manageSupportTemplates"
+                                                :as-child="true"
+                                            >
+                                                <Link
+                                                    class="block w-full"
+                                                    :href="route('acp.support.templates.index')"
+                                                    as="button"
+                                                >
+                                                    Manage templates
+                                                </Link>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                v-if="manageSupportAssignmentRules"
+                                                :as-child="true"
+                                            >
+                                                <Link
+                                                    class="block w-full"
+                                                    :href="route('acp.support.assignment-rules.index')"
+                                                    as="button"
+                                                >
+                                                    Manage assignment rules
+                                                </Link>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                v-if="manageSupportTeams"
+                                                :as-child="true"
+                                            >
+                                                <Link
+                                                    class="block w-full"
+                                                    :href="route('acp.support.teams.index')"
+                                                    as="button"
+                                                >
+                                                    Manage teams
+                                                </Link>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                v-if="editSupport || createSupport"
+                                                :as-child="true"
+                                            >
+                                                <Link
+                                                    class="block w-full"
+                                                    :href="route('acp.support.ticket-categories.index')"
+                                                    as="button"
+                                                >
+                                                    Manage categories
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                     <Link
                                         v-if="createSupport"
                                         :href="route('acp.support.tickets.create')"
