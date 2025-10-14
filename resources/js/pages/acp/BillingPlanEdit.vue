@@ -64,7 +64,11 @@ const form = useForm({
 const featuresError = computed(() => form.errors.features ?? form.errors['features.0'] ?? null);
 const { formatDate } = useUserTimezone();
 
-const parsePrice = (value: string): number => {
+const parsePrice = (value: string | number): number => {
+    if (typeof value === 'number') {
+        return value;
+    }
+
     if (!value) {
         return 0;
     }
