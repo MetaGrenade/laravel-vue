@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 
 class BlogRevision extends Model
 {
@@ -60,6 +61,17 @@ class BlogRevision extends Model
 
         $metadata = Arr::where($metadata, fn ($value) => $value !== null);
 
+        $now = Carbon::now();
+
+        $previous = static::query()
+            ->where('blog_id', $blog->id)
+            ->latest('created_at')
+            ->first();
+
+        if ($previous && $previous->created_at && $previous->created_at >= $now) {
+            $now = $previous->created_at->copy()->addSecond();
+        }
+
         return static::create([
             'blog_id' => $blog->id,
             'edited_by_id' => $editor?->getKey(),
@@ -75,6 +87,8 @@ class BlogRevision extends Model
             'tag_ids' => $blog->tags->pluck('id')->values()->all(),
             'metadata' => $metadata === [] ? null : $metadata,
             'edited_at' => $blog->updated_at,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
     }
 }
