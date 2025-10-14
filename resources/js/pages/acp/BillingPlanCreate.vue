@@ -84,7 +84,7 @@ const handleSubmit = () => {
             currency: (data.currency || props.default_currency || 'USD').toUpperCase(),
             description: data.description || null,
             features,
-            is_active: data.is_active,
+            is_active: Boolean(data.is_active),
         };
     });
 
@@ -243,7 +243,7 @@ const handleSubmit = () => {
                                     Toggle off to hide the plan from member-facing billing screens.
                                 </p>
                             </div>
-                            <Switch v-model:checked="form.is_active" />
+                            <Switch v-model="form.is_active" />
                         </div>
                         <InputError :message="form.errors.is_active" />
                     </CardContent>
