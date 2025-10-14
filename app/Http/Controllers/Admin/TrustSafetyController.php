@@ -48,7 +48,13 @@ class TrustSafetyController extends Controller
             ->orderByDesc('created_at');
 
         if ($exportStatus && $exportStatus !== 'all') {
-            $exportQuery->where('status', $exportStatus);
+            $exportStatuses = [$exportStatus];
+
+            if ($exportStatus === DataExport::STATUS_PENDING) {
+                $exportStatuses[] = DataExport::STATUS_PROCESSING;
+            }
+
+            $exportQuery->whereIn('status', array_unique($exportStatuses));
         }
 
         if ($search !== null) {
@@ -88,7 +94,13 @@ class TrustSafetyController extends Controller
             ->orderByDesc('created_at');
 
         if ($erasureStatus && $erasureStatus !== 'all') {
-            $erasureQuery->where('status', $erasureStatus);
+            $erasureStatuses = [$erasureStatus];
+
+            if ($erasureStatus === DataErasureRequest::STATUS_PENDING) {
+                $erasureStatuses[] = DataErasureRequest::STATUS_PROCESSING;
+            }
+
+            $erasureQuery->whereIn('status', array_unique($erasureStatuses));
         }
 
         if ($search !== null) {
