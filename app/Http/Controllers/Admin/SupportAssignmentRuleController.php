@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreSupportAssignmentRuleRequest;
 use App\Http\Requests\Admin\UpdateSupportAssignmentRuleRequest;
 use App\Models\SupportAssignmentRule;
+use App\Models\SupportTeam;
 use App\Models\SupportTicketCategory;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
@@ -25,7 +26,7 @@ class SupportAssignmentRuleController extends Controller
         $formatter = DateFormatter::for($request->user());
 
         $rules = SupportAssignmentRule::query()
-            ->with(['category:id,name', 'assignee:id,nickname,email'])
+            ->with(['category:id,name', 'assignee:id,nickname,email', 'team:id,name'])
             ->orderBy('position')
             ->orderBy('id')
             ->get()
@@ -34,7 +35,9 @@ class SupportAssignmentRuleController extends Controller
                     'id' => $rule->id,
                     'support_ticket_category_id' => $rule->support_ticket_category_id,
                     'priority' => $rule->priority,
+                    'assignee_type' => $rule->assignee_type,
                     'assigned_to' => $rule->assigned_to,
+                    'support_team_id' => $rule->support_team_id,
                     'position' => $rule->position,
                     'active' => $rule->active,
                     'category' => $rule->category ? [
@@ -45,6 +48,10 @@ class SupportAssignmentRuleController extends Controller
                         'id' => $rule->assignee->id,
                         'nickname' => $rule->assignee->nickname,
                         'email' => $rule->assignee->email,
+                    ] : null,
+                    'team' => $rule->team ? [
+                        'id' => $rule->team->id,
+                        'name' => $rule->team->name,
                     ] : null,
                     'created_at' => $formatter->iso($rule->created_at),
                     'updated_at' => $formatter->iso($rule->updated_at),
@@ -74,10 +81,21 @@ class SupportAssignmentRuleController extends Controller
             ->values()
             ->all();
 
+        $teams = SupportTeam::query()
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (SupportTeam $team) => [
+                'id' => $team->id,
+                'name' => $team->name,
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('acp/SupportAssignmentRules', [
             'rules' => $rules,
             'categories' => $categories,
             'agents' => $agents,
+            'teams' => $teams,
             'can' => [
                 'create' => (bool) $request->user()?->can('support_assignment_rules.acp.create'),
                 'edit' => (bool) $request->user()?->can('support_assignment_rules.acp.edit'),

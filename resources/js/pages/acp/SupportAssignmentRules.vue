@@ -27,21 +27,26 @@ interface AssignmentRuleItem {
     id: number;
     support_ticket_category_id: number | null;
     priority: RulePriority | null;
-    assigned_to: number;
+    assignee_type: AssigneeType;
+    assigned_to: number | null;
+    support_team_id: number | null;
     position: number;
     active: boolean;
     category: AssignmentRuleRelation | null;
     assignee: AssignmentRuleRelation | null;
+    team: AssignmentRuleRelation | null;
     created_at: string | null;
     updated_at: string | null;
 }
 
 type RulePriority = 'low' | 'medium' | 'high';
+type AssigneeType = 'user' | 'team';
 
 const props = defineProps<{
     rules: AssignmentRuleItem[];
     categories: Array<{ id: number; name: string }>;
     agents: Array<{ id: number; nickname: string; email: string }>;
+    teams: Array<{ id: number; name: string }>;
     can: {
         create: boolean;
         edit: boolean;
@@ -71,10 +76,22 @@ const priorityOptions: Array<{ value: RulePriority; label: string }> = [
     { value: 'high', label: priorityLabels.high },
 ];
 
+const assigneeTypeLabels: Record<AssigneeType, string> = {
+    user: 'Specific agent',
+    team: 'Support team',
+};
+
+const assigneeTypeOptions: Array<{ value: AssigneeType; label: string }> = [
+    { value: 'user', label: assigneeTypeLabels.user },
+    { value: 'team', label: assigneeTypeLabels.team },
+];
+
 const createForm = useForm({
     support_ticket_category_id: null as number | null,
     priority: null as RulePriority | null,
+    assignee_type: 'user' as AssigneeType,
     assigned_to: null as number | null,
+    support_team_id: null as number | null,
     active: true,
 });
 
@@ -98,7 +115,9 @@ const editDialogOpen = ref(false);
 const editForm = useForm({
     support_ticket_category_id: null as number | null,
     priority: null as RulePriority | null,
+    assignee_type: 'user' as AssigneeType,
     assigned_to: null as number | null,
+    support_team_id: null as number | null,
     active: true,
 });
 
@@ -112,7 +131,9 @@ const openEditDialog = (rule: AssignmentRuleItem) => {
     editForm.clearErrors();
     editForm.support_ticket_category_id = rule.support_ticket_category_id;
     editForm.priority = rule.priority;
+    editForm.assignee_type = rule.assignee_type;
     editForm.assigned_to = rule.assigned_to;
+    editForm.support_team_id = rule.support_team_id;
     editForm.active = rule.active;
     editDialogOpen.value = true;
 };
@@ -190,6 +211,10 @@ const deleteDialogTitle = computed(() => {
         return 'Delete assignment rule?';
     }
 
+    if (pendingRule.value.assignee_type === 'team') {
+        return `Delete rule for ${pendingRule.value.team?.name ?? 'this team'}?`;
+    }
+
     const assigneeName = pendingRule.value.assignee?.nickname ?? 'this agent';
 
     return `Delete rule for ${assigneeName}?`;
@@ -226,12 +251,38 @@ const priorityName = (rule: AssignmentRuleItem) => {
 };
 
 const assigneeName = (rule: AssignmentRuleItem) => {
+    if (rule.assignee_type === 'team') {
+        return rule.team ? `${rule.team.name} (team)` : 'Unknown team';
+    }
+
     if (!rule.assignee) {
         return 'Unknown agent';
     }
 
     return `${rule.assignee.nickname} (${rule.assignee.email ?? 'no email'})`;
 };
+
+watch(
+    () => createForm.assignee_type,
+    (type) => {
+        if (type === 'user') {
+            createForm.support_team_id = null;
+        } else {
+            createForm.assigned_to = null;
+        }
+    },
+);
+
+watch(
+    () => editForm.assignee_type,
+    (type) => {
+        if (type === 'user') {
+            editForm.support_team_id = null;
+        } else {
+            editForm.assigned_to = null;
+        }
+    },
+);
 </script>
 
 <template>
@@ -297,21 +348,57 @@ const assigneeName = (rule: AssignmentRuleItem) => {
                                     <InputError :message="createForm.errors.priority" class="mt-2" />
                                 </div>
 
-                                <div>
-                                    <Label for="create-assigned-to">Assign to</Label>
-                                    <select
-                                        id="create-assigned-to"
-                                        v-model="createForm.assigned_to"
-                                        required
-                                        class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                                        :disabled="createForm.processing"
-                                    >
-                                        <option :value="null" disabled>Select an agent</option>
-                                        <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
-                                            {{ agent.nickname }} ({{ agent.email }})
-                                        </option>
-                                    </select>
-                                    <InputError :message="createForm.errors.assigned_to" class="mt-2" />
+                                <div class="space-y-2">
+                                    <div>
+                                        <Label for="create-assignee-type">Assign to</Label>
+                                        <select
+                                            id="create-assignee-type"
+                                            v-model="createForm.assignee_type"
+                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                            :disabled="createForm.processing"
+                                        >
+                                            <option v-for="option in assigneeTypeOptions" :key="option.value" :value="option.value">
+                                                {{ option.label }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div v-if="createForm.assignee_type === 'user'">
+                                        <Label for="create-assigned-to">Agent</Label>
+                                        <select
+                                            id="create-assigned-to"
+                                            v-model="createForm.assigned_to"
+                                            required
+                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                            :disabled="createForm.processing"
+                                        >
+                                            <option :value="null" disabled>Select an agent</option>
+                                            <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
+                                                {{ agent.nickname }} ({{ agent.email }})
+                                            </option>
+                                        </select>
+                                        <InputError :message="createForm.errors.assigned_to" class="mt-2" />
+                                    </div>
+
+                                    <div v-else>
+                                        <Label for="create-support-team">Team</Label>
+                                        <select
+                                            id="create-support-team"
+                                            v-model="createForm.support_team_id"
+                                            required
+                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                            :disabled="createForm.processing || props.teams.length === 0"
+                                        >
+                                            <option v-if="props.teams.length === 0" :value="null" disabled>
+                                                No teams available
+                                            </option>
+                                            <option :value="null" disabled>Select a team</option>
+                                            <option v-for="team in props.teams" :key="team.id" :value="team.id">
+                                                {{ team.name }}
+                                            </option>
+                                        </select>
+                                        <InputError :message="createForm.errors.support_team_id" class="mt-2" />
+                                    </div>
                                 </div>
 
                                 <div class="flex items-center justify-between">
@@ -323,7 +410,14 @@ const assigneeName = (rule: AssignmentRuleItem) => {
                                 </div>
 
                                 <div class="flex justify-end">
-                                    <Button type="submit" :disabled="createForm.processing || !props.can.create">
+                                    <Button
+                                        type="submit"
+                                        :disabled="
+                                            createForm.processing ||
+                                            !props.can.create ||
+                                            (createForm.assignee_type === 'team' && props.teams.length === 0)
+                                        "
+                                    >
                                         <PlusCircle class="mr-2 h-4 w-4" />
                                         Add rule
                                     </Button>
@@ -491,20 +585,52 @@ const assigneeName = (rule: AssignmentRuleItem) => {
                     </div>
 
                     <div>
-                        <Label for="edit-assigned-to">Assign to</Label>
+                        <Label for="edit-assignee-type">Assign to</Label>
                         <select
-                            id="edit-assigned-to"
-                            v-model="editForm.assigned_to"
-                            required
+                            id="edit-assignee-type"
+                            v-model="editForm.assignee_type"
                             class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                             :disabled="editForm.processing"
                         >
-                            <option :value="null" disabled>Select an agent</option>
-                            <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
-                                {{ agent.nickname }} ({{ agent.email }})
+                            <option v-for="option in assigneeTypeOptions" :key="option.value" :value="option.value">
+                                {{ option.label }}
                             </option>
                         </select>
-                        <InputError :message="editForm.errors.assigned_to" class="mt-2" />
+                        <div v-if="editForm.assignee_type === 'user'" class="mt-4">
+                            <Label for="edit-assigned-to">Agent</Label>
+                            <select
+                                id="edit-assigned-to"
+                                v-model="editForm.assigned_to"
+                                required
+                                class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                :disabled="editForm.processing"
+                            >
+                                <option :value="null" disabled>Select an agent</option>
+                                <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
+                                    {{ agent.nickname }} ({{ agent.email }})
+                                </option>
+                            </select>
+                            <InputError :message="editForm.errors.assigned_to" class="mt-2" />
+                        </div>
+                        <div v-else class="mt-4">
+                            <Label for="edit-support-team">Team</Label>
+                            <select
+                                id="edit-support-team"
+                                v-model="editForm.support_team_id"
+                                required
+                                class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                :disabled="editForm.processing || props.teams.length === 0"
+                            >
+                                <option v-if="props.teams.length === 0" :value="null" disabled>
+                                    No teams available
+                                </option>
+                                <option :value="null" disabled>Select a team</option>
+                                <option v-for="team in props.teams" :key="team.id" :value="team.id">
+                                    {{ team.name }}
+                                </option>
+                            </select>
+                            <InputError :message="editForm.errors.support_team_id" class="mt-2" />
+                        </div>
                     </div>
 
                     <div class="flex items-center justify-between">

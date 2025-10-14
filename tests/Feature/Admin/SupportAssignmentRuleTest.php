@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\SupportAssignmentRule;
+use App\Models\SupportTeam;
 use App\Models\SupportTicketCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,6 +45,7 @@ class SupportAssignmentRuleTest extends TestCase
         SupportAssignmentRule::create([
             'support_ticket_category_id' => $category->id,
             'priority' => 'high',
+            'assignee_type' => 'user',
             'assigned_to' => $agent->id,
             'position' => 1,
             'active' => true,
@@ -56,6 +58,7 @@ class SupportAssignmentRuleTest extends TestCase
         $response->assertInertia(fn (Assert $page) => $page
             ->component('acp/SupportAssignmentRules')
             ->where('rules.0.assignee.nickname', 'Agent Smith')
+            ->where('rules.0.assignee_type', 'user')
             ->where('categories.0.name', 'Billing')
             ->where('can.create', false)
         );
@@ -76,6 +79,7 @@ class SupportAssignmentRuleTest extends TestCase
             ->post(route('acp.support.assignment-rules.store'), [
                 'support_ticket_category_id' => $category->id,
                 'priority' => 'medium',
+                'assignee_type' => 'user',
                 'assigned_to' => $agent->id,
                 'active' => true,
             ]);
@@ -86,6 +90,7 @@ class SupportAssignmentRuleTest extends TestCase
         $this->assertDatabaseHas('support_assignment_rules', [
             'support_ticket_category_id' => $category->id,
             'priority' => 'medium',
+            'assignee_type' => 'user',
             'assigned_to' => $agent->id,
             'active' => true,
         ]);
@@ -104,6 +109,7 @@ class SupportAssignmentRuleTest extends TestCase
         $first = SupportAssignmentRule::create([
             'support_ticket_category_id' => null,
             'priority' => null,
+            'assignee_type' => 'user',
             'assigned_to' => $agentOne->id,
             'position' => 1,
             'active' => true,
@@ -112,6 +118,7 @@ class SupportAssignmentRuleTest extends TestCase
         $second = SupportAssignmentRule::create([
             'support_ticket_category_id' => null,
             'priority' => null,
+            'assignee_type' => 'user',
             'assigned_to' => $agentTwo->id,
             'position' => 2,
             'active' => true,
@@ -128,6 +135,34 @@ class SupportAssignmentRuleTest extends TestCase
 
         $this->assertSame(2, $first->fresh()->position);
         $this->assertSame(1, $second->fresh()->position);
+    }
+
+    public function test_admin_can_assign_rule_to_team(): void
+    {
+        $admin = $this->createAdminWithPermissions([
+            'support_assignment_rules.acp.view',
+            'support_assignment_rules.acp.create',
+        ]);
+
+        $team = SupportTeam::create(['name' => 'Escalations']);
+
+        $response = $this->actingAs($admin)
+            ->from(route('acp.support.assignment-rules.index'))
+            ->post(route('acp.support.assignment-rules.store'), [
+                'support_ticket_category_id' => null,
+                'priority' => null,
+                'assignee_type' => 'team',
+                'support_team_id' => $team->id,
+                'active' => true,
+            ]);
+
+        $response->assertRedirect(route('acp.support.assignment-rules.index'));
+        $response->assertSessionHas('success', 'Assignment rule created.');
+
+        $this->assertDatabaseHas('support_assignment_rules', [
+            'assignee_type' => 'team',
+            'support_team_id' => $team->id,
+        ]);
     }
 
     private function createAdminWithPermissions(array $permissions): User

@@ -123,6 +123,8 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::post('acp/support/teams', [SupportController::class, 'storeTeam'])->name('acp.support.teams.store');
     Route::put('acp/support/teams/{team}', [SupportController::class, 'updateTeam'])->name('acp.support.teams.update');
     Route::delete('acp/support/teams/{team}', [SupportController::class, 'destroyTeam'])->name('acp.support.teams.destroy');
+    Route::put('acp/support/teams/memberships/{user}', [SupportController::class, 'updateTeamMembership'])
+        ->name('acp.support.teams.memberships.update');
 
     // Tickets
     Route::get('acp/support/tickets/create', [SupportController::class,'createTicket'])->name('acp.support.tickets.create');

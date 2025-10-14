@@ -22,15 +22,41 @@ class StoreSupportAssignmentRuleRequest extends FormRequest
             ]);
         }
 
+        if ($this->has('assignee_type')) {
+            $assigneeType = strtolower((string) $this->input('assignee_type'));
+
+            $this->merge([
+                'assignee_type' => $assigneeType,
+            ]);
+        }
+
         if ($this->has('assigned_to')) {
             $this->merge([
                 'assigned_to' => $this->normalizeNullableId($this->input('assigned_to')),
             ]);
         }
 
+        if ($this->has('support_team_id')) {
+            $this->merge([
+                'support_team_id' => $this->normalizeNullableId($this->input('support_team_id')),
+            ]);
+        }
+
         if ($this->has('active')) {
             $this->merge([
                 'active' => filter_var($this->input('active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false,
+            ]);
+        }
+
+        if ($this->input('assignee_type') === 'team') {
+            $this->merge([
+                'assigned_to' => null,
+            ]);
+        }
+
+        if ($this->input('assignee_type') === 'user') {
+            $this->merge([
+                'support_team_id' => null,
             ]);
         }
     }
@@ -45,7 +71,9 @@ class StoreSupportAssignmentRuleRequest extends FormRequest
         return [
             'support_ticket_category_id' => ['nullable', 'integer', 'exists:support_ticket_categories,id'],
             'priority' => ['nullable', Rule::in(['low', 'medium', 'high'])],
-            'assigned_to' => ['required', 'integer', 'exists:users,id'],
+            'assignee_type' => ['required', Rule::in(['user', 'team'])],
+            'assigned_to' => ['required_if:assignee_type,user', 'nullable', 'integer', 'exists:users,id'],
+            'support_team_id' => ['required_if:assignee_type,team', 'nullable', 'integer', 'exists:support_teams,id'],
             'active' => ['boolean'],
         ];
     }
