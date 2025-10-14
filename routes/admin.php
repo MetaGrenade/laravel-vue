@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
 use App\Http\Controllers\Admin\SupportController;
+use App\Http\Controllers\Admin\SupportAssignmentRuleController;
 use App\Http\Controllers\Admin\SupportTicketCategoryController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TokenController;
@@ -107,10 +108,23 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/support/templates/{template}', [SupportController::class, 'updateTemplate'])->name('acp.support.templates.update');
     Route::delete('acp/support/templates/{template}', [SupportController::class, 'destroyTemplate'])->name('acp.support.templates.destroy');
 
+    Route::get('acp/support/assignment-rules', [SupportAssignmentRuleController::class, 'index'])
+        ->name('acp.support.assignment-rules.index');
+    Route::post('acp/support/assignment-rules', [SupportAssignmentRuleController::class, 'store'])
+        ->name('acp.support.assignment-rules.store');
+    Route::put('acp/support/assignment-rules/{rule}', [SupportAssignmentRuleController::class, 'update'])
+        ->name('acp.support.assignment-rules.update');
+    Route::delete('acp/support/assignment-rules/{rule}', [SupportAssignmentRuleController::class, 'destroy'])
+        ->name('acp.support.assignment-rules.destroy');
+    Route::patch('acp/support/assignment-rules/{rule}/reorder', [SupportAssignmentRuleController::class, 'reorder'])
+        ->name('acp.support.assignment-rules.reorder');
+
     Route::get('acp/support/teams', [SupportController::class, 'teams'])->name('acp.support.teams.index');
     Route::post('acp/support/teams', [SupportController::class, 'storeTeam'])->name('acp.support.teams.store');
     Route::put('acp/support/teams/{team}', [SupportController::class, 'updateTeam'])->name('acp.support.teams.update');
     Route::delete('acp/support/teams/{team}', [SupportController::class, 'destroyTeam'])->name('acp.support.teams.destroy');
+    Route::put('acp/support/teams/memberships/{user}', [SupportController::class, 'updateTeamMembership'])
+        ->name('acp.support.teams.memberships.update');
 
     // Tickets
     Route::get('acp/support/tickets/create', [SupportController::class,'createTicket'])->name('acp.support.tickets.create');

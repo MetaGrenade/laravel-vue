@@ -10,7 +10,9 @@ class SupportAssignmentRule extends Model
     protected $fillable = [
         'support_ticket_category_id',
         'priority',
+        'assignee_type',
         'assigned_to',
+        'support_team_id',
         'position',
         'active',
     ];
@@ -27,5 +29,10 @@ class SupportAssignmentRule extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(SupportTeam::class, 'support_team_id');
     }
 }

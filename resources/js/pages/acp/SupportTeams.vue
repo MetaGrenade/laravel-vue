@@ -34,9 +34,18 @@ interface SupportTeamItem {
     updated_at: string | null;
 }
 
+interface TeamMembershipItem {
+    id: number;
+    nickname: string;
+    email: string;
+    team_ids: number[];
+    teams: Array<{ id: number; name: string }>;
+}
+
 const props = defineProps<{
     teams: SupportTeamItem[];
     agents: SupportTeamMember[];
+    memberships: TeamMembershipItem[];
     can: {
         create: boolean;
         edit: boolean;
@@ -53,6 +62,7 @@ const { formatDate } = useUserTimezone();
 
 const hasTeams = computed(() => props.teams.length > 0);
 const hasTeamActions = computed(() => props.can.edit || props.can.delete);
+const hasMemberships = computed(() => props.memberships.length > 0);
 
 const createForm = useForm({
     name: '',
@@ -176,6 +186,55 @@ const memberSummary = (team: SupportTeamItem) => {
     }
 
     return team.members.map((member) => member.nickname).join(', ');
+};
+
+const membershipDialogOpen = ref(false);
+const editingMember = ref<TeamMembershipItem | null>(null);
+const membershipForm = useForm({
+    team_ids: [] as number[],
+});
+
+const membershipError = computed(() =>
+    membershipForm.errors.team_ids ?? membershipForm.errors['team_ids.0'] ?? '',
+);
+
+const openMembershipDialog = (member: TeamMembershipItem) => {
+    if (!props.can.edit) {
+        return;
+    }
+
+    editingMember.value = member;
+    membershipForm.reset();
+    membershipForm.clearErrors();
+    membershipForm.team_ids = [...member.team_ids];
+    membershipDialogOpen.value = true;
+};
+
+const closeMembershipDialog = () => {
+    membershipDialogOpen.value = false;
+};
+
+watch(membershipDialogOpen, (open) => {
+    if (!open) {
+        editingMember.value = null;
+        membershipForm.reset();
+        membershipForm.clearErrors();
+    }
+});
+
+const submitMembership = () => {
+    const member = editingMember.value;
+
+    if (!member || !props.can.edit) {
+        return;
+    }
+
+    membershipForm.put(route('acp.support.teams.memberships.update', { user: member.id }), {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeMembershipDialog();
+        },
+    });
 };
 </script>
 
@@ -332,6 +391,59 @@ const memberSummary = (team: SupportTeamItem) => {
                         </div>
                     </CardContent>
                 </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Team membership</CardTitle>
+                        <CardDescription>
+                            Review which support agents belong to each team and make adjustments in one place.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div v-if="!hasMemberships" class="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+                            No eligible support agents found. Once agents are available you can manage their team assignments here.
+                        </div>
+                        <div v-else class="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Agent</TableHead>
+                                        <TableHead>Teams</TableHead>
+                                        <TableHead v-if="props.can.edit" class="w-[1%] whitespace-nowrap text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow v-for="member in props.memberships" :key="member.id">
+                                        <TableCell>
+                                            <div class="flex flex-col">
+                                                <span class="font-medium">{{ member.nickname }}</span>
+                                                <span class="text-xs text-muted-foreground">{{ member.email }}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div class="flex flex-wrap gap-2">
+                                                <span v-if="member.teams.length === 0" class="text-sm text-muted-foreground">No teams</span>
+                                                <span
+                                                    v-for="team in member.teams"
+                                                    :key="team.id"
+                                                    class="inline-flex items-center rounded-full bg-muted px-2 py-1 text-xs"
+                                                >
+                                                    {{ team.name }}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell v-if="props.can.edit" class="text-right">
+                                            <Button variant="outline" size="sm" @click="openMembershipDialog(member)">
+                                                <Pencil class="mr-2 h-4 w-4" />
+                                                Manage teams
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             <ConfirmDialog
@@ -386,6 +498,47 @@ const memberSummary = (team: SupportTeamItem) => {
                                     Cancel
                                 </Button>
                                 <Button type="submit" :disabled="editForm.processing">Update team</Button>
+                            </CardFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </template>
+
+            <template v-if="props.can.edit">
+                <Dialog v-model:open="membershipDialogOpen">
+                    <DialogContent class="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle>
+                                Manage teams for {{ editingMember?.nickname ?? 'agent' }}
+                            </DialogTitle>
+                            <DialogDescription>
+                                Select all teams this agent should belong to. Changes apply immediately.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form class="mt-4 grid gap-4" @submit.prevent="submitMembership">
+                            <div class="grid gap-2">
+                                <Label for="membership-teams">Teams</Label>
+                                <select
+                                    id="membership-teams"
+                                    v-model="membershipForm.team_ids"
+                                    multiple
+                                    :disabled="membershipForm.processing"
+                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                >
+                                    <option v-for="team in props.teams" :key="team.id" :value="team.id">
+                                        {{ team.name }}
+                                    </option>
+                                </select>
+                                <p class="text-xs text-muted-foreground">Hold Command (⌘) or Control (Ctrl) to select multiple teams.</p>
+                                <InputError :message="membershipError" />
+                            </div>
+                            <CardFooter class="justify-end gap-2 px-0 pb-0">
+                                <Button type="button" variant="outline" :disabled="membershipForm.processing" @click="closeMembershipDialog">
+                                    Cancel
+                                </Button>
+                                <Button type="submit" :disabled="membershipForm.processing">
+                                    Save membership
+                                </Button>
                             </CardFooter>
                         </form>
                     </DialogContent>

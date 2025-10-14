@@ -28,6 +28,32 @@ const getCsrfToken = (): string | undefined => {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? undefined;
 };
 
+const getCookieValue = (name: string): string | undefined => {
+    if (typeof document === 'undefined') {
+        return undefined;
+    }
+
+    return document.cookie
+        .split('; ')
+        .map((cookie) => cookie.split('='))
+        .find(([key]) => key === name)?.[1];
+};
+
+const getXsrfToken = (): string | undefined => {
+    const token = getCookieValue('XSRF-TOKEN');
+
+    if (!token) {
+        return undefined;
+    }
+
+    try {
+        return decodeURIComponent(token);
+    } catch (error) {
+        console.warn('Unable to decode XSRF token cookie', error);
+        return token;
+    }
+};
+
 const createEchoInstance = (): Echo | null => {
     if (typeof window === 'undefined') {
         return null;
@@ -57,6 +83,7 @@ const createEchoInstance = (): Echo | null => {
         ? scheme === 'https'
         : booleanEnv(forceTlsEnv);
     const csrfToken = getCsrfToken();
+    const xsrfToken = getXsrfToken();
 
     return new Echo({
         broadcaster: 'pusher',
@@ -73,9 +100,40 @@ const createEchoInstance = (): Echo | null => {
         authEndpoint: '/broadcasting/auth',
         auth: {
             headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
                 ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
             },
         },
+        authorizer: (channel, options) => ({
+            authorize(socketId: string, callback: (error: Error | null, data?: unknown) => void) {
+                fetch(options.authEndpoint ?? '/broadcasting/auth', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        ...(options.auth?.headers ?? {}),
+                    },
+                    body: JSON.stringify({
+                        socket_id: socketId,
+                        channel_name: channel.name,
+                    }),
+                })
+                    .then(async (response) => {
+                        if (!response.ok) {
+                            callback(new Error(`Broadcast auth failed with status ${response.status}`));
+                            return;
+                        }
+
+                        const data = await response.json();
+                        callback(null, data);
+                    })
+                    .catch((error) => {
+                        callback(error instanceof Error ? error : new Error('Broadcast auth failed'));
+                    });
+            },
+        }),
     });
 };
 
