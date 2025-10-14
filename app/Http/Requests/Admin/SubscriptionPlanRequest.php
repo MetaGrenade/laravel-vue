@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class SubscriptionPlanRequest extends FormRequest
@@ -60,11 +61,12 @@ class SubscriptionPlanRequest extends FormRequest
             ->all();
 
         $slug = $this->input('slug');
+        $name = $this->input('name');
         $description = $this->input('description');
         $currency = $this->input('currency');
 
         $this->merge([
-            'slug' => $slug !== null && trim((string) $slug) !== '' ? trim((string) $slug) : null,
+            'slug' => $this->normalizeSlug($slug, $name),
             'description' => $description !== null && trim((string) $description) !== '' ? trim((string) $description) : null,
             'currency' => $currency ? strtoupper((string) $currency) : strtoupper((string) config('billing.currency', 'USD')),
             'features' => $features,
@@ -76,5 +78,24 @@ class SubscriptionPlanRequest extends FormRequest
                 'price' => (int) $this->input('price'),
             ]);
         }
+    }
+
+    private function normalizeSlug(mixed $slug, mixed $name): ?string
+    {
+        $slug = $slug !== null && trim((string) $slug) !== '' ? trim((string) $slug) : null;
+
+        if ($slug !== null) {
+            return $slug;
+        }
+
+        $name = is_string($name) ? trim($name) : '';
+
+        if ($name === '') {
+            return null;
+        }
+
+        $generated = Str::slug($name);
+
+        return $generated !== '' ? $generated : null;
     }
 }
