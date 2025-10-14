@@ -16,6 +16,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "pusher/pusher-php-server": "^7.2",
+        "spatie/laravel-activitylog": "^4.8",
         "spatie/laravel-permission": "^6.16",
         "tightenco/ziggy": "^2.4"
     },
@@ -81,5 +82,6 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": []
 }

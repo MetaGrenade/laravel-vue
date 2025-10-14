@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use function activity;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -44,6 +45,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if ($user) {
+            activity('auth')
+                ->event('auth.login')
+                ->performedOn($user)
+                ->causedBy($user)
+                ->withProperties([
+                    'attributes' => [
+                        'remember' => $request->boolean('remember'),
+                    ],
+                ])
+                ->log(sprintf('User %s logged in', $user->email ?? $user->id));
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
@@ -52,10 +66,20 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        if ($user) {
+            activity('auth')
+                ->event('auth.logout')
+                ->performedOn($user)
+                ->causedBy($user)
+                ->log(sprintf('User %s logged out', $user->email ?? $user->id));
+        }
 
         return redirect('/');
     }

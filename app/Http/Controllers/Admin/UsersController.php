@@ -10,13 +10,16 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
 use App\Support\OAuth\ProviderRegistry;
+use DateTimeInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
+use function activity;
 
 class UsersController extends Controller
 {
@@ -200,6 +203,20 @@ class UsersController extends Controller
     {
         $user = User::create($request->validated());
         $user->syncRoles($request->roles ?? []);
+
+        activity('users')
+            ->event('user.created')
+            ->performedOn($user)
+            ->causedBy($request->user())
+            ->withProperties([
+                'attributes' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'roles' => $user->roles->pluck('name')->values()->all(),
+                ],
+            ])
+            ->log(sprintf('User %s created', $user->email ?? $user->id));
+
         return redirect()->route('acp.users.index')
             ->with('success','User created.');
     }
@@ -209,8 +226,57 @@ class UsersController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user)
     {
-        $user->update($request->validated());
+        $validated = $request->validated();
+
+        $originalValues = Arr::only($user->getAttributes(), array_keys($validated));
+        $originalRoles = $user->roles->pluck('name')->sort()->values()->all();
+
+        $user->update($validated);
         $user->syncRoles($request->roles ?? []);
+        $user->refresh();
+
+        $newValues = Arr::only($user->getAttributes(), array_keys($validated));
+
+        $oldChanges = [];
+        $newChanges = [];
+
+        foreach ($newValues as $key => $value) {
+            $before = $originalValues[$key] ?? null;
+            $normalisedBefore = $this->normaliseAuditValue($before);
+            $normalisedAfter = $this->normaliseAuditValue($value);
+
+            if ($normalisedBefore !== $normalisedAfter) {
+                $oldChanges[$key] = $normalisedBefore;
+                $newChanges[$key] = $normalisedAfter;
+            }
+        }
+
+        if ($oldChanges !== []) {
+            activity('users')
+                ->event('user.updated')
+                ->performedOn($user)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'old' => $oldChanges,
+                    'attributes' => $newChanges,
+                ])
+                ->log(sprintf('User %s updated', $user->email ?? $user->id));
+        }
+
+        $updatedRoles = $user->roles->pluck('name')->sort()->values()->all();
+
+        if ($originalRoles !== $updatedRoles) {
+            activity('users')
+                ->event('user.roles.updated')
+                ->performedOn($user)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'old' => ['roles' => $originalRoles],
+                    'attributes' => ['roles' => $updatedRoles],
+                ])
+                ->log(sprintf('Roles updated for %s', $user->email ?? $user->id));
+        }
+
         return redirect()->route('acp.users.index')
             ->with('success','User updated.');
     }
@@ -218,9 +284,27 @@ class UsersController extends Controller
     /**
      * Delete a user.
      */
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
+        $causer = $request->user();
+
+        $snapshot = [
+            'id' => $user->id,
+            'email' => $user->email,
+            'roles' => $user->roles->pluck('name')->values()->all(),
+        ];
+
         $user->delete();
+
+        activity('users')
+            ->event('user.deleted')
+            ->performedOn($user)
+            ->causedBy($causer)
+            ->withProperties([
+                'old' => $snapshot,
+            ])
+            ->log(sprintf('User %s deleted', $snapshot['email'] ?? $user->id));
+
         return redirect()->route('acp.users.index')
             ->with('success','User deleted.');
     }
@@ -228,9 +312,22 @@ class UsersController extends Controller
     /**
      * Manually mark a user’s email as verified.
      */
-    public function verify(User $user)
+    public function verify(Request $request, User $user)
     {
+        $previouslyVerifiedAt = $user->email_verified_at;
+
         $user->update(['email_verified_at' => now()]);
+
+        activity('users')
+            ->event('user.verified')
+            ->performedOn($user)
+            ->causedBy($request->user())
+            ->withProperties([
+                'old' => ['email_verified_at' => $this->normaliseAuditValue($previouslyVerifiedAt)],
+                'attributes' => ['email_verified_at' => $this->normaliseAuditValue($user->email_verified_at)],
+            ])
+            ->log(sprintf('User %s verified', $user->email ?? $user->id));
+
         return redirect()->route('acp.users.index')
             ->with('success','User verified.');
     }
@@ -245,6 +342,19 @@ class UsersController extends Controller
                 'banned_at' => now(),
                 'banned_by_id' => $request->user()->id,
             ])->save();
+
+            activity('users')
+                ->event('user.banned')
+                ->performedOn($user)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'old' => ['is_banned' => false],
+                    'attributes' => [
+                        'is_banned' => true,
+                        'banned_at' => $this->normaliseAuditValue($user->banned_at),
+                    ],
+                ])
+                ->log(sprintf('User %s banned', $user->email ?? $user->id));
         }
 
         return redirect()->route('acp.users.index')
@@ -256,11 +366,29 @@ class UsersController extends Controller
         Gate::authorize('users.acp.ban');
 
         if ($user->is_banned) {
+            $previousBanAt = $user->banned_at;
+
             $user->forceFill([
                 'is_banned' => false,
                 'banned_at' => null,
                 'banned_by_id' => null,
             ])->save();
+
+            activity('users')
+                ->event('user.unbanned')
+                ->performedOn($user)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'old' => [
+                        'is_banned' => true,
+                        'banned_at' => $this->normaliseAuditValue($previousBanAt),
+                    ],
+                    'attributes' => [
+                        'is_banned' => false,
+                        'banned_at' => null,
+                    ],
+                ])
+                ->log(sprintf('User %s unbanned', $user->email ?? $user->id));
         }
 
         return redirect()->route('acp.users.index')
@@ -296,6 +424,7 @@ class UsersController extends Controller
         $actorId = (int) $request->user()->id;
         $now = now();
         $updatedCount = 0;
+        $affectedIds = [];
 
         foreach ($users as $user) {
             $changed = false;
@@ -341,6 +470,7 @@ class UsersController extends Controller
 
             if ($changed) {
                 $updatedCount++;
+                $affectedIds[] = $user->id;
             }
         }
 
@@ -367,6 +497,29 @@ class UsersController extends Controller
             },
         };
 
+        if ($updatedCount > 0) {
+            activity('users')
+                ->event('user.bulk_action')
+                ->causedBy($request->user())
+                ->withProperties([
+                    'attributes' => [
+                        'action' => $action,
+                        'updated_user_ids' => $affectedIds,
+                        'requested_user_ids' => $ids,
+                    ],
+                ])
+                ->log(sprintf('Bulk user %s applied to %d users', $action, $updatedCount));
+        }
+
         return back()->with('success', $message);
+    }
+
+    protected function normaliseAuditValue(mixed $value): mixed
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format(DateTimeInterface::ATOM);
+        }
+
+        return $value;
     }
 }

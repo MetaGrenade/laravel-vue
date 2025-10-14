@@ -17,6 +17,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Console\Scheduling\Schedule;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+use Spatie\Activitylog\ActivitylogServiceProvider;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -29,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withBroadcasting(__DIR__.'/../routes/channels.php')
+    ->withProviders([
+        ActivitylogServiceProvider::class,
+    ])
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance']);
 

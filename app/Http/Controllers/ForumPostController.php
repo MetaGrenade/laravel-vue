@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use function activity;
 
 class ForumPostController extends Controller
 {
@@ -145,6 +146,8 @@ class ForumPostController extends Controller
 
         $previousMentionIds = $post->mentions()->pluck('users.id');
 
+        $originalBody = $post->body;
+
         if ($body !== $post->body) {
             $post->revisions()->create([
                 'body' => $post->body,
@@ -157,6 +160,24 @@ class ForumPostController extends Controller
             'body' => $body,
             'edited_at' => Carbon::now(),
         ])->save();
+
+        if ($body !== $originalBody) {
+            activity('forum')
+                ->event('forum.post.updated')
+                ->performedOn($post)
+                ->causedBy($user)
+                ->withProperties([
+                    'old' => [
+                        'body' => $originalBody,
+                    ],
+                    'attributes' => [
+                        'body' => $body,
+                        'thread_id' => $thread->id,
+                        'board_id' => $board->id,
+                    ],
+                ])
+                ->log(sprintf('Post #%d updated in "%s"', $post->id, $thread->title));
+        }
 
         $mentionedUsers = $this->resolveMentionedUsers($body, $user->id);
 
@@ -188,7 +209,27 @@ class ForumPostController extends Controller
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        $snapshot = [
+            'id' => $post->id,
+            'body' => $post->body,
+            'thread_id' => $thread->id,
+            'board_id' => $board->id,
+        ];
+
         $post->delete();
+
+        activity('forum')
+            ->event('forum.post.deleted')
+            ->performedOn($post)
+            ->causedBy($user)
+            ->withProperties([
+                'old' => $snapshot,
+                'attributes' => [
+                    'thread_slug' => $thread->slug,
+                    'board_slug' => $board->slug,
+                ],
+            ])
+            ->log(sprintf('Post #%d removed from "%s"', $snapshot['id'], $thread->title));
 
         return $this->redirectToThread($board, $thread, $validated['page'] ?? null, 'Post removed successfully.');
     }

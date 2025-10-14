@@ -12,8 +12,10 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Activitylog\Models\Activity;
 
 class AdminController extends Controller
 {
@@ -346,55 +348,31 @@ class AdminController extends Controller
      */
     protected function recentActivities(DateFormatter $formatter): array
     {
-        $userActivity = User::latest('created_at')
-            ->take(5)
-            ->get()
-            ->map(function (User $user) use ($formatter) {
-                return [
-                    'id' => "user-{$user->id}",
-                    'activity' => sprintf('User %s registered', $user->nickname ?? $user->name ?? 'unknown user'),
-                    'time' => $formatter->human($user->created_at),
-                    'timestamp' => $user->created_at,
-                ];
-            });
+        $activities = Activity::query()
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get();
 
-        $blogActivity = Blog::latest('published_at')
-            ->take(5)
-            ->get()
-            ->map(function (Blog $blog) use ($formatter) {
-                $timestamp = $blog->published_at ?? $blog->created_at;
-                $status = $blog->status === 'published' ? 'published' : 'created';
+        if ($activities->isEmpty()) {
+            return [];
+        }
 
-                return [
-                    'id' => "blog-{$blog->id}",
-                    'activity' => sprintf('Blog "%s" %s', $blog->title, $status),
-                    'time' => $formatter->human($timestamp),
-                    'timestamp' => $timestamp,
-                ];
-            });
+        return $activities
+            ->map(function (Activity $activity) use ($formatter) {
+                $description = $activity->description;
 
-        $ticketActivity = SupportTicket::query()
-            ->orderByDesc(DB::raw('COALESCE(resolved_at, updated_at, created_at)'))
-            ->take(5)
-            ->get()
-            ->map(function (SupportTicket $ticket) use ($formatter) {
-                $timestamp = $ticket->resolved_at ?? $ticket->updated_at ?? $ticket->created_at;
-                $status = $ticket->status ?? 'updated';
+                if (! $description) {
+                    $description = $activity->event
+                        ? Str::headline(str_replace('.', ' ', $activity->event))
+                        : 'Activity recorded';
+                }
 
                 return [
-                    'id' => "ticket-{$ticket->id}",
-                    'activity' => sprintf('Ticket "%s" %s', $ticket->subject, $status),
-                    'time' => $formatter->human($timestamp),
-                    'timestamp' => $timestamp,
+                    'id' => "activity-{$activity->id}",
+                    'activity' => $description,
+                    'time' => $formatter->human($activity->created_at),
                 ];
-            });
-
-        return collect([$userActivity, $blogActivity, $ticketActivity])
-            ->flatten(1)
-            ->filter(fn ($activity) => $activity['timestamp'])
-            ->sortByDesc('timestamp')
-            ->take(8)
-            ->map(fn ($activity) => Arr::except($activity, 'timestamp'))
+            })
             ->values()
             ->all();
     }

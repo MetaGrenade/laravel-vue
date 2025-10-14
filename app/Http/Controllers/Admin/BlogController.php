@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Response;
+use function activity;
 
 class BlogController extends Controller
 {
@@ -312,6 +313,15 @@ class BlogController extends Controller
 
         BlogRevision::recordSnapshot($blog, $request->user());
 
+        activity('blogs')
+            ->event('blog.created')
+            ->performedOn($blog)
+            ->causedBy($request->user())
+            ->withProperties([
+                'attributes' => $this->blogAuditAttributes($blog),
+            ])
+            ->log(sprintf('Blog "%s" created', $blog->title));
+
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post created successfully.');
     }
@@ -443,6 +453,10 @@ class BlogController extends Controller
             $publishedAt = null;
         }
 
+        $blog->loadMissing('categories:id', 'tags:id');
+
+        $originalSnapshot = $this->blogAuditAttributes($blog);
+
         $updateData = [
             'title'        => $validated['title'],
             'slug'         => Str::slug($validated['title']),
@@ -476,6 +490,35 @@ class BlogController extends Controller
         $blog->load('categories:id', 'tags:id');
 
         BlogRevision::recordSnapshot($blog, $request->user());
+
+        $currentSnapshot = $this->blogAuditAttributes($blog);
+
+        $oldChanges = [];
+        $newChanges = [];
+
+        $snapshotKeys = array_unique(array_merge(array_keys($originalSnapshot), array_keys($currentSnapshot)));
+
+        foreach ($snapshotKeys as $key) {
+            $before = $this->normaliseAuditValue($originalSnapshot[$key] ?? null);
+            $after = $this->normaliseAuditValue($currentSnapshot[$key] ?? null);
+
+            if ($before !== $after) {
+                $oldChanges[$key] = $before;
+                $newChanges[$key] = $after;
+            }
+        }
+
+        if ($oldChanges !== []) {
+            activity('blogs')
+                ->event('blog.updated')
+                ->performedOn($blog)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'old' => $oldChanges,
+                    'attributes' => $newChanges,
+                ])
+                ->log(sprintf('Blog "%s" updated', $blog->title));
+        }
 
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post updated successfully.');
@@ -650,6 +693,9 @@ class BlogController extends Controller
             abort(404);
         }
 
+        $blog->load('categories:id', 'tags:id');
+        $previousSnapshot = $this->blogAuditAttributes($blog);
+
         BlogRevision::recordSnapshot($blog->fresh(['categories:id', 'tags:id']), $request->user());
 
         $metadata = is_array($revision->metadata) ? $revision->metadata : [];
@@ -680,6 +726,34 @@ class BlogController extends Controller
         $blog->load('categories:id', 'tags:id');
 
         BlogRevision::recordSnapshot($blog, $request->user());
+
+        $restoredSnapshot = $this->blogAuditAttributes($blog);
+
+        $oldChanges = [];
+        $newChanges = [];
+
+        foreach (array_unique(array_merge(array_keys($previousSnapshot), array_keys($restoredSnapshot))) as $key) {
+            $before = $this->normaliseAuditValue($previousSnapshot[$key] ?? null);
+            $after = $this->normaliseAuditValue($restoredSnapshot[$key] ?? null);
+
+            if ($before !== $after) {
+                $oldChanges[$key] = $before;
+                $newChanges[$key] = $after;
+            }
+        }
+
+        if ($oldChanges !== []) {
+            activity('blogs')
+                ->event('blog.revision.restored')
+                ->performedOn($blog)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'old' => $oldChanges,
+                    'attributes' => $newChanges,
+                    'revision_id' => $revision->id,
+                ])
+                ->log(sprintf('Blog "%s" restored from revision #%d', $blog->title, $revision->id));
+        }
 
         return redirect()
             ->route('acp.blogs.revisions.index', ['blog' => $blog->id])
@@ -728,6 +802,54 @@ class BlogController extends Controller
             'profile_bio' => $bio ?: null,
             'social_links' => $socialLinks,
         ];
+    }
+
+    private function blogAuditAttributes(Blog $blog): array
+    {
+        $blog->loadMissing('categories:id', 'tags:id');
+
+        return [
+            'id' => $blog->id,
+            'title' => $blog->title,
+            'slug' => $blog->slug,
+            'excerpt' => $blog->excerpt,
+            'status' => $blog->status,
+            'published_at' => $this->normaliseAuditValue($blog->published_at),
+            'scheduled_for' => $this->normaliseAuditValue($blog->scheduled_for),
+            'cover_image' => $blog->cover_image,
+            'author_id' => $blog->user_id,
+            'category_ids' => $blog->categories->pluck('id')->sort()->values()->all(),
+            'tag_ids' => $blog->tags->pluck('id')->sort()->values()->all(),
+        ];
+    }
+
+    private function normaliseAuditValue($value)
+    {
+        if ($value instanceof Carbon) {
+            return $value->toISOString();
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return Carbon::parse($value)->toISOString();
+        }
+
+        if (is_array($value)) {
+            return array_values($value);
+        }
+
+        if (is_bool($value) || is_int($value) || is_float($value) || $value === null) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (is_object($value) && method_exists($value, '__toString')) {
+            return (string) $value;
+        }
+
+        return $value;
     }
 
     private function sanitizeAuthorInput($input): array
@@ -801,6 +923,19 @@ class BlogController extends Controller
      */
     public function destroy(Blog $blog)
     {
+        $blog->loadMissing('categories:id', 'tags:id');
+
+        $snapshot = $this->blogAuditAttributes($blog);
+
+        activity('blogs')
+            ->event('blog.deleted')
+            ->performedOn($blog)
+            ->causedBy(request()->user())
+            ->withProperties([
+                'old' => $snapshot,
+            ])
+            ->log(sprintf('Blog "%s" deleted', $blog->title));
+
         $blog->delete();
 
         return redirect()->route('acp.blogs.index')
@@ -899,11 +1034,29 @@ class BlogController extends Controller
             return false;
         }
 
+        $blog->loadMissing('categories:id', 'tags:id');
+        $previousSnapshot = $this->blogAuditAttributes($blog);
+
         $blog->forceFill([
             'status' => 'published',
             'published_at' => now(),
             'scheduled_for' => null,
         ])->save();
+
+        $blog->refresh();
+        $blog->load('categories:id', 'tags:id');
+
+        if ($actor) {
+            activity('blogs')
+                ->event('blog.published')
+                ->performedOn($blog)
+                ->causedBy($actor)
+                ->withProperties([
+                    'old' => $previousSnapshot,
+                    'attributes' => $this->blogAuditAttributes($blog),
+                ])
+                ->log(sprintf('Blog "%s" published', $blog->title));
+        }
 
         $this->recordBlogSnapshot($blog, $actor);
 
@@ -916,11 +1069,29 @@ class BlogController extends Controller
             return false;
         }
 
+        $blog->loadMissing('categories:id', 'tags:id');
+        $previousSnapshot = $this->blogAuditAttributes($blog);
+
         $blog->forceFill([
             'status' => 'draft',
             'published_at' => null,
             'scheduled_for' => null,
         ])->save();
+
+        $blog->refresh();
+        $blog->load('categories:id', 'tags:id');
+
+        if ($actor) {
+            activity('blogs')
+                ->event('blog.unpublished')
+                ->performedOn($blog)
+                ->causedBy($actor)
+                ->withProperties([
+                    'old' => $previousSnapshot,
+                    'attributes' => $this->blogAuditAttributes($blog),
+                ])
+                ->log(sprintf('Blog "%s" moved to draft', $blog->title));
+        }
 
         $this->recordBlogSnapshot($blog, $actor);
 
@@ -933,11 +1104,29 @@ class BlogController extends Controller
             return false;
         }
 
+        $blog->loadMissing('categories:id', 'tags:id');
+        $previousSnapshot = $this->blogAuditAttributes($blog);
+
         $blog->forceFill([
             'status' => 'archived',
             'published_at' => null,
             'scheduled_for' => null,
         ])->save();
+
+        $blog->refresh();
+        $blog->load('categories:id', 'tags:id');
+
+        if ($actor) {
+            activity('blogs')
+                ->event('blog.archived')
+                ->performedOn($blog)
+                ->causedBy($actor)
+                ->withProperties([
+                    'old' => $previousSnapshot,
+                    'attributes' => $this->blogAuditAttributes($blog),
+                ])
+                ->log(sprintf('Blog "%s" archived', $blog->title));
+        }
 
         $this->recordBlogSnapshot($blog, $actor);
 
@@ -950,11 +1139,29 @@ class BlogController extends Controller
             return false;
         }
 
+        $blog->loadMissing('categories:id', 'tags:id');
+        $previousSnapshot = $this->blogAuditAttributes($blog);
+
         $blog->forceFill([
             'status' => 'draft',
             'published_at' => null,
             'scheduled_for' => null,
         ])->save();
+
+        $blog->refresh();
+        $blog->load('categories:id', 'tags:id');
+
+        if ($actor) {
+            activity('blogs')
+                ->event('blog.unarchived')
+                ->performedOn($blog)
+                ->causedBy($actor)
+                ->withProperties([
+                    'old' => $previousSnapshot,
+                    'attributes' => $this->blogAuditAttributes($blog),
+                ])
+                ->log(sprintf('Blog "%s" unarchived', $blog->title));
+        }
 
         $this->recordBlogSnapshot($blog, $actor);
 
