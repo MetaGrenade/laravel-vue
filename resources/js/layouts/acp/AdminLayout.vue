@@ -87,7 +87,7 @@ const sidebarNavItems: NavItem[] = [
         icon: CreditCard,
     },
     {
-        title: 'Subscription plans',
+        title: 'Subscription Plans',
         href: '/acp/billing/plans',
         target: '_self',
         icon: Layers,
