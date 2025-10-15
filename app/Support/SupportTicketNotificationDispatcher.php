@@ -24,7 +24,17 @@ class SupportTicketNotificationDispatcher
             ->unique(fn (User $user) => $user->id)
             ->each(function (User $recipient) use ($ticket, $notificationFactory, $channelResolver): void {
                 $audience = (int) $recipient->id === (int) $ticket->user_id ? 'owner' : 'agent';
-                $channels = $recipient->preferredNotificationChannelsFor('support', ['database', 'mail', 'push']);
+                $preferredChannels = $recipient->preferredNotificationChannelsFor('support', ['database', 'mail', 'push']);
+                $channels = $preferredChannels;
+
+                if ($channelResolver) {
+                    $resolvedChannels = $channelResolver($audience, $recipient);
+
+                    if ($resolvedChannels !== null) {
+                        $channels = array_values(array_unique($resolvedChannels));
+                        $channels = array_values(array_intersect($channels, $preferredChannels));
+                    }
+                }
 
                 if ($channels === []) {
                     return;
