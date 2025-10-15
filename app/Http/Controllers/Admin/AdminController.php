@@ -119,7 +119,22 @@ class AdminController extends Controller
     protected function buildQueueHealthMetrics(): array
     {
         $defaultConnection = config('queue.default');
-        $connectionConfig = config("queue.connections.{$defaultConnection}", []);
+        $connections = config('queue.connections', []);
+        $connectionKey = $defaultConnection;
+        $connectionConfig = $connections[$connectionKey] ?? [];
+
+        if (($connectionConfig['driver'] ?? null) !== 'database') {
+            $fallbackKey = collect($connections)
+                ->filter(fn ($config) => ($config['driver'] ?? null) === 'database')
+                ->keys()
+                ->first();
+
+            if ($fallbackKey) {
+                $connectionKey = $fallbackKey;
+                $connectionConfig = $connections[$fallbackKey];
+            }
+        }
+
         $queueName = $connectionConfig['queue'] ?? 'default';
         $driver = $connectionConfig['driver'] ?? 'database';
 
@@ -176,7 +191,7 @@ class AdminController extends Controller
         $lastFailure = $recentFailures[0]['failed_at'] ?? null;
 
         return [
-            'connection' => $defaultConnection,
+            'connection' => $connectionKey,
             'queue' => $queueName,
             'pending' => $pendingCount,
             'failed' => $failedCount,
