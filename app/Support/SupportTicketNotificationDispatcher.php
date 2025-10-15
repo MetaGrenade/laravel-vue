@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\SupportTeam;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Notifications\Notification as BaseNotification;
@@ -19,11 +20,75 @@ class SupportTicketNotificationDispatcher
     ): void {
         $ticket->loadMissing(['user', 'assignee']);
 
-        collect([$ticket->user, $ticket->assignee])
-            ->filter(fn (?User $user) => $user !== null)
-            ->unique(fn (User $user) => $user->id)
-            ->each(function (User $recipient) use ($ticket, $notificationFactory, $channelResolver): void {
-                $audience = (int) $recipient->id === (int) $ticket->user_id ? 'owner' : 'agent';
+        if ($ticket->assignee) {
+            $ticket->assignee->loadMissing('supportTeams.members');
+        }
+
+        $recipientCandidates = collect();
+
+        if ($ticket->user) {
+            $recipientCandidates->push([
+                'audience' => 'owner',
+                'user' => $ticket->user,
+            ]);
+        }
+
+        if ($ticket->assignee) {
+            $recipientCandidates->push([
+                'audience' => 'agent',
+                'user' => $ticket->assignee,
+            ]);
+
+            $teamMembers = $ticket->assignee->supportTeams
+                ->flatMap(fn (SupportTeam $team) => $team->members)
+                ->filter()
+                ->map(fn (User $member) => [
+                    'audience' => 'team',
+                    'user' => $member,
+                ]);
+
+            $recipientCandidates = $recipientCandidates->merge($teamMembers);
+        }
+
+        $audiencePriority = [
+            'owner' => 0,
+            'agent' => 1,
+            'team' => 2,
+        ];
+
+        $recipients = $recipientCandidates
+            ->filter(fn (array $candidate) => $candidate['user'] instanceof User)
+            ->reduce(function (array $carry, array $candidate) use ($audiencePriority, $ticket) {
+                /** @var User $user */
+                $user = $candidate['user'];
+                $audience = $candidate['audience'];
+                $id = (int) $user->id;
+
+                if ($id === 0) {
+                    return $carry;
+                }
+
+                if (! isset($carry[$id]) || $audiencePriority[$audience] < $audiencePriority[$carry[$id]['audience']]) {
+                    $carry[$id] = [
+                        'user' => $user,
+                        'audience' => (int) $user->id === (int) $ticket->user_id ? 'owner' : $audience,
+                    ];
+                }
+
+                return $carry;
+            }, []);
+
+        collect($recipients)
+            ->values()
+            ->each(function (array $recipientData) use ($ticket, $notificationFactory, $channelResolver): void {
+                /** @var User $recipient */
+                $recipient = $recipientData['user'];
+                $audience = $recipientData['audience'];
+
+                if ($audience === 'team' && ! $recipient->wantsSupportTeamNotifications()) {
+                    return;
+                }
+
                 $preferredChannels = $recipient->preferredNotificationChannelsFor('support', ['database', 'mail', 'push']);
                 $channels = $preferredChannels;
 

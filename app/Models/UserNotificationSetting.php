@@ -15,12 +15,14 @@ class UserNotificationSetting extends Model
         'channel_mail',
         'channel_push',
         'channel_database',
+        'team_notifications',
     ];
 
     protected $casts = [
         'channel_mail' => 'boolean',
         'channel_push' => 'boolean',
         'channel_database' => 'boolean',
+        'team_notifications' => 'boolean',
     ];
 
     public function isChannelEnabled(string $channel): bool
@@ -29,6 +31,14 @@ class UserNotificationSetting extends Model
             'mail' => (bool) $this->channel_mail,
             'push' => (bool) $this->channel_push,
             'database' => (bool) $this->channel_database,
+            default => false,
+        };
+    }
+
+    public function isOptionEnabled(string $option): bool
+    {
+        return match ($option) {
+            'team_notifications' => $this->team_notifications ?? true,
             default => false,
         };
     }

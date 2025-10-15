@@ -223,6 +223,22 @@ class User extends Authenticatable implements MustVerifyEmail
         return array_values(array_unique($channels));
     }
 
+    public function wantsSupportTeamNotifications(): bool
+    {
+        $this->loadMissing('notificationSettings');
+
+        $settings = $this->notificationSettings->firstWhere('category', 'support');
+
+        if ($settings) {
+            return $settings->isOptionEnabled('team_notifications');
+        }
+
+        $categoryConfig = (array) config('notification-preferences.categories', []);
+        $optionConfig = (array) ($categoryConfig['support']['options']['team_notifications'] ?? []);
+
+        return (bool) ($optionConfig['default'] ?? true);
+    }
+
     /**
      * Send the given notification using the recipient's preferred channels for the category.
      *

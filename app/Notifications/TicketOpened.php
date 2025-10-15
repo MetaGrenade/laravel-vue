@@ -52,14 +52,14 @@ class TicketOpened extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $subject = match ($this->audience) {
-            'agent' => 'New support ticket: ' . $this->ticket->subject,
+            'agent', 'team' => 'New support ticket: ' . $this->ticket->subject,
             default => 'Support ticket received: ' . $this->ticket->subject,
         };
 
         $greeting = 'Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!';
 
         $messageLines = match ($this->audience) {
-            'agent' => [
+            'agent', 'team' => [
                 'A new support ticket requires your attention.',
                 'Subject: ' . $this->ticket->subject,
                 'From: ' . ($this->ticket->user?->nickname ?? $this->ticket->user?->email ?? 'Customer'),
@@ -137,7 +137,7 @@ class TicketOpened extends Notification implements ShouldQueue
     protected function title(): string
     {
         return match ($this->audience) {
-            'agent' => 'New support ticket: ' . $this->ticket->subject,
+            'agent', 'team' => 'New support ticket: ' . $this->ticket->subject,
             default => 'Support ticket opened: ' . $this->ticket->subject,
         };
     }
@@ -149,7 +149,7 @@ class TicketOpened extends Notification implements ShouldQueue
         }
 
         return match ($this->audience) {
-            'agent' => 'A new support ticket requires your attention.',
+            'agent', 'team' => 'A new support ticket requires your attention.',
             default => 'We received your support request and will follow up soon.',
         };
     }

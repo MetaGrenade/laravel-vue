@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Support;
 
+use App\Models\SupportTeam;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\UserNotificationSetting;
@@ -46,6 +47,7 @@ class SupportTicketNotificationTest extends TestCase
                 'channel_mail' => true,
                 'channel_push' => true,
                 'channel_database' => true,
+                'team_notifications' => true,
             ],
         );
 
@@ -495,6 +497,7 @@ class SupportTicketNotificationTest extends TestCase
                 'channel_mail' => true,
                 'channel_push' => false,
                 'channel_database' => false,
+                'team_notifications' => true,
             ],
         );
 
@@ -527,5 +530,102 @@ class SupportTicketNotificationTest extends TestCase
         Notification::assertNotSentTo($agent, TicketReplied::class, function (TicketReplied $notification, array $channels) {
             return $channels === ['database'];
         });
+    }
+
+    public function test_support_team_members_receive_notifications_for_ticket_updates(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $agent = $this->createSupportAgent(['support.acp.view']);
+        $teamMate = $this->createSupportAgent(['support.acp.view']);
+
+        $team = SupportTeam::create(['name' => 'Incident Response']);
+        $team->members()->sync([$agent->id, $teamMate->id]);
+
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'subject' => 'API latency issues',
+            'body' => 'The API is responding slowly for clients.',
+            'priority' => 'high',
+            'assigned_to' => $agent->id,
+        ]);
+
+        $ticket->messages()->create([
+            'user_id' => $owner->id,
+            'body' => 'Initial request details for the incident.',
+        ]);
+
+        $this->actingAs($owner)
+            ->post(route('support.tickets.messages.store', $ticket), [
+                'body' => 'Additional logs attached. Please review.',
+            ])
+            ->assertRedirect(route('support.tickets.show', $ticket));
+
+        Notification::assertSentToTimes($teamMate, TicketReplied::class, 2);
+
+        Notification::assertSentTo($teamMate, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($teamMate) {
+            if ($channels !== ['database']) {
+                return false;
+            }
+
+            $data = $notification->toArray($teamMate);
+            $this->assertSame('team', $data['audience']);
+
+            return true;
+        });
+
+        Notification::assertSentTo($teamMate, TicketReplied::class, function (TicketReplied $notification, array $channels) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            return $sortedChannels === ['broadcast', 'mail'];
+        });
+    }
+
+    public function test_support_team_members_can_opt_out_of_ticket_updates(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $agent = $this->createSupportAgent(['support.acp.view']);
+        $teamMate = $this->createSupportAgent(['support.acp.view']);
+
+        $team = SupportTeam::create(['name' => 'Escalations']);
+        $team->members()->sync([$agent->id, $teamMate->id]);
+
+        UserNotificationSetting::query()->updateOrCreate(
+            [
+                'user_id' => $teamMate->id,
+                'category' => 'support',
+            ],
+            [
+                'channel_mail' => true,
+                'channel_push' => true,
+                'channel_database' => true,
+                'team_notifications' => false,
+            ],
+        );
+
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'subject' => 'Payment processor timeout',
+            'body' => 'Payments are timing out for multiple customers.',
+            'priority' => 'medium',
+            'assigned_to' => $agent->id,
+        ]);
+
+        $ticket->messages()->create([
+            'user_id' => $owner->id,
+            'body' => 'Initial payment timeout report.',
+        ]);
+
+        $this->actingAs($owner)
+            ->post(route('support.tickets.messages.store', $ticket), [
+                'body' => 'Follow-up with additional transaction IDs.',
+            ])
+            ->assertRedirect(route('support.tickets.show', $ticket));
+
+        Notification::assertNotSentTo($teamMate, TicketReplied::class);
     }
 }
