@@ -63,7 +63,7 @@ const payloadPreview = computed(() => {
 
     try {
         return JSON.stringify(props.call.payload, null, 2);
-    } catch (error) {
+    } catch {
         return String(props.call.payload);
     }
 });
@@ -108,7 +108,7 @@ const copyPayload = async () => {
     try {
         await navigator.clipboard.writeText(payloadPreview.value);
         copyStatus.value = 'copied';
-    } catch (error) {
+    } catch {
         copyStatus.value = 'failed';
     }
 
