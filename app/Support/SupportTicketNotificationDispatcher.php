@@ -20,10 +20,50 @@ class SupportTicketNotificationDispatcher
             ->unique(fn (User $user) => $user->id)
             ->each(function (User $recipient) use ($ticket, $notificationFactory): void {
                 $audience = (int) $recipient->id === (int) $ticket->user_id ? 'owner' : 'agent';
-                $notification = $notificationFactory($audience);
+                $channels = $recipient->preferredNotificationChannelsFor('support', ['database', 'mail', 'push']);
 
-                $recipient->notifyThroughPreferences($notification, 'support', ['database', 'mail', 'push']);
+                if ($channels === []) {
+                    return;
+                }
+
+                $synchronousChannels = array_values(array_intersect($channels, ['database']));
+                $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
+
+                if ($synchronousChannels !== []) {
+                    $recipient->notifyNow(
+                        $this->notificationWithChannels(
+                            $notificationFactory($audience),
+                            $synchronousChannels,
+                        ),
+                        $synchronousChannels,
+                    );
+                }
+
+                if ($queuedChannels !== []) {
+                    $recipient->notify(
+                        $this->notificationWithChannels(
+                            $notificationFactory($audience),
+                            $queuedChannels,
+                        ),
+                    );
+                }
             });
+    }
+
+    /**
+     * @param  array<int, string>  $channels
+     */
+    protected function notificationWithChannels(BaseNotification $notification, array $channels): BaseNotification
+    {
+        if (method_exists($notification, 'withChannels')) {
+            return $notification->withChannels($channels);
+        }
+
+        if (property_exists($notification, 'channels')) {
+            $notification->channels = $channels;
+        }
+
+        return $notification;
     }
 
 }
