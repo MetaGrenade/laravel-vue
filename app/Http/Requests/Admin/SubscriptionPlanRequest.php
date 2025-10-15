@@ -75,9 +75,56 @@ class SubscriptionPlanRequest extends FormRequest
 
         if ($this->has('price')) {
             $this->merge([
-                'price' => (int) $this->input('price'),
+                'price' => $this->normalizePrice($this->input('price')),
             ]);
         }
+    }
+
+    private function normalizePrice(mixed $price): int
+    {
+        if ($price === null || $price === '') {
+            return 0;
+        }
+
+        if (is_int($price)) {
+            return $price;
+        }
+
+        if (is_float($price)) {
+            return (int) round($price * 100);
+        }
+
+        if (is_string($price)) {
+            $trimmed = trim($price);
+
+            if ($trimmed === '') {
+                return 0;
+            }
+
+            $sanitized = preg_replace('/[^0-9.,-]/', '', $trimmed) ?? '';
+
+            if ($sanitized === '') {
+                return 0;
+            }
+
+            $normalized = str_replace(',', '.', $sanitized);
+
+            if (Str::contains($normalized, '.')) {
+                return (int) round((float) $normalized * 100);
+            }
+
+            if (ctype_digit($normalized) || $normalized === '0') {
+                return (int) $normalized;
+            }
+
+            return (int) round((float) $normalized * 100);
+        }
+
+        if (is_numeric($price)) {
+            return (int) round((float) $price * 100);
+        }
+
+        return 0;
     }
 
     private function normalizeSlug(mixed $slug, mixed $name): ?string

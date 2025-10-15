@@ -76,6 +76,32 @@ class SubscriptionPlanManagementTest extends TestCase
         $this->assertTrue($plan->is_active);
     }
 
+    public function test_decimal_price_strings_are_converted_to_cents(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo('billing.acp.view');
+
+        $response = $this->actingAs($user)->post(route('acp.billing.plans.store'), [
+            'name' => 'Enterprise',
+            'slug' => 'enterprise',
+            'stripe_price_id' => 'price_enterprise',
+            'interval' => 'month',
+            'price' => '99.99',
+            'currency' => 'usd',
+            'description' => 'Enterprise tier',
+            'features' => ['Feature X'],
+            'is_active' => true,
+        ]);
+
+        $response->assertRedirect(route('acp.billing.plans.index'));
+
+        $plan = SubscriptionPlan::where('stripe_price_id', 'price_enterprise')->first();
+
+        $this->assertNotNull($plan);
+        $this->assertSame(9999, $plan->price);
+        $this->assertSame('USD', $plan->currency);
+    }
+
     public function test_staff_can_update_subscription_plan(): void
     {
         $user = User::factory()->create();

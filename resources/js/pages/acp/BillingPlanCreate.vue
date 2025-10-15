@@ -51,7 +51,11 @@ const featuresError = computed(() => form.errors.features ?? form.errors['featur
 
 const parsePrice = (value: string | number): number => {
     if (typeof value === 'number') {
-        return value;
+        if (Number.isNaN(value)) {
+            return 0;
+        }
+
+        return Math.round(value * 100);
     }
 
     if (!value) {
