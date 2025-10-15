@@ -18,6 +18,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import Input from '@/components/ui/input/Input.vue';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Paperclip, Sparkles } from 'lucide-vue-next';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
@@ -486,240 +487,305 @@ const auditContextEntries = (audit: TicketAudit) => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
-                    <Card class="flex h-full flex-col">
-                        <CardHeader>
-                            <CardTitle>Conversation</CardTitle>
-                            <CardDescription>Messages exchanged between staff and the requester.</CardDescription>
-                        </CardHeader>
-                        <CardContent class="flex flex-1 flex-col gap-6">
-                            <div v-if="hasMessages" class="flex flex-col gap-4">
-                                <div
-                                    v-for="message in sortedMessages"
-                                    :key="message.id"
-                                    class="flex flex-col gap-1"
-                                    :class="message.is_from_support ? 'items-end' : 'items-start'"
-                                >
-                                    <div
-                                        class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-sm"
-                                        :class="message.is_from_support
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-background border'"
-                                    >
-                                        <div class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide">
-                                            <span>{{ resolveAuthorLabel(message) }}</span>
-                                            <span class="opacity-75">{{ messageTimestamp(message.created_at) }}</span>
-                                        </div>
-                                        <p class="whitespace-pre-line">{{ message.body }}</p>
-                                        <div v-if="message.attachments.length" class="mt-3 flex flex-col gap-2">
-                                            <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide opacity-80">
-                                                <Paperclip class="h-3 w-3" />
-                                                <span>Attachments</span>
+                <Tabs default-value="overview" class="w-full">
+                    <TabsList class="mb-4 w-full justify-start">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="history">Ticket History</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="overview" class="space-y-6">
+                        <div class="grid gap-6 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
+                            <Card class="flex h-full flex-col">
+                                <CardHeader>
+                                    <CardTitle>Conversation</CardTitle>
+                                    <CardDescription>Messages exchanged between staff and the requester.</CardDescription>
+                                </CardHeader>
+                                <CardContent class="flex flex-1 flex-col gap-6">
+                                    <div v-if="hasMessages" class="flex flex-col gap-4">
+                                        <div
+                                            v-for="message in sortedMessages"
+                                            :key="message.id"
+                                            class="flex flex-col gap-1"
+                                            :class="message.is_from_support ? 'items-end' : 'items-start'"
+                                        >
+                                            <div
+                                                class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-sm"
+                                                :class="message.is_from_support
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : 'bg-background border'"
+                                            >
+                                                <div class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide">
+                                                    <span>{{ resolveAuthorLabel(message) }}</span>
+                                                    <span class="opacity-75">{{ messageTimestamp(message.created_at) }}</span>
+                                                </div>
+                                                <p class="whitespace-pre-line">{{ message.body }}</p>
+                                                <div v-if="message.attachments.length" class="mt-3 flex flex-col gap-2">
+                                                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide opacity-80">
+                                                        <Paperclip class="h-3 w-3" />
+                                                        <span>Attachments</span>
+                                                    </div>
+                                                    <ul class="flex flex-col gap-1 text-xs">
+                                                        <li v-for="attachment in message.attachments" :key="attachment.id">
+                                                            <a
+                                                                :href="attachment.download_url"
+                                                                target="_blank"
+                                                                rel="noopener"
+                                                                class="flex items-center gap-2 underline underline-offset-4"
+                                                                :class="message.is_from_support
+                                                                    ? 'text-primary-foreground hover:text-primary-foreground/80'
+                                                                    : 'text-primary hover:text-primary/80'"
+                                                            >
+                                                                <span class="truncate">{{ attachment.name }}</span>
+                                                                <span class="whitespace-nowrap text-[0.7rem] opacity-80">
+                                                                    {{ formatFileSize(attachment.size) }}
+                                                                </span>
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
                                             </div>
-                                            <ul class="flex flex-col gap-1 text-xs">
-                                                <li v-for="attachment in message.attachments" :key="attachment.id">
-                                                    <a
-                                                        :href="attachment.download_url"
-                                                        target="_blank"
-                                                        rel="noopener"
-                                                        class="flex items-center gap-2 underline underline-offset-4"
-                                                        :class="message.is_from_support
-                                                            ? 'text-primary-foreground hover:text-primary-foreground/80'
-                                                            : 'text-primary hover:text-primary/80'"
+                                        </div>
+                                    </div>
+                                    <p v-else class="text-sm text-muted-foreground">
+                                        There are no messages on this ticket yet.
+                                    </p>
+                                </CardContent>
+                                <CardFooter
+                                    v-if="props.canReply"
+                                    class="items-stretch border-t border-border/50"
+                                >
+                                    <form class="flex w-full flex-col gap-3" @submit.prevent="submitReply">
+                                        <div class="flex flex-wrap items-center justify-between gap-2">
+                                            <label for="message" class="text-sm font-medium">Post a staff reply</label>
+                                            <DropdownMenu v-if="hasTemplateOptions">
+                                                <DropdownMenuTrigger as-child>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        class="flex items-center gap-2"
+                                                        :disabled="replyForm.processing"
                                                     >
-                                                        <span class="truncate">{{ attachment.name }}</span>
-                                                        <span class="whitespace-nowrap text-[0.7rem] opacity-80">
-                                                            {{ formatFileSize(attachment.size) }}
-                                                        </span>
-                                                    </a>
+                                                        <Sparkles class="h-4 w-4" />
+                                                        Insert template
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" class="w-80 max-h-80 overflow-y-auto">
+                                                    <template v-for="(group, index) in templateGroups" :key="group.name">
+                                                        <DropdownMenuLabel class="text-xs uppercase text-muted-foreground">
+                                                            {{ group.name === 'General' ? 'All teams' : group.name }}
+                                                        </DropdownMenuLabel>
+                                                        <DropdownMenuItem
+                                                            v-for="template in group.items"
+                                                            :key="template.id"
+                                                            class="whitespace-normal py-2"
+                                                            :title="template.body"
+                                                            @select="applyTemplate(template)"
+                                                        >
+                                                            <div class="flex flex-col gap-1">
+                                                                <span class="font-medium">{{ template.title }}</span>
+                                                                <span class="text-xs text-muted-foreground">
+                                                                    {{ template.category?.name ?? 'All categories' }}
+                                                                </span>
+                                                            </div>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator v-if="index < templateGroups.length - 1" />
+                                                    </template>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                        <Textarea
+                                            id="message"
+                                            v-model="replyForm.body"
+                                            placeholder="Share updates, next steps, or troubleshooting guidance..."
+                                            class="min-h-32"
+                                            :disabled="replyForm.processing"
+                                            required
+                                            @keyup.meta.enter="submitReply"
+                                            @keyup.ctrl.enter="submitReply"
+                                        />
+                                        <InputError :message="replyForm.errors.body" />
+                                        <div class="flex flex-col gap-2">
+                                            <Input
+                                                ref="attachmentInput"
+                                                id="attachments"
+                                                type="file"
+                                                multiple
+                                                :disabled="replyForm.processing"
+                                                accept="image/*,application/pdf,text/plain,text/csv,application/zip,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/x-ndjson"
+                                                @change="handleAttachmentsChange"
+                                            />
+                                            <p class="text-xs text-muted-foreground">
+                                                Attach relevant diagnostics or screenshots (up to 5 files, 10&nbsp;MB each).
+                                            </p>
+                                            <ul v-if="replyForm.attachments.length" class="flex flex-wrap gap-2 text-xs">
+                                                <li
+                                                    v-for="file in replyForm.attachments"
+                                                    :key="`${file.name}-${file.lastModified}`"
+                                                    class="flex items-center gap-2 rounded-md border border-dashed border-muted bg-muted/40 px-2 py-1"
+                                                >
+                                                    <Paperclip class="h-3 w-3" />
+                                                    <span class="max-w-[10rem] truncate">{{ file.name }}</span>
+                                                    <span class="text-muted-foreground">{{ formatFileSize(file.size) }}</span>
                                                 </li>
                                             </ul>
+                                            <InputError :message="attachmentErrors" />
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <p v-else class="text-sm text-muted-foreground">
-                                There are no messages on this ticket yet.
-                            </p>
-                        </CardContent>
-                        <CardFooter
-                            v-if="props.canReply"
-                            class="items-stretch border-t border-border/50"
-                        >
-                            <form class="flex w-full flex-col gap-3" @submit.prevent="submitReply">
-                                <div class="flex flex-wrap items-center justify-between gap-2">
-                                    <label for="message" class="text-sm font-medium">Post a staff reply</label>
-                                    <DropdownMenu v-if="hasTemplateOptions">
-                                        <DropdownMenuTrigger as-child>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                class="flex items-center gap-2"
-                                                :disabled="replyForm.processing"
-                                            >
-                                                <Sparkles class="h-4 w-4" />
-                                                Insert template
+                                        <div class="flex justify-end">
+                                            <Button type="submit" :disabled="replyForm.processing">
+                                                Send reply
                                             </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" class="w-80 max-h-80 overflow-y-auto">
-                                            <template v-for="(group, index) in templateGroups" :key="group.name">
-                                                <DropdownMenuLabel class="text-xs uppercase text-muted-foreground">
-                                                    {{ group.name === 'General' ? 'All teams' : group.name }}
-                                                </DropdownMenuLabel>
-                                                <DropdownMenuItem
-                                                    v-for="template in group.items"
-                                                    :key="template.id"
-                                                    class="whitespace-normal py-2"
-                                                    :title="template.body"
-                                                    @select="applyTemplate(template)"
-                                                >
-                                                    <div class="flex flex-col gap-1">
-                                                        <span class="font-medium">{{ template.title }}</span>
-                                                        <span class="text-xs text-muted-foreground">
-                                                            {{ template.category?.name ?? 'All categories' }}
-                                                        </span>
-                                                    </div>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator v-if="index < templateGroups.length - 1" />
-                                            </template>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                                <Textarea
-                                    id="message"
-                                    v-model="replyForm.body"
-                                    placeholder="Share updates, next steps, or troubleshooting guidance..."
-                                    class="min-h-32"
-                                    :disabled="replyForm.processing"
-                                    required
-                                    @keyup.meta.enter="submitReply"
-                                    @keyup.ctrl.enter="submitReply"
-                                />
-                                <InputError :message="replyForm.errors.body" />
-                                <div class="flex flex-col gap-2">
-                                    <Input
-                                        ref="attachmentInput"
-                                        id="attachments"
-                                        type="file"
-                                        multiple
-                                        :disabled="replyForm.processing"
-                                        accept="image/*,application/pdf,text/plain,text/csv,application/zip,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/x-ndjson"
-                                        @change="handleAttachmentsChange"
-                                    />
-                                    <p class="text-xs text-muted-foreground">
-                                        Attach relevant diagnostics or screenshots (up to 5 files, 10&nbsp;MB each).
+                                        </div>
+                                    </form>
+                                </CardFooter>
+                                <CardFooter
+                                    v-else
+                                    class="items-start border-t border-border/50"
+                                >
+                                    <p class="text-sm text-muted-foreground">
+                                        Replies are disabled either because the ticket is closed or you lack reply permissions.
                                     </p>
-                                    <ul v-if="replyForm.attachments.length" class="flex flex-wrap gap-2 text-xs">
-                                        <li
-                                            v-for="file in replyForm.attachments"
-                                            :key="`${file.name}-${file.lastModified}`"
-                                            class="flex items-center gap-2 rounded-md border border-dashed border-muted bg-muted/40 px-2 py-1"
-                                        >
-                                            <Paperclip class="h-3 w-3" />
-                                            <span class="max-w-[10rem] truncate">{{ file.name }}</span>
-                                            <span class="text-muted-foreground">{{ formatFileSize(file.size) }}</span>
-                                        </li>
-                                    </ul>
-                                    <InputError :message="attachmentErrors" />
-                                </div>
-                                <div class="flex justify-end">
-                                    <Button type="submit" :disabled="replyForm.processing">
-                                        Send reply
-                                    </Button>
-                                </div>
-                            </form>
-                        </CardFooter>
-                        <CardFooter
-                            v-else
-                            class="items-start border-t border-border/50"
-                        >
-                            <p class="text-sm text-muted-foreground">
-                                Replies are disabled either because the ticket is closed or you lack reply permissions.
-                            </p>
-                        </CardFooter>
-                    </Card>
+                                </CardFooter>
+                            </Card>
 
-                    <div class="flex flex-col gap-6">
-                        <Card v-if="!isClosed">
-                            <CardHeader>
-                                <CardTitle>Ticket actions</CardTitle>
-                                <CardDescription>Assign, triage, or progress the ticket.</CardDescription>
-                            </CardHeader>
-                            <CardContent class="space-y-4 text-sm">
-                                <form class="grid gap-2" @submit.prevent="updateAssignment">
-                                    <label for="assigned_to" class="text-xs font-semibold uppercase text-muted-foreground">
-                                        Assigned agent
-                                    </label>
-                                    <select
-                                        id="assigned_to"
-                                        v-model.number="assignmentForm.assigned_to"
-                                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                        :disabled="assignmentForm.processing"
-                                    >
-                                        <option :value="null">Unassigned</option>
-                                        <option
-                                            v-for="agent in props.assignableAgents"
-                                            :key="agent.id"
-                                            :value="agent.id"
-                                        >
-                                            {{ agent.nickname || agent.email }}
-                                        </option>
-                                    </select>
-                                    <InputError :message="assignmentForm.errors.assigned_to" />
-                                    <div class="flex justify-end">
-                                        <Button type="submit" size="sm" :disabled="assignmentForm.processing">
-                                            Update assignment
-                                        </Button>
-                                    </div>
-                                </form>
+                            <div class="flex flex-col gap-6">
+                                <Card v-if="!isClosed">
+                                    <CardHeader>
+                                        <CardTitle>Ticket actions</CardTitle>
+                                        <CardDescription>Assign, triage, or progress the ticket.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent class="space-y-4 text-sm">
+                                        <form class="grid gap-2" @submit.prevent="updateAssignment">
+                                            <label for="assigned_to" class="text-xs font-semibold uppercase text-muted-foreground">
+                                                Assigned agent
+                                            </label>
+                                            <select
+                                                id="assigned_to"
+                                                v-model.number="assignmentForm.assigned_to"
+                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                :disabled="assignmentForm.processing"
+                                            >
+                                                <option :value="null">Unassigned</option>
+                                                <option
+                                                    v-for="agent in props.assignableAgents"
+                                                    :key="agent.id"
+                                                    :value="agent.id"
+                                                >
+                                                    {{ agent.nickname || agent.email }}
+                                                </option>
+                                            </select>
+                                            <InputError :message="assignmentForm.errors.assigned_to" />
+                                            <div class="flex justify-end">
+                                                <Button type="submit" size="sm" :disabled="assignmentForm.processing">
+                                                    Update assignment
+                                                </Button>
+                                            </div>
+                                        </form>
 
-                                <form class="grid gap-2" @submit.prevent="updatePriority">
-                                    <label for="priority" class="text-xs font-semibold uppercase text-muted-foreground">
-                                        Priority
-                                    </label>
-                                    <select
-                                        id="priority"
-                                        v-model="priorityForm.priority"
-                                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                        :disabled="priorityForm.processing"
-                                    >
-                                        <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
-                                            {{ option.label }}
-                                        </option>
-                                    </select>
-                                    <InputError :message="priorityForm.errors.priority" />
-                                    <div class="flex justify-end">
-                                        <Button type="submit" size="sm" :disabled="priorityForm.processing">
-                                            Update priority
-                                        </Button>
-                                    </div>
-                                </form>
+                                        <form class="grid gap-2" @submit.prevent="updatePriority">
+                                            <label for="priority" class="text-xs font-semibold uppercase text-muted-foreground">
+                                                Priority
+                                            </label>
+                                            <select
+                                                id="priority"
+                                                v-model="priorityForm.priority"
+                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                :disabled="priorityForm.processing"
+                                            >
+                                                <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
+                                                    {{ option.label }}
+                                                </option>
+                                            </select>
+                                            <InputError :message="priorityForm.errors.priority" />
+                                            <div class="flex justify-end">
+                                                <Button type="submit" size="sm" :disabled="priorityForm.processing">
+                                                    Update priority
+                                                </Button>
+                                            </div>
+                                        </form>
 
-                                <form class="grid gap-2" @submit.prevent="updateStatus">
-                                    <label for="status" class="text-xs font-semibold uppercase text-muted-foreground">
-                                        Status
-                                    </label>
-                                    <select
-                                        id="status"
-                                        v-model="statusForm.status"
-                                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                        :disabled="statusForm.processing"
-                                    >
-                                        <option v-for="option in statusOptions" :key="option.value" :value="option.value">
-                                            {{ option.label }}
-                                        </option>
-                                    </select>
-                                    <InputError :message="statusForm.errors.status" />
-                                    <div class="flex justify-end">
-                                        <Button type="submit" size="sm" :disabled="statusForm.processing">
-                                            Update status
-                                        </Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
+                                        <form class="grid gap-2" @submit.prevent="updateStatus">
+                                            <label for="status" class="text-xs font-semibold uppercase text-muted-foreground">
+                                                Status
+                                            </label>
+                                            <select
+                                                id="status"
+                                                v-model="statusForm.status"
+                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                :disabled="statusForm.processing"
+                                            >
+                                                <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+                                                    {{ option.label }}
+                                                </option>
+                                            </select>
+                                            <InputError :message="statusForm.errors.status" />
+                                            <div class="flex justify-end">
+                                                <Button type="submit" size="sm" :disabled="statusForm.processing">
+                                                    Update status
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    </CardContent>
+                                </Card>
 
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Ticket details</CardTitle>
+                                        <CardDescription>Key context for staff triage.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent class="space-y-4 text-sm">
+                                        <div>
+                                            <p class="text-xs uppercase text-muted-foreground">Requester</p>
+                                            <p class="font-medium text-foreground">
+                                                {{ props.ticket.user?.nickname ?? props.ticket.user?.email ?? 'Unknown user' }}
+                                            </p>
+                                            <p class="text-muted-foreground">{{ props.ticket.user?.email ?? '—' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs uppercase text-muted-foreground">Assigned agent</p>
+                                            <p class="font-medium text-foreground">
+                                                {{ props.ticket.assignee?.nickname ?? 'Unassigned' }}
+                                            </p>
+                                            <p class="text-muted-foreground">{{ props.ticket.assignee?.email ?? '—' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs uppercase text-muted-foreground">Created</p>
+                                            <p class="font-medium text-foreground">{{ formattedCreatedAt }}</p>
+                                            <p class="text-muted-foreground">{{ fromNow(props.ticket.created_at) }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs uppercase text-muted-foreground">Last updated</p>
+                                            <p class="font-medium text-foreground">{{ formattedUpdatedAt }}</p>
+                                            <p class="text-muted-foreground">{{ fromNow(props.ticket.updated_at) }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs uppercase text-muted-foreground">Resolved</p>
+                                            <p class="font-medium text-foreground">
+                                                {{ props.ticket.resolved_at ? formattedResolvedAt : 'Not resolved' }}
+                                            </p>
+                                            <p class="text-muted-foreground">
+                                                {{ props.ticket.resolver?.nickname ?? (props.ticket.resolved_at ? 'Unknown' : '—') }}
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Original description</CardTitle>
+                                        <CardDescription>The initial details provided by the requester.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p class="whitespace-pre-line text-sm leading-relaxed text-foreground">
+                                            {{ props.ticket.body }}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="history" class="space-y-6">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Ticket history</CardTitle>
@@ -757,62 +823,8 @@ const auditContextEntries = (audit: TicketAudit) => {
                                 </p>
                             </CardContent>
                         </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Ticket details</CardTitle>
-                                <CardDescription>Key context for staff triage.</CardDescription>
-                            </CardHeader>
-                            <CardContent class="space-y-4 text-sm">
-                                <div>
-                                    <p class="text-xs uppercase text-muted-foreground">Requester</p>
-                                    <p class="font-medium text-foreground">
-                                        {{ props.ticket.user?.nickname ?? props.ticket.user?.email ?? 'Unknown user' }}
-                                    </p>
-                                    <p class="text-muted-foreground">{{ props.ticket.user?.email ?? '—' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs uppercase text-muted-foreground">Assigned agent</p>
-                                    <p class="font-medium text-foreground">
-                                        {{ props.ticket.assignee?.nickname ?? 'Unassigned' }}
-                                    </p>
-                                    <p class="text-muted-foreground">{{ props.ticket.assignee?.email ?? '—' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs uppercase text-muted-foreground">Created</p>
-                                    <p class="font-medium text-foreground">{{ formattedCreatedAt }}</p>
-                                    <p class="text-muted-foreground">{{ fromNow(props.ticket.created_at) }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs uppercase text-muted-foreground">Last updated</p>
-                                    <p class="font-medium text-foreground">{{ formattedUpdatedAt }}</p>
-                                    <p class="text-muted-foreground">{{ fromNow(props.ticket.updated_at) }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs uppercase text-muted-foreground">Resolved</p>
-                                    <p class="font-medium text-foreground">
-                                        {{ props.ticket.resolved_at ? formattedResolvedAt : 'Not resolved' }}
-                                    </p>
-                                    <p class="text-muted-foreground">
-                                        {{ props.ticket.resolver?.nickname ?? (props.ticket.resolved_at ? 'Unknown' : '—') }}
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Original description</CardTitle>
-                                <CardDescription>The initial details provided by the requester.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <p class="whitespace-pre-line text-sm leading-relaxed text-foreground">
-                                    {{ props.ticket.body }}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
+                    </TabsContent>
+                </Tabs>
             </div>
         </AdminLayout>
     </AppLayout>
