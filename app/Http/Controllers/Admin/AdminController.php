@@ -199,16 +199,16 @@ class AdminController extends Controller
             'oldest_pending_age_seconds' => $oldestPendingAgeSeconds,
             'last_failed_at' => $lastFailure,
             'recent_failures' => $recentFailures,
-            'workers' => $this->configuredQueueWorkers(),
+            'workers' => $this->configuredQueueWorkers($connectionKey, $connectionConfig, $queueName),
         ];
     }
 
     /**
      * @return array<int, array<string, mixed>>
      */
-    protected function configuredQueueWorkers(): array
+    protected function configuredQueueWorkers(string $connectionKey, array $connectionConfig, string $queueName): array
     {
-        return collect(config('queue.workers', []))
+        $workers = collect(config('queue.workers', []))
             ->map(function (array $worker) {
                 $queues = $worker['queues'] ?? [];
 
@@ -228,8 +228,25 @@ class AdminController extends Controller
                     'max_time' => $worker['max_time'] ?? null,
                 ];
             })
-            ->values()
-            ->all();
+            ->values();
+
+        if ($workers->isEmpty()) {
+            $workers = collect([
+                [
+                    'name' => $connectionKey,
+                    'connection' => $connectionConfig['connection'] ?? config('queue.default'),
+                    'queues' => array_values(array_filter([$queueName])),
+                    'tries' => $connectionConfig['tries'] ?? null,
+                    'backoff' => $connectionConfig['backoff'] ?? null,
+                    'sleep' => $connectionConfig['sleep'] ?? null,
+                    'timeout' => $connectionConfig['timeout'] ?? null,
+                    'max_jobs' => $connectionConfig['max_jobs'] ?? null,
+                    'max_time' => $connectionConfig['max_time'] ?? null,
+                ],
+            ]);
+        }
+
+        return $workers->all();
     }
 
     /**
