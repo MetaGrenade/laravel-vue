@@ -210,75 +210,119 @@ class AdminController extends Controller
      */
     protected function configuredQueueWorkers(string $connectionKey, array $connectionConfig, string $queueName): array
     {
-        $configuredWorkers = config('queue.workers', []);
+        $configuredWorkers = config('queue.workers');
 
         if ($configuredWorkers instanceof Arrayable) {
             $configuredWorkers = $configuredWorkers->toArray();
         } elseif ($configuredWorkers instanceof Traversable) {
             $configuredWorkers = iterator_to_array($configuredWorkers);
         } elseif (! is_array($configuredWorkers)) {
-            $configuredWorkers = [];
+            $configuredWorkers = Arr::wrap($configuredWorkers);
         }
 
         $workers = [];
 
-        foreach ($configuredWorkers as $worker) {
-            if ($worker instanceof Arrayable) {
-                $worker = $worker->toArray();
-            } elseif ($worker instanceof Traversable) {
-                $worker = iterator_to_array($worker);
+        foreach (Arr::wrap($configuredWorkers) as $worker) {
+            $normalized = $this->normalizeQueueWorker($worker, $connectionKey, $connectionConfig, $queueName);
+
+            if ($normalized !== null) {
+                $workers[] = $normalized;
             }
-
-            if (! is_array($worker)) {
-                continue;
-            }
-
-            $queues = $worker['queues'] ?? [];
-
-            if (is_string($queues)) {
-                $queues = array_map('trim', explode(',', $queues));
-            }
-
-            if (! is_array($queues)) {
-                $queues = [];
-            }
-
-            $queues = array_values(array_filter($queues, fn ($queue) => $queue !== null && $queue !== ''));
-
-            if ($queues === [] && $queueName) {
-                $queues = [$queueName];
-            }
-
-            $workers[] = [
-                'name' => $worker['name'] ?? 'worker',
-                'connection' => $worker['connection'] ?? ($connectionConfig['connection'] ?? $connectionKey),
-                'queues' => $queues,
-                'tries' => $worker['tries'] ?? null,
-                'backoff' => $worker['backoff'] ?? null,
-                'sleep' => $worker['sleep'] ?? null,
-                'timeout' => $worker['timeout'] ?? null,
-                'max_jobs' => $worker['max_jobs'] ?? null,
-                'max_time' => $worker['max_time'] ?? null,
-            ];
         }
 
         if ($workers === []) {
-            $queues = $queueName ? [$queueName] : [];
-
-            $workers[] = [
-                'name' => $connectionKey,
-                'connection' => $connectionConfig['connection'] ?? $connectionKey,
-                'queues' => $queues,
-                'tries' => $connectionConfig['tries'] ?? null,
-                'backoff' => $connectionConfig['backoff'] ?? null,
-                'sleep' => $connectionConfig['sleep'] ?? null,
-                'timeout' => $connectionConfig['timeout'] ?? null,
-                'max_jobs' => $connectionConfig['max_jobs'] ?? null,
-                'max_time' => $connectionConfig['max_time'] ?? null,
-            ];
+            $workers[] = $this->defaultQueueWorker($connectionKey, $connectionConfig, $queueName);
         }
 
-        return array_values($workers);
+        return $workers;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function normalizeQueueWorker($worker, string $connectionKey, array $connectionConfig, string $queueName): ?array
+    {
+        if ($worker instanceof Arrayable) {
+            $worker = $worker->toArray();
+        } elseif ($worker instanceof Traversable) {
+            $worker = iterator_to_array($worker);
+        } elseif (is_object($worker)) {
+            $worker = (array) $worker;
+        }
+
+        if (! is_array($worker) || $worker === []) {
+            return null;
+        }
+
+        $queues = $this->normalizeQueueList($worker['queues'] ?? [], $queueName);
+
+        return [
+            'name' => $worker['name'] ?? ($connectionConfig['queue'] ?? $connectionKey),
+            'connection' => $worker['connection'] ?? ($connectionConfig['connection'] ?? $connectionKey),
+            'queues' => $queues,
+            'tries' => $worker['tries'] ?? ($connectionConfig['tries'] ?? null),
+            'backoff' => $worker['backoff'] ?? ($connectionConfig['backoff'] ?? null),
+            'sleep' => $worker['sleep'] ?? ($connectionConfig['sleep'] ?? null),
+            'timeout' => $worker['timeout'] ?? ($connectionConfig['timeout'] ?? null),
+            'max_jobs' => $worker['max_jobs'] ?? ($connectionConfig['max_jobs'] ?? null),
+            'max_time' => $worker['max_time'] ?? ($connectionConfig['max_time'] ?? null),
+        ];
+    }
+
+    protected function defaultQueueWorker(string $connectionKey, array $connectionConfig, string $queueName): array
+    {
+        return [
+            'name' => $connectionKey,
+            'connection' => $connectionConfig['connection'] ?? $connectionKey,
+            'queues' => $this->normalizeQueueList($connectionConfig['queues'] ?? [], $queueName),
+            'tries' => $connectionConfig['tries'] ?? null,
+            'backoff' => $connectionConfig['backoff'] ?? null,
+            'sleep' => $connectionConfig['sleep'] ?? null,
+            'timeout' => $connectionConfig['timeout'] ?? null,
+            'max_jobs' => $connectionConfig['max_jobs'] ?? null,
+            'max_time' => $connectionConfig['max_time'] ?? null,
+        ];
+    }
+
+    protected function normalizeQueueList($queues, string $queueName): array
+    {
+        if ($queues instanceof Arrayable) {
+            $queues = $queues->toArray();
+        } elseif ($queues instanceof Traversable) {
+            $queues = iterator_to_array($queues);
+        } elseif (is_object($queues)) {
+            $queues = (array) $queues;
+        }
+
+        if (is_string($queues)) {
+            $queues = array_map('trim', explode(',', $queues));
+        } elseif (! is_array($queues)) {
+            $queues = Arr::wrap($queues);
+        }
+
+        $normalized = [];
+
+        foreach ($queues as $queue) {
+            if (is_string($queue)) {
+                $queue = trim($queue);
+            } elseif (is_numeric($queue)) {
+                $queue = (string) $queue;
+            } else {
+                continue;
+            }
+
+            if ($queue === '') {
+                continue;
+            }
+
+            $normalized[] = $queue;
+        }
+
+        if ($normalized === [] && $queueName !== '') {
+            $normalized[] = $queueName;
+        }
+
+        return array_values(array_unique($normalized));
     }
 
     /**
