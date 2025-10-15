@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -87,6 +87,12 @@ const sidebarNavItems: NavItem[] = [
         icon: CreditCard,
     },
     {
+        title: 'Billing webhooks',
+        href: '/acp/billing/webhooks',
+        target: '_self',
+        icon: Webhook,
+    },
+    {
         title: 'Subscription plans',
         href: '/acp/billing/plans',
         target: '_self',
@@ -132,6 +138,8 @@ const filteredNavItems = computed(() => {
             case 'Trust & Safety':
                 return manageTrustSafety.value;
             case 'Billing Invoices':
+                return manageBilling.value;
+            case 'Billing webhooks':
                 return manageBilling.value;
             case 'Subscription Plans':
                 return manageBilling.value;
