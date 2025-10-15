@@ -87,13 +87,13 @@ const sidebarNavItems: NavItem[] = [
         icon: CreditCard,
     },
     {
-        title: 'Billing webhooks',
+        title: 'Billing Webhooks',
         href: '/acp/billing/webhooks',
         target: '_self',
         icon: Webhook,
     },
     {
-        title: 'Subscription plans',
+        title: 'Subscription Plans',
         href: '/acp/billing/plans',
         target: '_self',
         icon: Layers,
@@ -139,7 +139,7 @@ const filteredNavItems = computed(() => {
                 return manageTrustSafety.value;
             case 'Billing Invoices':
                 return manageBilling.value;
-            case 'Billing webhooks':
+            case 'Billing Webhooks':
                 return manageBilling.value;
             case 'Subscription Plans':
                 return manageBilling.value;
