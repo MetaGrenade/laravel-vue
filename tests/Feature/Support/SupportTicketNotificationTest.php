@@ -4,6 +4,7 @@ namespace Tests\Feature\Support;
 
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Models\UserNotificationSetting;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
@@ -35,6 +36,14 @@ class SupportTicketNotificationTest extends TestCase
         foreach ($permissions as $permission) {
             $agent->givePermissionTo($permission);
         }
+
+        UserNotificationSetting::factory()->create([
+            'user_id' => $agent->id,
+            'category' => 'support',
+            'channel_mail' => true,
+            'channel_push' => true,
+            'channel_database' => true,
+        ]);
 
         return $agent;
     }

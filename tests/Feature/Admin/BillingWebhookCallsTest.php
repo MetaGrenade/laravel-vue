@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\Billing\BillingWebhookProcessor;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -33,7 +34,17 @@ class BillingWebhookCallsTest extends TestCase
                 ->where('type', 'invoice.payment_succeeded')
                 ->etc()
             )
-            ->where('availableTypes', fn ($types) => in_array('invoice.payment_succeeded', $types, true))
+            ->where('availableTypes', function ($types) {
+                if ($types instanceof Collection) {
+                    return $types->contains('invoice.payment_succeeded');
+                }
+
+                if (is_array($types)) {
+                    return in_array('invoice.payment_succeeded', $types, true);
+                }
+
+                return false;
+            })
         );
     }
 
