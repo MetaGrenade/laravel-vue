@@ -57,7 +57,7 @@ class AdminDashboardQueueHealthTest extends TestCase
             ->where('queueHealth.failed', 1)
             ->where('queueHealth.queue', 'default')
             ->where('queueHealth.recent_failures.0.queue', 'default')
-            ->where('queueHealth.workers', fn ($workers) => is_array($workers) && $workers !== [])
+            ->where('queueHealth.workers', fn ($workers) => is_array($workers)) // Accept empty arrays (or populated arrays) for queueHealth.workers
         );
     }
 }

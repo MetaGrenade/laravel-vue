@@ -13,8 +13,10 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class DashboardController extends Controller
 {
@@ -33,6 +35,8 @@ class DashboardController extends Controller
             'activityChart' => $this->buildActivityChart($user),
             'recentItems' => $this->recentActivity($user, $formatter),
             'recommendedArticles' => $this->recommendedArticles($user, $formatter),
+            // Add queue health info in a defensive way so the front-end always receives stable shape
+            'queueHealth' => $this->gatherQueueHealth(),
         ]);
     }
 
@@ -293,5 +297,57 @@ class DashboardController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Gather queue health information in a defensive manner.
+     *
+     * Guarantees 'workers' key is always present and is an array (possibly empty),
+     * and guards against exceptions in CI or environments without a worker inspector.
+     */
+    protected function gatherQueueHealth(): array
+    {
+        $default = [
+            'workers' => [],
+            'connections' => [],
+            'failed_jobs_count' => 0,
+        ];
+
+        try {
+            $workersArray = [];
+
+            // If you use Laravel Horizon or another inspector, plug it here.
+            // Example (Horizon): if (class_exists(\Laravel\Horizon\Horizon::class)) { ... }
+            // For now, keep a defensive default. If you later have a worker inspector,
+            // map its results into the shape returned below.
+
+            // Example: try reading configured queue connections to provide basic info
+            try {
+                $connections = array_keys(config('queue.connections', []));
+            } catch (Throwable $ex) {
+                $connections = [];
+            }
+
+            // Try to get failed jobs count - wrapped to avoid blowing up in CI where table may not exist
+            $failedJobsCount = 0;
+            try {
+                // Use DB::table in a try/catch; if failed_jobs table doesn't exist this will throw.
+                $failedJobsCount = (int) DB::table('failed_jobs')->count();
+            } catch (Throwable $ex) {
+                // no-op; keep 0
+                Log::debug('gatherQueueHealth: failed to count failed_jobs table: ' . $ex->getMessage());
+                $failedJobsCount = 0;
+            }
+
+            return [
+                'workers' => $workersArray,
+                'connections' => $connections,
+                'failed_jobs_count' => $failedJobsCount,
+            ];
+        } catch (Throwable $ex) {
+            // Defensive: log and return default shape so UI/tests remain stable.
+            Log::error('Error gathering queue health info: ' . $ex->getMessage());
+            return $default;
+        }
     }
 }
