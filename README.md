@@ -15,9 +15,9 @@ A batteries-included starter kit for building modern Laravel + Vue single-page a
 - **Forum System**: Boards, threads, post moderation, publishing workflows, and tracking read state with dedicated controllers and routes.
 - **Blog & Previewing**: Public blog listing, tokenized preview links, and authenticated commenting APIs.
 - **Support Center**: Ticket submission, messaging threads, authenticated access to customer conversations, and configurable
-  assignment rules so tickets auto-route to the right agents.
+  assignment rules so tickets auto-route to the right agents or support teams without touching the database.
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
-- **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
+- **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, support assignment rules, team membership, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
 - **Authentication & Authorization**: Laravel Breeze for authentication plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
 - **Appearance Management**: System/light/dark modes synced between SSR and the client through a reusable composable.
 
@@ -203,8 +203,11 @@ The starter ships with first-party integrations for Google, Discord, and Steam b
   account to password-only authentication.
 
 ### Support Operations (Assignment & SLA)
-- **Assignment Rules**: Configure agent routing with ordered rules stored in the `support_assignment_rules` table. Rules can
-  target specific categories or priorities and are evaluated top-to-bottom until a match assigns the ticket.
+- **Assignment Rules**: Configure routing with ordered rules stored in the `support_assignment_rules` table. Rules can target
+  specific categories or priorities and route tickets to individual agents (`assignee_type = 'user'`) or entire support teams
+  (`assignee_type = 'team'`). They are evaluated top-to-bottom until a match assigns the ticket.
+- **Team Membership Management**: Support teams expose membership editing from the ACP so administrators can curate which
+  agents receive team-targeted assignments without artisan commands or direct database updates.
 - **Audit Trail**: All automated changes (assignments, escalations, and SLA-driven reassignments) are captured in the
   `support_ticket_audits` table for traceability.
 - **SLA Monitoring**: The `MonitorSupportTicketSlas` job runs every fifteen minutes (see `bootstrap/app.php`) and will escalate
@@ -220,11 +223,14 @@ php artisan tinker
 >>> \App\Models\SupportAssignmentRule::create([
 ...     'support_ticket_category_id' => 1, // optional
 ...     'priority' => 'high',              // optional
-...     'assigned_to' => 5,                // required user id
+...     'assignee_type' => 'team',         // 'user' (default) or 'team'
+...     'support_team_id' => 2,            // required when targeting a team
+...     'assigned_to' => null,             // required when targeting a user
 ...     'position' => 10,
 ... ]);
 ```
-Rules with lower `position` values are evaluated first, so place the most specific rules near the top of the list.
+Rules with lower `position` values are evaluated first, so place the most specific rules near the top of the list. When
+assigning to a single agent set `assignee_type` to `user` and provide an `assigned_to` user ID instead of a `support_team_id`.
 
 ### Billing & Subscription Management
 - **Stripe credentials**: Populate `STRIPE_KEY`, `STRIPE_SECRET`, and `STRIPE_WEBHOOK_SECRET` in `.env`. Map each

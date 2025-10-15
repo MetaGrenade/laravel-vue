@@ -11,6 +11,7 @@ use App\Http\Requests\Admin\StoreSupportTicketMessageRequest;
 use App\Http\Requests\Admin\StoreSupportTicketRequest;
 use App\Http\Requests\Admin\UpdateFaqRequest;
 use App\Http\Requests\Admin\UpdateSupportResponseTemplateRequest;
+use App\Http\Requests\Admin\UpdateSupportTeamMembershipRequest;
 use App\Http\Requests\Admin\UpdateSupportTeamRequest;
 use App\Http\Requests\Admin\UpdateSupportTicketRequest;
 use App\Models\SupportResponseTemplate;
@@ -203,9 +204,32 @@ class SupportController extends Controller
             ])
             ->all();
 
+        $teamMemberships = User::query()
+            ->with('supportTeams:id,name')
+            ->orderBy('nickname')
+            ->get(['id', 'nickname', 'email'])
+            ->map(function (User $agent) {
+                return [
+                    'id' => $agent->id,
+                    'nickname' => $agent->nickname,
+                    'email' => $agent->email,
+                    'team_ids' => $agent->supportTeams->pluck('id')->all(),
+                    'teams' => $agent->supportTeams
+                        ->map(fn (SupportTeam $team) => [
+                            'id' => $team->id,
+                            'name' => $team->name,
+                        ])
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->values()
+            ->all();
+
         return Inertia::render('acp/SupportTeams', [
             'teams' => $teams,
             'agents' => $assignableAgents,
+            'memberships' => $teamMemberships,
             'can' => [
                 'create' => (bool) $request->user()?->can('support_teams.acp.create'),
                 'edit' => (bool) $request->user()?->can('support_teams.acp.edit'),
@@ -252,6 +276,17 @@ class SupportController extends Controller
         return redirect()
             ->route('acp.support.teams.index')
             ->with('success', 'Support team deleted.');
+    }
+
+    public function updateTeamMembership(UpdateSupportTeamMembershipRequest $request, User $user): RedirectResponse
+    {
+        $teamIds = $request->validated('team_ids') ?? [];
+
+        $user->supportTeams()->sync($teamIds);
+
+        return redirect()
+            ->route('acp.support.teams.index')
+            ->with('success', 'Team membership updated.');
     }
 
     public function index(Request $request): Response

@@ -25,6 +25,7 @@ class RolePermissionSeeder extends Seeder
             'forums',
             'support',
             'support_teams',
+            'support_assignment_rules',
             'support_templates',
             'reputation',
             'tokens',
