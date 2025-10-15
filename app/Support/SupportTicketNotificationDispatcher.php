@@ -31,7 +31,11 @@ class SupportTicketNotificationDispatcher
                     $resolvedChannels = $channelResolver($audience, $recipient);
 
                     if ($resolvedChannels !== null) {
-                        $channels = array_values(array_unique($resolvedChannels));
+                        $channels = array_map(
+                            static fn (string $channel) => $channel === 'push' ? 'broadcast' : $channel,
+                            $resolvedChannels,
+                        );
+                        $channels = array_values(array_unique($channels));
                         $channels = array_values(array_intersect($channels, $preferredChannels));
                     }
                 }
