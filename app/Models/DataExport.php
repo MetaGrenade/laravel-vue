@@ -17,6 +17,16 @@ class DataExport extends Model
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_FAILED = 'failed';
 
+    /**
+     * @var list<string>
+     */
+    public const STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_PROCESSING,
+        self::STATUS_COMPLETED,
+        self::STATUS_FAILED,
+    ];
+
     public const DOWNLOAD_TTL_MINUTES = 30;
 
     /**

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -23,6 +23,7 @@ const manageTokens = computed(() => hasPermission('tokens.acp.view'));
 const manageBilling = computed(() => hasPermission('billing.acp.view'));
 const manageSystem = computed(() => hasPermission('system.acp.view'));
 const manageReputation = computed(() => hasPermission('reputation.acp.view'));
+const manageTrustSafety = computed(() => hasPermission('trust_safety.acp.view'));
 
 const sidebarNavItems: NavItem[] = [
     {
@@ -74,7 +75,13 @@ const sidebarNavItems: NavItem[] = [
         icon: LifeBuoy,
     },
     {
-        title: 'Billing invoices',
+        title: 'Trust & Safety',
+        href: '/acp/trust-safety',
+        target: '_self',
+        icon: ShieldCheck,
+    },
+    {
+        title: 'Billing Invoices',
         href: '/acp/billing/invoices',
         target: '_self',
         icon: CreditCard,
@@ -122,9 +129,11 @@ const filteredNavItems = computed(() => {
                 return manageReputation.value || isAdmin.value;
             case 'Support':
                 return manageSupport.value;
-            case 'Billing invoices':
+            case 'Trust & Safety':
+                return manageTrustSafety.value;
+            case 'Billing Invoices':
                 return manageBilling.value;
-            case 'Subscription plans':
+            case 'Subscription Plans':
                 return manageBilling.value;
             case 'Access Tokens':
                 return manageTokens.value;

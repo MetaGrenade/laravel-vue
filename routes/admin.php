@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BillingController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
+use App\Http\Controllers\Admin\TrustSafetyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -99,6 +100,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/forums/boards/{board:id}', [ForumBoardController::class, 'update'])->name('acp.forums.boards.update');
     Route::delete('acp/forums/boards/{board:id}', [ForumBoardController::class, 'destroy'])->name('acp.forums.boards.destroy');
     Route::patch('acp/forums/boards/{board:id}/reorder', [ForumBoardController::class, 'reorder'])->name('acp.forums.boards.reorder');
+
+    Route::get('acp/trust-safety', [TrustSafetyController::class, 'index'])->name('acp.trust-safety.index');
+    Route::patch('acp/trust-safety/exports/{export}', [TrustSafetyController::class, 'updateExport'])->name('acp.trust-safety.exports.update');
+    Route::patch('acp/trust-safety/erasure-requests/{erasureRequest}', [TrustSafetyController::class, 'updateErasure'])->name('acp.trust-safety.erasure.update');
 
     // Support ACP
     Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');
