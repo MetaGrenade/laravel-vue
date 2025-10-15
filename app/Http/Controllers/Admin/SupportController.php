@@ -18,6 +18,7 @@ use App\Models\SupportResponseTemplate;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
+use App\Models\SupportTicketAudit;
 use App\Models\SupportTicketCategory;
 use App\Models\SupportTeam;
 use App\Models\Faq;
@@ -35,6 +36,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Validation\Rule;
@@ -756,7 +758,39 @@ class SupportController extends Controller
             'category:id,name',
             'messages.author:id,nickname,email',
             'messages.attachments',
+            'audits' => fn ($query) => $query
+                ->with('actor:id,nickname,email')
+                ->orderByDesc('created_at'),
         ]);
+
+        $contextUserIds = $ticket->audits
+            ->flatMap(function (SupportTicketAudit $audit) {
+                $context = $audit->context ?? [];
+                $ids = [];
+
+                foreach (['assigned_to', 'previous_assignee_id'] as $key) {
+                    if (isset($context[$key]) && $context[$key]) {
+                        $ids[] = (int) $context[$key];
+                    }
+                }
+
+                return $ids;
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        $contextUsers = $contextUserIds->isNotEmpty()
+            ? User::query()
+                ->whereIn('id', $contextUserIds->all())
+                ->get(['id', 'nickname', 'email'])
+                ->keyBy('id')
+            : collect();
+
+        $audits = $ticket->audits
+            ->map(fn (SupportTicketAudit $audit) => $this->formatTicketAudit($audit, $formatter, $contextUsers))
+            ->values()
+            ->all();
 
         $messages = $ticket->messages
             ->map(fn (SupportTicketMessage $message) => $this->formatTicketMessage($ticket, $message, $formatter))
@@ -871,6 +905,7 @@ class SupportController extends Controller
                 ] : null,
             ],
             'messages' => $messages,
+            'audits' => $audits,
             'canReply' => (bool) $canReply,
             'assignableAgents' => $assignableAgents,
             'templates' => $templates,
@@ -970,6 +1005,118 @@ class SupportController extends Controller
                 ->values()
                 ->all(),
         ];
+    }
+
+    private function formatTicketAudit(
+        SupportTicketAudit $audit,
+        DateFormatter $formatter,
+        Collection $contextUsers,
+    ): array {
+        return [
+            'id' => $audit->id,
+            'action' => $audit->action,
+            'description' => $this->describeTicketAudit($audit, $contextUsers),
+            'context' => $audit->context ?: null,
+            'performed_by' => $audit->performed_by,
+            'actor' => $audit->actor ? [
+                'id' => $audit->actor->id,
+                'nickname' => $audit->actor->nickname,
+                'email' => $audit->actor->email,
+            ] : null,
+            'created_at' => $formatter->iso($audit->created_at),
+        ];
+    }
+
+    private function describeTicketAudit(SupportTicketAudit $audit, Collection $contextUsers): string
+    {
+        return match ($audit->action) {
+            'priority_escalated' => $this->describePriorityEscalationAudit($audit),
+            'auto_assigned' => $this->describeAssignmentAudit('Auto-assigned', $audit, $contextUsers),
+            'sla_reassigned' => $this->describeAssignmentAudit('Reassigned', $audit, $contextUsers),
+            default => ucfirst(str_replace('_', ' ', $audit->action)),
+        };
+    }
+
+    private function describePriorityEscalationAudit(SupportTicketAudit $audit): string
+    {
+        $context = $audit->context ?? [];
+        $from = isset($context['from']) ? $this->titleCase((string) $context['from']) : null;
+        $to = isset($context['to']) ? $this->titleCase((string) $context['to']) : null;
+        $threshold = $context['threshold'] ?? null;
+
+        $description = 'Priority escalated';
+
+        if ($from && $to) {
+            $description .= " from {$from} to {$to}";
+        } elseif ($to) {
+            $description .= " to {$to}";
+        } elseif ($from) {
+            $description .= " from {$from}";
+        }
+
+        if ($threshold) {
+            $description .= " after {$threshold}";
+        }
+
+        return rtrim($description) . '.';
+    }
+
+    private function describeAssignmentAudit(
+        string $verb,
+        SupportTicketAudit $audit,
+        Collection $contextUsers,
+    ): string {
+        $context = $audit->context ?? [];
+        $assigneeId = isset($context['assigned_to']) ? (int) $context['assigned_to'] : null;
+        $previousId = isset($context['previous_assignee_id']) ? (int) $context['previous_assignee_id'] : null;
+        $ruleId = $context['rule_id'] ?? null;
+        $threshold = $context['threshold'] ?? null;
+
+        $description = $verb;
+
+        if ($assigneeId) {
+            $assignee = $this->resolveAuditUser($assigneeId, $contextUsers);
+            $description .= $assignee ? " to {$assignee}" : '';
+        }
+
+        if ($previousId && $previousId !== $assigneeId) {
+            $previous = $this->resolveAuditUser($previousId, $contextUsers);
+            if ($previous) {
+                $description .= " (previously {$previous})";
+            }
+        }
+
+        if ($threshold) {
+            $description .= " after {$threshold} of inactivity";
+        }
+
+        if ($ruleId) {
+            $description .= " via rule #{$ruleId}";
+        }
+
+        return rtrim($description) . '.';
+    }
+
+    private function resolveAuditUser(int $userId, Collection $contextUsers): ?string
+    {
+        $user = $contextUsers->get($userId);
+
+        if (! $user) {
+            return "User #{$userId}";
+        }
+
+        $name = $user->nickname ?: $user->email;
+
+        if (! $name) {
+            return "User #{$user->id}";
+        }
+
+        return sprintf('%s (#%d)', $name, $user->id);
+    }
+
+    private function titleCase(string $value): string
+    {
+        return ucfirst(str_replace('_', ' ', strtolower($value)));
     }
 
     public function updateTicketStatus(Request $request, SupportTicket $ticket): RedirectResponse

@@ -43,6 +43,16 @@ interface TicketMessage {
     attachments: TicketMessageAttachment[];
 }
 
+interface TicketAudit {
+    id: number;
+    action: string;
+    description: string;
+    context: Record<string, unknown> | null;
+    performed_by: number | null;
+    actor: TicketParticipant | null;
+    created_at: string | null;
+}
+
 interface SupportTemplateMeta {
     id: number;
     title: string;
@@ -72,6 +82,7 @@ const props = defineProps<{
         user: TicketParticipant | null;
     };
     messages: TicketMessage[];
+    audits: TicketAudit[];
     canReply: boolean;
     assignableAgents: TicketParticipant[];
     templates: SupportTemplateMeta[];
@@ -356,6 +367,19 @@ const sortedMessages = computed(() => {
 
 const hasMessages = computed(() => sortedMessages.value.length > 0);
 
+const sortedAudits = computed(() => {
+    const audits = props.audits ?? [];
+
+    return [...audits].sort((a, b) => {
+        const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+
+        return bTime - aTime;
+    });
+});
+
+const hasAudits = computed(() => sortedAudits.value.length > 0);
+
 const resolveAuthorLabel = (message: TicketMessage) => {
     if (!message.author) {
         return message.is_from_support
@@ -390,6 +414,48 @@ const formatFileSize = (bytes: number) => {
     const formatted = size >= 10 || exponent === 0 ? size.toFixed(0) : size.toFixed(1);
 
     return `${formatted} ${units[exponent]}`;
+};
+
+const resolveAuditActorLabel = (audit: TicketAudit) => {
+    return audit.actor?.nickname ?? audit.actor?.email ?? 'System';
+};
+
+const humanizeAuditAction = (action: string) => {
+    return action
+        .split('_')
+        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+        .join(' ');
+};
+
+const humanizeAuditKey = (key: string) => {
+    return key
+        .split('_')
+        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+        .join(' ');
+};
+
+const formatAuditContextValue = (value: unknown) => {
+    if (value === null || value === undefined) {
+        return '—';
+    }
+
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+    }
+
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
+};
+
+const auditContextEntries = (audit: TicketAudit) => {
+    if (!audit.context || typeof audit.context !== 'object') {
+        return [] as Array<[string, unknown]>;
+    }
+
+    return Object.entries(audit.context);
 };
 </script>
 
@@ -651,6 +717,44 @@ const formatFileSize = (bytes: number) => {
                                         </Button>
                                     </div>
                                 </form>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Ticket history</CardTitle>
+                                <CardDescription>Automation and SLA events recorded for this ticket.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div v-if="hasAudits" class="flex flex-col gap-4">
+                                    <div v-for="audit in sortedAudits" :key="audit.id" class="space-y-2">
+                                        <div class="flex items-start justify-between gap-4">
+                                            <p class="text-sm font-medium leading-6">
+                                                {{ audit.description || humanizeAuditAction(audit.action) }}
+                                            </p>
+                                            <p class="whitespace-nowrap text-xs text-muted-foreground">
+                                                {{ messageTimestamp(audit.created_at) }}
+                                            </p>
+                                        </div>
+                                        <p class="text-xs text-muted-foreground">
+                                            Logged by {{ resolveAuditActorLabel(audit) }}
+                                        </p>
+                                        <div
+                                            v-if="auditContextEntries(audit).length"
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            <dl class="flex flex-wrap gap-x-4 gap-y-1">
+                                                <template v-for="[key, value] in auditContextEntries(audit)" :key="`${audit.id}-${key}`">
+                                                    <dt class="font-medium">{{ humanizeAuditKey(key) }}</dt>
+                                                    <dd>{{ formatAuditContextValue(value) }}</dd>
+                                                </template>
+                                            </dl>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p v-else class="text-sm text-muted-foreground">
+                                    No audit activity recorded for this ticket yet.
+                                </p>
                             </CardContent>
                         </Card>
 
