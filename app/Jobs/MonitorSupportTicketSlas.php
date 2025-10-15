@@ -28,8 +28,10 @@ class MonitorSupportTicketSlas implements ShouldQueue
             ->orderBy('id')
             ->chunkById(100, function (Collection $tickets) use ($assigner, $auditor, $escalations, $reassignThresholds): void {
                 $tickets->each(function (SupportTicket $ticket) use ($assigner, $auditor, $escalations, $reassignThresholds): void {
+                    $priorityBeforeActions = $ticket->priority;
+
                     $this->maybeEscalatePriority($ticket, $escalations, $auditor);
-                    $this->maybeReassign($ticket, $assigner, $reassignThresholds);
+                    $this->maybeReassign($ticket, $assigner, $reassignThresholds, $priorityBeforeActions);
                 });
             });
     }
@@ -64,13 +66,19 @@ class MonitorSupportTicketSlas implements ShouldQueue
         ]);
     }
 
-    private function maybeReassign(SupportTicket $ticket, SupportTicketAutoAssigner $assigner, Collection $thresholds): void
+    private function maybeReassign(
+        SupportTicket $ticket,
+        SupportTicketAutoAssigner $assigner,
+        Collection $thresholds,
+        ?string $priorityForThreshold = null
+    ): void
     {
         if (! $ticket->assigned_to) {
             return;
         }
 
-        $threshold = $thresholds->get($ticket->priority);
+        $priorityKey = $priorityForThreshold ?: $ticket->priority;
+        $threshold = $priorityKey ? $thresholds->get($priorityKey) : null;
 
         if (! $threshold) {
             return;
