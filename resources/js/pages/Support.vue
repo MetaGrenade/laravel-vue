@@ -23,7 +23,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Ellipsis, TicketX, LifeBuoy, Eye, Paperclip, ChevronDown } from 'lucide-vue-next';
+import { Ellipsis, TicketX, LifeBuoy, Eye, Paperclip, ChevronDown, Check } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import {
     Pagination,
@@ -200,6 +200,16 @@ const readNumberParam = (location: string, key: string): number | null => {
     return Number.isNaN(parsed) ? null : parsed;
 };
 
+const readEnumParam = (
+    location: string,
+    key: string,
+    allowed: readonly string[],
+): string | null => {
+    const value = readSearchParam(location, key);
+
+    return allowed.includes(value) ? value : null;
+};
+
 const ticketSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'tickets_search'));
 const ticketCategoryFilter = ref<number | null>(
     readNumberParam(page.props.ziggy.location, 'ticket_category_id'),
@@ -221,6 +231,16 @@ const faqGroups = computed(() => props.faqs.groups ?? []);
 const ticketCategories = computed(() => props.ticketCategories ?? []);
 const faqCategories = computed(() => faqFilters.value.categories ?? []);
 const selectedFaqCategoryId = ref<number | null>(faqFilters.value.selectedCategoryId ?? null);
+const ticketStatusValues = ['open', 'pending', 'closed'] as const;
+const ticketPriorityValues = ['low', 'medium', 'high'] as const;
+const ticketStatusFilter = ref<Ticket['status'] | null>(
+    (readEnumParam(page.props.ziggy.location, 'ticket_status', ticketStatusValues) as Ticket['status'] | null) ??
+        null,
+);
+const ticketPriorityFilter = ref<Ticket['priority'] | null>(
+    (readEnumParam(page.props.ziggy.location, 'ticket_priority', ticketPriorityValues) as Ticket['priority'] | null) ??
+        null,
+);
 const totalPublishedFaqs = computed(() => faqFilters.value.totalPublished ?? faqCategories.value.reduce(
     (total, category) => total + category.published_faqs_count,
     0,
@@ -314,10 +334,39 @@ const ticketCategoryOptions = computed<TicketCategoryFilterOption[]>(() => {
     return options;
 });
 
+interface TicketFilterOption<TValue> {
+    value: TValue;
+    label: string;
+}
+
+const ticketStatusOptions: TicketFilterOption<Ticket['status'] | null>[] = [
+    { value: null, label: 'All statuses' },
+    { value: 'open', label: 'Open' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'closed', label: 'Closed' },
+];
+
+const ticketPriorityOptions: TicketFilterOption<Ticket['priority'] | null>[] = [
+    { value: null, label: 'All priorities' },
+    { value: 'high', label: 'High' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'low', label: 'Low' },
+];
+
+const ticketStatusLabel = computed(() =>
+    ticketStatusOptions.find((option) => option.value === ticketStatusFilter.value)?.label ?? 'All statuses',
+);
+
+const ticketPriorityLabel = computed(() =>
+    ticketPriorityOptions.find((option) => option.value === ticketPriorityFilter.value)?.label ?? 'All priorities',
+);
+
 interface SupportQueryOverrides {
     tickets_page?: number | null;
     faq_category_id?: number | null;
     ticket_category_id?: number | null;
+    ticket_status?: Ticket['status'] | null;
+    ticket_priority?: Ticket['priority'] | null;
 }
 
 const buildSupportQuery = (overrides: SupportQueryOverrides = {}) => {
@@ -352,6 +401,26 @@ const buildSupportQuery = (overrides: SupportQueryOverrides = {}) => {
         }
     } else if (ticketCategoryFilter.value !== null) {
         query.ticket_category_id = ticketCategoryFilter.value;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(overrides, 'ticket_status')) {
+        const overrideTicketStatus = overrides.ticket_status;
+
+        if (overrideTicketStatus) {
+            query.ticket_status = overrideTicketStatus;
+        }
+    } else if (ticketStatusFilter.value) {
+        query.ticket_status = ticketStatusFilter.value;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(overrides, 'ticket_priority')) {
+        const overrideTicketPriority = overrides.ticket_priority;
+
+        if (overrideTicketPriority) {
+            query.ticket_priority = overrideTicketPriority;
+        }
+    } else if (ticketPriorityFilter.value) {
+        query.ticket_priority = ticketPriorityFilter.value;
     }
 
     if (overrides.tickets_page !== undefined) {
@@ -486,6 +555,8 @@ let skipTicketsSearchWatch = false;
 let skipFaqsSearchWatch = false;
 let skipFaqCategoryWatch = false;
 let skipTicketCategoryWatch = false;
+let skipTicketStatusWatch = false;
+let skipTicketPriorityWatch = false;
 
 watch(
     () => page.props.ziggy.location,
@@ -494,6 +565,8 @@ watch(
         const nextFaqsSearch = readSearchParam(location, 'faqs_search');
         const nextFaqCategory = readNumberParam(location, 'faq_category_id');
         const nextTicketCategory = readNumberParam(location, 'ticket_category_id');
+        const nextTicketStatus = readEnumParam(location, 'ticket_status', ticketStatusValues);
+        const nextTicketPriority = readEnumParam(location, 'ticket_priority', ticketPriorityValues);
 
         if (ticketSearchQuery.value !== nextTicketsSearch) {
             skipTicketsSearchWatch = true;
@@ -513,6 +586,18 @@ watch(
         if (ticketCategoryFilter.value !== nextTicketCategory) {
             skipTicketCategoryWatch = true;
             ticketCategoryFilter.value = nextTicketCategory;
+        }
+
+        const normalizedStatus = (nextTicketStatus as Ticket['status'] | null) ?? null;
+        if (ticketStatusFilter.value !== normalizedStatus) {
+            skipTicketStatusWatch = true;
+            ticketStatusFilter.value = normalizedStatus;
+        }
+
+        const normalizedPriority = (nextTicketPriority as Ticket['priority'] | null) ?? null;
+        if (ticketPriorityFilter.value !== normalizedPriority) {
+            skipTicketPriorityWatch = true;
+            ticketPriorityFilter.value = normalizedPriority;
         }
     },
 );
@@ -554,6 +639,48 @@ watch(ticketCategoryFilter, () => {
     setTicketsPage(1, { emitNavigate: false });
     navigateToSupport({ ticket_category_id: ticketCategoryFilter.value });
 });
+
+watch(ticketStatusFilter, () => {
+    if (skipTicketStatusWatch) {
+        skipTicketStatusWatch = false;
+        return;
+    }
+
+    setTicketsPage(1, { emitNavigate: false });
+    navigateToSupport({
+        ticket_status: ticketStatusFilter.value,
+        tickets_page: 1,
+    });
+});
+
+watch(ticketPriorityFilter, () => {
+    if (skipTicketPriorityWatch) {
+        skipTicketPriorityWatch = false;
+        return;
+    }
+
+    setTicketsPage(1, { emitNavigate: false });
+    navigateToSupport({
+        ticket_priority: ticketPriorityFilter.value,
+        tickets_page: 1,
+    });
+});
+
+const setTicketStatusFilter = (value: Ticket['status'] | null) => {
+    if (ticketStatusFilter.value === value) {
+        return;
+    }
+
+    ticketStatusFilter.value = value;
+};
+
+const setTicketPriorityFilter = (value: Ticket['priority'] | null) => {
+    if (ticketPriorityFilter.value === value) {
+        return;
+    }
+
+    ticketPriorityFilter.value = value;
+};
 
 const goToTicket = (ticketId: number) => {
     router.get(route('support.tickets.show', { ticket: ticketId }));
@@ -686,6 +813,68 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     {{ category.name }}
                                 </option>
                             </select>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger as-child>
+                                    <Button
+                                        variant="outline"
+                                        class="w-full justify-between gap-2 md:w-auto md:min-w-[11rem]"
+                                        :disabled="!props.canSubmitTicket"
+                                    >
+                                        <span>Status: {{ ticketStatusLabel }}</span>
+                                        <ChevronDown class="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent class="w-48">
+                                    <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuGroup>
+                                        <DropdownMenuItem
+                                            v-for="option in ticketStatusOptions"
+                                            :key="option.value ?? 'status-all'"
+                                            @select="setTicketStatusFilter(option.value)"
+                                        >
+                                            <div class="flex w-full items-center justify-between">
+                                                <span>{{ option.label }}</span>
+                                                <Check
+                                                    v-if="ticketStatusFilter === option.value"
+                                                    class="h-4 w-4"
+                                                />
+                                            </div>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger as-child>
+                                    <Button
+                                        variant="outline"
+                                        class="w-full justify-between gap-2 md:w-auto md:min-w-[11rem]"
+                                        :disabled="!props.canSubmitTicket"
+                                    >
+                                        <span>Priority: {{ ticketPriorityLabel }}</span>
+                                        <ChevronDown class="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent class="w-48">
+                                    <DropdownMenuLabel>Filter by priority</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuGroup>
+                                        <DropdownMenuItem
+                                            v-for="option in ticketPriorityOptions"
+                                            :key="option.value ?? 'priority-all'"
+                                            @select="setTicketPriorityFilter(option.value)"
+                                        >
+                                            <div class="flex w-full items-center justify-between">
+                                                <span>{{ option.label }}</span>
+                                                <Check
+                                                    v-if="ticketPriorityFilter === option.value"
+                                                    class="h-4 w-4"
+                                                />
+                                            </div>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                             <Button
                                 v-if="props.canSubmitTicket"
                                 variant="secondary"
