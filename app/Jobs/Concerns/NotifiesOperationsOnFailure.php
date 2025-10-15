@@ -25,7 +25,7 @@ trait NotifiesOperationsOnFailure
             return;
         }
 
-        Notification::route('mail', $recipient)->notify(new QueueJobFailed(
+        Notification::route('mail', [$recipient])->notify(new QueueJobFailed(
             $context['job'] ?? static::class,
             $context['reference'] ?? null,
             $exception,

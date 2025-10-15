@@ -412,19 +412,21 @@ class AdminController extends Controller
     {
         $start = now()->startOfMonth()->subMonths(11);
 
-        $userRegistrationsByMonth = User::select([
-                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
-                DB::raw('COUNT(*) as total'),
-            ])
+        $userMonthExpression = $this->monthFormatExpression(User::query()->qualifyColumn('created_at'));
+
+        $userRegistrationsByMonth = User::query()
+            ->selectRaw("{$userMonthExpression} as month")
+            ->selectRaw('COUNT(*) as total')
             ->where('created_at', '>=', $start)
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('total', 'month');
 
-        $supportTicketsByMonth = SupportTicket::select([
-                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
-                DB::raw('COUNT(*) as total'),
-            ])
+        $ticketMonthExpression = $this->monthFormatExpression(SupportTicket::query()->qualifyColumn('created_at'));
+
+        $supportTicketsByMonth = SupportTicket::query()
+            ->selectRaw("{$ticketMonthExpression} as month")
+            ->selectRaw('COUNT(*) as total')
             ->where('created_at', '>=', $start)
             ->groupBy('month')
             ->orderBy('month')
@@ -442,6 +444,15 @@ class AdminController extends Controller
                 ];
             })
             ->toArray();
+    }
+
+    protected function monthFormatExpression(string $column): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'sqlite' => "strftime('%Y-%m', {$column})",
+            'pgsql' => "to_char({$column}, 'YYYY-MM')",
+            default => "DATE_FORMAT({$column}, '%Y-%m')",
+        };
     }
 
     /**
