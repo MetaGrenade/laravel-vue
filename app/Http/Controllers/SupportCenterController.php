@@ -14,12 +14,11 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketCategory;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
-use App\Notifications\TicketOpened;
-use App\Notifications\TicketReplied;
+use App\Jobs\HandleSupportTicketMessagePosted;
+use App\Jobs\HandleSupportTicketOpened;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
 use App\Support\SupportTicketAutoAssigner;
-use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -33,7 +32,6 @@ class SupportCenterController extends Controller
     use InteractsWithInertiaPagination;
 
     public function __construct(
-        private SupportTicketNotificationDispatcher $ticketNotifier,
         private SupportTicketAutoAssigner $ticketAssigner,
     ) {
     }
@@ -354,12 +352,11 @@ class SupportCenterController extends Controller
         });
 
         if ($ticket && $message) {
-            $ticket->loadMissing(['assignee', 'team']);
-
-            $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $message) {
-                return (new TicketOpened($ticket, $message))
-                    ->forAudience($audience);
-            });
+            HandleSupportTicketOpened::dispatch(
+                $ticket->id,
+                $message->id,
+                (int) $request->user()->id,
+            );
         }
 
         return redirect()
@@ -513,10 +510,11 @@ class SupportCenterController extends Controller
         });
 
         if ($message) {
-            $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $message) {
-                return (new TicketReplied($ticket, $message))
-                    ->forAudience($audience);
-            });
+            HandleSupportTicketMessagePosted::dispatch(
+                $ticket->id,
+                $message->id,
+                (int) $request->user()->id,
+            );
         }
 
         return redirect()

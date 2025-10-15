@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTokenRequest;
 use App\Http\Requests\Admin\UpdateTokenRequest;
+use App\Jobs\RecordTokenCreatedActivity;
 use App\Models\PersonalAccessToken;
 use App\Models\TokenLog;
 use App\Models\User;
@@ -190,6 +191,11 @@ class TokenController extends Controller
             'hourly_quota' => $data['hourly_quota'] ?? null,
             'daily_quota' => $data['daily_quota'] ?? null,
         ])->save();
+
+        RecordTokenCreatedActivity::dispatch(
+            (int) $newToken->accessToken->getKey(),
+            (int) $request->user()->getKey(),
+        );
 
         return redirect()->route('acp.tokens.index')
             ->with('success', 'Token created.')

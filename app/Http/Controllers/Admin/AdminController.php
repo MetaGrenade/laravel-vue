@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,6 +32,7 @@ class AdminController extends Controller
             'slaMetrics' => $this->buildSlaMetrics(),
             'recentActivities' => $this->recentActivities($formatter),
             'searchInsights' => $this->buildSearchInsights($formatter),
+            'queueHealth' => $this->buildQueueHealthMetrics(),
         ]);
     }
 
@@ -112,6 +114,107 @@ class AdminController extends Controller
                 ? $formatter->iso(Carbon::parse($lastAggregatedAt))
                 : null,
         ];
+    }
+
+    protected function buildQueueHealthMetrics(): array
+    {
+        $defaultConnection = config('queue.default');
+        $connectionConfig = config("queue.connections.{$defaultConnection}", []);
+        $queueName = $connectionConfig['queue'] ?? 'default';
+        $driver = $connectionConfig['driver'] ?? 'database';
+
+        $pendingCount = 0;
+        $oldestAvailableAt = null;
+        $oldestPendingAgeSeconds = null;
+
+        if ($driver === 'database') {
+            $connectionName = $connectionConfig['connection'] ?? config('database.default');
+            $jobsTable = $connectionConfig['table'] ?? 'jobs';
+
+            $jobsQuery = DB::connection($connectionName)
+                ->table($jobsTable)
+                ->when($queueName, fn ($query) => $query->where('queue', $queueName));
+
+            $pendingCount = (clone $jobsQuery)->count();
+
+            $oldestJob = (clone $jobsQuery)->orderBy('available_at')->first();
+
+            if ($oldestJob && isset($oldestJob->available_at)) {
+                $availableAt = Carbon::createFromTimestamp((int) $oldestJob->available_at);
+                $oldestAvailableAt = $availableAt->toIso8601String();
+                $oldestPendingAgeSeconds = max(0, $availableAt->diffInSeconds(now()));
+            }
+        }
+
+        $failedConfig = config('queue.failed');
+        $failedConnection = $failedConfig['database'] ?? config('database.default');
+        $failedTable = $failedConfig['table'] ?? 'failed_jobs';
+
+        $failedQuery = DB::connection($failedConnection)->table($failedTable);
+
+        $failedCount = (clone $failedQuery)->count();
+
+        $recentFailures = (clone $failedQuery)
+            ->orderByDesc('failed_at')
+            ->limit(5)
+            ->get()
+            ->map(function ($failure) {
+                $failedAt = $failure->failed_at ? Carbon::parse($failure->failed_at) : null;
+
+                return [
+                    'id' => $failure->id ?? $failure->uuid ?? null,
+                    'queue' => $failure->queue ?? null,
+                    'connection' => $failure->connection ?? null,
+                    'failed_at' => $failedAt?->toIso8601String(),
+                    'exception_excerpt' => isset($failure->exception)
+                        ? Str::limit($failure->exception, 160)
+                        : null,
+                ];
+            })
+            ->all();
+
+        $lastFailure = $recentFailures[0]['failed_at'] ?? null;
+
+        return [
+            'connection' => $defaultConnection,
+            'queue' => $queueName,
+            'pending' => $pendingCount,
+            'failed' => $failedCount,
+            'oldest_pending_available_at' => $oldestAvailableAt,
+            'oldest_pending_age_seconds' => $oldestPendingAgeSeconds,
+            'last_failed_at' => $lastFailure,
+            'recent_failures' => $recentFailures,
+            'workers' => $this->configuredQueueWorkers(),
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    protected function configuredQueueWorkers(): array
+    {
+        return collect(config('queue.workers', []))
+            ->map(function (array $worker) {
+                $queues = $worker['queues'] ?? [];
+
+                if (is_string($queues)) {
+                    $queues = array_map('trim', explode(',', $queues));
+                }
+
+                return [
+                    'name' => $worker['name'] ?? 'worker',
+                    'connection' => $worker['connection'] ?? config('queue.default'),
+                    'queues' => array_values(array_filter($queues)),
+                    'tries' => $worker['tries'] ?? null,
+                    'backoff' => $worker['backoff'] ?? null,
+                    'sleep' => $worker['sleep'] ?? null,
+                    'timeout' => $worker['timeout'] ?? null,
+                    'max_jobs' => $worker['max_jobs'] ?? null,
+                    'max_time' => $worker['max_time'] ?? null,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

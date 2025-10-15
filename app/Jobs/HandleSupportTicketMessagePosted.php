@@ -1,0 +1,81 @@
+<?php
+
+namespace App\Jobs;
+
+use App\Jobs\Concerns\NotifiesOperationsOnFailure;
+use App\Models\SupportTicket;
+use App\Models\SupportTicketMessage;
+use App\Notifications\TicketReplied;
+use App\Support\SupportTicketNotificationDispatcher;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Throwable;
+
+class HandleSupportTicketMessagePosted implements ShouldQueue
+{
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
+    use NotifiesOperationsOnFailure;
+
+    public int $tries = 3;
+
+    public int $backoff = 45;
+
+    public string $queue = 'notifications';
+
+    public function __construct(
+        public int $ticketId,
+        public int $messageId,
+        public int $actorId,
+    ) {
+    }
+
+    public function handle(SupportTicketNotificationDispatcher $dispatcher): void
+    {
+        $ticket = SupportTicket::query()
+            ->with(['user', 'assignee.supportTeams.members', 'team.members'])
+            ->find($this->ticketId);
+
+        if (! $ticket) {
+            return;
+        }
+
+        $message = SupportTicketMessage::query()
+            ->with(['author'])
+            ->where('support_ticket_id', $ticket->id)
+            ->find($this->messageId);
+
+        if (! $message) {
+            return;
+        }
+
+        $dispatcher->dispatch($ticket, function (string $audience) use ($ticket, $message) {
+            return (new TicketReplied($ticket, $message))
+                ->forAudience($audience);
+        });
+
+        Cache::increment('metrics:support.ticket_replies');
+
+        Log::info('Dispatched support ticket reply notifications.', [
+            'ticket_id' => $ticket->id,
+            'message_id' => $message->id,
+            'actor_id' => $this->actorId,
+        ]);
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        $this->notifyOfFailure($exception, [
+            'job' => static::class,
+            'reference' => sprintf('ticket_id=%d,message_id=%d', $this->ticketId, $this->messageId),
+            'message' => 'Failed to dispatch support ticket reply notifications.',
+        ]);
+    }
+}

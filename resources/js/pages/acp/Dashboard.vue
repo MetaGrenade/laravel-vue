@@ -82,6 +82,38 @@ interface SearchInsights {
     last_aggregated_at: string | null;
 }
 
+type QueueWorkerConfig = {
+    name: string;
+    connection: string;
+    queues: string[];
+    tries: number | null;
+    backoff: number | null;
+    sleep: number | null;
+    timeout: number | null;
+    max_jobs: number | null;
+    max_time: number | null;
+};
+
+type QueueFailure = {
+    id: string | number | null;
+    queue: string | null;
+    connection: string | null;
+    failed_at: string | null;
+    exception_excerpt: string | null;
+};
+
+type QueueHealth = {
+    connection: string;
+    queue: string;
+    pending: number;
+    failed: number;
+    oldest_pending_available_at: string | null;
+    oldest_pending_age_seconds: number | null;
+    last_failed_at: string | null;
+    recent_failures: QueueFailure[];
+    workers: QueueWorkerConfig[];
+};
+
 interface SlaMetrics {
     queue_aging: QueueAgingMetrics;
     pending_volume: PendingVolumeMetrics;
@@ -94,6 +126,7 @@ interface DashboardProps {
     recentActivities: DashboardActivity[];
     slaMetrics: SlaMetrics;
     searchInsights: SearchInsights;
+    queueHealth: QueueHealth;
 }
 
 const props = withDefaults(defineProps<DashboardProps>(), {
@@ -132,6 +165,17 @@ const props = withDefaults(defineProps<DashboardProps>(), {
         zero_result_total: 0,
         last_aggregated_at: null,
     }),
+    queueHealth: () => ({
+        connection: 'database',
+        queue: 'default',
+        pending: 0,
+        failed: 0,
+        oldest_pending_available_at: null,
+        oldest_pending_age_seconds: null,
+        last_failed_at: null,
+        recent_failures: [],
+        workers: [],
+    }),
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -163,6 +207,37 @@ const formatDateTime = (value: string | null | undefined) => {
         hour: '2-digit',
         minute: '2-digit',
     }).format(date);
+};
+
+const formatDuration = (value: number | null | undefined) => {
+    if (value === null || value === undefined) {
+        return '—';
+    }
+
+    const totalSeconds = Math.max(0, Math.floor(value));
+
+    if (totalSeconds < 60) {
+        return `${totalSeconds}s`;
+    }
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    if (minutes < 60) {
+        return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+
+    if (hours < 24) {
+        return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    }
+
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+
+    return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
 };
 
 const statCards = computed(() => [
@@ -252,6 +327,13 @@ const topSearchQueries = computed(() => searchInsights.value.top_queries ?? []);
 const zeroResultQueries = computed(() => searchInsights.value.top_zero_queries ?? []);
 const zeroResultTotal = computed(() => searchInsights.value.zero_result_total ?? 0);
 const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last_aggregated_at));
+
+const queueHealth = computed(() => props.queueHealth ?? {} as QueueHealth);
+const queueWorkers = computed(() => queueHealth.value.workers ?? []);
+const hasQueueWorkers = computed(() => queueWorkers.value.length > 0);
+const recentQueueFailures = computed(() => queueHealth.value.recent_failures ?? []);
+const hasQueueFailures = computed(() => recentQueueFailures.value.length > 0);
+const lastFailureAt = computed(() => formatDateTime(queueHealth.value.last_failed_at));
 </script>
 
 <template>
@@ -368,6 +450,100 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                             :y-formatter="(tick) => (typeof tick === 'number' ? formatHours(tick) : '')"
                         />
                         <p v-else class="text-sm text-muted-foreground">Not enough data to show trends yet.</p>
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 class="text-lg font-semibold">Queue Health</h2>
+                        <p class="text-xs text-muted-foreground">
+                            {{ queueHealth.connection }} connection • {{ queueHealth.queue }} queue
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                        <div class="rounded-lg border border-border/60 p-3">
+                            <div class="text-xs uppercase text-muted-foreground">Pending Jobs</div>
+                            <div class="text-xl font-semibold">{{ formatNumber(queueHealth.pending) }}</div>
+                        </div>
+                        <div class="rounded-lg border border-border/60 p-3">
+                            <div class="text-xs uppercase text-muted-foreground">Failed Jobs</div>
+                            <div class="text-xl font-semibold">{{ formatNumber(queueHealth.failed) }}</div>
+                        </div>
+                        <div class="rounded-lg border border-border/60 p-3">
+                            <div class="text-xs uppercase text-muted-foreground">Oldest Pending</div>
+                            <div class="text-xl font-semibold">{{ formatDuration(queueHealth.oldest_pending_age_seconds) }}</div>
+                            <p v-if="queueHealth.oldest_pending_available_at" class="text-xs text-muted-foreground">
+                                Since {{ formatDateTime(queueHealth.oldest_pending_available_at) }}
+                            </p>
+                        </div>
+                        <div class="rounded-lg border border-border/60 p-3">
+                            <div class="text-xs uppercase text-muted-foreground">Last Failure</div>
+                            <div class="text-xl font-semibold">{{ lastFailureAt ?? '—' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div>
+                            <h3 class="text-sm font-semibold uppercase text-muted-foreground">Configured Workers</h3>
+                            <template v-if="hasQueueWorkers">
+                                <ul class="mt-2 space-y-2">
+                                    <li
+                                        v-for="worker in queueWorkers"
+                                        :key="worker.name"
+                                        class="rounded-lg border border-border/60 p-3 text-sm"
+                                    >
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-semibold">{{ worker.name }}</span>
+                                            <span class="text-muted-foreground">{{ worker.connection }}</span>
+                                        </div>
+                                        <p class="mt-1 text-xs text-muted-foreground">
+                                            Queues: {{ worker.queues.join(', ') || '—' }}
+                                        </p>
+                                        <p class="mt-1 text-xs text-muted-foreground">
+                                            Tries: {{ worker.tries ?? '—' }} • Backoff: {{ worker.backoff ?? '—' }}s • Sleep:
+                                            {{ worker.sleep ?? '—' }}s
+                                        </p>
+                                        <p class="mt-1 text-xs text-muted-foreground">
+                                            Timeout: {{ worker.timeout ?? '—' }}s • Max Jobs:
+                                            {{ worker.max_jobs ?? '—' }} • Max Time: {{ worker.max_time ?? '—' }}s
+                                        </p>
+                                    </li>
+                                </ul>
+                            </template>
+                            <p v-else class="mt-2 text-sm text-muted-foreground">
+                                No workers have been configured yet.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-semibold uppercase text-muted-foreground">Recent Failures</h3>
+                            <template v-if="hasQueueFailures">
+                                <ul class="mt-2 space-y-2">
+                                    <li
+                                        v-for="(failure, index) in recentQueueFailures"
+                                        :key="failure.id ?? failure.failed_at ?? index"
+                                        class="rounded-lg border border-border/60 p-3 text-sm"
+                                    >
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-semibold">{{ failure.queue ?? 'unknown queue' }}</span>
+                                            <span class="text-xs text-muted-foreground">
+                                                {{ formatDateTime(failure.failed_at) ?? '—' }}
+                                            </span>
+                                        </div>
+                                        <p class="mt-1 text-xs text-muted-foreground">
+                                            Connection: {{ failure.connection ?? '—' }}
+                                        </p>
+                                        <p v-if="failure.exception_excerpt" class="mt-1 text-xs text-muted-foreground">
+                                            {{ failure.exception_excerpt }}
+                                        </p>
+                                    </li>
+                                </ul>
+                            </template>
+                            <p v-else class="mt-2 text-sm text-muted-foreground">
+                                No failed jobs have been recorded recently.
+                            </p>
+                        </div>
                     </div>
                 </div>
 

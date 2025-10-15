@@ -109,4 +109,67 @@ return [
         'table' => 'failed_jobs',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Queue Worker Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These definitions describe the queue workers that should be running in
+    | production. They are surfaced on the admin dashboard so operators can
+    | quickly verify that the expected workers are online.
+    |
+    */
+
+    'workers' => [
+        [
+            'name' => 'default',
+            'connection' => env('QUEUE_WORKER_CONNECTION', env('QUEUE_CONNECTION', 'database')),
+            'queues' => array_map('trim', explode(',', env('QUEUE_WORKER_DEFAULT_QUEUES', 'default'))),
+            'tries' => (int) env('QUEUE_WORKER_DEFAULT_TRIES', 3),
+            'backoff' => (int) env('QUEUE_WORKER_DEFAULT_BACKOFF', 5),
+            'sleep' => (int) env('QUEUE_WORKER_DEFAULT_SLEEP', 3),
+            'timeout' => (int) env('QUEUE_WORKER_DEFAULT_TIMEOUT', 90),
+            'max_jobs' => (int) env('QUEUE_WORKER_DEFAULT_MAX_JOBS', 1000),
+            'max_time' => (int) env('QUEUE_WORKER_DEFAULT_MAX_TIME', 3600),
+        ],
+        [
+            'name' => 'notifications',
+            'connection' => env('QUEUE_WORKER_CONNECTION', env('QUEUE_CONNECTION', 'database')),
+            'queues' => array_map('trim', explode(',', env('QUEUE_WORKER_NOTIFICATIONS_QUEUES', 'notifications,mail'))),
+            'tries' => (int) env('QUEUE_WORKER_NOTIFICATIONS_TRIES', 3),
+            'backoff' => (int) env('QUEUE_WORKER_NOTIFICATIONS_BACKOFF', 10),
+            'sleep' => (int) env('QUEUE_WORKER_NOTIFICATIONS_SLEEP', 3),
+            'timeout' => (int) env('QUEUE_WORKER_NOTIFICATIONS_TIMEOUT', 120),
+            'max_jobs' => (int) env('QUEUE_WORKER_NOTIFICATIONS_MAX_JOBS', 500),
+            'max_time' => (int) env('QUEUE_WORKER_NOTIFICATIONS_MAX_TIME', 1800),
+        ],
+        [
+            'name' => 'logging',
+            'connection' => env('QUEUE_WORKER_CONNECTION', env('QUEUE_CONNECTION', 'database')),
+            'queues' => array_map('trim', explode(',', env('QUEUE_WORKER_LOGGING_QUEUES', 'logging'))),
+            'tries' => (int) env('QUEUE_WORKER_LOGGING_TRIES', 5),
+            'backoff' => (int) env('QUEUE_WORKER_LOGGING_BACKOFF', 5),
+            'sleep' => (int) env('QUEUE_WORKER_LOGGING_SLEEP', 5),
+            'timeout' => (int) env('QUEUE_WORKER_LOGGING_TIMEOUT', 60),
+            'max_jobs' => (int) env('QUEUE_WORKER_LOGGING_MAX_JOBS', 1000),
+            'max_time' => (int) env('QUEUE_WORKER_LOGGING_MAX_TIME', 3600),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queue Alerting
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, the application will send an email notification whenever a
+    | queued job exhausts all of its retries. This helps surface silent queue
+    | failures quickly for the operations team.
+    |
+    */
+
+    'alerts' => [
+        'enabled' => (bool) env('QUEUE_ALERT_ENABLED', false),
+        'mail' => env('QUEUE_ALERT_MAIL'),
+    ],
+
 ];
