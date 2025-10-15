@@ -307,8 +307,7 @@ class BlogController extends Controller
             $this->updateAuthorProfile($request->user(), $validated['author']);
         }
 
-        $blog->refresh();
-        $blog->load('categories:id', 'tags:id');
+        $blog = $blog->fresh(['categories:id', 'tags:id']);
 
         BlogRevision::recordSnapshot($blog, $request->user());
 
@@ -472,8 +471,7 @@ class BlogController extends Controller
             $this->updateAuthorProfile($blog->user, $validated['author']);
         }
 
-        $blog->refresh();
-        $blog->load('categories:id', 'tags:id');
+        $blog = $blog->fresh(['categories:id', 'tags:id']);
 
         BlogRevision::recordSnapshot($blog, $request->user());
 
@@ -676,8 +674,7 @@ class BlogController extends Controller
         $blog->categories()->sync($revision->category_ids ?? []);
         $blog->tags()->sync($revision->tag_ids ?? []);
 
-        $blog->refresh();
-        $blog->load('categories:id', 'tags:id');
+        $blog = $blog->fresh(['categories:id', 'tags:id']);
 
         BlogRevision::recordSnapshot($blog, $request->user());
 

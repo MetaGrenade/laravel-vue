@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\ForumReportController;
 use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BillingController;
+use App\Http\Controllers\Admin\BillingWebhookCallController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\TrustSafetyController;
 use Illuminate\Support\Facades\Route;
@@ -207,6 +208,12 @@ Route::middleware(['auth', 'can:billing.acp.view'])
     ->name('acp.billing.')
     ->group(function () {
         Route::get('invoices', [BillingController::class, 'invoices'])->name('invoices.index');
+
+        Route::get('webhooks', [BillingWebhookCallController::class, 'index'])->name('webhooks.index');
+        Route::get('webhooks/{billingWebhookCall}', [BillingWebhookCallController::class, 'show'])
+            ->name('webhooks.show');
+        Route::post('webhooks/{billingWebhookCall}/replay', [BillingWebhookCallController::class, 'replay'])
+            ->name('webhooks.replay');
 
         Route::get('plans', [SubscriptionPlanController::class, 'index'])->name('plans.index');
         Route::get('plans/create', [SubscriptionPlanController::class, 'create'])->name('plans.create');

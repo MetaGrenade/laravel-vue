@@ -509,7 +509,7 @@ const submitErasureForm = () => {
 
                         <div>
                             <label for="export-status" class="text-sm font-medium text-muted-foreground">Export status</label>
-                            <select id="export-status" :value="exportStatus" class="mt-1 w-full rounded-md border px-3 py-2 text-sm" @change="onExportStatusChange">
+                            <select id="export-status" :value="exportStatus" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onExportStatusChange">
                                 <option value="pending">Pending</option>
                                 <option value="processing">Processing</option>
                                 <option value="completed">Completed</option>
@@ -520,7 +520,7 @@ const submitErasureForm = () => {
 
                         <div>
                             <label for="erasure-status" class="text-sm font-medium text-muted-foreground">Erasure status</label>
-                            <select id="erasure-status" :value="erasureStatus" class="mt-1 w-full rounded-md border px-3 py-2 text-sm" @change="onErasureStatusChange">
+                            <select id="erasure-status" :value="erasureStatus" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onErasureStatusChange">
                                 <option value="pending">Pending</option>
                                 <option value="processing">Processing</option>
                                 <option value="completed">Completed</option>
@@ -531,7 +531,7 @@ const submitErasureForm = () => {
 
                         <div>
                             <label for="per-page" class="text-sm font-medium text-muted-foreground">Rows per page</label>
-                            <select id="per-page" :value="perPage" class="mt-1 w-full rounded-md border px-3 py-2 text-sm" @change="onPerPageChange">
+                            <select id="per-page" :value="perPage" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onPerPageChange">
                                 <option v-for="option in perPageOptions" :key="option" :value="option">
                                     {{ option }} per page
                                 </option>
@@ -541,6 +541,105 @@ const submitErasureForm = () => {
                 </div>
 
                 <div class="space-y-6">
+                    <section class="rounded-lg border bg-card shadow-sm">
+                        <header class="flex flex-col gap-2 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 class="text-lg font-semibold text-foreground">Erasure requests</h2>
+                                <p class="text-sm text-muted-foreground">
+                                    Track account deletion requests and document their processing.
+                                </p>
+                            </div>
+                            <p class="text-sm text-muted-foreground">
+                                {{ erasurePagination.rangeLabel }}
+                            </p>
+                        </header>
+
+                        <div class="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead class="min-w-[160px]">User</TableHead>
+                                        <TableHead class="min-w-[120px]">Status</TableHead>
+                                        <TableHead class="min-w-[160px]">Requested</TableHead>
+                                        <TableHead class="min-w-[160px]">Processed</TableHead>
+                                        <TableHead class="min-w-[200px]">Notes</TableHead>
+                                        <TableHead class="min-w-[100px] text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow v-if="props.erasureRequests.data.length === 0">
+                                        <TableCell colspan="6" class="py-6 text-center text-sm text-muted-foreground">
+                                            No erasure requests found.
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow v-for="item in props.erasureRequests.data" :key="item.id">
+                                        <TableCell>
+                                            <div class="flex flex-col">
+                                                <span class="text-sm font-medium text-foreground">
+                                                    <Link
+                                                        v-if="item.user"
+                                                        :href="route('acp.users.edit', { user: item.user.id })"
+                                                        class="hover:underline"
+                                                    >
+                                                        {{ item.user.nickname }}
+                                                    </Link>
+                                                    <span v-else>Unknown user</span>
+                                                </span>
+                                                <span class="text-xs text-muted-foreground">
+                                                    {{ item.user?.email ?? '—' }}
+                                                </span>
+                                                <span class="text-xs text-muted-foreground">Request #{{ item.id }}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium" :class="statusToneClass(item.status)">
+                                                {{ statusLabel(item.status) }}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span class="text-sm text-foreground">{{ formatDateTime(item.created_at) }}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span class="text-sm text-foreground">{{ formatDateTime(item.processed_at) }}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <p class="text-xs text-muted-foreground">
+                                                Last updated {{ formatDateTime(item.updated_at) }}
+                                            </p>
+                                        </TableCell>
+                                        <TableCell class="text-right">
+                                            <Button size="sm" variant="outline" @click="openErasureDialog(item)">
+                                                Manage
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        <footer class="flex flex-col items-start justify-between gap-4 border-t px-4 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center">
+                            <span>{{ erasurePagination.rangeLabel }}</span>
+                            <div class="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    :disabled="erasurePagination.meta.current_page <= 1"
+                                    @click="erasurePagination.setPage(erasurePagination.meta.current_page - 1)"
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    :disabled="erasurePagination.meta.current_page >= erasurePagination.pageCount"
+                                    @click="erasurePagination.setPage(erasurePagination.meta.current_page + 1)"
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </footer>
+                    </section>
+
                     <section class="rounded-lg border bg-card shadow-sm">
                         <header class="flex flex-col gap-2 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -635,105 +734,6 @@ const submitErasureForm = () => {
                                     variant="outline"
                                     :disabled="exportPagination.meta.current_page >= exportPagination.pageCount"
                                     @click="exportPagination.setPage(exportPagination.meta.current_page + 1)"
-                                >
-                                    Next
-                                </Button>
-                            </div>
-                        </footer>
-                    </section>
-
-                    <section class="rounded-lg border bg-card shadow-sm">
-                        <header class="flex flex-col gap-2 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <h2 class="text-lg font-semibold text-foreground">Erasure requests</h2>
-                                <p class="text-sm text-muted-foreground">
-                                    Track account deletion requests and document their processing.
-                                </p>
-                            </div>
-                            <p class="text-sm text-muted-foreground">
-                                {{ erasurePagination.rangeLabel }}
-                            </p>
-                        </header>
-
-                        <div class="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead class="min-w-[160px]">User</TableHead>
-                                        <TableHead class="min-w-[120px]">Status</TableHead>
-                                        <TableHead class="min-w-[160px]">Requested</TableHead>
-                                        <TableHead class="min-w-[160px]">Processed</TableHead>
-                                        <TableHead class="min-w-[200px]">Notes</TableHead>
-                                        <TableHead class="min-w-[100px] text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow v-if="props.erasureRequests.data.length === 0">
-                                        <TableCell colspan="6" class="py-6 text-center text-sm text-muted-foreground">
-                                            No erasure requests found.
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow v-for="item in props.erasureRequests.data" :key="item.id">
-                                        <TableCell>
-                                            <div class="flex flex-col">
-                                                <span class="text-sm font-medium text-foreground">
-                                                    <Link
-                                                        v-if="item.user"
-                                                        :href="route('acp.users.edit', { user: item.user.id })"
-                                                        class="hover:underline"
-                                                    >
-                                                        {{ item.user.nickname }}
-                                                    </Link>
-                                                    <span v-else>Unknown user</span>
-                                                </span>
-                                                <span class="text-xs text-muted-foreground">
-                                                    {{ item.user?.email ?? '—' }}
-                                                </span>
-                                                <span class="text-xs text-muted-foreground">Request #{{ item.id }}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium" :class="statusToneClass(item.status)">
-                                                {{ statusLabel(item.status) }}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span class="text-sm text-foreground">{{ formatDateTime(item.created_at) }}</span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span class="text-sm text-foreground">{{ formatDateTime(item.processed_at) }}</span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <p class="text-xs text-muted-foreground">
-                                                Last updated {{ formatDateTime(item.updated_at) }}
-                                            </p>
-                                        </TableCell>
-                                        <TableCell class="text-right">
-                                            <Button size="sm" variant="outline" @click="openErasureDialog(item)">
-                                                Manage
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <footer class="flex flex-col items-start justify-between gap-4 border-t px-4 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center">
-                            <span>{{ erasurePagination.rangeLabel }}</span>
-                            <div class="flex items-center gap-2">
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    :disabled="erasurePagination.meta.current_page <= 1"
-                                    @click="erasurePagination.setPage(erasurePagination.meta.current_page - 1)"
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    :disabled="erasurePagination.meta.current_page >= erasurePagination.pageCount"
-                                    @click="erasurePagination.setPage(erasurePagination.meta.current_page + 1)"
                                 >
                                     Next
                                 </Button>

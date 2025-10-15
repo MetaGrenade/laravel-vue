@@ -10,6 +10,7 @@ class UserNotificationSetting extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'category',
         'channel_mail',
         'channel_push',
