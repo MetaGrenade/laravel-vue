@@ -68,8 +68,12 @@ class BlogRevision extends Model
             ->latest('created_at')
             ->first();
 
-        if ($previous && $previous->created_at && $previous->created_at >= $now) {
-            $now = $previous->created_at->copy()->addSecond();
+        if ($previous && $previous->created_at) {
+            $candidate = $previous->created_at->copy()->addSecond();
+
+            if ($candidate->greaterThan($now)) {
+                $now = $candidate;
+            }
         }
 
         return static::create([

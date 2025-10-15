@@ -110,6 +110,9 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');
     Route::get('acp/support/users/search', [SupportController::class,'searchUsers'])->name('acp.support.users.search');
 
+    Route::get('acp/support/sla', [SupportController::class, 'sla'])->name('acp.support.sla.index');
+    Route::put('acp/support/sla', [SupportController::class, 'updateSla'])->name('acp.support.sla.update');
+
     Route::get('acp/support/templates', [SupportController::class, 'templates'])->name('acp.support.templates.index');
     Route::post('acp/support/templates', [SupportController::class, 'storeTemplate'])->name('acp.support.templates.store');
     Route::put('acp/support/templates/{template}', [SupportController::class, 'updateTemplate'])->name('acp.support.templates.update');

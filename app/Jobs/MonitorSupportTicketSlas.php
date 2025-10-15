@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\SupportTicket;
+use App\Support\SupportSlaConfiguration;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketAuditor;
 use Illuminate\Bus\Queueable;
@@ -19,16 +20,16 @@ class MonitorSupportTicketSlas implements ShouldQueue
 
     public function handle(SupportTicketAutoAssigner $assigner, SupportTicketAuditor $auditor): void
     {
-        $escalations = collect(config('support.sla.priority_escalations', []));
-        $reassignThresholds = collect(config('support.sla.reassign_after', []));
+        $escalations = collect(SupportSlaConfiguration::priorityEscalations());
+        $reassignThresholds = collect(SupportSlaConfiguration::reassignAfter());
 
         SupportTicket::query()
             ->whereIn('status', ['open', 'pending'])
             ->orderBy('id')
             ->chunkById(100, function (Collection $tickets) use ($assigner, $auditor, $escalations, $reassignThresholds): void {
                 $tickets->each(function (SupportTicket $ticket) use ($assigner, $auditor, $escalations, $reassignThresholds): void {
-                    $this->maybeEscalatePriority($ticket, $escalations, $auditor);
                     $this->maybeReassign($ticket, $assigner, $reassignThresholds);
+                    $this->maybeEscalatePriority($ticket, $escalations, $auditor);
                 });
             });
     }
@@ -63,13 +64,17 @@ class MonitorSupportTicketSlas implements ShouldQueue
         ]);
     }
 
-    private function maybeReassign(SupportTicket $ticket, SupportTicketAutoAssigner $assigner, Collection $thresholds): void
+    private function maybeReassign(
+        SupportTicket $ticket,
+        SupportTicketAutoAssigner $assigner,
+        Collection $thresholds
+    ): void
     {
         if (! $ticket->assigned_to) {
             return;
         }
 
-        $threshold = $thresholds->get($ticket->priority);
+        $threshold = $ticket->priority ? $thresholds->get($ticket->priority) : null;
 
         if (! $threshold) {
             return;
