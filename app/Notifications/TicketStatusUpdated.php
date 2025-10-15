@@ -52,7 +52,7 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
         $greeting = 'Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!';
 
         $lines = match ($this->audience) {
-            'agent' => [
+            'agent', 'team' => [
                 'A support ticket you are assigned to has a new status.',
                 'Subject: ' . $this->ticket->subject,
             ],
@@ -138,7 +138,7 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
     protected function title(): string
     {
         return match ($this->audience) {
-            'agent' => 'Ticket status updated: ' . $this->ticket->subject,
+            'agent', 'team' => 'Ticket status updated: ' . $this->ticket->subject,
             default => 'Support ticket status updated: ' . $this->ticket->subject,
         };
     }

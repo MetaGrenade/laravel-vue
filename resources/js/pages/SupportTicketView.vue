@@ -58,8 +58,10 @@ const props = defineProps<{
         created_at: string | null;
         updated_at: string | null;
         assignee: TicketAssignee | null;
+        team: { id: number; name: string } | null;
         user: TicketUser | null;
         customer_satisfaction_rating: number | null;
+        support_team_id?: number | null;
     };
     messages: TicketMessage[];
     canReply: boolean;
@@ -440,6 +442,12 @@ const formatFileSize = (bytes: number) => {
                                 </p>
                                 <p class="text-muted-foreground">
                                     {{ props.ticket.assignee?.email ?? '—' }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase text-muted-foreground">Assigned team</p>
+                                <p class="font-medium text-foreground">
+                                    {{ props.ticket.team?.name ?? '—' }}
                                 </p>
                             </div>
                             <div>

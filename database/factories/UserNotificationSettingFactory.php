@@ -21,6 +21,7 @@ class UserNotificationSettingFactory extends Factory
             'channel_mail' => true,
             'channel_push' => true,
             'channel_database' => true,
+            'team_notifications' => true,
         ];
     }
 }

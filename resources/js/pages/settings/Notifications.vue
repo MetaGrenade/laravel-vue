@@ -17,11 +17,19 @@ type ChannelPreference = {
     enabled: boolean;
 };
 
+type OptionPreference = {
+    key: string;
+    label: string;
+    description?: string | null;
+    enabled: boolean;
+};
+
 type CategoryPreference = {
     key: string;
     label: string;
     description?: string | null;
     channels: ChannelPreference[];
+    options?: OptionPreference[];
 };
 
 interface Props {
@@ -45,6 +53,12 @@ const initialPreferences = computed<Record<string, Record<string, boolean>>>(() 
 
             return channelsAcc;
         }, {});
+
+        if (category.options?.length) {
+            for (const option of category.options) {
+                acc[category.key][option.key] = option.enabled;
+            }
+        }
 
         return acc;
     }, {});
@@ -119,6 +133,29 @@ const submit = () => {
                                         :aria-label="`Toggle ${channel.label} notifications for ${category.label}`"
                                     />
                                 </div>
+
+                                <template v-if="category.options && category.options.length">
+                                    <div class="pt-2 text-sm font-medium text-muted-foreground">
+                                        Additional preferences
+                                    </div>
+
+                                    <div
+                                        v-for="option in category.options"
+                                        :key="`${category.key}-${option.key}`"
+                                        class="flex flex-col gap-2 rounded-md border border-dashed border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div>
+                                            <p class="font-medium">{{ option.label }}</p>
+                                            <p v-if="option.description" class="text-sm text-muted-foreground">
+                                                {{ option.description }}
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            v-model="form.preferences[category.key][option.key]"
+                                            :aria-label="`Toggle ${option.label} notifications for ${category.label}`"
+                                        />
+                                    </div>
+                                </template>
                             </CardContent>
                         </Card>
                     </div>

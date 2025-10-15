@@ -61,6 +61,8 @@ interface Ticket {
     created_at: string | null;
     updated_at: string | null;
     assignee: TicketAssignee | null;
+    team: { id: number; name: string } | null;
+    support_team_id: number | null;
     customer_satisfaction_rating: number | null;
     support_ticket_category_id: number | null;
     category: TicketCategory | null;
@@ -992,7 +994,15 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                 {{ formatPriority(ticket.priority) }}
                                             </span>
                                         </TableCell>
-                                        <TableCell class="text-center">{{ ticket.assignee?.nickname || '—' }}</TableCell>
+                                        <TableCell class="text-center">
+                                            <span v-if="ticket.assignee">
+                                                {{ ticket.assignee.nickname }}
+                                            </span>
+                                            <span v-else-if="ticket.team">
+                                                Team: {{ ticket.team.name }}
+                                            </span>
+                                            <span v-else>—</span>
+                                        </TableCell>
                                         <TableCell class="text-center">{{ formatDate(ticket.created_at) }}</TableCell>
                                         <TableCell class="text-center">{{ formatRating(ticket.customer_satisfaction_rating) }}</TableCell>
                                         <TableCell class="text-center">

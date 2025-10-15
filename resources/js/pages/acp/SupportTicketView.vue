@@ -74,11 +74,13 @@ const props = defineProps<{
         priority: 'low' | 'medium' | 'high';
         support_ticket_category_id: number | null;
         assigned_to: number | null;
+        support_team_id: number | null;
         created_at: string | null;
         updated_at: string | null;
         resolved_at: string | null;
         resolved_by: number | null;
         assignee: TicketParticipant | null;
+        team: { id: number; name: string } | null;
         resolver: TicketParticipant | null;
         user: TicketParticipant | null;
     };
@@ -747,6 +749,12 @@ const auditContextEntries = (audit: TicketAudit) => {
                                                 {{ props.ticket.assignee?.nickname ?? 'Unassigned' }}
                                             </p>
                                             <p class="text-muted-foreground">{{ props.ticket.assignee?.email ?? '—' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs uppercase text-muted-foreground">Assigned team</p>
+                                            <p class="font-medium text-foreground">
+                                                {{ props.ticket.team?.name ?? '—' }}
+                                            </p>
                                         </div>
                                         <div>
                                             <p class="text-xs uppercase text-muted-foreground">Created</p>

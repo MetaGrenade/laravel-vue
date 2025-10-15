@@ -394,7 +394,8 @@ class SupportController extends Controller
                 $query->where('assigned_to', $assigneeFilter);
             })
             ->when($createdFrom, fn ($query, $from) => $query->where('created_at', '>=', $from))
-            ->when($createdTo, fn ($query, $to) => $query->where('created_at', '<=', $to));
+            ->when($createdTo, fn ($query, $to) => $query->where('created_at', '<=', $to))
+            ->with(['user:id,nickname,email', 'assignee:id,nickname,email', 'resolver:id,nickname,email', 'category:id,name', 'team:id,name']);
 
         $faqQuery = Faq::query()
             ->with('category:id,name,slug')
@@ -414,12 +415,6 @@ class SupportController extends Controller
             });
 
         $tickets = (clone $ticketQuery)
-            ->with([
-                'user:id,nickname,email',
-                'assignee:id,nickname,email',
-                'resolver:id,nickname,email',
-                'category:id,name',
-            ])
             ->orderByDesc('created_at')
             ->paginate($perPage, ['*'], 'tickets_page')
             ->withQueryString();
@@ -438,6 +433,7 @@ class SupportController extends Controller
                     'status' => $ticket->status,
                     'priority' => $ticket->priority,
                     'support_ticket_category_id' => $ticket->support_ticket_category_id,
+                    'support_team_id' => $ticket->support_team_id,
                     'created_at' => $formatter->iso($ticket->created_at),
                     'updated_at' => $formatter->iso($ticket->updated_at),
                     'resolved_at' => $formatter->iso($ticket->resolved_at),
@@ -452,6 +448,10 @@ class SupportController extends Controller
                         'id' => $ticket->assignee->id,
                         'nickname' => $ticket->assignee->nickname,
                         'email' => $ticket->assignee->email,
+                    ] : null,
+                    'team' => $ticket->team ? [
+                        'id' => $ticket->team->id,
+                        'name' => $ticket->team->name,
                     ] : null,
                     'resolver' => $ticket->resolver ? [
                         'id' => $ticket->resolver->id,
@@ -649,6 +649,7 @@ class SupportController extends Controller
             'assignee:id,nickname,email',
             'resolver:id,nickname,email',
             'category:id,name',
+            'team:id,name',
         ]);
 
         $agents = User::orderBy('nickname')
@@ -682,6 +683,10 @@ class SupportController extends Controller
             $validated['support_ticket_category_id'] = $validated['support_ticket_category_id'] ?? null;
         }
 
+        if (! empty($validated['assigned_to'])) {
+            $validated['support_team_id'] = null;
+        }
+
         $ticket->update($validated);
 
         if (
@@ -711,9 +716,17 @@ class SupportController extends Controller
             'assigned_to' => ['nullable', 'exists:users,id'],
         ]);
 
-        $ticket->update([
-            'assigned_to' => $validated['assigned_to'] ?? null,
+        $assignedTo = $validated['assigned_to'] ?? null;
+
+        $ticket->fill([
+            'assigned_to' => $assignedTo,
         ]);
+
+        if ($assignedTo !== null) {
+            $ticket->support_team_id = null;
+        }
+
+        $ticket->save();
 
         $message = $ticket->assigned_to
             ? 'Ticket assigned to agent.'
@@ -922,6 +935,7 @@ class SupportController extends Controller
                 'status' => $ticket->status,
                 'priority' => $ticket->priority,
                 'support_ticket_category_id' => $ticket->support_ticket_category_id,
+                'support_team_id' => $ticket->support_team_id,
                 'assigned_to' => $ticket->assigned_to,
                 'created_at' => $formatter->iso($ticket->created_at),
                 'updated_at' => $formatter->iso($ticket->updated_at),
@@ -931,6 +945,10 @@ class SupportController extends Controller
                     'id' => $ticket->assignee->id,
                     'nickname' => $ticket->assignee->nickname,
                     'email' => $ticket->assignee->email,
+                ] : null,
+                'team' => $ticket->team ? [
+                    'id' => $ticket->team->id,
+                    'name' => $ticket->team->name,
                 ] : null,
                 'resolver' => $ticket->resolver ? [
                     'id' => $ticket->resolver->id,

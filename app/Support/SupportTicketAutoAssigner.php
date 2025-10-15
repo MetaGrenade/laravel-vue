@@ -26,7 +26,11 @@ class SupportTicketAutoAssigner
                 continue;
             }
 
-            if (! $rule->assignee) {
+            if ($rule->assignee_type === 'user' && ! $rule->assignee) {
+                continue;
+            }
+
+            if ($rule->assignee_type === 'team' && ! $rule->team) {
                 continue;
             }
 
@@ -38,37 +42,61 @@ class SupportTicketAutoAssigner
                 continue;
             }
 
-            if (in_array((int) $rule->assigned_to, $exclude, true)) {
+            if ($rule->assignee_type === 'user' && in_array((int) $rule->assigned_to, $exclude, true)) {
                 continue;
             }
 
             $previousAssignee = $ticket->assigned_to ? (int) $ticket->assigned_to : null;
 
-            $ticket->forceFill(['assigned_to' => $rule->assigned_to]);
+            $previousTeam = $ticket->support_team_id ? (int) $ticket->support_team_id : null;
 
-            $changed = $ticket->isDirty('assigned_to');
+            if ($rule->assignee_type === 'team') {
+                $ticket->forceFill([
+                    'assigned_to' => null,
+                    'support_team_id' => $rule->support_team_id,
+                ]);
+            } else {
+                $ticket->forceFill([
+                    'assigned_to' => $rule->assigned_to,
+                    'support_team_id' => null,
+                ]);
+            }
+
+            $changed = $ticket->isDirty(['assigned_to', 'support_team_id']);
 
             if ($changed) {
                 $ticket->save();
             }
 
-            $ticket->setRelation('assignee', $rule->assignee);
+            if ($rule->assignee_type === 'team') {
+                $ticket->unsetRelation('assignee');
+                $ticket->setRelation('team', $rule->team);
+            } else {
+                $ticket->setRelation('assignee', $rule->assignee);
+                $ticket->unsetRelation('team');
+            }
 
             if ($changed) {
                 $context = array_merge($meta, [
                     'rule_id' => $rule->id,
-                    'assigned_to' => (int) $rule->assigned_to,
+                    'assignee_type' => $rule->assignee_type,
+                    'assigned_to' => $rule->assignee_type === 'user' ? (int) $rule->assigned_to : null,
+                    'support_team_id' => $rule->assignee_type === 'team' ? (int) $rule->support_team_id : null,
                     'previous_assignee_id' => $previousAssignee,
+                    'previous_support_team_id' => $previousTeam,
                 ]);
 
                 $this->auditor->log($ticket, $reason, $context);
             }
 
             return new SupportTicketAssignment(
+                assigneeType: $rule->assignee_type,
                 assignee: $rule->assignee,
+                team: $rule->team,
                 rule: $rule,
                 changed: $changed,
                 previousAssigneeId: $previousAssignee,
+                previousTeamId: $previousTeam,
             );
         }
 
@@ -78,7 +106,10 @@ class SupportTicketAutoAssigner
     private function rules(): Collection
     {
         return SupportAssignmentRule::query()
-            ->with('assignee:id,nickname,email')
+            ->with([
+                'assignee:id,nickname,email',
+                'team:id,name',
+            ])
             ->orderBy('position')
             ->orderBy('id')
             ->get();

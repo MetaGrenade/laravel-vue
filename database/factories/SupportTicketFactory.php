@@ -22,6 +22,7 @@ class SupportTicketFactory extends Factory
             'status' => 'pending',
             'priority' => $this->faker->randomElement(['low', 'medium', 'high']),
             'support_ticket_category_id' => null,
+            'support_team_id' => null,
         ];
     }
 }

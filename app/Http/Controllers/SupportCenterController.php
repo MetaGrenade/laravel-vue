@@ -102,7 +102,7 @@ class SupportCenterController extends Controller
                             });
                     });
                 })
-                ->with(['assignee:id,nickname,email', 'category:id,name'])
+                ->with(['assignee:id,nickname,email', 'category:id,name', 'team:id,name'])
                 ->orderByDesc('created_at')
                 ->paginate($ticketsPerPage, ['*'], 'tickets_page')
                 ->withQueryString();
@@ -116,6 +116,7 @@ class SupportCenterController extends Controller
                             'status' => $ticket->status,
                             'priority' => $ticket->priority,
                             'support_ticket_category_id' => $ticket->support_ticket_category_id,
+                            'support_team_id' => $ticket->support_team_id,
                             'created_at' => $formatter->iso($ticket->created_at),
                             'updated_at' => $formatter->iso($ticket->updated_at),
                             'customer_satisfaction_rating' => $ticket->customer_satisfaction_rating,
@@ -123,6 +124,10 @@ class SupportCenterController extends Controller
                                 'id' => $ticket->assignee->id,
                                 'nickname' => $ticket->assignee->nickname,
                                 'email' => $ticket->assignee->email,
+                            ] : null,
+                            'team' => $ticket->team ? [
+                                'id' => $ticket->team->id,
+                                'name' => $ticket->team->name,
                             ] : null,
                             'category' => $ticket->category ? [
                                 'id' => $ticket->category->id,
@@ -349,7 +354,7 @@ class SupportCenterController extends Controller
         });
 
         if ($ticket && $message) {
-            $ticket->loadMissing('assignee');
+            $ticket->loadMissing(['assignee', 'team']);
 
             $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $message) {
                 return (new TicketOpened($ticket, $message))
@@ -374,6 +379,7 @@ class SupportCenterController extends Controller
             'assignee:id,nickname,email',
             'user:id,nickname,email',
             'category:id,name',
+            'team:id,name',
             'messages.author:id,nickname,email',
             'messages.attachments',
         ]);
@@ -431,6 +437,7 @@ class SupportCenterController extends Controller
                 'status' => $ticket->status,
                 'priority' => $ticket->priority,
                 'support_ticket_category_id' => $ticket->support_ticket_category_id,
+                'support_team_id' => $ticket->support_team_id,
                 'created_at' => $formatter->iso($ticket->created_at),
                 'updated_at' => $formatter->iso($ticket->updated_at),
                 'customer_satisfaction_rating' => $ticket->customer_satisfaction_rating,
@@ -438,6 +445,10 @@ class SupportCenterController extends Controller
                     'id' => $ticket->assignee->id,
                     'nickname' => $ticket->assignee->nickname,
                     'email' => $ticket->assignee->email,
+                ] : null,
+                'team' => $ticket->team ? [
+                    'id' => $ticket->team->id,
+                    'name' => $ticket->team->name,
                 ] : null,
                 'user' => $ticket->user ? [
                     'id' => $ticket->user->id,

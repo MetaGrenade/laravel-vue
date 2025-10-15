@@ -42,11 +42,29 @@ class NotificationSettingsController extends Controller
                     ->values()
                     ->all();
 
+                $options = collect($config['options'] ?? [])
+                    ->map(function (array $optionConfig, string $optionKey) use ($user, $key) {
+                        $setting = $user->notificationSettings->firstWhere('category', $key);
+                        $defaultEnabled = (bool) ($optionConfig['default'] ?? true);
+
+                        return [
+                            'key' => $optionKey,
+                            'label' => $optionConfig['label'] ?? ucfirst($optionKey),
+                            'description' => $optionConfig['description'] ?? null,
+                            'enabled' => $setting
+                                ? $setting->isOptionEnabled($optionKey)
+                                : $defaultEnabled,
+                        ];
+                    })
+                    ->values()
+                    ->all();
+
                 return [
                     'key' => $key,
                     'label' => $config['label'] ?? ucfirst($key),
                     'description' => $config['description'] ?? null,
                     'channels' => $channels,
+                    'options' => $options,
                 ];
             })
             ->values()
@@ -93,13 +111,31 @@ class NotificationSettingsController extends Controller
                 $channelValues[$channelKey] = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? false;
             }
 
+            $optionKeys = collect($config['options'] ?? [])->keys();
+            $optionValues = [];
+
+            foreach ($optionKeys as $optionKey) {
+                $value = $preferences[$categoryKey][$optionKey] ?? null;
+                $optionValues[$optionKey] = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+
+                if ($optionValues[$optionKey] === null) {
+                    $optionValues[$optionKey] = (bool) (($config['options'][$optionKey]['default'] ?? true));
+                }
+            }
+
+            $attributes = [
+                'channel_mail' => $channelValues['mail'] ?? false,
+                'channel_push' => $channelValues['push'] ?? false,
+                'channel_database' => $channelValues['database'] ?? false,
+            ];
+
+            if ($optionKeys->contains('team_notifications')) {
+                $attributes['team_notifications'] = $optionValues['team_notifications'] ?? false;
+            }
+
             $user->notificationSettings()->updateOrCreate(
                 ['category' => $categoryKey],
-                [
-                    'channel_mail' => $channelValues['mail'] ?? false,
-                    'channel_push' => $channelValues['push'] ?? false,
-                    'channel_database' => $channelValues['database'] ?? false,
-                ],
+                $attributes,
             );
         }
 

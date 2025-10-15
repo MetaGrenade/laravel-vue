@@ -33,6 +33,13 @@ return [
             'label' => 'Support desk',
             'description' => 'Updates to tickets you opened or are assigned to.',
             'channels' => ['mail', 'push', 'database'],
+            'options' => [
+                'team_notifications' => [
+                    'label' => 'Support team updates',
+                    'description' => 'Receive notifications for tickets followed through your support teams.',
+                    'default' => true,
+                ],
+            ],
         ],
         'privacy' => [
             'label' => 'Privacy tools',
