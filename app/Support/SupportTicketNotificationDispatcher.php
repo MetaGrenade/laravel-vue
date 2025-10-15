@@ -18,11 +18,11 @@ class SupportTicketNotificationDispatcher
         callable $notificationFactory,
         ?callable $channelResolver = null,
     ): void {
-        $ticket->loadMissing(['user', 'assignee']);
-
-        if ($ticket->assignee) {
-            $ticket->assignee->loadMissing('supportTeams.members');
-        }
+        $ticket->loadMissing([
+            'user',
+            'assignee.supportTeams.members',
+            'team.members',
+        ]);
 
         $recipientCandidates = collect();
 
@@ -41,6 +41,17 @@ class SupportTicketNotificationDispatcher
 
             $teamMembers = $ticket->assignee->supportTeams
                 ->flatMap(fn (SupportTeam $team) => $team->members)
+                ->filter()
+                ->map(fn (User $member) => [
+                    'audience' => 'team',
+                    'user' => $member,
+                ]);
+
+            $recipientCandidates = $recipientCandidates->merge($teamMembers);
+        }
+
+        if ($ticket->team) {
+            $teamMembers = $ticket->team->members
                 ->filter()
                 ->map(fn (User $member) => [
                     'audience' => 'team',

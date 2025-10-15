@@ -92,6 +92,7 @@ const props = defineProps<{
             updated_at: string | null;
             resolved_at: string | null;
             resolved_by: number | null;
+            support_team_id: number | null;
             customer_satisfaction_rating: number | null;
             user: {
                 id: number;
@@ -102,6 +103,10 @@ const props = defineProps<{
                 id: number;
                 nickname: string;
                 email?: string;
+            } | null;
+            team: {
+                id: number;
+                name: string;
             } | null;
             resolver: {
                 id: number;
@@ -1268,7 +1273,15 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     {{ t.priority }}
                                                 </span>
                                             </TableCell>
-                                            <TableCell class="text-center">{{ t.assignee?.nickname || '—' }}</TableCell>
+                                            <TableCell class="text-center">
+                                                <span v-if="t.assignee">
+                                                    {{ t.assignee.nickname }}
+                                                </span>
+                                                <span v-else-if="t.team">
+                                                    Team: {{ t.team.name }}
+                                                </span>
+                                                <span v-else>—</span>
+                                            </TableCell>
                                             <TableCell class="text-center">{{ t.created_at ? fromNow(t.created_at) : '—' }}</TableCell>
                                             <TableCell class="text-center">
                                                 <span v-if="t.resolved_at" :title="formatDate(t.resolved_at)">

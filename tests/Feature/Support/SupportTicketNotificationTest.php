@@ -583,6 +583,55 @@ class SupportTicketNotificationTest extends TestCase
         });
     }
 
+    public function test_team_assigned_ticket_notifies_team_members_without_agent(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $teamMate = $this->createSupportAgent(['support.acp.view']);
+
+        $team = SupportTeam::create(['name' => 'Developers']);
+        $team->members()->sync([$teamMate->id]);
+
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'subject' => 'Build pipeline failing',
+            'body' => 'CI runs are failing on main branch.',
+            'priority' => 'high',
+            'support_team_id' => $team->id,
+        ]);
+
+        $ticket->messages()->create([
+            'user_id' => $owner->id,
+            'body' => 'Initial failure logs attached.',
+        ]);
+
+        $this->actingAs($owner)
+            ->post(route('support.tickets.messages.store', $ticket), [
+                'body' => 'Follow-up with additional build IDs.',
+            ])
+            ->assertRedirect(route('support.tickets.show', $ticket));
+
+        Notification::assertSentToTimes($teamMate, TicketReplied::class, 2);
+
+        Notification::assertSentTo($teamMate, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($teamMate) {
+            if ($channels !== ['database']) {
+                return false;
+            }
+
+            $payload = $notification->toArray($teamMate);
+
+            return $payload['audience'] === 'team';
+        });
+
+        Notification::assertSentTo($teamMate, TicketReplied::class, function (TicketReplied $notification, array $channels) {
+            $sortedChannels = $channels;
+            sort($sortedChannels);
+
+            return $sortedChannels === ['broadcast', 'mail'];
+        });
+    }
+
     public function test_support_team_members_can_opt_out_of_ticket_updates(): void
     {
         Notification::fake();

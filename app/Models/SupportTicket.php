@@ -19,6 +19,7 @@ class SupportTicket extends Model
         'priority',
         'support_ticket_category_id',
         'assigned_to',
+        'support_team_id',
         'resolved_at',
         'resolved_by',
         'customer_satisfaction_rating',
@@ -36,6 +37,11 @@ class SupportTicket extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(SupportTeam::class, 'support_team_id');
     }
 
     public function resolver(): BelongsTo
