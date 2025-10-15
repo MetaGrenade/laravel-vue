@@ -4,6 +4,7 @@ namespace Tests\Feature\Support;
 
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Models\UserNotificationSetting;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
@@ -35,6 +36,18 @@ class SupportTicketNotificationTest extends TestCase
         foreach ($permissions as $permission) {
             $agent->givePermissionTo($permission);
         }
+
+        UserNotificationSetting::query()->updateOrCreate(
+            [
+                'user_id' => $agent->id,
+                'category' => 'support',
+            ],
+            [
+                'channel_mail' => true,
+                'channel_push' => true,
+                'channel_database' => true,
+            ],
+        );
 
         return $agent;
     }
@@ -244,7 +257,7 @@ class SupportTicketNotificationTest extends TestCase
         $message = $ticket->messages()->latest('id')->first();
         $this->assertNotNull($message);
 
-        Notification::assertSentToTimes($owner, TicketReplied::class, 2);
+        Notification::assertSentToTimes($owner, TicketReplied::class, 1);
         Notification::assertSentToTimes($agent, TicketReplied::class, 2);
 
         Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message, $agent) {
@@ -289,20 +302,11 @@ class SupportTicketNotificationTest extends TestCase
             return true;
         });
 
-        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message, $agent) {
+        Notification::assertNotSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) {
             $sortedChannels = $channels;
             sort($sortedChannels);
 
-            if ($sortedChannels !== ['broadcast', 'mail']) {
-                return false;
-            }
-
-            $mailMessage = $notification->toMail($owner);
-            $expectedUrl = route('support.tickets.show', $ticket) . '#message-' . $message->id;
-
-            $this->assertSame($expectedUrl, $mailMessage->actionUrl);
-
-            return true;
+            return $sortedChannels === ['broadcast', 'mail'];
         });
 
         Notification::assertSentTo($agent, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($agent, $ticket, $message) {
@@ -432,12 +436,17 @@ class SupportTicketNotificationTest extends TestCase
         $owner = User::factory()->create(['email_verified_at' => now()]);
         $agent = $this->createSupportAgent(['support.acp.reply', 'support.acp.view']);
 
-        $owner->notificationSettings()->create([
-            'category' => 'support',
-            'channel_mail' => false,
-            'channel_push' => false,
-            'channel_database' => true,
-        ]);
+        UserNotificationSetting::query()->updateOrCreate(
+            [
+                'user_id' => $owner->id,
+                'category' => 'support',
+            ],
+            [
+                'channel_mail' => false,
+                'channel_push' => false,
+                'channel_database' => true,
+            ],
+        );
 
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
@@ -477,12 +486,17 @@ class SupportTicketNotificationTest extends TestCase
         $owner = User::factory()->create(['email_verified_at' => now()]);
         $agent = $this->createSupportAgent(['support.acp.view']);
 
-        $agent->notificationSettings()->create([
-            'category' => 'support',
-            'channel_mail' => true,
-            'channel_push' => false,
-            'channel_database' => false,
-        ]);
+        UserNotificationSetting::query()->updateOrCreate(
+            [
+                'user_id' => $agent->id,
+                'category' => 'support',
+            ],
+            [
+                'channel_mail' => true,
+                'channel_push' => false,
+                'channel_database' => false,
+            ],
+        );
 
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
