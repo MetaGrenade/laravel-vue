@@ -62,7 +62,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Billing', href: '/acp/billing/invoices' },
+    { title: 'Billing invoices', href: route('acp.billing.invoices.index') },
 ];
 
 const invoices = computed(() => props.invoices.data ?? []);

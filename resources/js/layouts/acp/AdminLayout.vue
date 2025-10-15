@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -74,10 +74,16 @@ const sidebarNavItems: NavItem[] = [
         icon: LifeBuoy,
     },
     {
-        title: 'Billing',
+        title: 'Billing invoices',
         href: '/acp/billing/invoices',
         target: '_self',
         icon: CreditCard,
+    },
+    {
+        title: 'Subscription plans',
+        href: '/acp/billing/plans',
+        target: '_self',
+        icon: Layers,
     },
     {
         title: 'Access Tokens',
@@ -116,7 +122,9 @@ const filteredNavItems = computed(() => {
                 return manageReputation.value || isAdmin.value;
             case 'Support':
                 return manageSupport.value;
-            case 'Billing':
+            case 'Billing invoices':
+                return manageBilling.value;
+            case 'Subscription plans':
                 return manageBilling.value;
             case 'Access Tokens':
                 return manageTokens.value;
