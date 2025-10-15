@@ -9,12 +9,14 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
 use Carbon\Carbon;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Traversable;
 
 class AdminController extends Controller
 {
@@ -210,13 +212,23 @@ class AdminController extends Controller
     {
         $configuredWorkers = config('queue.workers', []);
 
-        if (! is_array($configuredWorkers)) {
+        if ($configuredWorkers instanceof Arrayable) {
+            $configuredWorkers = $configuredWorkers->toArray();
+        } elseif ($configuredWorkers instanceof Traversable) {
+            $configuredWorkers = iterator_to_array($configuredWorkers);
+        } elseif (! is_array($configuredWorkers)) {
             $configuredWorkers = [];
         }
 
         $workers = [];
 
         foreach ($configuredWorkers as $worker) {
+            if ($worker instanceof Arrayable) {
+                $worker = $worker->toArray();
+            } elseif ($worker instanceof Traversable) {
+                $worker = iterator_to_array($worker);
+            }
+
             if (! is_array($worker)) {
                 continue;
             }
@@ -239,7 +251,7 @@ class AdminController extends Controller
 
             $workers[] = [
                 'name' => $worker['name'] ?? 'worker',
-                'connection' => $worker['connection'] ?? config('queue.default'),
+                'connection' => $worker['connection'] ?? ($connectionConfig['connection'] ?? $connectionKey),
                 'queues' => $queues,
                 'tries' => $worker['tries'] ?? null,
                 'backoff' => $worker['backoff'] ?? null,
@@ -255,7 +267,7 @@ class AdminController extends Controller
 
             $workers[] = [
                 'name' => $connectionKey,
-                'connection' => $connectionConfig['connection'] ?? config('queue.default'),
+                'connection' => $connectionConfig['connection'] ?? $connectionKey,
                 'queues' => $queues,
                 'tries' => $connectionConfig['tries'] ?? null,
                 'backoff' => $connectionConfig['backoff'] ?? null,
@@ -266,7 +278,7 @@ class AdminController extends Controller
             ];
         }
 
-        return $workers;
+        return array_values($workers);
     }
 
     /**
