@@ -208,45 +208,65 @@ class AdminController extends Controller
      */
     protected function configuredQueueWorkers(string $connectionKey, array $connectionConfig, string $queueName): array
     {
-        $workers = collect(config('queue.workers', []))
-            ->map(function (array $worker) {
-                $queues = $worker['queues'] ?? [];
+        $configuredWorkers = config('queue.workers', []);
 
-                if (is_string($queues)) {
-                    $queues = array_map('trim', explode(',', $queues));
-                }
-
-                return [
-                    'name' => $worker['name'] ?? 'worker',
-                    'connection' => $worker['connection'] ?? config('queue.default'),
-                    'queues' => array_values(array_filter($queues)),
-                    'tries' => $worker['tries'] ?? null,
-                    'backoff' => $worker['backoff'] ?? null,
-                    'sleep' => $worker['sleep'] ?? null,
-                    'timeout' => $worker['timeout'] ?? null,
-                    'max_jobs' => $worker['max_jobs'] ?? null,
-                    'max_time' => $worker['max_time'] ?? null,
-                ];
-            })
-            ->values();
-
-        if ($workers->isEmpty()) {
-            $workers = collect([
-                [
-                    'name' => $connectionKey,
-                    'connection' => $connectionConfig['connection'] ?? config('queue.default'),
-                    'queues' => array_values(array_filter([$queueName])),
-                    'tries' => $connectionConfig['tries'] ?? null,
-                    'backoff' => $connectionConfig['backoff'] ?? null,
-                    'sleep' => $connectionConfig['sleep'] ?? null,
-                    'timeout' => $connectionConfig['timeout'] ?? null,
-                    'max_jobs' => $connectionConfig['max_jobs'] ?? null,
-                    'max_time' => $connectionConfig['max_time'] ?? null,
-                ],
-            ]);
+        if (! is_array($configuredWorkers)) {
+            $configuredWorkers = [];
         }
 
-        return $workers->all();
+        $workers = [];
+
+        foreach ($configuredWorkers as $worker) {
+            if (! is_array($worker)) {
+                continue;
+            }
+
+            $queues = $worker['queues'] ?? [];
+
+            if (is_string($queues)) {
+                $queues = array_map('trim', explode(',', $queues));
+            }
+
+            if (! is_array($queues)) {
+                $queues = [];
+            }
+
+            $queues = array_values(array_filter($queues, fn ($queue) => $queue !== null && $queue !== ''));
+
+            if ($queues === [] && $queueName) {
+                $queues = [$queueName];
+            }
+
+            $workers[] = [
+                'name' => $worker['name'] ?? 'worker',
+                'connection' => $worker['connection'] ?? config('queue.default'),
+                'queues' => $queues,
+                'tries' => $worker['tries'] ?? null,
+                'backoff' => $worker['backoff'] ?? null,
+                'sleep' => $worker['sleep'] ?? null,
+                'timeout' => $worker['timeout'] ?? null,
+                'max_jobs' => $worker['max_jobs'] ?? null,
+                'max_time' => $worker['max_time'] ?? null,
+            ];
+        }
+
+        if ($workers === []) {
+            $queues = $queueName ? [$queueName] : [];
+
+            $workers[] = [
+                'name' => $connectionKey,
+                'connection' => $connectionConfig['connection'] ?? config('queue.default'),
+                'queues' => $queues,
+                'tries' => $connectionConfig['tries'] ?? null,
+                'backoff' => $connectionConfig['backoff'] ?? null,
+                'sleep' => $connectionConfig['sleep'] ?? null,
+                'timeout' => $connectionConfig['timeout'] ?? null,
+                'max_jobs' => $connectionConfig['max_jobs'] ?? null,
+                'max_time' => $connectionConfig['max_time'] ?? null,
+            ];
+        }
+
+        return $workers;
     }
 
     /**
