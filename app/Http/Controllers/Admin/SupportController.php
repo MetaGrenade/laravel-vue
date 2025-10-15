@@ -930,10 +930,20 @@ class SupportController extends Controller
         if ($message) {
             $message = $message->refresh();
 
-            $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $message) {
-                return (new TicketReplied($ticket, $message))
-                    ->forAudience($audience);
-            });
+            $this->ticketNotifier->dispatch(
+                $ticket,
+                function (string $audience) use ($ticket, $message) {
+                    return (new TicketReplied($ticket, $message))
+                        ->forAudience($audience);
+                },
+                function (string $audience, User $recipient) use ($ticket, $message) {
+                    if ($audience === 'owner' && (int) $message->user_id !== (int) $ticket->user_id) {
+                        return ['database'];
+                    }
+
+                    return ['database', 'mail', 'push'];
+                }
+            );
         }
 
         return redirect()
