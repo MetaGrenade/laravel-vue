@@ -68,6 +68,7 @@ const publishSupport = computed(() => hasPermission('support.acp.publish'));
 const manageSupportTemplates = computed(() => hasPermission('support_templates.acp.view'));
 const manageSupportTeams = computed(() => hasPermission('support_teams.acp.view'));
 const manageSupportAssignmentRules = computed(() => hasPermission('support_assignment_rules.acp.view'));
+const manageSupportSlas = computed(() => hasPermission('support.acp.edit'));
 
 type PaginationLinks = {
     first: string | null;
@@ -1084,6 +1085,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             manageSupportTemplates ||
                                             manageSupportAssignmentRules ||
                                             manageSupportTeams ||
+                                            manageSupportSlas ||
                                             editSupport ||
                                             createSupport
                                         "
@@ -1129,6 +1131,18 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     as="button"
                                                 >
                                                     Manage teams
+                                                </Link>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                v-if="manageSupportSlas"
+                                                :as-child="true"
+                                            >
+                                                <Link
+                                                    class="block w-full"
+                                                    :href="route('acp.support.sla.index')"
+                                                    as="button"
+                                                >
+                                                    Manage SLA thresholds
                                                 </Link>
                                             </DropdownMenuItem>
                                             <DropdownMenuItem

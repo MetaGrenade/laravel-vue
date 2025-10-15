@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\SupportTicket;
+use App\Support\SupportSlaConfiguration;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketAuditor;
 use Illuminate\Bus\Queueable;
@@ -19,8 +20,8 @@ class MonitorSupportTicketSlas implements ShouldQueue
 
     public function handle(SupportTicketAutoAssigner $assigner, SupportTicketAuditor $auditor): void
     {
-        $escalations = collect(config('support.sla.priority_escalations', []));
-        $reassignThresholds = collect(config('support.sla.reassign_after', []));
+        $escalations = collect(SupportSlaConfiguration::priorityEscalations());
+        $reassignThresholds = collect(SupportSlaConfiguration::reassignAfter());
 
         SupportTicket::query()
             ->whereIn('status', ['open', 'pending'])

@@ -11,6 +11,7 @@ use App\Http\Requests\Admin\StoreSupportTicketMessageRequest;
 use App\Http\Requests\Admin\StoreSupportTicketRequest;
 use App\Http\Requests\Admin\UpdateFaqRequest;
 use App\Http\Requests\Admin\UpdateSupportResponseTemplateRequest;
+use App\Http\Requests\Admin\UpdateSupportSlaRequest;
 use App\Http\Requests\Admin\UpdateSupportTeamMembershipRequest;
 use App\Http\Requests\Admin\UpdateSupportTeamRequest;
 use App\Http\Requests\Admin\UpdateSupportTicketRequest;
@@ -28,6 +29,7 @@ use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
 use App\Support\Localization\DateFormatter;
+use App\Support\SupportSlaConfiguration;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use App\Support\Database\Transaction;
@@ -234,6 +236,47 @@ class SupportController extends Controller
                 'create' => (bool) $request->user()?->can('support_teams.acp.create'),
                 'edit' => (bool) $request->user()?->can('support_teams.acp.edit'),
                 'delete' => (bool) $request->user()?->can('support_teams.acp.delete'),
+            ],
+        ]);
+    }
+
+    public function sla(Request $request): Response
+    {
+        abort_unless($request->user()?->can('support.acp.edit'), 403);
+
+        $sla = SupportSlaConfiguration::all();
+
+        $priorities = collect(SupportSlaConfiguration::PRIORITIES)
+            ->map(fn (string $priority, int $index) => [
+                'value' => $priority,
+                'label' => ucfirst($priority),
+                'order' => $index,
+            ])
+            ->values()
+            ->all();
+
+        $escalations = [];
+        $reassignAfter = [];
+
+        foreach (SupportSlaConfiguration::PRIORITIES as $priority) {
+            $rule = $sla['priority_escalations'][$priority] ?? [];
+
+            $escalations[$priority] = [
+                'after' => $rule['after'] ?? null,
+                'to' => $rule['to'] ?? null,
+            ];
+
+            $reassignAfter[$priority] = $sla['reassign_after'][$priority] ?? null;
+        }
+
+        return Inertia::render('acp/SupportSlas', [
+            'priorities' => $priorities,
+            'sla' => [
+                'priority_escalations' => $escalations,
+                'reassign_after' => $reassignAfter,
+            ],
+            'can' => [
+                'edit' => (bool) $request->user()?->can('support.acp.edit'),
             ],
         ]);
     }
@@ -1197,6 +1240,33 @@ class SupportController extends Controller
         $faq->update(['published' => false]);
 
         return back()->with('success', 'FAQ unpublished.');
+    }
+
+    public function updateSla(UpdateSupportSlaRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $payload = [
+            'priority_escalations' => [],
+            'reassign_after' => [],
+        ];
+
+        foreach (SupportSlaConfiguration::PRIORITIES as $priority) {
+            $rule = $validated['priority_escalations'][$priority] ?? [];
+
+            $payload['priority_escalations'][$priority] = [
+                'after' => $rule['after'] ?? null,
+                'to' => $rule['to'] ?? null,
+            ];
+
+            $payload['reassign_after'][$priority] = $validated['reassign_after'][$priority] ?? null;
+        }
+
+        SupportSlaConfiguration::update($payload);
+
+        return redirect()
+            ->route('acp.support.sla.index')
+            ->with('success', 'Support SLA thresholds were updated.');
     }
 
     protected function resolutionAttributes(SupportTicket $ticket, string $nextStatus, int $userId): array
