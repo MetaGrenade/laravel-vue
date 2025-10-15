@@ -488,7 +488,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                 </div>
 
                 <Tabs default-value="overview" class="w-full">
-                    <TabsList class="mb-4 w-full justify-start">
+                    <TabsList class="inline-flex items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="history">Ticket History</TabsTrigger>
                     </TabsList>
