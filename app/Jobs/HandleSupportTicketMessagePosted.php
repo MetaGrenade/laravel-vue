@@ -28,13 +28,12 @@ class HandleSupportTicketMessagePosted implements ShouldQueue
 
     public int $backoff = 45;
 
-    public string $queue = 'notifications';
-
     public function __construct(
         public int $ticketId,
         public int $messageId,
         public int $actorId,
     ) {
+        $this->onQueue('notifications');
     }
 
     public function handle(SupportTicketNotificationDispatcher $dispatcher): void

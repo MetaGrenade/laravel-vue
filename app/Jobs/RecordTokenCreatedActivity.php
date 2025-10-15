@@ -26,12 +26,11 @@ class RecordTokenCreatedActivity implements ShouldQueue
 
     public int $backoff = 20;
 
-    public string $queue = 'logging';
-
     public function __construct(
         public int $tokenId,
         public int $actorId,
     ) {
+        $this->onQueue('logging');
     }
 
     public function handle(): void
