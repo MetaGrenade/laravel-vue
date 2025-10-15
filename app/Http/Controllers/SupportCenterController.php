@@ -47,6 +47,8 @@ class SupportCenterController extends Controller
         $faqsSearch = $request->string('faqs_search')->trim();
         $selectedFaqCategoryId = $request->query('faq_category_id');
         $selectedTicketCategoryId = $request->query('ticket_category_id');
+        $selectedTicketStatus = $request->query('ticket_status');
+        $selectedTicketPriority = $request->query('ticket_priority');
 
         $faqCategoryId = is_numeric($selectedFaqCategoryId) && (int) $selectedFaqCategoryId > 0
             ? (int) $selectedFaqCategoryId
@@ -56,6 +58,12 @@ class SupportCenterController extends Controller
         $faqsSearchTerm = $faqsSearch->isNotEmpty() ? $faqsSearch->value() : null;
         $ticketCategoryId = is_numeric($selectedTicketCategoryId) && (int) $selectedTicketCategoryId > 0
             ? (int) $selectedTicketCategoryId
+            : null;
+        $ticketStatus = in_array($selectedTicketStatus, ['open', 'pending', 'closed'], true)
+            ? $selectedTicketStatus
+            : null;
+        $ticketPriority = in_array($selectedTicketPriority, ['low', 'medium', 'high'], true)
+            ? $selectedTicketPriority
             : null;
 
         $formatter = DateFormatter::for($request->user());
@@ -71,6 +79,12 @@ class SupportCenterController extends Controller
                 ->where('user_id', $user->id)
                 ->when($ticketCategoryId, function ($query) use ($ticketCategoryId) {
                     $query->where('support_ticket_category_id', $ticketCategoryId);
+                })
+                ->when($ticketStatus, function ($query) use ($ticketStatus) {
+                    $query->where('status', $ticketStatus);
+                })
+                ->when($ticketPriority, function ($query) use ($ticketPriority) {
+                    $query->where('priority', $ticketPriority);
                 })
                 ->when($ticketsSearchTerm, function ($query) use ($ticketsSearchTerm) {
                     $escaped = $this->escapeForLike($ticketsSearchTerm);

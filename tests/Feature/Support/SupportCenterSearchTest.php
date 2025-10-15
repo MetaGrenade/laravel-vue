@@ -100,6 +100,7 @@ class SupportCenterSearchTest extends TestCase
                 'tickets_search' => 'invoice',
                 'tickets_per_page' => 1,
                 'tickets_page' => 2,
+                'ticket_status' => 'open',
                 'faqs_search' => 'billing',
                 'faq_category_id' => $billingCategory->id,
             ]));
@@ -117,12 +118,14 @@ class SupportCenterSearchTest extends TestCase
             ->where('tickets.links.prev', function ($url) use ($billingCategory) {
                 return is_string($url)
                     && str_contains($url, 'tickets_search=invoice')
+                    && str_contains($url, 'ticket_status=open')
                     && str_contains($url, 'faqs_search=billing')
                     && str_contains($url, 'faq_category_id=' . $billingCategory->id);
             })
             ->where('tickets.links.first', function ($url) use ($billingCategory) {
                 return is_string($url)
                     && str_contains($url, 'tickets_search=invoice')
+                    && str_contains($url, 'ticket_status=open')
                     && str_contains($url, 'faqs_search=billing')
                     && str_contains($url, 'faq_category_id=' . $billingCategory->id);
             })
@@ -147,6 +150,93 @@ class SupportCenterSearchTest extends TestCase
 
                 return $ids->contains($firstFaq->id)
                     && $ids->contains($secondFaq->id);
+            }));
+    }
+
+    public function test_support_center_can_filter_tickets_by_status_and_priority(): void
+    {
+        $user = User::factory()->create();
+
+        Carbon::setTestNow('2024-01-01 00:00:00');
+        $oldestMatch = SupportTicket::create([
+            'user_id' => $user->id,
+            'subject' => 'Integration blocked',
+            'body' => 'Integration setup is blocked awaiting approval.',
+            'status' => 'pending',
+            'priority' => 'high',
+        ]);
+
+        Carbon::setTestNow('2024-01-01 00:01:00');
+        $newestMatch = SupportTicket::create([
+            'user_id' => $user->id,
+            'subject' => 'Production outage',
+            'body' => 'Critical outage impacting customers.',
+            'status' => 'pending',
+            'priority' => 'high',
+        ]);
+
+        Carbon::setTestNow('2024-01-01 00:02:00');
+        SupportTicket::create([
+            'user_id' => $user->id,
+            'subject' => 'Minor question',
+            'body' => 'Quick follow-up.',
+            'status' => 'pending',
+            'priority' => 'low',
+        ]);
+
+        Carbon::setTestNow('2024-01-01 00:03:00');
+        SupportTicket::create([
+            'user_id' => $user->id,
+            'subject' => 'Resolved issue',
+            'body' => 'Thanks for the help!',
+            'status' => 'open',
+            'priority' => 'high',
+        ]);
+
+        Carbon::setTestNow();
+
+        $firstPage = $this
+            ->actingAs($user)
+            ->get(route('support', [
+                'tickets_per_page' => 1,
+                'ticket_status' => 'pending',
+                'ticket_priority' => 'high',
+            ]));
+
+        $firstPage->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Support')
+            ->where('tickets.meta.current_page', 1)
+            ->where('tickets.meta.total', 2)
+            ->where('tickets.data.0.id', $newestMatch->id)
+            ->where('tickets.links.next', function ($url) {
+                return is_string($url)
+                    && str_contains($url, 'ticket_status=pending')
+                    && str_contains($url, 'ticket_priority=high');
+            }));
+
+        $secondPage = $this
+            ->actingAs($user)
+            ->get(route('support', [
+                'tickets_per_page' => 1,
+                'tickets_page' => 2,
+                'ticket_status' => 'pending',
+                'ticket_priority' => 'high',
+            ]));
+
+        $secondPage->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Support')
+            ->where('tickets.meta.current_page', 2)
+            ->where('tickets.meta.total', 2)
+            ->where('tickets.data.0.id', $oldestMatch->id)
+            ->where('tickets.links.prev', function ($url) {
+                return is_string($url)
+                    && str_contains($url, 'ticket_status=pending')
+                    && str_contains($url, 'ticket_priority=high');
+            })
+            ->where('tickets.links.first', function ($url) {
+                return is_string($url)
+                    && str_contains($url, 'ticket_status=pending')
+                    && str_contains($url, 'ticket_priority=high');
             }));
     }
 }
