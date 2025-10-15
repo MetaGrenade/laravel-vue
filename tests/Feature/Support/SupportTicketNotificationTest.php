@@ -436,12 +436,17 @@ class SupportTicketNotificationTest extends TestCase
         $owner = User::factory()->create(['email_verified_at' => now()]);
         $agent = $this->createSupportAgent(['support.acp.reply', 'support.acp.view']);
 
-        $owner->notificationSettings()->create([
-            'category' => 'support',
-            'channel_mail' => false,
-            'channel_push' => false,
-            'channel_database' => true,
-        ]);
+        UserNotificationSetting::query()->updateOrCreate(
+            [
+                'user_id' => $owner->id,
+                'category' => 'support',
+            ],
+            [
+                'channel_mail' => false,
+                'channel_push' => false,
+                'channel_database' => true,
+            ],
+        );
 
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
@@ -481,8 +486,11 @@ class SupportTicketNotificationTest extends TestCase
         $owner = User::factory()->create(['email_verified_at' => now()]);
         $agent = $this->createSupportAgent(['support.acp.view']);
 
-        $agent->notificationSettings()->updateOrCreate(
-            ['category' => 'support'],
+        UserNotificationSetting::query()->updateOrCreate(
+            [
+                'user_id' => $agent->id,
+                'category' => 'support',
+            ],
             [
                 'channel_mail' => true,
                 'channel_push' => false,
