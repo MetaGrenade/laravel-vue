@@ -254,7 +254,9 @@ class AdminController extends Controller
             return null;
         }
 
-        $queues = $this->normalizeQueueList($worker['queues'] ?? [], $queueName);
+        $queues = array_values($this->normalizeQueueList($worker['queues'] ?? [], $queueName));
+
+        $queues = array_map(static fn ($queue) => (string) $queue, $queues);
 
         return [
             'name' => $worker['name'] ?? ($connectionConfig['queue'] ?? $connectionKey),
@@ -271,10 +273,14 @@ class AdminController extends Controller
 
     protected function defaultQueueWorker(string $connectionKey, array $connectionConfig, string $queueName): array
     {
+        $queues = array_values($this->normalizeQueueList($connectionConfig['queues'] ?? [], $queueName));
+
+        $queues = array_map(static fn ($queue) => (string) $queue, $queues);
+
         return [
             'name' => $connectionKey,
             'connection' => $connectionConfig['connection'] ?? $connectionKey,
-            'queues' => $this->normalizeQueueList($connectionConfig['queues'] ?? [], $queueName),
+            'queues' => $queues,
             'tries' => $connectionConfig['tries'] ?? null,
             'backoff' => $connectionConfig['backoff'] ?? null,
             'sleep' => $connectionConfig['sleep'] ?? null,
