@@ -10,6 +10,7 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
 use Carbon\Carbon;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
+use Traversable;
 
 class DashboardController extends Controller
 {
@@ -389,15 +391,136 @@ class DashboardController extends Controller
      */
     protected function detectQueueWorkers(): array
     {
-        // Default: empty array (deterministic, safe for tests)
-        return [];
+        $defaultConnectionKey = config('queue.default');
+        $connections = config('queue.connections', []);
+        $connectionConfig = $connections[$defaultConnectionKey] ?? [];
 
-        // Example of future enhancement (commented):
-        //
-        // if (class_exists(\Laravel\Horizon\Horizon::class)) {
-        //     // Use Horizon to list supervisors / workers
-        // }
-        //
-        // Or: return an array of ['name' => 'worker-1', 'last_seen' => '...']
+        if (($connectionConfig['driver'] ?? null) !== 'database') {
+            $fallbackKey = collect($connections)
+                ->filter(fn ($config) => ($config['driver'] ?? null) === 'database')
+                ->keys()
+                ->first();
+
+            if ($fallbackKey) {
+                $defaultConnectionKey = $fallbackKey;
+                $connectionConfig = $connections[$fallbackKey];
+            }
+        }
+
+        $queueName = $connectionConfig['queue'] ?? 'default';
+
+        $configuredWorkers = config('queue.workers');
+
+        if ($configuredWorkers instanceof Arrayable) {
+            $configuredWorkers = $configuredWorkers->toArray();
+        } elseif ($configuredWorkers instanceof Traversable) {
+            $configuredWorkers = iterator_to_array($configuredWorkers);
+        } elseif (! is_array($configuredWorkers)) {
+            $configuredWorkers = Arr::wrap($configuredWorkers);
+        }
+
+        $workers = [];
+
+        foreach (Arr::wrap($configuredWorkers) as $worker) {
+            $normalized = $this->normalizeQueueWorker($worker, $defaultConnectionKey, $connectionConfig, $queueName);
+
+            if ($normalized !== null) {
+                $workers[] = $normalized;
+            }
+        }
+
+        if ($workers === []) {
+            $workers[] = $this->defaultQueueWorker($defaultConnectionKey, $connectionConfig, $queueName);
+        }
+
+        return $workers;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function normalizeQueueWorker($worker, string $connectionKey, array $connectionConfig, string $queueName): ?array
+    {
+        if ($worker instanceof Arrayable) {
+            $worker = $worker->toArray();
+        } elseif ($worker instanceof Traversable) {
+            $worker = iterator_to_array($worker);
+        } elseif (is_object($worker)) {
+            $worker = (array) $worker;
+        }
+
+        if (! is_array($worker) || $worker === []) {
+            return null;
+        }
+
+        $queues = $this->normalizeQueueList($worker['queues'] ?? [], $queueName);
+
+        return [
+            'name' => $worker['name'] ?? ($connectionConfig['queue'] ?? $connectionKey),
+            'connection' => $worker['connection'] ?? ($connectionConfig['connection'] ?? $connectionKey),
+            'queues' => $queues,
+            'tries' => $worker['tries'] ?? ($connectionConfig['tries'] ?? null),
+            'backoff' => $worker['backoff'] ?? ($connectionConfig['backoff'] ?? null),
+            'sleep' => $worker['sleep'] ?? ($connectionConfig['sleep'] ?? null),
+            'timeout' => $worker['timeout'] ?? ($connectionConfig['timeout'] ?? null),
+            'max_jobs' => $worker['max_jobs'] ?? ($connectionConfig['max_jobs'] ?? null),
+            'max_time' => $worker['max_time'] ?? ($connectionConfig['max_time'] ?? null),
+        ];
+    }
+
+    protected function defaultQueueWorker(string $connectionKey, array $connectionConfig, string $queueName): array
+    {
+        return [
+            'name' => $connectionKey,
+            'connection' => $connectionConfig['connection'] ?? $connectionKey,
+            'queues' => $this->normalizeQueueList($connectionConfig['queues'] ?? [], $queueName),
+            'tries' => $connectionConfig['tries'] ?? null,
+            'backoff' => $connectionConfig['backoff'] ?? null,
+            'sleep' => $connectionConfig['sleep'] ?? null,
+            'timeout' => $connectionConfig['timeout'] ?? null,
+            'max_jobs' => $connectionConfig['max_jobs'] ?? null,
+            'max_time' => $connectionConfig['max_time'] ?? null,
+        ];
+    }
+
+    protected function normalizeQueueList($queues, string $queueName): array
+    {
+        if ($queues instanceof Arrayable) {
+            $queues = $queues->toArray();
+        } elseif ($queues instanceof Traversable) {
+            $queues = iterator_to_array($queues);
+        } elseif (is_object($queues)) {
+            $queues = (array) $queues;
+        }
+
+        if (is_string($queues)) {
+            $queues = array_map('trim', explode(',', $queues));
+        } elseif (! is_array($queues)) {
+            $queues = Arr::wrap($queues);
+        }
+
+        $normalized = [];
+
+        foreach ($queues as $queue) {
+            if (is_string($queue)) {
+                $queue = trim($queue);
+            } elseif (is_numeric($queue)) {
+                $queue = (string) $queue;
+            } else {
+                continue;
+            }
+
+            if ($queue === '') {
+                continue;
+            }
+
+            $normalized[] = $queue;
+        }
+
+        if ($normalized === [] && $queueName !== '') {
+            $normalized[] = $queueName;
+        }
+
+        return array_values(array_unique($normalized));
     }
 }
