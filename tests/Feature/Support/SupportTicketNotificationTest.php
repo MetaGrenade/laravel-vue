@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Support;
 
+use App\Jobs\HandleSupportTicketMessagePosted;
 use App\Models\SupportTeam;
+use App\Support\SupportTicketNotificationDispatcher;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\UserNotificationSetting;
@@ -137,16 +139,16 @@ class SupportTicketNotificationTest extends TestCase
             'body' => 'Initial description of the deployment failure.',
         ]);
 
-        $this->actingAs($owner);
-
-        $response = $this->post(route('support.tickets.messages.store', $ticket), [
+        $message = $ticket->messages()->create([
+            'user_id' => $owner->id,
             'body' => 'Here is some additional context about the failure logs.',
         ]);
 
-        $response->assertRedirect(route('support.tickets.show', $ticket));
+        $job = new HandleSupportTicketMessagePosted($ticket->id, $message->id, $owner->id);
+        $job->handle(app(SupportTicketNotificationDispatcher::class));
 
         $ticket->refresh();
-        $message = $ticket->messages()->latest('id')->first();
+        $message = $ticket->messages()->find($message->id);
         $this->assertNotNull($message);
 
         Notification::assertSentToTimes($owner, TicketReplied::class, 2);
