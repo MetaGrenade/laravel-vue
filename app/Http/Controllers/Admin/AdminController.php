@@ -254,9 +254,7 @@ class AdminController extends Controller
             return null;
         }
 
-        $queues = array_values($this->normalizeQueueList($worker['queues'] ?? [], $queueName));
-
-        $queues = array_map(static fn ($queue) => (string) $queue, $queues);
+        $queues = $this->normalizeQueueList($worker['queues'] ?? [], $queueName);
 
         return [
             'name' => $worker['name'] ?? ($connectionConfig['queue'] ?? $connectionKey),
@@ -273,9 +271,7 @@ class AdminController extends Controller
 
     protected function defaultQueueWorker(string $connectionKey, array $connectionConfig, string $queueName): array
     {
-        $queues = array_values($this->normalizeQueueList($connectionConfig['queues'] ?? [], $queueName));
-
-        $queues = array_map(static fn ($queue) => (string) $queue, $queues);
+        $queues = $this->normalizeQueueList($connectionConfig['queues'] ?? [], $queueName);
 
         return [
             'name' => $connectionKey,
@@ -301,7 +297,7 @@ class AdminController extends Controller
         }
 
         if (is_string($queues)) {
-            $queues = array_map('trim', explode(',', $queues));
+            $queues = array_map(static fn ($queue) => trim((string) $queue), explode(',', $queues));
         } elseif (! is_array($queues)) {
             $queues = Arr::wrap($queues);
         }
@@ -328,7 +324,7 @@ class AdminController extends Controller
             $normalized[] = $queueName;
         }
 
-        return array_values(array_unique($normalized));
+        return array_values(array_filter($normalized, static fn ($queue) => $queue !== null && $queue !== ''));
     }
 
     /**
