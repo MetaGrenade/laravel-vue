@@ -29,7 +29,7 @@ class SupportAssignmentRule extends Model
     {
         static::saved(fn () => static::flushCache());
         static::deleted(fn () => static::flushCache());
-        static::forceDeleted(fn () => static::flushCache());
+        static::registerModelEvent('forceDeleted', fn () => static::flushCache());
     }
 
     public function category(): BelongsTo

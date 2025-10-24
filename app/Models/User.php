@@ -24,7 +24,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         static::saved(fn () => SupportAssignmentRule::flushCache());
         static::deleted(fn () => SupportAssignmentRule::flushCache());
-        static::forceDeleted(fn () => SupportAssignmentRule::flushCache());
+        static::registerModelEvent('forceDeleted', fn () => SupportAssignmentRule::flushCache());
     }
 
     /**

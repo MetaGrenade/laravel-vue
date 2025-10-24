@@ -14,7 +14,7 @@ class SupportTeam extends Model
     {
         static::saved(fn () => SupportAssignmentRule::flushCache());
         static::deleted(fn () => SupportAssignmentRule::flushCache());
-        static::forceDeleted(fn () => SupportAssignmentRule::flushCache());
+        static::registerModelEvent('forceDeleted', fn () => SupportAssignmentRule::flushCache());
     }
 
     protected $fillable = [
