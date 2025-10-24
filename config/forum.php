@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'index_cache_ttl' => env('FORUM_INDEX_CACHE_TTL', 300),
+
     'report_reasons' => [
         'spam' => [
             'label' => 'Spam or advertising',

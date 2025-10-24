@@ -3,11 +3,15 @@
 namespace App\Providers;
 
 use App\Models\Blog;
+use App\Models\ForumBoard;
+use App\Models\ForumCategory;
 use App\Models\ForumPost;
+use App\Models\ForumThread;
 use App\Models\PersonalAccessToken;
 use App\Policies\BlogPolicy;
 use App\Policies\ForumPostPolicy;
 use App\Support\Billing\SubscriptionManager;
+use App\Observers\ForumIndexCacheObserver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -40,5 +44,12 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Blog::class, BlogPolicy::class);
 
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
+        $cacheObserver = $this->app->make(ForumIndexCacheObserver::class);
+
+        ForumCategory::observe($cacheObserver);
+        ForumBoard::observe($cacheObserver);
+        ForumThread::observe($cacheObserver);
+        ForumPost::observe($cacheObserver);
     }
 }

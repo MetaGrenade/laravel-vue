@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
 use App\Support\Reputation\ReputationManager;
+use App\Support\Forum\ForumIndexCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,10 @@ class ForumController extends Controller
 {
     use InteractsWithInertiaPagination;
 
-    public function __construct(private readonly ReputationManager $reputation)
+    public function __construct(
+        private readonly ReputationManager $reputation,
+        private readonly ForumIndexCache $forumIndexCache
+    )
     {
     }
 
@@ -37,43 +41,9 @@ class ForumController extends Controller
     {
         $formatter = DateFormatter::for($request->user());
 
-        $categories = ForumCategory::query()
-            ->with(['boards' => function ($query) {
-                $query->withCount([
-                    'publishedThreads as threads_count',
-                    'posts as posts_count' => function ($postQuery) {
-                        $postQuery->where('forum_threads.is_published', true);
-                    },
-                ])->with(['latestThread' => function ($threadQuery) {
-                    $threadQuery->with(['author:id,nickname', 'latestPost.author:id,nickname'])
-                        ->withCount('posts');
-                }]);
-            }])
-            ->orderBy('position')
-            ->get();
-
-        $trendingThreads = ForumThread::query()
-            ->where('is_published', true)
-            ->with(['board:id,slug,title,forum_category_id', 'board.category:id,slug,title', 'author:id,nickname'])
-            ->withCount('posts')
-            ->orderByDesc('is_pinned')
-            ->orderByDesc('views')
-            ->orderByDesc('last_posted_at')
-            ->limit(5)
-            ->get();
-
-        $latestPosts = ForumPost::query()
-            ->whereHas('thread', function ($query) {
-                $query->where('is_published', true);
-            })
-            ->with([
-                'thread:id,slug,title,forum_board_id',
-                'thread.board:id,slug,title,forum_category_id',
-                'author:id,nickname,created_at',
-            ])
-            ->latest()
-            ->limit(5)
-            ->get();
+        $categories = $this->forumIndexCache->categories();
+        $trendingThreads = $this->forumIndexCache->trendingThreads();
+        $latestPosts = $this->forumIndexCache->latestPosts();
 
         return Inertia::render('Forum', [
             'categories' => $categories->map(function (ForumCategory $category) use ($formatter) {
