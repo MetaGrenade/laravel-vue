@@ -9,7 +9,7 @@ use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
-use App\Support\OAuth\ProviderRegistry;
+use App\Support\OAuth\OAuthProviders;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -177,10 +177,10 @@ class UsersController extends Controller
             'social_accounts' => $socialAccounts,
         ];
 
-        $providers = collect(ProviderRegistry::all())
-            ->map(fn ($meta, $key) => [
-                'key' => $key,
-                'label' => $meta['label'] ?? ucfirst($key),
+        $providers = collect(OAuthProviders::enabledOptions())
+            ->map(fn ($meta) => [
+                'key' => $meta['key'],
+                'label' => $meta['label'] ?? ucfirst($meta['key']),
                 'description' => $meta['description'] ?? null,
             ])
             ->values()

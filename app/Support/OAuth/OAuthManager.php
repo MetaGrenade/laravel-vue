@@ -4,6 +4,7 @@ namespace App\Support\OAuth;
 
 use App\Support\OAuth\Contracts\Provider;
 use App\Support\OAuth\Exceptions\OAuthException;
+use App\Support\OAuth\OAuthProviders;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Contracts\Routing\UrlGenerator;
@@ -47,6 +48,10 @@ class OAuthManager
     {
         if (! ProviderRegistry::supports($name)) {
             throw new OAuthException("Unsupported social provider [{$name}].");
+        }
+
+        if (! OAuthProviders::isEnabled($name)) {
+            throw new OAuthException("Social provider [{$name}] is currently disabled.");
         }
 
         $config = Arr::wrap(config("services.{$name}"));

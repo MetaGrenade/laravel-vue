@@ -73,4 +73,8 @@ export interface SharedData extends PageProps {
     auth: Auth;
     notifications: NotificationBag;
     ziggy: Config & { location: string };
+    settings: {
+        website_sections: Record<'blog' | 'forum' | 'support', boolean>;
+        oauth_providers: Record<string, boolean>;
+    };
 }

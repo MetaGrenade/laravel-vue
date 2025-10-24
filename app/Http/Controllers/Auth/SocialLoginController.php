@@ -7,6 +7,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Support\OAuth\Exceptions\OAuthException;
 use App\Support\OAuth\OAuthManager;
+use App\Support\OAuth\OAuthProviders;
 use App\Support\OAuth\OAuthUser;
 use App\Support\OAuth\ProviderRegistry;
 use Illuminate\Auth\Events\Registered;
@@ -235,7 +236,7 @@ class SocialLoginController extends Controller
 
     protected function ensureProvider(string $provider): void
     {
-        if (! ProviderRegistry::supports($provider)) {
+        if (! ProviderRegistry::supports($provider) || ! OAuthProviders::isEnabled($provider)) {
             abort(Response::HTTP_NOT_FOUND);
         }
     }

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { useDebounceFn, useVModel } from '@vueuse/core';
 import { Loader2, Search as SearchIcon } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useGlobalSearchQuery } from '@/composables/useGlobalSearchQuery';
+import type { SharedData } from '@/types';
 
 type SearchResultItem = {
     id: number | string;
@@ -33,6 +34,30 @@ const emit = defineEmits<{ (e: 'update:open', value: boolean): void }>();
 
 const open = useVModel(props, 'open', emit, { passive: true });
 
+const page = usePage<SharedData>();
+const websiteSections = computed(() => {
+    const defaults = { blog: true, forum: true, support: true } as const;
+    const settings = page.props.settings?.website_sections ?? defaults;
+
+    return {
+        blog: settings.blog ?? defaults.blog,
+        forum: settings.forum ?? defaults.forum,
+        support: settings.support ?? defaults.support,
+    };
+});
+
+const resultGroupToSection = {
+    blogs: 'blog',
+    forum_threads: 'forum',
+    faqs: 'support',
+} as const;
+
+const isGroupEnabled = (group: keyof typeof resultGroupToSection): boolean => {
+    const section = resultGroupToSection[group];
+
+    return Boolean(websiteSections.value[section]);
+};
+
 const query = useGlobalSearchQuery();
 const isLoading = ref(false);
 const fetchError = ref<string | null>(null);
@@ -52,9 +77,9 @@ let activeController: AbortController | null = null;
 const trimmedQuery = computed(() => query.value.trim());
 
 const hasAnyResults = computed(() =>
-    results.value.blogs.items.length > 0 ||
-    results.value.forum_threads.items.length > 0 ||
-    results.value.faqs.items.length > 0,
+    (isGroupEnabled('blogs') && results.value.blogs.items.length > 0) ||
+    (isGroupEnabled('forum_threads') && results.value.forum_threads.items.length > 0) ||
+    (isGroupEnabled('faqs') && results.value.faqs.items.length > 0),
 );
 
 const groups = computed(() =>
@@ -77,7 +102,7 @@ const groups = computed(() =>
             items: results.value.faqs.items,
             hasMore: results.value.faqs.has_more,
         },
-    ].filter((group) => group.items.length > 0),
+    ].filter((group) => group.items.length > 0 && isGroupEnabled(group.key as keyof typeof resultGroupToSection)),
 );
 
 const isMac = ref(false);

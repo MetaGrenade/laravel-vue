@@ -183,35 +183,69 @@ onBeforeUnmount(() => {
     leaveNotificationChannel();
 });
 
-const mainNavItems: NavItem[] = [
-    { title: 'Dashboard', href: '/dashboard',   target: '_self', icon: LayoutGrid },
-    { title: 'Blog',      href: '/blogs',       target: '_self', icon: BookOpen },
-    { title: 'Forum',     href: '/forum',       target: '_self', icon: Megaphone },
+type SectionAwareNavItem = NavItem & { section?: 'blog' | 'forum' | 'support' };
+
+const websiteSections = computed(() => {
+    const defaults = { blog: true, forum: true, support: true } as const;
+    const settings = page.props.settings?.website_sections ?? defaults;
+
+    return {
+        blog: settings.blog ?? defaults.blog,
+        forum: settings.forum ?? defaults.forum,
+        support: settings.support ?? defaults.support,
+    };
+});
+
+const baseMainNavItems: SectionAwareNavItem[] = [
+    { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid },
+    { title: 'Blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
+    { title: 'Forum', href: '/forum', target: '_self', icon: Megaphone, section: 'forum' },
 ];
 
-const rightNavItems: NavItem[] = [
+const baseRightNavItems: SectionAwareNavItem[] = [
     {
         title: 'Admin',
         href: '/acp',
         target: '_self',
         icon: Shield,
-        color: 'rgb(197,102,34)' // orange
+        color: 'rgb(197,102,34)', // orange
     },
     {
         title: 'Support',
         href: '/support',
         target: '_self',
         icon: LifeBuoy,
-        color: 'rgb(197,34,34)' // red,
+        color: 'rgb(197,34,34)', // red,
+        section: 'support',
     },
     {
         title: 'Repository',
         href: 'https://github.com/MetaGrenade/laravel-vue',
         target: '_blank',
         icon: Folder,
-        color: 'rgb(34, 197, 94)' // green,
+        color: 'rgb(34, 197, 94)', // green,
     },
 ];
+
+const mainNavItems = computed<NavItem[]>(() =>
+    baseMainNavItems.filter((item) => {
+        if (!item.section) {
+            return true;
+        }
+
+        return Boolean(websiteSections.value[item.section]);
+    }),
+);
+
+const rightNavItems = computed<NavItem[]>(() =>
+    baseRightNavItems.filter((item) => {
+        if (!item.section) {
+            return true;
+        }
+
+        return Boolean(websiteSections.value[item.section]);
+    }),
+);
 
 const setNotificationProcessing = (id: string, processing: boolean) => {
     if (!id) {

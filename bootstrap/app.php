@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureEmailIsVerifiedIfRequired;
 use App\Http\Middleware\EnsureSiteIsAvailable;
+use App\Http\Middleware\EnsureWebsiteSectionIsEnabled;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
@@ -61,6 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'section.enabled' => EnsureWebsiteSectionIsEnabled::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {

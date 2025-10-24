@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SystemSetting;
 use App\Support\EmailVerification;
+use App\Support\OAuth\OAuthProviders;
+use App\Support\WebsiteSections;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,7 +23,10 @@ class SystemSettingsController extends Controller
             'settings' => [
                 'maintenance_mode' => (bool) SystemSetting::get('maintenance_mode', false),
                 'email_verification_required' => EmailVerification::isRequired(),
+                'website_sections' => WebsiteSections::all(),
+                'oauth_providers' => OAuthProviders::all(),
             ],
+            'oauthProviders' => OAuthProviders::options(),
             'diagnostics' => $this->diagnosticsPayload(),
         ]);
     }
@@ -34,11 +39,20 @@ class SystemSettingsController extends Controller
         $validated = $request->validate([
             'maintenance_mode' => ['required', 'boolean'],
             'email_verification_required' => ['required', 'boolean'],
+            'website_sections' => ['required', 'array'],
+            ...collect(WebsiteSections::keys())
+                ->mapWithKeys(fn (string $section) => ["website_sections.{$section}" => ['required', 'boolean']])
+                ->all(),
+            'oauth_providers' => ['required', 'array'],
+            ...collect(OAuthProviders::keys())
+                ->mapWithKeys(fn (string $provider) => ["oauth_providers.{$provider}" => ['required', 'boolean']])
+                ->all(),
         ]);
 
-        foreach ($validated as $key => $value) {
-            SystemSetting::set($key, (bool) $value);
-        }
+        SystemSetting::set('maintenance_mode', (bool) $validated['maintenance_mode']);
+        SystemSetting::set('email_verification_required', (bool) $validated['email_verification_required']);
+        SystemSetting::set('website_sections', WebsiteSections::normalize($validated['website_sections']));
+        SystemSetting::set('oauth_providers', OAuthProviders::normalize($validated['oauth_providers']));
 
         return back()->with('success', 'System settings were updated successfully.');
     }

@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Support\OAuth\OAuthProviders;
+use App\Support\WebsiteSections;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -49,9 +51,13 @@ class MaintenanceModeTest extends TestCase
             ->put(route('acp.system.update'), [
                 'maintenance_mode' => false,
                 'email_verification_required' => false,
+                'website_sections' => WebsiteSections::defaults(),
+                'oauth_providers' => OAuthProviders::defaults(),
             ])
             ->assertRedirect(route('acp.system'));
 
         $this->assertFalse((bool) SystemSetting::get('maintenance_mode'));
+        $this->assertSame(WebsiteSections::defaults(), SystemSetting::get('website_sections'));
+        $this->assertSame(OAuthProviders::defaults(), SystemSetting::get('oauth_providers'));
     }
 }

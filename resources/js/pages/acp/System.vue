@@ -20,7 +20,10 @@ const props = defineProps<{
     settings: {
         maintenance_mode: boolean;
         email_verification_required: boolean;
+        website_sections: Record<'blog' | 'forum' | 'support', boolean>;
+        oauth_providers: Record<string, boolean>;
     };
+    oauthProviders: Array<{ key: string; label: string; description?: string | null; enabled: boolean }>;
     diagnostics: {
         php_version: string;
         laravel_version: string;
@@ -39,9 +42,16 @@ const props = defineProps<{
 const form = useForm({
     maintenance_mode: props.settings.maintenance_mode,
     email_verification_required: props.settings.email_verification_required,
+    website_sections: {
+        blog: props.settings.website_sections.blog,
+        forum: props.settings.website_sections.forum,
+        support: props.settings.website_sections.support,
+    },
+    oauth_providers: { ...props.settings.oauth_providers },
 });
 
 const diagnostics = computed(() => props.diagnostics);
+const oauthProviderOptions = computed(() => props.oauthProviders ?? []);
 
 const saveSettings = () => {
     form.put(route('acp.system.update'), {
@@ -91,29 +101,82 @@ const saveSettings = () => {
                         </div>
                     </div>
 
-                    <!-- Optionally, if you want to update Website Sections using switches, uncomment below -->
-                    <!--
+                    <!-- Website Sections -->
                     <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                      <h3 class="mb-2 text-lg font-semibold">Website Sections</h3>
-                      <p class="mb-4 text-sm text-gray-500">
-                        Enable or disable different sections of the website.
-                      </p>
-                      <div class="space-y-2">
-                        <div class="flex items-center">
-                          <Switch v-model="enabledSections.blog" />
-                          <span class="ml-2 text-sm">Blog</span>
+                        <h3 class="mb-2 text-lg font-semibold">Website Sections</h3>
+                        <p class="mb-4 text-sm text-gray-500">
+                            Enable or disable different sections of the website.
+                        </p>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium">Blog</p>
+                                    <p class="text-xs text-gray-500">Control access to public blog content.</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <Switch v-model="form.website_sections.blog" />
+                                    <span class="ml-2 text-sm">
+                                        {{ form.website_sections.blog ? 'Enabled' : 'Disabled' }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium">Forum</p>
+                                    <p class="text-xs text-gray-500">Toggle the community forum for discussions.</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <Switch v-model="form.website_sections.forum" />
+                                    <span class="ml-2 text-sm">
+                                        {{ form.website_sections.forum ? 'Enabled' : 'Disabled' }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium">Support</p>
+                                    <p class="text-xs text-gray-500">Expose FAQs and ticket submission tools.</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <Switch v-model="form.website_sections.support" />
+                                    <span class="ml-2 text-sm">
+                                        {{ form.website_sections.support ? 'Enabled' : 'Disabled' }}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex items-center">
-                          <Switch v-model="enabledSections.forum" />
-                          <span class="ml-2 text-sm">Forum</span>
-                        </div>
-                        <div class="flex items-center">
-                          <Switch v-model="enabledSections.support" />
-                          <span class="ml-2 text-sm">Support</span>
-                        </div>
-                      </div>
                     </div>
-                    -->
+
+                    <!-- OAuth Providers -->
+                    <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                        <h3 class="mb-2 text-lg font-semibold">OAuth Providers</h3>
+                        <p class="mb-4 text-sm text-gray-500">
+                            Control which social authentication providers are available for login and account linking.
+                        </p>
+                        <div v-if="oauthProviderOptions.length" class="space-y-3">
+                            <div
+                                v-for="provider in oauthProviderOptions"
+                                :key="provider.key"
+                                class="flex items-center justify-between"
+                            >
+                                <div>
+                                    <p class="text-sm font-medium">{{ provider.label }}</p>
+                                    <p v-if="provider.description" class="text-xs text-gray-500">
+                                        {{ provider.description }}
+                                    </p>
+                                </div>
+                                <div class="flex items-center">
+                                    <Switch v-model="form.oauth_providers[provider.key]" />
+                                    <span class="ml-2 text-sm">
+                                        {{ form.oauth_providers[provider.key] ? 'Enabled' : 'Disabled' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="rounded border border-dashed border-sidebar-border/70 p-4 text-sm text-gray-500">
+                            No OAuth providers are registered. Configure provider credentials and refresh the page.
+                        </div>
+                    </div>
                 </div>
 
                 <!-- System Information Section -->
