@@ -66,7 +66,7 @@ class WebsiteSections
         $normalized = [];
 
         foreach ($defaults as $section => $enabled) {
-            $normalized[$section] = isset($stored[$section])
+            $normalized[$section] = array_key_exists($section, $stored)
                 ? (bool) $stored[$section]
                 : (bool) $enabled;
         }
