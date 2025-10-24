@@ -56,6 +56,15 @@ Route::middleware('section.enabled:blog')->group(function () {
     });
 });
 
+Route::middleware('auth')->group(function () {
+    Route::post('notifications/read-all', [UserNotificationController::class, 'markAllAsRead'])
+        ->name('notifications.read-all');
+    Route::post('notifications/{notification}/read', [UserNotificationController::class, 'markAsRead'])
+        ->name('notifications.read');
+    Route::delete('notifications/{notification}', [UserNotificationController::class, 'destroy'])
+        ->name('notifications.destroy');
+});
+
 Route::middleware('section.enabled:forum')->group(function () {
     Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
     Route::middleware('auth')->get('forum/mentions', [ForumController::class, 'mentionSuggestions'])
@@ -64,13 +73,6 @@ Route::middleware('section.enabled:forum')->group(function () {
     Route::get('forum/{board:slug}/{thread:slug}', [ForumController::class, 'showThread'])->name('forum.threads.show');
 
     Route::middleware('auth')->group(function () {
-        Route::post('notifications/read-all', [UserNotificationController::class, 'markAllAsRead'])
-            ->name('notifications.read-all');
-        Route::post('notifications/{notification}/read', [UserNotificationController::class, 'markAsRead'])
-            ->name('notifications.read');
-        Route::delete('notifications/{notification}', [UserNotificationController::class, 'destroy'])
-            ->name('notifications.destroy');
-
         Route::get('forum/{board:slug}/threads/create', [ForumController::class, 'createThread'])
             ->name('forum.threads.create');
         Route::post('forum/{board:slug}/threads', [ForumController::class, 'storeThread'])
