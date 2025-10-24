@@ -21,6 +21,11 @@ A batteries-included starter kit for building modern Laravel + Vue single-page a
 - **Authentication & Authorization**: Laravel Breeze for authentication plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
 - **Appearance Management**: System/light/dark modes synced between SSR and the client through a reusable composable.
 
+### Website Sections & Feature Toggles
+- **Module switches** live in the Admin Control Panel under **System Settings → Website Sections**. Operators can enable or disable major areas—forum, blog, support, billing, and more—without touching code or editing configuration files.
+- **Consistent enforcement** is handled by the `EnsureWebsiteSectionIsEnabled` middleware and shared Inertia props. When a section is disabled the corresponding navigation links, global search providers, and HTTP routes automatically return `404` responses for visitors.
+- **Safe defaults** ensure newly provisioned environments start with every section available while still honoring explicit `false` values saved in the database, so administrators always see the exact state they configured.
+
 ## Project Structure
 ```
 resources/
