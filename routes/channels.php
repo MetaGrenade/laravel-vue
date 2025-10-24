@@ -4,6 +4,7 @@ use App\Models\ForumThread;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 
 Broadcast::channel('App.Models.User.{id}', function (User $user, int $id) {
     if ($user->getKey() !== $id) {
@@ -50,7 +51,20 @@ Broadcast::channel('support.tickets.{ticketId}', function (User $user, int $tick
     }
 
     $isOwner = (int) $ticket->user_id === (int) $user->id;
-    $canViewSupport = $user->can('support.acp.view');
+
+    $canViewSupport = false;
+
+    try {
+        if (method_exists($user, 'hasPermissionTo')) {
+            $canViewSupport = $user->hasPermissionTo('support.acp.view');
+        }
+    } catch (PermissionDoesNotExist $exception) {
+        $canViewSupport = false;
+    }
+
+    if (! $canViewSupport) {
+        $canViewSupport = $user->can('support.acp.view');
+    }
 
     if (! $isOwner && ! $canViewSupport) {
         return false;

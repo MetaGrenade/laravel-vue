@@ -8,7 +8,7 @@ use App\Models\User;
 use App\Notifications\TicketReplied;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Event;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -75,7 +75,7 @@ class SupportTicketChannelTest extends TestCase
 
     public function test_ticket_channel_receives_single_neutral_broadcast(): void
     {
-        Broadcast::fake();
+        Event::fake([SupportTicketUpdated::class]);
 
         $ticket = SupportTicket::factory()->create();
 
@@ -95,9 +95,9 @@ class SupportTicketChannelTest extends TestCase
             return (new TicketReplied($ticket, $message))->forAudience($audience);
         });
 
-        Broadcast::assertBroadcastedTimes(SupportTicketUpdated::class, 1);
+        Event::assertDispatchedTimes(SupportTicketUpdated::class, 1);
 
-        Broadcast::assertBroadcasted(SupportTicketUpdated::class, function (SupportTicketUpdated $event) use ($ticket) {
+        Event::assertDispatched(SupportTicketUpdated::class, function (SupportTicketUpdated $event) use ($ticket) {
             $payload = $event->broadcastWith();
 
             return $payload['ticket_id'] === $ticket->id
