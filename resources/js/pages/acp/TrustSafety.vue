@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import InputError from '@/components/InputError.vue';
 import { Textarea } from '@/components/ui/textarea';
-import { Toaster, toast } from 'vue-sonner';
+import { toast } from 'vue-sonner';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { useDebounceFn } from '@vueuse/core';
 import { ShieldCheck, FileDown } from 'lucide-vue-next';
@@ -867,7 +867,5 @@ const submitErasureForm = () => {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-
-        <Toaster position="bottom-right" richColors />
     </AppLayout>
 </template>

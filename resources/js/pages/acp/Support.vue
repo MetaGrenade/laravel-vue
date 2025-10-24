@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { Toaster, toast } from 'vue-sonner';
+import { toast } from 'vue-sonner';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Button from '@/components/ui/button/Button.vue';
@@ -1606,7 +1606,6 @@ const unpublishFaq = (faq: FaqItem) => {
                     </TabsContent>
                 </Tabs>
             </div>
-            <Toaster theme="dark" richColors />
         </AdminLayout>
 
         <Dialog :open="assignDialogOpen" @update:open="handleAssignDialogChange">

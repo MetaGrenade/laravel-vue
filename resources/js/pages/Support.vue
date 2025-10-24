@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { useDebounceFn } from '@vueuse/core';
-import { Toaster, toast } from 'vue-sonner';
+import { toast } from 'vue-sonner';
 
 // Import shadcn‑vue components
 import Input from '@/components/ui/input/Input.vue';
@@ -1403,6 +1403,5 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                 </TabsContent>
             </Tabs>
         </div>
-        <Toaster richColors />
     </AppLayout>
 </template>
