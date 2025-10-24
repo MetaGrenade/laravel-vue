@@ -54,16 +54,19 @@ Broadcast::channel('support.tickets.{ticketId}', function (User $user, int $tick
     $isOwner = (int) $ticket->user_id === (int) $user->id;
 
     $canViewSupport = false;
+    $checkedViaSpatie = false;
 
-    try {
-        if (method_exists($user, 'hasPermissionTo')) {
+    if (method_exists($user, 'hasPermissionTo')) {
+        try {
             $canViewSupport = $user->hasPermissionTo('support.acp.view');
+            $checkedViaSpatie = true;
+        } catch (PermissionDoesNotExist $exception) {
+            $checkedViaSpatie = false;
+            $canViewSupport = false;
         }
-    } catch (PermissionDoesNotExist $exception) {
-        $canViewSupport = false;
     }
 
-    if (! $canViewSupport && (! method_exists($user, 'hasPermissionTo') || Gate::has('support.acp.view'))) {
+    if (! $canViewSupport && ! $checkedViaSpatie && Gate::has('support.acp.view')) {
         $canViewSupport = $user->can('support.acp.view');
     }
 
