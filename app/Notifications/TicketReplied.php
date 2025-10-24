@@ -6,7 +6,6 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\User;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
@@ -98,23 +97,6 @@ class TicketReplied extends Notification implements ShouldQueue
     public function toBroadcast(object $notifiable): BroadcastMessage
     {
         return new BroadcastMessage($this->payload($notifiable));
-    }
-
-    public function broadcastOn($notifiable): array
-    {
-        $channelNames = [];
-
-        if (method_exists($notifiable, 'getKey')) {
-            $key = $notifiable->getKey();
-
-            if ($key !== null) {
-                $channelNames[] = 'App.Models.User.' . $key;
-            }
-        }
-
-        $channelNames = array_values(array_unique($channelNames));
-
-        return array_map(static fn (string $name) => new PrivateChannel($name), $channelNames);
     }
 
     /**
