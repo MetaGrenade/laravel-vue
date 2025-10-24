@@ -14,6 +14,13 @@ class SupportTicketAutoAssignerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        SupportAssignmentRule::flushCache();
+    }
+
     public function test_assigns_matching_rule(): void
     {
         $agent = User::factory()->create();
@@ -142,6 +149,68 @@ class SupportTicketAutoAssignerTest extends TestCase
         $this->assertTrue($result->changed);
         $this->assertSame('user', $result->assigneeType);
         $this->assertEquals($agent->id, $ticket->fresh()->assigned_to);
+        $this->assertNull($ticket->fresh()->support_team_id);
+    }
+
+    public function test_deleting_assignee_flushes_cached_rules(): void
+    {
+        $agent = User::factory()->create();
+
+        SupportAssignmentRule::create([
+            'priority' => 'medium',
+            'assignee_type' => 'user',
+            'assigned_to' => $agent->id,
+            'position' => 0,
+            'active' => true,
+        ]);
+
+        // Prime the cache so the deletion needs to invalidate it.
+        SupportAssignmentRule::cachedForAssignment();
+
+        $agent->delete();
+
+        $ticket = SupportTicket::factory()->create([
+            'priority' => 'medium',
+            'assigned_to' => null,
+            'support_team_id' => null,
+        ]);
+
+        $assigner = app(SupportTicketAutoAssigner::class);
+
+        $result = $assigner->assign($ticket);
+
+        $this->assertNull($result);
+        $this->assertNull($ticket->fresh()->assigned_to);
+    }
+
+    public function test_deleting_team_flushes_cached_rules(): void
+    {
+        $team = SupportTeam::create(['name' => 'Night Shift']);
+
+        SupportAssignmentRule::create([
+            'priority' => 'low',
+            'assignee_type' => 'team',
+            'support_team_id' => $team->id,
+            'position' => 0,
+            'active' => true,
+        ]);
+
+        // Prime the cache so the deletion needs to invalidate it.
+        SupportAssignmentRule::cachedForAssignment();
+
+        $team->delete();
+
+        $ticket = SupportTicket::factory()->create([
+            'priority' => 'low',
+            'assigned_to' => null,
+            'support_team_id' => null,
+        ]);
+
+        $assigner = app(SupportTicketAutoAssigner::class);
+
+        $result = $assigner->assign($ticket);
+
+        $this->assertNull($result);
         $this->assertNull($ticket->fresh()->support_team_id);
     }
 }
