@@ -2,10 +2,12 @@
 
 namespace App\Support;
 
+use App\Events\SupportTicketUpdated;
 use App\Models\SupportTeam;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Notifications\Notification as BaseNotification;
+use function broadcast;
 
 class SupportTicketNotificationDispatcher
 {
@@ -89,9 +91,11 @@ class SupportTicketNotificationDispatcher
                 return $carry;
             }, []);
 
+        $ticketBroadcastPayload = null;
+
         collect($recipients)
             ->values()
-            ->each(function (array $recipientData) use ($ticket, $notificationFactory, $channelResolver): void {
+            ->each(function (array $recipientData) use ($ticket, $notificationFactory, $channelResolver, &$ticketBroadcastPayload): void {
                 /** @var User $recipient */
                 $recipient = $recipientData['user'];
                 $audience = $recipientData['audience'];
@@ -123,10 +127,16 @@ class SupportTicketNotificationDispatcher
                 $synchronousChannels = array_values(array_intersect($channels, ['database']));
                 $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
 
+                $notification = $notificationFactory($audience);
+
+                if ($ticketBroadcastPayload === null && method_exists($notification, 'ticketBroadcastPayload')) {
+                    $ticketBroadcastPayload = $notification->ticketBroadcastPayload();
+                }
+
                 if ($synchronousChannels !== []) {
                     $recipient->notifyNow(
                         $this->notificationWithChannels(
-                            $notificationFactory($audience),
+                            clone $notification,
                             $synchronousChannels,
                         ),
                         $synchronousChannels,
@@ -136,12 +146,16 @@ class SupportTicketNotificationDispatcher
                 if ($queuedChannels !== []) {
                     $recipient->notify(
                         $this->notificationWithChannels(
-                            $notificationFactory($audience),
+                            clone $notification,
                             $queuedChannels,
                         ),
                     );
                 }
             });
+
+        if ($ticketBroadcastPayload) {
+            broadcast(new SupportTicketUpdated($ticket, $ticketBroadcastPayload));
+        }
     }
 
     /**

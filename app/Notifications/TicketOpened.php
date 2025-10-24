@@ -112,10 +112,6 @@ class TicketOpened extends Notification implements ShouldQueue
             }
         }
 
-        if ($this->ticket->getKey() !== null) {
-            $channelNames[] = 'support.tickets.' . $this->ticket->getKey();
-        }
-
         $channelNames = array_values(array_unique($channelNames));
 
         return array_map(static fn (string $name) => new PrivateChannel($name), $channelNames);
@@ -153,6 +149,23 @@ class TicketOpened extends Notification implements ShouldQueue
             'excerpt' => $this->databaseExcerpt(),
             'url' => $this->conversationUrlFor($notifiable),
             'created_at' => optional($this->message?->created_at ?? $this->ticket->created_at)->toIso8601String(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function ticketBroadcastPayload(): ?array
+    {
+        if ($this->ticket->id === null) {
+            return null;
+        }
+
+        return [
+            'event' => 'ticket.opened',
+            'message_id' => $this->message?->id,
+            'excerpt' => $this->messageExcerpt(),
+            'created_at' => optional($this->ticket->created_at)->toIso8601String(),
         ];
     }
 

@@ -83,10 +83,6 @@ class SupportTicketAgentReply extends Notification implements ShouldQueue
             }
         }
 
-        if ($this->ticket->getKey() !== null) {
-            $channelNames[] = 'support.tickets.' . $this->ticket->getKey();
-        }
-
         $channelNames = array_values(array_unique($channelNames));
 
         return array_map(static fn (string $name) => new PrivateChannel($name), $channelNames);
@@ -120,6 +116,25 @@ class SupportTicketAgentReply extends Notification implements ShouldQueue
             'thread_title' => $title,
             'excerpt' => $excerpt,
             'url' => $this->conversationUrlFor($notifiable),
+            'created_at' => optional($this->message->created_at)->toIso8601String(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function ticketBroadcastPayload(): ?array
+    {
+        if ($this->ticket->id === null || $this->message->id === null) {
+            return null;
+        }
+
+        return [
+            'event' => 'ticket.message.created',
+            'message_id' => $this->message->id,
+            'author_id' => $this->message->user_id,
+            'is_from_support' => true,
+            'excerpt' => Str::limit((string) $this->message->body, 120),
             'created_at' => optional($this->message->created_at)->toIso8601String(),
         ];
     }
