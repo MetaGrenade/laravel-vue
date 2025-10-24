@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
@@ -86,6 +87,27 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
     public function toBroadcast(object $notifiable): BroadcastMessage
     {
         return new BroadcastMessage($this->payload($notifiable));
+    }
+
+    public function broadcastOn(object $notifiable): array
+    {
+        $channelNames = [];
+
+        if (method_exists($notifiable, 'getKey')) {
+            $key = $notifiable->getKey();
+
+            if ($key !== null) {
+                $channelNames[] = 'App.Models.User.' . $key;
+            }
+        }
+
+        if ($this->ticket->getKey() !== null) {
+            $channelNames[] = 'support.tickets.' . $this->ticket->getKey();
+        }
+
+        $channelNames = array_values(array_unique($channelNames));
+
+        return array_map(static fn (string $name) => new PrivateChannel($name), $channelNames);
     }
 
     /**
