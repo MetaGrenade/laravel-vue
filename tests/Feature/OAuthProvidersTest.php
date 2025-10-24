@@ -31,7 +31,7 @@ class OAuthProvidersTest extends TestCase
 
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('auth/Login')
-            ->where('socialProviders', function (array $options): bool {
+            ->where('socialProviders', function ($options): bool {
                 $keys = collect($options)->pluck('key')->all();
 
                 return in_array('google', $keys, true)
@@ -51,7 +51,7 @@ class OAuthProvidersTest extends TestCase
 
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('auth/Register')
-            ->where('socialProviders', function (array $options): bool {
+            ->where('socialProviders', function ($options): bool {
                 $keys = collect($options)->pluck('key')->all();
 
                 return in_array('google', $keys, true)
