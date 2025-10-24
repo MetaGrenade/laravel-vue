@@ -10,6 +10,13 @@ class SupportTeam extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::saved(fn () => SupportAssignmentRule::flushCache());
+        static::deleted(fn () => SupportAssignmentRule::flushCache());
+        static::forceDeleted(fn () => SupportAssignmentRule::flushCache());
+    }
+
     protected $fillable = [
         'name',
     ];

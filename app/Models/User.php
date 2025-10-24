@@ -20,6 +20,13 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable, HasRoles, HasApiTokens, MustVerifyEmailTrait, Billable;
 
+    protected static function booted(): void
+    {
+        static::saved(fn () => SupportAssignmentRule::flushCache());
+        static::deleted(fn () => SupportAssignmentRule::flushCache());
+        static::forceDeleted(fn () => SupportAssignmentRule::flushCache());
+    }
+
     /**
      * The attributes that are mass assignable.
      *
