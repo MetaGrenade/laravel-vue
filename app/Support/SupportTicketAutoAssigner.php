@@ -105,13 +105,6 @@ class SupportTicketAutoAssigner
 
     private function rules(): Collection
     {
-        return SupportAssignmentRule::query()
-            ->with([
-                'assignee:id,nickname,email',
-                'team:id,name',
-            ])
-            ->orderBy('position')
-            ->orderBy('id')
-            ->get();
+        return SupportAssignmentRule::cachedForAssignment();
     }
 }

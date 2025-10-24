@@ -20,6 +20,8 @@ class SupportAssignmentRuleTest extends TestCase
     {
         parent::setUp();
 
+        SupportAssignmentRule::flushCache();
+
         Role::create(['name' => 'admin', 'guard_name' => 'web']);
 
         collect([

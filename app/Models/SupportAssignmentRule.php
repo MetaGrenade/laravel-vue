@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class SupportAssignmentRule extends Model
 {
+    private const CACHE_KEY = 'support_assignment_rules:ordered';
+
     protected $fillable = [
         'support_ticket_category_id',
         'priority',
@@ -21,6 +25,12 @@ class SupportAssignmentRule extends Model
         'active' => 'bool',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(fn () => static::flushCache());
+        static::deleted(fn () => static::flushCache());
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(SupportTicketCategory::class, 'support_ticket_category_id');
@@ -34,5 +44,24 @@ class SupportAssignmentRule extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(SupportTeam::class, 'support_team_id');
+    }
+
+    public static function cachedForAssignment(): Collection
+    {
+        return Cache::rememberForever(static::CACHE_KEY, function () {
+            return static::query()
+                ->with([
+                    'assignee:id,nickname,email',
+                    'team:id,name',
+                ])
+                ->orderBy('position')
+                ->orderBy('id')
+                ->get();
+        });
+    }
+
+    public static function flushCache(): void
+    {
+        Cache::forget(static::CACHE_KEY);
     }
 }

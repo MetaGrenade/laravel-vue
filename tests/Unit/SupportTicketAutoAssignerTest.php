@@ -14,6 +14,13 @@ class SupportTicketAutoAssignerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        SupportAssignmentRule::flushCache();
+    }
+
     public function test_assigns_matching_rule(): void
     {
         $agent = User::factory()->create();
