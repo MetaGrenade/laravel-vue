@@ -4,6 +4,7 @@ use App\Models\ForumThread;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 
 Broadcast::channel('App.Models.User.{id}', function (User $user, int $id) {
@@ -62,7 +63,7 @@ Broadcast::channel('support.tickets.{ticketId}', function (User $user, int $tick
         $canViewSupport = false;
     }
 
-    if (! $canViewSupport) {
+    if (! $canViewSupport && (! method_exists($user, 'hasPermissionTo') || Gate::has('support.acp.view'))) {
         $canViewSupport = $user->can('support.acp.view');
     }
 
