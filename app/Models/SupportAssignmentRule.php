@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Cache;
 
 class SupportAssignmentRule extends Model
 {
+    protected static bool $relatedModelEventsRegistered = false;
+
     private const CACHE_KEY = 'support_assignment_rules:ordered';
 
     protected $fillable = [
@@ -29,6 +31,16 @@ class SupportAssignmentRule extends Model
     {
         static::saved(fn () => static::flushCache());
         static::deleted(fn () => static::flushCache());
+
+        if (! static::$relatedModelEventsRegistered) {
+            static::$relatedModelEventsRegistered = true;
+
+            User::saved(fn () => static::flushCache());
+            User::deleted(fn () => static::flushCache());
+
+            SupportTeam::saved(fn () => static::flushCache());
+            SupportTeam::deleted(fn () => static::flushCache());
+        }
     }
 
     public function category(): BelongsTo
