@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { type NavItem } from '@/types';
+import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook } from 'lucide-vue-next';
 
@@ -112,8 +112,19 @@ const sidebarNavItems: NavItem[] = [
     },
 ];
 
-const page = usePage();
+const page = usePage<SharedData>();
 const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.location).pathname : '';
+
+const websiteSections = computed(() => {
+    const defaults = { blog: true, forum: true, support: true } as const;
+    const settings = page.props.settings?.website_sections ?? defaults;
+
+    return {
+        blog: settings.blog ?? defaults.blog,
+        forum: settings.forum ?? defaults.forum,
+        support: settings.support ?? defaults.support,
+    };
+});
 
 // Create a computed property to filter nav items based on the user's permissions/roles
 const filteredNavItems = computed(() => {
@@ -126,15 +137,15 @@ const filteredNavItems = computed(() => {
             case 'Access Control':
                 return manageACL.value;
             case 'Blogs':
-                return manageBlogs.value;
+                return manageBlogs.value && websiteSections.value.blog;
             case 'Forums':
-                return manageForums.value;
+                return manageForums.value && websiteSections.value.forum;
             case 'Forum Reports':
-                return manageForums.value;
+                return manageForums.value && websiteSections.value.forum;
             case 'Badges':
                 return manageReputation.value || isAdmin.value;
             case 'Support':
-                return manageSupport.value;
+                return manageSupport.value && websiteSections.value.support;
             case 'Trust & Safety':
                 return manageTrustSafety.value;
             case 'Billing Invoices':

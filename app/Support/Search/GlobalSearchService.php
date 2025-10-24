@@ -5,6 +5,7 @@ namespace App\Support\Search;
 use App\Models\Blog;
 use App\Models\Faq;
 use App\Models\ForumThread;
+use App\Support\WebsiteSections;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -32,10 +33,23 @@ class GlobalSearchService
         $pages = $this->normalizePages($options['pages'] ?? []);
         $types = $this->normalizeTypes($options['types'] ?? null);
 
+        $types = array_values(array_filter($types, function (string $group) {
+            $section = $this->groupToSection($group);
+
+            return ! $section || WebsiteSections::isEnabled($section);
+        }));
+
         $results = [];
 
         foreach (self::GROUPS as $group) {
             if (! in_array($group, $types, true)) {
+                $results[$group] = $this->emptyGroup($perPage);
+                continue;
+            }
+
+            $section = $this->groupToSection($group);
+
+            if ($section && ! WebsiteSections::isEnabled($section)) {
                 $results[$group] = $this->emptyGroup($perPage);
                 continue;
             }
@@ -246,6 +260,16 @@ class GlobalSearchService
                 'to' => null,
             ],
         ];
+    }
+
+    private function groupToSection(string $group): ?string
+    {
+        return match ($group) {
+            'blogs' => WebsiteSections::BLOG,
+            'forum_threads' => WebsiteSections::FORUM,
+            'faqs' => WebsiteSections::SUPPORT,
+            default => null,
+        };
     }
 
     /**

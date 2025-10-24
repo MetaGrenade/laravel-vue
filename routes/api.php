@@ -30,13 +30,17 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->name('profile.show');
     });
 
-    Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
-    Route::get('/blogs/{blog:slug}', [BlogController::class, 'show'])->name('blogs.show');
+    Route::middleware('section.enabled:blog')->group(function () {
+        Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
+        Route::get('/blogs/{blog:slug}', [BlogController::class, 'show'])->name('blogs.show');
+    });
 
-    Route::get('/forum/threads', [ForumThreadController::class, 'index'])
-        ->name('forum.threads.index');
-    Route::get('/forum/threads/{thread:slug}', [ForumThreadController::class, 'show'])
-        ->name('forum.threads.show');
+    Route::middleware('section.enabled:forum')->group(function () {
+        Route::get('/forum/threads', [ForumThreadController::class, 'index'])
+            ->name('forum.threads.index');
+        Route::get('/forum/threads/{thread:slug}', [ForumThreadController::class, 'show'])
+            ->name('forum.threads.show');
+    });
 });
 
 Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity'])

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Support\Localization\DateFormatter;
+use App\Support\WebsiteSections;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -103,6 +104,9 @@ class HandleInertiaRequests extends Middleware
             ],
             'billing' => [
                 'stripeKey' => config('cashier.key'),
+            ],
+            'settings' => [
+                'website_sections' => WebsiteSections::all(),
             ],
         ];
     }
