@@ -100,7 +100,7 @@ class TicketReplied extends Notification implements ShouldQueue
         return new BroadcastMessage($this->payload($notifiable));
     }
 
-    public function broadcastOn(object $notifiable): array
+    public function broadcastOn($notifiable): array
     {
         $channelNames = [];
 
