@@ -75,5 +75,6 @@ export interface SharedData extends PageProps {
     ziggy: Config & { location: string };
     settings: {
         website_sections: Record<'blog' | 'forum' | 'support', boolean>;
+        oauth_providers: Record<string, boolean>;
     };
 }

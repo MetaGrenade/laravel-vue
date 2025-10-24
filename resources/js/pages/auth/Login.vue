@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import { LoaderCircle } from 'lucide-vue-next';
 import { Separator } from '@/components/ui/separator';
 
-defineProps<{
+const props = defineProps<{
     status?: string;
     canResetPassword: boolean;
+    socialProviders?: Array<{ key: string; label: string; description?: string | null; enabled?: boolean }>;
 }>();
 
 const form = useForm({
@@ -21,11 +23,7 @@ const form = useForm({
     remember: false,
 });
 
-const socialProviders = [
-    { key: 'google', label: 'Continue with Google' },
-    { key: 'discord', label: 'Continue with Discord' },
-    { key: 'steam', label: 'Continue with Steam' },
-];
+const socialProviders = computed(() => props.socialProviders ?? []);
 
 const redirectToProvider = (provider: string) => {
     window.location.href = route('oauth.redirect', { provider });
@@ -47,7 +45,7 @@ const submit = () => {
         </div>
 
         <form @submit.prevent="submit" class="flex flex-col gap-6">
-            <div class="grid gap-4">
+            <div v-if="socialProviders.length" class="grid gap-4">
                 <div class="grid gap-2">
                     <Button
                         v-for="provider in socialProviders"
@@ -57,7 +55,7 @@ const submit = () => {
                         class="w-full"
                         @click="redirectToProvider(provider.key)"
                     >
-                        {{ provider.label }}
+                        Continue with {{ provider.label }}
                     </Button>
                 </div>
 

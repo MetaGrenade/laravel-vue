@@ -384,7 +384,7 @@ watch(hasRecoveryCodes, (value) => {
                             </div>
 
                             <div v-if="providerMetadata.length === 0" class="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-                                No social providers are configured. Configure OAuth credentials in your environment settings.
+                                No social providers are available. Configure OAuth credentials in your environment and enable providers in the System Settings screen.
                             </div>
                         </CardContent>
                     </Card>

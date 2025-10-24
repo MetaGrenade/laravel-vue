@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Support\OAuth\ProviderRegistry;
+use App\Support\OAuth\OAuthProviders;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,7 +16,7 @@ class AttachSocialAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'provider' => ['required', 'string', Rule::in(array_keys(ProviderRegistry::all()))],
+            'provider' => ['required', 'string', Rule::in(OAuthProviders::enabledKeys())],
             'provider_id' => ['required', 'string', 'max:191'],
             'name' => ['nullable', 'string', 'max:255'],
             'nickname' => ['nullable', 'string', 'max:255'],

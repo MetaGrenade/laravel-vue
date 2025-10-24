@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Support\Localization\DateFormatter;
-use App\Support\OAuth\ProviderRegistry;
+use App\Support\OAuth\OAuthProviders;
 use App\Support\Security\TwoFactorAuthenticator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -78,11 +78,11 @@ class SecurityController extends Controller
             })
             ->all();
 
-        $providers = collect(ProviderRegistry::all())
-            ->map(function ($meta, $key) {
+        $providers = collect(OAuthProviders::enabledOptions())
+            ->map(function ($meta) {
                 return [
-                    'key' => $key,
-                    'label' => $meta['label'] ?? ucfirst($key),
+                    'key' => $meta['key'],
+                    'label' => $meta['label'] ?? ucfirst($meta['key']),
                     'description' => $meta['description'] ?? null,
                 ];
             })

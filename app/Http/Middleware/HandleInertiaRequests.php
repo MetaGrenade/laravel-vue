@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Support\Localization\DateFormatter;
+use App\Support\OAuth\OAuthProviders;
 use App\Support\WebsiteSections;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
@@ -107,6 +108,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'settings' => [
                 'website_sections' => WebsiteSections::all(),
+                'oauth_providers' => OAuthProviders::all(),
             ],
         ];
     }
