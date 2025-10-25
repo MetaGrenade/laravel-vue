@@ -102,6 +102,25 @@ class SupportTicketAgentReply extends Notification implements ShouldQueue
         ];
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function ticketBroadcastPayload(): ?array
+    {
+        if ($this->ticket->id === null || $this->message->id === null) {
+            return null;
+        }
+
+        return [
+            'event' => 'ticket.message.created',
+            'message_id' => $this->message->id,
+            'author_id' => $this->message->user_id,
+            'is_from_support' => true,
+            'excerpt' => Str::limit((string) $this->message->body, 120),
+            'created_at' => optional($this->message->created_at)->toIso8601String(),
+        ];
+    }
+
     protected function conversationUrlFor(object $notifiable): string
     {
         $route = $notifiable instanceof User && $notifiable->can('support.acp.view')
