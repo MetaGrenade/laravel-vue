@@ -51,32 +51,39 @@ Broadcast::channel('support.tickets.{ticketId}', function (User $user, int $tick
         return false;
     }
 
-    $isOwner = (int) $ticket->user_id === (int) $user->id;
+    if ((int) $ticket->user_id === (int) $user->id) {
+        return [
+            'id' => $user->id,
+            'nickname' => $user->nickname,
+            'avatar_url' => $user->avatar_url,
+        ];
+    }
 
-    $canViewSupport = false;
-    $checkedViaSpatie = false;
+    $shouldFallbackToGate = ! method_exists($user, 'hasPermissionTo');
 
-    if (method_exists($user, 'hasPermissionTo')) {
+    if (! $shouldFallbackToGate) {
         try {
-            $canViewSupport = $user->hasPermissionTo('support.acp.view');
-            $checkedViaSpatie = true;
+            if ($user->hasPermissionTo('support.acp.view')) {
+                return [
+                    'id' => $user->id,
+                    'nickname' => $user->nickname,
+                    'avatar_url' => $user->avatar_url,
+                ];
+            }
+
+            return false;
         } catch (PermissionDoesNotExist $exception) {
-            $checkedViaSpatie = false;
-            $canViewSupport = false;
+            $shouldFallbackToGate = true;
         }
     }
 
-    if (! $canViewSupport && ! $checkedViaSpatie && Gate::has('support.acp.view')) {
-        $canViewSupport = $user->can('support.acp.view');
+    if ($shouldFallbackToGate && Gate::has('support.acp.view') && Gate::forUser($user)->check('support.acp.view')) {
+        return [
+            'id' => $user->id,
+            'nickname' => $user->nickname,
+            'avatar_url' => $user->avatar_url,
+        ];
     }
 
-    if (! $isOwner && ! $canViewSupport) {
-        return false;
-    }
-
-    return [
-        'id' => $user->id,
-        'nickname' => $user->nickname,
-        'avatar_url' => $user->avatar_url,
-    ];
+    return false;
 });
