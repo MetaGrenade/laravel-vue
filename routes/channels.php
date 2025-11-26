@@ -70,8 +70,6 @@ Broadcast::channel('support.tickets.{ticketId}', function (User $user, int $tick
                     'avatar_url' => $user->avatar_url,
                 ];
             }
-
-            return false;
         } catch (PermissionDoesNotExist $exception) {
             $shouldFallbackToGate = true;
         }
