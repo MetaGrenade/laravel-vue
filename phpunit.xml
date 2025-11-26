@@ -18,7 +18,10 @@
         </include>
     </source>
     <php>
-        <env name="BROADCAST_CONNECTION" value="log"/>
+        <env name="BROADCAST_CONNECTION" value="pusher"/>
+        <env name="PUSHER_APP_ID" value="testing-app"/>
+        <env name="PUSHER_APP_KEY" value="testing-key"/>
+        <env name="PUSHER_APP_SECRET" value="testing-secret"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
