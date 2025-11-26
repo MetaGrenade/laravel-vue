@@ -17,6 +17,13 @@ class MonitorSupportTicketSlasTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        SupportAssignmentRule::flushCache();
+    }
+
     public function test_escalates_priority_when_threshold_exceeded(): void
     {
         $ticket = SupportTicket::factory()->create([
