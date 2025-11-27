@@ -146,7 +146,7 @@ const summaryCards = computed(() => [
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Search Analytics" />
         <AdminLayout>
-            <div class="flex flex-col gap-6 rounded-xl pb-4">
+            <div class="flex flex-col w-full gap-6 rounded-xl pb-4">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h1 class="text-2xl font-semibold tracking-tight">Search Analytics</h1>
                     <div class="flex gap-2">
