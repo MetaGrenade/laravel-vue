@@ -10,6 +10,19 @@ class BlogComment extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_APPROVED = 'approved';
+    public const STATUS_REJECTED = 'rejected';
+
+    /**
+     * @var list<string>
+     */
+    public const STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_APPROVED,
+        self::STATUS_REJECTED,
+    ];
+
     /**
      * @var list<string>
      */
@@ -17,6 +30,15 @@ class BlogComment extends Model
         'blog_id',
         'user_id',
         'body',
+        'status',
+        'is_flagged',
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_flagged' => 'bool',
     ];
 
     public function blog(): BelongsTo

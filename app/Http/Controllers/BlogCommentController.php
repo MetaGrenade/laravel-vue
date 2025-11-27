@@ -24,6 +24,7 @@ class BlogCommentController extends Controller
 
         $comments = $blog->comments()
             ->with(['user:id,nickname,avatar_url,profile_bio'])
+            ->where('status', BlogComment::STATUS_APPROVED)
             ->orderBy('created_at')
             ->paginate($perPage);
 
@@ -64,6 +65,7 @@ class BlogCommentController extends Controller
         $comment = $blog->comments()->create([
             'user_id' => $user->id,
             'body' => $body,
+            'status' => BlogComment::STATUS_APPROVED,
         ]);
 
         $comment->load(['user:id,nickname,avatar_url,profile_bio']);
@@ -99,13 +101,7 @@ class BlogCommentController extends Controller
     {
         $this->ensureCommentBelongsToBlog($blog, $comment);
 
-        $user = $request->user();
-
-        abort_if($user === null, 403);
-
-        $canModerate = $user->hasAnyRole(['admin', 'editor', 'moderator']);
-
-        abort_unless($canModerate || $comment->user_id === $user->id, 403);
+        $this->authorize('update', $comment);
 
         $body = $this->validatedBody($request);
 
@@ -126,13 +122,7 @@ class BlogCommentController extends Controller
     {
         $this->ensureCommentBelongsToBlog($blog, $comment);
 
-        $user = $request->user();
-
-        abort_if($user === null, 403);
-
-        $canModerate = $user->hasAnyRole(['admin', 'editor', 'moderator']);
-
-        abort_unless($canModerate || $comment->user_id === $user->id, 403);
+        $this->authorize('delete', $comment);
 
         $commentId = $comment->id;
 
