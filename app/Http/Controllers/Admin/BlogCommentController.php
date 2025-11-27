@@ -31,7 +31,7 @@ class BlogCommentController extends Controller
         ]);
 
         $status = $validated['status'] ?? 'all';
-        $flagged = array_key_exists('flagged', $validated) ? (bool) $validated['flagged'] : null;
+        $flagged = $request->has('flagged') ? $request->boolean('flagged') : null;
         $userId = $validated['user_id'] ?? null;
         $search = isset($validated['search']) ? trim((string) $validated['search']) : null;
         $search = $search === '' ? null : $search;
