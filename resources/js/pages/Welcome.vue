@@ -3,6 +3,8 @@ import type { SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { Anvil } from 'lucide-vue-next';
+import { Card, CardContent } from '@/components/ui/card'
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
 import AppLayout from '@/layouts/AppLayout.vue';
 
 const page = usePage<SharedData>();
@@ -35,7 +37,7 @@ const websiteSections = computed(() => {
                                     Launch your SaaS app with ready-to-ship modules
                                 </h1>
                                 <p class="max-w-2xl text-base text-[#706f6c] dark:text-[#A1A09A]">
-                                    A cohesive starter that ships with content, conversations, support, billing, and an admin control panel—all styled with the existing design system so you can customize and deploy faster.
+                                    A cohesive boilerplate that ships with content, conversations, support, billing, and an admin control panel—all styled with the existing design system so you can customize and deploy faster.
                                 </p>
                             </div>
                             <div class="flex flex-wrap gap-3">
@@ -100,6 +102,32 @@ const websiteSections = computed(() => {
                                     </ul>
                                 </div>
                             </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <div class="flex flex-col gap-6">
+                            <Carousel
+                                class="w-full w-max-7xl"
+                                :opts="{
+                                  align: 'start',
+                                  loop: true,
+                                }"
+                            >
+                                <CarouselContent class="-ml-1">
+                                    <CarouselItem v-for="(_, index) in 5" :key="index" class="pl-1 md:basis-1/4 lg:basis-1/5">
+                                        <div class="p-1">
+                                            <Card>
+                                                <CardContent class="flex aspect-square items-center justify-center p-4">
+                                                    <span class="text-2xl font-semibold">{{ index + 1 }}</span>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+                                    </CarouselItem>
+                                </CarouselContent>
+                                <CarouselPrevious class="text-white" />
+                                <CarouselNext class="text-white" />
+                            </Carousel>
                         </div>
                     </section>
 
@@ -260,7 +288,7 @@ const websiteSections = computed(() => {
                         </div>
 
                         <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">APIs</p>
+                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">API</p>
                             <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Docs & Tokens</h3>
                             <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                 Versioned `/api/v1` endpoints, Swagger UI at <code>/api/docs</code>, and Sanctum token management for native clients.
@@ -276,7 +304,7 @@ const websiteSections = computed(() => {
                         </div>
                     </section>
 
-                    <section class="rounded-xl bg-[#11110f] px-6 py-10 text-white shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:bg-[#0f0f0d]">
+                    <section class="rounded-xl bg-[#11110f] px-6 py-10 text-white bg-gradient-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]">
                         <div class="flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:justify-between">
                             <div class="space-y-3">
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#f3d29e]">Launch Faster</p>
@@ -369,16 +397,16 @@ const websiteSections = computed(() => {
                                     target="_blank"
                                     rel="noreferrer"
                                 >
-                                    GitHub Repository
+                                    MetaForge GitHub Repository
                                     <span aria-hidden="true">↗</span>
                                 </a>
                                 <a
-                                    href="https://laravel.com/docs"
+                                    href="https://laravel.com/docs/12.x"
                                     class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                     target="_blank"
                                     rel="noreferrer"
                                 >
-                                    Laravel Documentation
+                                    Laravel 12.x Documentation
                                     <span aria-hidden="true">↗</span>
                                 </a>
                                 <a
@@ -391,12 +419,48 @@ const websiteSections = computed(() => {
                                     <span aria-hidden="true">↗</span>
                                 </a>
                                 <a
+                                    href="https://inertiajs.com/docs/v2/getting-started/index"
+                                    class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    Inertia 2.x Documentation
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                                <a
                                     href="https://tailwindcss.com/docs"
                                     class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                     target="_blank"
                                     rel="noreferrer"
                                 >
-                                    Tailwind CSS Docs
+                                    Tailwind CSS Documentation
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                                <a
+                                    href="https://lucide.dev/icons/"
+                                    class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    Lucide Icons
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                                <a
+                                    href="https://vue-sonner.vercel.app/"
+                                    class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    Vue Sonner Toast Component
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                                <a
+                                    href="https://tiptap.dev/docs/editor/getting-started/install/vue3"
+                                    class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    Tiptap Editor
                                     <span aria-hidden="true">↗</span>
                                 </a>
                             </div>
