@@ -302,6 +302,86 @@ const websiteSections = computed(() => {
                             </div>
                         </div>
                     </section>
+
+                    <section class="rounded-xl bg-white p-8 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
+                        <div class="flex flex-col gap-6">
+                            <div class="space-y-2">
+                                <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Tech Stack</p>
+                                <h3 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Frontend, Backend, and Requirements</h3>
+                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">A concise overview of the frameworks, tooling, and references that power this starter kit.</p>
+                            </div>
+                            <div class="grid gap-6 md:grid-cols-3">
+                                <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Frontend</p>
+                                    <h4 class="mt-2 text-lg font-semibold">Vue 3 + Inertia</h4>
+                                    <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                        <li>Vue 3 with TypeScript and Inertia.js for SPA routing.</li>
+                                        <li>Tailwind CSS + shadcn-inspired components for UI.</li>
+                                        <li>Vite 6 for dev server and bundling.</li>
+                                        <li>SSR entry point in <code>resources/js/ssr.ts</code>.</li>
+                                    </ul>
+                                </div>
+                                <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Backend</p>
+                                    <h4 class="mt-2 text-lg font-semibold">Laravel Core</h4>
+                                    <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                        <li>Laravel 12 with Sanctum tokens and Spatie Permissions.</li>
+                                        <li>Stripe billing via Cashier plus webhook visibility.</li>
+                                        <li>Queues, events, and broadcasting scaffolding built in.</li>
+                                        <li>Inertia controllers deliver shared props to the SPA.</li>
+                                    </ul>
+                                </div>
+                                <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Requirements</p>
+                                    <h4 class="mt-2 text-lg font-semibold">Environment</h4>
+                                    <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                        <li>PHP 8.2+ with Composer.</li>
+                                        <li>Node.js 20+ with npm or pnpm.</li>
+                                        <li>MySQL/MariaDB or PostgreSQL configured in <code>.env</code>.</li>
+                                        <li>Optional Pusher credentials for realtime broadcasting.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <a
+                                    href="https://github.com/MetaGrenade/laravel-vue"
+                                    class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    GitHub Repository
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                                <a
+                                    href="https://laravel.com/docs"
+                                    class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    Laravel Documentation
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                                <a
+                                    href="https://vuejs.org/guide/introduction.html"
+                                    class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    Vue 3 Guide
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                                <a
+                                    href="https://tailwindcss.com/docs"
+                                    class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    Tailwind CSS Docs
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </main>
         </div>
