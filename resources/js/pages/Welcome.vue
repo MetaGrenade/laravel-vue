@@ -2,6 +2,7 @@
 import type { SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { Anvil } from 'lucide-vue-next';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 const page = usePage<SharedData>();
@@ -19,7 +20,7 @@ const websiteSections = computed(() => {
 
 <template>
     <AppLayout>
-        <Head title="Support Center" />
+        <Head title="Laravel Vue Starter Kit — Production-ready Laravel + Vue Boilerplate for SaaS" />
 
         <div class="flex min-h-screen flex-col bg-[#FDFDFC] text-[#1b1b18] dark:bg-[#0a0a0a]">
             <main class="flex flex-1 justify-center p-6">
@@ -27,7 +28,7 @@ const websiteSections = computed(() => {
                     <section class="overflow-hidden rounded-xl bg-white p-8 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] lg:flex lg:items-center lg:gap-12 lg:p-12">
                         <div class="flex-1 space-y-6">
                             <div class="inline-flex items-center rounded-full bg-[#f9f3e6] px-3 py-1 text-xs font-medium text-[#8b5a00] dark:bg-[#261f14] dark:text-[#f3d29e]">
-                                Starter kit
+                                Laravel + Vue SaaS Starter kit
                             </div>
                             <div class="space-y-4">
                                 <h1 class="text-3xl font-semibold leading-tight tracking-tight text-[#1b1b18] dark:text-[#EDEDEC] sm:text-4xl">
@@ -211,7 +212,7 @@ const websiteSections = computed(() => {
                         <div class="flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:justify-between">
                             <div class="space-y-3">
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#f3d29e]">Launch Faster</p>
-                                <h3 class="text-2xl font-semibold leading-tight">Plug into the starter and ship your product story</h3>
+                                <h3 class="text-2xl font-semibold leading-tight">Plug into <Anvil class="inline text-[#8b5a00] dark:text-[#f3d29e]" /> <span class="text-[#8b5a00] dark:text-[#f3d29e]">MetaForge</span> and ship your product story</h3>
                                 <p class="max-w-2xl text-sm text-[#d7d5cf]">
                                     Every module uses the same typography, spacing, and components so you can focus on content, customization, and onboarding instead of wiring basics together.
                                 </p>
