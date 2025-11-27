@@ -342,6 +342,26 @@ const websiteSections = computed(() => {
                                     </ul>
                                 </div>
                             </div>
+                            <div class="grid gap-6 md:grid-cols-2">
+                                <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Continuous Integration</p>
+                                    <h4 class="mt-2 text-lg font-semibold">GitHub Actions</h4>
+                                    <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                        <li>Automated linting with PHP Pint plus ESLint/Prettier via <code>linter</code> workflow.</li>
+                                        <li>Full build, Ziggy config generation, and asset compilation on pushes and PRs.</li>
+                                        <li>Reusable pipeline targeting <code>develop</code> and <code>main</code> to keep both branches healthy.</li>
+                                    </ul>
+                                </div>
+                                <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Testing</p>
+                                    <h4 class="mt-2 text-lg font-semibold">Unit & Feature Coverage</h4>
+                                    <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                        <li>PHPUnit runs automatically in the <code>tests</code> workflow with Xdebug coverage enabled.</li>
+                                        <li>Example suites live in <code>tests/Feature</code> and <code>tests/Unit</code> to guide new specs.</li>
+                                        <li>Quickstart locally with <code>php artisan test</code> after installing Composer dependencies.</li>
+                                    </ul>
+                                </div>
+                            </div>
                             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                 <a
                                     href="https://github.com/MetaGrenade/laravel-vue"
