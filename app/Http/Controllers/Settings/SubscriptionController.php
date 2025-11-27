@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Laravel\Cashier\Exceptions\IncompletePayment;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class SubscriptionController extends Controller
 {
@@ -147,8 +147,8 @@ class SubscriptionController extends Controller
                     'id' => $stripeInvoice->id,
                     'number' => $stripeInvoice->number ?? $stripeInvoice->id,
                     'status' => $stripeInvoice->status,
-                    'total' => $invoice->total(),
-                    'currency' => $invoice->currency(),
+                    'total' => $invoice->total,
+                    'currency' => $invoice->currency,
                     'created_at' => optional($invoice->date())->toIso8601String(),
                     'paid_at' => $stripeInvoice->status === 'paid'
                         ? optional($invoice->date())->toIso8601String()
@@ -162,7 +162,7 @@ class SubscriptionController extends Controller
         ]);
     }
 
-    public function downloadInvoice(Request $request, string $invoice): BinaryFileResponse
+    public function downloadInvoice(Request $request, string $invoice): Response
     {
         $user = $request->user();
 
@@ -176,10 +176,7 @@ class SubscriptionController extends Controller
             abort(403);
         }
 
-        return $user->downloadInvoice($invoice, [
-            'vendor' => config('app.name'),
-            'product' => 'Subscription',
-        ]);
+        return $user->downloadInvoice($invoice);
     }
 
     public function paymentMethods(Request $request): InertiaResponse
