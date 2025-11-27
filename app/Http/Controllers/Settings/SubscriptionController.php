@@ -166,8 +166,14 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->findInvoice($invoice)) {
+        $invoiceObject = $user->findInvoice($invoice);
+
+        if (! $invoiceObject) {
             abort(404);
+        }
+
+        if ($invoiceObject->asStripeInvoice()->customer !== $user->stripeId()) {
+            abort(403);
         }
 
         return $user->downloadInvoice($invoice, [
