@@ -294,40 +294,35 @@ onBeforeUnmount(() => {
     <Head title="Pricing" />
 
     <div class="min-h-screen bg-[#FDFDFC] text-[#1b1b18] dark:bg-[#0a0a0a]">
-        <header class="flex w-full justify-center border-b border-[#19140015] px-6 py-5 dark:border-[#3E3E3A]">
-            <nav class="flex w-full max-w-5xl items-center justify-between text-sm">
-                <Link :href="route('home')" class="font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">
-                    {{ $page.props.name }}
+        <header class="mb-8 flex w-full justify-center px-6 pt-6">
+            <nav class="flex w-full max-w-5xl items-center justify-end gap-4 text-sm">
+                <Link
+                    :href="route('pricing')"
+                    class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
+                >
+                    Pricing
                 </Link>
-                <div class="flex items-center gap-3">
+                <Link
+                    v-if="$page.props.auth.user"
+                    :href="route('dashboard')"
+                    class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
+                >
+                    Dashboard
+                </Link>
+                <template v-else>
                     <Link
-                        :href="route('pricing')"
-                        class="inline-flex items-center rounded-sm border border-[#19140035] px-3 py-1.5 text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
+                        :href="route('login')"
+                        class="inline-block rounded-sm border border-transparent px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#19140035] dark:text-[#EDEDEC] dark:hover:border-[#3E3E3A]"
                     >
-                        Pricing
+                        Log in
                     </Link>
                     <Link
-                        v-if="$page.props.auth.user"
-                        :href="route('dashboard')"
-                        class="inline-flex items-center rounded-sm bg-[#1b1b18] px-3 py-1.5 text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                        :href="route('register')"
+                        class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
                     >
-                        Dashboard
+                        Get started
                     </Link>
-                    <template v-else>
-                        <Link
-                            :href="route('login')"
-                            class="inline-flex items-center rounded-sm border border-transparent px-3 py-1.5 text-[#1b1b18] hover:border-[#19140035] dark:text-[#EDEDEC] dark:hover:border-[#3E3E3A]"
-                        >
-                            Log in
-                        </Link>
-                        <Link
-                            :href="route('register')"
-                            class="inline-flex items-center rounded-sm border border-[#19140035] px-3 py-1.5 text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
-                        >
-                            Create account
-                        </Link>
-                    </template>
-                </div>
+                </template>
             </nav>
         </header>
 
