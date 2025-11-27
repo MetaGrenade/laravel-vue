@@ -100,6 +100,7 @@ html {
 
     body {
         @apply bg-background text-foreground;
+        padding-top: 4rem;
     }
 
     /* TipTap / ProseMirror content defaults */

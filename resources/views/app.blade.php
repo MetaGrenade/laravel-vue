@@ -52,7 +52,7 @@
         @endif
         @inertiaHead
     </head>
-    <body class="font-sans antialiased pt-14">
+    <body class="font-sans antialiased">
         @inertia
     </body>
 </html>

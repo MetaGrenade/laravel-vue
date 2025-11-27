@@ -281,7 +281,7 @@ const hasAnyResults = computed(() => groups.value.some((group) => group.items.le
     <AppLayout>
         <Head title="Search" />
 
-        <div class="mx-auto w-full max-w-5xl space-y-8 py-10">
+        <div class="mx-auto w-full max-w-7xl space-y-8 py-10">
             <div class="space-y-2">
                 <h1 class="text-3xl font-semibold tracking-tight">Search</h1>
                 <p class="text-muted-foreground">

@@ -190,9 +190,9 @@ const filteredNavItems = computed(() => {
 
             <Separator class="my-6 md:hidden" />
 
-            <div class="flex flex-1 flex-col md:max-w-5xl">
+            <div class="flex flex-1 flex-col">
                 <!-- Ensure the section fills remaining space -->
-                <section class="flex flex-1 h-full max-w-5xl space-y-12">
+                <section class="flex flex-1 h-full space-y-12">
                     <slot />
                 </section>
             </div>

@@ -168,7 +168,7 @@ const alertState = computed(() => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Dashboard" />
 
-        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pt-4 pb-4">
+        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
 <!--            <Alert variant="destructive">-->
 <!--                <AlertCircle class="w-4 h-4" />-->
 <!--                <AlertTitle>Error</AlertTitle>-->

@@ -99,7 +99,7 @@ const formatCurrency = (amount: number, currency: string) => {
         <Head title="Billing invoices" />
 
         <AdminLayout>
-            <section class="flex flex-col space-y-6">
+            <section class="flex flex-col w-full space-y-6">
                 <HeadingSmall
                     title="Stripe invoices"
                     description="Monitor webhook-synced invoice activity across the community."

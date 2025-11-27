@@ -360,7 +360,7 @@ const viewNotification = (notification: NotificationItem) => {
 
         <!-- Fixed header -->
         <div class="fixed inset-x-0 top-0 z-50 border-b border-sidebar-border/80 bg-white dark:bg-neutral-900">
-            <div class="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
+            <div class="mx-auto flex h-16 items-center px-4">
                 <!-- Mobile Menu -->
                 <div class="lg:hidden">
                     <Sheet>
@@ -605,9 +605,8 @@ const viewNotification = (notification: NotificationItem) => {
         <div
             v-if="props.breadcrumbs.length > 1"
             class="flex w-full border-b border-sidebar-border/70"
-            style="margin-top: 0.5rem;"
         >
-            <div class="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500 md:max-w-7xl">
+            <div class="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500">
                 <Breadcrumbs :breadcrumbs="breadcrumbs" />
             </div>
         </div>

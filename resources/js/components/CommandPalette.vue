@@ -241,7 +241,7 @@ onBeforeUnmount(() => {
 
 <template>
     <Dialog v-model:open="open">
-        <DialogContent class="max-w-2xl gap-0 overflow-hidden p-0">
+        <DialogContent class="max-w-5xl gap-0 overflow-hidden p-0">
             <div class="border-b border-border/70 bg-muted/40 px-4 py-3">
                 <label class="sr-only" for="global-command-palette">Search</label>
                 <div class="flex items-center gap-3">
@@ -257,7 +257,7 @@ onBeforeUnmount(() => {
                         @keydown.esc.prevent="closePalette"
                     />
                     <kbd
-                        class="ml-auto hidden items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground md:inline-flex"
+                        class="ml-auto mr-5 hidden items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground md:inline-flex"
                     >
                         <span>{{ isMac ? '⌘' : 'Ctrl' }}</span>
                         <span>K</span>
