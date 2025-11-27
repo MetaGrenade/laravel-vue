@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 
@@ -69,9 +69,12 @@ const formatCurrency = (amount: number, currency: string) => {
                                 <TableCell>{{ invoice.paid_at ? new Date(invoice.paid_at).toLocaleString() : '—' }}</TableCell>
                                 <TableCell class="text-right">
                                     <Button as-child variant="outline" size="sm">
-                                        <Link :href="route('settings.billing.invoices.download', { invoice: invoice.id })">
+                                        <a
+                                            :href="route('settings.billing.invoices.download', { invoice: invoice.id })"
+                                            download
+                                        >
                                             Download PDF
-                                        </Link>
+                                        </a>
                                     </Button>
                                 </TableCell>
                             </TableRow>
