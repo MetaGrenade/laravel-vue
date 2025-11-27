@@ -7,6 +7,25 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, ShieldCheck } from 'lucide-vue-next';
 
+interface PlanFeatureItem {
+    key: string;
+    label: string;
+    value: string;
+    note?: string;
+    badge?: string;
+}
+
+interface PlanFeatureGroup {
+    title: string;
+    items: PlanFeatureItem[];
+}
+
+interface PlanLimit {
+    label: string;
+    value: string;
+    helper?: string;
+}
+
 interface Plan {
     id: number;
     name: string;
@@ -15,11 +34,19 @@ interface Plan {
     interval: string;
     currency: string;
     features: string[];
+    feature_groups: PlanFeatureGroup[];
+    limits: PlanLimit[];
     stripe_price_id: string;
+}
+
+interface Faq {
+    question: string;
+    answer: string;
 }
 
 interface Props {
     plans: Plan[];
+    faqs: Faq[];
 }
 
 type StripeInstance = any;
@@ -46,6 +73,39 @@ const elements = shallowRef<StripeElementsInstance | null>(null);
 const paymentElement = shallowRef<StripePaymentElementInstance | null>(null);
 const paymentElementReady = ref(false);
 const lastStripeKey = ref<string | null>(null);
+
+const comparisonColumns = computed(() => {
+    if (!props.plans.length) {
+        return '1fr';
+    }
+
+    return `1.5fr repeat(${props.plans.length}, 1fr)`;
+});
+
+const comparisonGroups = computed(() => {
+    if (!props.plans.length) {
+        return [] as { title: string; rows: { key: string; label: string; values: PlanFeatureItem[] }[] }[];
+    }
+
+    const baseGroups = props.plans[0].feature_groups;
+
+    return baseGroups.map((group) => ({
+        title: group.title,
+        rows: group.items.map((item) => ({
+            key: item.key,
+            label: item.label,
+            values: props.plans.map((plan) => {
+                const matchGroup = plan.feature_groups.find((candidate) => candidate.title === group.title);
+
+                return matchGroup?.items.find((candidateItem) => candidateItem.key === item.key) ?? {
+                    key: item.key,
+                    label: item.label,
+                    value: '—',
+                };
+            }),
+        })),
+    }));
+});
 
 let stripeScriptPromise: Promise<void> | null = null;
 
@@ -446,6 +506,113 @@ onBeforeUnmount(() => {
                                 <p v-if="successMessage" class="rounded border border-emerald-400/40 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                                     {{ successMessage }}
                                 </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </section>
+
+                <section v-if="props.plans.length" class="space-y-4">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div class="space-y-1">
+                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Usage limits</h2>
+                            <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Soft limits keep workspaces fast and predictable. Upgrade when you're ready for more.</p>
+                        </div>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <Card
+                            v-for="plan in props.plans"
+                            :key="`${plan.id}-limits`"
+                            class="border-[#19140015] bg-white dark:border-[#3E3E3A] dark:bg-[#161615]"
+                        >
+                            <CardHeader>
+                                <CardTitle class="text-lg text-[#1b1b18] dark:text-[#EDEDEC]">{{ plan.name }} limits</CardTitle>
+                                <CardDescription>Stay within limits to avoid throttling.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ul class="space-y-3 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    <li v-for="limit in plan.limits" :key="limit.label" class="space-y-1">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="font-medium text-[#1b1b18] dark:text-[#EDEDEC]">{{ limit.label }}</span>
+                                            <span class="rounded-full bg-[#f6f2e8] px-3 py-1 text-xs font-medium text-[#8b5a00] dark:bg-[#1f1c15] dark:text-[#f3d29e]">
+                                                {{ limit.value }}
+                                            </span>
+                                        </div>
+                                        <p v-if="limit.helper" class="text-xs text-[#9b978f] dark:text-[#7e7b73]">{{ limit.helper }}</p>
+                                    </li>
+                                    <li v-if="!plan.limits.length" class="text-sm text-muted-foreground">Limits will be shared soon.</li>
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </section>
+
+                <section v-if="comparisonGroups.length" class="space-y-4">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div class="space-y-1">
+                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Compare what's included</h2>
+                            <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Feature breakdowns by plan to help you choose with confidence.</p>
+                        </div>
+                        <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">{{ props.plans.length }} plans</p>
+                    </div>
+
+                    <div class="overflow-hidden rounded-lg border border-[#19140015] bg-white shadow-sm dark:border-[#3E3E3A] dark:bg-[#0f0f0d]">
+                        <div class="border-b border-[#19140015] bg-[#fbf7ee] px-4 py-3 text-sm font-semibold text-[#1b1b18] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC]">
+                            Feature comparison
+                        </div>
+                        <div class="divide-y divide-[#19140015] dark:divide-[#3E3E3A]">
+                            <div
+                                v-for="group in comparisonGroups"
+                                :key="group.title"
+                                class="flex flex-col gap-1 bg-[#fefcf8] px-4 py-4 dark:bg-[#0f0f0d]"
+                            >
+                                <p class="text-sm font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">{{ group.title }}</p>
+                                <div class="space-y-2">
+                                    <div
+                                        v-for="row in group.rows"
+                                        :key="row.key"
+                                        class="grid items-start gap-4 rounded-md border border-transparent bg-white px-3 py-2 text-sm text-[#706f6c] transition hover:border-[#19140015] dark:bg-[#161615] dark:text-[#A1A09A] dark:hover:border-[#3E3E3A]"
+                                        :style="{ gridTemplateColumns: comparisonColumns }"
+                                    >
+                                        <div class="font-medium text-[#1b1b18] dark:text-[#EDEDEC]">{{ row.label }}</div>
+                                        <div
+                                            v-for="(value, index) in row.values"
+                                            :key="`${row.key}-${index}`"
+                                            class="flex flex-col gap-1"
+                                        >
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-medium text-[#1b1b18] dark:text-[#EDEDEC]">{{ value.value }}</span>
+                                                <span
+                                                    v-if="value.badge"
+                                                    class="rounded-full bg-[#1b1b18] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-white dark:text-[#0f0f0d]"
+                                                >
+                                                    {{ value.badge }}
+                                                </span>
+                                            </div>
+                                            <p v-if="value.note" class="text-xs text-[#9b978f] dark:text-[#7e7b73]">{{ value.note }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section v-if="props.faqs?.length" class="space-y-4">
+                    <div class="space-y-1">
+                        <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Frequently asked questions</h2>
+                        <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Answers to the most common billing and subscription questions.</p>
+                    </div>
+                    <div class="grid gap-3 md:grid-cols-2">
+                        <Card
+                            v-for="faq in props.faqs"
+                            :key="faq.question"
+                            class="border-[#19140015] bg-white dark:border-[#3E3E3A] dark:bg-[#161615]"
+                        >
+                            <CardHeader>
+                                <CardTitle class="text-base text-[#1b1b18] dark:text-[#EDEDEC]">{{ faq.question }}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">{{ faq.answer }}</p>
                             </CardContent>
                         </Card>
                     </div>
