@@ -1,5 +1,19 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import type { SharedData } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const page = usePage<SharedData>();
+const websiteSections = computed(() => {
+    const defaults = { blog: true, forum: true, support: true } as const;
+    const settings = page.props.settings?.website_sections ?? defaults;
+
+    return {
+        blog: settings.blog ?? defaults.blog,
+        forum: settings.forum ?? defaults.forum,
+        support: settings.support ?? defaults.support,
+    } as const;
+});
 </script>
 
 <template>
@@ -58,12 +72,14 @@ import { Head, Link } from '@inertiajs/vue3';
                                 Create an account
                             </Link>
                             <Link
+                                v-if="websiteSections.blog"
                                 :href="route('blogs.index')"
                                 class="inline-flex items-center justify-center rounded-sm border border-[#19140035] px-5 py-2 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                             >
                                 Explore the blog
                             </Link>
                             <Link
+                                v-if="websiteSections.support"
                                 :href="route('support')"
                                 class="inline-flex items-center justify-center rounded-sm border border-[#19140035] px-5 py-2 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                             >
@@ -118,7 +134,10 @@ import { Head, Link } from '@inertiajs/vue3';
                 </section>
 
                 <section class="grid gap-4 lg:grid-cols-3">
-                    <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                    <div
+                        v-if="websiteSections.blog"
+                        class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                    >
                         <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Editorial</p>
                         <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Blog</h3>
                         <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
@@ -134,7 +153,10 @@ import { Head, Link } from '@inertiajs/vue3';
                         </div>
                     </div>
 
-                    <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                    <div
+                        v-if="websiteSections.forum"
+                        class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                    >
                         <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Community</p>
                         <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Forum</h3>
                         <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
@@ -150,7 +172,10 @@ import { Head, Link } from '@inertiajs/vue3';
                         </div>
                     </div>
 
-                    <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                    <div
+                        v-if="websiteSections.support"
+                        class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                    >
                         <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Help</p>
                         <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Support center</h3>
                         <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
@@ -240,6 +265,7 @@ import { Head, Link } from '@inertiajs/vue3';
                                 Start free
                             </Link>
                             <Link
+                                v-if="websiteSections.blog"
                                 :href="route('blogs.index')"
                                 class="inline-flex items-center rounded-sm border border-[#ffffff33] px-5 py-2 text-sm font-medium text-white transition hover:border-white"
                             >
