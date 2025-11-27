@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, ShieldCheck } from 'lucide-vue-next';
 
 interface Plan {
     id: number;
@@ -297,6 +298,12 @@ onBeforeUnmount(() => {
         <header class="mb-8 flex w-full justify-center px-6 pt-6">
             <nav class="flex w-full max-w-5xl items-center justify-end gap-4 text-sm">
                 <Link
+                    :href="route('home')"
+                    class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
+                >
+                    <ArrowLeft class="h-5 w-5" />
+                </Link>
+                <Link
                     :href="route('pricing')"
                     class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
                 >
@@ -337,8 +344,8 @@ onBeforeUnmount(() => {
                                 Pick an active plan, add your payment details, and we'll create your account and start the subscription instantly.
                             </p>
                         </div>
-                        <div class="flex items-center gap-3 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                            <span class="h-2 w-2 rounded-full bg-[#1b1b18] dark:bg-[#EDEDEC]" />
+                        <div class="flex items-center gap-3 text-sm text-[#34d399] dark:text-[#34d399]">
+                            <ShieldCheck class="h-4 w-4" />
                             Secure checkout backed by Stripe
                         </div>
                     </div>
