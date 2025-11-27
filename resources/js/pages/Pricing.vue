@@ -296,7 +296,7 @@ onBeforeUnmount(() => {
 
     <div class="min-h-screen bg-[#FDFDFC] text-[#1b1b18] dark:bg-[#0a0a0a]">
         <header class="mb-8 flex w-full justify-center px-6 pt-6">
-            <nav class="flex w-full max-w-5xl items-center justify-end gap-4 text-sm">
+            <nav class="flex w-full max-w-7xl items-center justify-end gap-4 text-sm">
                 <Link
                     :href="route('home')"
                     class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
@@ -334,7 +334,7 @@ onBeforeUnmount(() => {
         </header>
 
         <main class="flex justify-center px-6 py-12">
-            <div class="flex w-full max-w-5xl flex-col gap-10">
+            <div class="flex w-full max-w-7xl flex-col gap-10">
                 <section class="space-y-4">
                     <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Pricing</p>
                     <div class="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -402,7 +402,7 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div class="space-y-4">
-                        <Card class="border-[#19140015] bg-white dark:border-[#3E3E3A] dark:bg-[#161615]">
+                        <Card class="border-[#19140015] bg-white dark:border-[#34d399] dark:bg-[#161615]">
                             <CardHeader>
                                 <CardTitle class="text-lg text-[#1b1b18] dark:text-[#EDEDEC]">Checkout</CardTitle>
                                 <CardDescription>Enter your email and payment details to activate your subscription.</CardDescription>

@@ -21,7 +21,7 @@ const websiteSections = computed(() => {
 
     <div class="flex min-h-screen flex-col bg-[#FDFDFC] text-[#1b1b18] dark:bg-[#0a0a0a]">
         <header class="mb-8 flex w-full justify-center px-6 pt-6">
-            <nav class="flex w-full max-w-5xl items-center justify-end gap-4 text-sm">
+            <nav class="flex w-full max-w-7xl items-center justify-end gap-4 text-sm">
                 <Link
                     :href="route('pricing')"
                     class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
@@ -53,7 +53,7 @@ const websiteSections = computed(() => {
         </header>
 
         <main class="flex flex-1 justify-center px-6 pb-16">
-            <div class="flex w-full max-w-5xl flex-col gap-12">
+            <div class="flex w-full max-w-7xl flex-col gap-12">
                 <section class="overflow-hidden rounded-xl bg-white p-8 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] lg:flex lg:items-center lg:gap-12 lg:p-12">
                     <div class="flex-1 space-y-6">
                         <div class="inline-flex items-center rounded-full bg-[#f9f3e6] px-3 py-1 text-xs font-medium text-[#8b5a00] dark:bg-[#261f14] dark:text-[#f3d29e]">
@@ -269,7 +269,7 @@ const websiteSections = computed(() => {
                         <div class="flex flex-wrap gap-3">
                             <Link
                                 :href="route('register')"
-                                class="inline-flex items-center rounded-sm bg-white px-5 py-2 text-sm font-medium text-[#0f0f0d] transition hover:bg-[#f5f5f0]"
+                                class="inline-flex items-center rounded-sm bg-white px-5 py-2 text-sm font-medium text-[#0f0f0d] transition hover:bg-[#f3d29e]"
                             >
                                 Start free
                             </Link>
