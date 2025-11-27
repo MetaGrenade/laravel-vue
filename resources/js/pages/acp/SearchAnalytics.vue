@@ -74,7 +74,45 @@ const filters = reactive({
     per_page: props.filters.per_page ?? props.recentSearches.meta?.per_page ?? 20,
 });
 
-const { currentPage, totalPages, pages } = useInertiaPagination(props.recentSearches.meta ?? undefined);
+const {
+    page: currentPage,
+    setPage,
+    pageCount: totalPages,
+} = useInertiaPagination({
+    meta: computed(() => props.recentSearches.meta ?? null),
+    itemsLength: computed(() => props.recentSearches.data?.length ?? 0),
+    defaultPerPage: filters.per_page,
+    onNavigate: (page) => applyFilters({ page }),
+});
+
+const paginationPages = computed<(number | '...')[]>(() => {
+    const total = totalPages.value;
+    const current = currentPage.value;
+
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, index) => index + 1);
+    }
+
+    const pages: (number | '...')[] = [1];
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    if (start > 2) {
+        pages.push('...');
+    }
+
+    for (let page = start; page <= end; page += 1) {
+        pages.push(page);
+    }
+
+    if (end < total - 1) {
+        pages.push('...');
+    }
+
+    pages.push(total);
+
+    return pages;
+});
 
 const formatNumber = (value: number) => new Intl.NumberFormat().format(value);
 const formatPercent = (value: number) => `${value.toFixed(2)}%`;
@@ -94,10 +132,6 @@ const resetFilters = () => {
     filters.date_to = '';
     filters.per_page = 20;
     applyFilters({ page: 1 });
-};
-
-const goToPage = (page: number) => {
-    applyFilters({ page });
 };
 
 const summaryCards = computed(() => [
@@ -257,14 +291,21 @@ const summaryCards = computed(() => [
 
                         <Pagination v-if="(recentSearches.meta?.last_page ?? 1) > 1" class="justify-end">
                             <PaginationList>
-                                <PaginationFirst :disabled="currentPage <= 1" @click="goToPage(1)" />
-                                <PaginationPrev :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)" />
-                                <PaginationListItem v-for="page in pages" :key="page" :value="page" :active="page === currentPage" @click="goToPage(page)">
-                                    <PaginationEllipsis v-if="page === '...'"></PaginationEllipsis>
-                                    <span v-else>{{ page }}</span>
+                                <PaginationFirst :disabled="currentPage <= 1" @click="setPage(1)" />
+                                <PaginationPrev :disabled="currentPage <= 1" @click="setPage(currentPage - 1)" />
+                                <PaginationListItem
+                                    v-for="(pageNumber, index) in paginationPages"
+                                    :key="`${pageNumber}-${index}`"
+                                    :value="pageNumber"
+                                    :active="pageNumber === currentPage"
+                                    :disabled="pageNumber === '...'"
+                                    @click="pageNumber !== '...' && setPage(pageNumber)"
+                                >
+                                    <PaginationEllipsis v-if="pageNumber === '...'" />
+                                    <span v-else>{{ pageNumber }}</span>
                                 </PaginationListItem>
-                                <PaginationNext :disabled="currentPage >= (totalPages ?? 1)" @click="goToPage(currentPage + 1)" />
-                                <PaginationLast :disabled="currentPage >= (totalPages ?? 1)" @click="goToPage(totalPages ?? 1)" />
+                                <PaginationNext :disabled="currentPage >= (totalPages ?? 1)" @click="setPage(currentPage + 1)" />
+                                <PaginationLast :disabled="currentPage >= (totalPages ?? 1)" @click="setPage(totalPages ?? 1)" />
                             </PaginationList>
                         </Pagination>
                     </CardContent>
