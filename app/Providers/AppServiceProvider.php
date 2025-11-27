@@ -3,12 +3,14 @@
 namespace App\Providers;
 
 use App\Models\Blog;
+use App\Models\BlogComment;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\PersonalAccessToken;
 use App\Policies\BlogPolicy;
+use App\Policies\BlogCommentPolicy;
 use App\Policies\ForumPostPolicy;
 use App\Support\Billing\SubscriptionManager;
 use App\Observers\ForumIndexCacheObserver;
@@ -42,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(ForumPost::class, ForumPostPolicy::class);
         Gate::policy(Blog::class, BlogPolicy::class);
+        Gate::policy(BlogComment::class, BlogCommentPolicy::class);
 
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 

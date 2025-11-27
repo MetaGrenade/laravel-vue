@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook, MessageCircle } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -49,6 +49,12 @@ const sidebarNavItems: NavItem[] = [
         href: '/acp/blogs',
         target: '_self',
         icon: BookOpen,
+    },
+    {
+        title: 'Blog Comments',
+        href: '/acp/blog-comments',
+        target: '_self',
+        icon: MessageCircle,
     },
     {
         title: 'Forums',
@@ -137,6 +143,8 @@ const filteredNavItems = computed(() => {
             case 'Access Control':
                 return manageACL.value;
             case 'Blogs':
+                return manageBlogs.value && websiteSections.value.blog;
+            case 'Blog Comments':
                 return manageBlogs.value && websiteSections.value.blog;
             case 'Forums':
                 return manageForums.value && websiteSections.value.forum;

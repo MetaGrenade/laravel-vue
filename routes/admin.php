@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
+use App\Http\Controllers\Admin\BlogCommentController as AdminBlogCommentController;
 use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
@@ -66,6 +67,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/blogs/{blog}/archive', [AdminBlogController::class, 'archive'])->name('acp.blogs.archive');
     Route::put('acp/blogs/{blog}/unarchive', [AdminBlogController::class, 'unarchive'])->name('acp.blogs.unarchive');
     Route::patch('acp/blogs/bulk/status', [AdminBlogController::class, 'bulkUpdateStatus'])->name('acp.blogs.bulk-status');
+
+    Route::get('acp/blog-comments', [AdminBlogCommentController::class, 'index'])->name('acp.blog-comments.index');
+    Route::put('acp/blog-comments/{comment}', [AdminBlogCommentController::class, 'update'])->name('acp.blog-comments.update');
+    Route::delete('acp/blog-comments/{comment}', [AdminBlogCommentController::class, 'destroy'])->name('acp.blog-comments.destroy');
 
     // Admin Blog Tag Management Routes
     Route::get('acp/blog-tags', [BlogTagController::class, 'index'])->name('acp.blog-tags.index');
