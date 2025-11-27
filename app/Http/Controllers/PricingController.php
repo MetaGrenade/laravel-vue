@@ -28,6 +28,9 @@ class PricingController extends Controller
 
     public function index(): InertiaResponse
     {
+        $featureMatrix = $this->featureMatrix();
+        $planLimits = $this->planLimits();
+
         $plans = SubscriptionPlan::query()
             ->active()
             ->orderBy('price')
@@ -40,11 +43,14 @@ class PricingController extends Controller
                 'currency' => $plan->currency,
                 'interval' => $plan->interval,
                 'features' => $plan->features ?? [],
+                'feature_groups' => $featureMatrix[$plan->slug] ?? [],
+                'limits' => $planLimits[$plan->slug] ?? [],
                 'stripe_price_id' => $plan->stripe_price_id,
             ])->values();
 
         return Inertia::render('Pricing', [
             'plans' => $plans,
+            'faqs' => $this->faqs(),
         ]);
     }
 
@@ -151,5 +157,160 @@ class PricingController extends Controller
             'email' => $email,
             'password' => Hash::make(Str::random(32)),
         ]);
+    }
+
+    /**
+     * Feature matrix keyed by plan slug so the front end can render comparison tables.
+     */
+    protected function featureMatrix(): array
+    {
+        return [
+            'starter' => [
+                [
+                    'title' => 'Community & Support',
+                    'items' => [
+                        [
+                            'key' => 'community',
+                            'label' => 'Community forums',
+                            'value' => 'Full access with moderation tools',
+                        ],
+                        [
+                            'key' => 'office-hours',
+                            'label' => 'Office hours',
+                            'value' => 'Monthly live Q&A',
+                        ],
+                        [
+                            'key' => 'support',
+                            'label' => 'Support response',
+                            'value' => 'Within 2 business days',
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Collaboration',
+                    'items' => [
+                        [
+                            'key' => 'team-seats',
+                            'label' => 'Team seats',
+                            'value' => 'Up to 3 seats included',
+                        ],
+                        [
+                            'key' => 'projects',
+                            'label' => 'Projects',
+                            'value' => '2 active projects',
+                        ],
+                        [
+                            'key' => 'templates',
+                            'label' => 'Template library',
+                            'value' => 'Starter templates',
+                        ],
+                    ],
+                ],
+            ],
+            'pro' => [
+                [
+                    'title' => 'Community & Support',
+                    'items' => [
+                        [
+                            'key' => 'community',
+                            'label' => 'Community forums',
+                            'value' => 'Full access with analytics',
+                        ],
+                        [
+                            'key' => 'office-hours',
+                            'label' => 'Office hours',
+                            'value' => 'Weekly live coaching',
+                        ],
+                        [
+                            'key' => 'support',
+                            'label' => 'Support response',
+                            'value' => 'Same-day priority support',
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Collaboration',
+                    'items' => [
+                        [
+                            'key' => 'team-seats',
+                            'label' => 'Team seats',
+                            'value' => 'Up to 10 seats included',
+                            'note' => 'Add more seats at $9/seat',
+                        ],
+                        [
+                            'key' => 'projects',
+                            'label' => 'Projects',
+                            'value' => 'Unlimited active projects',
+                            'badge' => 'Popular',
+                        ],
+                        [
+                            'key' => 'templates',
+                            'label' => 'Template library',
+                            'value' => 'Full library + beta releases',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Soft limits and quotas per plan.
+     */
+    protected function planLimits(): array
+    {
+        return [
+            'starter' => [
+                [
+                    'label' => 'Monthly member invites',
+                    'value' => 'Up to 250',
+                ],
+                [
+                    'label' => 'File storage',
+                    'value' => '25 GB pooled',
+                ],
+                [
+                    'label' => 'Automation runs',
+                    'value' => '2,000 per month',
+                ],
+            ],
+            'pro' => [
+                [
+                    'label' => 'Monthly member invites',
+                    'value' => 'Unlimited',
+                    'helper' => 'Fair-use policy applies',
+                ],
+                [
+                    'label' => 'File storage',
+                    'value' => '250 GB pooled',
+                ],
+                [
+                    'label' => 'Automation runs',
+                    'value' => '25,000 per month',
+                ],
+            ],
+        ];
+    }
+
+    protected function faqs(): array
+    {
+        return [
+            [
+                'question' => 'Can I change my plan later?',
+                'answer' => 'Yes. You can upgrade or downgrade at any time from your billing settings and the change is applied immediately.',
+            ],
+            [
+                'question' => 'Do you offer trials?',
+                'answer' => 'We start billing only when you add a payment method. Cancel anytime during the first 14 days for a full refund.',
+            ],
+            [
+                'question' => 'How do seat limits work?',
+                'answer' => 'Each plan includes a set number of seats. You can invite more teammates and we will automatically pro-rate any additional seats.',
+            ],
+            [
+                'question' => 'Is my payment information secure?',
+                'answer' => 'Yes. We never touch card details directly—checkout is processed securely by Stripe with industry-standard encryption.',
+            ],
+        ];
     }
 }
