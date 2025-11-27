@@ -32,10 +32,10 @@ const websiteSections = computed(() => {
                             </div>
                             <div class="space-y-4">
                                 <h1 class="text-3xl font-semibold leading-tight tracking-tight text-[#1b1b18] dark:text-[#EDEDEC] sm:text-4xl">
-                                    Launch your community app with ready-to-ship modules
+                                    Launch your SaaS app with ready-to-ship modules
                                 </h1>
                                 <p class="max-w-2xl text-base text-[#706f6c] dark:text-[#A1A09A]">
-                                    A cohesive starter that ships with content, conversations, support, billing, and a member dashboard—all styled with the existing design system so you can customize and deploy faster.
+                                    A cohesive starter that ships with content, conversations, support, billing, and an admin control panel—all styled with the existing design system so you can customize and deploy faster.
                                 </p>
                             </div>
                             <div class="flex flex-wrap gap-3">
@@ -60,6 +60,10 @@ const websiteSections = computed(() => {
                                 <div class="flex items-center gap-2">
                                     <span class="h-2 w-2 rounded-full bg-[#1b1b18] dark:bg-[#EDEDEC]"></span>
                                     Built with Laravel + Vue 3 + Tailwind
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="h-2 w-2 rounded-full bg-[#1b1b18] dark:bg-[#EDEDEC]"></span>
+                                    Admin Control Panel with role-based access
                                 </div>
                             </div>
                         </div>
@@ -203,6 +207,70 @@ const websiteSections = computed(() => {
                                     class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
                                 >
                                     Visit Dashboard
+                                </Link>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Operations</p>
+                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Admin Control Panel</h3>
+                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                Manage users, permissions, support queues, and moderation workflows inside the Inertia-powered ACP.
+                            </p>
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <Link
+                                    :href="route('acp.dashboard')"
+                                    class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                >
+                                    Visit Admin Dashboard
+                                </Link>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Toggles</p>
+                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Website Modules</h3>
+                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                Enable or disable the blog, forum, support center, billing, and social logins with safe defaults and 404 enforcement.
+                            </p>
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <Link
+                                    :href="route('acp.system')"
+                                    class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                >
+                                    View System Settings
+                                </Link>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Security</p>
+                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Identity & MFA</h3>
+                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                TOTP multi-factor authentication, recovery codes, session management, and OAuth identity linking live in member settings.
+                            </p>
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <Link
+                                    :href="route('security.edit')"
+                                    class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                >
+                                    Review Security
+                                </Link>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">APIs</p>
+                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Docs & Tokens</h3>
+                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                Versioned `/api/v1` endpoints, Swagger UI at <code>/api/docs</code>, and Sanctum token management for native clients.
+                            </p>
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <Link
+                                    :href="route('api.docs')"
+                                    class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                >
+                                    View API Docs
                                 </Link>
                             </div>
                         </div>
