@@ -44,6 +44,19 @@ Route::middleware('auth')->group(function () {
     Route::post('settings/billing/cancel', [SubscriptionController::class, 'cancel'])->name('settings.billing.cancel');
     Route::post('settings/billing/resume', [SubscriptionController::class, 'resume'])->name('settings.billing.resume');
 
+    Route::get('settings/billing/invoices', [SubscriptionController::class, 'invoices'])->name('settings.billing.invoices.index');
+    Route::get('settings/billing/invoices/{invoice}/download', [SubscriptionController::class, 'downloadInvoice'])
+        ->name('settings.billing.invoices.download');
+
+    Route::get('settings/billing/payment-methods', [SubscriptionController::class, 'paymentMethods'])
+        ->name('settings.billing.payment-methods.index');
+    Route::post('settings/billing/payment-methods', [SubscriptionController::class, 'storePaymentMethod'])
+        ->name('settings.billing.payment-methods.store');
+    Route::put('settings/billing/payment-methods/{paymentMethod}/default', [SubscriptionController::class, 'setDefaultPaymentMethod'])
+        ->name('settings.billing.payment-methods.default');
+    Route::delete('settings/billing/payment-methods/{paymentMethod}', [SubscriptionController::class, 'removePaymentMethod'])
+        ->name('settings.billing.payment-methods.destroy');
+
     Route::post('settings/privacy/exports', [DataExportController::class, 'store'])
         ->name('privacy.exports.store');
 

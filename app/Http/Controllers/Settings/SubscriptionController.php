@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Laravel\Cashier\Exceptions\IncompletePayment;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SubscriptionController extends Controller
 {
@@ -134,5 +135,148 @@ class SubscriptionController extends Controller
         $this->subscriptions->resume($request->user());
 
         return to_route('settings.billing.index');
+    }
+
+    public function invoices(Request $request): InertiaResponse
+    {
+        $invoices = collect($request->user()->invoicesIncludingPending())
+            ->map(function ($invoice) {
+                $stripeInvoice = $invoice->asStripeInvoice();
+
+                return [
+                    'id' => $stripeInvoice->id,
+                    'number' => $invoice->number(),
+                    'status' => $stripeInvoice->status,
+                    'total' => $invoice->total(),
+                    'currency' => $invoice->currency(),
+                    'created_at' => optional($invoice->date())->toIso8601String(),
+                    'paid_at' => $stripeInvoice->status === 'paid'
+                        ? optional($invoice->date())->toIso8601String()
+                        : null,
+                ];
+            })
+            ->values();
+
+        return Inertia::render('settings/Invoices', [
+            'invoices' => $invoices,
+        ]);
+    }
+
+    public function downloadInvoice(Request $request, string $invoice): BinaryFileResponse
+    {
+        $user = $request->user();
+
+        if (! $user->findInvoice($invoice)) {
+            abort(404);
+        }
+
+        return $user->downloadInvoice($invoice, [
+            'vendor' => config('app.name'),
+            'product' => 'Subscription',
+        ]);
+    }
+
+    public function paymentMethods(Request $request): InertiaResponse
+    {
+        $user = $request->user();
+
+        $paymentMethods = $user->paymentMethods()
+            ->map(fn ($paymentMethod) => [
+                'id' => $paymentMethod->id,
+                'type' => $paymentMethod->type,
+                'brand' => $paymentMethod->card?->brand,
+                'last_four' => $paymentMethod->card?->last4,
+                'exp_month' => $paymentMethod->card?->exp_month,
+                'exp_year' => $paymentMethod->card?->exp_year,
+            ])
+            ->values();
+
+        return Inertia::render('settings/PaymentMethods', [
+            'payment_methods' => $paymentMethods,
+            'default_payment_method' => $user->defaultPaymentMethod()?->id,
+        ]);
+    }
+
+    public function storePaymentMethod(Request $request): JsonResponse
+    {
+        $data = Validator::make($request->all(), [
+            'payment_method' => ['required', 'string'],
+            'make_default' => ['sometimes', 'boolean'],
+        ])->validate();
+
+        $user = $request->user();
+
+        if ($this->shouldBypassStripe()) {
+            return response()->json([
+                'status' => 'success',
+                'default_payment_method' => $user->defaultPaymentMethod()?->id,
+            ], 201);
+        }
+
+        $user->addPaymentMethod($data['payment_method']);
+
+        if (($data['make_default'] ?? false) || ! $user->defaultPaymentMethod()) {
+            $user->updateDefaultPaymentMethod($data['payment_method']);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'default_payment_method' => $user->defaultPaymentMethod()?->id,
+        ], 201);
+    }
+
+    public function setDefaultPaymentMethod(Request $request, string $paymentMethod): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($this->shouldBypassStripe()) {
+            return response()->json(['status' => 'success']);
+        }
+
+        $belongsToUser = $user->paymentMethods()->firstWhere('id', $paymentMethod);
+
+        if (! $belongsToUser) {
+            abort(403);
+        }
+
+        $user->updateDefaultPaymentMethod($paymentMethod);
+
+        return response()->json(['status' => 'success']);
+    }
+
+    public function removePaymentMethod(Request $request, string $paymentMethod): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($this->shouldBypassStripe()) {
+            return response()->json(['status' => 'success']);
+        }
+
+        $belongsToUser = $user->paymentMethods()->firstWhere('id', $paymentMethod);
+
+        if (! $belongsToUser) {
+            abort(403);
+        }
+
+        $defaultPaymentMethod = $user->defaultPaymentMethod();
+        $methods = $user->paymentMethods();
+
+        if ($defaultPaymentMethod?->id === $paymentMethod && $methods->count() <= 1) {
+            return response()->json([
+                'message' => 'Add another payment method before removing your default one.',
+            ], 422);
+        }
+
+        $user->deletePaymentMethod($paymentMethod);
+
+        if ($defaultPaymentMethod?->id === $paymentMethod) {
+            $replacement = $user->paymentMethods()->first();
+
+            if ($replacement) {
+                $user->updateDefaultPaymentMethod($replacement->id);
+            }
+        }
+
+        return response()->json(['status' => 'success']);
     }
 }

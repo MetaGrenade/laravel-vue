@@ -41,6 +41,16 @@ const sidebarNavItems: NavItem[] = [
         href: '/settings/billing',
         target: '_self'
     },
+    {
+        title: 'Payment methods',
+        href: '/settings/billing/payment-methods',
+        target: '_self'
+    },
+    {
+        title: 'Invoices',
+        href: '/settings/billing/invoices',
+        target: '_self'
+    },
 ];
 
 const page = usePage();
