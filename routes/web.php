@@ -10,6 +10,7 @@ use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumPostRevisionController;
 use App\Http\Controllers\ForumThreadModerationController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SearchResultsController;
 use App\Http\Controllers\SupportCenterController;
@@ -29,6 +30,9 @@ Route::get('/', function () {
 
 Route::get('/search', SearchController::class)->name('search');
 Route::get('/search/results', SearchResultsController::class)->name('search.results');
+Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
+Route::post('/pricing/setup-intent', [PricingController::class, 'intent'])->name('pricing.intent');
+Route::post('/pricing/subscribe', [PricingController::class, 'subscribe'])->name('pricing.subscribe');
 
 // Public Blog Routes
 Route::middleware('section.enabled:blog')->group(function () {

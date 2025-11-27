@@ -1,22 +1,24 @@
 <?php
 
-namespace App\Http\Controllers\Settings;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\BillingInvoice;
-use App\Models\SubscriptionPlan;
 use App\Http\Controllers\Concerns\InteractsWithStripe;
+use App\Models\SubscriptionPlan;
+use App\Models\User;
 use App\Support\Billing\SubscriptionManager;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 
-class SubscriptionController extends Controller
+class PricingController extends Controller
 {
     use InteractsWithStripe;
 
@@ -24,11 +26,8 @@ class SubscriptionController extends Controller
     {
     }
 
-    public function index(Request $request): InertiaResponse
+    public function index(): InertiaResponse
     {
-        $user = $request->user();
-        $subscription = $user?->subscription(config('billing.subscription_name', 'default'));
-
         $plans = SubscriptionPlan::query()
             ->active()
             ->orderBy('price')
@@ -44,50 +43,64 @@ class SubscriptionController extends Controller
                 'stripe_price_id' => $plan->stripe_price_id,
             ])->values();
 
-        $invoices = BillingInvoice::query()
-            ->where('user_id', $user?->id)
-            ->latest('created_at')
-            ->limit(10)
-            ->get(['id', 'stripe_id', 'status', 'total', 'currency', 'created_at', 'paid_at'])
-            ->map(fn (BillingInvoice $invoice) => [
-                'id' => $invoice->id,
-                'stripe_id' => $invoice->stripe_id,
-                'status' => $invoice->status,
-                'total' => $invoice->total,
-                'currency' => $invoice->currency,
-                'created_at' => optional($invoice->created_at)?->toIso8601String(),
-                'paid_at' => optional($invoice->paid_at)?->toIso8601String(),
-            ])->values();
-
-        return Inertia::render('settings/Billing', [
+        return Inertia::render('Pricing', [
             'plans' => $plans,
-            'subscription' => $subscription ? [
-                'name' => $subscription->name,
-                'stripe_status' => $subscription->stripe_status,
-                'stripe_price' => $subscription->stripe_price,
-                'on_grace_period' => $subscription->onGracePeriod(),
-                'cancelled' => $subscription->canceled(),
-                'ends_at' => optional($subscription->ends_at)?->toIso8601String(),
-            ] : null,
-            'invoices' => $invoices,
         ]);
     }
 
-    public function setupIntent(Request $request): JsonResponse
+    public function intent(Request $request): JsonResponse
     {
+        $user = $request->user();
+
+        $data = Validator::make($request->all(), [
+            'plan_id' => ['required', 'exists:subscription_plans,id'],
+            'email' => [
+                $user ? 'sometimes' : 'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user?->id),
+            ],
+        ])->validate();
+
+        /** @var SubscriptionPlan $plan */
+        $plan = SubscriptionPlan::query()->active()->findOrFail($data['plan_id']);
+
+        if (! $user) {
+            $user = $this->createUserFromEmail($data['email']);
+            Auth::login($user);
+            event(new Registered($user));
+        }
+
         $intent = $this->shouldBypassStripe() ? (object) [
             'id' => 'seti_'.Str::random(24),
             'client_secret' => 'seti_secret_'.Str::random(40),
-        ] : $request->user()->createSetupIntent();
+        ] : $user->createSetupIntent();
 
         return response()->json([
             'id' => $intent->id,
             'client_secret' => $intent->client_secret,
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'nickname' => $user->nickname,
+            ],
+            'plan' => [
+                'id' => $plan->id,
+                'name' => $plan->name,
+            ],
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function subscribe(Request $request): JsonResponse
     {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'You need an account before subscribing.',
+            ], 401);
+        }
+
         $data = Validator::make($request->all(), [
             'plan_id' => ['required', 'exists:subscription_plans,id'],
             'payment_method' => ['required', 'string'],
@@ -95,10 +108,10 @@ class SubscriptionController extends Controller
         ])->validate();
 
         /** @var SubscriptionPlan $plan */
-        $plan = SubscriptionPlan::findOrFail($data['plan_id']);
+        $plan = SubscriptionPlan::query()->active()->findOrFail($data['plan_id']);
 
         try {
-            $subscription = $this->subscriptions->create($request->user(), $plan, $data['payment_method'], [
+            $subscription = $this->subscriptions->create($user, $plan, $data['payment_method'], [
                 'coupon' => $data['coupon'] ?? null,
             ]);
         } catch (IncompletePayment $exception) {
@@ -122,17 +135,21 @@ class SubscriptionController extends Controller
         ]);
     }
 
-    public function cancel(Request $request): RedirectResponse
+    protected function createUserFromEmail(string $email): User
     {
-        $this->subscriptions->cancel($request->user());
+        $baseNickname = Str::slug(Str::before($email, '@')) ?: 'member';
+        $nickname = $baseNickname;
+        $counter = 1;
 
-        return to_route('settings.billing.index');
-    }
+        while (User::where('nickname', $nickname)->exists()) {
+            $nickname = $baseNickname.'-'.$counter;
+            $counter++;
+        }
 
-    public function resume(Request $request): RedirectResponse
-    {
-        $this->subscriptions->resume($request->user());
-
-        return to_route('settings.billing.index');
+        return User::create([
+            'nickname' => $nickname,
+            'email' => $email,
+            'password' => Hash::make(Str::random(32)),
+        ]);
     }
 }

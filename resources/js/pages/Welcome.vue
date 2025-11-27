@@ -26,6 +26,12 @@ const websiteSections = computed(() => {
         <header class="mb-8 flex w-full justify-center px-6 pt-6">
             <nav class="flex w-full max-w-5xl items-center justify-end gap-4 text-sm">
                 <Link
+                    :href="route('pricing')"
+                    class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
+                >
+                    Pricing
+                </Link>
+                <Link
                     v-if="$page.props.auth.user"
                     :href="route('dashboard')"
                     class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
@@ -70,6 +76,12 @@ const websiteSections = computed(() => {
                                 class="inline-flex items-center justify-center rounded-sm bg-[#1b1b18] px-5 py-2 text-sm font-medium text-white shadow-[0px_1px_2px_rgba(0,0,0,0.12)] transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
                             >
                                 Create an account
+                            </Link>
+                            <Link
+                                :href="route('pricing')"
+                                class="inline-flex items-center justify-center rounded-sm border border-[#19140035] px-5 py-2 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                            >
+                                View pricing
                             </Link>
                             <Link
                                 v-if="websiteSections.blog"
