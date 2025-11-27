@@ -145,7 +145,7 @@ class SubscriptionController extends Controller
 
                 return [
                     'id' => $stripeInvoice->id,
-                    'number' => $invoice->number(),
+                    'number' => $stripeInvoice->number ?? $stripeInvoice->id,
                     'status' => $stripeInvoice->status,
                     'total' => $invoice->total(),
                     'currency' => $invoice->currency(),
