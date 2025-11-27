@@ -232,7 +232,7 @@ const websiteSections = computed(() => {
                             <div class="mt-4 flex flex-wrap gap-2">
                                 <Link
                                     :href="route('dashboard')"
-                                    class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                    class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                 >
                                     Visit Dashboard
                                 </Link>
@@ -264,7 +264,7 @@ const websiteSections = computed(() => {
                             <div class="mt-4 flex flex-wrap gap-2">
                                 <Link
                                     :href="route('acp.system')"
-                                    class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                    class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                 >
                                     View System Settings
                                 </Link>
@@ -307,23 +307,23 @@ const websiteSections = computed(() => {
                     <section class="rounded-xl bg-[#11110f] px-6 py-10 text-white bg-gradient-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]">
                         <div class="flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:justify-between">
                             <div class="space-y-3">
-                                <p class="text-xs uppercase tracking-[0.14em] text-[#f3d29e]">Launch Faster</p>
-                                <h3 class="text-2xl font-semibold leading-tight">Plug into <Anvil class="inline text-[#8b5a00] dark:text-[#f3d29e]" /> <span class="text-[#8b5a00] dark:text-[#f3d29e]">MetaForge</span> and ship your product story</h3>
-                                <p class="max-w-2xl text-sm text-[#d7d5cf]">
+                                <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Launch Faster</p>
+                                <h3 class="text-2xl font-semibold leading-tight text-[#1b1b18] dark:text-[#EDEDEC]">Plug into <Anvil class="inline text-[#8b5a00] dark:text-[#f3d29e]" /> <span class="text-[#8b5a00] dark:text-[#f3d29e]">MetaForge</span> and ship your product story</h3>
+                                <p class="max-w-2xl text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                     Every module uses the same typography, spacing, and components so you can focus on content, customization, and onboarding instead of wiring basics together.
                                 </p>
                             </div>
                             <div class="flex flex-wrap gap-3">
                                 <Link
                                     :href="route('register')"
-                                    class="inline-flex items-center rounded-sm bg-white px-5 py-2 text-sm font-medium text-[#0f0f0d] transition hover:bg-[#f3d29e]"
+                                    class="inline-flex items-center rounded-sm px-5 py-2 text-sm font-medium text-[#1b1b18] hover:text-white dark:text-[#0f0f0d] transition bg-[#f3d29e] hover:bg-black dark:bg-[#f3d29e] dark:hover:bg-white"
                                 >
                                     Get Started Free
                                 </Link>
                                 <Link
                                     v-if="websiteSections.blog"
                                     :href="route('blogs.index')"
-                                    class="inline-flex items-center rounded-sm border border-[#ffffff33] px-5 py-2 text-sm font-medium text-white transition hover:border-white"
+                                    class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                 >
                                     See it in action
                                 </Link>
