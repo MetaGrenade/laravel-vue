@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BillingController;
 use App\Http\Controllers\Admin\BillingWebhookCallController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
+use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\TrustSafetyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -29,6 +30,11 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::redirect('acp', '/acp/dashboard');
 
     Route::get('acp/dashboard', [AdminController::class, 'get'])->name('acp.dashboard');
+    Route::get('acp/search-analytics', [SearchAnalyticsController::class, 'index'])->name('acp.search-analytics.index');
+    Route::get('acp/search-analytics/exports/aggregates', [SearchAnalyticsController::class, 'exportAggregates'])
+        ->name('acp.search-analytics.export-aggregates');
+    Route::get('acp/search-analytics/exports/searches', [SearchAnalyticsController::class, 'exportSearches'])
+        ->name('acp.search-analytics.export-searches');
 
     // Admin User Management Routes
     Route::get('acp/users', [AdminUserController::class, 'index'])->name('acp.users.index');

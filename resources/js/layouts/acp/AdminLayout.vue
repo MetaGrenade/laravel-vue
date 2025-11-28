@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook, MessageCircle } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook, MessageCircle, Search } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -24,6 +24,7 @@ const manageBilling = computed(() => hasPermission('billing.acp.view'));
 const manageSystem = computed(() => hasPermission('system.acp.view'));
 const manageReputation = computed(() => hasPermission('reputation.acp.view'));
 const manageTrustSafety = computed(() => hasPermission('trust_safety.acp.view'));
+const manageSearchAnalytics = computed(() => isAdmin.value || hasPermission('search.acp.view'));
 
 const sidebarNavItems: NavItem[] = [
     {
@@ -31,6 +32,12 @@ const sidebarNavItems: NavItem[] = [
         href: '/acp/dashboard',
         target: '_self',
         icon: LayoutGrid,
+    },
+    {
+        title: 'Search Analytics',
+        href: '/acp/search-analytics',
+        target: '_self',
+        icon: Search,
     },
     {
         title: 'Users',
@@ -138,6 +145,8 @@ const filteredNavItems = computed(() => {
         switch(item.title) {
             case 'Dashboard':
                 return isAdmin.value;
+            case 'Search Analytics':
+                return manageSearchAnalytics.value;
             case 'Users':
                 return manageUsers.value;
             case 'Access Control':
