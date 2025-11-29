@@ -90,10 +90,10 @@ const techIconsInline = Object.keys(rawIconModules)
                             </div>
                             <div class="space-y-4">
                                 <h1 class="text-3xl font-semibold leading-tight tracking-tight text-[#1b1b18] dark:text-[#EDEDEC] sm:text-4xl">
-                                    Launch your SaaS app with ready-to-ship modules
+                                    Launch a production SaaS with design-matched modules and copy
                                 </h1>
                                 <p class="max-w-2xl text-base text-[#706f6c] dark:text-[#A1A09A]">
-                                    A cohesive boilerplate that ships with content, conversations, support, billing, and an admin control panel—all styled with the existing design system so you can customize and deploy faster.
+                                    A cohesive boilerplate built to market itself—shipping with content, conversations, support, billing, and an admin control panel so you can demo faster, sell sooner, and keep branding consistent.
                                 </p>
                             </div>
                             <div class="flex flex-wrap gap-3">
@@ -163,213 +163,238 @@ const techIconsInline = Object.keys(rawIconModules)
 
                     <section>
                         <div class="flex flex-col gap-6">
-                            <Carousel
-                                class="w-full w-max-7xl"
-                                :opts="{
-                                  align: 'start',
-                                  loop: true,
-                                }"
-                                :plugins="[Autoplay({
-                                  delay: 2000,
-                                })]"
-                            >
-                                <CarouselContent class="-ml-1">
-                                    <!-- Inline SVG icons — wrapper controls text color which icons inherit -->
-                                    <CarouselItem
-                                        v-for="(icon, index) in techIconsInline"
-                                        :key="icon.name"
-                                        class="pl-1 md:basis-1/4 lg:basis-1/5"
-                                    >
-                                        <div class="p-1">
-                                            <Card class="bg-gradient-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] text-[#1b1b18] dark:text-[#EDEDEC]">
-                                                <CardContent class="flex aspect-square items-center justify-center p-4">
-                                                    <!-- wrapper sets the color; svg markup is injected and inherits currentColor -->
-                                                    <div
-                                                        class="tech-icon text-[#8b5a00] dark:text-[#f3d29e]"
-                                                        v-html="icon.svg"
-                                                        :aria-label="icon.name"
-                                                        role="img"
-                                                    />
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                    </CarouselItem>
-                                </CarouselContent>
-                                <CarouselPrevious class="text-[#1b1b18] dark:text-[#EDEDEC]" />
-                                <CarouselNext class="text-[#1b1b18] dark:text-[#EDEDEC]" />
-                            </Carousel>
+                            <div class="flex flex-col gap-2">
+                                <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Marketing & SEO Ready</p>
+                                <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Crafted for founders who need to demo quickly</h2>
+                                <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Every surface is written and organized to sell the boilerplate itself—so prospects see how the blog, forum, and support center look before they ever clone the repo.</p>
+                            </div>
+                            <div class="flex flex-col gap-3">
+                                <div class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">Trusted tooling that keeps your marketing site fast and indexable.</div>
+                                <Carousel
+                                    class="w-full w-max-7xl"
+                                    :opts="{
+                                      align: 'start',
+                                      loop: true,
+                                    }"
+                                    :plugins="[Autoplay({
+                                      delay: 2000,
+                                    })]"
+                                >
+                                    <CarouselContent class="-ml-1">
+                                        <!-- Inline SVG icons — wrapper controls text color which icons inherit -->
+                                        <CarouselItem
+                                            v-for="(icon, index) in techIconsInline"
+                                            :key="icon.name"
+                                            class="pl-1 md:basis-1/4 lg:basis-1/5"
+                                        >
+                                            <div class="p-1">
+                                                <Card class="bg-gradient-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] text-[#1b1b18] dark:text-[#EDEDEC]">
+                                                    <CardContent class="flex aspect-square items-center justify-center p-4">
+                                                        <!-- wrapper sets the color; svg markup is injected and inherits currentColor -->
+                                                        <div
+                                                            class="tech-icon text-[#8b5a00] dark:text-[#f3d29e]"
+                                                            v-html="icon.svg"
+                                                            :aria-label="icon.name"
+                                                            role="img"
+                                                        />
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+                                        </CarouselItem>
+                                    </CarouselContent>
+                                    <CarouselPrevious class="text-[#1b1b18] dark:text-[#EDEDEC]" />
+                                    <CarouselNext class="text-[#1b1b18] dark:text-[#EDEDEC]" />
+                                </Carousel>
+                            </div>
                         </div>
                     </section>
 
-                    <section class="grid gap-4 lg:grid-cols-3">
-                        <div
-                            v-if="websiteSections.blog"
-                            class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
-                        >
-                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Editorial</p>
-                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Blog</h3>
-                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                Publish announcements, guides, and release notes with SEO-friendly layouts, tags, and comments.
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <Link
-                                    :href="route('blogs.index')"
-                                    class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
-                                >
-                                    View Articles
-                                </Link>
-                            </div>
+                    <section class="space-y-6">
+                        <div class="flex flex-col gap-2">
+                            <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Storytelling-first layout</p>
+                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Content, community, and support ready on day one</h2>
+                            <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Lead visitors through the same funnel your SaaS uses: read a post, join a forum thread, open a support ticket. All three modules ship with matching UX and SEO-conscious templates.</p>
                         </div>
-
-                        <div
-                            v-if="websiteSections.forum"
-                            class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
-                        >
-                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Community</p>
-                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Forum</h3>
-                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                Organized boards, thread subscriptions, and moderation tools to keep discussions healthy.
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <Link
-                                    :href="route('forum.index')"
-                                    class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
-                                >
-                                    Browse Threads
-                                </Link>
-                            </div>
-                        </div>
-
-                        <div
-                            v-if="websiteSections.support"
-                            class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
-                        >
-                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Help</p>
-                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Support Center</h3>
-                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                Ticketing, FAQs, and satisfaction surveys that plug directly into your member accounts.
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <Link
-                                    :href="route('support')"
-                                    class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
-                                >
-                                    Open Support
-                                </Link>
-                            </div>
-                        </div>
-
-                        <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:col-span-2">
-                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Monetization</p>
-                            <div class="mt-2 flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between">
-                                <div>
-                                    <h3 class="text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Pricing & Billing</h3>
-                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                        Stripe-backed subscriptions, invoices, and webhooks with member-facing billing screens.
-                                    </p>
-                                </div>
-                                <div class="flex flex-wrap gap-2">
+                        <div class="grid gap-4 lg:grid-cols-3">
+                            <div
+                                v-if="websiteSections.blog"
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Editorial</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Blog</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Publish announcements, guides, and release notes with SEO-friendly layouts, tags, and comments.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
-                                        :href="route('settings.billing.index')"
-                                        class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                        :href="route('blogs.index')"
+                                        class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
                                     >
-                                        Manage Subscriptions
+                                        View Articles
                                     </Link>
                                 </div>
                             </div>
-                            <div class="mt-6 grid gap-4 sm:grid-cols-3">
-                                <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
-                                    <p class="font-semibold">Subscription Flows</p>
-                                    <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Upgrade, cancel, resume, and retry payments directly from member settings.</p>
+
+                            <div
+                                v-if="websiteSections.forum"
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Community</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Forum</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Organized boards, thread subscriptions, and moderation tools to keep discussions healthy.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Link
+                                        :href="route('forum.index')"
+                                        class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                    >
+                                        Browse Threads
+                                    </Link>
                                 </div>
-                                <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
-                                    <p class="font-semibold">Invoices & Webhooks</p>
-                                    <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Audit webhook deliveries and keep invoices aligned with your Stripe catalog.</p>
+                            </div>
+
+                            <div
+                                v-if="websiteSections.support"
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Help</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Support Center</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Ticketing, FAQs, and satisfaction surveys that plug directly into your member accounts.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Link
+                                        :href="route('support')"
+                                        class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                    >
+                                        Open Support
+                                    </Link>
                                 </div>
-                                <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
-                                    <p class="font-semibold">Pricing Presets</p>
-                                    <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Start with common plan tiers and tailor the copy before launch.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="space-y-6">
+                        <div class="flex flex-col gap-2">
+                            <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Revenue & retention</p>
+                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Monetize and operate without rewriting defaults</h2>
+                            <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Keep the marketing story tight by showing real billing, dashboard, and admin screens—so buyers know the boilerplate comes with the business fundamentals.</p>
+                        </div>
+                        <div class="grid gap-4 lg:grid-cols-3">
+                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:col-span-2">
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Monetization</p>
+                                <div class="mt-2 flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between">
+                                    <div>
+                                        <h3 class="text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Pricing & Billing</h3>
+                                        <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                            Stripe-backed subscriptions, invoices, and webhooks with member-facing billing screens.
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <Link
+                                            :href="route('settings.billing.index')"
+                                            class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                        >
+                                            Manage Subscriptions
+                                        </Link>
+                                    </div>
+                                </div>
+                                <div class="mt-6 grid gap-4 sm:grid-cols-3">
+                                    <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                        <p class="font-semibold">Subscription Flows</p>
+                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Upgrade, cancel, resume, and retry payments directly from member settings.</p>
+                                    </div>
+                                    <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                        <p class="font-semibold">Invoices & Webhooks</p>
+                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Audit webhook deliveries and keep invoices aligned with your Stripe catalog.</p>
+                                    </div>
+                                    <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                        <p class="font-semibold">Pricing Presets</p>
+                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Start with common plan tiers and tailor the copy before launch.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Insights</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Member Dashboard</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Unified dashboard that surfaces blog recommendations, forum engagement, and support updates.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Link
+                                        :href="route('dashboard')"
+                                        class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    >
+                                        Visit Dashboard
+                                    </Link>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Insights</p>
-                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Member Dashboard</h3>
-                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                Unified dashboard that surfaces blog recommendations, forum engagement, and support updates.
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <Link
-                                    :href="route('dashboard')"
-                                    class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
-                                >
-                                    Visit Dashboard
-                                </Link>
+                        <div class="grid gap-4 lg:grid-cols-3">
+                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Operations</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Admin Control Panel</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Manage users, permissions, support queues, and moderation workflows inside the Inertia-powered ACP.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Link
+                                        :href="route('acp.dashboard')"
+                                        class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    >
+                                        Visit Admin Dashboard
+                                    </Link>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Operations</p>
-                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Admin Control Panel</h3>
-                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                Manage users, permissions, support queues, and moderation workflows inside the Inertia-powered ACP.
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <Link
-                                    :href="route('acp.dashboard')"
-                                    class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
-                                >
-                                    Visit Admin Dashboard
-                                </Link>
+                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Toggles</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Website Modules</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Enable or disable the blog, forum, support center, billing, and social logins with safe defaults and 404 enforcement.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Link
+                                        :href="route('acp.system')"
+                                        class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    >
+                                        View System Settings
+                                    </Link>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Toggles</p>
-                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Website Modules</h3>
-                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                Enable or disable the blog, forum, support center, billing, and social logins with safe defaults and 404 enforcement.
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <Link
-                                    :href="route('acp.system')"
-                                    class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
-                                >
-                                    View System Settings
-                                </Link>
+                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Security</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Identity & MFA</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    TOTP multi-factor authentication, recovery codes, session management, and OAuth identity linking live in member settings.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Link
+                                        :href="route('security.edit')"
+                                        class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    >
+                                        Review Security
+                                    </Link>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Security</p>
-                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Identity & MFA</h3>
-                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                TOTP multi-factor authentication, recovery codes, session management, and OAuth identity linking live in member settings.
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <Link
-                                    :href="route('security.edit')"
-                                    class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
-                                >
-                                    Review Security
-                                </Link>
-                            </div>
-                        </div>
-
-                        <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                            <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">API</p>
-                            <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Docs & Tokens</h3>
-                            <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                Versioned `/api/v1` endpoints, Swagger UI at <code>/api/docs</code>, and Sanctum token management for native clients.
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <Link
-                                    :href="route('api.docs')"
-                                    class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
-                                >
-                                    View API Docs
-                                </Link>
+                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:col-span-2">
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">API</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Docs & Tokens</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Versioned `/api/v1` endpoints, Swagger UI at <code>/api/docs</code>, and Sanctum token management for native clients.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Link
+                                        :href="route('api.docs')"
+                                        class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                    >
+                                        View API Docs
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </section>
