@@ -6,7 +6,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Toaster, toast } from 'vue-sonner';
+import { toast } from 'vue-sonner';
 
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -232,7 +232,6 @@ const saveSettings = () => {
 
                 <!-- Save Settings Button -->
                 <div class="flex justify-end">
-                    <Toaster theme="dark" richColors />
                     <Button
                         @click="saveSettings"
                         :disabled="form.processing"

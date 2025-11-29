@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import { toast } from 'vue-sonner';
-
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -12,6 +10,7 @@ import Input from '@/components/ui/input/Input.vue';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { toast } from 'vue-sonner';
 
 type CommentUser = {
     id: number;
