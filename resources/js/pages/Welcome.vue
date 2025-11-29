@@ -90,10 +90,10 @@ const techIconsInline = Object.keys(rawIconModules)
                             </div>
                             <div class="space-y-4">
                                 <h1 class="text-3xl font-semibold leading-tight tracking-tight text-[#1b1b18] dark:text-[#EDEDEC] sm:text-4xl">
-                                    Launch a production SaaS with design-matched modules and copy
+                                    Show founders, clients, and contributors a SaaS that’s already selling
                                 </h1>
                                 <p class="max-w-2xl text-base text-[#706f6c] dark:text-[#A1A09A]">
-                                    A cohesive boilerplate built to market itself—shipping with content, conversations, support, billing, and an admin control panel so you can demo faster, sell sooner, and keep branding consistent.
+                                    This Laravel + Vue starter arrives with every marketing surface live—blog, forum, support, billing, and admin—so agencies, indie founders, and OSS adopters can point to proof before writing custom code.
                                 </p>
                             </div>
                             <div class="flex flex-wrap gap-3">
@@ -138,21 +138,21 @@ const techIconsInline = Object.keys(rawIconModules)
                                             <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]">1</span>
                                             <div>
                                                 <p class="font-medium">Story-driven Blog</p>
-                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Feature posts, categories, tags, and RSS without extra setup.</p>
+                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Demo launches and updates instantly with tags, categories, and RSS baked in.</p>
                                             </div>
                                         </li>
                                         <li class="flex items-start gap-3">
                                             <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]">2</span>
                                             <div>
                                                 <p class="font-medium">Community Forum</p>
-                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Boards, threads, moderation, and subscriptions ready to go.</p>
+                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Invite early adopters and clients into moderated threads with subscriptions ready.</p>
                                             </div>
                                         </li>
                                         <li class="flex items-start gap-3">
                                             <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]">3</span>
                                             <div>
                                                 <p class="font-medium">Support & Billing</p>
-                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Ticketing, FAQs, and subscription management live together.</p>
+                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Prove readiness with ticketing, FAQs, and subscription management in one flow.</p>
                                             </div>
                                         </li>
                                     </ul>
@@ -165,11 +165,11 @@ const techIconsInline = Object.keys(rawIconModules)
                         <div class="flex flex-col gap-6">
                             <div class="flex flex-col gap-2">
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Marketing & SEO Ready</p>
-                                <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Crafted for founders who need to demo quickly</h2>
-                                <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Show customers real blog, forum, and support flows the moment they land—so your SaaS pitch, open source repo, or client proposal starts with proof instead of promises.</p>
+                                <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Built to earn trust from the first scroll</h2>
+                                <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Founders, agencies, and OSS adopters can drop visitors straight into real blog, forum, and support flows—so pitches, proposals, and readme files point to live proof, not empty shells.</p>
                             </div>
                             <div class="flex flex-col gap-3">
-                                <div class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">SSR, clean markup, and lightweight UI components keep your marketing pages fast, indexable, and easy to extend.</div>
+                                <div class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">SSR, clean markup, and lightweight UI components keep marketing pages fast, indexable, and credible for anyone evaluating the starter.</div>
                                 <Carousel
                                     class="w-full w-max-7xl"
                                     :opts="{
@@ -212,8 +212,8 @@ const techIconsInline = Object.keys(rawIconModules)
                     <section class="space-y-6">
                         <div class="flex flex-col gap-2">
                             <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Storytelling-first layout</p>
-                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Content, community, and support ready on day one</h2>
-                            <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Lead visitors through the same funnel your SaaS uses: read a post, join a forum thread, open a support ticket. All three modules ship with matching UX and SEO-conscious templates.</p>
+                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Content, community, and support that prove the value</h2>
+                            <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Walk prospects and contributors through the same journey your SaaS promises: read a post, jump into a moderated thread, open a support ticket, and see consistent UX without extra wiring.</p>
                         </div>
                         <div class="grid gap-4 lg:grid-cols-3">
                             <div
@@ -223,7 +223,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                 <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Editorial</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Blog</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Publish announcements, guides, and release notes with SEO-friendly layouts, tags, and comments.
+                                    Publish announcements, guides, and release notes with SEO-friendly layouts that already feel launch-ready.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -242,7 +242,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                 <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Community</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Forum</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Organized boards, thread subscriptions, and moderation tools to keep discussions healthy.
+                                    Organized boards, thread subscriptions, and moderation tools so founders and clients see healthy discourse from day one.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -261,7 +261,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                 <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Help</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Support Center</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Ticketing, FAQs, and satisfaction surveys that plug directly into your member accounts.
+                                    Ticketing, FAQs, and satisfaction surveys that plug into member accounts to show you’re ready to support paying users.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -278,8 +278,8 @@ const techIconsInline = Object.keys(rawIconModules)
                     <section class="space-y-6">
                         <div class="flex flex-col gap-2">
                             <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Revenue & retention</p>
-                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Monetize and operate without rewriting defaults</h2>
-                            <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Keep the marketing story tight by showing real billing, dashboard, and admin screens—so buyers know the boilerplate comes with the business fundamentals.</p>
+                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Show the business side is already live</h2>
+                            <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Stripe billing, dashboards, and admin controls are wired up so founders, agencies, and contributors can preview real monetization flows without building scaffolding first.</p>
                         </div>
                         <div class="grid gap-4 lg:grid-cols-3">
                             <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:col-span-2">
@@ -288,7 +288,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                     <div>
                                         <h3 class="text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Pricing & Billing</h3>
                                         <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                            Stripe-backed subscriptions, invoices, and webhooks with member-facing billing screens.
+                                            Stripe-backed subscriptions, invoices, and webhooks with member-facing billing screens your stakeholders can click through today.
                                         </p>
                                     </div>
                                     <div class="flex flex-wrap gap-2">
@@ -303,15 +303,15 @@ const techIconsInline = Object.keys(rawIconModules)
                                 <div class="mt-6 grid gap-4 sm:grid-cols-3">
                                     <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
                                         <p class="font-semibold">Subscription Flows</p>
-                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Upgrade, cancel, resume, and retry payments directly from member settings.</p>
+                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Upgrade, cancel, resume, and retry payments directly from member settings so prospects see retention flows in motion.</p>
                                     </div>
                                     <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
                                         <p class="font-semibold">Invoices & Webhooks</p>
-                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Audit webhook deliveries and keep invoices aligned with your Stripe catalog.</p>
+                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Audit webhook deliveries and keep invoices aligned with your Stripe catalog before clients sign off.</p>
                                     </div>
                                     <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
                                         <p class="font-semibold">Pricing Presets</p>
-                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Start with common plan tiers and tailor the copy before launch.</p>
+                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Start with common plan tiers and tailor the copy so your proposal shows pricing clarity immediately.</p>
                                     </div>
                                 </div>
                             </div>
@@ -337,7 +337,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                 <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Operations</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Admin Control Panel</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Manage users, permissions, support queues, and moderation workflows inside the Inertia-powered ACP.
+                                    Manage users, permissions, support queues, and moderation workflows inside the Inertia-powered ACP ready for stakeholder demos.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -353,7 +353,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                 <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Toggles</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Website Modules</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Enable or disable the blog, forum, support center, billing, and social logins with safe defaults and 404 enforcement.
+                                    Enable or disable the blog, forum, support center, billing, and social logins so you can curate a focused walkthrough for each audience.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -369,7 +369,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                 <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Security</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Identity & MFA</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    TOTP multi-factor authentication, recovery codes, session management, and OAuth identity linking live in member settings.
+                                    TOTP multi-factor authentication, recovery codes, session management, and OAuth identity linking live in member settings to reassure teams evaluating security.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -385,7 +385,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                 <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">API</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Docs & Tokens</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Versioned `/api/v1` endpoints, Swagger UI at <code>/api/docs</code>, and Sanctum token management for native clients.
+                                    Versioned `/api/v1` endpoints, Swagger UI at <code>/api/docs</code>, and Sanctum token management so technical buyers and OSS contributors can verify integrations fast.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -405,7 +405,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Launch Faster</p>
                                 <h3 class="text-2xl font-semibold leading-tight text-[#1b1b18] dark:text-[#EDEDEC]">Plug into <Anvil class="inline text-[#8b5a00] dark:text-[#f3d29e]" /> <span class="text-[#8b5a00] dark:text-[#f3d29e]">MetaForge</span> and ship your product story</h3>
                                 <p class="max-w-2xl text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Every module uses the same typography, spacing, and components so you can focus on content, customization, and onboarding instead of wiring basics together.
+                                    Every module uses the same typography, spacing, and components so founders, agencies, and OSS contributors can focus on content, customization, and onboarding instead of wiring basics together.
                                 </p>
                             </div>
                             <div class="flex flex-wrap gap-3">
@@ -431,7 +431,7 @@ const techIconsInline = Object.keys(rawIconModules)
                             <div class="space-y-2">
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Tech Stack</p>
                                 <h3 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Frontend, Backend, and Requirements</h3>
-                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">A concise overview of the frameworks, tooling, and references that power this starter kit.</p>
+                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">A concise overview of the frameworks, tooling, and references so evaluators can trust the stack before cloning.</p>
                             </div>
                             <div class="grid gap-6 md:grid-cols-3">
                                 <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
