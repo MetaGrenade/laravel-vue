@@ -9,6 +9,89 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import AppLayout from '@/layouts/AppLayout.vue';
 
 const page = usePage<SharedData>();
+const techStack = [
+    {
+        name: 'Laravel',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-12 w-12" fill="none">
+                <path fill="#F55247" d="M40.8 24.5 32 29.6v12.7l8.8-5.1V24.5Z"/>
+                <path fill="#F55247" d="m32 29.6-8.8-5.1v12.7l8.8 5.1V29.6Z" opacity=".85"/>
+                <path fill="#F76555" d="M32 16 23.2 21.2 32 26.3l8.8-5.1L32 16Z"/>
+                <path fill="#F55247" d="m23.2 21.2-8.7 5.1L23.2 31l8.8-4.7-8.8-5.1Z" opacity=".9"/>
+                <path fill="#F8877A" d="m40.8 21.2 8.7 5.1-8.7 4.7-8.8-4.7 8.8-5.1Z"/>
+            </svg>`,
+    },
+    {
+        name: 'Vue 3',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-12 w-12" fill="none">
+                <path fill="#41B883" d="M38.4 8 32 18.4 25.6 8H2.7L32 56 61.3 8H38.4Z"/>
+                <path fill="#35495E" d="M38.4 8 32 18.4 25.6 8h-9.2L32 39.7 47.6 8h-9.2Z"/>
+            </svg>`,
+    },
+    {
+        name: 'Inertia',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-12 w-12" fill="none">
+                <circle cx="20" cy="22" r="12" fill="#5C7CFA"/>
+                <circle cx="44" cy="42" r="12" fill="#82C7FF"/>
+                <path fill="#1E293B" d="M24 40c1.8 2.6 6.5 5.9 12.8 3.8 6-2 8-8.2 7.8-11.4-3.4 3.7-10.5 6.3-20.6 7.6Z" opacity=".55"/>
+            </svg>`,
+    },
+    {
+        name: 'Vite',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-12 w-12" fill="none">
+                <path fill="#654FF0" d="M8 10.8 32 56l24-45.2-24 8.6-24-8.6Z"/>
+                <path fill="#FFD166" d="M32 12v20l10.5-16.2L32 12Z"/>
+                <path fill="#FF8B3D" d="M32 12 21.5 15.8 32 32V12Z"/>
+            </svg>`,
+    },
+    {
+        name: 'Tailwind CSS',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-12 w-12" fill="none">
+                <path fill="#38BDF8" d="M32 16c-8 0-13.3 4-16 12 3.2-4 6.8-5.4 10.8-4.2 2.4.8 4.1 2.8 6 5.1 2.9 3.5 6.2 7.5 13.2 7.5 8 0 13.3-4 16-12-3.2 4-6.8 5.4-10.8 4.2-2.4-.8-4.1-2.8-6-5.1C42.3 20 39 16 32 16Z"/>
+                <path fill="#0EA5E9" d="M16.1 33.6C8 33.6 2.7 37.6 0 45.6c3.2-4 6.8-5.4 10.8-4.2 2.4.8 4.1 2.8 6 5.1 2.9 3.5 6.2 7.5 13.2 7.5 8 0 13.3-4 16-12-3.2 4-6.8 5.4-10.8 4.2-2.4-.8-4.1-2.8-6-5.1-2.9-3.5-6.2-7.5-13.2-7.5Z" opacity=".9"/>
+            </svg>`,
+    },
+    {
+        name: 'TypeScript',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-12 w-12" fill="none">
+                <rect width="64" height="64" rx="8" fill="#3178C6"/>
+                <path fill="#fff" d="M17 32.5h10.4v-4H12.5v4h3.8v15h4.7v-15Zm11.8 12.7c1.3 2.8 4.1 4.6 8.3 4.6 5 0 7.9-2.6 7.9-6.1 0-2.9-1.7-4.7-5.9-5.8l-2.4-.7c-2-.6-2.8-1.2-2.8-2.2 0-1.2 1.1-2 3-2 2 0 3.3.8 4 2.4l3.5-2c-1.3-2.6-3.9-4.3-7.4-4.3-4.3 0-7.4 2.4-7.4 6 0 3 1.9 4.8 5.8 5.9l2.5.7c2 .6 2.8 1.2 2.8 2.3 0 1.1-1 2-3.2 2-2.5 0-4-.9-4.8-2.6l-3.9 2.2Z"/>
+            </svg>`,
+    },
+    {
+        name: 'Shadcn UI',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-12 w-12" fill="none">
+                <rect x="8" y="8" width="22" height="22" rx="4" fill="#0F172A"/>
+                <rect x="34" y="34" width="22" height="22" rx="4" fill="#0F172A"/>
+                <path fill="#E5E7EB" d="M30 16h4v32h-4z"/>
+                <path fill="#E5E7EB" d="M16 30v4h32v-4z"/>
+            </svg>`,
+    },
+    {
+        name: 'Vue Sonner',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-12 w-12" fill="none">
+                <rect x="10" y="14" width="44" height="36" rx="10" fill="#111827" opacity=".92"/>
+                <path fill="#FACC15" d="M20 26h24v4H20z"/>
+                <path fill="#F97316" d="M20 34h18v4H20z" opacity=".9"/>
+                <circle cx="22" cy="22" r="8" fill="#34D399" opacity=".9"/>
+            </svg>`,
+    },
+    {
+        name: 'Pusher',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-12 w-12" fill="none">
+                <path fill="#4C51BF" d="M12 14h40v8H12z"/>
+                <path fill="#7180D8" d="M18 28h28v8H18z"/>
+                <path fill="#A5B4FC" d="M24 42h16v8H24z"/>
+                <circle cx="32" cy="32" r="30" stroke="#4C51BF" stroke-width="4" opacity=".6"/>
+            </svg>`,
+    },
+    {
+        name: 'Ziggy',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-12 w-12" fill="none">
+                <rect x="10" y="10" width="44" height="44" rx="8" fill="#111827"/>
+                <path fill="#67E8F9" d="M24 20h24l-18 24h18v4H24l18-24H24v-4Z"/>
+            </svg>`,
+    },
+];
 const websiteSections = computed(() => {
     const defaults = { blog: true, forum: true, support: true } as const;
     const settings = page.props.settings?.website_sections ?? defaults;
@@ -119,11 +202,22 @@ const websiteSections = computed(() => {
                                 })]"
                             >
                                 <CarouselContent class="-ml-1">
-                                    <CarouselItem v-for="(_, index) in 10" :key="index" class="pl-1 md:basis-1/4 lg:basis-1/5">
+                                    <CarouselItem
+                                        v-for="tech in techStack"
+                                        :key="tech.name"
+                                        class="pl-1 md:basis-1/4 lg:basis-1/5"
+                                    >
                                         <div class="p-1">
                                             <Card>
-                                                <CardContent class="flex aspect-square items-center justify-center p-4">
-                                                    <span class="text-2xl font-semibold">{{ index + 1 }}</span>
+                                                <CardContent class="flex aspect-square flex-col items-center justify-center gap-3 p-4">
+                                                    <div
+                                                        class="flex h-16 w-16 items-center justify-center rounded-lg bg-[#f3f0ea] text-[#1b1b18] dark:bg-[#171612] dark:text-[#EDEDEC]"
+                                                        v-html="tech.svg"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <p class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">
+                                                        {{ tech.name }}
+                                                    </p>
                                                 </CardContent>
                                             </Card>
                                         </div>
