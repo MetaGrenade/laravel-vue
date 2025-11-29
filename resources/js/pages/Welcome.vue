@@ -19,6 +19,61 @@ const websiteSections = computed(() => {
         support: settings.support ?? defaults.support,
     } as const;
 });
+
+/**
+ * Load raw SVG strings (inline) from resources/images/tech-icons
+ * We use 'raw' so we can insert SVG markup into the page and recolor it with currentColor.
+ */
+const rawIconModules = import.meta.glob('../../images/tech-icons/*.svg', { as: 'raw', eager: true }) as Record<string, string>;
+
+function sanitizeAndPrepareSvg(rawSvg: string) {
+    if (!rawSvg) return '';
+
+    // remove XML prologue and doctype
+    let svg = rawSvg.replace(/<\?xml[\s\S]*?\?>/gi, '').replace(/<!DOCTYPE[\s\S]*?>/gi, '');
+
+    // Remove any HTML comments
+    svg = svg.replace(/<!--[\s\S]*?-->/g, '');
+
+    // Replace the opening <svg ...> tag:
+    // - remove width/height attributes
+    // - remove existing style attribute (we'll add our own sizing style)
+    // - inject a small inline style to force consistent height
+    // - set role/focusable attributes for accessibility
+    svg = svg.replace(/<svg([^>]*)>/i, (match, attrs) => {
+        // strip width/height/style attributes from attrs
+        let cleaned = attrs
+            .replace(/\s(width|height)=["'][^"']*["']/gi, '')
+            .replace(/\s(style)=["'][^"']*["']/gi, '');
+
+        // ensure there's a space between <svg and attributes if attrs not empty
+        const attrsFragment = (cleaned && cleaned.trim().length) ? ' ' + cleaned.trim() : '';
+
+        // add inline style for consistent height (3rem -> 48px equals Tailwind h-12)
+        // display:block prevents inline-gap issues in some browsers
+        const inlineStyle = 'style="height:3rem;width:auto;display:block"';
+
+        return `<svg${attrsFragment} ${inlineStyle} role="img" focusable="false" aria-hidden="false">`;
+    });
+
+    // (optional) remove unnecessary xmlns:xlink attributes to reduce clutter
+    svg = svg.replace(/\s+xmlns:[a-zA-Z]+=["'][^"']*["']/g, '');
+
+    return svg.trim();
+}
+
+const techIconsInline = Object.keys(rawIconModules)
+    .map((fullPath) => {
+        const parts = fullPath.split('/');
+        const filename = parts[parts.length - 1];
+        const name = filename.replace('.svg', '');
+        const raw = rawIconModules[fullPath] ?? '';
+        return {
+            name,
+            svg: sanitizeAndPrepareSvg(raw),
+        };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 </script>
 
 <template>
@@ -119,11 +174,22 @@ const websiteSections = computed(() => {
                                 })]"
                             >
                                 <CarouselContent class="-ml-1">
-                                    <CarouselItem v-for="(_, index) in 10" :key="index" class="pl-1 md:basis-1/4 lg:basis-1/5">
+                                    <!-- Inline SVG icons — wrapper controls text color which icons inherit -->
+                                    <CarouselItem
+                                        v-for="(icon, index) in techIconsInline"
+                                        :key="icon.name"
+                                        class="pl-1 md:basis-1/4 lg:basis-1/5"
+                                    >
                                         <div class="p-1">
                                             <Card>
                                                 <CardContent class="flex aspect-square items-center justify-center p-4">
-                                                    <span class="text-2xl font-semibold">{{ index + 1 }}</span>
+                                                    <!-- wrapper sets the color; svg markup is injected and inherits currentColor -->
+                                                    <div
+                                                        class="tech-icon text-[#8b5a00] dark:text-[#f3d29e]"
+                                                        v-html="icon.svg"
+                                                        :aria-label="icon.name"
+                                                        role="img"
+                                                    />
                                                 </CardContent>
                                             </Card>
                                         </div>
@@ -475,3 +541,24 @@ const websiteSections = computed(() => {
         </div>
     </AppLayout>
 </template>
+
+<style scoped>
+/* Ensure every shape inside the inlined SVG uses currentColor (text color on wrapper).
+   This forces single-color icons that follow the wrapper's text color.
+   We use !important to override hard-coded fills/strokes that may be baked into the SVG.
+*/
+.tech-icon svg,
+.tech-icon svg * {
+    /* The wrapper .tech-icon sets the color via Tailwind classes
+       (text-[#8b5a00] dark:text-[#f3d29e]) and the following forces svg elements to inherit. */
+    fill: currentColor !important;
+    stroke: currentColor !important;
+}
+
+/* Make sure the SVG scales nicely inside the card content */
+.tech-icon svg {
+    display: block; /* removes baseline gaps */
+    max-height: 3rem; /* same sizing as inline style; this is defensive */
+    width: auto;
+}
+</style>
