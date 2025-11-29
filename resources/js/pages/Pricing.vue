@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, shallowRef } from 'vue';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

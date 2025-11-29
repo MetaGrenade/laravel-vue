@@ -143,7 +143,11 @@ const clearFilters = () => {
 const debouncedSearch = useDebounceFn(() => visitWithFilters(), 300);
 watch(() => filterState.search, debouncedSearch);
 
-const { meta: paginationMeta, rangeLabel, setPage } = useInertiaPagination({
+const {
+    meta: paginationMeta,
+    page: paginationPage,
+    rangeLabel,
+} = useInertiaPagination({
     meta: computed(() => props.comments.meta ?? null),
     itemsLength: computed(() => props.comments.data?.length ?? 0),
     defaultPerPage: props.filters.per_page ?? 25,
@@ -416,30 +420,41 @@ const blockUser = (comment: typeof props.comments.data[number]) => {
 
                     <div class="flex flex-col items-center justify-between gap-4 border-t px-4 py-3 sm:flex-row">
                         <p class="text-sm text-muted-foreground">{{ rangeLabel }}</p>
-                        <Pagination v-if="paginationMeta">
-                            <PaginationList v-slot="{ items }">
-                                <PaginationFirst :disabled="paginationMeta.current_page === 1" @click="setPage(1)" />
-                                <PaginationPrev :disabled="paginationMeta.current_page === 1" @click="setPage(paginationMeta.current_page - 1)" />
-                                <template v-for="(item, index) in items" :key="index">
-                                    <PaginationListItem
-                                        v-if="item.type === 'page'"
-                                        :value="item.value"
-                                        :active="item.value === paginationMeta.current_page"
-                                        @click="setPage(item.value)"
-                                    >
-                                        {{ item.value }}
-                                    </PaginationListItem>
-                                    <PaginationEllipsis v-else />
-                                </template>
-                                <PaginationNext
-                                    :disabled="paginationMeta.current_page === paginationMeta.last_page"
-                                    @click="setPage(paginationMeta.current_page + 1)"
-                                />
-                                <PaginationLast
-                                    :disabled="paginationMeta.current_page === paginationMeta.last_page"
-                                    @click="setPage(paginationMeta.last_page)"
-                                />
-                            </PaginationList>
+                        <Pagination
+                            v-if="paginationMeta.total > 0"
+                            v-slot="{ page, pageCount }"
+                            v-model:page="paginationPage"
+                            :items-per-page="Math.max(paginationMeta.per_page, 1)"
+                            :total="paginationMeta.total"
+                            :sibling-count="1"
+                            show-edges
+                        >
+                            <div class="flex flex-col items-center gap-2 sm:flex-row sm:items-center sm:gap-3">
+                                <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                                <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                    <PaginationFirst />
+                                    <PaginationPrev />
+
+                                    <template v-for="(item, index) in items" :key="index">
+                                        <PaginationListItem
+                                            v-if="item.type === 'page'"
+                                            :value="item.value"
+                                            as-child
+                                        >
+                                            <Button
+                                                class="h-9 w-9 p-0"
+                                                :variant="item.value === page ? 'default' : 'outline'"
+                                            >
+                                                {{ item.value }}
+                                            </Button>
+                                        </PaginationListItem>
+                                        <PaginationEllipsis v-else :index="index" />
+                                    </template>
+
+                                    <PaginationNext />
+                                    <PaginationLast />
+                                </PaginationList>
+                            </div>
                         </Pagination>
                     </div>
                 </div>

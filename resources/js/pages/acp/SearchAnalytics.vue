@@ -75,43 +75,16 @@ const filters = reactive({
 });
 
 const {
-    page: currentPage,
-    setPage,
-    pageCount: totalPages,
+    meta: paginationMeta,
+    page: paginationPage,
+    rangeLabel,
 } = useInertiaPagination({
     meta: computed(() => props.recentSearches.meta ?? null),
     itemsLength: computed(() => props.recentSearches.data?.length ?? 0),
     defaultPerPage: filters.per_page,
+    itemLabel: 'search',
+    itemLabelPlural: 'searches',
     onNavigate: (page) => applyFilters({ page }),
-});
-
-const paginationPages = computed<(number | '...')[]>(() => {
-    const total = totalPages.value;
-    const current = currentPage.value;
-
-    if (total <= 7) {
-        return Array.from({ length: total }, (_, index) => index + 1);
-    }
-
-    const pages: (number | '...')[] = [1];
-    const start = Math.max(2, current - 1);
-    const end = Math.min(total - 1, current + 1);
-
-    if (start > 2) {
-        pages.push('...');
-    }
-
-    for (let page = start; page <= end; page += 1) {
-        pages.push(page);
-    }
-
-    if (end < total - 1) {
-        pages.push('...');
-    }
-
-    pages.push(total);
-
-    return pages;
 });
 
 const formatNumber = (value: number) => new Intl.NumberFormat().format(value);
@@ -289,25 +262,45 @@ const summaryCards = computed(() => [
                             </Table>
                         </div>
 
-                        <Pagination v-if="(recentSearches.meta?.last_page ?? 1) > 1" class="justify-end">
-                            <PaginationList>
-                                <PaginationFirst :disabled="currentPage <= 1" @click="setPage(1)" />
-                                <PaginationPrev :disabled="currentPage <= 1" @click="setPage(currentPage - 1)" />
-                                <PaginationListItem
-                                    v-for="(pageNumber, index) in paginationPages"
-                                    :key="`${pageNumber}-${index}`"
-                                    :value="pageNumber"
-                                    :active="pageNumber === currentPage"
-                                    :disabled="pageNumber === '...'"
-                                    @click="pageNumber !== '...' && setPage(pageNumber)"
-                                >
-                                    <PaginationEllipsis v-if="pageNumber === '...'" />
-                                    <span v-else>{{ pageNumber }}</span>
-                                </PaginationListItem>
-                                <PaginationNext :disabled="currentPage >= (totalPages ?? 1)" @click="setPage(currentPage + 1)" />
-                                <PaginationLast :disabled="currentPage >= (totalPages ?? 1)" @click="setPage(totalPages ?? 1)" />
-                            </PaginationList>
-                        </Pagination>
+                        <div class="flex flex-col items-center justify-between gap-4 border-t px-4 py-3 sm:flex-row">
+                            <p class="text-sm text-muted-foreground">{{ rangeLabel }}</p>
+                            <Pagination
+                                v-if="paginationMeta.total > 0"
+                                v-slot="{ page, pageCount }"
+                                v-model:page="paginationPage"
+                                :items-per-page="Math.max(paginationMeta.per_page, 1)"
+                                :total="paginationMeta.total"
+                                :sibling-count="1"
+                                show-edges
+                            >
+                                <div class="flex flex-col items-center gap-2 sm:flex-row sm:items-center sm:gap-3">
+                                    <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
+                                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                        <PaginationFirst />
+                                        <PaginationPrev />
+
+                                        <template v-for="(item, index) in items" :key="index">
+                                            <PaginationListItem
+                                                v-if="item.type === 'page'"
+                                                :value="item.value"
+                                                as-child
+                                            >
+                                                <Button
+                                                    class="h-9 w-9 p-0"
+                                                    :variant="item.value === page ? 'default' : 'outline'"
+                                                >
+                                                    {{ item.value }}
+                                                </Button>
+                                            </PaginationListItem>
+                                            <PaginationEllipsis v-else :index="index" />
+                                        </template>
+
+                                        <PaginationNext />
+                                        <PaginationLast />
+                                    </PaginationList>
+                                </div>
+                            </Pagination>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
