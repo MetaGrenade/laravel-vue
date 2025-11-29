@@ -181,7 +181,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                         class="pl-1 md:basis-1/4 lg:basis-1/5"
                                     >
                                         <div class="p-1">
-                                            <Card>
+                                            <Card class="bg-gradient-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] text-[#1b1b18] dark:text-[#EDEDEC]">
                                                 <CardContent class="flex aspect-square items-center justify-center p-4">
                                                     <!-- wrapper sets the color; svg markup is injected and inherits currentColor -->
                                                     <div
@@ -195,8 +195,8 @@ const techIconsInline = Object.keys(rawIconModules)
                                         </div>
                                     </CarouselItem>
                                 </CarouselContent>
-                                <CarouselPrevious class="text-white" />
-                                <CarouselNext class="text-white" />
+                                <CarouselPrevious class="text-[#1b1b18] dark:text-[#EDEDEC]" />
+                                <CarouselNext class="text-[#1b1b18] dark:text-[#EDEDEC]" />
                             </Carousel>
                         </div>
                     </section>
