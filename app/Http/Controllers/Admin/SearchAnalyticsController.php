@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Models\SearchQuery;
 use App\Models\SearchQueryAggregate;
@@ -15,6 +16,8 @@ use Inertia\Response;
 
 class SearchAnalyticsController extends Controller
 {
+    use InteractsWithInertiaPagination;
+
     public function index(Request $request): Response
     {
         $formatter = DateFormatter::for($request->user());
@@ -162,25 +165,24 @@ class SearchAnalyticsController extends Controller
             ->all();
     }
 
-    /**
-     * @return array{data: array<int, array<string, mixed>>, meta: array<string, mixed>, links: array<int, array<string, mixed>>}
-     */
     protected function recentSearches(DateFormatter $formatter, array $filters, int $perPage): array
     {
         $paginator = $this->recentSearchQuery($filters)
             ->orderByDesc('created_at')
             ->paginate($perPage)
-            ->withQueryString();
-
-        return $paginator
+            ->withQueryString()
             ->through(function (SearchQuery $query) use ($formatter) {
                 return [
                     'term' => $query->term,
                     'result_count' => $query->result_count,
                     'created_at' => $formatter->iso($query->created_at),
                 ];
-            })
-            ->toArray();
+            });
+
+        return [
+            'data' => $paginator->items(),
+            ...$this->inertiaPagination($paginator),
+        ];
     }
 
     protected function recentSearchQuery(array $filters)
