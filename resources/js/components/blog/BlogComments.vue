@@ -660,7 +660,11 @@ const submitReport = async () => {
             return;
         }
 
-        toast.success('Report submitted. Our moderators will review it soon.');
+        const payload = await response.json().catch(() => null);
+        const successMessage =
+            payload?.message ?? 'Report submitted. Our moderators will review it soon.';
+
+        toast.success(successMessage);
         reportDialogOpen.value = false;
     } catch (error) {
         console.error(error);
