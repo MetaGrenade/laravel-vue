@@ -44,6 +44,8 @@ import {
     ArchiveRestore,
     CalendarClock,
     TrendingUp,
+    MessageSquare,
+    MessageSquareOff,
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
@@ -193,6 +195,7 @@ const props = defineProps<{
                 email: string;
             } | null;
             status: string;
+            comments_enabled: boolean;
             created_at: string | null;
             scheduled_for: string | null;
             views: number;
@@ -500,6 +503,14 @@ const unarchivePost = (postId: number) => {
     });
 };
 
+const enableComments = (postId: number) => {
+    router.put(route('acp.blogs.comments.enable', { blog: postId }), {}, { preserveScroll: true });
+};
+
+const disableComments = (postId: number) => {
+    router.put(route('acp.blogs.comments.disable', { blog: postId }), {}, { preserveScroll: true });
+};
+
 const deletePost = (postId: number) => {
     router.delete(route('acp.blogs.destroy', { blog: postId }), {
         preserveScroll: true,
@@ -794,6 +805,19 @@ const confirmDeletePost = (post: BlogRow) => {
                                                         <span>Archive</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    v-if="editBlogs"
+                                                    @click="post.comments_enabled ? disableComments(post.id) : enableComments(post.id)"
+                                                >
+                                                    <component
+                                                        :is="post.comments_enabled ? MessageSquareOff : MessageSquare"
+                                                        class="mr-2"
+                                                    />
+                                                    <span>
+                                                        {{ post.comments_enabled ? 'Disable comments' : 'Enable comments' }}
+                                                    </span>
+                                                </DropdownMenuItem>
                                                 <DropdownMenuSeparator v-if="editBlogs" />
                                                 <DropdownMenuGroup v-if="editBlogs">
                                                     <Link :href="route('acp.blogs.edit', { blog: post.id })">

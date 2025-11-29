@@ -33,12 +33,25 @@ type BlogCommentAuthor = {
     nickname?: string | null;
 };
 
+type CommentPermissions = {
+    can_update: boolean;
+    can_delete: boolean;
+    can_report: boolean;
+};
+
+type ReportReasonOption = {
+    value: string;
+    label: string;
+    description?: string | null;
+};
+
 type BlogComment = {
     id: number;
     body: string;
     created_at?: string | null;
     updated_at?: string | null;
     user?: BlogCommentAuthor | null;
+    permissions?: CommentPermissions;
 };
 
 type PaginationMeta = {
@@ -88,6 +101,8 @@ type BlogPayload = {
     published_at?: string | null;
     user?: BlogAuthor | null;
     comments?: PaginatedComments;
+    comments_enabled?: boolean;
+    comment_report_reasons?: ReportReasonOption[];
     cover_image?: string | null;
     categories?: BlogTaxonomyItem[];
     tags?: BlogTaxonomyItem[];
@@ -105,7 +120,12 @@ type PageProps = {
     };
 };
 
-const props = defineProps<{ blog: BlogPayload }>();
+const props = defineProps<{
+    blog: BlogPayload;
+    comments?: PaginatedComments;
+    commentsEnabled?: boolean;
+    commentReportReasons?: ReportReasonOption[];
+}>();
 
 const blog = computed(() => props.blog);
 const { formatDate, fromNow } = useUserTimezone();
@@ -254,6 +274,10 @@ const unsubscribeFromComments = async () => {
 const author = computed<BlogAuthor | null>(() => blog.value.user ?? null);
 
 const comments = computed<PaginatedComments>(() => {
+    if (props.comments) {
+        return props.comments;
+    }
+
     if (blog.value.comments) {
         return blog.value.comments;
     }
@@ -276,6 +300,12 @@ const comments = computed<PaginatedComments>(() => {
         },
     };
 });
+const commentsEnabled = computed(
+    () => props.commentsEnabled ?? blog.value.comments_enabled ?? true,
+);
+const commentReportReasons = computed(
+    () => props.commentReportReasons ?? blog.value.comment_report_reasons ?? [],
+);
 const categories = computed(() => blog.value.categories ?? []);
 const tags = computed(() => blog.value.tags ?? []);
 const recommendations = computed<RecommendedPost[]>(() => blog.value.recommendations ?? []);
@@ -592,7 +622,12 @@ const shareLinks = computed(() => ({
             </div>
 
             <!-- Comments Section -->
-            <BlogComments :blog-slug="blog.slug" :initial-comments="comments" />
+            <BlogComments
+                :blog-slug="blog.slug"
+                :initial-comments="comments"
+                :comments-enabled="commentsEnabled"
+                :report-reasons="commentReportReasons"
+            />
         </div>
     </AppLayout>
 </template>

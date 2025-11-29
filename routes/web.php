@@ -52,6 +52,10 @@ Route::middleware('section.enabled:blog')->group(function () {
             Route::delete('/{comment}', [BlogCommentController::class, 'destroy'])
                 ->whereNumber('comment')
                 ->name('blogs.comments.destroy');
+            Route::post('/{comment}/report', [BlogCommentController::class, 'report'])
+                ->whereNumber('comment')
+                ->middleware('verified')
+                ->name('blogs.comments.report');
             Route::post('/subscriptions', [BlogCommentSubscriptionController::class, 'store'])
                 ->name('blogs.comments.subscriptions.store');
             Route::delete('/subscriptions', [BlogCommentSubscriptionController::class, 'destroy'])

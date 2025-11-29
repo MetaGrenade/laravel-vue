@@ -34,4 +34,9 @@ class BlogCommentPolicy
 
         return $user->id === $comment->user_id;
     }
+
+    public function report(User $user, BlogComment $comment): bool
+    {
+        return ! $user->is_banned && $user->id !== $comment->user_id;
+    }
 }

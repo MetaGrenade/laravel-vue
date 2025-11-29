@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Blog;
 use App\Models\BlogComment;
+use App\Models\BlogCommentReport;
 use App\Support\Localization\DateFormatter;
 use App\Models\User;
 use App\Notifications\BlogCommentPosted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
 
 class BlogCommentController extends Controller
 {
@@ -29,7 +31,7 @@ class BlogCommentController extends Controller
             ->paginate($perPage);
 
         $items = $comments->getCollection()
-            ->map(fn (BlogComment $comment) => $this->transformComment($comment, $formatter))
+            ->map(fn (BlogComment $comment) => $this->transformComment($comment, $formatter, $request))
             ->values()
             ->all();
 
@@ -55,6 +57,7 @@ class BlogCommentController extends Controller
     public function store(Request $request, Blog $blog): JsonResponse
     {
         abort_unless($blog->status === 'published', 404);
+        abort_if(! $blog->comments_enabled, 403);
 
         $user = $request->user();
 
@@ -93,7 +96,7 @@ class BlogCommentController extends Controller
         $formatter = DateFormatter::for($request->user());
 
         return response()->json([
-            'data' => $this->transformComment($comment, $formatter),
+            'data' => $this->transformComment($comment, $formatter, $request),
         ], 201);
     }
 
@@ -114,7 +117,7 @@ class BlogCommentController extends Controller
         $formatter = DateFormatter::for($request->user());
 
         return response()->json([
-            'data' => $this->transformComment($comment, $formatter),
+            'data' => $this->transformComment($comment, $formatter, $request),
         ]);
     }
 
@@ -132,6 +135,55 @@ class BlogCommentController extends Controller
             'message' => 'Comment deleted successfully.',
             'id' => $commentId,
         ]);
+    }
+
+    public function report(Request $request, Blog $blog, BlogComment $comment): JsonResponse
+    {
+        $this->ensureCommentBelongsToBlog($blog, $comment);
+
+        abort_if(! $blog->comments_enabled, 403);
+
+        $user = $request->user();
+
+        abort_if($user === null, 403);
+        abort_unless($user->can('report', $comment), 403);
+
+        $reasons = config('forum.report_reasons', []);
+
+        $validated = $request->validate([
+            'reason_category' => ['required', 'string', Rule::in(array_keys($reasons))],
+            'reason' => ['nullable', 'string', 'max:1000'],
+            'evidence_url' => ['nullable', 'string', 'max:2048', 'url'],
+        ]);
+
+        $reason = isset($validated['reason']) ? trim((string) $validated['reason']) : null;
+        $reason = $reason === '' ? null : $reason;
+
+        $evidenceUrl = isset($validated['evidence_url']) ? trim((string) $validated['evidence_url']) : null;
+        $evidenceUrl = $evidenceUrl === '' ? null : $evidenceUrl;
+
+        BlogCommentReport::updateOrCreate(
+            [
+                'blog_comment_id' => $comment->id,
+                'reporter_id' => $user->id,
+            ],
+            [
+                'reason_category' => $validated['reason_category'],
+                'reason' => $reason,
+                'evidence_url' => $evidenceUrl,
+                'status' => BlogCommentReport::STATUS_PENDING,
+                'reviewed_at' => null,
+                'reviewed_by' => null,
+            ],
+        );
+
+        if (! $comment->is_flagged) {
+            $comment->forceFill(['is_flagged' => true])->save();
+        }
+
+        return response()->json([
+            'message' => 'Report submitted to the moderation team.',
+        ], 201);
     }
 
     private function validatedBody(Request $request): string
@@ -157,7 +209,7 @@ class BlogCommentController extends Controller
         abort_unless($blog->status === 'published', 404);
     }
 
-    private function transformComment(BlogComment $comment, DateFormatter $formatter): array
+    private function transformComment(BlogComment $comment, DateFormatter $formatter, Request $request): array
     {
         $comment->loadMissing(['user:id,nickname,avatar_url,profile_bio']);
 
@@ -179,6 +231,11 @@ class BlogCommentController extends Controller
             'body' => $comment->body,
             'created_at' => $formatter->iso($comment->created_at),
             'updated_at' => $formatter->iso($comment->updated_at),
+            'permissions' => [
+                'can_update' => $request->user()?->can('update', $comment) ?? false,
+                'can_delete' => $request->user()?->can('delete', $comment) ?? false,
+                'can_report' => $request->user()?->can('report', $comment) ?? false,
+            ],
             'user' => $user ? [
                 'id' => $user->id,
                 'nickname' => $user->nickname,
