@@ -399,6 +399,87 @@ const techIconsInline = Object.keys(rawIconModules)
                         </div>
                     </section>
 
+                    <section class="space-y-6">
+                        <div class="flex flex-col gap-2">
+                            <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Choose your path</p>
+                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">MetaForge adoption options for every team</h2>
+                            <p class="max-w-4xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Whether you’re evaluating the open source starter, pitching a client, or requesting a licensed build, the page you’re viewing is the same boilerplate your stakeholders will experience.</p>
+                        </div>
+                        <div class="grid gap-4 lg:grid-cols-3">
+                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Open Source</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Self-host & contribute</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Clone, run migrations, and start shipping—PR-friendly conventions and TypeScript-first components make it easy to extend and give back.</p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <a
+                                        href="https://github.com/MetaGrenade/laravel-vue"
+                                        class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        View on GitHub
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Commercial</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Licensing & SLAs</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Secure a commercial license with upgrade paths, support coverage, and brand-safe defaults so your client or leadership team signs off quickly.</p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Link
+                                        :href="route('pricing')"
+                                        class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                    >
+                                        Explore Plans
+                                    </Link>
+                                </div>
+                            </div>
+                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Services</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Custom builds & onboarding</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Hand the project to us for bespoke flows, integrations, or white-label delivery—built on the same MetaForge codebase you see here.</p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <a
+                                        href="https://github.com/MetaGrenade/laravel-vue/issues/new/choose"
+                                        class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        Request a build
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="rounded-xl bg-white p-8 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
+                        <div class="flex flex-col gap-6">
+                            <div class="space-y-2">
+                                <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Evaluation Playbook</p>
+                                <h3 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Shorten your proof-of-value loop</h3>
+                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Use these steps to demo MetaForge to teammates, clients, or investors without rewriting copy or stitching together mock screens.</p>
+                            </div>
+                            <div class="grid gap-4 md:grid-cols-4">
+                                <div class="rounded-lg bg-[#f9f7f2] p-4 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">01</p>
+                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Spin up the demo account to preview the unified UX across blog, forum, billing, and admin.</p>
+                                </div>
+                                <div class="rounded-lg bg-[#f9f7f2] p-4 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">02</p>
+                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Clone the repo, install dependencies, and reuse the seeded content structure for your own messaging.</p>
+                                </div>
+                                <div class="rounded-lg bg-[#f9f7f2] p-4 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">03</p>
+                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Toggle blog, forum, and support sections via settings to match the story you’re presenting.</p>
+                                </div>
+                                <div class="rounded-lg bg-[#f9f7f2] p-4 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
+                                    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">04</p>
+                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Share staging links or screen recordings with stakeholders—every surface is consistent out of the box.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <section class="rounded-xl bg-[#11110f] px-6 py-10 text-white bg-gradient-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]">
                         <div class="flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:justify-between">
                             <div class="space-y-3">
