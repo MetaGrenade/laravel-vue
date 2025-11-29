@@ -14,6 +14,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketCategory;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
+use App\Models\User;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Support\Database\Transaction;
@@ -513,10 +514,16 @@ class SupportCenterController extends Controller
         });
 
         if ($message) {
-            $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $message) {
-                return (new TicketReplied($ticket, $message))
-                    ->forAudience($audience);
-            });
+            $this->ticketNotifier->dispatch(
+                $ticket,
+                function (string $audience) use ($ticket, $message) {
+                    return (new TicketReplied($ticket, $message))
+                        ->forAudience($audience);
+                },
+                function (string $audience, User $recipient) {
+                    return ['database', 'mail', 'push'];
+                }
+            );
         }
 
         return redirect()
