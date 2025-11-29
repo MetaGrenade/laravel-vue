@@ -15,6 +15,7 @@ use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -263,6 +264,15 @@ class BlogController extends Controller
 
         $formatter = DateFormatter::for($request->user());
 
+        $reportReasons = collect(config('forum.report_reasons', []))
+            ->map(fn (array $reason, string $key) => [
+                'value' => $key,
+                'label' => $reason['label'] ?? Str::title(str_replace('_', ' ', $key)),
+                'description' => $reason['description'] ?? null,
+            ])
+            ->values()
+            ->all();
+
         $this->registerBlogView($request, $blog);
 
         $comments = $blog->comments()
@@ -271,7 +281,7 @@ class BlogController extends Controller
             ->paginate(10, ['*'], 'page', 1);
 
         $commentItems = $comments->getCollection()
-            ->map(function (BlogComment $comment) use ($formatter) {
+            ->map(function (BlogComment $comment) use ($formatter, $request) {
                 $comment->loadMissing(['user:id,nickname,avatar_url,profile_bio']);
 
                 $user = $comment->user;
@@ -291,6 +301,11 @@ class BlogController extends Controller
                     'body' => $comment->body,
                     'created_at' => $formatter->iso($comment->created_at),
                     'updated_at' => $formatter->iso($comment->updated_at),
+                    'permissions' => [
+                        'can_update' => $request->user()?->can('update', $comment) ?? false,
+                        'can_delete' => $request->user()?->can('delete', $comment) ?? false,
+                        'can_report' => $request->user()?->can('report', $comment) ?? false,
+                    ],
                     'user' => $user ? [
                         'id' => $user->id,
                         'nickname' => $user->nickname,
@@ -453,6 +468,7 @@ class BlogController extends Controller
                 'views' => $blog->views,
                 'last_viewed_at' => $formatter->iso($blog->last_viewed_at),
                 'published_at' => $formatter->iso($blog->published_at),
+                'comments_enabled' => (bool) $blog->comments_enabled,
                 'user' => $this->transformAuthor($blog->user),
                 'categories' => $blog->categories->map(function (BlogCategory $category) {
                     return [
@@ -476,6 +492,8 @@ class BlogController extends Controller
                 ],
             ],
             'comments' => $paginatedComments,
+            'commentsEnabled' => (bool) $blog->comments_enabled,
+            'commentReportReasons' => $reportReasons,
         ])->withViewData([
             'metaTags' => $metaTags,
             'linkTags' => $linkTags,

@@ -20,6 +20,7 @@ class Blog extends Model
         'body',
         'user_id',
         'status',
+        'comments_enabled',
         'published_at',
         'scheduled_for',
         'preview_token',
@@ -31,6 +32,7 @@ class Blog extends Model
         'published_at' => 'datetime',
         'scheduled_for' => 'datetime',
         'last_viewed_at' => 'datetime',
+        'comments_enabled' => 'bool',
     ];
 
     /**

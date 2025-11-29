@@ -136,6 +136,7 @@ class BlogController extends Controller
                     'title' => $blog->title,
                     'slug' => $blog->slug,
                     'status' => $blog->status,
+                    'comments_enabled' => (bool) $blog->comments_enabled,
                     'created_at' => $formatter->iso($blog->created_at),
                     'scheduled_for' => $formatter->iso($blog->scheduled_for),
                     'views' => $blog->views,
@@ -888,6 +889,24 @@ class BlogController extends Controller
         $this->unarchiveBlog($blog, request()->user());
 
         return redirect()->back()->with('success', 'Blog post unarchived successfully.');
+    }
+
+    public function enableComments(Blog $blog): RedirectResponse
+    {
+        $this->authorize('update', $blog);
+
+        $blog->forceFill(['comments_enabled' => true])->save();
+
+        return redirect()->back()->with('success', 'Comments enabled for this blog post.');
+    }
+
+    public function disableComments(Blog $blog): RedirectResponse
+    {
+        $this->authorize('update', $blog);
+
+        $blog->forceFill(['comments_enabled' => false])->save();
+
+        return redirect()->back()->with('success', 'Comments disabled for this blog post.');
     }
 
     protected function publishBlog(Blog $blog, ?User $actor): bool

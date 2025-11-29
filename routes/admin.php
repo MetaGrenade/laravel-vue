@@ -72,11 +72,17 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/blogs/{blog}/unpublish', [AdminBlogController::class, 'unpublish'])->name('acp.blogs.unpublish');
     Route::put('acp/blogs/{blog}/archive', [AdminBlogController::class, 'archive'])->name('acp.blogs.archive');
     Route::put('acp/blogs/{blog}/unarchive', [AdminBlogController::class, 'unarchive'])->name('acp.blogs.unarchive');
+    Route::put('acp/blogs/{blog}/comments/enable', [AdminBlogController::class, 'enableComments'])
+        ->name('acp.blogs.comments.enable');
+    Route::put('acp/blogs/{blog}/comments/disable', [AdminBlogController::class, 'disableComments'])
+        ->name('acp.blogs.comments.disable');
     Route::patch('acp/blogs/bulk/status', [AdminBlogController::class, 'bulkUpdateStatus'])->name('acp.blogs.bulk-status');
 
     Route::get('acp/blog-comments', [AdminBlogCommentController::class, 'index'])->name('acp.blog-comments.index');
     Route::put('acp/blog-comments/{comment}', [AdminBlogCommentController::class, 'update'])->name('acp.blog-comments.update');
     Route::delete('acp/blog-comments/{comment}', [AdminBlogCommentController::class, 'destroy'])->name('acp.blog-comments.destroy');
+    Route::patch('acp/blog-comment-reports/bulk-status', [AdminBlogCommentController::class, 'bulkUpdateReportStatus'])
+        ->name('acp.blog-comment-reports.bulk-status');
 
     // Admin Blog Tag Management Routes
     Route::get('acp/blog-tags', [BlogTagController::class, 'index'])->name('acp.blog-tags.index');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Models\BlogComment;
+use App\Models\BlogCommentReport;
 use App\Support\Localization\DateFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,25 +24,27 @@ class BlogCommentController extends Controller
         $this->authorize('viewAny', BlogComment::class);
 
         $validated = $request->validate([
-            'status' => ['nullable', 'string', Rule::in(array_merge(['all'], BlogComment::STATUSES))],
-            'flagged' => ['nullable', 'boolean'],
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'status' => ['nullable', 'string', Rule::in(array_merge(['all'], BlogCommentReport::STATUSES))],
+            'reason_category' => ['nullable', 'string'],
             'search' => ['nullable', 'string', 'max:200'],
             'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
         ]);
 
-        $status = $validated['status'] ?? 'all';
-        $flagged = $request->has('flagged') ? $request->boolean('flagged') : null;
-        $userId = $validated['user_id'] ?? null;
+        $status = $validated['status'] ?? BlogCommentReport::STATUS_PENDING;
+        $reasonCategory = isset($validated['reason_category']) ? trim((string) $validated['reason_category']) : null;
+        $reasonCategory = $reasonCategory === '' ? null : $reasonCategory;
         $search = isset($validated['search']) ? trim((string) $validated['search']) : null;
         $search = $search === '' ? null : $search;
         $perPage = isset($validated['per_page']) ? (int) $validated['per_page'] : 25;
         $perPage = max(5, min(100, $perPage));
 
-        $query = BlogComment::query()
+        $query = BlogCommentReport::query()
             ->with([
-                'user:id,nickname,email,is_banned',
-                'blog:id,title,slug,status',
+                'comment:id,blog_id,user_id,body,status,is_flagged',
+                'comment.blog:id,title,slug,status',
+                'comment.user:id,nickname,email,is_banned',
+                'reporter:id,nickname,email',
+                'reviewer:id,nickname,email',
             ])
             ->orderByDesc('created_at');
 
@@ -49,40 +52,55 @@ class BlogCommentController extends Controller
             $query->where('status', $status);
         }
 
-        if ($flagged !== null) {
-            $query->where('is_flagged', $flagged);
-        }
-
-        if ($userId !== null) {
-            $query->where('user_id', $userId);
+        if ($reasonCategory !== null) {
+            $query->where('reason_category', $reasonCategory);
         }
 
         if ($search !== null) {
-            $query->where('body', 'like', "%{$search}%");
+            $query->whereHas('comment', function ($query) use ($search) {
+                $query->where('body', 'like', "%{$search}%");
+            });
         }
 
-        $comments = $query->paginate($perPage)->withQueryString();
+        $reports = $query->paginate($perPage)->withQueryString();
 
         $formatter = DateFormatter::for($request->user());
-
-        $items = $comments->getCollection()
-            ->map(function (BlogComment $comment) use ($request, $formatter) {
-                $user = $comment->user;
-                $blog = $comment->blog;
+        $items = $reports->getCollection()
+            ->map(function (BlogCommentReport $report) use ($request, $formatter) {
+                $comment = $report->comment;
+                $blog = $comment?->blog;
+                $reporter = $report->reporter;
+                $reviewer = $report->reviewer;
 
                 return [
-                    'id' => $comment->id,
-                    'body' => $comment->body,
-                    'status' => $comment->status,
-                    'is_flagged' => (bool) $comment->is_flagged,
-                    'created_at' => $formatter->iso($comment->created_at),
-                    'updated_at' => $formatter->iso($comment->updated_at),
-                    'body_preview' => Str::limit(strip_tags($comment->body), 140),
-                    'user' => $user ? [
-                        'id' => $user->id,
-                        'nickname' => $user->nickname,
-                        'email' => $user->email,
-                        'is_banned' => (bool) $user->is_banned,
+                    'id' => $report->id,
+                    'status' => $report->status,
+                    'reason_category' => $report->reason_category,
+                    'reason' => $report->reason,
+                    'evidence_url' => $report->evidence_url,
+                    'created_at' => $formatter->iso($report->created_at),
+                    'reviewed_at' => $formatter->iso($report->reviewed_at),
+                    'reporter' => $reporter ? [
+                        'id' => $reporter->id,
+                        'nickname' => $reporter->nickname,
+                        'email' => $reporter->email,
+                    ] : null,
+                    'reviewer' => $reviewer ? [
+                        'id' => $reviewer->id,
+                        'nickname' => $reviewer->nickname,
+                        'email' => $reviewer->email,
+                    ] : null,
+                    'comment' => $comment ? [
+                        'id' => $comment->id,
+                        'body' => $comment->body,
+                        'body_preview' => Str::limit(strip_tags($comment->body), 140),
+                        'status' => $comment->status,
+                        'is_flagged' => (bool) $comment->is_flagged,
+                        'can' => [
+                            'update' => $request->user()?->can('update', $comment) ?? false,
+                            'review' => $request->user()?->can('review', $comment) ?? false,
+                            'delete' => $request->user()?->can('delete', $comment) ?? false,
+                        ],
                     ] : null,
                     'blog' => $blog ? [
                         'id' => $blog->id,
@@ -90,29 +108,33 @@ class BlogCommentController extends Controller
                         'slug' => $blog->slug,
                         'status' => $blog->status,
                     ] : null,
-                    'can' => [
-                        'update' => $request->user()?->can('update', $comment) ?? false,
-                        'review' => $request->user()?->can('review', $comment) ?? false,
-                        'delete' => $request->user()?->can('delete', $comment) ?? false,
-                    ],
                 ];
             })
             ->values()
             ->all();
 
+        $reasons = collect(config('forum.report_reasons', []))
+            ->map(fn (array $reason, string $key) => [
+                'value' => $key,
+                'label' => $reason['label'] ?? Str::title(str_replace('_', ' ', $key)),
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('acp/BlogComments', [
-            'comments' => [
+            'reports' => [
                 'data' => $items,
-                ...$this->inertiaPagination($comments),
+                ...$this->inertiaPagination($reports),
             ],
             'filters' => [
                 'status' => $status,
-                'flagged' => $flagged,
-                'user_id' => $userId,
+                'reason_category' => $reasonCategory,
                 'search' => $search,
                 'per_page' => $perPage,
             ],
-            'statuses' => BlogComment::STATUSES,
+            'statuses' => BlogCommentReport::STATUSES,
+            'reportReasons' => $reasons,
+            'commentStatuses' => BlogComment::STATUSES,
         ]);
     }
 
@@ -158,5 +180,78 @@ class BlogCommentController extends Controller
         $comment->delete();
 
         return back()->with('success', 'Comment deleted successfully.');
+    }
+
+    public function bulkUpdateReportStatus(Request $request): RedirectResponse
+    {
+        $this->authorize('viewAny', BlogComment::class);
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in(BlogCommentReport::STATUSES)],
+            'reports' => ['required', 'array', 'min:1'],
+            'reports.*' => ['required', 'integer'],
+        ]);
+
+        $reportIds = collect($validated['reports'])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($reportIds->isEmpty()) {
+            return back()->with('success', 'No blog comment reports required updates.');
+        }
+
+        $timestamp = now();
+        $userId = optional($request->user())->id;
+        $updatedCount = 0;
+        $affectedCommentIds = [];
+
+        BlogCommentReport::query()
+            ->whereIn('id', $reportIds)
+            ->get()
+            ->each(function (BlogCommentReport $report) use ($validated, $timestamp, $userId, &$updatedCount, &$affectedCommentIds) {
+                $report->forceFill([
+                    'status' => $validated['status'],
+                    'reviewed_at' => $validated['status'] === BlogCommentReport::STATUS_PENDING ? null : $timestamp,
+                    'reviewed_by' => $validated['status'] === BlogCommentReport::STATUS_PENDING ? null : $userId,
+                ])->save();
+
+                if ($report->wasChanged(['status', 'reviewed_at', 'reviewed_by'])) {
+                    $updatedCount++;
+                }
+
+                if ($report->blog_comment_id) {
+                    $affectedCommentIds[] = $report->blog_comment_id;
+                }
+            });
+
+        $this->refreshCommentFlags($affectedCommentIds);
+
+        return back()->with(
+            'success',
+            match ($updatedCount) {
+                0 => 'No blog comment reports required updates.',
+                1 => 'Updated 1 blog comment report.',
+                default => "Updated {$updatedCount} blog comment reports.",
+            },
+        );
+    }
+
+    private function refreshCommentFlags(array $commentIds): void
+    {
+        if (empty($commentIds)) {
+            return;
+        }
+
+        BlogComment::query()
+            ->whereIn('id', array_unique($commentIds))
+            ->get()
+            ->each(function (BlogComment $comment) {
+                $hasPendingReports = $comment->reports()
+                    ->where('status', BlogCommentReport::STATUS_PENDING)
+                    ->exists();
+
+                $comment->forceFill(['is_flagged' => $hasPendingReports])->save();
+            });
     }
 }

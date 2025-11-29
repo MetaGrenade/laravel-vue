@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import { toast } from 'vue-sonner';
-
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import Input from '@/components/ui/input/Input.vue';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { toast } from 'vue-sonner';
 
 type CommentUser = {
     id: number;
@@ -23,6 +25,11 @@ type BlogComment = {
     created_at?: string | null;
     updated_at?: string | null;
     user?: CommentUser | null;
+    permissions?: {
+        can_update: boolean;
+        can_delete: boolean;
+        can_report: boolean;
+    };
 };
 
 type PaginationMeta = {
@@ -78,6 +85,12 @@ type PageProps = {
 const props = defineProps<{
     blogSlug: string;
     initialComments: PaginatedComments;
+    commentsEnabled?: boolean;
+    reportReasons?: Array<{
+        value: string;
+        label: string;
+        description?: string | null;
+    }>;
 }>();
 
 const page = usePage<PageProps>();
@@ -92,6 +105,10 @@ const perPage = computed(() => pagination.value.per_page ?? defaultMeta.per_page
 const hasMore = computed(() => pagination.value.current_page < pagination.value.last_page);
 const isLoadingMore = ref(false);
 const loadMoreError = ref<string | null>(null);
+const commentsEnabled = computed(() => props.commentsEnabled ?? true);
+const reportReasons = computed(() => props.reportReasons ?? []);
+const hasReportReasons = computed(() => reportReasons.value.length > 0);
+const defaultReportReason = computed(() => reportReasons.value[0]?.value ?? '');
 
 updatePaginationTotals(pagination.value.total);
 
@@ -211,6 +228,49 @@ watch(
     },
 );
 
+const reportDialogOpen = ref(false);
+const reportTarget = ref<BlogComment | null>(null);
+const reportForm = reactive({
+    reason_category: defaultReportReason.value,
+    reason: '',
+    evidence_url: '',
+    errors: {
+        reason_category: '' as string | null,
+        reason: '' as string | null,
+        evidence_url: '' as string | null,
+    },
+    processing: false,
+});
+
+const selectedReportReason = computed(() =>
+    reportReasons.value.find((reason) => reason.value === reportForm.reason_category) ?? null,
+);
+
+watch(
+    () => reportReasons.value,
+    (reasons) => {
+        const fallback = reasons[0]?.value ?? '';
+        if (!reportForm.reason_category && fallback) {
+            reportForm.reason_category = fallback;
+        }
+    },
+);
+
+watch(reportDialogOpen, (open) => {
+    if (!open) {
+        reportTarget.value = null;
+        reportForm.reason_category = defaultReportReason.value;
+        reportForm.reason = '';
+        reportForm.evidence_url = '';
+        reportForm.errors.reason_category = null;
+        reportForm.errors.reason = null;
+        reportForm.errors.evidence_url = null;
+        reportForm.processing = false;
+    } else if (!reportForm.reason_category && defaultReportReason.value) {
+        reportForm.reason_category = defaultReportReason.value;
+    }
+});
+
 const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 
 const { formatDate, fromNow } = useUserTimezone();
@@ -268,6 +328,34 @@ const canManageComment = (comment: BlogComment) => {
     return canModerate.value || comment.user?.id === authUser.value.id;
 };
 
+const canEditComment = (comment: BlogComment) => {
+    if (comment.permissions) {
+        return comment.permissions.can_update;
+    }
+
+    return canManageComment(comment);
+};
+
+const canDeleteComment = (comment: BlogComment) => {
+    if (comment.permissions) {
+        return comment.permissions.can_delete;
+    }
+
+    return canManageComment(comment);
+};
+
+const canReportComment = (comment: BlogComment) => {
+    if (!authUser.value) {
+        return false;
+    }
+
+    if (comment.permissions) {
+        return comment.permissions.can_report;
+    }
+
+    return !canManageComment(comment);
+};
+
 const extractErrorMessage = async (response: Response): Promise<string> => {
     try {
         const payload = await response.json();
@@ -303,6 +391,11 @@ const submitComment = async () => {
 
     if (!authUser.value) {
         toast.error('You need to sign in to leave a comment.');
+        return;
+    }
+
+    if (!commentsEnabled.value) {
+        toast.error('Comments are disabled for this post.');
         return;
     }
 
@@ -498,13 +591,103 @@ const confirmDeleteComment = async () => {
         closeDeleteDialog();
     }
 };
+
+const openReportDialog = (comment: BlogComment) => {
+    if (!canReportComment(comment)) {
+        toast.error('You are not allowed to report this comment.');
+        return;
+    }
+
+    if (!hasReportReasons.value) {
+        toast.error('Reporting options are not available right now.');
+        return;
+    }
+
+    reportTarget.value = comment;
+    reportDialogOpen.value = true;
+    if (!reportForm.reason_category && defaultReportReason.value) {
+        reportForm.reason_category = defaultReportReason.value;
+    }
+};
+
+const submitReport = async () => {
+    const target = reportTarget.value;
+
+    if (!target || !canReportComment(target) || reportForm.processing) {
+        return;
+    }
+
+    if (!hasReportReasons.value) {
+        toast.error('Reporting options are not available right now.');
+        return;
+    }
+
+    reportForm.processing = true;
+    reportForm.errors.reason_category = null;
+    reportForm.errors.reason = null;
+    reportForm.errors.evidence_url = null;
+
+    try {
+        const response = await fetch(
+            route('blogs.comments.report', { blog: props.blogSlug, comment: target.id }),
+            {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({
+                    reason_category: reportForm.reason_category || defaultReportReason.value,
+                    reason: reportForm.reason || null,
+                    evidence_url: reportForm.evidence_url || null,
+                }),
+            },
+        );
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => null);
+
+            if (payload?.errors) {
+                reportForm.errors.reason_category = payload.errors.reason_category?.[0] ?? null;
+                reportForm.errors.reason = payload.errors.reason?.[0] ?? null;
+                reportForm.errors.evidence_url = payload.errors.evidence_url?.[0] ?? null;
+            }
+
+            const message = payload?.message ?? 'Unable to submit the report right now.';
+            toast.error(message);
+            return;
+        }
+
+        const payload = await response.json().catch(() => null);
+        const successMessage =
+            payload?.message ?? 'Report submitted. Our moderators will review it soon.';
+
+        toast.success(successMessage);
+        reportDialogOpen.value = false;
+    } catch (error) {
+        console.error(error);
+        toast.error('Unable to submit the report right now.');
+    } finally {
+        reportForm.processing = false;
+    }
+};
 </script>
 
 <template>
     <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
         <h2 class="mb-4 text-2xl font-bold">Comments</h2>
 
-        <div v-if="authUser" class="mb-8 space-y-3 rounded-lg border border-sidebar-border/70 dark:border-sidebar-border p-4">
+        <div
+            v-if="!commentsEnabled"
+            class="mb-8 rounded-lg border border-dashed border-sidebar-border/70 dark:border-sidebar-border p-4 text-sm text-muted-foreground"
+        >
+            <p>Comments are disabled for this post.</p>
+        </div>
+        <div
+            v-else-if="authUser"
+            class="mb-8 space-y-3 rounded-lg border border-sidebar-border/70 dark:border-sidebar-border p-4"
+        >
             <h3 class="text-lg font-semibold">Join the conversation</h3>
             <Textarea
                 v-model="newComment"
@@ -567,9 +750,9 @@ const confirmDeleteComment = async () => {
                                     {{ authorBioSnippet(comment) }}
                                 </p>
                             </div>
-                            <div v-if="canManageComment(comment)" class="flex flex-wrap items-center gap-2 text-xs">
+                            <div class="flex flex-wrap items-center gap-2 text-xs">
                                 <Button
-                                    v-if="editingCommentId !== comment.id"
+                                    v-if="canEditComment(comment) && editingCommentId !== comment.id"
                                     variant="ghost"
                                     size="sm"
                                     class="h-8 px-2"
@@ -578,10 +761,11 @@ const confirmDeleteComment = async () => {
                                     Edit
                                 </Button>
                                 <template v-else>
-                                    <Button variant="ghost" size="sm" class="h-8 px-2" @click="cancelEditing">
+                                    <Button v-if="canEditComment(comment)" variant="ghost" size="sm" class="h-8 px-2" @click="cancelEditing">
                                         Cancel
                                     </Button>
                                     <Button
+                                        v-if="canEditComment(comment)"
                                         size="sm"
                                         class="h-8 px-3"
                                         :disabled="isUpdating(comment.id)"
@@ -592,6 +776,7 @@ const confirmDeleteComment = async () => {
                                     </Button>
                                 </template>
                                 <Button
+                                    v-if="canDeleteComment(comment)"
                                     variant="ghost"
                                     size="sm"
                                     class="h-8 px-2 text-destructive hover:text-destructive"
@@ -600,6 +785,16 @@ const confirmDeleteComment = async () => {
                                 >
                                     <span v-if="isDeleting(comment.id)">Removing...</span>
                                     <span v-else>Delete</span>
+                                </Button>
+                                <Button
+                                    v-if="canReportComment(comment)"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="h-8 px-2"
+                                    :disabled="!hasReportReasons"
+                                    @click="openReportDialog(comment)"
+                                >
+                                    Report
                                 </Button>
                             </div>
                         </div>
@@ -623,6 +818,77 @@ const confirmDeleteComment = async () => {
             </div>
         </div>
     </div>
+    <Dialog v-model:open="reportDialogOpen">
+        <DialogContent class="sm:max-w-lg">
+            <DialogHeader>
+                <DialogTitle>Report comment</DialogTitle>
+                <DialogDescription>
+                    Flag this comment for review by our moderators.
+                </DialogDescription>
+            </DialogHeader>
+
+            <div v-if="reportTarget" class="rounded-md border border-sidebar-border/60 bg-muted/30 p-3 text-sm">
+                <p class="font-semibold">{{ commentAuthor(reportTarget) }}</p>
+                <p class="mt-1 whitespace-pre-line text-muted-foreground">{{ reportTarget.body }}</p>
+            </div>
+
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <Label for="reportReason">Reason</Label>
+                    <select
+                        id="reportReason"
+                        v-model="reportForm.reason_category"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        :disabled="reportForm.processing || !hasReportReasons"
+                    >
+                        <option v-for="reason in reportReasons" :key="reason.value" :value="reason.value">
+                            {{ reason.label }}
+                        </option>
+                    </select>
+                    <p v-if="selectedReportReason?.description" class="text-xs text-muted-foreground">
+                        {{ selectedReportReason.description }}
+                    </p>
+                    <p v-if="reportForm.errors.reason_category" class="text-sm text-destructive">
+                        {{ reportForm.errors.reason_category }}
+                    </p>
+                </div>
+
+                <div class="space-y-2">
+                    <Label for="reportDetails">Details (optional)</Label>
+                    <Textarea
+                        id="reportDetails"
+                        v-model="reportForm.reason"
+                        rows="3"
+                        placeholder="Share more context about this comment."
+                        :disabled="reportForm.processing"
+                    />
+                    <InputError :message="reportForm.errors.reason" />
+                </div>
+
+                <div class="space-y-2">
+                    <Label for="reportEvidence">Evidence link (optional)</Label>
+                    <Input
+                        id="reportEvidence"
+                        v-model="reportForm.evidence_url"
+                        type="url"
+                        placeholder="https://example.com/screenshot"
+                        :disabled="reportForm.processing"
+                    />
+                    <InputError :message="reportForm.errors.evidence_url" />
+                </div>
+            </div>
+
+            <DialogFooter class="mt-2">
+                <Button variant="ghost" :disabled="reportForm.processing" @click="reportDialogOpen = false">
+                    Cancel
+                </Button>
+                <Button :disabled="reportForm.processing || !hasReportReasons" @click="submitReport">
+                    <span v-if="reportForm.processing">Submitting...</span>
+                    <span v-else>Submit report</span>
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
     <ConfirmDialog
         v-model:open="deleteDialogOpen"
         :title="deleteDialogTitle"
