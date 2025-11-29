@@ -189,7 +189,7 @@ class BlogCommentController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(BlogCommentReport::STATUSES)],
             'reports' => ['required', 'array', 'min:1'],
-            'reports.*.id' => ['required', 'integer'],
+            'reports.*' => ['required', 'integer'],
         ]);
 
         $reportIds = collect($validated['reports'])
