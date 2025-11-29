@@ -42,7 +42,7 @@ function sanitizeAndPrepareSvg(rawSvg: string) {
     // - set role/focusable attributes for accessibility
     svg = svg.replace(/<svg([^>]*)>/i, (match, attrs) => {
         // strip width/height/style attributes from attrs
-        let cleaned = attrs
+        const cleaned = attrs
             .replace(/\s(width|height)=["'][^"']*["']/gi, '')
             .replace(/\s(style)=["'][^"']*["']/gi, '');
 
@@ -183,7 +183,7 @@ const techIconsInline = Object.keys(rawIconModules)
                                     <CarouselContent class="-ml-1">
                                         <!-- Inline SVG icons — wrapper controls text color which icons inherit -->
                                         <CarouselItem
-                                            v-for="(icon, index) in techIconsInline"
+                                            v-for="icon in techIconsInline"
                                             :key="icon.name"
                                             class="pl-1 md:basis-1/4 lg:basis-1/5"
                                         >
