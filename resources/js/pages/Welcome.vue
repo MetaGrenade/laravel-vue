@@ -4,6 +4,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { Anvil } from 'lucide-vue-next';
 import { Card, CardContent } from '@/components/ui/card'
+import Autoplay from 'embla-carousel-autoplay'
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
 import AppLayout from '@/layouts/AppLayout.vue';
 
@@ -113,9 +114,12 @@ const websiteSections = computed(() => {
                                   align: 'start',
                                   loop: true,
                                 }"
+                                :plugins="[Autoplay({
+                                  delay: 2000,
+                                })]"
                             >
                                 <CarouselContent class="-ml-1">
-                                    <CarouselItem v-for="(_, index) in 5" :key="index" class="pl-1 md:basis-1/4 lg:basis-1/5">
+                                    <CarouselItem v-for="(_, index) in 10" :key="index" class="pl-1 md:basis-1/4 lg:basis-1/5">
                                         <div class="p-1">
                                             <Card>
                                                 <CardContent class="flex aspect-square items-center justify-center p-4">
