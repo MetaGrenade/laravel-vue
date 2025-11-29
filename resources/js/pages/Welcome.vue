@@ -166,10 +166,10 @@ const techIconsInline = Object.keys(rawIconModules)
                             <div class="flex flex-col gap-2">
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Marketing & SEO Ready</p>
                                 <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Crafted for founders who need to demo quickly</h2>
-                                <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Every surface is written and organized to sell the boilerplate itself—so prospects see how the blog, forum, and support center look before they ever clone the repo.</p>
+                                <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Show customers real blog, forum, and support flows the moment they land—so your SaaS pitch, open source repo, or client proposal starts with proof instead of promises.</p>
                             </div>
                             <div class="flex flex-col gap-3">
-                                <div class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">Trusted tooling that keeps your marketing site fast and indexable.</div>
+                                <div class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">SSR, clean markup, and lightweight UI components keep your marketing pages fast, indexable, and easy to extend.</div>
                                 <Carousel
                                     class="w-full w-max-7xl"
                                     :opts="{
