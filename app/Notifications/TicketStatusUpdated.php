@@ -156,4 +156,21 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
     {
         return Str::title(str_replace('_', ' ', $status));
     }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function ticketBroadcastPayload(): ?array
+    {
+        if ($this->ticket->id === null) {
+            return null;
+        }
+
+        return [
+            'event' => 'ticket.status.updated',
+            'status' => $this->ticket->status,
+            'previous_status' => $this->previousStatus,
+            'created_at' => optional($this->ticket->updated_at ?? $this->ticket->created_at)->toIso8601String(),
+        ];
+    }
 }

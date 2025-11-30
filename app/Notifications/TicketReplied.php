@@ -184,5 +184,24 @@ class TicketReplied extends Notification implements ShouldQueue
 
         return $route . '#message-' . $this->message->id;
     }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function ticketBroadcastPayload(): ?array
+    {
+        if ($this->ticket->id === null || $this->message->id === null) {
+            return null;
+        }
+
+        return [
+            'event' => 'ticket.message.created',
+            'message_id' => $this->message->id,
+            'author_id' => $this->message->user_id,
+            'is_from_support' => false,
+            'excerpt' => $this->messageExcerpt(),
+            'created_at' => optional($this->message->created_at)->toIso8601String(),
+        ];
+    }
 }
 

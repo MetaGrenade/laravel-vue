@@ -134,6 +134,23 @@ class TicketOpened extends Notification implements ShouldQueue
         ];
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function ticketBroadcastPayload(): ?array
+    {
+        if ($this->ticket->id === null) {
+            return null;
+        }
+
+        return [
+            'event' => 'ticket.opened',
+            'message_id' => $this->message?->id,
+            'excerpt' => $this->messageExcerpt(),
+            'created_at' => optional($this->ticket->created_at)->toIso8601String(),
+        ];
+    }
+
     protected function title(): string
     {
         return match ($this->audience) {
