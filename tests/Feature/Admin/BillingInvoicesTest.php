@@ -7,6 +7,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -36,6 +37,55 @@ class BillingInvoicesTest extends TestCase
                 ->where('stripe_id', 'in_test123')
                 ->etc()
             )
+        );
+    }
+
+    public function test_invoices_can_be_filtered_by_status_search_and_date_range(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $agent = User::factory()->create();
+        $agent->givePermissionTo('billing.acp.view');
+
+        $plan = SubscriptionPlan::factory()->create(['name' => 'Pro']);
+        $included = BillingInvoice::factory()
+            ->for($agent)
+            ->for($plan, 'plan')
+            ->create([
+                'status' => 'paid',
+                'stripe_id' => 'in_matching',
+                'created_at' => Carbon::now()->subDays(3),
+            ]);
+
+        BillingInvoice::factory()->create([
+            'status' => 'open',
+            'stripe_id' => 'in_nonmatch',
+            'created_at' => Carbon::now()->subDays(2),
+        ]);
+
+        BillingInvoice::factory()->create([
+            'status' => 'paid',
+            'stripe_id' => 'in_old',
+            'created_at' => Carbon::now()->subDays(15),
+        ]);
+
+        $response = $this->actingAs($agent)->get(route('acp.billing.invoices.index', [
+            'status' => 'paid',
+            'search' => 'matching',
+            'date_from' => Carbon::now()->subDays(5)->toDateString(),
+            'date_to' => Carbon::now()->subDays(1)->toDateString(),
+        ]));
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('acp/BillingInvoices')
+            ->has('invoices.data', 1, fn (Assert $row) => $row
+                ->where('id', $included->id)
+                ->where('stripe_id', 'in_matching')
+                ->where('status', 'paid')
+                ->etc()
+            )
+            ->where('filters.status', 'paid')
+            ->where('filters.search', 'matching')
         );
     }
 }

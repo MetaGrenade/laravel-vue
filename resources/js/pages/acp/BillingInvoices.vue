@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import Input from '@/components/ui/input/Input.vue';
+import { Label } from '@/components/ui/label';
 import {
     Pagination,
     PaginationEllipsis,
@@ -57,6 +59,13 @@ interface Props {
         meta?: PaginationMeta | null;
         links?: PaginationLinks | null;
     };
+    filters: {
+        search: string | null;
+        status: string | null;
+        date_from: string | null;
+        date_to: string | null;
+    };
+    statusOptions: string[];
 }
 
 const props = defineProps<Props>();
@@ -66,22 +75,42 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const invoices = computed(() => props.invoices.data ?? []);
+const searchQuery = ref(props.filters.search ?? '');
+const statusFilter = ref(props.filters.status ?? '');
+const dateFrom = ref(props.filters.date_from ?? '');
+const dateTo = ref(props.filters.date_to ?? '');
+
+const applyFilters = (overrides: Record<string, string | number | null> = {}) => {
+    router.get(
+        route('acp.billing.invoices.index'),
+        {
+            search: searchQuery.value || null,
+            status: statusFilter.value || null,
+            date_from: dateFrom.value || null,
+            date_to: dateTo.value || null,
+            ...overrides,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        },
+    );
+};
+
+const resetFilters = () => {
+    searchQuery.value = '';
+    statusFilter.value = '';
+    dateFrom.value = '';
+    dateTo.value = '';
+    applyFilters({ page: 1 });
+};
 
 const { page, setPage, pageCount, rangeLabel } = useInertiaPagination({
     meta: computed(() => props.invoices.meta ?? null),
     itemsLength: computed(() => props.invoices.data?.length ?? 0),
     itemLabel: 'invoice',
-    onNavigate: (newPage) => {
-        router.get(
-            route('acp.billing.invoices.index'),
-            { page: newPage },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
-    },
+    onNavigate: (newPage) => applyFilters({ page: newPage }),
 });
 
 const formatCurrency = (amount: number, currency: string) => {
@@ -104,6 +133,48 @@ const formatCurrency = (amount: number, currency: string) => {
                     title="Stripe invoices"
                     description="Monitor webhook-synced invoice activity across the community."
                 />
+
+                <div class="rounded-lg border border-border bg-card p-4 shadow-sm space-y-4">
+                    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div class="space-y-2">
+                            <Label for="invoice-search">Search</Label>
+                            <Input
+                                id="invoice-search"
+                                v-model="searchQuery"
+                                type="search"
+                                placeholder="Stripe ID, customer, or plan"
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="invoice-status">Status</Label>
+                            <select
+                                id="invoice-status"
+                                v-model="statusFilter"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                            >
+                                <option value="">All statuses</option>
+                                <option v-for="status in props.statusOptions" :key="status" :value="status">
+                                    {{ status }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="invoice-date-from">Created after</Label>
+                            <Input id="invoice-date-from" v-model="dateFrom" type="date" />
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="invoice-date-to">Created before</Label>
+                            <Input id="invoice-date-to" v-model="dateTo" type="date" />
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div class="flex gap-2">
+                            <Button variant="outline" type="button" @click="resetFilters">Reset</Button>
+                            <Button type="button" @click="applyFilters({ page: 1 })">Apply filters</Button>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
                     <Table>
