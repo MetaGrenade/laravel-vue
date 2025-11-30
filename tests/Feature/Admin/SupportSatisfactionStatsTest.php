@@ -81,17 +81,17 @@ class SupportSatisfactionStatsTest extends TestCase
 
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('acp/Support')
-            ->where('supportStats.satisfaction.average', 4.0)
+            ->where('supportStats.satisfaction.average', 4)
             ->where('supportStats.satisfaction.count', 3)
-            ->where('supportStats.satisfaction.by_status.pending.average', 4.0)
+            ->where('supportStats.satisfaction.by_status.pending.average', 4)
             ->where('supportStats.satisfaction.by_status.pending.count', 1)
-            ->where('supportStats.satisfaction.by_status.closed.average', 4.0)
+            ->where('supportStats.satisfaction.by_status.closed.average', 4)
             ->where('supportStats.satisfaction.by_status.closed.count', 2)
             ->where('supportStats.satisfaction.by_status.open.average', null)
             ->where('supportStats.satisfaction.by_status.open.count', 0)
             ->where('supportStats.satisfaction.by_month', [
-                ['month' => '2024-01', 'average' => 4.0, 'count' => 2],
-                ['month' => '2024-02', 'average' => 4.0, 'count' => 1],
+                ['month' => '2024-01', 'average' => 4, 'count' => 2],
+                ['month' => '2024-02', 'average' => 4, 'count' => 1],
             ])
         );
     }
