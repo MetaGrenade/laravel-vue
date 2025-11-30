@@ -34,7 +34,6 @@ use App\Support\SupportSlaConfiguration;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use App\Support\Database\Transaction;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -45,6 +44,7 @@ use Illuminate\Support\Stringable;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class SupportController extends Controller
 {
@@ -334,7 +334,7 @@ class SupportController extends Controller
             ->with('success', 'Team membership updated.');
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): Response
     {
         $perPage = (int) $request->get('per_page', 25);
 
@@ -520,7 +520,7 @@ class SupportController extends Controller
 
                 return [
                     'month' => $month,
-                    'average' => $average !== null ? round((float) $average, 2) : null,
+                    'average' => $average !== null ? round((float) $average, 2) + 0.0 : null,
                     'count' => $group->count(),
                 ];
             })
@@ -536,13 +536,15 @@ class SupportController extends Controller
             'faq_not_helpful_feedback' => FaqFeedback::where('is_helpful', false)->count(),
             'satisfaction' => [
                 'average' => $satisfactionSummary?->avg_rating !== null
-                    ? round((float) $satisfactionSummary->avg_rating, 2)
+                    ? round((float) $satisfactionSummary->avg_rating, 2) + 0.0
                     : null,
                 'count' => (int) ($satisfactionSummary?->rating_count ?? 0),
                 'by_status' => collect(['open', 'pending', 'closed'])
                     ->mapWithKeys(function (string $status) use ($satisfactionByStatus) {
                         return [$status => [
-                            'average' => $satisfactionByStatus[$status]['average'] ?? null,
+                            'average' => isset($satisfactionByStatus[$status]['average'])
+                                ? $satisfactionByStatus[$status]['average'] + 0.0
+                                : null,
                             'count' => $satisfactionByStatus[$status]['count'] ?? 0,
                         ]];
                     })
@@ -560,7 +562,7 @@ class SupportController extends Controller
             ])
             ->all();
 
-        $response = Inertia::render('acp/Support', [
+        return Inertia::render('acp/Support', [
             'tickets' => array_merge([
                 'data' => $ticketItems,
             ], $this->inertiaPagination($tickets)),
@@ -577,12 +579,6 @@ class SupportController extends Controller
                 'date_to' => optional($createdTo)?->toDateString(),
             ],
         ]);
-
-        return tap($response->toResponse($request), function (JsonResponse $jsonResponse) {
-            $jsonResponse->setEncodingOptions(
-                $jsonResponse->getEncodingOptions() | JSON_PRESERVE_ZERO_FRACTION,
-            );
-        });
     }
 
     private function escapeForLike(string $value): string
