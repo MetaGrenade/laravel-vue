@@ -5,11 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BillingInvoice;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BillingController extends Controller
 {
@@ -53,33 +50,7 @@ class BillingController extends Controller
             'invoices' => $invoices,
             'filters' => $filters,
             'statusOptions' => $this->statusOptions(),
-            'exportLinks' => [
-                'csv' => route('acp.billing.invoices.export', $filters + ['format' => 'csv']),
-                'xlsx' => route('acp.billing.invoices.export', $filters + ['format' => 'xlsx']),
-            ],
         ]);
-    }
-
-    public function export(Request $request): StreamedResponse
-    {
-        abort_unless($request->user()->can('billing.acp.view'), 403);
-
-        $validated = $request->validate([
-            'format' => ['required', 'in:csv,xlsx'],
-            ...$this->filterRules(),
-        ]);
-
-        $format = $validated['format'];
-        $filters = Arr::except($validated, ['format']);
-
-        $invoices = $this->filteredInvoices($filters)
-            ->with(['user:id,nickname,email', 'plan:id,name'])
-            ->latest('created_at')
-            ->get();
-
-        return $format === 'xlsx'
-            ? $this->exportExcel($invoices)
-            : $this->exportCsv($invoices);
     }
 
     /**
@@ -145,67 +116,6 @@ class BillingController extends Controller
             'paid',
             'uncollectible',
             'void',
-        ];
-    }
-
-    protected function exportCsv(Collection $invoices): StreamedResponse
-    {
-        $filename = 'billing-invoices-' . now()->format('Ymd-His') . '.csv';
-
-        return $this->streamInvoices($filename, 'text/csv', $invoices);
-    }
-
-    protected function exportExcel(Collection $invoices): StreamedResponse
-    {
-        $filename = 'billing-invoices-' . now()->format('Ymd-His') . '.xlsx';
-
-        return $this->streamInvoices($filename, 'application/vnd.ms-excel', $invoices);
-    }
-
-    protected function streamInvoices(string $filename, string $contentType, Collection $invoices): StreamedResponse
-    {
-        return response()
-            ->streamDownload(function () use ($invoices) {
-                $handle = fopen('php://output', 'w');
-
-                fputcsv($handle, [
-                    'Stripe ID',
-                    'Status',
-                    'Customer',
-                    'Email',
-                    'Plan',
-                    'Currency',
-                    'Total',
-                    'Created At',
-                    'Paid At',
-                ]);
-
-                foreach ($invoices as $invoice) {
-                    fputcsv($handle, $this->invoiceRow($invoice));
-                }
-
-                fclose($handle);
-            }, $filename, [
-                'Content-Type' => $contentType,
-            ])
-            ->setCharset(null);
-    }
-
-    /**
-     * @return array<int, string|int|null>
-     */
-    protected function invoiceRow(BillingInvoice $invoice): array
-    {
-        return [
-            $invoice->stripe_id,
-            $invoice->status,
-            $invoice->user?->nickname,
-            $invoice->user?->email,
-            $invoice->plan?->name,
-            strtoupper($invoice->currency),
-            $invoice->total,
-            optional($invoice->created_at)?->toIso8601String(),
-            optional($invoice->paid_at)?->toIso8601String(),
         ];
     }
 }
