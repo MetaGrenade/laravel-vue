@@ -9,7 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BillingController extends Controller
 {
@@ -60,7 +60,7 @@ class BillingController extends Controller
         ]);
     }
 
-    public function export(Request $request): SymfonyResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless($request->user()->can('billing.acp.view'), 403);
 
@@ -148,28 +148,47 @@ class BillingController extends Controller
         ];
     }
 
-    protected function exportCsv(Collection $invoices): SymfonyResponse
+    protected function exportCsv(Collection $invoices): StreamedResponse
     {
         $filename = 'billing-invoices-' . now()->format('Ymd-His') . '.csv';
 
-        return $this->downloadInvoices($filename, 'text/csv', $invoices);
+        return $this->streamInvoices($filename, 'text/csv', $invoices);
     }
 
-    protected function exportExcel(Collection $invoices): SymfonyResponse
+    protected function exportExcel(Collection $invoices): StreamedResponse
     {
         $filename = 'billing-invoices-' . now()->format('Ymd-His') . '.xlsx';
 
-        return $this->downloadInvoices($filename, 'application/vnd.ms-excel', $invoices);
+        return $this->streamInvoices($filename, 'application/vnd.ms-excel', $invoices);
     }
 
-    protected function downloadInvoices(string $filename, string $contentType, Collection $invoices): SymfonyResponse
+    protected function streamInvoices(string $filename, string $contentType, Collection $invoices): StreamedResponse
     {
-        $content = $this->buildInvoiceCsv($invoices);
+        return response()
+            ->streamDownload(function () use ($invoices) {
+                $handle = fopen('php://output', 'w');
 
-        return response($content, 200, [
-            'Content-Type' => $contentType,
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ])->setCharset(null);
+                fputcsv($handle, [
+                    'Stripe ID',
+                    'Status',
+                    'Customer',
+                    'Email',
+                    'Plan',
+                    'Currency',
+                    'Total',
+                    'Created At',
+                    'Paid At',
+                ]);
+
+                foreach ($invoices as $invoice) {
+                    fputcsv($handle, $this->invoiceRow($invoice));
+                }
+
+                fclose($handle);
+            }, $filename, [
+                'Content-Type' => $contentType,
+            ])
+            ->setCharset(null);
     }
 
     /**
@@ -188,32 +207,5 @@ class BillingController extends Controller
             optional($invoice->created_at)?->toIso8601String(),
             optional($invoice->paid_at)?->toIso8601String(),
         ];
-    }
-
-    protected function buildInvoiceCsv(Collection $invoices): string
-    {
-        $handle = fopen('php://temp', 'rw');
-
-        fputcsv($handle, [
-            'Stripe ID',
-            'Status',
-            'Customer',
-            'Email',
-            'Plan',
-            'Currency',
-            'Total',
-            'Created At',
-            'Paid At',
-        ]);
-
-        foreach ($invoices as $invoice) {
-            fputcsv($handle, $this->invoiceRow($invoice));
-        }
-
-        rewind($handle);
-        $content = stream_get_contents($handle) ?: '';
-        fclose($handle);
-
-        return $content;
     }
 }

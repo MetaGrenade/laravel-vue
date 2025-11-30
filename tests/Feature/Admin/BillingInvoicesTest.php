@@ -111,9 +111,10 @@ class BillingInvoicesTest extends TestCase
             'format' => 'csv',
         ]));
 
+        $csvContent = $csvResponse->streamedContent();
+
         $csvResponse->assertOk();
         $csvResponse->assertHeader('content-type', 'text/csv');
-        $csvContent = $csvResponse->getContent();
         $this->assertStringContainsString($invoice->stripe_id, $csvContent);
         $this->assertStringNotContainsString($otherInvoice->stripe_id, $csvContent);
 
@@ -121,9 +122,10 @@ class BillingInvoicesTest extends TestCase
             'format' => 'xlsx',
         ]));
 
+        $excelContent = $excelResponse->streamedContent();
+
         $excelResponse->assertOk();
         $excelResponse->assertHeader('content-type', 'application/vnd.ms-excel');
-        $excelContent = $excelResponse->getContent();
         $this->assertStringContainsString($invoice->stripe_id, $excelContent);
         $this->assertStringContainsString($otherInvoice->stripe_id, $excelContent);
     }
