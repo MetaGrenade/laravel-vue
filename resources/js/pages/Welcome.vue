@@ -84,16 +84,6 @@ const seo = {
     keywords: 'laravel vue starter kit, laravel vue boilerplate, saas starter, inertia vue, laravel 12, vite tailwind',
 };
 
-const resourceLinks = [
-    { title: 'Laravel 12.x Doc', href: 'https://laravel.com/docs/12.x' },
-    { title: 'Vue 3 Guide', href: 'https://vuejs.org/guide/introduction.html' },
-    { title: 'Inertia 2.x Docs', href: 'https://inertiajs.com/docs/v2/getting-started/index'},
-    { title: 'Tailwind Docs', href: 'https://tailwindcss.com/docs' },
-    { title: 'Lucide Icons', href: 'https://lucide.dev/icons/' },
-    { title: 'Vue Sonner Docs', href: 'https://vue-sonner.vercel.app/' },
-    { title: 'TipTap Editor', href: 'https://tiptap.dev/docs/editor/getting-started/install/vue3' },
-];
-
 const productFeatures = [
     {
         title: 'Ship Faster',
