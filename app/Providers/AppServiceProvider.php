@@ -54,5 +54,6 @@ class AppServiceProvider extends ServiceProvider
         ForumBoard::observe($cacheObserver);
         ForumThread::observe($cacheObserver);
         ForumPost::observe($cacheObserver);
+
     }
 }

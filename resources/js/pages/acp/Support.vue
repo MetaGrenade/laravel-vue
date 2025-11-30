@@ -41,7 +41,7 @@ import {
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import {
     XCircle, HelpCircle, Ticket, TicketX, MessageSquare, CheckCircle, Ellipsis, UserPlus, SquareChevronUp,
-    Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff, X, ThumbsUp, ThumbsDown,
+    Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff, X, ThumbsUp, ThumbsDown, Star,
 } from 'lucide-vue-next';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
@@ -50,6 +50,7 @@ import { Label } from '@/components/ui/label';
 import InputError from '@/components/InputError.vue';
 import Input from '@/components/ui/input/Input.vue';
 import { useDebounceFn } from '@vueuse/core';
+import { LineChart } from '@/components/ui/chart-line';
 
 // dayjs composable for human readable dates
 const { fromNow, formatDate } = useUserTimezone();
@@ -79,6 +80,14 @@ type PaginationLinks = {
 
 type TicketStatus = 'open' | 'pending' | 'closed';
 type TicketPriority = 'low' | 'medium' | 'high';
+
+type SatisfactionByStatus = Record<
+    TicketStatus,
+    {
+        average: number | null;
+        count: number;
+    }
+>;
 
 const props = defineProps<{
     tickets: {
@@ -146,6 +155,16 @@ const props = defineProps<{
         faqs: number;
         faq_helpful_feedback: number;
         faq_not_helpful_feedback: number;
+        satisfaction: {
+            average: number | null;
+            count: number;
+            by_status: SatisfactionByStatus;
+            by_month: Array<{
+                month: string;
+                average: number | null;
+                count: number;
+            }>;
+        };
     };
     assignableAgents: Array<{
         id: number;
@@ -522,6 +541,26 @@ const submitBulkTicketStatus = (status: TicketStatus) => {
 const faqItems = computed(() => props.faqs.data ?? []);
 const totalFaqFeedback = computed(
     () => props.supportStats.faq_helpful_feedback + props.supportStats.faq_not_helpful_feedback,
+);
+const satisfactionStats = computed(() => props.supportStats.satisfaction);
+const satisfactionByStatus = computed(() => satisfactionStats.value.by_status);
+const satisfactionByMonth = computed(() => satisfactionStats.value.by_month);
+const hasSatisfactionData = computed(() => satisfactionStats.value.count > 0);
+const hasSatisfactionChartData = computed(() => satisfactionByMonth.value.length > 0);
+const satisfactionStatusEntries = computed(
+    () => Object.entries(satisfactionByStatus.value) as Array<[
+        TicketStatus,
+        { average: number | null; count: number },
+    ]>,
+);
+
+const formatMonthLabel = (month: string) => formatDate(`${month}-01`, 'MMM YYYY');
+const satisfactionChartData = computed(() =>
+    satisfactionByMonth.value.map((entry) => ({
+        month: formatMonthLabel(entry.month),
+        average: entry.average ?? 0,
+        count: entry.count,
+    })),
 );
 
 type TicketFilterChipKey = 'status' | 'priority' | 'assignee' | 'date_range';
@@ -935,7 +974,7 @@ const unpublishFaq = (faq: FaqItem) => {
         <AdminLayout>
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8 gap-4">
                     <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
                         <MessageSquare class="h-8 w-8 mr-3 text-gray-600" />
                         <div>
@@ -957,6 +996,28 @@ const unpublishFaq = (faq: FaqItem) => {
                         <div>
                             <div class="text-sm text-gray-500">Closed Tickets</div>
                             <div class="text-xl font-bold">{{ props.supportStats.closed }}</div>
+                        </div>
+                        <PlaceholderPattern />
+                    </div>
+                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
+                        <Star class="h-8 w-8 mr-3 text-amber-500" />
+                        <div>
+                            <div class="text-sm text-gray-500">Avg. CSAT</div>
+                            <div class="text-xl font-bold">
+                                {{
+                                    satisfactionStats.average !== null
+                                        ? `${satisfactionStats.average}/5`
+                                        : 'No ratings yet'
+                                }}
+                            </div>
+                        </div>
+                        <PlaceholderPattern />
+                    </div>
+                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
+                        <Ticket class="h-8 w-8 mr-3 text-indigo-600" />
+                        <div>
+                            <div class="text-sm text-gray-500">Rated Tickets</div>
+                            <div class="text-xl font-bold">{{ satisfactionStats.count }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
@@ -986,6 +1047,52 @@ const unpublishFaq = (faq: FaqItem) => {
                             <div class="text-xl font-bold">{{ props.supportStats.faq_not_helpful_feedback }}</div>
                         </div>
                         <PlaceholderPattern />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div class="rounded-xl border p-4 space-y-4">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <div class="text-sm text-gray-500">Customer satisfaction</div>
+                                <div class="text-lg font-semibold">Average rating by month</div>
+                            </div>
+                        </div>
+                        <div v-if="hasSatisfactionChartData">
+                            <LineChart
+                                :data="satisfactionChartData"
+                                :categories="['average']"
+                                index="month"
+                                :show-legend="false"
+                                :y-formatter="(value: number) => `${value.toFixed(1)}`"
+                            />
+                            <div class="text-xs text-gray-500">Includes resolved tickets with ratings.</div>
+                        </div>
+                        <div v-else class="text-sm text-gray-500">
+                            No customer satisfaction ratings available yet.
+                        </div>
+                    </div>
+                    <div class="rounded-xl border p-4 space-y-4">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <div class="text-sm text-gray-500">Ratings by status</div>
+                                <div class="text-lg font-semibold">Snapshot</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" v-if="hasSatisfactionData">
+                            <div
+                                v-for="[status, metrics] in satisfactionStatusEntries"
+                                :key="status"
+                                class="rounded-lg border p-3"
+                            >
+                                <div class="text-sm font-medium capitalize">{{ status }}</div>
+                                <div class="text-xs text-gray-500">Rated: {{ metrics.count }}</div>
+                                <div class="text-lg font-semibold">
+                                    {{ metrics.average !== null ? `${metrics.average}/5` : 'No ratings' }}
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="text-sm text-gray-500">No ratings captured yet.</div>
                     </div>
                 </div>
 
