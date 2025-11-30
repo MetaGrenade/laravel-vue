@@ -487,6 +487,48 @@ class SupportController extends Controller
             ->values()
             ->all();
 
+        $satisfactionRatings = (clone $ticketQuery)
+            ->whereNotNull('customer_satisfaction_rating');
+
+        $satisfactionSummary = [
+            'avg_rating' => (clone $satisfactionRatings)
+                ->get(['customer_satisfaction_rating'])
+                ->avg('customer_satisfaction_rating'),
+            'rating_count' => (clone $satisfactionRatings)->count(),
+        ];
+
+        $satisfactionByStatus = (clone $satisfactionRatings)
+            ->select('status')
+            ->selectRaw('AVG(customer_satisfaction_rating) as avg_rating')
+            ->selectRaw('COUNT(customer_satisfaction_rating) as rating_count')
+            ->groupBy('status')
+            ->get()
+            ->mapWithKeys(function ($row) {
+                return [$row->status => [
+                    'average' => $row->avg_rating !== null ? round((float) $row->avg_rating, 2) : null,
+                    'count' => (int) $row->rating_count,
+                ]];
+            });
+
+        $satisfactionByMonth = (clone $satisfactionRatings)
+            ->whereNotNull('resolved_at')
+            ->get(['customer_satisfaction_rating', 'resolved_at'])
+            ->groupBy(function (SupportTicket $ticket) {
+                return $ticket->resolved_at->format('Y-m');
+            })
+            ->sortKeys()
+            ->map(function ($group, $month) {
+                $average = $group->avg('customer_satisfaction_rating');
+
+                return [
+                    'month' => $month,
+                    'average' => $average !== null ? round((float) $average, 2) + 0.0 : null,
+                    'count' => $group->count(),
+                ];
+            })
+            ->values()
+            ->all();
+
         $stats = [
             'total' => $tickets->total(),
             'open' => (clone $ticketQuery)->where('status', 'open')->count(),
@@ -494,6 +536,23 @@ class SupportController extends Controller
             'faqs' => $faqs->total(),
             'faq_helpful_feedback' => FaqFeedback::where('is_helpful', true)->count(),
             'faq_not_helpful_feedback' => FaqFeedback::where('is_helpful', false)->count(),
+            'satisfaction' => [
+                'average' => $satisfactionSummary['avg_rating'] !== null
+                    ? round((float) $satisfactionSummary['avg_rating'], 2) + 0.0
+                    : null,
+                'count' => (int) ($satisfactionSummary['rating_count'] ?? 0),
+                'by_status' => collect(['open', 'pending', 'closed'])
+                    ->mapWithKeys(function (string $status) use ($satisfactionByStatus) {
+                        return [$status => [
+                            'average' => isset($satisfactionByStatus[$status]['average'])
+                                ? $satisfactionByStatus[$status]['average'] + 0.0
+                                : null,
+                            'count' => $satisfactionByStatus[$status]['count'] ?? 0,
+                        ]];
+                    })
+                    ->all(),
+                'by_month' => $satisfactionByMonth,
+            ],
         ];
 
         $assignableAgents = User::orderBy('nickname')
