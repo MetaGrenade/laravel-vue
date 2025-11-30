@@ -490,10 +490,12 @@ class SupportController extends Controller
         $satisfactionRatings = (clone $ticketQuery)
             ->whereNotNull('customer_satisfaction_rating');
 
-        $satisfactionSummary = (clone $satisfactionRatings)
-            ->selectRaw('AVG(customer_satisfaction_rating) as avg_rating')
-            ->selectRaw('COUNT(customer_satisfaction_rating) as rating_count')
-            ->first();
+        $satisfactionSummary = [
+            'avg_rating' => (clone $satisfactionRatings)
+                ->get(['customer_satisfaction_rating'])
+                ->avg('customer_satisfaction_rating'),
+            'rating_count' => (clone $satisfactionRatings)->count(),
+        ];
 
         $satisfactionByStatus = (clone $satisfactionRatings)
             ->select('status')
@@ -535,10 +537,10 @@ class SupportController extends Controller
             'faq_helpful_feedback' => FaqFeedback::where('is_helpful', true)->count(),
             'faq_not_helpful_feedback' => FaqFeedback::where('is_helpful', false)->count(),
             'satisfaction' => [
-                'average' => $satisfactionSummary?->avg_rating !== null
-                    ? round((float) $satisfactionSummary->avg_rating, 2) + 0.0
+                'average' => $satisfactionSummary['avg_rating'] !== null
+                    ? round((float) $satisfactionSummary['avg_rating'], 2) + 0.0
                     : null,
-                'count' => (int) ($satisfactionSummary?->rating_count ?? 0),
+                'count' => (int) ($satisfactionSummary['rating_count'] ?? 0),
                 'by_status' => collect(['open', 'pending', 'closed'])
                     ->mapWithKeys(function (string $status) use ($satisfactionByStatus) {
                         return [$status => [
