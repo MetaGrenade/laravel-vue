@@ -152,36 +152,19 @@ class BillingController extends Controller
     {
         $filename = 'billing-invoices-' . now()->format('Ymd-His') . '.csv';
 
-        return response()->streamDownload(function () use ($invoices) {
-            $handle = fopen('php://output', 'w');
-
-            fputcsv($handle, [
-                'Stripe ID',
-                'Status',
-                'Customer',
-                'Email',
-                'Plan',
-                'Currency',
-                'Total',
-                'Created At',
-                'Paid At',
-            ]);
-
-            foreach ($invoices as $invoice) {
-                fputcsv($handle, $this->invoiceRow($invoice));
-            }
-
-            fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv',
-        ])->setCharset(null);
+        return $this->streamInvoices($filename, 'text/csv', $invoices);
     }
 
     protected function exportExcel(Collection $invoices): StreamedResponse
     {
         $filename = 'billing-invoices-' . now()->format('Ymd-His') . '.xlsx';
 
-        return response()->streamDownload(function () use ($invoices) {
+        return $this->streamInvoices($filename, 'application/vnd.ms-excel', $invoices);
+    }
+
+    protected function streamInvoices(string $filename, string $contentType, Collection $invoices): StreamedResponse
+    {
+        $response = new StreamedResponse(function () use ($invoices) {
             $handle = fopen('php://output', 'w');
 
             fputcsv($handle, [
@@ -201,9 +184,13 @@ class BillingController extends Controller
             }
 
             fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'application/vnd.ms-excel',
-        ])->setCharset(null);
+        });
+
+        $response->headers->set('Content-Type', $contentType);
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $response->setCharset(null);
+
+        return $response;
     }
 
     /**
