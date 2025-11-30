@@ -90,10 +90,10 @@ const techIconsInline = Object.keys(rawIconModules)
                             </div>
                             <div class="space-y-4">
                                 <h1 class="text-3xl font-semibold leading-tight tracking-tight text-[#1b1b18] dark:text-[#EDEDEC] sm:text-4xl">
-                                    Show founders, clients, and contributors a SaaS that’s already selling
+                                    Launch your SaaS app with ready-to-ship modules
                                 </h1>
                                 <p class="max-w-2xl text-base text-[#706f6c] dark:text-[#A1A09A]">
-                                    This Laravel + Vue starter arrives with every marketing surface live—blog, forum, support, billing, and admin—so agencies, indie founders, and OSS adopters can point to proof before writing custom code.
+                                    A cohesive boilerplate that ships with content, conversations, support, billing, and an admin control panel—all styled with the existing design system so you can customize and deploy faster.
                                 </p>
                             </div>
                             <div class="flex flex-wrap gap-3">
@@ -138,21 +138,21 @@ const techIconsInline = Object.keys(rawIconModules)
                                             <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]">1</span>
                                             <div>
                                                 <p class="font-medium">Story-driven Blog</p>
-                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Demo launches and updates instantly with tags, categories, and RSS baked in.</p>
+                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Feature posts, categories, tags, and RSS without extra setup.</p>
                                             </div>
                                         </li>
                                         <li class="flex items-start gap-3">
                                             <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]">2</span>
                                             <div>
                                                 <p class="font-medium">Community Forum</p>
-                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Invite early adopters and clients into moderated threads with subscriptions ready.</p>
+                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Boards, threads, moderation, and subscriptions ready to go.</p>
                                             </div>
                                         </li>
                                         <li class="flex items-start gap-3">
                                             <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]">3</span>
                                             <div>
                                                 <p class="font-medium">Support & Billing</p>
-                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Prove readiness with ticketing, FAQs, and subscription management in one flow.</p>
+                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Prove readiness with ticketing, FAQs, and subscription management out of the box.</p>
                                             </div>
                                         </li>
                                     </ul>
@@ -166,7 +166,7 @@ const techIconsInline = Object.keys(rawIconModules)
                             <div class="flex flex-col gap-2">
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Marketing & SEO Ready</p>
                                 <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Built to earn trust from the first scroll</h2>
-                                <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Founders, agencies, and OSS adopters can drop visitors straight into real blog, forum, and support flows—so pitches, proposals, and readme files point to live proof, not empty shells.</p>
+                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Founders, agencies, and OSS adopters can drop visitors straight into real blog, forum, and support flows—so pitches, proposals, and readme files point to live proof, not empty shells.</p>
                             </div>
                             <div class="flex flex-col gap-3">
                                 <div class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">SSR, clean markup, and lightweight UI components keep marketing pages fast, indexable, and credible for anyone evaluating the starter.</div>
@@ -279,7 +279,7 @@ const techIconsInline = Object.keys(rawIconModules)
                         <div class="flex flex-col gap-2">
                             <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Revenue & retention</p>
                             <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Show the business side is already live</h2>
-                            <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Stripe billing, dashboards, and admin controls are wired up so founders, agencies, and contributors can preview real monetization flows without building scaffolding first.</p>
+                            <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Stripe billing, dashboards, and admin controls are wired up so founders, agencies, and contributors can preview real monetization flows without building scaffolding first.</p>
                         </div>
                         <div class="grid gap-4 lg:grid-cols-3">
                             <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:col-span-2">
@@ -485,7 +485,7 @@ const techIconsInline = Object.keys(rawIconModules)
                             <div class="space-y-3">
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Launch Faster</p>
                                 <h3 class="text-2xl font-semibold leading-tight text-[#1b1b18] dark:text-[#EDEDEC]">Plug into <Anvil class="inline text-[#8b5a00] dark:text-[#f3d29e]" /> <span class="text-[#8b5a00] dark:text-[#f3d29e]">MetaForge</span> and ship your product story</h3>
-                                <p class="max-w-2xl text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                     Every module uses the same typography, spacing, and components so founders, agencies, and OSS contributors can focus on content, customization, and onboarding instead of wiring basics together.
                                 </p>
                             </div>
