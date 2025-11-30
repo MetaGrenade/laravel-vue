@@ -111,7 +111,7 @@ class BillingInvoicesTest extends TestCase
             'format' => 'csv',
         ]));
 
-        $csvContent = $csvResponse->streamedContent();
+        $csvContent = $csvResponse->getContent();
 
         $csvResponse->assertOk();
         $csvResponse->assertHeader('content-type', 'text/csv');
@@ -122,7 +122,7 @@ class BillingInvoicesTest extends TestCase
             'format' => 'xlsx',
         ]));
 
-        $excelContent = $excelResponse->streamedContent();
+        $excelContent = $excelResponse->getContent();
 
         $excelResponse->assertOk();
         $excelResponse->assertHeader('content-type', 'application/vnd.ms-excel');
