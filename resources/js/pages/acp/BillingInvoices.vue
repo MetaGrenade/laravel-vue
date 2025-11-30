@@ -66,10 +66,6 @@ interface Props {
         date_to: string | null;
     };
     statusOptions: string[];
-    exportLinks: {
-        csv: string;
-        xlsx: string;
-    };
 }
 
 const props = defineProps<Props>();
@@ -176,10 +172,6 @@ const formatCurrency = (amount: number, currency: string) => {
                         <div class="flex gap-2">
                             <Button variant="outline" type="button" @click="resetFilters">Reset</Button>
                             <Button type="button" @click="applyFilters({ page: 1 })">Apply filters</Button>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <Button as="a" :href="props.exportLinks.csv" variant="secondary">Download CSV</Button>
-                            <Button as="a" :href="props.exportLinks.xlsx" variant="outline">Download Excel</Button>
                         </div>
                     </div>
                 </div>

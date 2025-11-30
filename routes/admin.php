@@ -225,7 +225,6 @@ Route::middleware(['auth', 'can:billing.acp.view'])
     ->name('acp.billing.')
     ->group(function () {
         Route::get('invoices', [BillingController::class, 'invoices'])->name('invoices.index');
-        Route::get('invoices/export', [BillingController::class, 'export'])->name('invoices.export');
 
         Route::get('webhooks', [BillingWebhookCallController::class, 'index'])->name('webhooks.index');
         Route::get('webhooks/{billingWebhookCall}', [BillingWebhookCallController::class, 'show'])
