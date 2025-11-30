@@ -34,6 +34,7 @@ use App\Support\SupportSlaConfiguration;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use App\Support\Database\Transaction;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -44,7 +45,6 @@ use Illuminate\Support\Stringable;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class SupportController extends Controller
 {
@@ -334,7 +334,7 @@ class SupportController extends Controller
             ->with('success', 'Team membership updated.');
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request): JsonResponse
     {
         $perPage = (int) $request->get('per_page', 25);
 
@@ -560,7 +560,7 @@ class SupportController extends Controller
             ])
             ->all();
 
-        return Inertia::render('acp/Support', [
+        $response = Inertia::render('acp/Support', [
             'tickets' => array_merge([
                 'data' => $ticketItems,
             ], $this->inertiaPagination($tickets)),
@@ -577,6 +577,12 @@ class SupportController extends Controller
                 'date_to' => optional($createdTo)?->toDateString(),
             ],
         ]);
+
+        return tap($response->toResponse($request), function (JsonResponse $jsonResponse) {
+            $jsonResponse->setEncodingOptions(
+                $jsonResponse->getEncodingOptions() | JSON_PRESERVE_ZERO_FRACTION,
+            );
+        });
     }
 
     private function escapeForLike(string $value): string
