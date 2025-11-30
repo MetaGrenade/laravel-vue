@@ -164,33 +164,31 @@ class BillingController extends Controller
 
     protected function streamInvoices(string $filename, string $contentType, Collection $invoices): StreamedResponse
     {
-        $response = new StreamedResponse(function () use ($invoices) {
-            $handle = fopen('php://output', 'w');
+        return response()
+            ->streamDownload(function () use ($invoices) {
+                $handle = fopen('php://output', 'w');
 
-            fputcsv($handle, [
-                'Stripe ID',
-                'Status',
-                'Customer',
-                'Email',
-                'Plan',
-                'Currency',
-                'Total',
-                'Created At',
-                'Paid At',
-            ]);
+                fputcsv($handle, [
+                    'Stripe ID',
+                    'Status',
+                    'Customer',
+                    'Email',
+                    'Plan',
+                    'Currency',
+                    'Total',
+                    'Created At',
+                    'Paid At',
+                ]);
 
-            foreach ($invoices as $invoice) {
-                fputcsv($handle, $this->invoiceRow($invoice));
-            }
+                foreach ($invoices as $invoice) {
+                    fputcsv($handle, $this->invoiceRow($invoice));
+                }
 
-            fclose($handle);
-        });
-
-        $response->headers->set('Content-Type', $contentType);
-        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
-        $response->setCharset(null);
-
-        return $response;
+                fclose($handle);
+            }, $filename, [
+                'Content-Type' => $contentType,
+            ])
+            ->setCharset(null);
     }
 
     /**
