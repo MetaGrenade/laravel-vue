@@ -560,7 +560,7 @@ class SupportController extends Controller
             ])
             ->all();
 
-        $page = Inertia::render('acp/Support', [
+        return Inertia::render('acp/Support', [
             'tickets' => array_merge([
                 'data' => $ticketItems,
             ], $this->inertiaPagination($tickets)),
@@ -577,12 +577,6 @@ class SupportController extends Controller
                 'date_to' => optional($createdTo)?->toDateString(),
             ],
         ]);
-
-        $response = $page->toResponse($request);
-
-        return $response->setEncodingOptions(
-            $response->getEncodingOptions() | JSON_PRESERVE_ZERO_FRACTION,
-        );
     }
 
     private function escapeForLike(string $value): string
