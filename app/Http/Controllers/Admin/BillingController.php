@@ -174,7 +174,7 @@ class BillingController extends Controller
             fclose($handle);
         }, $filename, [
             'Content-Type' => 'text/csv',
-        ]);
+        ])->setCharset('');
     }
 
     protected function exportExcel(Collection $invoices): StreamedResponse
@@ -203,7 +203,7 @@ class BillingController extends Controller
             fclose($handle);
         }, $filename, [
             'Content-Type' => 'application/vnd.ms-excel',
-        ]);
+        ])->setCharset('');
     }
 
     /**
