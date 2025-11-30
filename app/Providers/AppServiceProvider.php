@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -54,5 +55,9 @@ class AppServiceProvider extends ServiceProvider
         ForumBoard::observe($cacheObserver);
         ForumThread::observe($cacheObserver);
         ForumPost::observe($cacheObserver);
+
+        JsonResponse::setDefaultEncodingOptions(
+            JsonResponse::getDefaultEncodingOptions() | JSON_PRESERVE_ZERO_FRACTION,
+        );
     }
 }
