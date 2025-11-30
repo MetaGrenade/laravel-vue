@@ -510,17 +510,18 @@ class SupportController extends Controller
 
         $satisfactionByMonth = (clone $satisfactionRatings)
             ->whereNotNull('resolved_at')
-            ->selectRaw("DATE_FORMAT(resolved_at, '%Y-%m') as month")
-            ->selectRaw('AVG(customer_satisfaction_rating) as avg_rating')
-            ->selectRaw('COUNT(customer_satisfaction_rating) as rating_count')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->map(function ($row) {
+            ->get(['customer_satisfaction_rating', 'resolved_at'])
+            ->groupBy(function (SupportTicket $ticket) {
+                return $ticket->resolved_at->format('Y-m');
+            })
+            ->sortKeys()
+            ->map(function ($group, $month) {
+                $average = $group->avg('customer_satisfaction_rating');
+
                 return [
-                    'month' => $row->month,
-                    'average' => $row->avg_rating !== null ? round((float) $row->avg_rating, 2) : null,
-                    'count' => (int) $row->rating_count,
+                    'month' => $month,
+                    'average' => $average !== null ? round((float) $average, 2) : null,
+                    'count' => $group->count(),
                 ];
             })
             ->values()
