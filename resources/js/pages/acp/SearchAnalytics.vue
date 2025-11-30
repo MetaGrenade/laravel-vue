@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination, PaginationEllipsis, PaginationFirst, PaginationLast, PaginationList, PaginationListItem, PaginationNext, PaginationPrev } from '@/components/ui/pagination';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
+import { usePermissions } from '@/composables/usePermissions';
 
 interface SearchAggregate {
     term: string;
@@ -113,6 +114,9 @@ const summaryCards = computed(() => [
     { title: 'Click-Through Rate', value: formatPercent(props.summary.overall_ctr) },
     { title: 'Average Results', value: props.summary.average_results.toFixed(2) },
 ]);
+
+const { hasPermission } = usePermissions();
+const canExportSearchAnalytics = computed(() => hasPermission('search.acp.view'));
 </script>
 
 <template>
@@ -122,7 +126,7 @@ const summaryCards = computed(() => [
             <div class="flex flex-col w-full gap-6 rounded-xl pb-4">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h1 class="text-2xl font-semibold tracking-tight">Search Analytics</h1>
-                    <div class="flex gap-2">
+                    <div v-if="canExportSearchAnalytics" class="flex gap-2">
                         <Button as-child variant="secondary">
                             <a :href="exportLinks.aggregates">Export Aggregates</a>
                         </Button>

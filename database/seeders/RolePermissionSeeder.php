@@ -32,12 +32,16 @@ class RolePermissionSeeder extends Seeder
             'system',
             'billing',
             'trust_safety',
+            'search',
         ];
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(['name' => $permission.'.acp.view']);
             Permission::firstOrCreate(['name' => $permission.'.acp.create']);
             Permission::firstOrCreate(['name' => $permission.'.acp.edit']);
+            if ($permission === 'users') {
+                Permission::firstOrCreate(['name' => 'users.acp.update']);
+            }
             if ($permission == 'blogs') {
                 Permission::firstOrCreate(['name' => $permission.'.acp.publish']);
             }

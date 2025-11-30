@@ -7,6 +7,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { toast } from 'vue-sonner';
+import { usePermissions } from '@/composables/usePermissions';
 
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -52,8 +53,14 @@ const form = useForm({
 
 const diagnostics = computed(() => props.diagnostics);
 const oauthProviderOptions = computed(() => props.oauthProviders ?? []);
+const { hasPermission } = usePermissions();
+const canEditSystemSettings = computed(() => hasPermission('system.acp.edit'));
 
 const saveSettings = () => {
+    if (!canEditSystemSettings.value) {
+        return;
+    }
+
     form.put(route('acp.system.update'), {
         preserveScroll: true,
         onSuccess: () => {
@@ -80,7 +87,7 @@ const saveSettings = () => {
                             Toggle maintenance mode to temporarily disable access for users.
                         </p>
                         <div class="flex items-center">
-                            <Switch v-model="form.maintenance_mode" />
+                            <Switch v-model="form.maintenance_mode" :disabled="!canEditSystemSettings" />
                             <span class="ml-2 text-sm">
                                 {{ form.maintenance_mode ? 'Enabled' : 'Disabled' }}
                             </span>
@@ -94,7 +101,7 @@ const saveSettings = () => {
                             Require users to verify their email address upon registration.
                         </p>
                         <div class="flex items-center">
-                            <Switch v-model="form.email_verification_required" />
+                            <Switch v-model="form.email_verification_required" :disabled="!canEditSystemSettings" />
                             <span class="ml-2 text-sm">
                                 {{ form.email_verification_required ? 'Required' : 'Not Required' }}
                             </span>
@@ -114,7 +121,7 @@ const saveSettings = () => {
                                     <p class="text-xs text-gray-500">Control access to public blog content.</p>
                                 </div>
                                 <div class="flex items-center">
-                                    <Switch v-model="form.website_sections.blog" />
+                                    <Switch v-model="form.website_sections.blog" :disabled="!canEditSystemSettings" />
                                     <span class="ml-2 text-sm">
                                         {{ form.website_sections.blog ? 'Enabled' : 'Disabled' }}
                                     </span>
@@ -126,7 +133,7 @@ const saveSettings = () => {
                                     <p class="text-xs text-gray-500">Toggle the community forum for discussions.</p>
                                 </div>
                                 <div class="flex items-center">
-                                    <Switch v-model="form.website_sections.forum" />
+                                    <Switch v-model="form.website_sections.forum" :disabled="!canEditSystemSettings" />
                                     <span class="ml-2 text-sm">
                                         {{ form.website_sections.forum ? 'Enabled' : 'Disabled' }}
                                     </span>
@@ -138,7 +145,7 @@ const saveSettings = () => {
                                     <p class="text-xs text-gray-500">Expose FAQs and ticket submission tools.</p>
                                 </div>
                                 <div class="flex items-center">
-                                    <Switch v-model="form.website_sections.support" />
+                                    <Switch v-model="form.website_sections.support" :disabled="!canEditSystemSettings" />
                                     <span class="ml-2 text-sm">
                                         {{ form.website_sections.support ? 'Enabled' : 'Disabled' }}
                                     </span>
@@ -166,7 +173,7 @@ const saveSettings = () => {
                                     </p>
                                 </div>
                                 <div class="flex items-center">
-                                    <Switch v-model="form.oauth_providers[provider.key]" />
+                                    <Switch v-model="form.oauth_providers[provider.key]" :disabled="!canEditSystemSettings" />
                                     <span class="ml-2 text-sm">
                                         {{ form.oauth_providers[provider.key] ? 'Enabled' : 'Disabled' }}
                                     </span>
@@ -231,7 +238,7 @@ const saveSettings = () => {
                 </div>
 
                 <!-- Save Settings Button -->
-                <div class="flex justify-end">
+                <div v-if="canEditSystemSettings" class="flex justify-end">
                     <Button
                         @click="saveSettings"
                         :disabled="form.processing"

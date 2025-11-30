@@ -20,6 +20,8 @@ class SearchAnalyticsController extends Controller
 
     public function index(Request $request): Response
     {
+        abort_unless($request->user()?->can('search.acp.view'), 403);
+
         $formatter = DateFormatter::for($request->user());
 
         $filters = $this->validateFilters($request);
@@ -44,8 +46,10 @@ class SearchAnalyticsController extends Controller
         ]);
     }
 
-    public function exportAggregates(): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function exportAggregates(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
+        abort_unless($request->user()?->can('search.acp.view'), 403);
+
         $filename = 'search-aggregates-' . now()->format('Ymd-His') . '.csv';
 
         $aggregates = SearchQueryAggregate::query()
@@ -84,6 +88,8 @@ class SearchAnalyticsController extends Controller
 
     public function exportSearches(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
+        abort_unless($request->user()?->can('search.acp.view'), 403);
+
         $filters = $this->validateFilters($request);
 
         $searches = $this->recentSearchQuery($filters)

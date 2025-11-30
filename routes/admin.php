@@ -30,10 +30,14 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::redirect('acp', '/acp/dashboard');
 
     Route::get('acp/dashboard', [AdminController::class, 'get'])->name('acp.dashboard');
-    Route::get('acp/search-analytics', [SearchAnalyticsController::class, 'index'])->name('acp.search-analytics.index');
+    Route::get('acp/search-analytics', [SearchAnalyticsController::class, 'index'])
+        ->middleware('can:search.acp.view')
+        ->name('acp.search-analytics.index');
     Route::get('acp/search-analytics/exports/aggregates', [SearchAnalyticsController::class, 'exportAggregates'])
+        ->middleware('can:search.acp.view')
         ->name('acp.search-analytics.export-aggregates');
     Route::get('acp/search-analytics/exports/searches', [SearchAnalyticsController::class, 'exportSearches'])
+        ->middleware('can:search.acp.view')
         ->name('acp.search-analytics.export-searches');
 
     // Admin User Management Routes
@@ -192,8 +196,12 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/support/faq-categories/{category}', [FaqCategoryController::class, 'update'])->name('acp.support.faq-categories.update');
     Route::delete('acp/support/faq-categories/{category}', [FaqCategoryController::class, 'destroy'])->name('acp.support.faq-categories.destroy');
 
-    Route::get('acp/system', [SystemSettingsController::class, 'index'])->name('acp.system');
-    Route::put('acp/system', [SystemSettingsController::class, 'update'])->name('acp.system.update');
+    Route::get('acp/system', [SystemSettingsController::class, 'index'])
+        ->middleware('can:system.acp.view')
+        ->name('acp.system');
+    Route::put('acp/system', [SystemSettingsController::class, 'update'])
+        ->middleware('can:system.acp.edit')
+        ->name('acp.system.update');
 
     Route::get('acp/reputation/badges', [BadgeController::class, 'index'])->name('acp.reputation.badges.index');
     Route::get('acp/reputation/badges/create', [BadgeController::class, 'create'])->name('acp.reputation.badges.create');
