@@ -5,6 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
+interface Category {
+    id: number;
+    name: string;
+    slug: string;
+}
+
+interface Tag {
+    id: number;
+    name: string;
+    slug: string;
+}
+
 interface OptionValue {
     id: number;
     value: string;
@@ -45,6 +57,8 @@ interface Product {
     variants: Variant[];
     prices: Price[];
     inventory_items: InventoryItem[];
+    categories: Category[];
+    tags: Tag[];
 }
 
 interface Props {
@@ -76,6 +90,15 @@ const props = defineProps<Props>();
                     <div>
                         <h3 class="text-sm font-semibold text-muted-foreground">Description</h3>
                         <p class="mt-1 text-sm text-foreground">{{ props.product.description || 'Add marketing copy to this product.' }}</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <Badge v-for="category in props.product.categories" :key="category.id" variant="secondary">
+                            {{ category.name }}
+                        </Badge>
+                        <Badge v-for="tag in props.product.tags" :key="tag.id" variant="outline">
+                            {{ tag.name }}
+                        </Badge>
                     </div>
 
                     <div>

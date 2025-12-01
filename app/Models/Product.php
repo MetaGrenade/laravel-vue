@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -23,6 +24,16 @@ class Product extends Model
         'metadata' => 'array',
         'is_active' => 'boolean',
     ];
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductCategory::class);
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductTag::class);
+    }
 
     public function options(): HasMany
     {
