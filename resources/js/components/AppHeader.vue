@@ -14,6 +14,7 @@ import {
     navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
@@ -35,6 +36,7 @@ import {
     Check,
     Trash2,
     ShoppingBag,
+    ShoppingCart,
 } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
@@ -62,6 +64,56 @@ const notificationsState = reactive({
     unreadCount: 0,
     hasMore: false,
 });
+
+type CartItem = {
+    id: number;
+    name: string;
+    variant: string;
+    price: number;
+    quantity: number;
+};
+
+const currencyCode = ref('USD');
+const cartItems = ref<CartItem[]>([
+    { id: 1, name: 'Core hoodie', variant: 'Heather grey / L', price: 58, quantity: 1 },
+    { id: 2, name: 'Everyday tee', variant: 'Black / M', price: 32, quantity: 2 },
+]);
+
+const cartItemCount = computed(() => cartItems.value.reduce((total, item) => total + item.quantity, 0));
+
+const cartTotals = computed(() => {
+    const subtotal = cartItems.value.reduce((total, item) => total + item.price * item.quantity, 0);
+    const tax = subtotal * 0.07;
+    const shipping = subtotal > 0 ? 8 : 0;
+    const total = subtotal + tax + shipping;
+
+    return { subtotal, tax, shipping, total };
+});
+
+const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currencyCode.value,
+        maximumFractionDigits: 2,
+    }).format(value);
+
+const incrementQuantity = (id: number) => {
+    cartItems.value = cartItems.value.map((item) =>
+        item.id === id ? { ...item, quantity: item.quantity + 1 } : item,
+    );
+};
+
+const decrementQuantity = (id: number) => {
+    cartItems.value = cartItems.value
+        .map((item) =>
+            item.id === id && item.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : item,
+        )
+        .filter((item) => item.quantity > 0);
+};
+
+const removeFromCart = (id: number) => {
+    cartItems.value = cartItems.value.filter((item) => item.id !== id);
+};
 
 const notifications = computed<NotificationItem[]>(() => notificationsState.items);
 const unreadNotificationCount = computed(() => notificationsState.unreadCount);
@@ -198,23 +250,26 @@ onBeforeUnmount(() => {
     leaveNotificationChannel();
 });
 
-type SectionAwareNavItem = NavItem & { section?: 'blog' | 'forum' | 'support' };
+type SectionAwareNavItem = NavItem & { section?: 'blog' | 'forum' | 'support' | 'commerce' };
 
 const websiteSections = computed(() => {
-    const defaults = { blog: true, forum: true, support: true } as const;
+    const defaults = { blog: true, forum: true, support: true, commerce: true } as const;
     const settings = page.props.settings?.website_sections ?? defaults;
 
     return {
         blog: settings.blog ?? defaults.blog,
         forum: settings.forum ?? defaults.forum,
         support: settings.support ?? defaults.support,
+        commerce: settings.commerce ?? defaults.commerce,
     };
 });
+
+const commerceEnabled = computed(() => Boolean(websiteSections.value.commerce));
 
 const baseMainNavItems: SectionAwareNavItem[] = [
     { title: 'Home', href: '/', target: '_self', icon: Home },
     { title: 'Pricing', href: '/pricing', target: '_self', icon: Layers },
-    { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag },
+    { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag, section: 'commerce' },
     { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid },
     { title: 'Blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
     { title: 'Forum', href: '/forum', target: '_self', icon: Megaphone, section: 'forum' },
@@ -494,6 +549,106 @@ const viewNotification = (notification: NotificationItem) => {
                             </template>
                         </div>
                     </div>
+
+                    <Sheet v-if="commerceEnabled">
+                        <SheetTrigger :as-child="true">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="group relative h-9 w-9 cursor-pointer"
+                                aria-label="Open cart"
+                            >
+                                <ShoppingCart class="size-5 opacity-80 group-hover:opacity-100" />
+                                <span
+                                    v-if="cartItemCount > 0"
+                                    class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
+                                >
+                                    {{ cartItemCount > 9 ? '9+' : cartItemCount }}
+                                </span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" class="flex w-full max-w-md flex-col p-0">
+                            <SheetHeader class="space-y-1 px-6 py-4 text-left">
+                                <SheetTitle>Your cart</SheetTitle>
+                                <p class="text-sm text-muted-foreground">Manage your items before checkout.</p>
+                            </SheetHeader>
+                            <Separator />
+                            <div class="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+                                <p v-if="!cartItems.length" class="text-sm text-muted-foreground">Your cart is empty.</p>
+                                <div v-else class="space-y-3">
+                                    <div
+                                        v-for="item in cartItems"
+                                        :key="item.id"
+                                        class="flex items-start justify-between gap-4 rounded-lg border p-3"
+                                    >
+                                        <div class="space-y-2">
+                                            <p class="text-sm font-semibold text-foreground">{{ item.name }}</p>
+                                            <p class="text-xs text-muted-foreground">{{ item.variant }}</p>
+                                            <div class="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    class="h-8 w-8"
+                                                    :aria-label="`Decrease quantity for ${item.name}`"
+                                                    @click="decrementQuantity(item.id)"
+                                                >
+                                                    -
+                                                </Button>
+                                                <span class="w-8 text-center text-sm font-medium">{{ item.quantity }}</span>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    class="h-8 w-8"
+                                                    :aria-label="`Increase quantity for ${item.name}`"
+                                                    @click="incrementQuantity(item.id)"
+                                                >
+                                                    +
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-semibold">{{ formatCurrency(item.price * item.quantity) }}</p>
+                                            <p class="text-xs text-muted-foreground">{{ formatCurrency(item.price) }} each</p>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                class="mt-2 text-destructive hover:text-destructive"
+                                                @click="removeFromCart(item.id)"
+                                            >
+                                                Remove
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <Separator />
+                            <div class="space-y-3 px-6 py-4">
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-muted-foreground">Subtotal</span>
+                                    <span class="font-medium">{{ formatCurrency(cartTotals.subtotal) }}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-muted-foreground">Estimated tax</span>
+                                    <span class="font-medium">{{ formatCurrency(cartTotals.tax) }}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-muted-foreground">Shipping</span>
+                                    <span class="font-medium">{{ cartTotals.shipping ? formatCurrency(cartTotals.shipping) : 'Free' }}</span>
+                                </div>
+                                <Separator />
+                                <div class="flex items-center justify-between text-base font-semibold">
+                                    <span>Total</span>
+                                    <span>{{ formatCurrency(cartTotals.total) }}</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <Button class="flex-1" :disabled="!cartItems.length">Continue to checkout</Button>
+                                    <Button variant="secondary" class="flex-1" as-child>
+                                        <Link :href="route('shop.index')">Continue shopping</Link>
+                                    </Button>
+                                </div>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
 
                     <DropdownMenu v-if="user">
                         <DropdownMenuTrigger :as-child="true">
