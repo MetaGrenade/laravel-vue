@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, shallowRef } from 'vue';
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,12 +15,26 @@ interface Plan {
     price: number;
     interval: string;
     currency: string;
+    trial_days: number;
     features: string[];
     stripe_price_id: string;
 }
 
 interface Props {
     plans: Plan[];
+}
+
+interface CouponPreview {
+    coupon: {
+        code: string;
+        name: string;
+    };
+    discount_amount: number;
+    plan_price: number;
+    total: number;
+    trial_days: number;
+    bonus_trial_days: number;
+    currency: string;
 }
 
 type StripeInstance = any;
@@ -35,12 +49,20 @@ const isStripeConfigured = computed(() => Boolean(stripeKey.value));
 
 const email = ref(page.props.auth.user?.email ?? '');
 const selectedPlanId = ref<number | null>(props.plans[0]?.id ?? null);
+const selectedPlan = computed(() => props.plans.find(plan => plan.id === selectedPlanId.value) ?? null);
+const coupon = ref('');
+const couponPreview = ref<CouponPreview | null>(null);
+const couponError = ref<string | null>(null);
+const couponChecking = ref(false);
 const setupIntentSecret = ref<string | null>(null);
 const paymentError = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 const setupLoading = ref(false);
 const subscribing = ref(false);
 const confirmingPayment = ref(false);
+
+const discountedTotal = computed(() => couponPreview.value?.total ?? selectedPlan.value?.price ?? 0);
+const appliedTrialDays = computed(() => couponPreview.value?.trial_days ?? selectedPlan.value?.trial_days ?? 0);
 
 const stripe = shallowRef<StripeInstance | null>(null);
 const elements = shallowRef<StripeElementsInstance | null>(null);
@@ -57,6 +79,59 @@ const formatCurrency = (amount: number, currency: string) => {
     });
 
     return formatter.format(amount / 100);
+};
+
+const resetCouponPreview = () => {
+    couponPreview.value = null;
+    couponError.value = null;
+};
+
+const previewCoupon = async () => {
+    if (!coupon.value) {
+        resetCouponPreview();
+        return;
+    }
+
+    if (!selectedPlan.value) {
+        couponError.value = 'Select a plan before applying a promo code.';
+        return;
+    }
+
+    couponChecking.value = true;
+    couponError.value = null;
+
+    try {
+        const response = await fetch(route('pricing.coupon.preview'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
+            },
+            body: JSON.stringify({
+                plan_id: selectedPlanId.value,
+                coupon: coupon.value,
+                email: email.value,
+            }),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            const firstError = payload?.errors ? Object.values(payload.errors as Record<string, string[]>)[0]?.[0] : null;
+            couponError.value = payload?.message ?? firstError ?? 'Unable to validate this promo code.';
+            couponPreview.value = null;
+            return;
+        }
+
+        couponPreview.value = payload as CouponPreview;
+    } catch (error: unknown) {
+        couponError.value = error instanceof Error ? error.message : 'Failed to apply the promo code.';
+        couponPreview.value = null;
+    } finally {
+        couponChecking.value = false;
+    }
 };
 
 const ensureStripeJsLoaded = async () => {
@@ -254,6 +329,7 @@ const subscribe = async () => {
             body: JSON.stringify({
                 plan_id: selectedPlanId.value,
                 payment_method: paymentMethodId,
+                coupon: couponPreview.value?.coupon.code ?? (coupon.value || null),
             }),
         });
 
@@ -286,6 +362,20 @@ const subscribe = async () => {
         subscribing.value = false;
     }
 };
+
+watch(coupon, value => {
+    if (!value) {
+        resetCouponPreview();
+    }
+});
+
+watch(selectedPlanId, () => {
+    if (coupon.value) {
+        previewCoupon();
+    } else {
+        resetCouponPreview();
+    }
+});
 
 onBeforeUnmount(() => {
     teardownElements();
@@ -389,6 +479,44 @@ onBeforeUnmount(() => {
                                         </div>
                                         <div v-else id="pricing-payment-element" class="rounded-lg border border-[#19140035] bg-white p-4 shadow-sm dark:border-[#3E3E3A] dark:bg-[#0f0f0d]" />
                                         <p v-if="isStripeConfigured && !paymentElementReady" class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Load the payment form to continue.</p>
+                                    </div>
+                                    <div class="grid gap-2">
+                                        <label class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]" for="coupon">Promo code</label>
+                                        <Input
+                                            id="coupon"
+                                            v-model="coupon"
+                                            placeholder="COMMUNITY10"
+                                            class="bg-white dark:bg-[#0f0f0d]"
+                                            @blur="previewCoupon"
+                                        />
+                                        <div class="flex flex-wrap items-center gap-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                            <Button size="sm" variant="outline" :disabled="couponChecking" @click="previewCoupon">
+                                                <span v-if="couponChecking">Checking…</span>
+                                                <span v-else>Apply</span>
+                                            </Button>
+                                            <span v-if="couponPreview" class="text-emerald-600 dark:text-emerald-400">
+                                                Applied {{ couponPreview.coupon.code }} — {{ formatCurrency(couponPreview.discount_amount, couponPreview.currency) }} off
+                                            </span>
+                                            <span v-else-if="couponError" class="text-destructive">{{ couponError }}</span>
+                                        </div>
+                                        <div class="rounded-lg border border-[#19140035] bg-white p-3 text-sm shadow-sm dark:border-[#3E3E3A] dark:bg-[#0f0f0d]">
+                                            <div class="flex items-center justify-between">
+                                                <span>Plan price</span>
+                                                <span>{{ selectedPlan ? formatCurrency(selectedPlan.price, selectedPlan.currency) : '—' }}</span>
+                                            </div>
+                                            <div class="flex items-center justify-between text-emerald-700 dark:text-emerald-400">
+                                                <span>Discount</span>
+                                                <span>-{{ formatCurrency(couponPreview?.discount_amount ?? 0, selectedPlan?.currency ?? 'USD') }}</span>
+                                            </div>
+                                            <Separator class="my-2" />
+                                            <div class="flex items-center justify-between font-semibold">
+                                                <span>Due today</span>
+                                                <span>{{ selectedPlan ? formatCurrency(discountedTotal, selectedPlan.currency) : '—' }}</span>
+                                            </div>
+                                            <p v-if="appliedTrialDays" class="mt-2 text-xs text-[#706f6c] dark:text-[#A1A09A]">
+                                                Includes a {{ appliedTrialDays }} day trial before billing begins.
+                                            </p>
+                                        </div>
                                     </div>
                                     <div class="flex flex-col gap-3">
                                         <Button :disabled="setupLoading" variant="outline" @click="startCheckout">

@@ -16,6 +16,7 @@ class SubscriptionPlan extends Model
         'slug',
         'stripe_price_id',
         'interval',
+        'trial_days',
         'price',
         'currency',
         'description',
@@ -25,6 +26,7 @@ class SubscriptionPlan extends Model
 
     protected $casts = [
         'price' => 'integer',
+        'trial_days' => 'integer',
         'features' => 'array',
         'is_active' => 'boolean',
     ];

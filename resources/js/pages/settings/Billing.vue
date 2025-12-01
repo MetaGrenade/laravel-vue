@@ -20,6 +20,7 @@ interface Plan {
     price: number;
     interval: string;
     currency: string;
+    trial_days: number;
     features: string[];
     stripe_price_id: string;
 }
@@ -49,10 +50,26 @@ interface Props {
     invoices: InvoicePayload[];
 }
 
+interface CouponPreview {
+    coupon: {
+        code: string;
+        name: string;
+    };
+    discount_amount: number;
+    plan_price: number;
+    total: number;
+    trial_days: number;
+    bonus_trial_days: number;
+    currency: string;
+}
+
 const props = defineProps<Props>();
 
 const coupon = ref('');
 const subscribing = ref(false);
+const couponPreview = ref<CouponPreview | null>(null);
+const couponError = ref<string | null>(null);
+const couponChecking = ref(false);
 const canceling = ref(false);
 const resuming = ref(false);
 const setupLoading = ref(false);
@@ -123,6 +140,8 @@ const initialPlanId = props.subscription
 
 const selectedPlanId = ref<number | null>(initialPlanId);
 
+const selectedPlan = computed(() => props.plans.find(plan => plan.id === selectedPlanId.value) ?? null);
+
 const currentPlan = computed(() => {
     if (!props.subscription) {
         return null;
@@ -138,6 +157,60 @@ const formatCurrency = (amount: number, currency: string) => {
     });
 
     return formatter.format(amount / 100);
+};
+
+const discountedTotal = computed(() => couponPreview.value?.total ?? selectedPlan.value?.price ?? 0);
+
+const resetCouponPreview = () => {
+    couponPreview.value = null;
+    couponError.value = null;
+};
+
+const previewCoupon = async () => {
+    if (!coupon.value) {
+        resetCouponPreview();
+        return;
+    }
+
+    if (!selectedPlan.value) {
+        couponError.value = 'Select a plan before applying a promo code.';
+        return;
+    }
+
+    couponChecking.value = true;
+    couponError.value = null;
+
+    try {
+        const response = await fetch(route('settings.billing.coupon.preview'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
+            },
+            body: JSON.stringify({
+                plan_id: selectedPlanId.value,
+                coupon: coupon.value,
+            }),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            const firstError = payload?.errors ? Object.values(payload.errors as Record<string, string[]>)[0]?.[0] : null;
+            couponError.value = payload?.message ?? firstError ?? 'Unable to validate this promo code.';
+            couponPreview.value = null;
+            return;
+        }
+
+        couponPreview.value = payload as CouponPreview;
+    } catch (error: unknown) {
+        couponError.value = error instanceof Error ? error.message : 'Failed to apply the promo code.';
+        couponPreview.value = null;
+    } finally {
+        couponChecking.value = false;
+    }
 };
 
 const teardownElements = () => {
@@ -267,7 +340,7 @@ const subscribe = async () => {
             body: JSON.stringify({
                 plan_id: selectedPlanId.value,
                 payment_method: paymentMethodId,
-                coupon: coupon.value || null,
+                coupon: couponPreview.value?.coupon.code ?? (coupon.value || null),
             }),
         });
 
@@ -331,6 +404,22 @@ const cancel = () => {
         },
     );
 };
+
+const appliedTrialDays = computed(() => couponPreview.value?.trial_days ?? selectedPlan.value?.trial_days ?? 0);
+
+watch(coupon, value => {
+    if (!value) {
+        resetCouponPreview();
+    }
+});
+
+watch(selectedPlanId, () => {
+    if (coupon.value) {
+        previewCoupon();
+    } else {
+        resetCouponPreview();
+    }
+});
 
 const resume = () => {
     resuming.value = true;
@@ -462,7 +551,36 @@ onBeforeUnmount(() => {
                                     v-model="coupon"
                                     placeholder="PROMO2025"
                                     class="w-full"
+                                    @blur="previewCoupon"
                                 />
+                                <div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                    <Button size="sm" variant="outline" :disabled="couponChecking" @click="previewCoupon">
+                                        <span v-if="couponChecking">Checking…</span>
+                                        <span v-else>Apply promo</span>
+                                    </Button>
+                                    <p v-if="couponPreview" class="text-emerald-600">
+                                        Applied {{ couponPreview.coupon.code }} — {{ formatCurrency(couponPreview.discount_amount, couponPreview.currency) }} off
+                                    </p>
+                                    <p v-else-if="couponError" class="text-destructive">{{ couponError }}</p>
+                                </div>
+                            </div>
+                            <div class="rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                                <div class="flex items-center justify-between">
+                                    <span>Plan price</span>
+                                    <span>{{ selectedPlan ? formatCurrency(selectedPlan.price, selectedPlan.currency) : '—' }}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-emerald-700">
+                                    <span>Discount</span>
+                                    <span>-{{ formatCurrency(couponPreview?.discount_amount ?? 0, selectedPlan?.currency ?? 'USD') }}</span>
+                                </div>
+                                <Separator class="my-2" />
+                                <div class="flex items-center justify-between font-semibold">
+                                    <span>Due today</span>
+                                    <span>{{ selectedPlan ? formatCurrency(discountedTotal, selectedPlan.currency) : '—' }}</span>
+                                </div>
+                                <p v-if="appliedTrialDays" class="mt-2 text-xs text-muted-foreground">
+                                    Includes a {{ appliedTrialDays }} day trial before billing begins.
+                                </p>
                             </div>
                             <div class="flex flex-wrap items-center gap-3">
                                 <Button

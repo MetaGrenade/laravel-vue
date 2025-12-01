@@ -7,6 +7,7 @@ use App\Models\BillingInvoice;
 use App\Models\SubscriptionPlan;
 use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Billing\CouponService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class SubscriptionController extends Controller
 {
     use InteractsWithStripe;
 
-    public function __construct(protected SubscriptionManager $subscriptions)
+    public function __construct(protected SubscriptionManager $subscriptions, protected CouponService $coupons)
     {
     }
 
@@ -41,6 +42,7 @@ class SubscriptionController extends Controller
                 'price' => $plan->price,
                 'currency' => $plan->currency,
                 'interval' => $plan->interval,
+                'trial_days' => $plan->trial_days,
                 'features' => $plan->features ?? [],
                 'stripe_price_id' => $plan->stripe_price_id,
             ])->values();
@@ -98,9 +100,16 @@ class SubscriptionController extends Controller
         /** @var SubscriptionPlan $plan */
         $plan = SubscriptionPlan::findOrFail($data['plan_id']);
 
+        $couponPayload = null;
+
+        if (! empty($data['coupon'])) {
+            $couponPayload = $this->coupons->preview($data['coupon'], $plan, $request->user());
+        }
+
         try {
             $subscription = $this->subscriptions->create($request->user(), $plan, $data['payment_method'], [
-                'coupon' => $data['coupon'] ?? null,
+                'coupon' => $couponPayload['model'] ?? null,
+                'trial_days' => $couponPayload['trial_days'] ?? $plan->trial_days,
             ]);
         } catch (IncompletePayment $exception) {
             $paymentIntent = $this->extractPaymentIntent($exception);
@@ -110,6 +119,21 @@ class SubscriptionController extends Controller
                 'payment_intent_id' => $paymentIntent?->id,
                 'client_secret' => $paymentIntent?->client_secret,
             ], 409);
+        }
+
+        if ($subscription && $couponPayload?['model']) {
+            $subscription->forceFill([
+                'coupon_id' => $couponPayload['model']->id,
+                'promo_code' => $couponPayload['model']->code,
+            ])->save();
+
+            $this->coupons->markRedeemed(
+                $couponPayload['model'],
+                $request->user(),
+                $couponPayload['discount_amount'],
+                $couponPayload['bonus_trial_days'],
+                $subscription->id,
+            );
         }
 
         return response()->json([
@@ -159,6 +183,29 @@ class SubscriptionController extends Controller
 
         return Inertia::render('settings/Invoices', [
             'invoices' => $invoices,
+        ]);
+    }
+
+    public function previewCoupon(Request $request): JsonResponse
+    {
+        $data = Validator::make($request->all(), [
+            'plan_id' => ['required', 'exists:subscription_plans,id'],
+            'coupon' => ['required', 'string'],
+        ])->validate();
+
+        /** @var SubscriptionPlan $plan */
+        $plan = SubscriptionPlan::query()->active()->findOrFail($data['plan_id']);
+
+        $preview = $this->coupons->preview($data['coupon'], $plan, $request->user());
+
+        return response()->json([
+            'coupon' => $preview['coupon'],
+            'discount_amount' => $preview['discount_amount'],
+            'plan_price' => $preview['plan_price'],
+            'total' => $preview['total'],
+            'trial_days' => $preview['trial_days'],
+            'bonus_trial_days' => $preview['bonus_trial_days'],
+            'currency' => $plan->currency,
         ]);
     }
 

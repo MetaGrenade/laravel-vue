@@ -35,6 +35,7 @@ Route::get('/search', SearchController::class)->name('search');
 Route::get('/search/results', SearchResultsController::class)->name('search.results');
 Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
 Route::post('/pricing/setup-intent', [PricingController::class, 'intent'])->name('pricing.intent');
+Route::post('/pricing/coupon-preview', [PricingController::class, 'previewCoupon'])->name('pricing.coupon.preview');
 Route::post('/pricing/subscribe', [PricingController::class, 'subscribe'])->name('pricing.subscribe');
 
 Route::middleware('section.enabled:commerce')->group(function () {
