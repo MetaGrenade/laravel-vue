@@ -22,11 +22,17 @@ const MIN_QUERY_LENGTH_FALLBACK = 2;
 
 type SearchGroupKey = 'blogs' | 'forum_threads' | 'faqs';
 
+type SearchResultHighlight = {
+    title?: string | null;
+    description?: string | null;
+};
+
 type SearchResultItem = {
     id: number | string;
     title: string;
     description: string | null;
     url: string;
+    highlight?: SearchResultHighlight;
 };
 
 type SearchResultGroup = {
@@ -360,8 +366,18 @@ const hasAnyResults = computed(() => groups.value.some((group) => group.items.le
                                     :href="item.url"
                                     class="block px-4 py-3 transition hover:bg-muted focus:bg-muted focus:outline-none"
                                 >
-                                    <h3 class="text-base font-medium text-foreground">{{ item.title }}</h3>
-                                    <p v-if="item.description" class="mt-1 text-sm text-muted-foreground">
+                                    <h3
+                                        v-if="item.highlight?.title"
+                                        class="text-base font-medium text-foreground"
+                                        v-html="item.highlight.title"
+                                    />
+                                    <h3 v-else class="text-base font-medium text-foreground">{{ item.title }}</h3>
+                                    <p
+                                        v-if="item.highlight?.description"
+                                        class="mt-1 text-sm text-muted-foreground"
+                                        v-html="item.highlight.description"
+                                    />
+                                    <p v-else-if="item.description" class="mt-1 text-sm text-muted-foreground">
                                         {{ item.description }}
                                     </p>
                                 </Link>
