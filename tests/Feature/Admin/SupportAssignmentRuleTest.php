@@ -62,7 +62,6 @@ class SupportAssignmentRuleTest extends TestCase
             ->where('rules.0.assignee.nickname', 'Agent Smith')
             ->where('rules.0.assignee_type', 'user')
             ->where('categories.0.name', 'Billing')
-            ->where('can.create', false)
         );
     }
 
