@@ -67,6 +67,22 @@ export interface NotificationBag {
     has_more: boolean;
 }
 
+export interface CartItemSummary {
+    id: number;
+    name: string;
+    variant: string | null;
+    quantity: number;
+    unit_price: string;
+    total: string;
+}
+
+export interface CartSummary {
+    id: number;
+    currency: string;
+    subtotal: string;
+    items: CartItemSummary[];
+}
+
 export interface SharedData extends PageProps {
     name: string;
     quote: { message: string; author: string };
@@ -77,4 +93,5 @@ export interface SharedData extends PageProps {
         website_sections: Record<'blog' | 'forum' | 'support' | 'commerce', boolean>;
         oauth_providers: Record<string, boolean>;
     };
+    cart: CartSummary | null;
 }
