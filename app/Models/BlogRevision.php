@@ -27,6 +27,8 @@ class BlogRevision extends Model
         'tag_ids',
         'metadata',
         'edited_at',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [

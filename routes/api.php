@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\V1\AuthTokenController;
 use App\Http\Controllers\Api\V1\BlogController;
+use App\Http\Controllers\Api\V1\BlogCommentController as ApiBlogCommentController;
+use App\Http\Controllers\Api\V1\BlogCommentSubscriptionController as ApiBlogCommentSubscriptionController;
 use App\Http\Controllers\Api\V1\ForumPostCommandController;
 use App\Http\Controllers\Api\V1\ForumThreadController;
 use App\Http\Controllers\Api\V1\ForumThreadCommandController;
@@ -38,9 +40,33 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->name('profile.show');
     });
 
-    Route::middleware('section.enabled:blog')->group(function () {
+    $blogCommentThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:20,1';
+
+    Route::middleware('section.enabled:blog')->group(function () use ($blogCommentThrottle) {
         Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
         Route::get('/blogs/{blog:slug}', [BlogController::class, 'show'])->name('blogs.show');
+
+        Route::prefix('/blogs/{blog:slug}/comments')->group(function () use ($blogCommentThrottle) {
+            Route::get('/', [ApiBlogCommentController::class, 'index'])->name('blogs.comments.index');
+
+            Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', $blogCommentThrottle])->group(function () {
+                Route::post('/', [ApiBlogCommentController::class, 'store'])->name('blogs.comments.store');
+                Route::patch('/{comment}', [ApiBlogCommentController::class, 'update'])
+                    ->whereNumber('comment')
+                    ->name('blogs.comments.update');
+                Route::delete('/{comment}', [ApiBlogCommentController::class, 'destroy'])
+                    ->whereNumber('comment')
+                    ->name('blogs.comments.destroy');
+                Route::post('/{comment}/report', [ApiBlogCommentController::class, 'report'])
+                    ->whereNumber('comment')
+                    ->name('blogs.comments.report');
+
+                Route::post('/subscriptions', [ApiBlogCommentSubscriptionController::class, 'store'])
+                    ->name('blogs.comments.subscriptions.store');
+                Route::delete('/subscriptions', [ApiBlogCommentSubscriptionController::class, 'destroy'])
+                    ->name('blogs.comments.subscriptions.destroy');
+            });
+        });
     });
 
     Route::middleware('section.enabled:forum')->group(function () {
