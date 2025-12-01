@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
 import { getEcho } from '@/lib/echo';
-import type { BreadcrumbItem, NavItem, NotificationItem, SharedData, User } from '@/types';
+import type { BreadcrumbItem, CartSummary, NavItem, NotificationItem, SharedData, User } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     Home,
@@ -65,24 +65,13 @@ const notificationsState = reactive({
     hasMore: false,
 });
 
-type CartItem = {
-    id: number;
-    name: string;
-    variant: string;
-    price: number;
-    quantity: number;
-};
-
-const currencyCode = ref('USD');
-const cartItems = ref<CartItem[]>([
-    { id: 1, name: 'Core hoodie', variant: 'Heather grey / L', price: 58, quantity: 1 },
-    { id: 2, name: 'Everyday tee', variant: 'Black / M', price: 32, quantity: 2 },
-]);
-
+const cart = computed<CartSummary | null>(() => page.props.cart ?? null);
+const currencyCode = computed(() => cart.value?.currency ?? 'USD');
+const cartItems = computed(() => cart.value?.items ?? []);
 const cartItemCount = computed(() => cartItems.value.reduce((total, item) => total + item.quantity, 0));
 
 const cartTotals = computed(() => {
-    const subtotal = cartItems.value.reduce((total, item) => total + item.price * item.quantity, 0);
+    const subtotal = cartItems.value.reduce((total, item) => total + Number(item.total), 0);
     const tax = subtotal * 0.07;
     const shipping = subtotal > 0 ? 8 : 0;
     const total = subtotal + tax + shipping;
@@ -96,24 +85,6 @@ const formatCurrency = (value: number) =>
         currency: currencyCode.value,
         maximumFractionDigits: 2,
     }).format(value);
-
-const incrementQuantity = (id: number) => {
-    cartItems.value = cartItems.value.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item,
-    );
-};
-
-const decrementQuantity = (id: number) => {
-    cartItems.value = cartItems.value
-        .map((item) =>
-            item.id === id && item.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : item,
-        )
-        .filter((item) => item.quantity > 0);
-};
-
-const removeFromCart = (id: number) => {
-    cartItems.value = cartItems.value.filter((item) => item.id !== id);
-};
 
 const notifications = computed<NotificationItem[]>(() => notificationsState.items);
 const unreadNotificationCount = computed(() => notificationsState.unreadCount);
@@ -583,40 +554,12 @@ const viewNotification = (notification: NotificationItem) => {
                                     >
                                         <div class="space-y-2">
                                             <p class="text-sm font-semibold text-foreground">{{ item.name }}</p>
-                                            <p class="text-xs text-muted-foreground">{{ item.variant }}</p>
-                                            <div class="flex items-center gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    class="h-8 w-8"
-                                                    :aria-label="`Decrease quantity for ${item.name}`"
-                                                    @click="decrementQuantity(item.id)"
-                                                >
-                                                    -
-                                                </Button>
-                                                <span class="w-8 text-center text-sm font-medium">{{ item.quantity }}</span>
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    class="h-8 w-8"
-                                                    :aria-label="`Increase quantity for ${item.name}`"
-                                                    @click="incrementQuantity(item.id)"
-                                                >
-                                                    +
-                                                </Button>
-                                            </div>
+                                            <p class="text-xs text-muted-foreground">{{ item.variant || 'Base product' }}</p>
+                                            <p class="text-xs font-medium text-foreground">Qty: {{ item.quantity }}</p>
                                         </div>
                                         <div class="text-right">
-                                            <p class="text-sm font-semibold">{{ formatCurrency(item.price * item.quantity) }}</p>
-                                            <p class="text-xs text-muted-foreground">{{ formatCurrency(item.price) }} each</p>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                class="mt-2 text-destructive hover:text-destructive"
-                                                @click="removeFromCart(item.id)"
-                                            >
-                                                Remove
-                                            </Button>
+                                            <p class="text-sm font-semibold">{{ formatCurrency(Number(item.total)) }}</p>
+                                            <p class="text-xs text-muted-foreground">{{ formatCurrency(Number(item.unit_price)) }} each</p>
                                         </div>
                                     </div>
                                 </div>

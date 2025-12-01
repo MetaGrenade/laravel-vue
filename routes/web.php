@@ -42,6 +42,7 @@ Route::middleware('section.enabled:commerce')->group(function () {
         Route::get('/', [ProductCatalogController::class, 'index'])->name('shop.index');
         Route::get('/products/{product:slug}', [ProductCatalogController::class, 'show'])
             ->name('shop.products.show');
+        Route::post('/cart/items', [CartController::class, 'store'])->name('shop.cart.items.store');
     });
 
     Route::get('/cart', [CartController::class, 'show'])->name('shop.cart');
