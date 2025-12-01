@@ -3,22 +3,17 @@
 namespace App\Http\Controllers\Api\V1\Support;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ReopenPublicSupportTicketRequest;
+use App\Http\Requests\UpdatePublicSupportTicketStatusRequest;
 use App\Models\SupportTicket;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class SupportTicketStatusController extends Controller
 {
-    public function update(Request $request, SupportTicket $ticket): JsonResponse
+    public function update(UpdatePublicSupportTicketStatusRequest $request, SupportTicket $ticket): JsonResponse
     {
         $user = $request->user();
-
-        abort_unless($user && (int) $ticket->user_id === (int) $user->id, 403);
-
-        $validated = $request->validate([
-            'status' => ['required', Rule::in(['closed'])],
-        ]);
+        $validated = $request->validated();
 
         if ($ticket->status === $validated['status']) {
             return response()->json([
@@ -47,19 +42,8 @@ class SupportTicketStatusController extends Controller
         ]);
     }
 
-    public function reopen(Request $request, SupportTicket $ticket): JsonResponse
+    public function reopen(ReopenPublicSupportTicketRequest $request, SupportTicket $ticket): JsonResponse
     {
-        $user = $request->user();
-
-        abort_unless($user && (int) $ticket->user_id === (int) $user->id, 403);
-
-        if ($ticket->status !== 'closed') {
-            return response()->json([
-                'status' => $ticket->status,
-                'message' => 'This ticket is already open.',
-            ]);
-        }
-
         $ticket->update([
             'status' => 'open',
             'resolved_at' => null,
