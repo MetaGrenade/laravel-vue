@@ -17,7 +17,7 @@ class SystemSettingsController extends Controller
     /**
      * Display the system settings management screen.
      */
-    public function index(Request $request): Response
+    public function index(): Response
     {
         return Inertia::render('acp/System', [
             'settings' => [

@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon as SupportCarbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SearchAnalyticsController extends Controller
 {
@@ -44,7 +45,7 @@ class SearchAnalyticsController extends Controller
         ]);
     }
 
-    public function exportAggregates(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function exportAggregates(): StreamedResponse
     {
         $filename = 'search-aggregates-' . now()->format('Ymd-His') . '.csv';
 
@@ -82,7 +83,7 @@ class SearchAnalyticsController extends Controller
         ]);
     }
 
-    public function exportSearches(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function exportSearches(Request $request): StreamedResponse
     {
         $filters = $this->validateFilters($request);
 
