@@ -7,6 +7,10 @@ use App\Http\Controllers\Api\V1\ForumThreadController;
 use App\Http\Controllers\Api\V1\ForumThreadCommandController;
 use App\Http\Controllers\Api\V1\ForumThreadModerationController as ApiForumThreadModerationController;
 use App\Http\Controllers\Api\V1\ForumThreadSubscriptionController;
+use App\Http\Controllers\Api\V1\Support\SupportTicketController;
+use App\Http\Controllers\Api\V1\Support\SupportTicketMessageController;
+use App\Http\Controllers\Api\V1\Support\SupportTicketRatingController;
+use App\Http\Controllers\Api\V1\Support\SupportTicketStatusController;
 use App\Http\Controllers\Api\V1\UserProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -81,6 +85,28 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->name('forum.threads.destroy');
             });
     });
+
+    Route::middleware(['section.enabled:support', 'auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1'])
+        ->prefix('support')
+        ->as('support.')
+        ->group(function () {
+            // Support center endpoints: customer ticket creation, threaded messages,
+            // status transitions, and post-resolution CSAT ratings. All routes are
+            // Sanctum-protected and limited to 20 requests per minute, in addition
+            // to the custom token throttle + activity middleware.
+            Route::post('/tickets', [SupportTicketController::class, 'store'])
+                ->name('tickets.store');
+            Route::get('/tickets/{ticket}', [SupportTicketController::class, 'show'])
+                ->name('tickets.show');
+            Route::post('/tickets/{ticket}/messages', [SupportTicketMessageController::class, 'store'])
+                ->name('tickets.messages.store');
+            Route::patch('/tickets/{ticket}/status', [SupportTicketStatusController::class, 'update'])
+                ->name('tickets.status.update');
+            Route::patch('/tickets/{ticket}/reopen', [SupportTicketStatusController::class, 'reopen'])
+                ->name('tickets.reopen');
+            Route::post('/tickets/{ticket}/rating', [SupportTicketRatingController::class, 'store'])
+                ->name('tickets.rating.store');
+        });
 });
 
 Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity'])
