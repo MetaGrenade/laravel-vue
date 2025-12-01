@@ -95,9 +95,7 @@ const setQuantity = (productId: number, value: number) => {
 };
 
 const canAddToCart = (product: Product) => {
-    const hasPricing = product.prices.length > 0 || product.variants.some((variant) => variant.prices.length);
-
-    return hasPricing;
+    return product.prices.length > 0 || product.variants.some((variant) => variant.prices.length);
 };
 
 const addToCart = (product: Product) => {
@@ -203,12 +201,12 @@ const toggleTag = (tagId: number) => {
 </script>
 
 <template>
-    <AppLayout>
+    <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Shop" />
 
-        <div class="space-y-6">
+        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div>
-                <h1 class="text-3xl font-bold tracking-tight">Shop</h1>
+                <h1 class="text-3xl font-bold tracking-tight text-[#8b5a00] dark:text-[#f3d29e]">Shop</h1>
                 <p class="text-muted-foreground">Starter catalog page teams can extend into a full storefront.</p>
             </div>
 
