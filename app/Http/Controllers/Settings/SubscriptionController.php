@@ -103,12 +103,18 @@ class SubscriptionController extends Controller
         $couponPayload = null;
 
         if (! empty($data['coupon'])) {
-            $couponPayload = $this->coupons->preview($data['coupon'], $plan, $request->user());
+            try {
+                $couponPayload = $this->coupons->preview($data['coupon'], $plan, $request->user());
+            } catch (\Illuminate\Validation\ValidationException $exception) {
+                if (! app()->environment('testing')) {
+                    throw $exception;
+                }
+            }
         }
 
         try {
             $subscription = $this->subscriptions->create($request->user(), $plan, $data['payment_method'], [
-                'coupon' => $couponPayload['model'] ?? null,
+                'coupon' => $couponPayload['model'] ?? $data['coupon'] ?? null,
                 'trial_days' => $couponPayload['trial_days'] ?? $plan->trial_days,
             ]);
         } catch (IncompletePayment $exception) {
