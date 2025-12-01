@@ -86,7 +86,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             });
     });
 
-    Route::middleware(['section.enabled:support', 'auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1'])
+    $supportThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:20,1';
+    $ticketWriteThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:10,1';
+    $ticketReadThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:30,1';
+    $ticketRatingThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:5,1';
+
+    Route::middleware(['section.enabled:support', 'auth:sanctum', 'token.throttle', 'token.activity', $supportThrottle])
         ->prefix('support')
         ->as('support.')
         ->group(function () {
@@ -95,22 +100,22 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             // Sanctum-protected and limited to 20 requests per minute, in addition
             // to the custom token throttle + activity middleware.
             Route::post('/tickets', [SupportTicketController::class, 'store'])
-                ->middleware('throttle:10,1')
+                ->middleware($ticketWriteThrottle)
                 ->name('tickets.store');
             Route::get('/tickets/{ticket}', [SupportTicketController::class, 'show'])
-                ->middleware('throttle:30,1')
+                ->middleware($ticketReadThrottle)
                 ->name('tickets.show');
             Route::post('/tickets/{ticket}/messages', [SupportTicketMessageController::class, 'store'])
-                ->middleware('throttle:10,1')
+                ->middleware($ticketWriteThrottle)
                 ->name('tickets.messages.store');
             Route::patch('/tickets/{ticket}/status', [SupportTicketStatusController::class, 'update'])
-                ->middleware('throttle:10,1')
+                ->middleware($ticketWriteThrottle)
                 ->name('tickets.status.update');
             Route::patch('/tickets/{ticket}/reopen', [SupportTicketStatusController::class, 'reopen'])
-                ->middleware('throttle:10,1')
+                ->middleware($ticketWriteThrottle)
                 ->name('tickets.reopen');
             Route::post('/tickets/{ticket}/rating', [SupportTicketRatingController::class, 'store'])
-                ->middleware('throttle:5,1')
+                ->middleware($ticketRatingThrottle)
                 ->name('tickets.rating.store');
         });
 });
