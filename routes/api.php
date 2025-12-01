@@ -94,7 +94,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::middleware(['section.enabled:support', 'auth:sanctum', 'token.throttle', 'token.activity', $supportThrottle])
         ->prefix('support')
         ->as('support.')
-        ->group(function () {
+        ->group(function () use ($ticketWriteThrottle, $ticketReadThrottle, $ticketRatingThrottle) {
             // Support center endpoints: customer ticket creation, threaded messages,
             // status transitions, and post-resolution CSAT ratings. All routes are
             // Sanctum-protected and limited to 20 requests per minute, in addition
