@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\BlogCommentController as AdminBlogCommentController;
 use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogTagController;
+use App\Http\Controllers\Admin\CommerceController;
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
 use App\Http\Controllers\Admin\SupportController;
 use App\Http\Controllers\Admin\SupportAssignmentRuleController;
@@ -126,6 +127,31 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/trust-safety', [TrustSafetyController::class, 'index'])->name('acp.trust-safety.index');
     Route::patch('acp/trust-safety/exports/{export}', [TrustSafetyController::class, 'updateExport'])->name('acp.trust-safety.exports.update');
     Route::patch('acp/trust-safety/erasure-requests/{erasureRequest}', [TrustSafetyController::class, 'updateErasure'])->name('acp.trust-safety.erasure.update');
+
+    Route::middleware(['section.enabled:commerce', 'can:commerce.acp.view'])
+        ->prefix('acp/commerce')
+        ->name('acp.commerce.')
+        ->group(function () {
+            Route::get('/', [CommerceController::class, 'index'])->name('index');
+            Route::post('products', [CommerceController::class, 'storeProduct'])
+                ->middleware('can:commerce.acp.create')
+                ->name('products.store');
+            Route::post('options', [CommerceController::class, 'storeOption'])
+                ->middleware('can:commerce.acp.create')
+                ->name('options.store');
+            Route::post('option-values', [CommerceController::class, 'storeOptionValue'])
+                ->middleware('can:commerce.acp.create')
+                ->name('option-values.store');
+            Route::post('variants', [CommerceController::class, 'storeVariant'])
+                ->middleware('can:commerce.acp.create')
+                ->name('variants.store');
+            Route::post('prices', [CommerceController::class, 'storePrice'])
+                ->middleware('can:commerce.acp.create')
+                ->name('prices.store');
+            Route::post('inventory', [CommerceController::class, 'storeInventory'])
+                ->middleware('can:commerce.acp.create')
+                ->name('inventory.store');
+        });
 
     // Support ACP
     Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');
