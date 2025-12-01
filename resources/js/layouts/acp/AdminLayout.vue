@@ -129,13 +129,14 @@ const page = usePage<SharedData>();
 const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.location).pathname : '';
 
 const websiteSections = computed(() => {
-    const defaults = { blog: true, forum: true, support: true } as const;
+    const defaults = { blog: true, forum: true, support: true, commerce: true } as const;
     const settings = page.props.settings?.website_sections ?? defaults;
 
     return {
         blog: settings.blog ?? defaults.blog,
         forum: settings.forum ?? defaults.forum,
         support: settings.support ?? defaults.support,
+        commerce: settings.commerce ?? defaults.commerce,
     };
 });
 

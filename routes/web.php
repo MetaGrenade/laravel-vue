@@ -37,14 +37,16 @@ Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
 Route::post('/pricing/setup-intent', [PricingController::class, 'intent'])->name('pricing.intent');
 Route::post('/pricing/subscribe', [PricingController::class, 'subscribe'])->name('pricing.subscribe');
 
-Route::prefix('shop')->group(function () {
-    Route::get('/', [ProductCatalogController::class, 'index'])->name('shop.index');
-    Route::get('/products/{product:slug}', [ProductCatalogController::class, 'show'])
-        ->name('shop.products.show');
-});
+Route::middleware('section.enabled:commerce')->group(function () {
+    Route::prefix('shop')->group(function () {
+        Route::get('/', [ProductCatalogController::class, 'index'])->name('shop.index');
+        Route::get('/products/{product:slug}', [ProductCatalogController::class, 'show'])
+            ->name('shop.products.show');
+    });
 
-Route::get('/cart', [CartController::class, 'show'])->name('shop.cart');
-Route::middleware('auth')->get('/orders', [OrderController::class, 'index'])->name('shop.orders');
+    Route::get('/cart', [CartController::class, 'show'])->name('shop.cart');
+    Route::middleware('auth')->get('/orders', [OrderController::class, 'index'])->name('shop.orders');
+});
 
 // Public Blog Routes
 Route::middleware('section.enabled:blog')->group(function () {

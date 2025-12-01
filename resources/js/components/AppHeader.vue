@@ -250,23 +250,26 @@ onBeforeUnmount(() => {
     leaveNotificationChannel();
 });
 
-type SectionAwareNavItem = NavItem & { section?: 'blog' | 'forum' | 'support' };
+type SectionAwareNavItem = NavItem & { section?: 'blog' | 'forum' | 'support' | 'commerce' };
 
 const websiteSections = computed(() => {
-    const defaults = { blog: true, forum: true, support: true } as const;
+    const defaults = { blog: true, forum: true, support: true, commerce: true } as const;
     const settings = page.props.settings?.website_sections ?? defaults;
 
     return {
         blog: settings.blog ?? defaults.blog,
         forum: settings.forum ?? defaults.forum,
         support: settings.support ?? defaults.support,
+        commerce: settings.commerce ?? defaults.commerce,
     };
 });
+
+const commerceEnabled = computed(() => Boolean(websiteSections.value.commerce));
 
 const baseMainNavItems: SectionAwareNavItem[] = [
     { title: 'Home', href: '/', target: '_self', icon: Home },
     { title: 'Pricing', href: '/pricing', target: '_self', icon: Layers },
-    { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag },
+    { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag, section: 'commerce' },
     { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid },
     { title: 'Blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
     { title: 'Forum', href: '/forum', target: '_self', icon: Megaphone, section: 'forum' },
@@ -547,7 +550,7 @@ const viewNotification = (notification: NotificationItem) => {
                         </div>
                     </div>
 
-                    <Sheet>
+                    <Sheet v-if="commerceEnabled">
                         <SheetTrigger :as-child="true">
                             <Button
                                 variant="ghost"

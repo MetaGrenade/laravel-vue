@@ -9,6 +9,7 @@ class WebsiteSections
     public const BLOG = 'blog';
     public const FORUM = 'forum';
     public const SUPPORT = 'support';
+    public const COMMERCE = 'commerce';
 
     /**
      * Retrieve the default section availability map.
@@ -21,6 +22,7 @@ class WebsiteSections
             self::BLOG => true,
             self::FORUM => true,
             self::SUPPORT => true,
+            self::COMMERCE => true,
         ];
     }
 
