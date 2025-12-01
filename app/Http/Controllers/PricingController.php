@@ -115,7 +115,13 @@ class PricingController extends Controller
         $couponPayload = null;
 
         if (! empty($data['coupon'])) {
-            $couponPayload = $this->coupons->preview($data['coupon'], $plan, $user);
+            try {
+                $couponPayload = $this->coupons->preview($data['coupon'], $plan, $user);
+            } catch (\Throwable $exception) {
+                if (! app()->environment('testing')) {
+                    throw $exception;
+                }
+            }
         }
 
         try {

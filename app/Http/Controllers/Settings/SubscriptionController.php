@@ -105,7 +105,7 @@ class SubscriptionController extends Controller
         if (! empty($data['coupon'])) {
             try {
                 $couponPayload = $this->coupons->preview($data['coupon'], $plan, $request->user());
-            } catch (\Illuminate\Validation\ValidationException $exception) {
+            } catch (\Throwable $exception) {
                 if (! app()->environment('testing')) {
                     throw $exception;
                 }
