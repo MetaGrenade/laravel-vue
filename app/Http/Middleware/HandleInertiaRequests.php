@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Support\Localization\DateFormatter;
 use App\Support\OAuth\OAuthProviders;
+use App\Support\Commerce\CartManager;
 use App\Support\WebsiteSections;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
@@ -44,6 +45,7 @@ class HandleInertiaRequests extends Middleware
 
         $user = $request->user();
         $formatter = DateFormatter::for($user);
+        $websiteSections = WebsiteSections::all();
 
         return [
             ...parent::share($request),
@@ -107,9 +109,18 @@ class HandleInertiaRequests extends Middleware
                 'stripeKey' => config('cashier.key'),
             ],
             'settings' => [
-                'website_sections' => WebsiteSections::all(),
+                'website_sections' => $websiteSections,
                 'oauth_providers' => OAuthProviders::all(),
             ],
+            'cart' => function () use ($request, $websiteSections) {
+                if (!$websiteSections['commerce']) {
+                    return null;
+                }
+
+                $cart = CartManager::forRequest($request);
+
+                return CartManager::summary($cart);
+            },
         ];
     }
 }

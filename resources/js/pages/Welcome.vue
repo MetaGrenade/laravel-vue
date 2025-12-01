@@ -10,13 +10,14 @@ import AppLayout from '@/layouts/AppLayout.vue';
 
 const page = usePage<SharedData>();
 const websiteSections = computed(() => {
-    const defaults = { blog: true, forum: true, support: true } as const;
+    const defaults = { blog: true, forum: true, support: true, commerce: true } as const;
     const settings = page.props.settings?.website_sections ?? defaults;
 
     return {
         blog: settings.blog ?? defaults.blog,
         forum: settings.forum ?? defaults.forum,
         support: settings.support ?? defaults.support,
+        commerce: settings.commerce ?? defaults.commerce,
     } as const;
 });
 
@@ -313,7 +314,7 @@ const productFeatures = [
                             <div class="flex flex-col gap-2">
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Marketing & SEO Ready</p>
                                 <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Built to earn trust from the first scroll</h2>
-                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Founders, agencies, and OSS adopters can drop visitors straight into real blog, forum, and support flows—so pitches, proposals, and readme files point to live proof, not empty shells.</p>
+                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Founders, agencies, and OSS adopters can drop visitors straight into real blog, forum, support, and storefront flows—so pitches, proposals, and readme files point to live proof, not empty shells.</p>
                             </div>
                             <div class="flex flex-col gap-3">
                                 <div class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">SSR, clean markup, and lightweight UI components keep marketing pages fast, indexable, and credible for anyone evaluating the starter.</div>
@@ -362,7 +363,7 @@ const productFeatures = [
                             <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Content, community, and support that prove the value</h2>
                             <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Walk prospects and contributors through the same journey your SaaS promises: read a post, jump into a moderated thread, open a support ticket, and see consistent UX without extra wiring.</p>
                         </div>
-                        <div class="grid gap-4 lg:grid-cols-3">
+                        <div class="grid gap-4 lg:grid-cols-4">
                             <div
                                 v-if="websiteSections.blog"
                                 class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
@@ -402,6 +403,31 @@ const productFeatures = [
                             </div>
 
                             <div
+                                v-if="websiteSections.commerce"
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Commerce</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Storefront & Checkout</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Product catalog, detail pages, and cart flows powered by Laravel + Stripe so prospects can explore a live store before you write custom code.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Link
+                                        :href="route('shop.index')"
+                                        class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                    >
+                                        Browse Products
+                                    </Link>
+                                    <Link
+                                        :href="route('shop.cart')"
+                                        class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    >
+                                        View Cart
+                                    </Link>
+                                </div>
+                            </div>
+
+                            <div
                                 v-if="websiteSections.support"
                                 class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
                             >
@@ -428,7 +454,7 @@ const productFeatures = [
                             <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Show the business side is already live</h2>
                             <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Stripe billing, dashboards, and admin controls are wired up so founders, agencies, and contributors can preview real monetization flows without building scaffolding first.</p>
                         </div>
-                        <div class="grid gap-4 lg:grid-cols-3">
+                        <div class="grid gap-4 lg:grid-cols-4">
                             <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:col-span-2">
                                 <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Monetization</p>
                                 <div class="mt-2 flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between">
@@ -475,6 +501,31 @@ const productFeatures = [
                                         class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                     >
                                         Visit Dashboard
+                                    </Link>
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="websiteSections.commerce"
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Commerce</p>
+                                <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Storefront Demo</h3>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Merch-ready storefront with search, product detail, and cart so stakeholders can experience live checkout flows alongside billing and subscriptions.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Link
+                                        :href="route('shop.index')"
+                                        class="inline-flex items-center rounded-sm bg-[#1b1b18] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                    >
+                                        Open Storefront
+                                    </Link>
+                                    <Link
+                                        :href="route('shop.orders')"
+                                        class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
+                                    >
+                                        View Orders
                                     </Link>
                                 </div>
                             </div>

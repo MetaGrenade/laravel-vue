@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook, MessageCircle, Search } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook, MessageCircle, Search, ShoppingBag } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -21,6 +21,7 @@ const manageForums = computed(() => hasPermission('forums.acp.view'));
 const manageSupport = computed(() => hasPermission('support.acp.view'));
 const manageTokens = computed(() => hasPermission('tokens.acp.view'));
 const manageBilling = computed(() => hasPermission('billing.acp.view'));
+const manageCommerce = computed(() => hasPermission('commerce.acp.view'));
 const manageSystem = computed(() => hasPermission('system.acp.view'));
 const manageReputation = computed(() => hasPermission('reputation.acp.view'));
 const manageTrustSafety = computed(() => hasPermission('trust_safety.acp.view'));
@@ -88,6 +89,12 @@ const sidebarNavItems: NavItem[] = [
         icon: LifeBuoy,
     },
     {
+        title: 'Commerce',
+        href: '/acp/commerce',
+        target: '_self',
+        icon: ShoppingBag,
+    },
+    {
         title: 'Trust & Safety',
         href: '/acp/trust-safety',
         target: '_self',
@@ -129,13 +136,14 @@ const page = usePage<SharedData>();
 const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.location).pathname : '';
 
 const websiteSections = computed(() => {
-    const defaults = { blog: true, forum: true, support: true } as const;
+    const defaults = { blog: true, forum: true, support: true, commerce: true } as const;
     const settings = page.props.settings?.website_sections ?? defaults;
 
     return {
         blog: settings.blog ?? defaults.blog,
         forum: settings.forum ?? defaults.forum,
         support: settings.support ?? defaults.support,
+        commerce: settings.commerce ?? defaults.commerce,
     };
 });
 
@@ -163,6 +171,8 @@ const filteredNavItems = computed(() => {
                 return manageReputation.value || isAdmin.value;
             case 'Support':
                 return manageSupport.value && websiteSections.value.support;
+            case 'Commerce':
+                return manageCommerce.value && websiteSections.value.commerce;
             case 'Trust & Safety':
                 return manageTrustSafety.value;
             case 'Billing Invoices':

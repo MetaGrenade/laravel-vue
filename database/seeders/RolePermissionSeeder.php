@@ -33,6 +33,7 @@ class RolePermissionSeeder extends Seeder
             'billing',
             'trust_safety',
             'search',
+            'commerce',
         ];
 
         foreach ($permissions as $permission) {

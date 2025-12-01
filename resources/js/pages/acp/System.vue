@@ -21,7 +21,7 @@ const props = defineProps<{
     settings: {
         maintenance_mode: boolean;
         email_verification_required: boolean;
-        website_sections: Record<'blog' | 'forum' | 'support', boolean>;
+        website_sections: Record<'blog' | 'forum' | 'support' | 'commerce', boolean>;
         oauth_providers: Record<string, boolean>;
     };
     oauthProviders: Array<{ key: string; label: string; description?: string | null; enabled: boolean }>;
@@ -47,6 +47,7 @@ const form = useForm({
         blog: props.settings.website_sections.blog,
         forum: props.settings.website_sections.forum,
         support: props.settings.website_sections.support,
+        commerce: props.settings.website_sections.commerce,
     },
     oauth_providers: { ...props.settings.oauth_providers },
 });
@@ -148,6 +149,18 @@ const saveSettings = () => {
                                     <Switch v-model="form.website_sections.support" :disabled="!canEditSystemSettings" />
                                     <span class="ml-2 text-sm">
                                         {{ form.website_sections.support ? 'Enabled' : 'Disabled' }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium">Commerce</p>
+                                    <p class="text-xs text-gray-500">Control access to the shop, cart, and orders.</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <Switch v-model="form.website_sections.commerce" :disabled="!canEditSystemSettings" />
+                                    <span class="ml-2 text-sm">
+                                        {{ form.website_sections.commerce ? 'Enabled' : 'Disabled' }}
                                     </span>
                                 </div>
                             </div>

@@ -38,4 +38,15 @@ class WebsiteSectionsTest extends TestCase
 
         $this->get('/support')->assertNotFound();
     }
+
+    public function test_commerce_routes_return_not_found_when_section_disabled(): void
+    {
+        $sections = WebsiteSections::defaults();
+        $sections[WebsiteSections::COMMERCE] = false;
+        SystemSetting::set('website_sections', $sections);
+
+        $this->get('/shop')->assertNotFound();
+        $this->get('/shop/products/example-product')->assertNotFound();
+        $this->get('/cart')->assertNotFound();
+    }
 }
