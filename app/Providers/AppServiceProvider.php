@@ -46,10 +46,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Blog::class, BlogPolicy::class);
         Gate::policy(BlogComment::class, BlogCommentPolicy::class);
 
-        Gate::before(function ($user) {
-            return $user->hasRole('admin') ? true : null;
-        });
-
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 
         $cacheObserver = $this->app->make(ForumIndexCacheObserver::class);
