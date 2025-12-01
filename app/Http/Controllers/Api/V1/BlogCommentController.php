@@ -26,10 +26,13 @@ class BlogCommentController extends Controller
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = max(1, min($perPage, 50));
 
+        $sortFilter = $request->string('sort')->lower();
+        $sortMode = $sortFilter->value() === 'newest' ? 'newest' : 'oldest';
+
         $comments = $blog->comments()
             ->with(['user'])
             ->where('status', BlogComment::STATUS_APPROVED)
-            ->orderBy('created_at')
+            ->orderBy('created_at', $sortMode === 'newest' ? 'desc' : 'asc')
             ->paginate($perPage);
 
         return BlogCommentResource::collection($comments);
