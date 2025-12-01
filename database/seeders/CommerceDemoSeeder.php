@@ -98,7 +98,7 @@ class CommerceDemoSeeder extends Seeder
             ],
         ]);
 
-        $variants = $products->flatMap(function (array $productData) {
+        $variants = $products->flatMap(function (array $productData) use ($categories, $tags) {
             $product = Product::updateOrCreate(
                 ['slug' => $productData['slug']],
                 [
