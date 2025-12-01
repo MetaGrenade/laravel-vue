@@ -2,7 +2,11 @@
 
 use App\Http\Controllers\Api\V1\AuthTokenController;
 use App\Http\Controllers\Api\V1\BlogController;
+use App\Http\Controllers\Api\V1\ForumPostCommandController;
 use App\Http\Controllers\Api\V1\ForumThreadController;
+use App\Http\Controllers\Api\V1\ForumThreadCommandController;
+use App\Http\Controllers\Api\V1\ForumThreadModerationController as ApiForumThreadModerationController;
+use App\Http\Controllers\Api\V1\ForumThreadSubscriptionController;
 use App\Http\Controllers\Api\V1\UserProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +44,42 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->name('forum.threads.index');
         Route::get('/forum/threads/{thread:slug}', [ForumThreadController::class, 'show'])
             ->name('forum.threads.show');
+
+        Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:30,1'])->group(function () {
+            Route::post('/forum/boards/{board:slug}/threads', [ForumThreadCommandController::class, 'store'])
+                ->name('forum.threads.store');
+
+            Route::post('/forum/boards/{board:slug}/threads/{thread:slug}/posts', [ForumPostCommandController::class, 'store'])
+                ->name('forum.posts.store');
+            Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}/posts/{post}', [ForumPostCommandController::class, 'update'])
+                ->name('forum.posts.update');
+
+            Route::post('/forum/boards/{board:slug}/threads/{thread:slug}/subscriptions', [ForumThreadSubscriptionController::class, 'store'])
+                ->name('forum.threads.subscribe');
+            Route::delete('/forum/boards/{board:slug}/threads/{thread:slug}/subscriptions', [ForumThreadSubscriptionController::class, 'destroy'])
+                ->name('forum.threads.unsubscribe');
+
+            Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}', [ForumThreadCommandController::class, 'update'])
+                ->name('forum.threads.update');
+        });
+
+        Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1', 'role:admin|editor|moderator'])
+            ->group(function () {
+                Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}/publish', [ApiForumThreadModerationController::class, 'publish'])
+                    ->name('forum.threads.publish');
+                Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}/unpublish', [ApiForumThreadModerationController::class, 'unpublish'])
+                    ->name('forum.threads.unpublish');
+                Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}/lock', [ApiForumThreadModerationController::class, 'lock'])
+                    ->name('forum.threads.lock');
+                Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}/unlock', [ApiForumThreadModerationController::class, 'unlock'])
+                    ->name('forum.threads.unlock');
+                Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}/pin', [ApiForumThreadModerationController::class, 'pin'])
+                    ->name('forum.threads.pin');
+                Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}/unpin', [ApiForumThreadModerationController::class, 'unpin'])
+                    ->name('forum.threads.unpin');
+                Route::delete('/forum/boards/{board:slug}/threads/{thread:slug}', [ApiForumThreadModerationController::class, 'destroy'])
+                    ->name('forum.threads.destroy');
+            });
     });
 });
 
