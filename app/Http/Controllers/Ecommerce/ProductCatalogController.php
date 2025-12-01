@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Ecommerce;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\ProductCategory;
 use App\Models\ProductTag;
 use App\Models\Product;
@@ -20,10 +21,11 @@ class ProductCatalogController extends Controller
             'category.*' => ['integer'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['integer'],
+            'brand' => ['nullable', 'integer', 'exists:brands,id'],
         ]);
 
         $products = Product::query()
-            ->with(['variants.prices', 'prices', 'categories:id,name,slug', 'tags:id,name,slug'])
+            ->with(['variants.prices', 'prices', 'categories:id,name,slug', 'tags:id,name,slug', 'brand:id,name,slug'])
             ->where('is_active', true)
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(function ($query) use ($search) {
@@ -41,6 +43,9 @@ class ProductCatalogController extends Controller
                     $query->whereIn('product_tags.id', $tags);
                 });
             })
+            ->when($filters['brand'] ?? null, function ($query, int $brandId) {
+                $query->where('brand_id', $brandId);
+            })
             ->orderBy('name')
             ->paginate(12)
             ->withQueryString()
@@ -53,6 +58,7 @@ class ProductCatalogController extends Controller
                     'is_active' => $product->is_active,
                     'variants' => $product->variants,
                     'prices' => $product->prices,
+                    'brand' => $product->brand,
                     'categories' => $product->categories,
                     'tags' => $product->tags,
                 ];
@@ -64,17 +70,19 @@ class ProductCatalogController extends Controller
                 'search' => $filters['search'] ?? null,
                 'category' => $filters['category'] ?? [],
                 'tags' => $filters['tags'] ?? [],
+                'brand' => $filters['brand'] ?? null,
             ],
             'categories' => ProductCategory::query()
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug']),
             'tags' => ProductTag::query()->orderBy('name')->get(['id', 'name', 'slug']),
+            'brands' => Brand::query()->orderBy('name')->get(['id', 'name', 'slug']),
         ]);
     }
 
     public function show(Product $product): Response
     {
-        $product->load(['options.values', 'variants.prices', 'prices', 'inventoryItems', 'categories', 'tags']);
+        $product->load(['options.values', 'variants.prices', 'prices', 'inventoryItems', 'categories', 'tags', 'brand']);
 
         return Inertia::render('commerce/ProductDetail', [
             'product' => $product,

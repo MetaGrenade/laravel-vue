@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 
 type Product = {
     id: number;
+    brand_id: number | null;
+    brand?: Brand | null;
     name: string;
     slug: string;
     is_active: boolean;
@@ -59,12 +61,19 @@ type Order = {
     user?: { id: number; nickname: string; email: string } | null;
 };
 
+type Brand = {
+    id: number;
+    name: string;
+    slug: string;
+};
+
 const props = defineProps<{
     products: Product[];
     variants: Variant[];
     prices: Price[];
     inventory: Inventory[];
     orders: Order[];
+    brands: Brand[];
     metrics: {
         products: { total: number; active: number; options: number; variants: number };
         pricing: { active_prices: number; total_prices: number };
@@ -79,10 +88,17 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const productForm = useForm({
+    brand_id: props.brands[0]?.id ?? null,
     name: '',
     slug: '',
     description: '',
     is_active: true,
+});
+
+const brandForm = useForm({
+    name: '',
+    slug: '',
+    description: '',
 });
 
 const optionForm = useForm({
@@ -183,6 +199,13 @@ watch(
     },
     { immediate: true },
 );
+
+const submitBrand = () => {
+    brandForm.post(route('acp.commerce.brands.store'), {
+        preserveScroll: true,
+        onSuccess: () => brandForm.reset(),
+    });
+};
 
 const updateVariantOptions = () => {
     variantForm.option_values = variantOptionsText.value
@@ -306,13 +329,14 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                         <CardContent>
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Slug</TableHead>
-                                        <TableHead>Variants</TableHead>
-                                        <TableHead>Prices</TableHead>
-                                        <TableHead>Inventory</TableHead>
-                                    </TableRow>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Brand</TableHead>
+                                    <TableHead>Slug</TableHead>
+                                    <TableHead>Variants</TableHead>
+                                    <TableHead>Prices</TableHead>
+                                    <TableHead>Inventory</TableHead>
+                                </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     <TableRow v-for="product in products" :key="product.id">
@@ -322,6 +346,7 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                                                 <Badge v-if="!product.is_active" variant="secondary">Draft</Badge>
                                             </div>
                                         </TableCell>
+                                        <TableCell>{{ product.brand?.name ?? '—' }}</TableCell>
                                         <TableCell>{{ product.slug }}</TableCell>
                                         <TableCell>{{ product.variants_count }}</TableCell>
                                         <TableCell>{{ product.prices_count }}</TableCell>
@@ -338,6 +363,10 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                             <CardDescription>Quickly seed new catalog items.</CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-3">
+                            <select v-model="productForm.brand_id" class="w-full rounded-md border bg-background px-3 py-2">
+                                <option :value="null">No brand</option>
+                                <option v-for="brand in brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
+                            </select>
                             <Input v-model="productForm.name" placeholder="Product name" />
                             <Input v-model="productForm.slug" placeholder="Slug" />
                             <Input v-model="productForm.description" placeholder="Description" />
@@ -347,6 +376,27 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                             </label>
                             <Button class="w-full" :disabled="productForm.processing" @click="submitProduct">
                                 Save product
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Brands</CardTitle>
+                            <CardDescription>Attach vendors or labels to products.</CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-3">
+                            <div class="space-y-2">
+                                <div class="flex flex-wrap gap-2">
+                                    <Badge v-for="brand in brands" :key="brand.id" variant="outline">{{ brand.name }}</Badge>
+                                </div>
+                                <p v-if="!brands.length" class="text-sm text-muted-foreground">No brands yet.</p>
+                            </div>
+                            <Input v-model="brandForm.name" placeholder="Brand name" />
+                            <Input v-model="brandForm.slug" placeholder="Slug" />
+                            <Input v-model="brandForm.description" placeholder="Description" />
+                            <Button class="w-full" :disabled="brandForm.processing" @click="submitBrand">
+                                Save brand
                             </Button>
                         </CardContent>
                     </Card>

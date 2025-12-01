@@ -133,6 +133,9 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->name('acp.commerce.')
         ->group(function () {
             Route::get('/', [CommerceController::class, 'index'])->name('index');
+            Route::post('brands', [CommerceController::class, 'storeBrand'])
+                ->middleware('can:commerce.acp.create')
+                ->name('brands.store');
             Route::post('products', [CommerceController::class, 'storeProduct'])
                 ->middleware('can:commerce.acp.create')
                 ->name('products.store');
