@@ -9,8 +9,10 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Price;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
+use App\Models\ProductTag;
 use App\Models\ProductVariant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -19,12 +21,40 @@ class CommerceDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        $categories = collect([
+            ['name' => 'Apparel', 'slug' => 'apparel', 'description' => 'Hoodies, tees, and wearable goods.'],
+            ['name' => 'Accessories', 'slug' => 'accessories', 'description' => 'Everyday add-ons and merch.'],
+            ['name' => 'Limited', 'slug' => 'limited', 'description' => 'Short runs and seasonal drops.'],
+        ])->mapWithKeys(function (array $category) {
+            $categoryModel = ProductCategory::updateOrCreate(
+                ['slug' => $category['slug']],
+                ['name' => $category['name'], 'description' => $category['description']],
+            );
+
+            return [$categoryModel->name => $categoryModel];
+        });
+
+        $tags = collect([
+            ['name' => 'New', 'slug' => 'new'],
+            ['name' => 'Bestseller', 'slug' => 'bestseller'],
+            ['name' => 'Eco', 'slug' => 'eco'],
+        ])->mapWithKeys(function (array $tag) {
+            $tagModel = ProductTag::updateOrCreate(
+                ['slug' => $tag['slug']],
+                ['name' => $tag['name'], 'description' => null],
+            );
+
+            return [$tagModel->name => $tagModel];
+        });
+
         $products = collect([
             [
                 'name' => 'Demo Hoodie',
                 'slug' => 'demo-hoodie',
                 'description' => 'Soft mid-weight hoodie ready for checkout wiring.',
                 'metadata' => ['hero_image' => '/images/demo-hoodie.png'],
+                'categories' => ['Apparel', 'Limited'],
+                'tags' => ['New'],
                 'options' => [
                     [
                         'name' => 'size',
@@ -41,6 +71,8 @@ class CommerceDemoSeeder extends Seeder
                 'slug' => 'demo-tee',
                 'description' => 'Lightweight tee available in bold colors.',
                 'metadata' => ['hero_image' => '/images/demo-tee.png'],
+                'categories' => ['Apparel'],
+                'tags' => ['Bestseller'],
                 'options' => [
                     [
                         'name' => 'color',
@@ -57,6 +89,8 @@ class CommerceDemoSeeder extends Seeder
                 'slug' => 'demo-mug',
                 'description' => 'Everyday mug with a glossy finish.',
                 'metadata' => ['hero_image' => '/images/demo-mug.png'],
+                'categories' => ['Accessories'],
+                'tags' => ['Eco'],
                 'options' => [],
                 'base_price' => 18.00,
                 'compare_at' => 24.00,
@@ -72,6 +106,18 @@ class CommerceDemoSeeder extends Seeder
                     'description' => $productData['description'],
                     'metadata' => $productData['metadata'],
                 ],
+            );
+
+            $product->categories()->sync(
+                collect($productData['categories'] ?? [])
+                    ->map(fn (string $categoryName) => $categories[$categoryName]->id)
+                    ->all(),
+            );
+
+            $product->tags()->sync(
+                collect($productData['tags'] ?? [])
+                    ->map(fn (string $tagName) => $tags[$tagName]->id)
+                    ->all(),
             );
 
             $optionValues = collect($productData['options'])->map(function (array $option, int $optionIndex) use ($product) {

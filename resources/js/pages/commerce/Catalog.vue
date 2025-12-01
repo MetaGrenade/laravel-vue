@@ -4,7 +4,20 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { reactive, ref } from 'vue';
+
+interface Category {
+    id: number;
+    name: string;
+    slug: string;
+}
+
+interface Tag {
+    id: number;
+    name: string;
+    slug: string;
+}
 
 interface Variant {
     id: number;
@@ -27,12 +40,21 @@ interface Product {
     description?: string | null;
     variants: Variant[];
     prices: Price[];
+    categories: Category[];
+    tags: Tag[];
 }
 
 interface Props {
     products: {
         data: Product[];
     };
+    filters: {
+        search: string | null;
+        category: number[];
+        tags: number[];
+    };
+    categories: Category[];
+    tags: Tag[];
 }
 
 const props = defineProps<Props>();
@@ -40,6 +62,11 @@ const props = defineProps<Props>();
 const selectedVariants = reactive<Record<number, number | null>>({});
 const quantities = reactive<Record<number, number>>({});
 const submittingProductId = ref<number | null>(null);
+const filterState = reactive({
+    search: props.filters.search ?? '',
+    category: props.filters.category?.[0] ?? '',
+    tags: [...(props.filters.tags ?? [])],
+});
 
 const getSelectedVariantId = (product: Product) => {
     if (selectedVariants[product.id] === undefined) {
@@ -131,6 +158,36 @@ const getProductPriceLabel = (product: Product) => {
 
     return formatCurrency(Number(price.amount), price.currency);
 };
+
+const applyFilters = () => {
+    router.get(
+        route('shop.index'),
+        {
+            search: filterState.search || undefined,
+            category: filterState.category ? [Number(filterState.category)] : undefined,
+            tags: filterState.tags.length ? filterState.tags : undefined,
+        },
+        {
+            preserveScroll: true,
+            replace: true,
+        },
+    );
+};
+
+const clearFilters = () => {
+    filterState.search = '';
+    filterState.category = '';
+    filterState.tags = [];
+    applyFilters();
+};
+
+const toggleTag = (tagId: number) => {
+    if (filterState.tags.includes(tagId)) {
+        filterState.tags = filterState.tags.filter((id) => id !== tagId);
+    } else {
+        filterState.tags.push(tagId);
+    }
+};
 </script>
 
 <template>
@@ -143,6 +200,59 @@ const getProductPriceLabel = (product: Product) => {
                 <p class="text-muted-foreground">Starter catalog page teams can extend into a full storefront.</p>
             </div>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle>Filter products</CardTitle>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-foreground" for="search">Search</label>
+                            <Input
+                                id="search"
+                                v-model="filterState.search"
+                                placeholder="Search by name or description"
+                                @keyup.enter="applyFilters"
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-foreground" for="category">Category</label>
+                            <select
+                                id="category"
+                                v-model="filterState.category"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none"
+                            >
+                                <option value="">All categories</option>
+                                <option v-for="category in props.categories" :key="category.id" :value="category.id">
+                                    {{ category.name }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-foreground">Tags</label>
+                            <div class="flex flex-wrap gap-2">
+                                <Button
+                                    v-for="tag in props.tags"
+                                    :key="tag.id"
+                                    size="sm"
+                                    variant="outline"
+                                    :class="filterState.tags.includes(tag.id) ? 'border-primary text-primary' : ''"
+                                    @click="toggleTag(tag.id)">
+                                    {{ tag.name }}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <Button @click="applyFilters">Apply filters</Button>
+                        <Button variant="ghost" @click="clearFilters">Reset</Button>
+                    </div>
+                </CardContent>
+            </Card>
+
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <Card v-for="product in props.products.data" :key="product.id" class="flex flex-col">
                     <CardHeader>
@@ -150,13 +260,24 @@ const getProductPriceLabel = (product: Product) => {
                         <p class="text-sm text-muted-foreground line-clamp-2">{{ product.description || 'No description yet.' }}</p>
                     </CardHeader>
                     <CardContent class="flex flex-1 flex-col justify-between space-y-4">
-                        <div class="space-y-2">
-                            <div class="font-medium">Variants: {{ product.variants.length }}</div>
-                            <div class="text-sm text-muted-foreground">
-                                {{ getPriceRangeLabel(product) }}
+                        <div class="space-y-3">
+                            <div class="space-y-2">
+                                <div class="font-medium">Variants: {{ product.variants.length }}</div>
+                                <div class="text-sm text-muted-foreground">
+                                    {{ getPriceRangeLabel(product) }}
+                                </div>
+                                <div class="text-sm font-semibold text-foreground">
+                                    {{ getProductPriceLabel(product) }}
+                                </div>
                             </div>
-                            <div class="text-sm font-semibold text-foreground">
-                                {{ getProductPriceLabel(product) }}
+
+                            <div class="flex flex-wrap gap-2">
+                                <Badge v-for="category in product.categories" :key="category.id" variant="secondary">
+                                    {{ category.name }}
+                                </Badge>
+                                <Badge v-for="tag in product.tags" :key="tag.id" variant="outline">
+                                    {{ tag.name }}
+                                </Badge>
                             </div>
                         </div>
 
