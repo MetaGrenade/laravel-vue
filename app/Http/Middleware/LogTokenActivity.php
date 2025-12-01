@@ -41,7 +41,7 @@ class LogTokenActivity
         $user = $request->user();
         $token = method_exists($user, 'currentAccessToken') ? $user?->currentAccessToken() : null;
 
-        if (! $token) {
+        if (! $token || empty($token->id)) {
             return;
         }
 
