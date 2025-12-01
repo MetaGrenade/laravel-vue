@@ -20,7 +20,22 @@ import { getInitials } from '@/composables/useInitials';
 import { getEcho } from '@/lib/echo';
 import type { BreadcrumbItem, NavItem, NotificationItem, SharedData, User } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Home, Layers, BookOpen, Folder, LayoutGrid, Menu, Search, Megaphone, Shield, LifeBuoy, Bell, Check, Trash2 } from 'lucide-vue-next';
+import {
+    Home,
+    Layers,
+    BookOpen,
+    Folder,
+    LayoutGrid,
+    Menu,
+    Search,
+    Megaphone,
+    Shield,
+    LifeBuoy,
+    Bell,
+    Check,
+    Trash2,
+    ShoppingBag,
+} from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
 interface BroadcastNotificationPayload {
@@ -199,6 +214,7 @@ const websiteSections = computed(() => {
 const baseMainNavItems: SectionAwareNavItem[] = [
     { title: 'Home', href: '/', target: '_self', icon: Home },
     { title: 'Pricing', href: '/pricing', target: '_self', icon: Layers },
+    { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag },
     { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid },
     { title: 'Blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
     { title: 'Forum', href: '/forum', target: '_self', icon: Megaphone, section: 'forum' },
