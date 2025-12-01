@@ -8,6 +8,7 @@ interface Variant {
     id: number;
     name: string;
     sku?: string | null;
+    prices: Price[];
 }
 
 interface Price {
@@ -33,6 +34,39 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const formatCurrency = (amount: number, currency: string) => {
+    return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: currency.toUpperCase(),
+    }).format(amount);
+};
+
+const getPriceRangeLabel = (product: Product) => {
+    const allPrices = [
+        ...product.prices,
+        ...product.variants.flatMap((variant) => variant.prices || []),
+    ];
+
+    if (!allPrices.length) {
+        return 'Add pricing to this item';
+    }
+
+    const amounts = allPrices.map((price) => ({
+        amount: Number(price.amount),
+        currency: price.currency || 'USD',
+    }));
+
+    const minAmount = Math.min(...amounts.map((price) => price.amount));
+    const maxAmount = Math.max(...amounts.map((price) => price.amount));
+    const currency = amounts[0].currency;
+
+    if (minAmount === maxAmount) {
+        return formatCurrency(minAmount, currency);
+    }
+
+    return `${formatCurrency(minAmount, currency)} - ${formatCurrency(maxAmount, currency)}`;
+};
 </script>
 
 <template>
@@ -55,7 +89,7 @@ const props = defineProps<Props>();
                         <div class="space-y-1">
                             <div class="font-medium">Variants: {{ product.variants.length }}</div>
                             <div class="text-sm text-muted-foreground">
-                                {{ product.prices.length ? 'Pricing configured' : 'Add pricing to this item' }}
+                                {{ getPriceRangeLabel(product) }}
                             </div>
                         </div>
 
