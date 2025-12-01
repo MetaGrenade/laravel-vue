@@ -67,6 +67,7 @@ class Specification
             'tags' => [
                 ['name' => 'Authentication'],
                 ['name' => 'Blogs'],
+                ['name' => 'Blog Comments'],
                 ['name' => 'Forum Threads'],
                 ['name' => 'Forum Posts'],
                 ['name' => 'Forum Moderation'],
@@ -198,6 +199,238 @@ class Specification
                                 ],
                             ],
                         ],
+                        '404' => static::notFoundResponse(),
+                    ],
+                ],
+            ],
+            '/v1/blogs/{slug}/comments' => [
+                'get' => [
+                    'summary' => 'List approved comments for a blog post',
+                    'tags' => ['Blog Comments'],
+                    'parameters' => [
+                        [
+                            'name' => 'slug',
+                            'in' => 'path',
+                            'required' => true,
+                            'schema' => [
+                                'type' => 'string',
+                            ],
+                        ],
+                        static::paginationQueryParameter(),
+                        [
+                            'name' => 'per_page',
+                            'in' => 'query',
+                            'schema' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50],
+                            'description' => 'Number of comments to return per page (max 50).',
+                        ],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Paginated comments',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('PaginatedBlogCommentCollection'),
+                                ],
+                            ],
+                        ],
+                        '404' => static::notFoundResponse(),
+                    ],
+                ],
+                'post' => [
+                    'summary' => 'Create a blog comment',
+                    'tags' => ['Blog Comments'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        [
+                            'name' => 'slug',
+                            'in' => 'path',
+                            'required' => true,
+                            'schema' => ['type' => 'string'],
+                        ],
+                    ],
+                    'requestBody' => [
+                        'required' => true,
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['body'],
+                                    'properties' => [
+                                        'body' => ['type' => 'string', 'maxLength' => 2000],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        '201' => [
+                            'description' => 'Comment created',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('BlogComment'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                        '422' => static::validationErrorResponse(),
+                    ],
+                ],
+            ],
+            '/v1/blogs/{slug}/comments/{comment}' => [
+                'patch' => [
+                    'summary' => 'Update a blog comment',
+                    'tags' => ['Blog Comments'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'slug', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'string']],
+                        ['name' => 'comment', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'integer']],
+                    ],
+                    'requestBody' => [
+                        'required' => true,
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['body'],
+                                    'properties' => [
+                                        'body' => ['type' => 'string', 'maxLength' => 2000],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Updated comment',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('BlogComment'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                        '422' => static::validationErrorResponse(),
+                    ],
+                ],
+                'delete' => [
+                    'summary' => 'Delete a blog comment',
+                    'tags' => ['Blog Comments'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'slug', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'string']],
+                        ['name' => 'comment', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'integer']],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Comment deleted',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'message' => ['type' => 'string'],
+                                            'id' => ['type' => 'integer'],
+                                        ],
+                                        'required' => ['message', 'id'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                    ],
+                ],
+            ],
+            '/v1/blogs/{slug}/comments/{comment}/report' => [
+                'post' => [
+                    'summary' => 'Report a blog comment',
+                    'tags' => ['Blog Comments'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'slug', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'string']],
+                        ['name' => 'comment', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'integer']],
+                    ],
+                    'requestBody' => [
+                        'required' => true,
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['reason_category'],
+                                    'properties' => [
+                                        'reason_category' => ['type' => 'string'],
+                                        'reason' => ['type' => 'string', 'maxLength' => 1000, 'nullable' => true],
+                                        'evidence_url' => ['type' => 'string', 'format' => 'uri', 'maxLength' => 2048, 'nullable' => true],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        '201' => [
+                            'description' => 'Report submitted',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'message' => ['type' => 'string'],
+                                        ],
+                                        'required' => ['message'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                        '422' => static::validationErrorResponse(),
+                    ],
+                ],
+            ],
+            '/v1/blogs/{slug}/comments/subscriptions' => [
+                'post' => [
+                    'summary' => 'Subscribe to blog comment notifications',
+                    'tags' => ['Blog Comments'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'slug', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'string']],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Subscribed to comments',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('BlogCommentSubscriptionStatus'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '404' => static::notFoundResponse(),
+                    ],
+                ],
+                'delete' => [
+                    'summary' => 'Unsubscribe from blog comment notifications',
+                    'tags' => ['Blog Comments'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'slug', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'string']],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Unsubscribed from comments',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('BlogCommentSubscriptionStatus'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
                         '404' => static::notFoundResponse(),
                     ],
                 ],
@@ -890,6 +1123,26 @@ class Specification
                 ],
                 'required' => ['id', 'title', 'slug', 'excerpt', 'status', 'author'],
             ],
+            'BlogComment' => [
+                'type' => 'object',
+                'properties' => [
+                    'id' => ['type' => 'integer', 'example' => 42],
+                    'body' => ['type' => 'string'],
+                    'created_at' => ['type' => 'string', 'format' => 'date-time', 'nullable' => true],
+                    'updated_at' => ['type' => 'string', 'format' => 'date-time', 'nullable' => true],
+                    'permissions' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'can_update' => ['type' => 'boolean'],
+                            'can_delete' => ['type' => 'boolean'],
+                            'can_report' => ['type' => 'boolean'],
+                        ],
+                        'required' => ['can_update', 'can_delete', 'can_report'],
+                    ],
+                    'user' => static::schemaRef('User'),
+                ],
+                'required' => ['id', 'body', 'permissions'],
+            ],
             'ForumThread' => [
                 'type' => 'object',
                 'properties' => [
@@ -953,6 +1206,14 @@ class Specification
                     'subscribed' => ['type' => 'boolean'],
                 ],
                 'required' => ['subscribed'],
+            ],
+            'BlogCommentSubscriptionStatus' => [
+                'type' => 'object',
+                'properties' => [
+                    'subscribed' => ['type' => 'boolean'],
+                    'subscribers_count' => ['type' => 'integer'],
+                ],
+                'required' => ['subscribed', 'subscribers_count'],
             ],
             'ForumThreadStatus' => [
                 'type' => 'object',
@@ -1074,6 +1335,7 @@ class Specification
                 'required' => ['status', 'customer_satisfaction_rating', 'message'],
             ],
             'PaginatedBlogCollection' => static::paginatedSchema('Blog'),
+            'PaginatedBlogCommentCollection' => static::paginatedSchema('BlogComment'),
             'PaginatedForumThreadCollection' => static::paginatedSchema('ForumThread'),
             'ValidationError' => [
                 'type' => 'object',
