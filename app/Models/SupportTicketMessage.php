@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\SupportTicketMessageCreated;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -31,6 +32,10 @@ class SupportTicketMessage extends Model
 
     protected static function booted(): void
     {
+        static::created(function (self $message): void {
+            event(new SupportTicketMessageCreated($message));
+        });
+
         static::deleting(function (self $message): void {
             foreach ($message->attachments()->cursor() as $attachment) {
                 $attachment->delete();
