@@ -7,6 +7,10 @@ use App\Http\Controllers\Api\V1\ForumThreadController;
 use App\Http\Controllers\Api\V1\ForumThreadCommandController;
 use App\Http\Controllers\Api\V1\ForumThreadModerationController as ApiForumThreadModerationController;
 use App\Http\Controllers\Api\V1\ForumThreadSubscriptionController;
+use App\Http\Controllers\Api\V1\Support\SupportTicketController;
+use App\Http\Controllers\Api\V1\Support\SupportTicketMessageController;
+use App\Http\Controllers\Api\V1\Support\SupportTicketRatingController;
+use App\Http\Controllers\Api\V1\Support\SupportTicketStatusController;
 use App\Http\Controllers\Api\V1\UserProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -81,6 +85,39 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->name('forum.threads.destroy');
             });
     });
+
+    $supportThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:20,1';
+    $ticketWriteThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:10,1';
+    $ticketReadThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:30,1';
+    $ticketRatingThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:5,1';
+
+    Route::middleware(['section.enabled:support', 'auth:sanctum', 'token.throttle', 'token.activity', $supportThrottle])
+        ->prefix('support')
+        ->as('support.')
+        ->group(function () use ($ticketWriteThrottle, $ticketReadThrottle, $ticketRatingThrottle) {
+            // Support center endpoints: customer ticket creation, threaded messages,
+            // status transitions, and post-resolution CSAT ratings. All routes are
+            // Sanctum-protected and limited to 20 requests per minute, in addition
+            // to the custom token throttle + activity middleware.
+            Route::post('/tickets', [SupportTicketController::class, 'store'])
+                ->middleware($ticketWriteThrottle)
+                ->name('tickets.store');
+            Route::get('/tickets/{ticket}', [SupportTicketController::class, 'show'])
+                ->middleware($ticketReadThrottle)
+                ->name('tickets.show');
+            Route::post('/tickets/{ticket}/messages', [SupportTicketMessageController::class, 'store'])
+                ->middleware($ticketWriteThrottle)
+                ->name('tickets.messages.store');
+            Route::patch('/tickets/{ticket}/status', [SupportTicketStatusController::class, 'update'])
+                ->middleware($ticketWriteThrottle)
+                ->name('tickets.status.update');
+            Route::patch('/tickets/{ticket}/reopen', [SupportTicketStatusController::class, 'reopen'])
+                ->middleware($ticketWriteThrottle)
+                ->name('tickets.reopen');
+            Route::post('/tickets/{ticket}/rating', [SupportTicketRatingController::class, 'store'])
+                ->middleware($ticketRatingThrottle)
+                ->name('tickets.rating.store');
+        });
 });
 
 Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity'])

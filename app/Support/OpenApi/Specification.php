@@ -71,6 +71,7 @@ class Specification
                 ['name' => 'Forum Posts'],
                 ['name' => 'Forum Moderation'],
                 ['name' => 'Profile'],
+                ['name' => 'Support'],
             ],
         ];
     }
@@ -621,6 +622,213 @@ class Specification
                     ],
                 ],
             ],
+            '/v1/support/tickets' => [
+                'post' => [
+                    'summary' => 'Open a support ticket',
+                    'tags' => ['Support'],
+                    'security' => [['sanctum' => []]],
+                    'requestBody' => [
+                        'required' => true,
+                        'content' => [
+                            'multipart/form-data' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['subject', 'body'],
+                                    'properties' => [
+                                        'subject' => ['type' => 'string', 'maxLength' => 255],
+                                        'body' => ['type' => 'string'],
+                                        'priority' => ['type' => 'string', 'enum' => ['low', 'medium', 'high']],
+                                        'support_ticket_category_id' => ['type' => 'integer', 'nullable' => true],
+                                        'attachments' => [
+                                            'type' => 'array',
+                                            'items' => ['type' => 'string', 'format' => 'binary'],
+                                            'maxItems' => 5,
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        '201' => [
+                            'description' => 'Ticket created',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('SupportTicket'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '422' => static::validationErrorResponse(),
+                    ],
+                ],
+            ],
+            '/v1/support/tickets/{ticket}' => [
+                'get' => [
+                    'summary' => 'Show a support ticket',
+                    'tags' => ['Support'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'ticket', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'integer']],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Ticket details',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('SupportTicket'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                    ],
+                ],
+            ],
+            '/v1/support/tickets/{ticket}/messages' => [
+                'post' => [
+                    'summary' => 'Post a ticket reply',
+                    'tags' => ['Support'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'ticket', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'integer']],
+                    ],
+                    'requestBody' => [
+                        'required' => true,
+                        'content' => [
+                            'multipart/form-data' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['body'],
+                                    'properties' => [
+                                        'body' => ['type' => 'string', 'minLength' => 3, 'maxLength' => 5000],
+                                        'attachments' => [
+                                            'type' => 'array',
+                                            'items' => ['type' => 'string', 'format' => 'binary'],
+                                            'maxItems' => 5,
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        '201' => [
+                            'description' => 'Message created',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('SupportTicketMessageResponse'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                        '422' => static::validationErrorResponse(),
+                    ],
+                ],
+            ],
+            '/v1/support/tickets/{ticket}/status' => [
+                'patch' => [
+                    'summary' => 'Close a ticket',
+                    'tags' => ['Support'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'ticket', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'integer']],
+                    ],
+                    'requestBody' => [
+                        'required' => true,
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['status'],
+                                    'properties' => [
+                                        'status' => ['type' => 'string', 'enum' => ['closed']],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Ticket closed',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('SupportTicketStatusResponse'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                        '422' => static::validationErrorResponse(),
+                    ],
+                ],
+            ],
+            '/v1/support/tickets/{ticket}/reopen' => [
+                'patch' => [
+                    'summary' => 'Reopen a closed ticket',
+                    'tags' => ['Support'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'ticket', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'integer']],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Ticket reopened',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('SupportTicketStatusResponse'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                        '422' => static::validationErrorResponse(),
+                    ],
+                ],
+            ],
+            '/v1/support/tickets/{ticket}/rating' => [
+                'post' => [
+                    'summary' => 'Submit a CSAT rating',
+                    'tags' => ['Support'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'ticket', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'integer']],
+                    ],
+                    'requestBody' => [
+                        'required' => true,
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['rating'],
+                                    'properties' => [
+                                        'rating' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 5],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Rating submitted',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('SupportTicketRatingResponse'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                        '422' => static::validationErrorResponse(),
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -755,6 +963,115 @@ class Specification
                     'is_pinned' => ['type' => 'boolean'],
                 ],
                 'required' => ['id', 'is_published', 'is_locked', 'is_pinned'],
+            ],
+            'SupportTicketAttachment' => [
+                'type' => 'object',
+                'properties' => [
+                    'id' => ['type' => 'integer'],
+                    'name' => ['type' => 'string'],
+                    'size' => ['type' => 'integer'],
+                    'download_url' => ['type' => 'string', 'format' => 'uri'],
+                ],
+                'required' => ['id', 'name', 'size', 'download_url'],
+            ],
+            'SupportTicketMessage' => [
+                'type' => 'object',
+                'properties' => [
+                    'id' => ['type' => 'integer'],
+                    'body' => ['type' => 'string'],
+                    'created_at' => ['type' => 'string', 'format' => 'date-time'],
+                    'author' => [
+                        'oneOf' => [
+                            static::schemaRef('User'),
+                            ['type' => 'null'],
+                        ],
+                    ],
+                    'is_from_support' => ['type' => 'boolean'],
+                    'attachments' => [
+                        'type' => 'array',
+                        'items' => static::schemaRef('SupportTicketAttachment'),
+                    ],
+                ],
+                'required' => ['id', 'body', 'created_at', 'is_from_support', 'attachments'],
+            ],
+            'SupportTicket' => [
+                'type' => 'object',
+                'properties' => [
+                    'id' => ['type' => 'integer'],
+                    'subject' => ['type' => 'string'],
+                    'body' => ['type' => 'string'],
+                    'status' => ['type' => 'string', 'example' => 'pending'],
+                    'priority' => ['type' => 'string', 'example' => 'medium'],
+                    'support_ticket_category_id' => ['type' => 'integer', 'nullable' => true],
+                    'support_team_id' => ['type' => 'integer', 'nullable' => true],
+                    'created_at' => ['type' => 'string', 'format' => 'date-time'],
+                    'updated_at' => ['type' => 'string', 'format' => 'date-time'],
+                    'customer_satisfaction_rating' => ['type' => 'integer', 'nullable' => true],
+                    'assignee' => [
+                        'type' => 'object',
+                        'nullable' => true,
+                        'properties' => [
+                            'id' => ['type' => 'integer'],
+                            'nickname' => ['type' => 'string'],
+                            'email' => ['type' => 'string', 'format' => 'email'],
+                        ],
+                    ],
+                    'team' => [
+                        'type' => 'object',
+                        'nullable' => true,
+                        'properties' => [
+                            'id' => ['type' => 'integer'],
+                            'name' => ['type' => 'string'],
+                        ],
+                    ],
+                    'category' => [
+                        'type' => 'object',
+                        'nullable' => true,
+                        'properties' => [
+                            'id' => ['type' => 'integer'],
+                            'name' => ['type' => 'string'],
+                        ],
+                    ],
+                    'messages' => [
+                        'type' => 'array',
+                        'items' => static::schemaRef('SupportTicketMessage'),
+                    ],
+                ],
+                'required' => [
+                    'id',
+                    'subject',
+                    'body',
+                    'status',
+                    'priority',
+                    'created_at',
+                    'updated_at',
+                    'customer_satisfaction_rating',
+                    'messages',
+                ],
+            ],
+            'SupportTicketMessageResponse' => [
+                'type' => 'object',
+                'properties' => [
+                    'message' => static::schemaRef('SupportTicketMessage'),
+                ],
+                'required' => ['message'],
+            ],
+            'SupportTicketStatusResponse' => [
+                'type' => 'object',
+                'properties' => [
+                    'status' => ['type' => 'string'],
+                    'message' => ['type' => 'string'],
+                ],
+                'required' => ['status', 'message'],
+            ],
+            'SupportTicketRatingResponse' => [
+                'type' => 'object',
+                'properties' => [
+                    'status' => ['type' => 'string'],
+                    'customer_satisfaction_rating' => ['type' => 'integer', 'nullable' => true],
+                    'message' => ['type' => 'string'],
+                ],
+                'required' => ['status', 'customer_satisfaction_rating', 'message'],
             ],
             'PaginatedBlogCollection' => static::paginatedSchema('Blog'),
             'PaginatedForumThreadCollection' => static::paginatedSchema('ForumThread'),
