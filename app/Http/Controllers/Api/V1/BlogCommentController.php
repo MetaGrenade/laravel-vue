@@ -76,7 +76,7 @@ class BlogCommentController extends Controller
         return response()->json(new BlogCommentResource($comment), 201);
     }
 
-    public function update(UpdateBlogCommentRequest $request, Blog $blog, BlogComment $comment): BlogCommentResource
+    public function update(UpdateBlogCommentRequest $request, Blog $blog, BlogComment $comment): JsonResponse
     {
         $this->ensureCommentBelongsToBlog($blog, $comment);
 
@@ -90,7 +90,7 @@ class BlogCommentController extends Controller
 
         $comment->load(['user']);
 
-        return new BlogCommentResource($comment);
+        return response()->json(new BlogCommentResource($comment));
     }
 
     public function destroy(Blog $blog, BlogComment $comment): JsonResponse
