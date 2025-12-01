@@ -8,6 +8,7 @@ use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Price;
+use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductOption;
@@ -21,6 +22,18 @@ class CommerceDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        $brands = collect([
+            ['name' => 'Acme Co.', 'slug' => 'acme', 'description' => 'Default demo brand'],
+            ['name' => 'Summit Supply', 'slug' => 'summit-supply', 'description' => 'Outdoor-inspired basics'],
+        ])->mapWithKeys(function (array $brand) {
+            $brandModel = Brand::updateOrCreate(
+                ['slug' => $brand['slug']],
+                ['name' => $brand['name'], 'description' => $brand['description']],
+            );
+
+            return [$brandModel->name => $brandModel];
+        });
+
         $categories = collect([
             ['name' => 'Apparel', 'slug' => 'apparel', 'description' => 'Hoodies, tees, and wearable goods.'],
             ['name' => 'Accessories', 'slug' => 'accessories', 'description' => 'Everyday add-ons and merch.'],
@@ -53,6 +66,7 @@ class CommerceDemoSeeder extends Seeder
                 'slug' => 'demo-hoodie',
                 'description' => 'Soft mid-weight hoodie ready for checkout wiring.',
                 'metadata' => ['hero_image' => '/images/demo-hoodie.png'],
+                'brand' => 'Acme Co.',
                 'categories' => ['Apparel', 'Limited'],
                 'tags' => ['New'],
                 'options' => [
@@ -71,6 +85,7 @@ class CommerceDemoSeeder extends Seeder
                 'slug' => 'demo-tee',
                 'description' => 'Lightweight tee available in bold colors.',
                 'metadata' => ['hero_image' => '/images/demo-tee.png'],
+                'brand' => 'Summit Supply',
                 'categories' => ['Apparel'],
                 'tags' => ['Bestseller'],
                 'options' => [
@@ -89,6 +104,7 @@ class CommerceDemoSeeder extends Seeder
                 'slug' => 'demo-mug',
                 'description' => 'Everyday mug with a glossy finish.',
                 'metadata' => ['hero_image' => '/images/demo-mug.png'],
+                'brand' => 'Acme Co.',
                 'categories' => ['Accessories'],
                 'tags' => ['Eco'],
                 'options' => [],
@@ -105,6 +121,7 @@ class CommerceDemoSeeder extends Seeder
                     'name' => $productData['name'],
                     'description' => $productData['description'],
                     'metadata' => $productData['metadata'],
+                    'brand_id' => $brands[$productData['brand']]->id ?? null,
                 ],
             );
 

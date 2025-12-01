@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Models\Price;
@@ -22,9 +23,10 @@ class CommerceController extends Controller
     public function index(): Response
     {
         $products = Product::query()
+            ->with(['brand:id,name'])
             ->withCount(['variants', 'prices', 'inventoryItems'])
             ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'is_active']);
+            ->get(['id', 'brand_id', 'name', 'slug', 'is_active']);
 
         $variants = ProductVariant::query()
             ->with(['product:id,name'])
@@ -87,12 +89,14 @@ class CommerceController extends Controller
             'orders' => $orders,
             'metrics' => $metrics,
             'orderStatusBreakdown' => $orderStatusBreakdown,
+            'brands' => Brand::query()->orderBy('name')->get(['id', 'name', 'slug']),
         ]);
     }
 
     public function storeProduct(Request $request): RedirectResponse
     {
         $validated = $request->validate([
+            'brand_id' => ['nullable', 'integer', Rule::exists('brands', 'id')],
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', Rule::unique('products', 'slug')],
             'description' => ['nullable', 'string'],
@@ -102,6 +106,19 @@ class CommerceController extends Controller
         Product::create($validated);
 
         return back()->with('success', 'Product created successfully.');
+    }
+
+    public function storeBrand(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['required', 'string', 'max:255', Rule::unique('brands', 'slug')],
+            'description' => ['nullable', 'string'],
+        ]);
+
+        Brand::create($validated);
+
+        return back()->with('success', 'Brand created successfully.');
     }
 
     public function storeOption(Request $request): RedirectResponse

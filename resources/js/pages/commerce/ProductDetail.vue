@@ -17,6 +17,12 @@ interface Tag {
     slug: string;
 }
 
+interface Brand {
+    id: number;
+    name: string;
+    slug: string;
+}
+
 interface OptionValue {
     id: number;
     value: string;
@@ -57,6 +63,7 @@ interface Product {
     variants: Variant[];
     prices: Price[];
     inventory_items: InventoryItem[];
+    brand?: Brand | null;
     categories: Category[];
     tags: Tag[];
 }
@@ -77,6 +84,9 @@ const props = defineProps<Props>();
                 <div>
                     <p class="text-sm text-muted-foreground uppercase">Product detail</p>
                     <h1 class="text-3xl font-bold tracking-tight">{{ props.product.name }}</h1>
+                    <div v-if="props.product.brand" class="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                        <Badge variant="outline">{{ props.product.brand.name }}</Badge>
+                    </div>
                 </div>
                 <Badge v-if="props.product.prices.length" variant="secondary">Pricing ready</Badge>
                 <Badge v-else variant="outline">Needs pricing</Badge>

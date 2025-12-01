@@ -19,6 +19,12 @@ interface Tag {
     slug: string;
 }
 
+interface Brand {
+    id: number;
+    name: string;
+    slug: string;
+}
+
 interface Variant {
     id: number;
     name: string;
@@ -40,6 +46,7 @@ interface Product {
     description?: string | null;
     variants: Variant[];
     prices: Price[];
+    brand?: Brand | null;
     categories: Category[];
     tags: Tag[];
 }
@@ -52,9 +59,11 @@ interface Props {
         search: string | null;
         category: number[];
         tags: number[];
+        brand: number | null;
     };
     categories: Category[];
     tags: Tag[];
+    brands: Brand[];
 }
 
 const props = defineProps<Props>();
@@ -66,6 +75,7 @@ const filterState = reactive({
     search: props.filters.search ?? '',
     category: props.filters.category?.[0] ?? '',
     tags: [...(props.filters.tags ?? [])],
+    brand: props.filters.brand ?? '',
 });
 
 const getSelectedVariantId = (product: Product) => {
@@ -166,6 +176,7 @@ const applyFilters = () => {
             search: filterState.search || undefined,
             category: filterState.category ? [Number(filterState.category)] : undefined,
             tags: filterState.tags.length ? filterState.tags : undefined,
+            brand: filterState.brand || undefined,
         },
         {
             preserveScroll: true,
@@ -178,6 +189,7 @@ const clearFilters = () => {
     filterState.search = '';
     filterState.category = '';
     filterState.tags = [];
+    filterState.brand = '';
     applyFilters();
 };
 
@@ -205,7 +217,7 @@ const toggleTag = (tagId: number) => {
                     <CardTitle>Filter products</CardTitle>
                 </CardHeader>
                 <CardContent class="space-y-4">
-                    <div class="grid gap-4 md:grid-cols-3">
+                    <div class="grid gap-4 md:grid-cols-4">
                         <div class="space-y-2">
                             <label class="text-sm font-semibold text-foreground" for="search">Search</label>
                             <Input
@@ -226,6 +238,20 @@ const toggleTag = (tagId: number) => {
                                 <option value="">All categories</option>
                                 <option v-for="category in props.categories" :key="category.id" :value="category.id">
                                     {{ category.name }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-foreground" for="brand">Brand</label>
+                            <select
+                                id="brand"
+                                v-model="filterState.brand"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none"
+                            >
+                                <option value="">All brands</option>
+                                <option v-for="brand in props.brands" :key="brand.id" :value="brand.id">
+                                    {{ brand.name }}
                                 </option>
                             </select>
                         </div>
@@ -257,6 +283,9 @@ const toggleTag = (tagId: number) => {
                 <Card v-for="product in props.products.data" :key="product.id" class="flex flex-col">
                     <CardHeader>
                         <CardTitle class="text-xl">{{ product.name }}</CardTitle>
+                        <div v-if="product.brand" class="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Badge variant="outline">{{ product.brand.name }}</Badge>
+                        </div>
                         <p class="text-sm text-muted-foreground line-clamp-2">{{ product.description || 'No description yet.' }}</p>
                     </CardHeader>
                     <CardContent class="flex flex-1 flex-col justify-between space-y-4">
