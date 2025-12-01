@@ -121,7 +121,7 @@ class SubscriptionController extends Controller
             ], 409);
         }
 
-        if ($subscription && $couponPayload?['model']) {
+        if ($subscription && ($couponPayload['model'] ?? null)) {
             $subscription->forceFill([
                 'coupon_id' => $couponPayload['model']->id,
                 'promo_code' => $couponPayload['model']->code,
