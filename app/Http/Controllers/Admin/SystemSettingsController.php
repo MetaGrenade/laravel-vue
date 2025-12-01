@@ -19,8 +19,6 @@ class SystemSettingsController extends Controller
      */
     public function index(Request $request): Response
     {
-        abort_unless($request->user()?->can('system.acp.view'), 403);
-
         return Inertia::render('acp/System', [
             'settings' => [
                 'maintenance_mode' => (bool) SystemSetting::get('maintenance_mode', false),
@@ -38,8 +36,6 @@ class SystemSettingsController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        abort_unless($request->user()?->can('system.acp.edit'), 403);
-
         $validated = $request->validate([
             'maintenance_mode' => ['required', 'boolean'],
             'email_verification_required' => ['required', 'boolean'],
