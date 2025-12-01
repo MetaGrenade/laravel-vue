@@ -5,6 +5,9 @@ use App\Http\Controllers\BlogCommentController;
 use App\Http\Controllers\BlogCommentSubscriptionController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Ecommerce\CartController;
+use App\Http\Controllers\Ecommerce\OrderController;
+use App\Http\Controllers\Ecommerce\ProductCatalogController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumThreadActionController;
@@ -33,6 +36,15 @@ Route::get('/search/results', SearchResultsController::class)->name('search.resu
 Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
 Route::post('/pricing/setup-intent', [PricingController::class, 'intent'])->name('pricing.intent');
 Route::post('/pricing/subscribe', [PricingController::class, 'subscribe'])->name('pricing.subscribe');
+
+Route::prefix('shop')->group(function () {
+    Route::get('/', [ProductCatalogController::class, 'index'])->name('shop.index');
+    Route::get('/products/{product:slug}', [ProductCatalogController::class, 'show'])
+        ->name('shop.products.show');
+});
+
+Route::get('/cart', [CartController::class, 'show'])->name('shop.cart');
+Route::middleware('auth')->get('/orders', [OrderController::class, 'index'])->name('shop.orders');
 
 // Public Blog Routes
 Route::middleware('section.enabled:blog')->group(function () {
