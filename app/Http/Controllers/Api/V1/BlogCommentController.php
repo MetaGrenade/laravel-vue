@@ -13,6 +13,7 @@ use App\Models\BlogCommentReport;
 use App\Models\BlogCommentReaction;
 use App\Models\User;
 use App\Notifications\BlogCommentPosted;
+use App\Support\Spam\CommentGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Request;
@@ -64,6 +65,8 @@ class BlogCommentController extends Controller
 
         $user = $request->user();
         abort_if($user === null, 401);
+
+        app(CommentGuard::class)->validate($request);
 
         $body = $this->validatedBody($request->validated());
 

@@ -125,6 +125,7 @@ const props = defineProps<{
     comments?: PaginatedComments;
     commentsEnabled?: boolean;
     commentReportReasons?: ReportReasonOption[];
+    commentCaptchaToken?: string;
 }>();
 
 const blog = computed(() => props.blog);
@@ -627,6 +628,7 @@ const shareLinks = computed(() => ({
                 :initial-comments="comments"
                 :comments-enabled="commentsEnabled"
                 :report-reasons="commentReportReasons"
+                :captcha-token="props.commentCaptchaToken ?? ''"
             />
         </div>
     </AppLayout>

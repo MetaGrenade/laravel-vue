@@ -15,6 +15,8 @@ class StoreBlogCommentRequest extends FormRequest
     {
         return [
             'body' => ['required', 'string', 'max:2000'],
+            'captcha_token' => ['required', 'string'],
+            'honeypot' => ['nullable', 'string', 'max:0'],
         ];
     }
 }

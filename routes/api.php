@@ -50,7 +50,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/', [ApiBlogCommentController::class, 'index'])->name('blogs.comments.index');
 
             Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', $blogCommentThrottle])->group(function () {
-                Route::post('/', [ApiBlogCommentController::class, 'store'])->name('blogs.comments.store');
+                Route::post('/', [ApiBlogCommentController::class, 'store'])
+                    ->middleware('throttle:blog-comments')
+                    ->name('blogs.comments.store');
                 Route::patch('/{comment}', [ApiBlogCommentController::class, 'update'])
                     ->whereNumber('comment')
                     ->name('blogs.comments.update');

@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Blog;
 use App\Models\BlogComment;
 use App\Models\BlogCommentReport;
+use App\Support\Spam\CommentGuard;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -92,9 +93,15 @@ class BlogApiTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user, ['*']);
 
-        $payload = ['body' => ' Nice new comment '];
+        $payload = [
+            'body' => ' Nice new comment ',
+            'captcha_token' => 'token-123',
+            'honeypot' => '',
+        ];
 
-        $response = $this->postJson(route('api.v1.blogs.comments.store', $blog), $payload);
+        $response = $this
+            ->withSession([CommentGuard::SESSION_TOKEN_KEY => 'token-123'])
+            ->postJson(route('api.v1.blogs.comments.store', $blog), $payload);
 
         $response
             ->assertCreated()
@@ -115,7 +122,13 @@ class BlogApiTest extends TestCase
         ]);
         Sanctum::actingAs(User::factory()->create(), ['*']);
 
-        $this->postJson(route('api.v1.blogs.comments.store', $blog), ['body' => 'Comment'])
+        $this
+            ->withSession([CommentGuard::SESSION_TOKEN_KEY => 'token-123'])
+            ->postJson(route('api.v1.blogs.comments.store', $blog), [
+                'body' => 'Comment',
+                'captcha_token' => 'token-123',
+                'honeypot' => '',
+            ])
             ->assertForbidden();
     }
 
