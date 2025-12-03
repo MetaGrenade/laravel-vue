@@ -42,6 +42,7 @@ import {
     Flag,
     CheckCircle2,
 } from 'lucide-vue-next';
+import { Switch } from '@/components/ui/switch';
 
 interface BoardSummary {
     id: number;
@@ -98,6 +99,8 @@ const props = defineProps<{
     threads: ThreadsPayload;
     filters: {
         search?: string;
+        solved?: boolean;
+        unread?: boolean;
     };
     permissions: {
         canModerate: boolean;
@@ -117,6 +120,8 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
 });
 
 const searchQuery = ref(props.filters.search ?? '');
+const solvedOnly = ref(Boolean(props.filters.solved));
+const unreadOnly = ref(Boolean(props.filters.unread));
 
 const reportReasons = computed(() => props.reportReasons ?? []);
 const defaultReportReason = computed(() => reportReasons.value[0]?.value ?? '');
@@ -124,6 +129,12 @@ const hasReportReasons = computed(() => reportReasons.value.length > 0);
 
 const canStartThread = computed(() => Boolean(page.props.auth?.user));
 const hasUnreadThreads = computed(() => props.threads.data.some((thread) => thread.has_unread));
+const canFilterUnread = computed(() => Boolean(page.props.auth?.user));
+const activeFilters = computed(() => ({
+    search: searchQuery.value || undefined,
+    solved: solvedOnly.value || undefined,
+    unread: unreadOnly.value || undefined,
+}));
 const boardMarking = ref(false);
 
 const {
@@ -142,7 +153,7 @@ const {
         router.get(
             route('forum.boards.show', { board: props.board.slug }),
             {
-                search: searchQuery.value || undefined,
+                ...activeFilters.value,
                 page,
             },
             {
@@ -213,13 +224,31 @@ watch(searchQuery, (value) => {
         setThreadsPage(1, { emitNavigate: false });
         threadReportForm.page = 1;
         router.get(route('forum.boards.show', { board: props.board.slug }), {
-            search: value || undefined,
+            ...activeFilters.value,
         }, {
             preserveScroll: true,
             preserveState: true,
             replace: true,
         });
     }, 300);
+});
+
+watch(canFilterUnread, (canFilter) => {
+    if (!canFilter) {
+        unreadOnly.value = false;
+    }
+});
+
+watch([solvedOnly, unreadOnly], () => {
+    setThreadsPage(1, { emitNavigate: false });
+    threadReportForm.page = 1;
+    router.get(route('forum.boards.show', { board: props.board.slug }), {
+        ...activeFilters.value,
+    }, {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
 });
 
 watch(paginationPage, (page) => {
@@ -384,6 +413,14 @@ const submitThreadEdit = () => {
                 payload.search = search;
             }
 
+            if (solvedOnly.value) {
+                payload.solved = true;
+            }
+
+            if (unreadOnly.value) {
+                payload.unread = true;
+            }
+
             return payload;
         })
         .put(route('forum.threads.update', { board: props.board.slug, thread: target.slug }), {
@@ -436,7 +473,7 @@ const markThreadAsRead = (thread: ThreadSummary) => {
 
     performThreadAction(thread, 'post', 'forum.threads.mark-read', {
         page: threadsMeta.value.current_page,
-        search: searchQuery.value || undefined,
+        ...activeFilters.value,
     });
 };
 
@@ -455,6 +492,14 @@ const markBoardAsRead = () => {
 
     if (search) {
         payload.search = search;
+    }
+
+    if (solvedOnly.value) {
+        payload.solved = true;
+    }
+
+    if (unreadOnly.value) {
+        payload.unread = true;
     }
 
     router.post(route('forum.boards.mark-read', { board: props.board.slug }), payload, {
@@ -645,6 +690,21 @@ const markBoardAsRead = () => {
                     </Button>
                 </div>
             </header>
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-4">
+                    <label class="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Switch v-model:checked="solvedOnly" />
+                        <span>Solved only</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Switch v-model:checked="unreadOnly" :disabled="!canFilterUnread" />
+                        <span :class="!canFilterUnread ? 'text-muted-foreground/70' : ''">Unread only</span>
+                    </label>
+                </div>
+                <p v-if="!canFilterUnread" class="text-xs text-muted-foreground">
+                    Sign in to filter unread discussions.
+                </p>
+            </div>
             <!-- Top Pagination and Search -->
             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
                 <div class="text-sm text-muted-foreground text-center md:text-left">

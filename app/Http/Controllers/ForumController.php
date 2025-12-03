@@ -161,6 +161,8 @@ class ForumController extends Controller
         $board->load('category');
 
         $search = trim((string) $request->query('search', ''));
+        $solvedOnly = $request->boolean('solved');
+        $unreadOnly = $request->boolean('unread');
 
         $user = $request->user();
         $isModerator = $user?->hasAnyRole(['admin', 'editor', 'moderator']);
@@ -171,6 +173,7 @@ class ForumController extends Controller
 
         $threadsQuery = $board->threads()
             ->select('forum_threads.*')
+            ->leftJoin('users as thread_authors', 'thread_authors.id', '=', 'forum_threads.user_id')
             ->when(!$isModerator, function ($query) {
                 $query->where('forum_threads.is_published', true);
             })
@@ -187,7 +190,33 @@ class ForumController extends Controller
             ->withCount('posts');
 
         if ($search !== '') {
-            $threadsQuery->where('forum_threads.title', 'like', "%{$search}%");
+            $escaped = addcslashes($search, '%_');
+            $likeTerm = "%{$escaped}%";
+
+            $threadsQuery->where(function ($query) use ($likeTerm) {
+                $query->where('forum_threads.title', 'like', $likeTerm)
+                    ->orWhere('forum_threads.excerpt', 'like', $likeTerm)
+                    ->orWhere('thread_authors.nickname', 'like', $likeTerm)
+                    ->orWhereExists(function ($postQuery) use ($likeTerm) {
+                        $postQuery->selectRaw('1')
+                            ->from('forum_posts')
+                            ->whereColumn('forum_posts.forum_thread_id', 'forum_threads.id')
+                            ->whereNull('forum_posts.deleted_at')
+                            ->where('forum_posts.body', 'like', $likeTerm);
+                    });
+            });
+        }
+
+        if ($solvedOnly) {
+            $threadsQuery->where('forum_threads.is_locked', true);
+        }
+
+        if ($unreadOnly && $includeReads) {
+            $threadsQuery->where(function ($query) {
+                $query->whereNull('thread_reads.last_read_at')
+                    ->whereNotNull('forum_threads.last_posted_at')
+                    ->orWhereColumn('forum_threads.last_posted_at', '>', 'thread_reads.last_read_at');
+            });
         }
 
         $threadsQuery->orderByDesc('forum_threads.is_pinned');
@@ -257,6 +286,8 @@ class ForumController extends Controller
             ], $this->inertiaPagination($threads)),
             'filters' => [
                 'search' => $search,
+                'solved' => $solvedOnly,
+                'unread' => $unreadOnly,
             ],
             'permissions' => [
                 'canModerate' => (bool) $isModerator,
