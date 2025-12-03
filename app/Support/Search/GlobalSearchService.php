@@ -110,7 +110,7 @@ class GlobalSearchService
                     [$this->fullTextBooleanTerm($term)],
                 ),
             )
-            ->with(['user:id,name,nickname'])
+            ->with(['user:id,nickname'])
             ->orderByDesc('relevance')
             ->orderByDesc('blogs.published_at')
             ->orderByDesc('blogs.created_at');
@@ -121,7 +121,7 @@ class GlobalSearchService
             ->map(function (Blog $blog) use ($term) {
                 $excerpt = is_string($blog->excerpt) ? trim($blog->excerpt) : '';
                 $body = is_string($blog->body) ? trim(strip_tags($blog->body)) : '';
-                $author = $blog->user?->nickname ?? $blog->user?->name ?? null;
+                $author = $blog->user?->nickname ?? null;
                 $description = $excerpt !== ''
                     ? $excerpt
                     : ($body !== '' ? Str::limit($body, 160) : null);
@@ -194,7 +194,7 @@ class GlobalSearchService
                 ),
             )
             ->with(['board:id,slug,title'])
-            ->with(['author:id,name,nickname'])
+            ->with(['author:id,nickname'])
             ->orderByDesc('relevance')
             ->orderByDesc('forum_threads.last_posted_at')
             ->orderByDesc('forum_threads.created_at');
@@ -210,7 +210,7 @@ class GlobalSearchService
                 }
 
                 $excerpt = is_string($thread->excerpt) ? trim($thread->excerpt) : '';
-                $author = $thread->author?->nickname ?? $thread->author?->name ?? null;
+                $author = $thread->author?->nickname ?? null;
                 $description = $excerpt !== '' ? $excerpt : ($author ? 'Started by ' . $author : null);
                 $highlights = [
                     'title' => $this->highlightText($thread->title, $term),
