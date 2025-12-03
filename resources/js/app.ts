@@ -1,6 +1,6 @@
 import '../css/app.css';
 
-import { createInertiaApp, router } from '@inertiajs/vue3';
+import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
@@ -21,14 +21,6 @@ declare module 'vite/client' {
 }
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-
-const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
-
-if (csrfToken) {
-    router.on('before', (event) => {
-        event.detail.visit.headers['X-CSRF-TOKEN'] = csrfToken;
-    });
-}
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
