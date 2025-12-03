@@ -115,7 +115,7 @@ class BlogCommentController extends Controller
                     'reports_count' => (int) ($comment->filtered_reports_count ?? $reports->count()),
                     'total_reports_count' => (int) ($comment->total_reports_count ?? $reports->count()),
                     'pending_reports_count' => (int) $comment->pending_reports_count,
-                    'latest_reported_at' => $formatter->iso($comment->latest_reported_at),
+                    'latest_reported_at' => $formatter->iso($latestReport?->created_at),
                     'report_ids' => $reports->pluck('id')->values()->all(),
                     'latest_report' => $latestReport ? [
                         'status' => $latestReport->status,
