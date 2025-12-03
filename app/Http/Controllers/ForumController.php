@@ -161,9 +161,6 @@ class ForumController extends Controller
         $board->load('category');
 
         $search = trim((string) $request->query('search', ''));
-        $solvedOnly = $request->boolean('solved');
-        $unreadOnly = $request->boolean('unread');
-
         $user = $request->user();
         $isModerator = $user?->hasAnyRole(['admin', 'editor', 'moderator']);
 
@@ -204,18 +201,6 @@ class ForumController extends Controller
                             ->whereNull('forum_posts.deleted_at')
                             ->where('forum_posts.body', 'like', $likeTerm);
                     });
-            });
-        }
-
-        if ($solvedOnly) {
-            $threadsQuery->where('forum_threads.is_locked', true);
-        }
-
-        if ($unreadOnly && $includeReads) {
-            $threadsQuery->where(function ($query) {
-                $query->whereNull('thread_reads.last_read_at')
-                    ->whereNotNull('forum_threads.last_posted_at')
-                    ->orWhereColumn('forum_threads.last_posted_at', '>', 'thread_reads.last_read_at');
             });
         }
 
@@ -286,8 +271,6 @@ class ForumController extends Controller
             ], $this->inertiaPagination($threads)),
             'filters' => [
                 'search' => $search,
-                'solved' => $solvedOnly,
-                'unread' => $unreadOnly,
             ],
             'permissions' => [
                 'canModerate' => (bool) $isModerator,
