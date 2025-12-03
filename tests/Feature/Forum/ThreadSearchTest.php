@@ -59,7 +59,7 @@ class ThreadSearchTest extends TestCase
 
         $response->assertOk()->assertInertia(function (AssertableInertia $page) use ($thread) {
             $page->component('ForumThreads')
-                ->where('threads.data', function (array $threads) use ($thread) {
+                ->where('threads.data', function ($threads) use ($thread) {
                     return collect($threads)->contains(fn (array $item) => $item['id'] === $thread->id);
                 });
         });
@@ -94,7 +94,7 @@ class ThreadSearchTest extends TestCase
 
         $response->assertOk()->assertInertia(function (AssertableInertia $page) use ($thread) {
             $page->component('ForumThreads')
-                ->where('threads.data', function (array $threads) use ($thread) {
+                ->where('threads.data', function ($threads) use ($thread) {
                     return collect($threads)->contains(fn (array $item) => $item['id'] === $thread->id);
                 })
                 ->where('filters.search', 'Searchable');
