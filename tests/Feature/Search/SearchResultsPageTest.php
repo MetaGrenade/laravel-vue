@@ -266,13 +266,11 @@ class SearchResultsPageTest extends TestCase
         Carbon::setTestNow('2024-04-01 08:00:00');
 
         $primaryAuthor = User::factory()->create([
-            'name' => 'Search Wizard',
-            'nickname' => 'wizard',
+            'nickname' => 'Wizard',
         ]);
 
         $secondaryAuthor = User::factory()->create([
-            'name' => 'Helper Author',
-            'nickname' => 'helper',
+            'nickname' => 'Helper',
         ]);
 
         $featuredBlog = Blog::factory()->published()->create([
