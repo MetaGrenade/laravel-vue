@@ -91,7 +91,6 @@ class GlobalSearchService
                     $query->where('blogs.title', 'like', $likeTerm)
                         ->orWhere('blogs.excerpt', 'like', $likeTerm)
                         ->orWhere('blogs.body', 'like', $likeTerm)
-                        ->orWhere('users.name', 'like', $likeTerm)
                         ->orWhere('users.nickname', 'like', $likeTerm);
                 });
             })
@@ -101,7 +100,6 @@ class GlobalSearchService
                     'blogs.title' => 5,
                     'blogs.excerpt' => 3,
                     'blogs.body' => 3,
-                    'users.name' => 2,
                     'users.nickname' => 2,
                 ], $term),
             )
@@ -177,7 +175,6 @@ class GlobalSearchService
                 $query->where(function ($query) use ($likeTerm) {
                     $query->where('forum_threads.title', 'like', $likeTerm)
                         ->orWhere('forum_threads.excerpt', 'like', $likeTerm)
-                        ->orWhere('users.name', 'like', $likeTerm)
                         ->orWhere('users.nickname', 'like', $likeTerm);
                 });
             })
@@ -186,7 +183,6 @@ class GlobalSearchService
                 fn ($query) => $this->selectRelevance($query, [
                     'forum_threads.title' => 5,
                     'forum_threads.excerpt' => 3,
-                    'users.name' => 2,
                     'users.nickname' => 2,
                 ], $term),
             )
