@@ -32,7 +32,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withBroadcasting(
         channels: __DIR__.'/../routes/channels.php',
         attributes: [
-            'middleware' => ['web', 'auth'],
+            // Use the web guard so session-authenticated users can authorize
+            // private and presence channels during feature tests.
+            'middleware' => ['web', 'auth:web'],
         ],
     )
     ->withMiddleware(function (Middleware $middleware) {
