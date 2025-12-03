@@ -10,6 +10,7 @@ use App\Models\BlogView;
 use App\Models\BlogTag;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
+use App\Support\Spam\CommentGuard;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
@@ -466,6 +467,8 @@ class BlogController extends Controller
                 ->exists();
         }
 
+        $commentCaptchaToken = app(CommentGuard::class)->issueToken($request);
+
         return Inertia::render('BlogView', [
             'blog' => [
                 'id' => $blog->id,
@@ -504,6 +507,7 @@ class BlogController extends Controller
             'comments' => $paginatedComments,
             'commentsEnabled' => (bool) $blog->comments_enabled,
             'commentReportReasons' => $reportReasons,
+            'commentCaptchaToken' => $commentCaptchaToken,
         ])->withViewData([
             'metaTags' => $metaTags,
             'linkTags' => $linkTags,

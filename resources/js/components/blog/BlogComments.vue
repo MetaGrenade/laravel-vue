@@ -99,6 +99,7 @@ const props = defineProps<{
         label: string;
         description?: string | null;
     }>;
+    captchaToken?: string;
 }>();
 
 const page = usePage<PageProps>();
@@ -269,8 +270,10 @@ const reloadComments = async () => {
 };
 
 const newComment = ref('');
+const honeypot = ref('');
 const submitError = ref<string | null>(null);
 const isSubmitting = ref(false);
+const commentCaptchaToken = computed(() => props.captchaToken ?? '');
 
 const editingCommentId = ref<number | null>(null);
 const editingContent = ref('');
@@ -507,6 +510,10 @@ const extractErrorMessage = async (response: Response): Promise<string> => {
         return 'You are not allowed to perform this action.';
     }
 
+    if (response.status === 429) {
+        return 'Please slow down before posting another comment.';
+    }
+
     return 'Something went wrong. Please try again.';
 };
 
@@ -530,6 +537,11 @@ const submitComment = async () => {
         return;
     }
 
+    if (!commentCaptchaToken.value) {
+        submitError.value = 'Unable to verify your request. Please refresh and try again.';
+        return;
+    }
+
     isSubmitting.value = true;
 
     try {
@@ -540,7 +552,7 @@ const submitComment = async () => {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
             },
-            body: JSON.stringify({ body }),
+            body: JSON.stringify({ body, captcha_token: commentCaptchaToken.value, honeypot: honeypot.value }),
         });
 
         if (!response.ok) {
@@ -566,6 +578,7 @@ const submitComment = async () => {
         }
 
         newComment.value = '';
+        honeypot.value = '';
         toast.success('Comment posted successfully.');
     } catch (error) {
         console.error(error);
@@ -835,6 +848,14 @@ const submitReport = async () => {
                 rows="4"
                 placeholder="Share your thoughts..."
                 class="w-full"
+            />
+            <Input
+                v-model="honeypot"
+                type="text"
+                class="absolute left-[-9999px] h-px w-px opacity-0"
+                tabindex="-1"
+                autocomplete="off"
+                aria-hidden="true"
             />
             <InputError :message="submitError" />
             <div class="flex justify-end">

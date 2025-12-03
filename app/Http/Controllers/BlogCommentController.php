@@ -7,6 +7,7 @@ use App\Models\BlogComment;
 use App\Models\BlogCommentReport;
 use App\Models\BlogCommentReaction;
 use App\Support\Localization\DateFormatter;
+use App\Support\Spam\CommentGuard;
 use App\Models\User;
 use App\Notifications\BlogCommentPosted;
 use Illuminate\Http\JsonResponse;
@@ -84,6 +85,8 @@ class BlogCommentController extends Controller
         $user = $request->user();
 
         abort_if($user === null, 403);
+
+        app(CommentGuard::class)->validate($request);
 
         $body = $this->validatedBody($request);
 
@@ -304,6 +307,8 @@ class BlogCommentController extends Controller
     {
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:2000'],
+            'captcha_token' => ['required', 'string'],
+            'honeypot' => ['nullable', 'string', 'max:0'],
         ]);
 
         $body = trim($validated['body']);

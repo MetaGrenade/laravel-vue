@@ -5,6 +5,7 @@ namespace Tests\Feature\Blog;
 use App\Models\Blog;
 use App\Models\User;
 use App\Notifications\BlogCommentPosted;
+use App\Support\Spam\CommentGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -66,9 +67,15 @@ class BlogCommentNotificationsTest extends TestCase
 
         $this->actingAs($commentAuthor);
 
-        $response = $this->postJson(route('blogs.comments.store', ['blog' => $blog->slug]), [
-            'body' => 'First!',
-        ]);
+        $captchaToken = 'comment-captcha';
+
+        $response = $this
+            ->withSession([CommentGuard::SESSION_TOKEN_KEY => $captchaToken])
+            ->postJson(route('blogs.comments.store', ['blog' => $blog->slug]), [
+                'body' => 'First!',
+                'captcha_token' => $captchaToken,
+                'honeypot' => '',
+            ]);
 
         $response->assertCreated();
 
