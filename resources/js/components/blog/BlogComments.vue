@@ -54,6 +54,8 @@ type PaginatedComments = {
     links: PaginationLinks;
 };
 
+type SortMode = 'oldest' | 'newest';
+
 const defaultMeta: PaginationMeta = {
     current_page: 1,
     from: null,
@@ -100,10 +102,12 @@ const canModerate = computed(() => roleNames.value.some((role) => ['admin', 'edi
 
 const comments = ref<BlogComment[]>([...props.initialComments.data]);
 const pagination = ref<PaginationMeta>(buildMeta(props.initialComments.meta));
+const sortMode = ref<SortMode>('oldest');
 
 const perPage = computed(() => pagination.value.per_page ?? defaultMeta.per_page);
 const hasMore = computed(() => pagination.value.current_page < pagination.value.last_page);
 const isLoadingMore = ref(false);
+const isReloading = ref(false);
 const loadMoreError = ref<string | null>(null);
 const commentsEnabled = computed(() => props.commentsEnabled ?? true);
 const reportReasons = computed(() => props.reportReasons ?? []);
@@ -123,11 +127,13 @@ watch(
 );
 
 const sortedComments = computed(() => {
+    const direction = sortMode.value === 'newest' ? -1 : 1;
+
     return [...comments.value].sort((a, b) => {
         const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
         const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
 
-        return aTime - bTime;
+        return (aTime - bTime) * direction;
     });
 });
 
@@ -151,7 +157,7 @@ function updatePaginationTotals(total: number) {
 const loadMore = async () => {
     loadMoreError.value = null;
 
-    if (isLoadingMore.value || !hasMore.value) {
+    if (isLoadingMore.value || isReloading.value || !hasMore.value) {
         return;
     }
 
@@ -160,27 +166,7 @@ const loadMore = async () => {
     isLoadingMore.value = true;
 
     try {
-        const response = await fetch(
-            route('blogs.comments.index', {
-                blog: props.blogSlug,
-                page: nextPage,
-                per_page: perPage.value,
-            }),
-            {
-                headers: {
-                    Accept: 'application/json',
-                },
-            },
-        );
-
-        if (!response.ok) {
-            const message = await extractErrorMessage(response);
-            loadMoreError.value = message;
-            toast.error(message);
-            return;
-        }
-
-        const payload: PaginatedComments = await response.json();
+        const payload = await fetchCommentsPage(nextPage);
 
         const existingIds = new Set(comments.value.map((comment) => comment.id));
         const incoming = (payload.data ?? []).filter((comment) => !existingIds.has(comment.id));
@@ -191,10 +177,68 @@ const loadMore = async () => {
         updatePaginationTotals(payload.meta.total);
     } catch (error) {
         console.error(error);
-        loadMoreError.value = 'Unable to load more comments right now.';
-        toast.error(loadMoreError.value);
+        const message =
+            error instanceof Error
+                ? error.message
+                : 'Unable to load more comments right now.';
+
+        loadMoreError.value = message;
+        toast.error(message);
     } finally {
         isLoadingMore.value = false;
+    }
+};
+
+const fetchCommentsPage = async (page: number): Promise<PaginatedComments> => {
+    const response = await fetch(
+        route('blogs.comments.index', {
+            blog: props.blogSlug,
+            page,
+            per_page: perPage.value,
+            sort: sortMode.value,
+        }),
+        {
+            headers: {
+                Accept: 'application/json',
+            },
+        },
+    );
+
+    if (!response.ok) {
+        const message = await extractErrorMessage(response);
+        throw new Error(message);
+    }
+
+    return response.json();
+};
+
+const reloadComments = async () => {
+    loadMoreError.value = null;
+
+    if (isReloading.value) {
+        return;
+    }
+
+    isReloading.value = true;
+    isLoadingMore.value = false;
+
+    try {
+        const payload = await fetchCommentsPage(1);
+
+        comments.value = [...(payload.data ?? [])];
+        pagination.value = buildMeta(payload.meta);
+        updatePaginationTotals(payload.meta.total);
+    } catch (error) {
+        console.error(error);
+        const message =
+            error instanceof Error
+                ? error.message
+                : 'Unable to load comments right now.';
+
+        loadMoreError.value = message;
+        toast.error(message);
+    } finally {
+        isReloading.value = false;
     }
 };
 
@@ -676,7 +720,23 @@ const submitReport = async () => {
 
 <template>
     <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
-        <h2 class="mb-4 text-2xl font-bold">Comments</h2>
+        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="text-2xl font-bold">Comments</h2>
+            <div class="flex items-center gap-2 text-sm">
+                <Label for="commentSort" class="text-xs font-medium text-muted-foreground">Sort by</Label>
+                <select
+                    id="commentSort"
+                    v-model="sortMode"
+                    class="flex h-9 items-center rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="isReloading || isLoadingMore"
+                    @change="reloadComments"
+                >
+                    <option value="oldest">Oldest first</option>
+                    <option value="newest">Newest first</option>
+                </select>
+                <span v-if="isReloading" class="text-xs text-muted-foreground">Updating...</span>
+            </div>
+        </div>
 
         <div
             v-if="!commentsEnabled"
@@ -811,7 +871,7 @@ const submitReport = async () => {
             </div>
             <p v-if="loadMoreError" class="text-sm text-destructive">{{ loadMoreError }}</p>
             <div v-if="hasMore" class="pt-2 text-center">
-                <Button variant="outline" :disabled="isLoadingMore" @click="loadMore">
+                <Button variant="outline" :disabled="isLoadingMore || isReloading" @click="loadMore">
                     <span v-if="isLoadingMore">Loading...</span>
                     <span v-else>Load more comments</span>
                 </Button>

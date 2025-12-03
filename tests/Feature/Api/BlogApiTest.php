@@ -46,6 +46,44 @@ class BlogApiTest extends TestCase
             ->assertJsonPath('data.0.id', $approved->id);
     }
 
+    public function test_comments_can_be_sorted_by_oldest_or_newest(): void
+    {
+        $blog = Blog::factory()->published()->create();
+
+        $oldest = BlogComment::factory()->for($blog)->create([
+            'status' => BlogComment::STATUS_APPROVED,
+            'created_at' => now()->subDays(3),
+        ]);
+
+        $middle = BlogComment::factory()->for($blog)->create([
+            'status' => BlogComment::STATUS_APPROVED,
+            'created_at' => now()->subDay(),
+        ]);
+
+        $newest = BlogComment::factory()->for($blog)->create([
+            'status' => BlogComment::STATUS_APPROVED,
+            'created_at' => now(),
+        ]);
+
+        $defaultResponse = $this->getJson(route('api.v1.blogs.comments.index', $blog));
+
+        $defaultResponse
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $oldest->id)
+            ->assertJsonPath('data.1.id', $middle->id)
+            ->assertJsonPath('data.2.id', $newest->id);
+
+        $newestFirstResponse = $this->getJson(
+            route('api.v1.blogs.comments.index', ['blog' => $blog, 'sort' => 'newest'])
+        );
+
+        $newestFirstResponse
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $newest->id)
+            ->assertJsonPath('data.1.id', $middle->id)
+            ->assertJsonPath('data.2.id', $oldest->id);
+    }
+
     public function test_authenticated_user_can_create_comment_on_published_blog(): void
     {
         $blog = Blog::factory()->published()->create([

@@ -22,12 +22,15 @@ class BlogCommentController extends Controller
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = max(1, min($perPage, 50));
 
+        $sortFilter = $request->string('sort')->lower();
+        $sortMode = $sortFilter->value() === 'newest' ? 'newest' : 'oldest';
+
         $formatter = DateFormatter::for($request->user());
 
         $comments = $blog->comments()
             ->with(['user:id,nickname,avatar_url,profile_bio'])
             ->where('status', BlogComment::STATUS_APPROVED)
-            ->orderBy('created_at')
+            ->orderBy('created_at', $sortMode === 'newest' ? 'desc' : 'asc')
             ->paginate($perPage);
 
         $items = $comments->getCollection()
