@@ -216,7 +216,7 @@ watch(threadDeleteDialogOpen, (open) => {
 
 let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
-watch(searchQuery, (value) => {
+  watch(searchQuery, () => {
     if (searchTimeout) {
         clearTimeout(searchTimeout);
     }
