@@ -10,12 +10,15 @@ use App\Http\Resources\Api\V1\BlogCommentResource;
 use App\Models\Blog;
 use App\Models\BlogComment;
 use App\Models\BlogCommentReport;
+use App\Models\BlogCommentReaction;
 use App\Models\User;
 use App\Notifications\BlogCommentPosted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class BlogCommentController extends Controller
 {
@@ -27,12 +30,28 @@ class BlogCommentController extends Controller
         $perPage = max(1, min($perPage, 50));
 
         $sortFilter = $request->string('sort')->lower();
-        $sortMode = $sortFilter->value() === 'newest' ? 'newest' : 'oldest';
+        $sortMode = match ($sortFilter->value()) {
+            'newest' => 'newest',
+            'top' => 'top',
+            default => 'oldest',
+        };
 
         $comments = $blog->comments()
-            ->with(['user'])
+            ->with([
+                'user',
+                'reactions' => function ($query) use ($request) {
+                    $query->where('user_id', optional($request->user())->id ?? 0);
+                },
+            ])
             ->where('status', BlogComment::STATUS_APPROVED)
-            ->orderBy('created_at', $sortMode === 'newest' ? 'desc' : 'asc')
+            ->when($sortMode === 'top', function ($query) {
+                $query
+                    ->orderByRaw('(like_count - dislike_count) DESC')
+                    ->orderByDesc('like_count')
+                    ->orderByDesc('created_at');
+            }, function ($query) use ($sortMode) {
+                $query->orderBy('created_at', $sortMode === 'newest' ? 'desc' : 'asc');
+            })
             ->paginate($perPage);
 
         return BlogCommentResource::collection($comments);
@@ -54,7 +73,12 @@ class BlogCommentController extends Controller
             'status' => BlogComment::STATUS_APPROVED,
         ]);
 
-        $comment->load(['user']);
+        $comment->load([
+            'user',
+            'reactions' => function ($query) use ($request) {
+                $query->where('user_id', optional($request->user())->id ?? 0);
+            },
+        ]);
 
         $blog->loadMissing('user');
 
@@ -91,7 +115,12 @@ class BlogCommentController extends Controller
             'body' => $body,
         ])->save();
 
-        $comment->load(['user']);
+        $comment->load([
+            'user',
+            'reactions' => function ($query) use ($request) {
+                $query->where('user_id', optional($request->user())->id ?? 0);
+            },
+        ]);
 
         return response()->json(new BlogCommentResource($comment));
     }
@@ -110,6 +139,84 @@ class BlogCommentController extends Controller
             'message' => 'Comment deleted successfully.',
             'id' => $commentId,
         ]);
+    }
+
+    public function react(Request $request, Blog $blog, BlogComment $comment): JsonResponse
+    {
+        $this->ensureCommentBelongsToBlog($blog, $comment);
+
+        $user = $request->user();
+        abort_if($user === null, 401);
+
+        $validated = $request->validate([
+            'reaction' => ['required', 'string', Rule::in(['like', 'dislike', 'none'])],
+        ]);
+
+        DB::transaction(function () use ($validated, $comment, $user): void {
+            $current = BlogCommentReaction::query()
+                ->where('blog_comment_id', $comment->id)
+                ->where('user_id', $user->id)
+                ->first();
+
+            $likeCount = (int) $comment->like_count;
+            $dislikeCount = (int) $comment->dislike_count;
+
+            if ($validated['reaction'] === 'none') {
+                if ($current) {
+                    if ($current->reaction === 'like') {
+                        $likeCount = max(0, $likeCount - 1);
+                    }
+
+                    if ($current->reaction === 'dislike') {
+                        $dislikeCount = max(0, $dislikeCount - 1);
+                    }
+
+                    $current->delete();
+                }
+            } elseif ($current === null) {
+                BlogCommentReaction::create([
+                    'blog_comment_id' => $comment->id,
+                    'user_id' => $user->id,
+                    'reaction' => $validated['reaction'],
+                ]);
+
+                if ($validated['reaction'] === 'like') {
+                    $likeCount++;
+                } else {
+                    $dislikeCount++;
+                }
+            } elseif ($current->reaction !== $validated['reaction']) {
+                if ($current->reaction === 'like') {
+                    $likeCount = max(0, $likeCount - 1);
+                } else {
+                    $dislikeCount = max(0, $dislikeCount - 1);
+                }
+
+                $current->forceFill(['reaction' => $validated['reaction']])->save();
+
+                if ($validated['reaction'] === 'like') {
+                    $likeCount++;
+                } else {
+                    $dislikeCount++;
+                }
+            }
+
+            $comment->forceFill([
+                'like_count' => $likeCount,
+                'dislike_count' => $dislikeCount,
+            ])->save();
+        });
+
+        $comment->refresh();
+
+        $comment->load([
+            'user',
+            'reactions' => function ($query) use ($request) {
+                $query->where('user_id', optional($request->user())->id ?? 0);
+            },
+        ]);
+
+        return response()->json(new BlogCommentResource($comment));
     }
 
     public function report(ReportBlogCommentRequest $request, Blog $blog, BlogComment $comment): JsonResponse

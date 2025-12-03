@@ -71,6 +71,9 @@ Route::middleware('section.enabled:blog')->group(function () {
                 ->whereNumber('comment')
                 ->middleware('verified')
                 ->name('blogs.comments.report');
+            Route::post('/{comment}/react', [BlogCommentController::class, 'react'])
+                ->whereNumber('comment')
+                ->name('blogs.comments.react');
             Route::post('/subscriptions', [BlogCommentSubscriptionController::class, 'store'])
                 ->name('blogs.comments.subscriptions.store');
             Route::delete('/subscriptions', [BlogCommentSubscriptionController::class, 'destroy'])

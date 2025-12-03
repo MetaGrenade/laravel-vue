@@ -33,6 +33,8 @@ class BlogComment extends Model
         'body',
         'status',
         'is_flagged',
+        'like_count',
+        'dislike_count',
     ];
 
     /**
@@ -40,6 +42,8 @@ class BlogComment extends Model
      */
     protected $casts = [
         'is_flagged' => 'bool',
+        'like_count' => 'int',
+        'dislike_count' => 'int',
     ];
 
     public function blog(): BelongsTo
@@ -55,5 +59,10 @@ class BlogComment extends Model
     public function reports(): HasMany
     {
         return $this->hasMany(BlogCommentReport::class);
+    }
+
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(BlogCommentReaction::class);
     }
 }

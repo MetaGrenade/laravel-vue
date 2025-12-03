@@ -44,18 +44,28 @@ interface ReportComment {
     } | null;
 }
 
-interface ReportItem {
-    id: number;
+interface LatestReportMeta {
     status: string;
     reason_category: string;
     reason?: string | null;
     evidence_url?: string | null;
     created_at?: string | null;
-    reviewed_at?: string | null;
     reporter?: { id: number; nickname: string; email: string } | null;
     reviewer?: { id: number; nickname: string; email: string } | null;
+}
+
+interface ReportItem {
+    id: number;
+    reports_count: number;
+    total_reports_count: number;
+    pending_reports_count: number;
+    latest_reported_at?: string | null;
+    report_ids: number[];
+    latest_report?: LatestReportMeta | null;
+    reporters: Array<{ id: number; nickname: string; email: string }>;
     comment?: ReportComment | null;
     blog?: { id: number; title: string; slug: string; status: string } | null;
+    author?: { id: number; nickname: string; email: string; is_banned: boolean } | null;
 }
 
 interface ReportReasonOption {
@@ -74,6 +84,7 @@ const props = defineProps<{
         reason_category: string | null;
         search: string | null;
         per_page: number;
+        sort: string;
     };
     statuses: string[];
     reportReasons: ReportReasonOption[];
@@ -88,6 +99,7 @@ const filterState = reactive({
     status: props.filters.status ?? 'pending',
     reasonCategory: props.filters.reason_category ?? 'all',
     perPage: String(props.filters.per_page ?? 25),
+    sort: props.filters.sort ?? 'newest',
 });
 
 const buildFilters = (overrides: Partial<typeof filterState & { page: number }> = {}) => {
@@ -112,6 +124,11 @@ const buildFilters = (overrides: Partial<typeof filterState & { page: number }> 
     const parsedPerPage = Number.parseInt(perPageValue, 10);
     if (!Number.isNaN(parsedPerPage) && parsedPerPage > 0) {
         params.per_page = parsedPerPage;
+    }
+
+    const sortValue = overrides.sort ?? filterState.sort;
+    if (sortValue && sortValue !== 'newest') {
+        params.sort = sortValue;
     }
 
     if (typeof overrides.page === 'number' && overrides.page > 1) {
@@ -141,24 +158,37 @@ const { meta: paginationMeta, page: paginationPage, rangeLabel } = useInertiaPag
     onNavigate: (page) => visitWithFilters({ page }),
 });
 
-const selectedReportIds = ref<number[]>([]);
-const hasSelection = computed(() => selectedReportIds.value.length > 0);
+const selectedCommentIds = ref<number[]>([]);
+const hasSelection = computed(() => selectedCommentIds.value.length > 0);
+
+const findReportRow = (id: number) => props.reports.data.find((report) => report.id === id);
+
+const reportIdsForSelection = (ids: number[]) => {
+    const uniqueIds = new Set<number>();
+
+    ids.forEach((commentId) => {
+        const row = findReportRow(commentId);
+        row?.report_ids?.forEach((reportId) => uniqueIds.add(reportId));
+    });
+
+    return Array.from(uniqueIds.values());
+};
 
 const toggleReportSelection = (id: number, checked: boolean) => {
     if (checked) {
-        if (!selectedReportIds.value.includes(id)) {
-            selectedReportIds.value = [...selectedReportIds.value, id];
+        if (!selectedCommentIds.value.includes(id)) {
+            selectedCommentIds.value = [...selectedCommentIds.value, id];
         }
     } else {
-        selectedReportIds.value = selectedReportIds.value.filter((value) => value !== id);
+        selectedCommentIds.value = selectedCommentIds.value.filter((value) => value !== id);
     }
 };
 
 const toggleAllReports = (checked: boolean) => {
     if (checked) {
-        selectedReportIds.value = props.reports.data.map((report) => report.id);
+        selectedCommentIds.value = props.reports.data.map((report) => report.id);
     } else {
-        selectedReportIds.value = [];
+        selectedCommentIds.value = [];
     }
 };
 
@@ -168,7 +198,7 @@ const bulkForm = useForm<{ status: string; reports: number[] }>({
 });
 
 const submitBulkStatus = (status: string, reportIds?: number[]) => {
-    const payload = reportIds ?? selectedReportIds.value;
+    const payload = reportIds ?? reportIdsForSelection(selectedCommentIds.value);
     if (payload.length === 0) return;
 
     bulkForm.status = status;
@@ -177,7 +207,7 @@ const submitBulkStatus = (status: string, reportIds?: number[]) => {
     bulkForm.patch(route('acp.blog-comment-reports.bulk-status'), {
         preserveScroll: true,
         onSuccess: () => {
-            selectedReportIds.value = [];
+            selectedCommentIds.value = [];
         },
     });
 };
@@ -209,7 +239,7 @@ const submitEdit = () => {
     });
 };
 
-const quickReportStatus = (report: ReportItem, status: string) => submitBulkStatus(status, [report.id]);
+const quickReportStatus = (report: ReportItem, status: string) => submitBulkStatus(status, report.report_ids);
 
 const confirmOpen = ref(false);
 const deleteTarget = ref<ReportComment | null>(null);
@@ -274,7 +304,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                 </div>
 
                 <div class="rounded-lg border bg-card p-4 shadow-sm">
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
                         <div class="md:col-span-2">
                             <label class="mb-1 block text-sm font-medium text-foreground" for="search">Search body</label>
                             <Input
@@ -329,6 +359,20 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <option value="100">100</option>
                             </select>
                         </div>
+
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-foreground" for="sortBy">Sort by</label>
+                            <select
+                                id="sortBy"
+                                v-model="filterState.sort"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                @change="visitWithFilters"
+                            >
+                                <option value="newest">Newest reports</option>
+                                <option value="oldest">Oldest reports</option>
+                                <option value="most_reported">Most reported</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-2">
@@ -345,6 +389,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                     filterState.status = props.filters.status ?? 'pending';
                                     filterState.reasonCategory = 'all';
                                     filterState.perPage = String(props.filters.per_page ?? 25);
+                                    filterState.sort = props.filters.sort ?? 'newest';
                                     visitWithFilters();
                                 }
                             "
@@ -391,19 +436,18 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <TableRow>
                                 <TableHead class="w-12 text-center">
                                     <Checkbox
-                                        :checked="selectedReportIds.length === props.reports.data.length && props.reports.data.length > 0"
+                                        :checked="selectedCommentIds.length === props.reports.data.length && props.reports.data.length > 0"
                                         :indeterminate="
-                                            selectedReportIds.length > 0 &&
-                                            selectedReportIds.length < props.reports.data.length
+                                            selectedCommentIds.length > 0 &&
+                                            selectedCommentIds.length < props.reports.data.length
                                         "
                                         @update:checked="toggleAllReports"
                                     />
                                 </TableHead>
-                                <TableHead class="w-20">ID</TableHead>
                                 <TableHead>Comment</TableHead>
-                                <TableHead class="w-48">Reporter</TableHead>
-                                <TableHead class="w-32">Reason</TableHead>
-                                <TableHead class="w-32">Status</TableHead>
+                                <TableHead class="w-56">Reports</TableHead>
+                                <TableHead class="w-48">Reporters</TableHead>
+                                <TableHead class="w-48">Comment author</TableHead>
                                 <TableHead class="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -411,54 +455,84 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <TableRow v-for="report in props.reports.data" :key="report.id">
                                 <TableCell class="text-center">
                                     <Checkbox
-                                        :checked="selectedReportIds.includes(report.id)"
+                                        :checked="selectedCommentIds.includes(report.id)"
                                         @update:checked="(checked) => toggleReportSelection(report.id, checked)"
                                     />
                                 </TableCell>
-                                <TableCell class="font-medium">#{{ report.id }}</TableCell>
                                 <TableCell>
                                     <div class="space-y-2 text-sm">
-                                        <p class="font-medium text-foreground">{{ report.comment?.body_preview ?? 'Removed' }}</p>
-                                        <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                            <span>Created: {{ report.created_at ?? 'N/A' }}</span>
-                                            <span v-if="report.reviewed_at">Reviewed: {{ report.reviewed_at }}</span>
-                                        </div>
-                                        <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                        <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Badge variant="secondary">#{{ report.id }}</Badge>
                                             <span v-if="report.blog">Blog: {{ report.blog.title }}</span>
-                                            <span v-if="report.comment?.is_flagged" class="flex items-center gap-1 text-destructive">
+                                            <span
+                                                v-if="report.comment?.is_flagged"
+                                                class="flex items-center gap-1 text-destructive"
+                                            >
                                                 <Flag class="h-3 w-3" /> Flagged
                                             </span>
                                         </div>
-                                        <p v-if="report.reason" class="text-xs text-muted-foreground">{{ report.reason }}</p>
-                                        <a
-                                            v-if="report.evidence_url"
-                                            :href="report.evidence_url"
-                                            class="text-xs text-primary underline"
-                                            target="_blank"
-                                            rel="noreferrer"
+                                        <p class="font-medium text-foreground">{{ report.comment?.body_preview ?? 'Removed' }}</p>
+                                        <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                            <span>Latest: {{ report.latest_reported_at ?? 'N/A' }}</span>
+                                            <span class="flex items-center gap-1">
+                                                <ShieldAlert class="h-3.5 w-3.5" />
+                                                Pending: {{ report.pending_reports_count }}
+                                            </span>
+                                        </div>
+                                        <div v-if="report.latest_report" class="space-y-1 text-xs text-muted-foreground">
+                                            <div class="flex items-center gap-2">
+                                                <Badge :variant="statusBadges[report.latest_report.status] ?? 'secondary'" class="gap-1">
+                                                    <component
+                                                        :is="statusIcons[report.latest_report.status] ?? ShieldAlert"
+                                                        class="h-3.5 w-3.5"
+                                                    />
+                                                    {{ report.latest_report.status }}
+                                                </Badge>
+                                                <span>{{ reportReasonLabel(report.latest_report.reason_category) }}</span>
+                                            </div>
+                                            <p v-if="report.latest_report.reason">{{ report.latest_report.reason }}</p>
+                                            <a
+                                                v-if="report.latest_report.evidence_url"
+                                                :href="report.latest_report.evidence_url"
+                                                class="text-primary underline"
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
+                                                Evidence
+                                            </a>
+                                        </div>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div class="space-y-1 text-sm">
+                                        <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Badge variant="outline">{{ report.reports_count }} filtered</Badge>
+                                            <Badge variant="outline">{{ report.total_reports_count }} total</Badge>
+                                        </div>
+                                        <div class="text-xs text-muted-foreground">
+                                            Latest by: {{ report.latest_report?.reporter?.nickname ?? 'Unknown' }}
+                                        </div>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div class="space-y-1 text-sm">
+                                        <div
+                                            v-for="reporter in report.reporters"
+                                            :key="reporter.id"
+                                            class="rounded-md border border-sidebar-border/60 px-2 py-1"
                                         >
-                                            Evidence
-                                        </a>
+                                            <p class="font-medium">{{ reporter.nickname }}</p>
+                                            <p class="text-xs text-muted-foreground">{{ reporter.email }}</p>
+                                        </div>
+                                        <p v-if="report.reporters.length === 0" class="text-xs text-muted-foreground">No reporters listed</p>
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <div class="flex flex-col text-sm">
-                                        <span class="font-medium">{{ report.reporter?.nickname ?? 'Unknown' }}</span>
-                                        <span class="text-muted-foreground">{{ report.reporter?.email ?? 'N/A' }}</span>
-                                        <span v-if="report.comment?.user?.is_banned" class="text-xs text-destructive">Reporter banned</span>
+                                    <div class="space-y-1 text-sm">
+                                        <p class="font-medium">{{ report.author?.nickname ?? 'Unknown' }}</p>
+                                        <p class="text-xs text-muted-foreground">{{ report.author?.email ?? 'N/A' }}</p>
+                                        <span v-if="report.author?.is_banned" class="text-xs text-destructive">Author banned</span>
                                     </div>
-                                </TableCell>
-                                <TableCell>
-                                    <span class="text-sm">{{ reportReasonLabel(report.reason_category) }}</span>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge :variant="statusBadges[report.status] ?? 'secondary'" class="gap-1">
-                                        <component
-                                            :is="statusIcons[report.status] ?? ShieldAlert"
-                                            class="h-3.5 w-3.5"
-                                        />
-                                        {{ report.status }}
-                                    </Badge>
                                 </TableCell>
                                 <TableCell class="space-y-2 text-right">
                                     <div class="flex justify-end gap-2">
@@ -466,7 +540,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                             variant="outline"
                                             size="sm"
                                             class="gap-1"
-                                            :disabled="bulkForm.processing"
+                                            :disabled="bulkForm.processing || !report.report_ids?.length"
                                             @click="quickReportStatus(report, 'reviewed')"
                                         >
                                             <CheckCircle class="h-4 w-4" />
@@ -476,7 +550,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                             variant="outline"
                                             size="sm"
                                             class="gap-1"
-                                            :disabled="bulkForm.processing"
+                                            :disabled="bulkForm.processing || !report.report_ids?.length"
                                             @click="quickReportStatus(report, 'dismissed')"
                                         >
                                             <XCircle class="h-4 w-4" />
@@ -486,7 +560,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                             variant="outline"
                                             size="sm"
                                             class="gap-1"
-                                            :disabled="bulkForm.processing"
+                                            :disabled="bulkForm.processing || !report.report_ids?.length"
                                             @click="quickReportStatus(report, 'pending')"
                                         >
                                             <ShieldAlert class="h-4 w-4" />
@@ -526,7 +600,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 </TableCell>
                             </TableRow>
                             <TableRow v-if="!hasReports">
-                                <TableCell colspan="7" class="text-center text-sm text-muted-foreground">No reports found.</TableCell>
+                                <TableCell colspan="6" class="text-center text-sm text-muted-foreground">No reports found.</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

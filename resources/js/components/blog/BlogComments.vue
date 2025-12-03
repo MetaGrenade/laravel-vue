@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { toast } from 'vue-sonner';
+import { ThumbsDown, ThumbsUp } from 'lucide-vue-next';
 
 type CommentUser = {
     id: number;
@@ -25,6 +26,11 @@ type BlogComment = {
     created_at?: string | null;
     updated_at?: string | null;
     user?: CommentUser | null;
+    reactions?: {
+        likes: number;
+        dislikes: number;
+        user_reaction?: 'like' | 'dislike' | null;
+    };
     permissions?: {
         can_update: boolean;
         can_delete: boolean;
@@ -54,7 +60,7 @@ type PaginatedComments = {
     links: PaginationLinks;
 };
 
-type SortMode = 'oldest' | 'newest';
+type SortMode = 'oldest' | 'newest' | 'top';
 
 const defaultMeta: PaginationMeta = {
     current_page: 1,
@@ -126,7 +132,27 @@ watch(
     },
 );
 
+const reactionScore = (comment: BlogComment) => {
+    return (comment.reactions?.likes ?? 0) - (comment.reactions?.dislikes ?? 0);
+};
+
 const sortedComments = computed(() => {
+    if (sortMode.value === 'top') {
+        return [...comments.value].sort((a, b) => {
+            const scoreDiff = reactionScore(b) - reactionScore(a);
+
+            if (scoreDiff !== 0) return scoreDiff;
+
+            const likeDiff = (b.reactions?.likes ?? 0) - (a.reactions?.likes ?? 0);
+            if (likeDiff !== 0) return likeDiff;
+
+            const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+
+            return bTime - aTime;
+        });
+    }
+
     const direction = sortMode.value === 'newest' ? -1 : 1;
 
     return [...comments.value].sort((a, b) => {
@@ -252,6 +278,7 @@ const editError = ref<string | null>(null);
 const updatingCommentId = ref<number | null>(null);
 const deletingCommentId = ref<number | null>(null);
 const deleteDialogOpen = ref(false);
+const reactingCommentId = ref<number | null>(null);
 const pendingDeleteComment = ref<BlogComment | null>(null);
 const deleteDialogTitle = computed(() => {
     const target = pendingDeleteComment.value;
@@ -398,6 +425,59 @@ const canReportComment = (comment: BlogComment) => {
     }
 
     return !canManageComment(comment);
+};
+
+const userReaction = (comment: BlogComment) => comment.reactions?.user_reaction ?? null;
+
+const reactionCount = (comment: BlogComment, type: 'like' | 'dislike') => {
+    if (!comment.reactions) {
+        return 0;
+    }
+
+    return type === 'like' ? comment.reactions.likes : comment.reactions.dislikes;
+};
+
+const isReacting = (id: number) => reactingCommentId.value === id;
+
+const reactToComment = async (comment: BlogComment, reaction: 'like' | 'dislike') => {
+    if (!authUser.value) {
+        toast.error('You need to sign in to react to comments.');
+        return;
+    }
+
+    const desiredReaction = userReaction(comment) === reaction ? 'none' : reaction;
+
+    reactingCommentId.value = comment.id;
+
+    try {
+        const response = await fetch(route('blogs.comments.react', { blog: props.blogSlug, comment: comment.id }), {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            body: JSON.stringify({ reaction: desiredReaction }),
+        });
+
+        if (!response.ok) {
+            const message = await extractErrorMessage(response);
+            toast.error(message);
+            return;
+        }
+
+        const payload = await response.json().catch(() => null);
+        const updated = payload?.data as BlogComment | undefined;
+
+        if (updated) {
+            comments.value = comments.value.map((existing) => (existing.id === updated.id ? updated : existing));
+        }
+    } catch (error) {
+        console.error(error);
+        toast.error('Unable to update your reaction right now.');
+    } finally {
+        reactingCommentId.value = null;
+    }
 };
 
 const extractErrorMessage = async (response: Response): Promise<string> => {
@@ -733,6 +813,7 @@ const submitReport = async () => {
                 >
                     <option value="oldest">Oldest first</option>
                     <option value="newest">Newest first</option>
+                    <option value="top">Top comments</option>
                 </select>
                 <span v-if="isReloading" class="text-xs text-muted-foreground">Updating...</span>
             </div>
@@ -855,6 +936,31 @@ const submitReport = async () => {
                                     @click="openReportDialog(comment)"
                                 >
                                     Report
+                                </Button>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                <span class="font-medium text-foreground">Feedback:</span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="h-8 gap-2"
+                                    :class="userReaction(comment) === 'like' ? 'border-primary text-primary' : ''"
+                                    :disabled="isReacting(comment.id)"
+                                    @click="reactToComment(comment, 'like')"
+                                >
+                                    <ThumbsUp class="h-4 w-4" />
+                                    <span>{{ reactionCount(comment, 'like') }}</span>
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="h-8 gap-2"
+                                    :class="userReaction(comment) === 'dislike' ? 'border-destructive text-destructive' : ''"
+                                    :disabled="isReacting(comment.id)"
+                                    @click="reactToComment(comment, 'dislike')"
+                                >
+                                    <ThumbsDown class="h-4 w-4" />
+                                    <span>{{ reactionCount(comment, 'dislike') }}</span>
                                 </Button>
                             </div>
                         </div>
