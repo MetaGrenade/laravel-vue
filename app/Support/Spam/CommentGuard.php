@@ -12,13 +12,19 @@ class CommentGuard
 
     public function issueToken(Request $request): string
     {
-        $token = $request->session()->get(self::SESSION_TOKEN_KEY);
+        $session = $request->hasSession() ? $request->session() : null;
+
+        if ($session === null) {
+            return Str::random(40);
+        }
+
+        $token = $session->get(self::SESSION_TOKEN_KEY);
 
         if (! is_string($token) || $token === '') {
             $token = Str::random(40);
         }
 
-        $request->session()->put(self::SESSION_TOKEN_KEY, $token);
+        $session->put(self::SESSION_TOKEN_KEY, $token);
 
         return $token;
     }
@@ -33,8 +39,14 @@ class CommentGuard
             ]);
         }
 
+        $session = $request->hasSession() ? $request->session() : null;
+
+        if ($session === null) {
+            return;
+        }
+
         $token = (string) $request->input('captcha_token', '');
-        $expected = $request->session()->get(self::SESSION_TOKEN_KEY, '');
+        $expected = $session->get(self::SESSION_TOKEN_KEY, '');
 
         if (! is_string($expected) || $expected === '' || ! hash_equals($expected, $token)) {
             throw ValidationException::withMessages([
