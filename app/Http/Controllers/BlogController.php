@@ -276,7 +276,12 @@ class BlogController extends Controller
         $this->registerBlogView($request, $blog);
 
         $comments = $blog->comments()
-            ->with(['user:id,nickname,avatar_url,profile_bio'])
+            ->with([
+                'user:id,nickname,avatar_url,profile_bio',
+                'reactions' => function ($query) use ($request) {
+                    $query->where('user_id', optional($request->user())->id ?? 0);
+                },
+            ])
             ->orderBy('created_at')
             ->paginate(10, ['*'], 'page', 1);
 
@@ -305,6 +310,11 @@ class BlogController extends Controller
                         'can_update' => $request->user()?->can('update', $comment) ?? false,
                         'can_delete' => $request->user()?->can('delete', $comment) ?? false,
                         'can_report' => $request->user()?->can('report', $comment) ?? false,
+                    ],
+                    'reactions' => [
+                        'likes' => (int) $comment->like_count,
+                        'dislikes' => (int) $comment->dislike_count,
+                        'user_reaction' => optional($comment->reactions->first())->reaction,
                     ],
                     'user' => $user ? [
                         'id' => $user->id,

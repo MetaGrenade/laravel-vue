@@ -60,6 +60,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/{comment}/report', [ApiBlogCommentController::class, 'report'])
                     ->whereNumber('comment')
                     ->name('blogs.comments.report');
+                Route::post('/{comment}/react', [ApiBlogCommentController::class, 'react'])
+                    ->whereNumber('comment')
+                    ->name('blogs.comments.react');
 
                 Route::post('/subscriptions', [ApiBlogCommentSubscriptionController::class, 'store'])
                     ->name('blogs.comments.subscriptions.store');

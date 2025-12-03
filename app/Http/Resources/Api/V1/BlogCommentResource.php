@@ -24,6 +24,11 @@ class BlogCommentResource extends JsonResource
                 'can_delete' => $user?->can('delete', $this->resource) ?? false,
                 'can_report' => $user?->can('report', $this->resource) ?? false,
             ],
+            'reactions' => [
+                'likes' => (int) $this->like_count,
+                'dislikes' => (int) $this->dislike_count,
+                'user_reaction' => optional($this->reactions->first())->reaction,
+            ],
             'user' => new UserSummaryResource($this->whenLoaded('user')),
         ];
     }

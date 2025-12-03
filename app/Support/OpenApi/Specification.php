@@ -223,6 +223,16 @@ class Specification
                             'schema' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50],
                             'description' => 'Number of comments to return per page (max 50).',
                         ],
+                        [
+                            'name' => 'sort',
+                            'in' => 'query',
+                            'schema' => [
+                                'type' => 'string',
+                                'enum' => ['oldest', 'newest', 'top'],
+                                'default' => 'oldest',
+                            ],
+                            'description' => 'Sort comments by oldest (default), newest, or top (most liked).',
+                        ],
                     ],
                     'responses' => [
                         '200' => [
@@ -343,6 +353,49 @@ class Specification
                         '401' => static::unauthenticatedResponse(),
                         '403' => static::forbiddenResponse(),
                         '404' => static::notFoundResponse(),
+                    ],
+                ],
+            ],
+            '/v1/blogs/{slug}/comments/{comment}/react' => [
+                'post' => [
+                    'summary' => 'React to a blog comment',
+                    'tags' => ['Blog Comments'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'slug', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'string']],
+                        ['name' => 'comment', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'integer']],
+                    ],
+                    'requestBody' => [
+                        'required' => true,
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['reaction'],
+                                    'properties' => [
+                                        'reaction' => [
+                                            'type' => 'string',
+                                            'enum' => ['like', 'dislike', 'none'],
+                                            'description' => 'Add, change, or remove a reaction for the authenticated user.',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Updated comment with reactions',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('BlogComment'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                        '422' => static::validationErrorResponse(),
                     ],
                 ],
             ],
@@ -1139,9 +1192,18 @@ class Specification
                         ],
                         'required' => ['can_update', 'can_delete', 'can_report'],
                     ],
+                    'reactions' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'likes' => ['type' => 'integer'],
+                            'dislikes' => ['type' => 'integer'],
+                            'user_reaction' => ['type' => 'string', 'enum' => ['like', 'dislike'], 'nullable' => true],
+                        ],
+                        'required' => ['likes', 'dislikes', 'user_reaction'],
+                    ],
                     'user' => static::schemaRef('User'),
                 ],
-                'required' => ['id', 'body', 'permissions'],
+                'required' => ['id', 'body', 'permissions', 'reactions'],
             ],
             'ForumThread' => [
                 'type' => 'object',

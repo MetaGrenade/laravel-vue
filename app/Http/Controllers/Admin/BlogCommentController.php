@@ -28,6 +28,7 @@ class BlogCommentController extends Controller
             'reason_category' => ['nullable', 'string'],
             'search' => ['nullable', 'string', 'max:200'],
             'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
+            'sort' => ['nullable', 'string', Rule::in(['newest', 'oldest', 'most_reported'])],
         ]);
 
         $status = $validated['status'] ?? BlogCommentReport::STATUS_PENDING;
@@ -37,60 +38,104 @@ class BlogCommentController extends Controller
         $search = $search === '' ? null : $search;
         $perPage = isset($validated['per_page']) ? (int) $validated['per_page'] : 25;
         $perPage = max(5, min(100, $perPage));
+        $sort = $validated['sort'] ?? 'newest';
 
-        $query = BlogCommentReport::query()
+        $commentsQuery = BlogComment::query()
+            ->select('blog_comments.*')
             ->with([
-                'comment:id,blog_id,user_id,body,status,is_flagged',
-                'comment.blog:id,title,slug,status',
-                'comment.user:id,nickname,email,is_banned',
-                'reporter:id,nickname,email',
-                'reviewer:id,nickname,email',
+                'blog:id,title,slug,status',
+                'user:id,nickname,email,is_banned',
+                'reports' => function ($query) use ($status, $reasonCategory) {
+                    $query
+                        ->when($status !== 'all', fn ($inner) => $inner->where('status', $status))
+                        ->when($reasonCategory !== null, fn ($inner) => $inner->where('reason_category', $reasonCategory))
+                        ->with([
+                            'reporter:id,nickname,email',
+                            'reviewer:id,nickname,email',
+                        ])
+                        ->orderByDesc('created_at');
+                },
             ])
-            ->orderByDesc('created_at');
-
-        if ($status !== 'all') {
-            $query->where('status', $status);
-        }
-
-        if ($reasonCategory !== null) {
-            $query->where('reason_category', $reasonCategory);
-        }
+            ->withCount([
+                'reports as total_reports_count',
+                'reports as filtered_reports_count' => function ($query) use ($status, $reasonCategory) {
+                    $query
+                        ->when($status !== 'all', fn ($inner) => $inner->where('status', $status))
+                        ->when($reasonCategory !== null, fn ($inner) => $inner->where('reason_category', $reasonCategory));
+                },
+                'reports as pending_reports_count' => fn ($query) => $query->where('status', BlogCommentReport::STATUS_PENDING),
+            ])
+            ->withMax('reports as latest_reported_at', 'created_at')
+            ->whereHas('reports', function ($query) use ($status, $reasonCategory) {
+                $query
+                    ->when($status !== 'all', fn ($inner) => $inner->where('status', $status))
+                    ->when($reasonCategory !== null, fn ($inner) => $inner->where('reason_category', $reasonCategory));
+            });
 
         if ($search !== null) {
-            $query->whereHas('comment', function ($query) use ($search) {
-                $query->where('body', 'like', "%{$search}%");
-            });
+            $commentsQuery->where('body', 'like', "%{$search}%");
         }
 
-        $reports = $query->paginate($perPage)->withQueryString();
+        $commentsQuery->when($sort === 'most_reported', function ($query) {
+            $query
+                ->orderByDesc('filtered_reports_count')
+                ->orderByDesc('total_reports_count')
+                ->orderByDesc('latest_reported_at');
+        }, function ($query) use ($sort) {
+            $query->orderBy(
+                'latest_reported_at',
+                $sort === 'oldest' ? 'asc' : 'desc',
+            );
+        });
+
+        $comments = $commentsQuery->paginate($perPage)->withQueryString();
 
         $formatter = DateFormatter::for($request->user());
-        $items = $reports->getCollection()
-            ->map(function (BlogCommentReport $report) use ($request, $formatter) {
-                $comment = $report->comment;
-                $blog = $comment?->blog;
-                $reporter = $report->reporter;
-                $reviewer = $report->reviewer;
 
-                return [
-                    'id' => $report->id,
-                    'status' => $report->status,
-                    'reason_category' => $report->reason_category,
-                    'reason' => $report->reason,
-                    'evidence_url' => $report->evidence_url,
-                    'created_at' => $formatter->iso($report->created_at),
-                    'reviewed_at' => $formatter->iso($report->reviewed_at),
-                    'reporter' => $reporter ? [
+        $items = $comments->getCollection()
+            ->map(function (BlogComment $comment) use ($request, $formatter) {
+                $blog = $comment->blog;
+                $reports = $comment->reports;
+                $latestReport = $reports->first();
+
+                $reporters = $reports
+                    ->map(fn (BlogCommentReport $report) => $report->reporter)
+                    ->filter()
+                    ->unique('id')
+                    ->values()
+                    ->map(fn ($reporter) => [
                         'id' => $reporter->id,
                         'nickname' => $reporter->nickname,
                         'email' => $reporter->email,
+                    ])
+                    ->all();
+
+                return [
+                    'id' => $comment->id,
+                    'reports_count' => (int) ($comment->filtered_reports_count ?? $reports->count()),
+                    'total_reports_count' => (int) ($comment->total_reports_count ?? $reports->count()),
+                    'pending_reports_count' => (int) $comment->pending_reports_count,
+                    'latest_reported_at' => $formatter->iso($latestReport?->created_at),
+                    'report_ids' => $reports->pluck('id')->values()->all(),
+                    'latest_report' => $latestReport ? [
+                        'status' => $latestReport->status,
+                        'reason_category' => $latestReport->reason_category,
+                        'reason' => $latestReport->reason,
+                        'evidence_url' => $latestReport->evidence_url,
+                        'created_at' => $formatter->iso($latestReport->created_at),
+                        'reporter' => $latestReport->reporter ? [
+                            'id' => $latestReport->reporter->id,
+                            'nickname' => $latestReport->reporter->nickname,
+                            'email' => $latestReport->reporter->email,
+                        ] : null,
+                        'reviewer' => $latestReport->reviewer ? [
+                            'id' => $latestReport->reviewer->id,
+                            'nickname' => $latestReport->reviewer->nickname,
+                            'email' => $latestReport->reviewer->email,
+                        ] : null,
                     ] : null,
-                    'reviewer' => $reviewer ? [
-                        'id' => $reviewer->id,
-                        'nickname' => $reviewer->nickname,
-                        'email' => $reviewer->email,
-                    ] : null,
-                    'comment' => $comment ? [
+                    'reporters' => $reporters,
+                    'comment' => [
                         'id' => $comment->id,
                         'body' => $comment->body,
                         'body_preview' => Str::limit(strip_tags($comment->body), 140),
@@ -101,12 +146,18 @@ class BlogCommentController extends Controller
                             'review' => $request->user()?->can('review', $comment) ?? false,
                             'delete' => $request->user()?->can('delete', $comment) ?? false,
                         ],
-                    ] : null,
+                    ],
                     'blog' => $blog ? [
                         'id' => $blog->id,
                         'title' => $blog->title,
                         'slug' => $blog->slug,
                         'status' => $blog->status,
+                    ] : null,
+                    'author' => $comment->user ? [
+                        'id' => $comment->user->id,
+                        'nickname' => $comment->user->nickname,
+                        'email' => $comment->user->email,
+                        'is_banned' => (bool) $comment->user->is_banned,
                     ] : null,
                 ];
             })
@@ -124,13 +175,14 @@ class BlogCommentController extends Controller
         return Inertia::render('acp/BlogComments', [
             'reports' => [
                 'data' => $items,
-                ...$this->inertiaPagination($reports),
+                ...$this->inertiaPagination($comments),
             ],
             'filters' => [
                 'status' => $status,
                 'reason_category' => $reasonCategory,
                 'search' => $search,
                 'per_page' => $perPage,
+                'sort' => $sort,
             ],
             'statuses' => BlogCommentReport::STATUSES,
             'reportReasons' => $reasons,
