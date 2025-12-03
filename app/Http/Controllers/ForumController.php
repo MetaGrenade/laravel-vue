@@ -161,7 +161,6 @@ class ForumController extends Controller
         $board->load('category');
 
         $search = trim((string) $request->query('search', ''));
-
         $user = $request->user();
         $isModerator = $user?->hasAnyRole(['admin', 'editor', 'moderator']);
 
@@ -171,6 +170,7 @@ class ForumController extends Controller
 
         $threadsQuery = $board->threads()
             ->select('forum_threads.*')
+            ->leftJoin('users as thread_authors', 'thread_authors.id', '=', 'forum_threads.user_id')
             ->when(!$isModerator, function ($query) {
                 $query->where('forum_threads.is_published', true);
             })
@@ -187,7 +187,21 @@ class ForumController extends Controller
             ->withCount('posts');
 
         if ($search !== '') {
-            $threadsQuery->where('forum_threads.title', 'like', "%{$search}%");
+            $escaped = addcslashes($search, '%_');
+            $likeTerm = "%{$escaped}%";
+
+            $threadsQuery->where(function ($query) use ($likeTerm) {
+                $query->where('forum_threads.title', 'like', $likeTerm)
+                    ->orWhere('forum_threads.excerpt', 'like', $likeTerm)
+                    ->orWhere('thread_authors.nickname', 'like', $likeTerm)
+                    ->orWhereExists(function ($postQuery) use ($likeTerm) {
+                        $postQuery->selectRaw('1')
+                            ->from('forum_posts')
+                            ->whereColumn('forum_posts.forum_thread_id', 'forum_threads.id')
+                            ->whereNull('forum_posts.deleted_at')
+                            ->where('forum_posts.body', 'like', $likeTerm);
+                    });
+            });
         }
 
         $threadsQuery->orderByDesc('forum_threads.is_pinned');

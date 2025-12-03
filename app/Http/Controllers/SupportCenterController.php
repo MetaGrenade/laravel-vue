@@ -519,9 +519,6 @@ class SupportCenterController extends Controller
                 function (string $audience) use ($ticket, $message) {
                     return (new TicketReplied($ticket, $message))
                         ->forAudience($audience);
-                },
-                function (string $audience, User $recipient) {
-                    return ['database', 'mail', 'push'];
                 }
             );
         }

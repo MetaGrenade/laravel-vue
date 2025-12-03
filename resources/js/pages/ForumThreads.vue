@@ -42,7 +42,6 @@ import {
     Flag,
     CheckCircle2,
 } from 'lucide-vue-next';
-
 interface BoardSummary {
     id: number;
     title: string;
@@ -124,6 +123,9 @@ const hasReportReasons = computed(() => reportReasons.value.length > 0);
 
 const canStartThread = computed(() => Boolean(page.props.auth?.user));
 const hasUnreadThreads = computed(() => props.threads.data.some((thread) => thread.has_unread));
+const activeFilters = computed(() => ({
+    search: searchQuery.value || undefined,
+}));
 const boardMarking = ref(false);
 
 const {
@@ -142,7 +144,7 @@ const {
         router.get(
             route('forum.boards.show', { board: props.board.slug }),
             {
-                search: searchQuery.value || undefined,
+                ...activeFilters.value,
                 page,
             },
             {
@@ -205,7 +207,7 @@ watch(threadDeleteDialogOpen, (open) => {
 
 let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
-watch(searchQuery, (value) => {
+  watch(searchQuery, () => {
     if (searchTimeout) {
         clearTimeout(searchTimeout);
     }
@@ -213,7 +215,7 @@ watch(searchQuery, (value) => {
         setThreadsPage(1, { emitNavigate: false });
         threadReportForm.page = 1;
         router.get(route('forum.boards.show', { board: props.board.slug }), {
-            search: value || undefined,
+            ...activeFilters.value,
         }, {
             preserveScroll: true,
             preserveState: true,
@@ -436,7 +438,7 @@ const markThreadAsRead = (thread: ThreadSummary) => {
 
     performThreadAction(thread, 'post', 'forum.threads.mark-read', {
         page: threadsMeta.value.current_page,
-        search: searchQuery.value || undefined,
+        ...activeFilters.value,
     });
 };
 
