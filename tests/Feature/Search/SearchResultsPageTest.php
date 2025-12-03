@@ -260,4 +260,83 @@ class SearchResultsPageTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_results_are_ranked_with_highlights_across_types(): void
+    {
+        Carbon::setTestNow('2024-04-01 08:00:00');
+
+        $primaryAuthor = User::factory()->create([
+            'nickname' => 'wizard',
+        ]);
+
+        $secondaryAuthor = User::factory()->create([
+            'nickname' => 'helper',
+        ]);
+
+        $featuredBlog = Blog::factory()->published()->create([
+            'title' => 'Wizarding World of Search',
+            'slug' => 'wizarding-world',
+            'excerpt' => 'A primer on magical search.',
+            'body' => 'Search wizard tips and tricks for power users.',
+            'user_id' => $primaryAuthor->id,
+            'published_at' => now(),
+            'created_at' => now(),
+        ]);
+
+        $bodyMatchBlog = Blog::factory()->published()->create([
+            'title' => 'General guide',
+            'slug' => 'general-guide',
+            'excerpt' => 'No keyword here.',
+            'body' => 'This article explains how a wizard might approach indexing.',
+            'user_id' => $secondaryAuthor->id,
+            'published_at' => now()->subMinute(),
+            'created_at' => now()->subMinute(),
+        ]);
+
+        $category = ForumCategory::create([
+            'title' => 'Search Updates',
+            'slug' => 'search-updates',
+            'position' => 1,
+        ]);
+
+        $board = ForumBoard::create([
+            'forum_category_id' => $category->id,
+            'title' => 'News Board',
+            'slug' => 'news-board',
+            'description' => 'Announcements and updates.',
+            'position' => 1,
+        ]);
+
+        $thread = ForumThread::create([
+            'forum_board_id' => $board->id,
+            'user_id' => $primaryAuthor->id,
+            'title' => 'Ask the wizard anything',
+            'slug' => 'wizard-ama',
+            'excerpt' => 'Community AMA session.',
+            'is_locked' => false,
+            'is_pinned' => false,
+            'is_published' => true,
+            'views' => 0,
+            'last_posted_at' => now(),
+            'last_post_user_id' => $primaryAuthor->id,
+            'created_at' => now(),
+        ]);
+
+        $response = $this->get(route('search.results', [
+            'q' => 'wizard',
+            'types' => ['blogs', 'forum_threads'],
+        ]));
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Search/Results')
+            ->where('results.blogs.items.0.id', $featuredBlog->id)
+            ->where('results.blogs.items.0.highlight.title', fn ($value) => is_string($value) && str_contains(strtolower($value), '<mark>wizard</mark>'))
+            ->where('results.blogs.items.1.id', $bodyMatchBlog->id)
+            ->where('results.blogs.items.1.highlight.description', fn ($value) => is_string($value) && str_contains(strtolower($value), '<mark>wizard</mark>'))
+            ->where('results.forum_threads.items.0.id', $thread->id)
+            ->where('results.forum_threads.items.0.highlight.description', fn ($value) => is_string($value) && str_contains(strtolower($value), '<mark>wizard</mark>'))
+        );
+
+        Carbon::setTestNow();
+    }
 }
