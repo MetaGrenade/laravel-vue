@@ -22,6 +22,7 @@ class SearchController extends Controller
         $query = $request->string('q')->trim();
         $limit = (int) $request->integer('limit', 5);
         $limit = max(1, min($limit, 10));
+        $types = $request->input('types');
 
         if ($query->isEmpty()) {
             return response()->json([
@@ -40,6 +41,7 @@ class SearchController extends Controller
                 'forum_threads' => 1,
                 'faqs' => 1,
             ],
+            'types' => $types,
         ]);
 
         $results = $payload['results'];
