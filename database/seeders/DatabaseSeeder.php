@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             TokenLogDemoSeeder::class,
             BadgeSeeder::class,
             CommerceDemoSeeder::class,
+            PollDemoSeeder::class,
         ]);
     }
 }

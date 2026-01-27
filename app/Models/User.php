@@ -170,6 +170,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(BillingInvoice::class);
     }
 
+    public function pollVotes(): HasMany
+    {
+        return $this->hasMany(PollVote::class);
+    }
+
     /**
      * @param  list<string>|null  $candidateChannels
      * @return list<string>
@@ -294,4 +299,3 @@ class User extends Authenticatable implements MustVerifyEmail
         return $instance;
     }
 }
-

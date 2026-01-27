@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\V1\ForumThreadController;
 use App\Http\Controllers\Api\V1\ForumThreadCommandController;
 use App\Http\Controllers\Api\V1\ForumThreadModerationController as ApiForumThreadModerationController;
 use App\Http\Controllers\Api\V1\ForumThreadSubscriptionController;
+use App\Http\Controllers\Api\V1\PollController;
+use App\Http\Controllers\Api\V1\PollVoteController;
 use App\Http\Controllers\Api\V1\Support\SupportTicketController;
 use App\Http\Controllers\Api\V1\Support\SupportTicketMessageController;
 use App\Http\Controllers\Api\V1\Support\SupportTicketRatingController;
@@ -72,6 +74,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->name('blogs.comments.subscriptions.destroy');
             });
         });
+    });
+
+    Route::get('/polls', [PollController::class, 'index'])->name('polls.index');
+    Route::get('/polls/{poll:slug}', [PollController::class, 'show'])->name('polls.show');
+
+    Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1'])->group(function () {
+        Route::post('/polls/{poll:slug}/vote', [PollVoteController::class, 'store'])->name('polls.vote');
     });
 
     Route::middleware('section.enabled:forum')->group(function () {

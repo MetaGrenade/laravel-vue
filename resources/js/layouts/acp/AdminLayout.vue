@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook, MessageCircle, Search, ShoppingBag } from 'lucide-vue-next';
+import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook, MessageCircle, Search, ShoppingBag, Vote } from 'lucide-vue-next';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -19,6 +19,7 @@ const manageACL = computed(() => hasPermission('acl.acp.view'));
 const manageBlogs = computed(() => hasPermission('blogs.acp.view'));
 const manageForums = computed(() => hasPermission('forums.acp.view'));
 const manageSupport = computed(() => hasPermission('support.acp.view'));
+const managePolls = computed(() => hasPermission('polls.acp.view'));
 const manageTokens = computed(() => hasPermission('tokens.acp.view'));
 const manageBilling = computed(() => hasPermission('billing.acp.view'));
 const manageCommerce = computed(() => hasPermission('commerce.acp.view'));
@@ -87,6 +88,12 @@ const sidebarNavItems: NavItem[] = [
         href: '/acp/support',
         target: '_self',
         icon: LifeBuoy,
+    },
+    {
+        title: 'Polls',
+        href: '/acp/polls',
+        target: '_self',
+        icon: Vote,
     },
     {
         title: 'Commerce',
@@ -171,6 +178,8 @@ const filteredNavItems = computed(() => {
                 return manageReputation.value || isAdmin.value;
             case 'Support':
                 return manageSupport.value && websiteSections.value.support;
+            case 'Polls':
+                return managePolls.value;
             case 'Commerce':
                 return manageCommerce.value && websiteSections.value.commerce;
             case 'Trust & Safety':
