@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\BillingWebhookCallController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\TrustSafetyController;
+use App\Http\Controllers\Admin\PollController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -238,6 +239,26 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/reputation/badges/{badge}/edit', [BadgeController::class, 'edit'])->name('acp.reputation.badges.edit');
     Route::put('acp/reputation/badges/{badge}', [BadgeController::class, 'update'])->name('acp.reputation.badges.update');
     Route::delete('acp/reputation/badges/{badge}', [BadgeController::class, 'destroy'])->name('acp.reputation.badges.destroy');
+
+    // Polls
+    Route::get('acp/polls', [PollController::class, 'index'])
+        ->middleware('can:polls.acp.view')
+        ->name('acp.polls.index');
+    Route::get('acp/polls/create', [PollController::class, 'create'])
+        ->middleware('can:polls.acp.create')
+        ->name('acp.polls.create');
+    Route::post('acp/polls', [PollController::class, 'store'])
+        ->middleware('can:polls.acp.create')
+        ->name('acp.polls.store');
+    Route::get('acp/polls/{poll}/edit', [PollController::class, 'edit'])
+        ->middleware('can:polls.acp.edit')
+        ->name('acp.polls.edit');
+    Route::put('acp/polls/{poll}', [PollController::class, 'update'])
+        ->middleware('can:polls.acp.edit')
+        ->name('acp.polls.update');
+    Route::delete('acp/polls/{poll}', [PollController::class, 'destroy'])
+        ->middleware('can:polls.acp.delete')
+        ->name('acp.polls.destroy');
 
     // Tokens
     Route::get('acp/tokens', [TokenController::class,'index'])->name('acp.tokens.index');
