@@ -13,9 +13,11 @@ use App\Policies\BlogPolicy;
 use App\Policies\BlogCommentPolicy;
 use App\Policies\ForumPostPolicy;
 use App\Support\Billing\SubscriptionManager;
+use Illuminate\Cache\RateLimiting\Limit;
 use App\Observers\ForumIndexCacheObserver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 
@@ -51,6 +53,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
+        RateLimiter::for('blog-comments', function ($request) {
+            $attempts = (int) config('rate-limits.blog_comments_per_minute', 5);
+
+            return Limit::perMinute($attempts)->by(optional($request->user())->id ?? $request->ip());
+        });
 
         $cacheObserver = $this->app->make(ForumIndexCacheObserver::class);
 

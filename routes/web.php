@@ -60,7 +60,9 @@ Route::middleware('section.enabled:blog')->group(function () {
         Route::get('/', [BlogCommentController::class, 'index'])->name('blogs.comments.index');
 
         Route::middleware('auth')->group(function () {
-            Route::post('/', [BlogCommentController::class, 'store'])->name('blogs.comments.store');
+            Route::post('/', [BlogCommentController::class, 'store'])
+                ->middleware('throttle:blog-comments')
+                ->name('blogs.comments.store');
             Route::put('/{comment}', [BlogCommentController::class, 'update'])
                 ->whereNumber('comment')
                 ->name('blogs.comments.update');
