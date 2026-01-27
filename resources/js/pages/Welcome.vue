@@ -31,7 +31,7 @@ const props = defineProps<{
 }>();
 
 const websiteSections = computed(() => {
-    const defaults = { blog: true, forum: true, support: true, commerce: true } as const;
+    const defaults = { blog: true, forum: true, support: true, commerce: false } as const;
     const settings = page.props.settings?.website_sections ?? defaults;
 
     return {
@@ -110,24 +110,27 @@ const seo = {
 const activePolls = computed(() => props.activePolls ?? []);
 
 const affiliatedCrafters = [
-    { name: 'Master Smith Thorne', specialization: 'Weapons & Armor', level: 50, city: 'Joevah' },
-    { name: 'Artisan Elara', specialization: 'Jewelry & Enchantments', level: 48, city: 'Joevah' },
-    { name: 'Craftsman Borin', specialization: 'Engineering & Siege', level: 45, city: 'Joevah' },
-    { name: 'Alchemist Zephyr', specialization: 'Potions & Consumables', level: 47, city: 'Joevah' },
-    { name: 'Tailor Mira', specialization: 'Clothing & Accessories', level: 46, city: 'Joevah' },
+    { name: 'Raz', specialization: 'Armorsmith', level: 25, city: 'Joevah' },
+    { name: 'Lust', specialization: 'Leatherworker', level: 25, city: 'Joevah' },
+    { name: 'Dymera', specialization: 'Alchemist & Scribe', level: 25, city: 'Joevah' },
+    { name: 'Alexxandrya', specialization: 'Weaponsmith', level: 25, city: 'Joevah' },
+    { name: 'Arthas', specialization: 'Carpenter', level: 25, city: 'Joevah' },
 ];
 
 const supportingGuilds = [
-    { name: 'The Iron Vanguard', members: 250, focus: 'Military & Defense', city: 'Joevah' },
-    { name: 'Merchant Consortium', members: 180, focus: 'Trade & Commerce', city: 'Joevah' },
-    { name: 'Artisan Collective', members: 120, focus: 'Crafting & Production', city: 'Joevah' },
-    { name: 'Explorers League', members: 95, focus: 'Adventure & Resources', city: 'Joevah' },
+    { name: 'Apex Order', members: 250, focus: 'Military & Defense', city: 'Joevah' },
+    { name: 'The Enclave', members: 155, focus: 'Trade & Commerce', city: 'Joevah' },
+    { name: 'INVICTA', members: 60, focus: 'Crafting & Production', city: 'Joevah' },
+    { name: 'Jungle Boys', members: 20, focus: 'Adventure & Resources', city: 'Joevah' },
 ];
 
 const supportingMayors = [
-    { name: 'Mayor Aldric', city: 'Ravencrest', realm: 'Vyra', level: 30 },
-    { name: 'Mayor Seraphina', city: 'Dawnhold', realm: 'Vyra', level: 28 },
-    { name: 'Mayor Kael', city: 'Stormwatch', realm: 'Vyra', level: 32 },
+    { name: 'Syrene', city: 'Dhurhrum', realm: 'Vyra', level: 25 },
+    { name: '???', city: 'Tangled Post', realm: 'Vyra', level: 25 },
+    { name: 'Syclonee', city: 'Miraleth', realm: 'Vyra', level: 25 },
+    { name: '???', city: '???', realm: 'Vyra', level: 1 },
+    { name: '???', city: 'Halcyon', realm: 'Vyra', level: 1 },
+    { name: '???', city: '???', realm: 'Vyra', level: 1 },
 ];
 </script>
 

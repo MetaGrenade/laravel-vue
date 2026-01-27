@@ -239,9 +239,9 @@ const commerceEnabled = computed(() => Boolean(websiteSections.value.commerce));
 
 const baseMainNavItems: SectionAwareNavItem[] = [
     { title: 'Home', href: '/', target: '_self', icon: Home },
-    { title: 'Pricing', href: '/pricing', target: '_self', icon: Layers },
-    { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag, section: 'commerce' },
-    { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid },
+    // { title: 'Pricing', href: '/pricing', target: '_self', icon: Layers },
+    // { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag, section: 'commerce' },
+    // { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid },
     { title: 'Blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
     { title: 'Forum', href: '/forum', target: '_self', icon: Megaphone, section: 'forum' },
 ];
@@ -261,14 +261,7 @@ const baseRightNavItems: SectionAwareNavItem[] = [
         icon: LifeBuoy,
         color: 'rgb(197,34,34)', // red,
         section: 'support',
-    },
-    {
-        title: 'Repository',
-        href: 'https://github.com/MetaGrenade/laravel-vue',
-        target: '_blank',
-        icon: Folder,
-        color: 'rgb(34, 197, 94)', // green,
-    },
+    }
 ];
 
 const mainNavItems = computed<NavItem[]>(() =>
