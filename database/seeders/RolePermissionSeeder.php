@@ -34,6 +34,7 @@ class RolePermissionSeeder extends Seeder
             'trust_safety',
             'search',
             'commerce',
+            'polls',
         ];
 
         foreach ($permissions as $permission) {
@@ -71,6 +72,16 @@ class RolePermissionSeeder extends Seeder
 
         // Optionally assign all permissions to admin
         $adminRole->syncPermissions(Permission::all());
+
+        $editorRole->givePermissionTo([
+            'polls.acp.view',
+            'polls.acp.create',
+            'polls.acp.edit',
+        ]);
+
+        $moderatorRole->givePermissionTo([
+            'polls.acp.view',
+        ]);
 
         // Assign the admin role to the user with ID 1, if the user exists
         $user = User::find(1);
