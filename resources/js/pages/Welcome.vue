@@ -118,10 +118,10 @@ const affiliatedCrafters = [
 ];
 
 const supportingGuilds = [
-    { name: 'Apex Order', members: 250, focus: 'Military & Defense', city: 'Joevah' },
+    { name: 'Apex Order', members: 250, focus: 'Military & Defense', city: 'Miraleth' },
     { name: 'The Enclave', members: 155, focus: 'Trade & Commerce', city: 'Joevah' },
     { name: 'INVICTA', members: 60, focus: 'Crafting & Production', city: 'Joevah' },
-    { name: 'Jungle Boys', members: 20, focus: 'Adventure & Resources', city: 'Joevah' },
+    { name: 'Jungle Boys', members: 20, focus: 'Adventure & Resources', city: 'Tangled Post' },
 ];
 
 const supportingMayors = [
