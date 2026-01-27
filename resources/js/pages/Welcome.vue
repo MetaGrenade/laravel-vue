@@ -9,6 +9,27 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import AppLayout from '@/layouts/AppLayout.vue';
 
 const page = usePage<SharedData>();
+
+interface PollOption {
+    id: number;
+    label: string;
+    votesCount: number;
+    votePercent: number;
+}
+
+interface Poll {
+    id: number;
+    title: string;
+    description: string | null;
+    endsAt: string | null;
+    totalVotes: number;
+    options: PollOption[];
+}
+
+const props = defineProps<{
+    activePolls?: Poll[];
+}>();
+
 const websiteSections = computed(() => {
     const defaults = { blog: true, forum: true, support: true, commerce: true } as const;
     const settings = page.props.settings?.website_sections ?? defaults;
@@ -85,33 +106,8 @@ const seo = {
     keywords: 'MetaGrenade, Joevah, Ashes of Creation, Mayor, Vyra realm, town construction, polls, crafters, guilds',
 };
 
-// Campaign platform data
-const activePolls = [
-    {
-        id: 1,
-        title: 'Town Hall Expansion',
-        description: 'Should we expand the Town Hall to accommodate more citizens and administrative functions?',
-        votesFor: 342,
-        votesAgainst: 128,
-        endsAt: '2026-02-15',
-    },
-    {
-        id: 2,
-        title: 'Marketplace Renovation',
-        description: 'Proposal to renovate the central marketplace with improved vendor stalls and storage facilities.',
-        votesFor: 289,
-        votesAgainst: 95,
-        endsAt: '2026-02-20',
-    },
-    {
-        id: 3,
-        title: 'Defensive Wall Upgrades',
-        description: 'Invest in enhanced defensive structures to better protect Joevah from external threats.',
-        votesFor: 412,
-        votesAgainst: 67,
-        endsAt: '2026-02-18',
-    },
-];
+// Campaign platform data - polls come from props
+const activePolls = computed(() => props.activePolls ?? []);
 
 const affiliatedCrafters = [
     { name: 'Master Smith Thorne', specialization: 'Weapons & Armor', level: 50, city: 'Joevah' },
@@ -253,7 +249,7 @@ const supportingMayors = [
                                 Your voice shapes Joevah's future. Vote on upcoming construction projects and help decide the direction of our city's development.
                             </p>
                         </div>
-                        <div class="grid gap-4 lg:grid-cols-3">
+                        <div v-if="activePolls.length > 0" class="grid gap-4 lg:grid-cols-3">
                             <div
                                 v-for="poll in activePolls"
                                 :key="poll.id"
@@ -261,27 +257,32 @@ const supportingMayors = [
                             >
                                 <div class="flex items-start justify-between gap-2">
                                     <Vote class="h-5 w-5 text-[#8b5a00] dark:text-[#f3d29e] flex-shrink-0 mt-0.5" />
-                                    <span class="text-xs text-[#706f6c] dark:text-[#A1A09A]">Ends {{ poll.endsAt }}</span>
+                                    <span v-if="poll.endsAt" class="text-xs text-[#706f6c] dark:text-[#A1A09A]">Ends {{ poll.endsAt }}</span>
                                 </div>
                                 <h3 class="mt-3 text-lg font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">{{ poll.title }}</h3>
-                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">{{ poll.description }}</p>
-                                <div class="mt-4 space-y-2">
-                                    <div class="flex items-center justify-between text-sm">
-                                        <span class="text-[#706f6c] dark:text-[#A1A09A]">For</span>
-                                        <span class="font-semibold text-[#008b2c] dark:text-[#9ef3b6]">{{ poll.votesFor }} votes</span>
-                                    </div>
-                                    <div class="flex items-center justify-between text-sm">
-                                        <span class="text-[#706f6c] dark:text-[#A1A09A]">Against</span>
-                                        <span class="font-semibold text-[#706f6c] dark:text-[#A1A09A]">{{ poll.votesAgainst }} votes</span>
-                                    </div>
-                                    <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#f9f7f2] dark:bg-[#1c1b17]">
-                                        <div
-                                            class="h-full bg-[#008b2c] dark:bg-[#9ef3b6] transition-all"
-                                            :style="{ width: `${(poll.votesFor / (poll.votesFor + poll.votesAgainst)) * 100}%` }"
-                                        ></div>
+                                <p v-if="poll.description" class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">{{ poll.description }}</p>
+                                <div class="mt-4 space-y-3">
+                                    <div
+                                        v-for="option in poll.options"
+                                        :key="option.id"
+                                        class="space-y-1.5"
+                                    >
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-[#706f6c] dark:text-[#A1A09A]">{{ option.label }}</span>
+                                            <span class="font-semibold text-[#008b2c] dark:text-[#9ef3b6]">{{ option.votesCount }} votes ({{ option.votePercent }}%)</span>
+                                        </div>
+                                        <div v-if="poll.totalVotes > 0" class="h-2 w-full overflow-hidden rounded-full bg-[#f9f7f2] dark:bg-[#1c1b17]">
+                                            <div
+                                                class="h-full bg-[#008b2c] dark:bg-[#9ef3b6] transition-all"
+                                                :style="{ width: `${option.votePercent}%` }"
+                                            ></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <div v-else class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
+                            <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">No active polls at this time. Check back soon for new construction proposals!</p>
                         </div>
                     </section>
 

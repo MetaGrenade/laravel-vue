@@ -18,6 +18,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SearchResultsController;
 use App\Http\Controllers\SupportCenterController;
 use App\Http\Controllers\UserNotificationController;
+use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -27,9 +28,7 @@ Route::get('/api/docs/openapi.json', ApiDocumentationController::class)
     ->name('api.docs.schema');
 
 //PUBLIC PAGES
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('home');
+Route::get('/', [WelcomeController::class, 'index'])->name('home');
 
 Route::get('/search', SearchController::class)->name('search');
 Route::get('/search/results', SearchResultsController::class)->name('search.results');
