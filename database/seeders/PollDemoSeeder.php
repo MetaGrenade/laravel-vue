@@ -57,6 +57,7 @@ class PollDemoSeeder extends Seeder
             PollVote::create([
                 'poll_id' => $poll->id,
                 'poll_option_id' => $option->id,
+                'vote_key' => $poll->allow_multiple ? $option->id : 0,
                 'user_id' => $voter->id,
             ]);
         }

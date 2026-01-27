@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Poll;
 use App\Models\PollOption;
 use App\Models\PollVote;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -47,11 +48,18 @@ class PollVoteController extends Controller
             ], 409);
         }
 
-        PollVote::create([
-            'poll_id' => $poll->id,
-            'poll_option_id' => $validated['option_id'],
-            'user_id' => $user->id,
-        ]);
+        try {
+            PollVote::create([
+                'poll_id' => $poll->id,
+                'poll_option_id' => $validated['option_id'],
+                'vote_key' => $poll->allow_multiple ? $validated['option_id'] : 0,
+                'user_id' => $user->id,
+            ]);
+        } catch (QueryException $exception) {
+            return response()->json([
+                'message' => 'You have already voted in this poll.',
+            ], 409);
+        }
 
         $poll->load(['options' => fn ($query) => $query->withCount('votes')]);
         $poll->loadCount('votes');
