@@ -29,7 +29,14 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withBroadcasting(__DIR__.'/../routes/channels.php')
+    ->withBroadcasting(
+        channels: __DIR__.'/../routes/channels.php',
+        attributes: [
+            // Use the web guard so session-authenticated users can authorize
+            // private and presence channels during feature tests.
+            'middleware' => ['web', 'auth:web'],
+        ],
+    )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance']);
 

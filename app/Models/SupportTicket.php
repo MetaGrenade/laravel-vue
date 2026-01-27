@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\SupportTicketAssignmentUpdated;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -66,6 +67,12 @@ class SupportTicket extends Model
 
     protected static function booted(): void
     {
+        static::updated(function (self $ticket): void {
+            if ($ticket->wasChanged(['assigned_to', 'support_team_id'])) {
+                event(new SupportTicketAssignmentUpdated($ticket));
+            }
+        });
+
         static::deleting(function (self $ticket): void {
             foreach ($ticket->messages()->cursor() as $message) {
                 $message->delete();
