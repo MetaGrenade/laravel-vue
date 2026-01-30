@@ -76,7 +76,6 @@ const props = defineProps<{
 }>();
 
 const hasBlogs = computed(() => (props.blogs.data?.length ?? 0) > 0);
-const featuredBlog = computed(() => props.blogs.data?.[0] ?? null);
 
 const defaultSort: BlogSortOption = 'latest';
 
@@ -223,50 +222,6 @@ const {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4 space-y-6">
-            <!-- Featured Post Section -->
-            <section v-if="featuredBlog">
-                <Link
-                    :href="route('blogs.view', { slug: featuredBlog.slug })"
-                    :aria-label="`Read featured blog: ${featuredBlog.title}`"
-                    class="group relative block h-64 overflow-hidden rounded-xl border border-sidebar-border/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-sidebar-border"
-                >
-                    <img
-                        :src="featuredBlog.cover_image || '/images/default-cover.jpg'"
-                        alt="Featured blog cover"
-                        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                    />
-                    <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
-                        <div class="flex flex-wrap gap-2 text-xs">
-                            <span
-                                v-for="category in featuredBlog.categories"
-                                :key="`featured-category-${category.id}`"
-                                class="inline-flex items-center rounded-full bg-primary/80 px-3 py-1 font-medium text-white"
-                            >
-                                {{ category.name }}
-                            </span>
-                            <span
-                                v-for="tag in featuredBlog.tags"
-                                :key="`featured-tag-${tag.id}`"
-                                class="inline-flex items-center rounded-full bg-black/50 px-3 py-1 font-medium text-white"
-                            >
-                                #{{ tag.name }}
-                            </span>
-                        </div>
-                        <h2 class="text-xl font-bold text-white">{{ featuredBlog.title }}</h2>
-                        <p v-if="featuredBlog.excerpt" class="mt-1 text-sm text-white line-clamp-2">
-                            {{ featuredBlog.excerpt }}
-                        </p>
-                        <p class="mt-2 text-xs text-white/80">
-                            {{ formatNumber(featuredBlog.views) }} views
-                            <span v-if="formatLastViewed(featuredBlog.last_viewed_at)">
-                                • Last read {{ formatLastViewed(featuredBlog.last_viewed_at) }}
-                            </span>
-                        </p>
-                        <span class="sr-only">Read more about {{ featuredBlog.title }}</span>
-                    </div>
-                </Link>
-            </section>
-
             <!-- Filters -->
             <section class="space-y-4 rounded-xl border border-sidebar-border/70 bg-background/60 p-4 shadow-sm dark:border-sidebar-border">
                 <div class="flex items-center justify-between gap-4">

@@ -110,11 +110,11 @@ const seo = {
 const activePolls = computed(() => props.activePolls ?? []);
 
 const affiliatedCrafters = [
-    { name: 'Raz', specialization: 'Armorsmith', level: 25, city: 'Joevah' },
-    { name: 'Lust', specialization: 'Leatherworker', level: 25, city: 'Joevah' },
-    { name: 'Dymera', specialization: 'Alchemist & Scribe', level: 25, city: 'Joevah' },
-    { name: 'Alexxandrya', specialization: 'Weaponsmith', level: 25, city: 'Joevah' },
-    { name: 'Arthas', specialization: 'Carpenter', level: 25, city: 'Joevah' },
+    { name: 'Raz', specialization: 'Armorsmith', level: 25, city: 'Joevah', itemLink: 'https://ashescodex.com/db/item/Gear_Armor_Heavy_RosariumGuard_Chest' },
+    { name: 'Lust', specialization: 'Leatherworker', level: 25, city: 'Joevah', itemLink: 'https://ashescodex.com/db/item/Leather_Armor' },
+    { name: 'Dymera', specialization: 'Alchemist & Scribe', level: 25, city: 'Joevah', itemLink: 'https://ashescodex.com/db/item/Health_Potion' },
+    { name: 'Alexxandrya', specialization: 'Weaponsmith', level: 25, city: 'Joevah', itemLink: 'https://ashescodex.com/db/item/Steel_Sword' },
+    { name: 'Arthas', specialization: 'Carpenter', level: 25, city: 'Joevah', itemLink: 'https://ashescodex.com/db/item/Wooden_Shield' },
 ];
 
 const supportingGuilds = [
@@ -158,7 +158,7 @@ const supportingMayors = [
                                     MetaGrenade for Mayor of Joevah
                                 </h1>
                                 <p class="mt-4 max-w-2xl text-base text-[#706f6c] dark:text-[#A1A09A]">
-                                    A proven Level 25 Fighter running for Mayor of Joevah on the Vyra realm. Join our campaign to build a stronger, more prosperous city through community-driven decisions and strategic partnerships.
+                                    A proven Level 25 <a href="https://ashescodex.com/db/class/Fighter" class="text-[#d4a574] dark:text-[#f4c430] hover:underline">Fighter</a> running for Mayor of <a href="https://ashescodex.com/db/poi/Joevah" class="text-[#d4a574] dark:text-[#f4c430] hover:underline">Joevah</a> on the <a href="https://ashescodex.com/db/poi/Vyra" class="text-[#d4a574] dark:text-[#f4c430] hover:underline">Vyra</a> realm. Join our campaign to build a stronger, more prosperous city through community-driven decisions and strategic partnerships.
                                 </p>
                             </div>
 
@@ -168,7 +168,7 @@ const supportingMayors = [
                                 </div>
                                 <div class="inline-flex items-center rounded-full bg-[#f9f3e6] px-3 py-1 text-xs font-medium text-[#8b5a00] dark:bg-[#261f14] dark:text-[#f3d29e]">
                                     <MapPin class="mr-1 h-3 w-3" />
-                                    Joevah, Vyra Realm
+                                    <a href="https://ashescodex.com/db/poi/Joevah" class="hover:underline">Joevah</a>, <a href="https://ashescodex.com/db/poi/Vyra" class="hover:underline">Vyra Realm</a>
                                 </div>
                                 <div class="inline-flex items-center rounded-full bg-[#e6eeff] px-3 py-1 text-xs font-medium text-[#1b1b18] dark:bg-[#1a1d26] dark:text-[#9ebff3]">
                                     Campaign Active
@@ -272,11 +272,11 @@ const supportingMayors = [
                                     >
                                         <div class="flex items-center justify-between text-sm">
                                             <span class="text-[#706f6c] dark:text-[#A1A09A]">{{ option.label }}</span>
-                                            <span class="font-semibold text-[#008b2c] dark:text-[#9ef3b6]">{{ option.votesCount }} votes ({{ option.votePercent }}%)</span>
+                                            <span class="font-semibold text-[#d4a574] dark:text-[#f4c430]">{{ option.votesCount }} votes ({{ option.votePercent }}%)</span>
                                         </div>
                                         <div v-if="poll.totalVotes > 0" class="h-2 w-full overflow-hidden rounded-full bg-[#f9f7f2] dark:bg-[#1c1b17]">
                                             <div
-                                                class="h-full bg-[#008b2c] dark:bg-[#9ef3b6] transition-all"
+                                                class="h-full bg-gradient-to-r from-[#d4a574] to-[#f4c430] dark:from-[#f4c430] dark:to-[#d4a574] transition-all"
                                                 :style="{ width: `${option.votePercent}%` }"
                                             ></div>
                                         </div>
@@ -306,10 +306,15 @@ const supportingMayors = [
                             >
                                 <div class="flex items-start justify-between gap-2">
                                     <Hammer class="h-5 w-5 text-[#8b5a00] dark:text-[#f3d29e] flex-shrink-0 mt-0.5" />
-                                    <span class="text-xs font-semibold text-[#008b2c] dark:text-[#9ef3b6]">Level {{ crafter.level }}</span>
+                                    <span class="text-xs font-semibold text-[#d4a574] dark:text-[#f4c430]">Level {{ crafter.level }}</span>
                                 </div>
                                 <h3 class="mt-3 text-lg font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">{{ crafter.name }}</h3>
-                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">{{ crafter.specialization }}</p>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    {{ crafter.specialization }}
+                                    <span v-if="crafter.itemLink" class="ml-2">
+                                        <a :href="crafter.itemLink" class="text-[#d4a574] dark:text-[#f4c430] hover:underline text-xs">View Example Item</a>
+                                    </span>
+                                </p>
                                 <div class="mt-4 flex items-center gap-2 text-xs text-[#706f6c] dark:text-[#A1A09A]">
                                     <MapPin class="h-3 w-3" />
                                     <span>{{ crafter.city }}</span>
