@@ -139,6 +139,11 @@ class SupportAttachmentStorage
      * Move an attachment from the disk it was originally stored on (the public
      * disk, before this was fixed) to the configured private disk.
      *
+     * The row is only pointed at the private disk once the original has really
+     * been removed. If the original cannot be deleted the row keeps naming it,
+     * so the attachment stays eligible for the next run and the failure is
+     * reported instead of leaving a publicly reachable copy that looks moved.
+     *
      * @return self::MOVED|self::SKIPPED|self::MISSING|self::FAILED
      */
     public function privatize(SupportTicketMessageAttachment $attachment): string
@@ -149,31 +154,53 @@ class SupportAttachmentStorage
             return self::SKIPPED;
         }
 
-        $source = Storage::disk((string) $attachment->disk);
+        $path = $attachment->path;
 
-        if (! $attachment->path || ! $source->exists($attachment->path)) {
+        if (! $path) {
             return self::MISSING;
         }
 
+        $source = Storage::disk((string) $attachment->disk);
+        $destination = Storage::disk($target);
+
         try {
-            $stream = $source->readStream($attachment->path);
+            if (! $source->exists($path)) {
+                // A previous run may have copied the file and deleted the
+                // original but stopped before updating the row; finish that.
+                if ($destination->exists($path)) {
+                    $attachment->forceFill(['disk' => $target])->save();
+
+                    return self::MOVED;
+                }
+
+                return self::MISSING;
+            }
+
+            $stream = $source->readStream($path);
 
             if (! is_resource($stream)) {
                 return self::FAILED;
             }
 
-            $written = Storage::disk($target)->writeStream($attachment->path, $stream, ['visibility' => 'private']);
-
-            if (is_resource($stream)) {
-                fclose($stream);
+            try {
+                $written = $destination->writeStream($path, $stream, ['visibility' => 'private']);
+            } finally {
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
             }
 
             if ($written === false) {
                 return self::FAILED;
             }
 
+            // delete() reports failure by returning false rather than throwing.
+            // Leave the row on the original disk in that case so it is retried.
+            if (! $source->delete($path)) {
+                return self::FAILED;
+            }
+
             $attachment->forceFill(['disk' => $target])->save();
-            $source->delete($attachment->path);
 
             return self::MOVED;
         } catch (Throwable $exception) {

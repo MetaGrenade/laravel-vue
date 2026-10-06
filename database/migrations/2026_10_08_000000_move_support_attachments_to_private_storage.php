@@ -3,6 +3,7 @@
 use App\Models\SupportTicketMessageAttachment;
 use App\Support\SupportAttachmentStorage;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -21,15 +22,23 @@ return new class extends Migration
         }
 
         $storage = app(SupportAttachmentStorage::class);
+        $failed = 0;
 
         SupportTicketMessageAttachment::query()
             ->where('disk', '!=', $storage->disk())
             ->orderBy('id')
-            ->chunkById(100, function ($attachments) use ($storage) {
+            ->chunkById(100, function ($attachments) use ($storage, &$failed) {
                 foreach ($attachments as $attachment) {
-                    $storage->privatize($attachment);
+                    if ($storage->privatize($attachment) === SupportAttachmentStorage::FAILED) {
+                        $failed++;
+                    }
                 }
             });
+
+        if ($failed > 0) {
+            // Do not fail the deployment, but make the problem impossible to miss.
+            Log::critical("{$failed} support attachment(s) could not be moved off the public disk and may still be publicly reachable. Fix the cause and run `php artisan support:attachments:privatize`.");
+        }
     }
 
     public function down(): void

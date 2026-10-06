@@ -35,6 +35,8 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 - **Security:** support-ticket attachments were reachable by anyone with the URL.
 - `SupportTicketMessage::ticket()` and `SupportTicketAudit::ticket()` looked for a nonexistent `ticket_id` column and always returned `null`.
 - The blog status migration did nothing on PostgreSQL, where the old CHECK constraint rejected the `scheduled` status.
+- Rolling back the blog status migration now turns `scheduled` posts into drafts first, so the rollback no longer fails once any post has used that status.
+- Moving legacy support attachments to the private disk now keeps a row on its original disk when the original file cannot be deleted, so the move is retried and reported instead of looking complete while a public copy remains.
 
 ## Before the changelog
 

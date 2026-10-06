@@ -10,6 +10,7 @@ use App\Support\SupportAttachmentStorage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -229,5 +230,58 @@ class SupportAttachmentDownloadTest extends TestCase
         $this->artisan('support:attachments:privatize')->assertSuccessful();
 
         $this->assertSame('public', $legacy->fresh()->disk);
+    }
+
+    #[Test]
+    public function a_failed_delete_of_the_original_keeps_the_attachment_eligible_for_retry(): void
+    {
+        Storage::fake('local');
+        $public = Storage::fake('public');
+        $legacy = $this->attachment(disk: 'public');
+
+        // The adapter reports a failed delete by returning false, not by throwing.
+        $failing = Mockery::mock($public)->makePartial();
+        $failing->shouldReceive('delete')->andReturn(false);
+        Storage::set('public', $failing);
+
+        $result = app(SupportAttachmentStorage::class)->privatize($legacy->fresh());
+
+        $this->assertSame(SupportAttachmentStorage::FAILED, $result);
+        // Still pointing at the original, so the next run picks it up again...
+        $this->assertSame('public', $legacy->fresh()->disk);
+        Storage::disk('public')->assertExists($legacy->path);
+
+        // ...and the command reports the problem instead of claiming success.
+        $this->artisan('support:attachments:privatize')
+            ->expectsOutputToContain('could not be moved')
+            ->assertFailed();
+        $this->assertSame('public', $legacy->fresh()->disk);
+
+        // Once deletion works again, the retry completes the move.
+        Storage::set('public', $public);
+
+        $this->artisan('support:attachments:privatize')->assertSuccessful();
+
+        $legacy->refresh();
+        $this->assertSame('local', $legacy->disk);
+        Storage::disk('local')->assertExists($legacy->path);
+        Storage::disk('public')->assertMissing($legacy->path);
+    }
+
+    #[Test]
+    public function an_interrupted_move_is_completed_on_the_next_run(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+        $legacy = $this->attachment(disk: 'public');
+
+        // The copy was made and the original deleted, but the row was never updated.
+        Storage::disk('local')->put($legacy->path, 'private ticket contents');
+        Storage::disk('public')->delete($legacy->path);
+
+        $result = app(SupportAttachmentStorage::class)->privatize($legacy->fresh());
+
+        $this->assertSame(SupportAttachmentStorage::MOVED, $result);
+        $this->assertSame('local', $legacy->fresh()->disk);
     }
 }

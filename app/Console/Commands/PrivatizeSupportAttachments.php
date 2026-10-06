@@ -42,6 +42,10 @@ class PrivatizeSupportAttachments extends Command
             $this->warn('Some attachments had no file on disk; their rows were left untouched.');
         }
 
+        if ($counts[SupportAttachmentStorage::FAILED] > 0) {
+            $this->error('Some attachments could not be moved, or their original could not be deleted. They stay on their original disk and may still be publicly reachable. Fix the cause (permissions, disk errors; see the log) and run this command again.');
+        }
+
         return $counts[SupportAttachmentStorage::FAILED] > 0 ? self::FAILURE : self::SUCCESS;
     }
 }
