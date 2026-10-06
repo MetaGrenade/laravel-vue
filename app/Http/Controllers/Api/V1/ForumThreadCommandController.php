@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Support\Security\HtmlSanitizer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Forum\StoreForumThreadRequest;
 use App\Http\Requests\Api\V1\Forum\UpdateForumThreadRequest;
@@ -32,7 +33,7 @@ class ForumThreadCommandController extends Controller
         $validated = $request->validated();
 
         $title = trim((string) $validated['title']);
-        $body = trim((string) $validated['body']);
+        $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
         if ($bodyText === '') {

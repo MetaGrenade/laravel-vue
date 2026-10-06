@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Security\HtmlSanitizer;
 use App\Events\ForumPostCreated;
 use App\Models\ForumBoard;
 use App\Models\ForumPost;
@@ -39,7 +40,7 @@ class ForumPostController extends Controller
             'body' => ['required', 'string', 'max:5000'],
         ]);
 
-        $body = trim($validated['body']);
+        $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
         if ($bodyText === '') {
@@ -134,7 +135,7 @@ class ForumPostController extends Controller
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $body = trim($validated['body']);
+        $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
         if ($bodyText === '') {

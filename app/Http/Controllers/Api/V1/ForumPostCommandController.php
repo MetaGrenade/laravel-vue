@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Support\Security\HtmlSanitizer;
 use App\Events\ForumPostCreated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Forum\StoreForumPostRequest;
@@ -37,7 +38,7 @@ class ForumPostCommandController extends Controller
 
         $validated = $request->validated();
 
-        $body = trim($validated['body']);
+        $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
         if ($bodyText === '') {
@@ -115,7 +116,7 @@ class ForumPostCommandController extends Controller
 
         $validated = $request->validated();
 
-        $body = trim($validated['body']);
+        $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
         if ($bodyText === '') {

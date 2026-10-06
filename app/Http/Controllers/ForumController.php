@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Security\HtmlSanitizer;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Resources\MentionSuggestionResource;
 use App\Models\Badge;
@@ -542,7 +543,7 @@ class ForumController extends Controller
         ]);
 
         $title = trim((string) $validated['title']);
-        $body = trim((string) $validated['body']);
+        $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
         if ($bodyText === '') {
