@@ -88,11 +88,11 @@ class ForumReportController extends Controller
 
         if ($search !== null) {
             $threadQuery->whereHas('thread', function ($query) use ($search) {
-                $query->where('title', 'like', "%{$search}%");
+                $query->whereLike('title', "%{$search}%");
             });
 
             $postQuery->whereHas('post.thread', function ($query) use ($search) {
-                $query->where('title', 'like', "%{$search}%");
+                $query->whereLike('title', "%{$search}%");
             });
         }
 

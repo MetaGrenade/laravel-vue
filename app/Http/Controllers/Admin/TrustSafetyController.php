@@ -61,8 +61,8 @@ class TrustSafetyController extends Controller
             $exportQuery->where(function ($query) use ($search) {
                 $query->whereHas('user', function ($query) use ($search) {
                     $query
-                        ->where('email', 'like', "%{$search}%")
-                        ->orWhere('nickname', 'like', "%{$search}%");
+                        ->whereLike('email', "%{$search}%")
+                        ->orWhereLike('nickname', "%{$search}%");
                 })
                     ->orWhere('id', $search);
             });
@@ -107,8 +107,8 @@ class TrustSafetyController extends Controller
             $erasureQuery->where(function ($query) use ($search) {
                 $query->whereHas('user', function ($query) use ($search) {
                     $query
-                        ->where('email', 'like', "%{$search}%")
-                        ->orWhere('nickname', 'like', "%{$search}%");
+                        ->whereLike('email', "%{$search}%")
+                        ->orWhereLike('nickname', "%{$search}%");
                 })
                     ->orWhere('id', $search);
             });

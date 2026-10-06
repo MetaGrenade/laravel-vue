@@ -359,24 +359,24 @@ class SupportController extends Controller
 
                 $query->where(function ($query) use ($like) {
                     $query
-                        ->where('subject', 'like', $like)
-                        ->orWhere('body', 'like', $like)
-                        ->orWhere('status', 'like', $like)
-                        ->orWhere('priority', 'like', $like)
+                        ->whereLike('subject', $like)
+                        ->orWhereLike('body', $like)
+                        ->orWhereLike('status', $like)
+                        ->orWhereLike('priority', $like)
                         ->orWhereHas('user', function ($query) use ($like) {
                             $query
-                                ->where('nickname', 'like', $like)
-                                ->orWhere('email', 'like', $like);
+                                ->whereLike('nickname', $like)
+                                ->orWhereLike('email', $like);
                         })
                         ->orWhereHas('assignee', function ($query) use ($like) {
                             $query
-                                ->where('nickname', 'like', $like)
-                                ->orWhere('email', 'like', $like);
+                                ->whereLike('nickname', $like)
+                                ->orWhereLike('email', $like);
                         })
                         ->orWhereHas('resolver', function ($query) use ($like) {
                             $query
-                                ->where('nickname', 'like', $like)
-                                ->orWhere('email', 'like', $like);
+                                ->whereLike('nickname', $like)
+                                ->orWhereLike('email', $like);
                         });
                 });
             })
@@ -407,8 +407,8 @@ class SupportController extends Controller
 
                 $query->where(function ($query) use ($like) {
                     $query
-                        ->where('question', 'like', $like)
-                        ->orWhere('answer', 'like', $like);
+                        ->whereLike('question', $like)
+                        ->orWhereLike('answer', $like);
                 });
             });
 
@@ -843,8 +843,8 @@ class SupportController extends Controller
         $results = User::query()
             ->where(function ($query) use ($like) {
                 $query
-                    ->where('nickname', 'like', $like)
-                    ->orWhere('email', 'like', $like);
+                    ->whereLike('nickname', $like)
+                    ->orWhereLike('email', $like);
             })
             ->orderBy('nickname')
             ->limit(10)

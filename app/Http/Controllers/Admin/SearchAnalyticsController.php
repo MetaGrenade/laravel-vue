@@ -191,7 +191,7 @@ class SearchAnalyticsController extends Controller
         $query = SearchQuery::query();
 
         if ($term = $filters['term'] ?? null) {
-            $query->where('term', 'like', '%'.$term.'%');
+            $query->whereLike('term', '%'.$term.'%');
         }
 
         if (! empty($filters['date_from'])) {

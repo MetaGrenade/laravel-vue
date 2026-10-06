@@ -73,7 +73,7 @@ class BlogCommentController extends Controller
             });
 
         if ($search !== null) {
-            $commentsQuery->where('body', 'like', "%{$search}%");
+            $commentsQuery->whereLike('body', "%{$search}%");
         }
 
         $commentsQuery->when($sort === 'most_reported', function ($query) {

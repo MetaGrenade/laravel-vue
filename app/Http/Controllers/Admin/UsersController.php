@@ -43,10 +43,10 @@ class UsersController extends Controller
                 $like = "%{$search}%";
 
                 $query
-                    ->where('nickname', 'like', $like)
-                    ->orWhere('email', 'like', $like)
+                    ->whereLike('nickname', $like)
+                    ->orWhereLike('email', $like)
                     ->orWhereHas('roles', function ($roleQuery) use ($like) {
-                        $roleQuery->where('name', 'like', $like);
+                        $roleQuery->whereLike('name', $like);
                     });
             });
         }

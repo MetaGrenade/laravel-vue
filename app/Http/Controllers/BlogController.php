@@ -71,8 +71,8 @@ class BlogController extends Controller
 
         if ($searchFilter->isNotEmpty()) {
             $blogsQuery->where(function ($query) use ($searchFilter) {
-                $query->where('title', 'like', '%'.$searchFilter->toString().'%')
-                    ->orWhere('excerpt', 'like', '%'.$searchFilter->toString().'%');
+                $query->whereLike('title', '%'.$searchFilter->toString().'%')
+                    ->orWhereLike('excerpt', '%'.$searchFilter->toString().'%');
             });
         }
 

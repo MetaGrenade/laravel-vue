@@ -91,13 +91,13 @@ class BillingController extends Controller
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery
-                        ->where('stripe_id', 'like', "%{$search}%")
+                        ->whereLike('stripe_id', "%{$search}%")
                         ->orWhereHas('user', function ($userQuery) use ($search) {
-                            $userQuery->where('nickname', 'like', "%{$search}%")
-                                ->orWhere('email', 'like', "%{$search}%");
+                            $userQuery->whereLike('nickname', "%{$search}%")
+                                ->orWhereLike('email', "%{$search}%");
                         })
                         ->orWhereHas('plan', function ($planQuery) use ($search) {
-                            $planQuery->where('name', 'like', "%{$search}%");
+                            $planQuery->whereLike('name', "%{$search}%");
                         });
                 });
             })

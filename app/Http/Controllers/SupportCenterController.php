@@ -91,13 +91,13 @@ class SupportCenterController extends Controller
 
                     $query->where(function ($query) use ($like) {
                         $query
-                            ->where('subject', 'like', $like)
-                            ->orWhere('status', 'like', $like)
-                            ->orWhere('priority', 'like', $like)
+                            ->whereLike('subject', $like)
+                            ->orWhereLike('status', $like)
+                            ->orWhereLike('priority', $like)
                             ->orWhereHas('assignee', function ($query) use ($like) {
                                 $query
-                                    ->where('nickname', 'like', $like)
-                                    ->orWhere('email', 'like', $like);
+                                    ->whereLike('nickname', $like)
+                                    ->orWhereLike('email', $like);
                             });
                     });
                 })
@@ -169,8 +169,8 @@ class SupportCenterController extends Controller
 
                 $query->where(function ($query) use ($like) {
                     $query
-                        ->where('question', 'like', $like)
-                        ->orWhere('answer', 'like', $like);
+                        ->whereLike('question', $like)
+                        ->orWhereLike('answer', $like);
                 });
             })
             ->orderBy('order')

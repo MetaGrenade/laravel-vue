@@ -8,7 +8,6 @@ use App\Models\ForumThread;
 use App\Support\WebsiteSections;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class GlobalSearchService
@@ -82,34 +81,20 @@ class GlobalSearchService
                             ->where('blogs.scheduled_for', '<=', now());
                     });
             })
-            ->when($this->supportsFullText(), function ($query) use ($term) {
-                $query->whereRaw('MATCH(blogs.title, blogs.excerpt, blogs.body) AGAINST (? IN BOOLEAN MODE)', [$this->fullTextBooleanTerm($term)]);
-            }, function ($query) use ($term) {
+            ->where(function ($query) use ($term) {
                 $likeTerm = $this->likeTerm($term);
 
-                $query->where(function ($query) use ($likeTerm) {
-                    $query->where('blogs.title', 'like', $likeTerm)
-                        ->orWhere('blogs.excerpt', 'like', $likeTerm)
-                        ->orWhere('blogs.body', 'like', $likeTerm)
-                        ->orWhere('users.nickname', 'like', $likeTerm);
-                });
+                $query->whereLike('blogs.title', $likeTerm)
+                    ->orWhereLike('blogs.excerpt', $likeTerm)
+                    ->orWhereLike('blogs.body', $likeTerm)
+                    ->orWhereLike('users.nickname', $likeTerm);
             })
-            ->when(
-                ! $this->supportsFullText(),
-                fn ($query) => $this->selectRelevance($query, [
-                    'blogs.title' => 5,
-                    'blogs.excerpt' => 3,
-                    'blogs.body' => 3,
-                    'users.nickname' => 2,
-                ], $term),
-            )
-            ->when(
-                $this->supportsFullText(),
-                fn ($query) => $query->selectRaw(
-                    'MATCH(blogs.title, blogs.excerpt, blogs.body) AGAINST (? IN BOOLEAN MODE) as relevance',
-                    [$this->fullTextBooleanTerm($term)],
-                ),
-            )
+            ->selectRaw(...$this->relevanceExpression([
+                'blogs.title' => 5,
+                'blogs.excerpt' => 3,
+                'blogs.body' => 3,
+                'users.nickname' => 2,
+            ], $term))
             ->with(['user:id,nickname'])
             ->orderByDesc('relevance')
             ->orderByDesc('blogs.published_at')
@@ -167,32 +152,18 @@ class GlobalSearchService
             ])
             ->leftJoin('users', 'users.id', '=', 'forum_threads.user_id')
             ->where('forum_threads.is_published', true)
-            ->when($this->supportsFullText(), function ($query) use ($term) {
-                $query->whereRaw('MATCH(forum_threads.title, forum_threads.excerpt) AGAINST (? IN BOOLEAN MODE)', [$this->fullTextBooleanTerm($term)]);
-            }, function ($query) use ($term) {
+            ->where(function ($query) use ($term) {
                 $likeTerm = $this->likeTerm($term);
 
-                $query->where(function ($query) use ($likeTerm) {
-                    $query->where('forum_threads.title', 'like', $likeTerm)
-                        ->orWhere('forum_threads.excerpt', 'like', $likeTerm)
-                        ->orWhere('users.nickname', 'like', $likeTerm);
-                });
+                $query->whereLike('forum_threads.title', $likeTerm)
+                    ->orWhereLike('forum_threads.excerpt', $likeTerm)
+                    ->orWhereLike('users.nickname', $likeTerm);
             })
-            ->when(
-                ! $this->supportsFullText(),
-                fn ($query) => $this->selectRelevance($query, [
-                    'forum_threads.title' => 5,
-                    'forum_threads.excerpt' => 3,
-                    'users.nickname' => 2,
-                ], $term),
-            )
-            ->when(
-                $this->supportsFullText(),
-                fn ($query) => $query->selectRaw(
-                    'MATCH(forum_threads.title, forum_threads.excerpt) AGAINST (? IN BOOLEAN MODE) as relevance',
-                    [$this->fullTextBooleanTerm($term)],
-                ),
-            )
+            ->selectRaw(...$this->relevanceExpression([
+                'forum_threads.title' => 5,
+                'forum_threads.excerpt' => 3,
+                'users.nickname' => 2,
+            ], $term))
             ->with(['board:id,slug,title'])
             ->with(['author:id,nickname'])
             ->orderByDesc('relevance')
@@ -244,32 +215,18 @@ class GlobalSearchService
             ->select(['faqs.id', 'faqs.faq_category_id', 'faqs.question', 'faqs.answer'])
             ->leftJoin('faq_categories', 'faq_categories.id', '=', 'faqs.faq_category_id')
             ->where('faqs.published', true)
-            ->when($this->supportsFullText(), function ($query) use ($term) {
-                $query->whereRaw('MATCH(faqs.question, faqs.answer) AGAINST (? IN BOOLEAN MODE)', [$this->fullTextBooleanTerm($term)]);
-            }, function ($query) use ($term) {
+            ->where(function ($query) use ($term) {
                 $likeTerm = $this->likeTerm($term);
 
-                $query->where(function ($query) use ($likeTerm) {
-                    $query->where('faqs.question', 'like', $likeTerm)
-                        ->orWhere('faqs.answer', 'like', $likeTerm)
-                        ->orWhere('faq_categories.name', 'like', $likeTerm);
-                });
+                $query->whereLike('faqs.question', $likeTerm)
+                    ->orWhereLike('faqs.answer', $likeTerm)
+                    ->orWhereLike('faq_categories.name', $likeTerm);
             })
-            ->when(
-                ! $this->supportsFullText(),
-                fn ($query) => $this->selectRelevance($query, [
-                    'faqs.question' => 5,
-                    'faqs.answer' => 3,
-                    'faq_categories.name' => 2,
-                ], $term),
-            )
-            ->when(
-                $this->supportsFullText(),
-                fn ($query) => $query->selectRaw(
-                    'MATCH(faqs.question, faqs.answer) AGAINST (? IN BOOLEAN MODE) as relevance',
-                    [$this->fullTextBooleanTerm($term)],
-                ),
-            )
+            ->selectRaw(...$this->relevanceExpression([
+                'faqs.question' => 5,
+                'faqs.answer' => 3,
+                'faq_categories.name' => 2,
+            ], $term))
             ->orderByDesc('relevance')
             ->orderBy('faqs.order')
             ->orderBy('faqs.question');
@@ -401,16 +358,6 @@ class GlobalSearchService
 
     /**
      * @param  array<string, int>  $columns
-     */
-    private function selectRelevance($query, array $columns, string $term): void
-    {
-        [$expression, $bindings] = $this->relevanceExpression($columns, $term);
-
-        $query->selectRaw($expression, $bindings);
-    }
-
-    /**
-     * @param  array<string, int>  $columns
      * @return array{0: string, 1: array<int, string>}
      */
     private function relevanceExpression(array $columns, string $term): array
@@ -506,20 +453,5 @@ class GlobalSearchService
     private function likeTerm(string $term): string
     {
         return '%'.Str::lower($term).'%';
-    }
-
-    private function supportsFullText(): bool
-    {
-        return config('database.default') === 'mysql' && config('search.driver') === 'mysql_fulltext';
-    }
-
-    private function fullTextBooleanTerm(string $term): string
-    {
-        $keywords = Collection::make(preg_split('/\s+/', trim($term)))
-            ->filter()
-            ->map(fn ($value) => '+'.$value.'*')
-            ->implode(' ');
-
-        return $keywords !== '' ? $keywords : $term;
     }
 }
