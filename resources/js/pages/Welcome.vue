@@ -512,8 +512,10 @@ const faqs = [
                     <div
                         class="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)] opacity-60 dark:opacity-100"
                     />
+                    <!-- Light bleeding in from the corners: a violet glow from the bottom right and a soft sheen from the top left. Amber is kept for the button so it stays the single high-contrast accent. -->
                     <div
-                        class="pointer-events-none absolute -top-24 -right-16 size-72 rounded-full bg-[radial-gradient(closest-side,hsl(var(--highlight)/0.5),transparent)]"
+                        class="pointer-events-none absolute inset-0 bg-[radial-gradient(75%_130%_at_100%_100%,hsl(285_85%_62%/0.5),transparent_62%),radial-gradient(60%_110%_at_0%_0%,hsl(0_0%_100%/0.16),transparent_60%)] dark:bg-[radial-gradient(75%_130%_at_100%_100%,hsl(270_80%_60%/0.22),transparent_62%),radial-gradient(60%_110%_at_0%_0%,hsl(var(--primary)/0.22),transparent_60%)]"
+                        aria-hidden="true"
                     />
                     <div class="relative">
                         <h2 class="text-3xl font-semibold tracking-tight">Start building your product today</h2>
