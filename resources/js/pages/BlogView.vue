@@ -390,7 +390,7 @@ const shareLinks = computed(() => ({
         <Head :title="blog.title" />
         <div class="container mx-auto px-4 py-8">
             <!-- Blog Post Content -->
-            <div class="mb-8 rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
+            <div class="mb-8 rounded-xl border border-border bg-card p-6 shadow-sm">
                 <div v-if="coverImage" class="mb-6 overflow-hidden rounded-lg">
                     <img :src="coverImage" alt="Blog cover" class="h-64 w-full object-cover" />
                 </div>
@@ -427,7 +427,7 @@ const shareLinks = computed(() => ({
                 <div class="prose max-w-none" v-html="blog.body"></div>
             </div>
 
-            <div v-if="showAuthorCard" class="mb-8 rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
+            <div v-if="showAuthorCard" class="mb-8 rounded-xl border border-border bg-card p-6 shadow-sm">
                 <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
                     <Avatar class="h-20 w-20">
                         <AvatarImage v-if="authorAvatarUrl" :src="authorAvatarUrl" :alt="authorName" />
@@ -458,9 +458,7 @@ const shareLinks = computed(() => ({
             </div>
 
             <!-- Share Section -->
-            <div
-                class="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
-            >
+            <div class="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
                 <span class="text-lg font-semibold">Share this post:</span>
                 <div class="flex flex-wrap gap-2">
                     <Button as="a" :href="shareLinks.facebook" target="_blank" rel="noopener noreferrer" variant="ghost" class="flex items-center">
@@ -482,7 +480,7 @@ const shareLinks = computed(() => ({
             </div>
 
             <!-- Recommendations Section -->
-            <div v-if="recommendations.length" class="mb-8 rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
+            <div v-if="recommendations.length" class="mb-8 rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h2 class="mb-4 text-2xl font-semibold">Recommended articles</h2>
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <Link
@@ -515,7 +513,7 @@ const shareLinks = computed(() => ({
                 </div>
             </div>
 
-            <div class="mb-8 rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
+            <div class="mb-8 rounded-xl border border-border bg-card p-6 shadow-sm">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="space-y-1">
                         <h2 class="text-xl font-semibold text-foreground">Stay in the loop</h2>

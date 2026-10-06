@@ -280,10 +280,10 @@ const formatFileSize = (bytes: number) => {
         <Head :title="`Ticket #${props.ticket.id}`" />
 
         <div class="container mx-auto flex flex-1 flex-col gap-6 p-4">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <header class="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-xs lg:flex-row lg:items-start lg:justify-between">
                 <div>
                     <p class="text-sm text-muted-foreground">Ticket #{{ props.ticket.id }}</p>
-                    <h1 class="text-3xl font-semibold tracking-tight">{{ props.ticket.subject }}</h1>
+                    <h1 class="text-2xl font-semibold tracking-tight">{{ props.ticket.subject }}</h1>
                     <p class="mt-2 max-w-2xl text-sm text-muted-foreground">
                         View the full conversation with our support team and keep the discussion moving forward.
                     </p>
@@ -295,7 +295,7 @@ const formatFileSize = (bytes: number) => {
                         <Link :href="route('support')">Back to Support</Link>
                     </Button>
                 </div>
-            </div>
+            </header>
 
             <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                 <Card class="flex flex-col">

@@ -794,7 +794,7 @@ const submitReport = async () => {
 </script>
 
 <template>
-    <div class="rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
+    <div class="rounded-xl border border-border bg-card p-6 shadow-sm">
         <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-2xl font-bold">Comments</h2>
             <div class="flex items-center gap-2 text-sm">
@@ -814,13 +814,10 @@ const submitReport = async () => {
             </div>
         </div>
 
-        <div
-            v-if="!commentsEnabled"
-            class="mb-8 rounded-lg border border-dashed border-sidebar-border/70 p-4 text-sm text-muted-foreground dark:border-sidebar-border"
-        >
+        <div v-if="!commentsEnabled" class="mb-8 rounded-lg border border-dashed border-border bg-card p-4 text-sm text-muted-foreground">
             <p>Comments are disabled for this post.</p>
         </div>
-        <div v-else-if="authUser" class="mb-8 space-y-3 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+        <div v-else-if="authUser" class="mb-8 space-y-3 rounded-lg border border-border bg-card p-4">
             <h3 class="text-lg font-semibold">Join the conversation</h3>
             <Textarea v-model="newComment" rows="4" placeholder="Share your thoughts..." class="w-full" />
             <Input
@@ -839,10 +836,7 @@ const submitReport = async () => {
                 </Button>
             </div>
         </div>
-        <div
-            v-else
-            class="mb-8 rounded-lg border border-dashed border-sidebar-border/70 p-4 text-sm text-muted-foreground dark:border-sidebar-border"
-        >
+        <div v-else class="mb-8 rounded-lg border border-dashed border-border bg-card p-4 text-sm text-muted-foreground">
             <p>
                 <a :href="route('login')" class="font-medium text-primary hover:underline">Sign in</a>
                 to join the discussion.
@@ -857,7 +851,7 @@ const submitReport = async () => {
                 v-for="comment in sortedComments"
                 :key="comment.id"
                 :id="`comment-${comment.id}`"
-                class="rounded-lg border border-sidebar-border/50 p-4 dark:border-sidebar-border/80"
+                class="/80 rounded-lg border border-sidebar-border/50 bg-card p-4"
             >
                 <div class="flex gap-4">
                     <Avatar size="sm" class="mt-1">

@@ -354,7 +354,7 @@ const faqs = [
         </section>
 
         <!-- Features -->
-        <section class="relative overflow-hidden bg-background bg-wash-primary" aria-labelledby="features-heading">
+        <section class="relative overflow-hidden bg-background bg-wash-primary cv-auto" aria-labelledby="features-heading">
             <div class="pointer-events-none absolute inset-0 bg-dots [mask-image:linear-gradient(to_bottom,black,transparent_55%)]" />
             <div class="relative container-app py-20 lg:py-24">
                 <div class="reveal mx-auto max-w-2xl text-center">
@@ -381,7 +381,11 @@ const faqs = [
         </section>
 
         <!-- Live modules -->
-        <section v-if="modules.length" class="relative overflow-hidden border-y bg-surface bg-wash-highlight" aria-labelledby="modules-heading">
+        <section
+            v-if="modules.length"
+            class="relative overflow-hidden border-y bg-surface bg-wash-highlight cv-auto"
+            aria-labelledby="modules-heading"
+        >
             <div class="pointer-events-none absolute inset-0 bg-grid [mask-image:linear-gradient(to_bottom,transparent,black_40%,transparent)]" />
             <div class="relative container-app py-20 lg:py-24">
                 <div class="reveal flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -398,12 +402,12 @@ const faqs = [
                     </Button>
                 </div>
 
-                <div class="mt-10 grid gap-4 sm:grid-cols-2" :class="modules.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'">
+                <div class="reveal mt-10 grid gap-4 sm:grid-cols-2" :class="modules.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'">
                     <Link
                         v-for="module in modules"
                         :key="module.key"
                         :href="module.href"
-                        class="group reveal flex flex-col rounded-xl border bg-card p-6 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                        class="group flex flex-col rounded-xl border bg-card p-6 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                     >
                         <span class="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <component :is="module.icon" class="size-5" />
@@ -420,14 +424,14 @@ const faqs = [
         </section>
 
         <!-- Getting started -->
-        <section class="bg-background" aria-labelledby="steps-heading">
+        <section class="bg-background cv-auto" aria-labelledby="steps-heading">
             <div class="container-app py-20 lg:py-24">
                 <div class="reveal max-w-2xl">
                     <p class="eyebrow">Getting started</p>
                     <h2 id="steps-heading" class="mt-3 text-3xl font-semibold tracking-tight">From clone to launch in four steps</h2>
                 </div>
-                <ol class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                    <li v-for="(step, index) in steps" :key="step.title" class="reveal relative rounded-xl border bg-card p-5 shadow-xs">
+                <ol class="reveal mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <li v-for="(step, index) in steps" :key="step.title" class="relative rounded-xl border bg-card p-5 shadow-xs">
                         <span
                             class="flex size-7 items-center justify-center rounded-full bg-highlight text-sm font-semibold text-highlight-foreground tabular-nums"
                         >
@@ -441,7 +445,7 @@ const faqs = [
         </section>
 
         <!-- Stack details -->
-        <section class="relative overflow-hidden border-y bg-surface" aria-labelledby="tech-heading">
+        <section class="relative overflow-hidden border-y bg-surface cv-auto" aria-labelledby="tech-heading">
             <div class="pointer-events-none absolute inset-0 bg-stripes [mask-image:linear-gradient(to_bottom_right,black,transparent_60%)]" />
             <div class="relative container-app grid gap-12 py-20 lg:grid-cols-[1fr_2fr] lg:py-24">
                 <div class="reveal">
@@ -464,8 +468,8 @@ const faqs = [
                         </li>
                     </ul>
                 </div>
-                <div class="grid gap-4 sm:grid-cols-3">
-                    <div v-for="group in stack" :key="group.title" class="reveal rounded-xl border bg-card p-6 shadow-xs">
+                <div class="reveal grid gap-4 sm:grid-cols-3">
+                    <div v-for="group in stack" :key="group.title" class="rounded-xl border bg-card p-6 shadow-xs">
                         <h3 class="font-semibold">{{ group.title }}</h3>
                         <ul class="mt-4 space-y-2.5">
                             <li v-for="item in group.items" :key="item" class="flex gap-2 text-sm text-muted-foreground">
@@ -479,7 +483,7 @@ const faqs = [
         </section>
 
         <!-- FAQ -->
-        <section class="bg-background" aria-labelledby="faq-heading">
+        <section class="bg-background cv-auto" aria-labelledby="faq-heading">
             <div class="container-app grid gap-12 py-20 lg:grid-cols-[1fr_2fr] lg:py-24">
                 <div class="reveal">
                     <p class="eyebrow">FAQ</p>

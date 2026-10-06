@@ -199,7 +199,6 @@
 
     body {
         @apply bg-background text-foreground;
-        font-feature-settings: 'cv11', 'ss01';
     }
 
     h1,
@@ -269,28 +268,48 @@
 }
 
 /*
- * Page backdrop: soft indigo and amber glows at the top of the page plus a
- * faint grid that fades out. Plain gradients only (no filters or blur), so it
- * costs nothing to paint or scroll.
+ * Page backdrop: soft indigo and amber glows plus a faint grid, confined to a
+ * short layer at the top of the page that fades out. Keeping it small and
+ * static means long pages never rasterise gradients below the fold, and page
+ * content further down sits on a plain surface colour with no lines behind it.
+ * Plain gradients only (no filters or blur).
  */
 @utility bg-page {
+    position: relative;
+    isolation: isolate;
     background-color: hsl(var(--surface));
-    background-image:
-        radial-gradient(52rem 26rem at 10% 4rem, hsl(var(--primary) / var(--glow-primary)), transparent 70%),
-        radial-gradient(44rem 22rem at 94% 6rem, hsl(var(--highlight) / var(--glow-highlight)), transparent 70%),
-        linear-gradient(hsl(var(--foreground) / var(--grid-alpha)) 1px, transparent 1px),
-        linear-gradient(90deg, hsl(var(--foreground) / var(--grid-alpha)) 1px, transparent 1px);
-    background-size:
-        100% 100%,
-        100% 100%,
-        44px 44px,
-        44px 44px;
-    background-repeat: no-repeat, no-repeat, repeat, repeat;
-    background-position:
-        0 0,
-        0 0,
-        -1px -1px,
-        -1px -1px;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset-inline: 0;
+        top: 0;
+        z-index: -1;
+        height: min(30rem, 100%);
+        pointer-events: none;
+        background-image:
+            radial-gradient(52rem 24rem at 10% 3rem, hsl(var(--primary) / var(--glow-primary)), transparent 70%),
+            radial-gradient(44rem 20rem at 94% 5rem, hsl(var(--highlight) / var(--glow-highlight)), transparent 70%),
+            linear-gradient(hsl(var(--foreground) / var(--grid-alpha)) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(var(--foreground) / var(--grid-alpha)) 1px, transparent 1px);
+        background-size:
+            100% 100%,
+            100% 100%,
+            44px 44px,
+            44px 44px;
+        background-position:
+            0 0,
+            0 0,
+            -1px -1px,
+            -1px -1px;
+        mask-image: linear-gradient(to bottom, black 30%, transparent);
+    }
+}
+
+/* Skip rendering work for sections that are far below the viewport. */
+@utility cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 640px;
 }
 
 /* Grid lines that fade out toward the bottom of their container. */
@@ -400,11 +419,11 @@
 }
 
 @utility animate-float {
-    animation: float-y 7s ease-in-out infinite;
+    animation: float-y 7s ease-in-out 3;
 }
 
 @utility animate-drift {
-    animation: drift 18s ease-in-out infinite;
+    animation: drift 18s ease-in-out 2;
 }
 
 /*

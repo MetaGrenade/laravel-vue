@@ -1485,7 +1485,7 @@ const submitReply = () => {
         />
         <div class="space-y-8 p-4">
             <!-- Forum Header -->
-            <header class="flex flex-col items-center justify-between gap-4 lg:flex-row">
+            <header class="flex flex-col items-center justify-between gap-4 rounded-xl border bg-card p-5 shadow-xs lg:flex-row">
                 <h1 id="thread_title" class="text-2xl font-semibold tracking-tight">
                     <Pin v-if="props.thread.is_pinned" class="mr-2 inline-block h-8 w-8" />
                     {{ props.thread.title }}
@@ -1621,7 +1621,7 @@ const submitReply = () => {
                 </AlertDescription>
             </Alert>
             <!-- Top Pagination and Search -->
-            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <div class="flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row">
                 <div class="text-center text-sm text-muted-foreground md:text-left">
                     {{ postsRangeLabel }}
                 </div>
@@ -1661,7 +1661,7 @@ const submitReply = () => {
                     v-for="post in props.posts.data"
                     :key="post.id"
                     :id="`post-${post.id}`"
-                    class="flex flex-col gap-4 rounded-xl border p-4 shadow-xs md:flex-row"
+                    class="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-xs md:flex-row"
                 >
                     <!-- Left Side: User Info -->
                     <div class="w-full shrink-0 border-r pr-4 md:w-1/5">
@@ -1785,7 +1785,7 @@ const submitReply = () => {
                 </div>
             </div>
 
-            <header class="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <header class="flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row">
                 <div class="text-center text-sm text-muted-foreground md:text-left">
                     {{ postsRangeLabel }}
                 </div>
@@ -1836,7 +1836,7 @@ const submitReply = () => {
             </Alert>
 
             <!-- Reply Input Section -->
-            <div v-if="showReplyForm" class="mt-8 rounded-xl border p-6 shadow-sm">
+            <div v-if="showReplyForm" class="mt-8 rounded-xl border bg-card p-6 shadow-sm">
                 <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
                 <form class="flex flex-col gap-4" @submit.prevent="submitReply">
                     <RichTextEditor

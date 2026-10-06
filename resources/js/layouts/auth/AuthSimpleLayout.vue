@@ -11,7 +11,7 @@ defineProps<{
 </script>
 
 <template>
-    <div class="relative flex min-h-svh flex-col bg-page">
+    <div class="bg-page relative flex min-h-svh flex-col">
         <header class="flex items-center justify-between p-4 sm:p-6">
             <Link
                 :href="route('home')"
