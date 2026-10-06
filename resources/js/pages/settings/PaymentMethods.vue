@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { stripeAppearance } from '@/lib/stripeAppearance';
+import { stripeAppearance, useStripeAppearanceSync } from '@/lib/stripeAppearance';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -36,6 +36,8 @@ const isStripeConfigured = computed(() => Boolean(stripeKey.value));
 
 const stripe = shallowRef<StripeInstance | null>(null);
 const elements = shallowRef<StripeElementsInstance | null>(null);
+
+useStripeAppearanceSync(elements);
 const paymentElement = shallowRef<StripePaymentElementInstance | null>(null);
 const paymentElementReady = ref(false);
 const setupIntentSecret = ref<string | null>(null);

@@ -1,8 +1,11 @@
+import { useAppearance } from '@/composables/useAppearance';
+import { watch, type Ref } from 'vue';
+
 /**
  * Stripe Elements appearance matching the app's current theme.
  *
  * Elements render inside an iframe, so they cannot read our CSS variables;
- * the values are resolved from the document when the element is created.
+ * the values are resolved from the document each time this is called.
  */
 export function stripeAppearance() {
     const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
@@ -25,4 +28,18 @@ export function stripeAppearance() {
             borderRadius: '8px',
         },
     } as const;
+}
+
+/**
+ * Keep a mounted Elements instance in step with the theme: re-applies the
+ * appearance whenever the user switches theme or the system preference changes.
+ */
+export function useStripeAppearanceSync(elements: Ref<{ update?: (options: Record<string, unknown>) => void } | null>) {
+    const { resolvedAppearance } = useAppearance();
+
+    // The <html> class is updated synchronously when the theme changes, so by
+    // the time this (pre-flush) watcher runs the document already reflects it.
+    watch(resolvedAppearance, () => {
+        elements.value?.update?.({ appearance: stripeAppearance() });
+    });
 }

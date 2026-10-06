@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { stripeAppearance } from '@/lib/stripeAppearance';
+import { stripeAppearance, useStripeAppearanceSync } from '@/lib/stripeAppearance';
 import { computed, onBeforeUnmount, ref, shallowRef } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,8 @@ const confirmingPayment = ref(false);
 
 const stripe = shallowRef<StripeInstance | null>(null);
 const elements = shallowRef<StripeElementsInstance | null>(null);
+
+useStripeAppearanceSync(elements);
 const paymentElement = shallowRef<StripePaymentElementInstance | null>(null);
 const paymentElementReady = ref(false);
 const lastStripeKey = ref<string | null>(null);
@@ -389,12 +391,12 @@ onBeforeUnmount(() => {
                             </div>
                             <div class="flex flex-col gap-2">
                                 <Button :disabled="setupLoading" variant="outline" @click="startCheckout">
-                                    <span v-if="setupLoading">Preparing checkoutâ€¦</span>
+                                    <span v-if="setupLoading">Preparing checkout…</span>
                                     <span v-else>Load payment form</span>
                                 </Button>
                                 <Button :disabled="subscribing || !paymentElementReady || confirmingPayment" @click="subscribe">
-                                    <span v-if="subscribing">Activatingâ€¦</span>
-                                    <span v-else-if="confirmingPayment">Confirmingâ€¦</span>
+                                    <span v-if="subscribing">Activating…</span>
+                                    <span v-else-if="confirmingPayment">Confirming…</span>
                                     <span v-else>Start subscription</span>
                                 </Button>
                             </div>
