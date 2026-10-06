@@ -64,37 +64,33 @@ const props = defineProps<{
     latestPosts: LatestPostSummary[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Forum', href: '/forum' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Forum" />
-        <div class="p-4 space-y-6">
+        <div class="space-y-6 p-4">
             <!-- Forum Header -->
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
                 <h1 class="text-2xl font-bold">Forum</h1>
                 <div class="flex w-full max-w-md space-x-2">
-                    <Input default-value="Search Forum"/>
-                    <Button variant="secondary" class="cursor-pointer">
-                        New Thread
-                    </Button>
+                    <Input default-value="Search Forum" />
+                    <Button variant="secondary" class="cursor-pointer"> New Thread </Button>
                 </div>
             </header>
 
             <div class="grid grid-cols-1 gap-6 md:grid-cols-4">
                 <!-- Main Content: Forum Categories as Cards -->
-                <main class="md:col-span-3 space-y-6">
+                <main class="space-y-6 md:col-span-3">
                     <template v-if="props.categories.length">
                         <div
                             v-for="category in props.categories"
                             :key="category.id"
-                            class="rounded-lg border border-sidebar-border/70 shadow-sm hover:shadow-lg transition"
+                            class="rounded-lg border border-sidebar-border/70 shadow-sm transition hover:shadow-lg"
                         >
                             <!-- Card Header -->
-                            <div class="relative overflow-hidden p-4 rounded-t-lg">
+                            <div class="relative overflow-hidden rounded-t-lg p-4">
                                 <h2 class="text-xl font-bold">{{ category.title }}</h2>
                                 <PlaceholderPattern />
                             </div>
@@ -105,17 +101,17 @@ const breadcrumbs: BreadcrumbItem[] = [
                                         v-for="board in category.boards"
                                         :key="board.id"
                                         :href="route('forum.boards.show', { board: board.slug })"
-                                        class="flex items-center p-4 hover:bg-gray-100 transition even:bg-gray-50 dark:bg-neutral-950/60 dark:even:bg-neutral-800/60 dark:hover:bg-neutral-700/60"
+                                        class="flex items-center p-4 transition even:bg-gray-50 hover:bg-gray-100 dark:bg-neutral-950/60 dark:even:bg-neutral-800/60 dark:hover:bg-neutral-700/60"
                                     >
                                         <!-- Subcategory Icon -->
                                         <div class="mr-4">
-                                            <div class="relative overflow-hidden h-8 w-8 rounded-full">
+                                            <div class="relative h-8 w-8 overflow-hidden rounded-full">
                                                 <PlaceholderPattern />
                                             </div>
                                         </div>
                                         <!-- Subcategory Title -->
                                         <div class="flex-1">
-                                            <h3 class="font-semibold hover:underline text-green-400 dark:hover:text-green-400">{{ board.title }}</h3>
+                                            <h3 class="font-semibold text-green-400 hover:underline dark:hover:text-green-400">{{ board.title }}</h3>
                                         </div>
                                         <!-- Thread Count -->
                                         <div class="w-20 text-center">
@@ -132,12 +128,16 @@ const breadcrumbs: BreadcrumbItem[] = [
                                             <template v-if="board.latest_thread">
                                                 <Link
                                                     :href="route('forum.threads.show', { board: board.slug, thread: board.latest_thread.slug })"
-                                                    class="font-semibold text-sm hover:underline block"
+                                                    class="block text-sm font-semibold hover:underline"
                                                 >
                                                     {{ board.latest_thread.title }}
                                                 </Link>
-                                                <div class="text-xs text-gray-400 inline-block mr-1">by {{ board.latest_thread.last_reply_author ?? board.latest_thread.author ?? '—' }}</div>
-                                                <div class="text-xs text-gray-500 inline-block">• {{ board.latest_thread.last_reply_at ?? 'No replies yet' }}</div>
+                                                <div class="mr-1 inline-block text-xs text-gray-400">
+                                                    by {{ board.latest_thread.last_reply_author ?? board.latest_thread.author ?? '—' }}
+                                                </div>
+                                                <div class="inline-block text-xs text-gray-500">
+                                                    • {{ board.latest_thread.last_reply_at ?? 'No replies yet' }}
+                                                </div>
                                             </template>
                                             <template v-else>
                                                 <div class="text-xs text-gray-400">No threads yet</div>
@@ -155,7 +155,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                 </main>
 
                 <!-- Sidebar -->
-                <aside class="md:col-span-1 space-y-6">
+                <aside class="space-y-6 md:col-span-1">
                     <!-- Trending Threads -->
                     <div class="rounded-lg border border-sidebar-border/70 p-4">
                         <h2 class="mb-2 text-lg font-semibold">Trending Threads</h2>
@@ -163,10 +163,10 @@ const breadcrumbs: BreadcrumbItem[] = [
                             <div
                                 v-for="thread in props.trendingThreads"
                                 :key="thread.id"
-                                class="py-2 border-b border-sidebar-border/70 dark:border-sidebar-border/70 hover:bg-gray-100 dark:hover:bg-neutral-700/60 transition"
+                                class="border-b border-sidebar-border/70 py-2 transition hover:bg-gray-100 dark:border-sidebar-border/70 dark:hover:bg-neutral-700/60"
                             >
                                 <Link :href="route('forum.threads.show', { board: thread.board.slug, thread: thread.slug })" class="block px-2">
-                                    <h4 class="font-semibold text-sm">{{ thread.title }}</h4>
+                                    <h4 class="text-sm font-semibold">{{ thread.title }}</h4>
                                     <p class="text-xs text-gray-500">
                                         by {{ thread.author ?? 'Unknown' }}
                                         <span v-if="thread.last_reply_at">• {{ thread.last_reply_at }}</span>
@@ -187,13 +187,11 @@ const breadcrumbs: BreadcrumbItem[] = [
                             <div
                                 v-for="post in props.latestPosts"
                                 :key="post.id"
-                                class="py-2 border-b border-sidebar-border/70 dark:border-sidebar-border/70 hover:bg-gray-100 dark:hover:bg-neutral-700/60 transition"
+                                class="border-b border-sidebar-border/70 py-2 transition hover:bg-gray-100 dark:border-sidebar-border/70 dark:hover:bg-neutral-700/60"
                             >
                                 <Link :href="route('forum.threads.show', { board: post.board_slug, thread: post.thread_slug })" class="block px-2">
-                                    <h4 class="font-semibold text-sm">{{ post.title }}</h4>
-                                    <p class="text-xs text-gray-500">
-                                        by {{ post.author ?? 'Unknown' }} • {{ post.created_at }}
-                                    </p>
+                                    <h4 class="text-sm font-semibold">{{ post.title }}</h4>
+                                    <p class="text-xs text-gray-500">by {{ post.author ?? 'Unknown' }} • {{ post.created_at }}</p>
                                     <div class="text-xs text-green-400">{{ post.board_title }}</div>
                                 </Link>
                             </div>

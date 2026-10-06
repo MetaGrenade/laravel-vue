@@ -10,7 +10,16 @@ import Input from '@/components/ui/input/Input.vue';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pagination, PaginationEllipsis, PaginationFirst, PaginationLast, PaginationList, PaginationListItem, PaginationNext, PaginationPrev } from '@/components/ui/pagination';
+import {
+    Pagination,
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+} from '@/components/ui/pagination';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { usePermissions } from '@/composables/usePermissions';
 
@@ -64,9 +73,7 @@ const props = defineProps<{
     };
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Search Analytics', href: '/acp/search-analytics' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Search Analytics', href: '/acp/search-analytics' }];
 
 const filters = reactive({
     term: props.filters.term ?? '',
@@ -93,11 +100,15 @@ const formatPercent = (value: number) => `${value.toFixed(2)}%`;
 const formatDateTime = (value?: string | null) => (value ? dayjs(value).format('MMM D, YYYY h:mm A') : '—');
 
 const applyFilters = (overrides: Record<string, unknown> = {}) => {
-    router.get(route('acp.search-analytics.index'), { ...filters, ...overrides }, {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-    });
+    router.get(
+        route('acp.search-analytics.index'),
+        { ...filters, ...overrides },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        },
+    );
 };
 
 const resetFilters = () => {
@@ -123,7 +134,7 @@ const canExportSearchAnalytics = computed(() => hasPermission('search.acp.view')
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Search Analytics" />
         <AdminLayout>
-            <div class="flex flex-col w-full gap-6 rounded-xl pb-4">
+            <div class="flex w-full flex-col gap-6 rounded-xl pb-4">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h1 class="text-2xl font-semibold tracking-tight">Search Analytics</h1>
                     <div v-if="canExportSearchAnalytics" class="flex gap-2">
@@ -198,7 +209,9 @@ const canExportSearchAnalytics = computed(() => hasPermission('search.acp.view')
                                 </TableHeader>
                                 <TableBody>
                                     <TableRow v-if="failedQueries.length === 0">
-                                        <TableCell colspan="5" class="text-center text-sm text-muted-foreground">No failed searches recorded.</TableCell>
+                                        <TableCell colspan="5" class="text-center text-sm text-muted-foreground"
+                                            >No failed searches recorded.</TableCell
+                                        >
                                     </TableRow>
                                     <TableRow v-for="query in failedQueries" :key="query.term">
                                         <TableCell class="font-medium">{{ query.term }}</TableCell>
@@ -222,7 +235,12 @@ const canExportSearchAnalytics = computed(() => hasPermission('search.acp.view')
                         <div class="grid gap-4 md:grid-cols-4">
                             <div class="space-y-2 md:col-span-2">
                                 <Label for="term">Search term</Label>
-                                <Input id="term" v-model="filters.term" placeholder="e.g. billing" @keydown.enter.prevent="applyFilters({ page: 1 })" />
+                                <Input
+                                    id="term"
+                                    v-model="filters.term"
+                                    placeholder="e.g. billing"
+                                    @keydown.enter.prevent="applyFilters({ page: 1 })"
+                                />
                             </div>
                             <div class="space-y-2">
                                 <Label for="date_from">From</Label>
@@ -255,7 +273,9 @@ const canExportSearchAnalytics = computed(() => hasPermission('search.acp.view')
                                 </TableHeader>
                                 <TableBody>
                                     <TableRow v-if="recentSearches.data.length === 0">
-                                        <TableCell colspan="3" class="text-center text-sm text-muted-foreground">No searches found for the selected filters.</TableCell>
+                                        <TableCell colspan="3" class="text-center text-sm text-muted-foreground"
+                                            >No searches found for the selected filters.</TableCell
+                                        >
                                     </TableRow>
                                     <TableRow v-for="search in recentSearches.data" :key="`${search.term}-${search.created_at}`">
                                         <TableCell class="font-medium">{{ search.term }}</TableCell>
@@ -284,15 +304,8 @@ const canExportSearchAnalytics = computed(() => hasPermission('search.acp.view')
                                         <PaginationPrev />
 
                                         <template v-for="(item, index) in items" :key="index">
-                                            <PaginationListItem
-                                                v-if="item.type === 'page'"
-                                                :value="item.value"
-                                                as-child
-                                            >
-                                                <Button
-                                                    class="h-9 w-9 p-0"
-                                                    :variant="item.value === page ? 'default' : 'outline'"
-                                                >
+                                            <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                                <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                     {{ item.value }}
                                                 </Button>
                                             </PaginationListItem>

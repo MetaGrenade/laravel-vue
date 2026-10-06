@@ -37,9 +37,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Create ticket category</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Help agents triage requests by grouping similar tickets together.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Help agents triage requests by grouping similar tickets together.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -55,21 +53,13 @@ const handleSubmit = () => {
                         <PlaceholderPattern class="absolute inset-0 opacity-10" />
                         <div class="relative space-y-1">
                             <CardTitle>Category details</CardTitle>
-                            <CardDescription>
-                                Give the category a short, descriptive name so the team knows when to use it.
-                            </CardDescription>
+                            <CardDescription> Give the category a short, descriptive name so the team knows when to use it. </CardDescription>
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-6">
                         <div class="grid gap-2">
                             <Label for="name">Name</Label>
-                            <Input
-                                id="name"
-                                v-model="form.name"
-                                type="text"
-                                autocomplete="off"
-                                required
-                            />
+                            <Input id="name" v-model="form.name" type="text" autocomplete="off" required />
                             <InputError :message="form.errors.name" />
                         </div>
                     </CardContent>

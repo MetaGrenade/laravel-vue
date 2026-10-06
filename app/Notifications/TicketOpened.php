@@ -19,7 +19,7 @@ class TicketOpened extends Notification implements ShouldQueue
     use SendsBroadcastsSynchronously;
 
     /**
-     * @param array<int, string> $channels
+     * @param  array<int, string>  $channels
      */
     public function __construct(
         protected SupportTicket $ticket,
@@ -52,25 +52,25 @@ class TicketOpened extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $subject = match ($this->audience) {
-            'agent', 'team' => 'New support ticket: ' . $this->ticket->subject,
-            default => 'Support ticket received: ' . $this->ticket->subject,
+            'agent', 'team' => 'New support ticket: '.$this->ticket->subject,
+            default => 'Support ticket received: '.$this->ticket->subject,
         };
 
-        $greeting = 'Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!';
+        $greeting = 'Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!';
 
         $messageLines = match ($this->audience) {
             'agent', 'team' => [
                 'A new support ticket requires your attention.',
-                'Subject: ' . $this->ticket->subject,
-                'From: ' . ($this->ticket->user?->nickname ?? $this->ticket->user?->email ?? 'Customer'),
+                'Subject: '.$this->ticket->subject,
+                'From: '.($this->ticket->user?->nickname ?? $this->ticket->user?->email ?? 'Customer'),
             ],
             default => [
                 'Thanks for contacting our support team. Your ticket has been opened and our agents will take a look shortly.',
-                'Subject: ' . $this->ticket->subject,
+                'Subject: '.$this->ticket->subject,
             ],
         };
 
-        $mailMessage = (new MailMessage())
+        $mailMessage = (new MailMessage)
             ->subject($subject)
             ->greeting($greeting);
 
@@ -79,7 +79,7 @@ class TicketOpened extends Notification implements ShouldQueue
         }
 
         if ($excerpt = $this->messageExcerpt()) {
-            $mailMessage->line('Message: ' . $excerpt);
+            $mailMessage->line('Message: '.$excerpt);
         }
 
         $mailMessage
@@ -100,7 +100,7 @@ class TicketOpened extends Notification implements ShouldQueue
     }
 
     /**
-     * @param array<int, string> $channels
+     * @param  array<int, string>  $channels
      */
     public function withChannels(array $channels): self
     {
@@ -137,8 +137,8 @@ class TicketOpened extends Notification implements ShouldQueue
     protected function title(): string
     {
         return match ($this->audience) {
-            'agent', 'team' => 'New support ticket: ' . $this->ticket->subject,
-            default => 'Support ticket opened: ' . $this->ticket->subject,
+            'agent', 'team' => 'New support ticket: '.$this->ticket->subject,
+            default => 'Support ticket opened: '.$this->ticket->subject,
         };
     }
 
@@ -174,10 +174,9 @@ class TicketOpened extends Notification implements ShouldQueue
             : route('support.tickets.show', $this->ticket);
 
         if ($this->message) {
-            return $route . '#message-' . $this->message->id;
+            return $route.'#message-'.$this->message->id;
         }
 
         return $route;
     }
 }
-

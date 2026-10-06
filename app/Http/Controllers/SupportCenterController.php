@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\Seo\Seo;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Requests\StoreFaqFeedbackRequest;
 use App\Http\Requests\StorePublicSupportTicketMessageRequest;
@@ -15,11 +14,11 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketCategory;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
-use App\Models\User;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
+use App\Support\Seo\Seo;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
@@ -37,8 +36,7 @@ class SupportCenterController extends Controller
     public function __construct(
         private SupportTicketNotificationDispatcher $ticketNotifier,
         private SupportTicketAutoAssigner $ticketAssigner,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

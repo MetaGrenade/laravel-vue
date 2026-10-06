@@ -1,32 +1,31 @@
 <?php
 
-use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\Admin\BlogController as AdminBlogController;
-use App\Http\Controllers\Admin\BlogCommentController as AdminBlogCommentController;
-use App\Http\Controllers\Admin\BlogCategoryController;
-use App\Http\Controllers\Admin\BlogTagController;
-use App\Http\Controllers\Admin\CommerceController;
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
-use App\Http\Controllers\Admin\SupportController;
-use App\Http\Controllers\Admin\SupportAssignmentRuleController;
-use App\Http\Controllers\Admin\SupportTicketCategoryController;
-use App\Http\Controllers\Admin\SystemSettingsController;
-use App\Http\Controllers\Admin\TokenController;
-use App\Http\Controllers\Admin\UsersController as AdminUserController;
-use App\Http\Controllers\Admin\UserSocialAccountController;
-use App\Http\Controllers\Admin\ForumBoardController;
-use App\Http\Controllers\Admin\ForumCategoryController;
-use App\Http\Controllers\Admin\ForumReportController;
-use App\Http\Controllers\Admin\FaqCategoryController;
+use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BillingController;
 use App\Http\Controllers\Admin\BillingWebhookCallController;
-use App\Http\Controllers\Admin\SubscriptionPlanController;
-use App\Http\Controllers\Admin\SearchAnalyticsController;
-use App\Http\Controllers\Admin\TrustSafetyController;
+use App\Http\Controllers\Admin\BlogCategoryController;
+use App\Http\Controllers\Admin\BlogCommentController as AdminBlogCommentController;
+use App\Http\Controllers\Admin\BlogController as AdminBlogController;
+use App\Http\Controllers\Admin\BlogTagController;
+use App\Http\Controllers\Admin\CommerceController;
+use App\Http\Controllers\Admin\FaqCategoryController;
+use App\Http\Controllers\Admin\ForumBoardController;
+use App\Http\Controllers\Admin\ForumCategoryController;
+use App\Http\Controllers\Admin\ForumReportController;
 use App\Http\Controllers\Admin\PollController;
+use App\Http\Controllers\Admin\SearchAnalyticsController;
+use App\Http\Controllers\Admin\SubscriptionPlanController;
+use App\Http\Controllers\Admin\SupportAssignmentRuleController;
+use App\Http\Controllers\Admin\SupportController;
+use App\Http\Controllers\Admin\SupportTicketCategoryController;
+use App\Http\Controllers\Admin\SystemSettingsController;
+use App\Http\Controllers\Admin\TokenController;
+use App\Http\Controllers\Admin\TrustSafetyController;
+use App\Http\Controllers\Admin\UsersController as AdminUserController;
+use App\Http\Controllers\Admin\UserSocialAccountController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::redirect('acp', '/acp/dashboard');
@@ -158,8 +157,8 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         });
 
     // Support ACP
-    Route::get('acp/support', [SupportController::class,'index'])->name('acp.support.index');
-    Route::get('acp/support/users/search', [SupportController::class,'searchUsers'])->name('acp.support.users.search');
+    Route::get('acp/support', [SupportController::class, 'index'])->name('acp.support.index');
+    Route::get('acp/support/users/search', [SupportController::class, 'searchUsers'])->name('acp.support.users.search');
 
     Route::get('acp/support/sla', [SupportController::class, 'sla'])->name('acp.support.sla.index');
     Route::put('acp/support/sla', [SupportController::class, 'updateSla'])->name('acp.support.sla.update');
@@ -188,17 +187,17 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->name('acp.support.teams.memberships.update');
 
     // Tickets
-    Route::get('acp/support/tickets/create', [SupportController::class,'createTicket'])->name('acp.support.tickets.create');
-    Route::get('acp/support/tickets/{ticket}', [SupportController::class,'showTicket'])->name('acp.support.tickets.show');
-    Route::get('acp/support/tickets/{ticket}/edit', [SupportController::class,'editTicket'])->name('acp.support.tickets.edit');
-    Route::post('acp/support/tickets', [SupportController::class,'storeTicket'])->name('acp.support.tickets.store');
-    Route::post('acp/support/tickets/{ticket}/messages', [SupportController::class,'storeTicketMessage'])->name('acp.support.tickets.messages.store');
-    Route::put('acp/support/tickets/{ticket}', [SupportController::class,'updateTicket'])->name('acp.support.tickets.update');
-    Route::delete('acp/support/tickets/{ticket}', [SupportController::class,'destroyTicket'])->name('acp.support.tickets.destroy');
-    Route::put('acp/support/tickets/{ticket}/assign', [SupportController::class,'assignTicket'])->name('acp.support.tickets.assign');
-    Route::put('acp/support/tickets/{ticket}/priority', [SupportController::class,'updateTicketPriority'])->name('acp.support.tickets.priority');
-    Route::put('acp/support/tickets/{ticket}/status', [SupportController::class,'updateTicketStatus'])->name('acp.support.tickets.status');
-    Route::patch('acp/support/tickets/bulk/status', [SupportController::class,'bulkUpdateStatus'])->name('acp.support.tickets.bulk-status');
+    Route::get('acp/support/tickets/create', [SupportController::class, 'createTicket'])->name('acp.support.tickets.create');
+    Route::get('acp/support/tickets/{ticket}', [SupportController::class, 'showTicket'])->name('acp.support.tickets.show');
+    Route::get('acp/support/tickets/{ticket}/edit', [SupportController::class, 'editTicket'])->name('acp.support.tickets.edit');
+    Route::post('acp/support/tickets', [SupportController::class, 'storeTicket'])->name('acp.support.tickets.store');
+    Route::post('acp/support/tickets/{ticket}/messages', [SupportController::class, 'storeTicketMessage'])->name('acp.support.tickets.messages.store');
+    Route::put('acp/support/tickets/{ticket}', [SupportController::class, 'updateTicket'])->name('acp.support.tickets.update');
+    Route::delete('acp/support/tickets/{ticket}', [SupportController::class, 'destroyTicket'])->name('acp.support.tickets.destroy');
+    Route::put('acp/support/tickets/{ticket}/assign', [SupportController::class, 'assignTicket'])->name('acp.support.tickets.assign');
+    Route::put('acp/support/tickets/{ticket}/priority', [SupportController::class, 'updateTicketPriority'])->name('acp.support.tickets.priority');
+    Route::put('acp/support/tickets/{ticket}/status', [SupportController::class, 'updateTicketStatus'])->name('acp.support.tickets.status');
+    Route::patch('acp/support/tickets/bulk/status', [SupportController::class, 'bulkUpdateStatus'])->name('acp.support.tickets.bulk-status');
 
     // Ticket categories
     Route::get('acp/support/ticket-categories', [SupportTicketCategoryController::class, 'index'])->name('acp.support.ticket-categories.index');
@@ -209,14 +208,14 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::delete('acp/support/ticket-categories/{category}', [SupportTicketCategoryController::class, 'destroy'])->name('acp.support.ticket-categories.destroy');
 
     // FAQs
-    Route::get('acp/support/faqs/create', [SupportController::class,'createFaq'])->name('acp.support.faqs.create');
-    Route::get('acp/support/faqs/{faq}/edit', [SupportController::class,'editFaq'])->name('acp.support.faqs.edit');
-    Route::post('acp/support/faqs', [SupportController::class,'storeFaq'])->name('acp.support.faqs.store');
-    Route::put('acp/support/faqs/{faq}', [SupportController::class,'updateFaq'])->name('acp.support.faqs.update');
-    Route::delete('acp/support/faqs/{faq}', [SupportController::class,'destroyFaq'])->name('acp.support.faqs.destroy');
-    Route::patch('acp/support/faqs/{faq}/reorder', [SupportController::class,'reorderFaq'])->name('acp.support.faqs.reorder');
-    Route::patch('acp/support/faqs/{faq}/publish', [SupportController::class,'publishFaq'])->name('acp.support.faqs.publish');
-    Route::patch('acp/support/faqs/{faq}/unpublish', [SupportController::class,'unpublishFaq'])->name('acp.support.faqs.unpublish');
+    Route::get('acp/support/faqs/create', [SupportController::class, 'createFaq'])->name('acp.support.faqs.create');
+    Route::get('acp/support/faqs/{faq}/edit', [SupportController::class, 'editFaq'])->name('acp.support.faqs.edit');
+    Route::post('acp/support/faqs', [SupportController::class, 'storeFaq'])->name('acp.support.faqs.store');
+    Route::put('acp/support/faqs/{faq}', [SupportController::class, 'updateFaq'])->name('acp.support.faqs.update');
+    Route::delete('acp/support/faqs/{faq}', [SupportController::class, 'destroyFaq'])->name('acp.support.faqs.destroy');
+    Route::patch('acp/support/faqs/{faq}/reorder', [SupportController::class, 'reorderFaq'])->name('acp.support.faqs.reorder');
+    Route::patch('acp/support/faqs/{faq}/publish', [SupportController::class, 'publishFaq'])->name('acp.support.faqs.publish');
+    Route::patch('acp/support/faqs/{faq}/unpublish', [SupportController::class, 'unpublishFaq'])->name('acp.support.faqs.unpublish');
 
     // FAQ Categories
     Route::get('acp/support/faq-categories', [FaqCategoryController::class, 'index'])->name('acp.support.faq-categories.index');
@@ -261,11 +260,11 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->name('acp.polls.destroy');
 
     // Tokens
-    Route::get('acp/tokens', [TokenController::class,'index'])->name('acp.tokens.index');
-    Route::post('acp/tokens', [TokenController::class,'store'])->name('acp.tokens.store');
-    Route::put('acp/tokens/{token}', [TokenController::class,'update'])->name('acp.tokens.update');
-    Route::patch('acp/tokens/{token}/revoke', [TokenController::class,'revoke'])->name('acp.tokens.revoke');
-    Route::delete('acp/tokens/{token}', [TokenController::class,'destroy'])->name('acp.tokens.destroy');
+    Route::get('acp/tokens', [TokenController::class, 'index'])->name('acp.tokens.index');
+    Route::post('acp/tokens', [TokenController::class, 'store'])->name('acp.tokens.store');
+    Route::put('acp/tokens/{token}', [TokenController::class, 'update'])->name('acp.tokens.update');
+    Route::patch('acp/tokens/{token}/revoke', [TokenController::class, 'revoke'])->name('acp.tokens.revoke');
+    Route::delete('acp/tokens/{token}', [TokenController::class, 'destroy'])->name('acp.tokens.destroy');
 
     Route::get('acp/tokens/logs/{tokenLog}', [TokenController::class, 'showLog'])
         ->name('acp.tokens.logs.show');

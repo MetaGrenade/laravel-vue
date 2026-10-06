@@ -33,13 +33,11 @@ const handleSubmit = () => {
         <Head title="Create permission" />
 
         <AdminLayout>
-            <form class="flex flex-1 flex-col gap-6 w-full" @submit.prevent="handleSubmit">
+            <form class="flex w-full flex-1 flex-col gap-6" @submit.prevent="handleSubmit">
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Create permission</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Register a new permission that can be assigned to roles.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Register a new permission that can be assigned to roles.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -56,9 +54,7 @@ const handleSubmit = () => {
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />
                             <div class="relative space-y-1">
                                 <CardTitle>Permission details</CardTitle>
-                                <CardDescription>
-                                    Permission names should be unique and describe the capability clearly.
-                                </CardDescription>
+                                <CardDescription> Permission names should be unique and describe the capability clearly. </CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-4">

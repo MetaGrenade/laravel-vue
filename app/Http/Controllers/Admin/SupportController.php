@@ -15,25 +15,25 @@ use App\Http\Requests\Admin\UpdateSupportSlaRequest;
 use App\Http\Requests\Admin\UpdateSupportTeamMembershipRequest;
 use App\Http\Requests\Admin\UpdateSupportTeamRequest;
 use App\Http\Requests\Admin\UpdateSupportTicketRequest;
-use App\Models\SupportResponseTemplate;
-use App\Models\SupportTicket;
-use App\Models\SupportTicketMessage;
-use App\Models\SupportTicketMessageAttachment;
-use App\Models\SupportTicketAudit;
-use App\Models\SupportTicketCategory;
-use App\Models\SupportTeam;
 use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\FaqFeedback;
+use App\Models\SupportResponseTemplate;
+use App\Models\SupportTeam;
+use App\Models\SupportTicket;
+use App\Models\SupportTicketAudit;
+use App\Models\SupportTicketCategory;
+use App\Models\SupportTicketMessage;
+use App\Models\SupportTicketMessageAttachment;
 use App\Models\User;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
+use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
 use App\Support\SupportSlaConfiguration;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
-use App\Support\Database\Transaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -53,8 +53,7 @@ class SupportController extends Controller
     public function __construct(
         private SupportTicketNotificationDispatcher $ticketNotifier,
         private SupportTicketAutoAssigner $ticketAssigner,
-    ) {
-    }
+    ) {}
 
     public function templates(Request $request): Response
     {
@@ -766,7 +765,8 @@ class SupportController extends Controller
     public function destroyTicket(SupportTicket $ticket)
     {
         $ticket->delete();
-        return back()->with('success','Ticket deleted.');
+
+        return back()->with('success', 'Ticket deleted.');
     }
 
     public function assignTicket(Request $request, SupportTicket $ticket): RedirectResponse
@@ -1188,7 +1188,7 @@ class SupportController extends Controller
             $description .= " after {$threshold}";
         }
 
-        return rtrim($description) . '.';
+        return rtrim($description).'.';
     }
 
     private function describeAssignmentAudit(
@@ -1224,7 +1224,7 @@ class SupportController extends Controller
             $description .= " via rule #{$ruleId}";
         }
 
-        return rtrim($description) . '.';
+        return rtrim($description).'.';
     }
 
     private function resolveAuditUser(int $userId, Collection $contextUsers): ?string
@@ -1413,7 +1413,8 @@ class SupportController extends Controller
     public function destroyFaq(Faq $faq)
     {
         $faq->delete();
-        return back()->with('success','FAQ deleted.');
+
+        return back()->with('success', 'FAQ deleted.');
     }
 
     public function reorderFaq(Request $request, Faq $faq): RedirectResponse

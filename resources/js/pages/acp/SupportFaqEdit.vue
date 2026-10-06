@@ -68,9 +68,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Update FAQ #{{ props.faq.id }}</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Refresh the answer content or adjust its visibility in the support centre.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Refresh the answer content or adjust its visibility in the support centre.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -87,9 +85,7 @@ const handleSubmit = () => {
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />
                             <div class="relative space-y-1">
                                 <CardTitle>FAQ content</CardTitle>
-                                <CardDescription>
-                                    Provide clear, concise instructions that resolve the question quickly.
-                                </CardDescription>
+                                <CardDescription> Provide clear, concise instructions that resolve the question quickly. </CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-6">
@@ -119,15 +115,11 @@ const handleSubmit = () => {
                                     <select
                                         id="faq_category_id"
                                         v-model.number="form.faq_category_id"
-                                        class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden"
                                         :disabled="!props.categories.length"
                                         required
                                     >
-                                        <option
-                                            v-for="category in props.categories"
-                                            :key="category.id"
-                                            :value="category.id"
-                                        >
+                                        <option v-for="category in props.categories" :key="category.id" :value="category.id">
                                             {{ category.name }}
                                         </option>
                                     </select>

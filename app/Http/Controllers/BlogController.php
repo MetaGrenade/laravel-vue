@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\Seo\Seo;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogComment;
-use App\Models\BlogView;
 use App\Models\BlogTag;
+use App\Models\BlogView;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
+use App\Support\Seo\Seo;
 use App\Support\Spam\CommentGuard;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -71,8 +71,8 @@ class BlogController extends Controller
 
         if ($searchFilter->isNotEmpty()) {
             $blogsQuery->where(function ($query) use ($searchFilter) {
-                $query->where('title', 'like', '%' . $searchFilter->toString() . '%')
-                    ->orWhere('excerpt', 'like', '%' . $searchFilter->toString() . '%');
+                $query->where('title', 'like', '%'.$searchFilter->toString().'%')
+                    ->orWhere('excerpt', 'like', '%'.$searchFilter->toString().'%');
             });
         }
 
@@ -209,7 +209,7 @@ class BlogController extends Controller
         })->all();
 
         $xml = view('feeds.blog', [
-            'title' => config('app.name') . ' Blog',
+            'title' => config('app.name').' Blog',
             'homeUrl' => route('blogs.index'),
             'selfUrl' => route('blogs.feed'),
             'updatedAt' => $feedUpdatedAt->toAtomString(),

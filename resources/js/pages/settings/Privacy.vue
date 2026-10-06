@@ -47,27 +47,21 @@ const erasureForm = useForm({});
 const exportItems = computed(() => props.exports);
 const erasureRequest = computed(() => props.erasureRequest);
 
-const hasPendingExport = computed(() =>
-    exportItems.value.some(exportItem => ['pending', 'processing'].includes(exportItem.status)),
-);
+const hasPendingExport = computed(() => exportItems.value.some((exportItem) => ['pending', 'processing'].includes(exportItem.status)));
 
-const erasurePending = computed(() =>
-    erasureRequest.value ? ['pending', 'processing'].includes(erasureRequest.value.status) : false,
-);
+const erasurePending = computed(() => (erasureRequest.value ? ['pending', 'processing'].includes(erasureRequest.value.status) : false));
 
 const statusAlert = computed(() => {
     switch (props.status) {
         case 'export-requested':
             return {
                 title: 'Export requested',
-                description:
-                    'We are preparing your archive. You will receive an email when it is ready to download.',
+                description: 'We are preparing your archive. You will receive an email when it is ready to download.',
             };
         case 'erasure-requested':
             return {
                 title: 'Erasure request submitted',
-                description:
-                    'Our trust & safety team has been notified. We will confirm completion within 30 days.',
+                description: 'Our trust & safety team has been notified. We will confirm completion within 30 days.',
             };
         case 'export-pending':
             return {
@@ -77,8 +71,7 @@ const statusAlert = computed(() => {
         case 'erasure-pending':
             return {
                 title: 'Pending erasure request',
-                description:
-                    'You have an active erasure request. We will reach out via email if we need more information.',
+                description: 'You have an active erasure request. We will reach out via email if we need more information.',
             };
         default:
             return null;
@@ -138,10 +131,7 @@ const formatDateTime = (value?: string | null) => {
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
                 <div class="space-y-4">
-                    <HeadingSmall
-                        title="Data export"
-                        description="Request a portable copy of your content and account history."
-                    />
+                    <HeadingSmall title="Data export" description="Request a portable copy of your content and account history." />
 
                     <Alert v-if="statusAlert" variant="warning">
                         <AlertTitle>{{ statusAlert.title }}</AlertTitle>
@@ -149,9 +139,8 @@ const formatDateTime = (value?: string | null) => {
                     </Alert>
 
                     <p class="text-sm text-muted-foreground">
-                        We bundle your profile, forum posts, support interactions, and other contributions into a
-                        downloadable archive. Exports are available for 30 minutes once ready and can only be accessed
-                        through a signed download link.
+                        We bundle your profile, forum posts, support interactions, and other contributions into a downloadable archive. Exports are
+                        available for 30 minutes once ready and can only be accessed through a signed download link.
                     </p>
 
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -163,11 +152,7 @@ const formatDateTime = (value?: string | null) => {
                         </div>
 
                         <div class="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-                            <Button
-                                type="button"
-                                :disabled="exportForm.processing || hasPendingExport"
-                                @click="requestExport"
-                            >
+                            <Button type="button" :disabled="exportForm.processing || hasPendingExport" @click="requestExport">
                                 <span v-if="exportForm.processing">Requesting…</span>
                                 <span v-else-if="hasPendingExport">Export in progress</span>
                                 <span v-else>Download my data</span>
@@ -180,23 +165,18 @@ const formatDateTime = (value?: string | null) => {
                         <div
                             v-for="(exportItem, index) in exportItems"
                             :key="exportItem.id"
-                            :class="[
-                                'grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-center',
-                                index !== exportItems.length - 1 ? 'border-b' : '',
-                            ]"
+                            :class="['grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-center', index !== exportItems.length - 1 ? 'border-b' : '']"
                         >
                             <div class="space-y-2">
                                 <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-                                    <p class="text-sm font-medium text-foreground">
-                                        Requested {{ formatDateTime(exportItem.created_at) }}
-                                    </p>
+                                    <p class="text-sm font-medium text-foreground">Requested {{ formatDateTime(exportItem.created_at) }}</p>
                                     <span
                                         class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium"
                                         :class="{
-                                            'border-yellow-500 text-yellow-600 dark:text-yellow-400':
-                                                ['pending', 'processing'].includes(exportItem.status),
-                                            'border-green-500 text-green-600 dark:text-green-400':
-                                                exportItem.status === 'completed',
+                                            'border-yellow-500 text-yellow-600 dark:text-yellow-400': ['pending', 'processing'].includes(
+                                                exportItem.status,
+                                            ),
+                                            'border-green-500 text-green-600 dark:text-green-400': exportItem.status === 'completed',
                                             'border-destructive text-destructive': exportItem.status === 'failed',
                                         }"
                                     >
@@ -204,24 +184,16 @@ const formatDateTime = (value?: string | null) => {
                                     </span>
                                 </div>
                                 <p class="text-sm text-muted-foreground">
-                                    <span v-if="exportItem.completed_at">
-                                        Ready since {{ formatDateTime(exportItem.completed_at) }}.
-                                    </span>
+                                    <span v-if="exportItem.completed_at"> Ready since {{ formatDateTime(exportItem.completed_at) }}. </span>
                                     <span v-else-if="exportItem.status === 'failed' && exportItem.failure_reason">
                                         {{ exportItem.failure_reason }}
                                     </span>
-                                    <span v-else>
-                                        We will email you when this export is ready.
-                                    </span>
+                                    <span v-else> We will email you when this export is ready. </span>
                                 </p>
                             </div>
 
                             <div class="flex items-center justify-end gap-2">
-                                <Button
-                                    v-if="exportItem.download_url"
-                                    variant="outline"
-                                    as-child
-                                >
+                                <Button v-if="exportItem.download_url" variant="outline" as-child>
                                     <a :href="exportItem.download_url">Download archive</a>
                                 </Button>
                                 <span v-else class="text-sm text-muted-foreground">Not available yet</span>
@@ -229,38 +201,27 @@ const formatDateTime = (value?: string | null) => {
                         </div>
                     </div>
 
-                    <p v-else class="text-sm text-muted-foreground">
-                        You have not requested any exports yet.
-                    </p>
+                    <p v-else class="text-sm text-muted-foreground">You have not requested any exports yet.</p>
                 </div>
 
                 <div class="space-y-4">
-                    <HeadingSmall
-                        title="Data erasure"
-                        description="Ask us to remove your personal information from our systems."
-                    />
+                    <HeadingSmall title="Data erasure" description="Ask us to remove your personal information from our systems." />
 
                     <p class="text-sm text-muted-foreground">
-                        We review every request to ensure we retain only the minimum data required by law and our
-                        contractual obligations. Once processed, removal is permanent and cannot be undone.
+                        We review every request to ensure we retain only the minimum data required by law and our contractual obligations. Once
+                        processed, removal is permanent and cannot be undone.
                     </p>
 
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div class="space-y-1">
                             <p class="text-sm font-medium text-foreground">Request erasure</p>
                             <p class="text-sm text-muted-foreground">
-                                Submitting a request will deactivate your account while our compliance team completes the
-                                review.
+                                Submitting a request will deactivate your account while our compliance team completes the review.
                             </p>
                         </div>
 
                         <div class="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                :disabled="erasureForm.processing || erasurePending"
-                                @click="requestErasure"
-                            >
+                            <Button type="button" variant="destructive" :disabled="erasureForm.processing || erasurePending" @click="requestErasure">
                                 <span v-if="erasureForm.processing">Submitting…</span>
                                 <span v-else-if="erasurePending">Request pending</span>
                                 <span v-else>Request erasure</span>
@@ -270,14 +231,10 @@ const formatDateTime = (value?: string | null) => {
                     </div>
 
                     <div v-if="erasureRequest" class="rounded-lg border p-4">
-                        <p class="text-sm font-medium text-foreground">
-                            Latest request submitted {{ formatDateTime(erasureRequest.created_at) }}
-                        </p>
+                        <p class="text-sm font-medium text-foreground">Latest request submitted {{ formatDateTime(erasureRequest.created_at) }}</p>
                         <p class="text-sm text-muted-foreground">
                             Status: {{ statusLabel(erasureRequest.status) }}
-                            <span v-if="erasureRequest.processed_at">
-                                — completed on {{ formatDateTime(erasureRequest.processed_at) }}
-                            </span>
+                            <span v-if="erasureRequest.processed_at"> — completed on {{ formatDateTime(erasureRequest.processed_at) }} </span>
                         </p>
                     </div>
                 </div>

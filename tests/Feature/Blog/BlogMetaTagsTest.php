@@ -29,10 +29,10 @@ class BlogMetaTagsTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('<meta name="description" content="A concise excerpt for testing metadata rendering."', false);
-        $response->assertSee('<link rel="canonical" href="' . \e($canonicalUrl) . '"', false);
+        $response->assertSee('<link rel="canonical" href="'.\e($canonicalUrl).'"', false);
         $response->assertSee('<meta property="og:title" content="Meta Ready Post"', false);
         $response->assertSee('<meta property="og:description" content="A concise excerpt for testing metadata rendering."', false);
-        $response->assertSee('<meta property="og:url" content="' . \e($canonicalUrl) . '"', false);
+        $response->assertSee('<meta property="og:url" content="'.\e($canonicalUrl).'"', false);
         $response->assertSee('<meta name="twitter:title" content="Meta Ready Post"', false);
         $response->assertSee('<meta name="twitter:description" content="A concise excerpt for testing metadata rendering."', false);
         $response->assertSee('<meta name="twitter:card" content="summary_large_image"', false);

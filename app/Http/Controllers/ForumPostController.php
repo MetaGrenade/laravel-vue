@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\Security\HtmlSanitizer;
 use App\Events\ForumPostCreated;
 use App\Models\ForumBoard;
 use App\Models\ForumPost;
@@ -13,6 +12,7 @@ use App\Models\User;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
 use App\Support\Reputation\ReputationManager;
+use App\Support\Security\HtmlSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -22,9 +22,7 @@ use Illuminate\Validation\ValidationException;
 
 class ForumPostController extends Controller
 {
-    public function __construct(private readonly ReputationManager $reputation)
-    {
-    }
+    public function __construct(private readonly ReputationManager $reputation) {}
 
     public function store(Request $request, ForumBoard $board, ForumThread $thread): RedirectResponse
     {
@@ -34,7 +32,7 @@ class ForumPostController extends Controller
 
         abort_if($user === null, 403);
 
-        abort_if($thread->is_locked || !$thread->is_published, 403);
+        abort_if($thread->is_locked || ! $thread->is_published, 403);
 
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:5000'],
@@ -113,7 +111,7 @@ class ForumPostController extends Controller
 
         return redirect()
             ->route('forum.threads.show', $parameters)
-            ->withFragment('post-' . $post->id)
+            ->withFragment('post-'.$post->id)
             ->with('success', 'Reply posted successfully.');
     }
 
@@ -126,7 +124,7 @@ class ForumPostController extends Controller
         abort_if($user === null, 403);
 
         $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
-        $canEditAsAuthor = $user->id === $post->user_id && $thread->is_published && !$thread->is_locked;
+        $canEditAsAuthor = $user->id === $post->user_id && $thread->is_published && ! $thread->is_locked;
 
         abort_unless($isModerator || $canEditAsAuthor, 403);
 
@@ -163,7 +161,7 @@ class ForumPostController extends Controller
 
         $post->mentions()->sync($mentionedUsers->pluck('id')->all());
 
-        $newlyMentionedUsers = $mentionedUsers->filter(fn (User $mentioned) => !$previousMentionIds->contains($mentioned->id));
+        $newlyMentionedUsers = $mentionedUsers->filter(fn (User $mentioned) => ! $previousMentionIds->contains($mentioned->id));
 
         if ($newlyMentionedUsers->isNotEmpty()) {
             $thread->loadMissing('board');
@@ -292,7 +290,7 @@ class ForumPostController extends Controller
     }
 
     /**
-     * @param Collection<int, User> $mentionedUsers
+     * @param  Collection<int, User>  $mentionedUsers
      */
     private function notifyMentionedUsers(Collection $mentionedUsers, ForumThread $thread, ForumPost $post): void
     {

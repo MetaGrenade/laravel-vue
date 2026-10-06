@@ -61,7 +61,6 @@ class UpdateSupportResponseTemplateRequest extends FormRequest
     }
 
     /**
-     * @param  mixed  $value
      * @return array<int, int>
      */
     private function normalizeIdsArray(mixed $value): array

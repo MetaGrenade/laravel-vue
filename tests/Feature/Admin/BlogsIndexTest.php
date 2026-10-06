@@ -158,4 +158,3 @@ class BlogsIndexTest extends TestCase
         );
     }
 }
-

@@ -106,9 +106,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Edit poll</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Update the poll details, refresh answer options, and monitor live responses.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Update the poll details, refresh answer options, and monitor live responses.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -151,7 +149,7 @@ const handleSubmit = () => {
                             <select
                                 id="status"
                                 v-model="form.status"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
                             >
                                 <option value="draft">Draft</option>
                                 <option value="published">Published</option>
@@ -163,9 +161,7 @@ const handleSubmit = () => {
                         <div class="flex items-center justify-between rounded-lg border border-dashed border-muted-foreground/30 p-4">
                             <div>
                                 <p class="text-sm font-medium">Allow multiple selections</p>
-                                <p class="text-xs text-muted-foreground">
-                                    Enable voters to choose more than one option.
-                                </p>
+                                <p class="text-xs text-muted-foreground">Enable voters to choose more than one option.</p>
                             </div>
                             <Switch v-model="form.allow_multiple" />
                         </div>
@@ -191,24 +187,16 @@ const handleSubmit = () => {
                         <CardDescription>Maintain the options available to voters.</CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-4">
-                        <div v-for="(option, index) in form.options" :key="option.id ?? index" class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <div
+                            v-for="(option, index) in form.options"
+                            :key="option.id ?? index"
+                            class="flex flex-col gap-2 sm:flex-row sm:items-center"
+                        >
                             <div class="flex-1">
                                 <Label :for="`option-${index}`" class="sr-only">Option {{ index + 1 }}</Label>
-                                <Input
-                                    :id="`option-${index}`"
-                                    v-model="option.label"
-                                    type="text"
-                                    autocomplete="off"
-                                    placeholder="Option label"
-                                />
+                                <Input :id="`option-${index}`" v-model="option.label" type="text" autocomplete="off" placeholder="Option label" />
                             </div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                :disabled="form.options.length <= 2"
-                                @click="removeOption(index)"
-                            >
+                            <Button type="button" variant="outline" size="sm" :disabled="form.options.length <= 2" @click="removeOption(index)">
                                 <Trash2 class="h-4 w-4" />
                                 Remove
                             </Button>
@@ -242,10 +230,7 @@ const handleSubmit = () => {
                                     </span>
                                 </div>
                                 <div class="h-2 w-full overflow-hidden rounded-full bg-muted">
-                                    <div
-                                        class="h-full rounded-full bg-primary"
-                                        :style="{ width: `${optionPercent(option.votes_count)}%` }"
-                                    />
+                                    <div class="h-full rounded-full bg-primary" :style="{ width: `${optionPercent(option.votes_count)}%` }" />
                                 </div>
                             </div>
                         </div>

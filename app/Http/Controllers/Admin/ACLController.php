@@ -8,12 +8,11 @@ use App\Http\Requests\Admin\StorePermissionRequest;
 use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdatePermissionRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
-use Illuminate\Http\Request;
 use App\Support\Localization\DateFormatter;
-use Inertia\Inertia;
+use Illuminate\Http\Request;
 use Inertia\Response;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class ACLController extends Controller
 {
@@ -121,6 +120,7 @@ class ACLController extends Controller
     {
         $role->update($request->validated());
         $role->syncPermissions($request->permissions ?? []);
+
         return back()->with('success', 'Role updated.');
     }
 
@@ -130,6 +130,7 @@ class ACLController extends Controller
     public function destroyRole(Role $role)
     {
         $role->delete();
+
         return back()->with('success', 'Role deleted.');
     }
 
@@ -149,6 +150,7 @@ class ACLController extends Controller
     public function updatePermission(UpdatePermissionRequest $request, Permission $permission)
     {
         $permission->update($request->validated());
+
         return back()->with('success', 'Permission updated.');
     }
 
@@ -158,6 +160,7 @@ class ACLController extends Controller
     public function destroyPermission(Permission $permission)
     {
         $permission->delete();
+
         return back()->with('success', 'Permission deleted.');
     }
 }

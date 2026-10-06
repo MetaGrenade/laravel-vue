@@ -38,10 +38,7 @@ const formatCurrency = (amount: number, currency: string) => {
 
         <SettingsLayout>
             <section class="space-y-4">
-                <HeadingSmall
-                    title="Billing invoices"
-                    description="Download PDF receipts for your subscription and billing history."
-                />
+                <HeadingSmall title="Billing invoices" description="Download PDF receipts for your subscription and billing history." />
 
                 <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
                     <Table>
@@ -69,12 +66,7 @@ const formatCurrency = (amount: number, currency: string) => {
                                 <TableCell>{{ invoice.paid_at ? new Date(invoice.paid_at).toLocaleString() : '—' }}</TableCell>
                                 <TableCell class="text-right">
                                     <Button as-child variant="outline" size="sm">
-                                        <a
-                                            :href="route('settings.billing.invoices.download', { invoice: invoice.id })"
-                                            download
-                                        >
-                                            Download PDF
-                                        </a>
+                                        <a :href="route('settings.billing.invoices.download', { invoice: invoice.id })" download> Download PDF </a>
                                     </Button>
                                 </TableCell>
                             </TableRow>

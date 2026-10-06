@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Support\Security\HtmlSanitizer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Forum\StoreForumThreadRequest;
 use App\Http\Requests\Api\V1\Forum\UpdateForumThreadRequest;
@@ -14,15 +13,14 @@ use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Support\Database\Transaction;
 use App\Support\Reputation\ReputationManager;
+use App\Support\Security\HtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ForumThreadCommandController extends Controller
 {
-    public function __construct(private readonly ReputationManager $reputation)
-    {
-    }
+    public function __construct(private readonly ReputationManager $reputation) {}
 
     public function store(StoreForumThreadRequest $request, ForumBoard $board): JsonResponse
     {
@@ -46,7 +44,7 @@ class ForumThreadCommandController extends Controller
         $baseSlug = $baseSlug === '' ? 'thread' : Str::limit($baseSlug, 240, '');
 
         do {
-            $slug = $baseSlug . '-' . Str::random(6);
+            $slug = $baseSlug.'-'.Str::random(6);
         } while (ForumThread::where('slug', $slug)->exists());
 
         $thread = null;

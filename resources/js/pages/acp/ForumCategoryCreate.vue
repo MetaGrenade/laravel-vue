@@ -57,9 +57,7 @@ const handleSubmit = () => {
                         <PlaceholderPattern class="absolute inset-0 opacity-10" />
                         <div class="relative space-y-1">
                             <CardTitle>Category details</CardTitle>
-                            <CardDescription>
-                                Set the name, optional slug, and description that will be shown to community members.
-                            </CardDescription>
+                            <CardDescription> Set the name, optional slug, and description that will be shown to community members. </CardDescription>
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-6">

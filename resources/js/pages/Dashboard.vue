@@ -5,13 +5,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LineChart } from '@/components/ui/chart-line';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, CheckCircle2, FileText, LifeBuoy, MessageSquare } from '@lucide/vue';
 
 type SupportMetrics = {
@@ -125,11 +119,7 @@ const statCards = computed(() => [
 const chartSeries = ['Forum Replies', 'Support Tickets'] as const;
 
 const chartData = computed(() => props.activityChart ?? []);
-const hasChartData = computed(() =>
-    chartData.value.some(
-        (item) => (item['Forum Replies'] ?? 0) > 0 || (item['Support Tickets'] ?? 0) > 0,
-    ),
-);
+const hasChartData = computed(() => chartData.value.some((item) => (item['Forum Replies'] ?? 0) > 0 || (item['Support Tickets'] ?? 0) > 0));
 
 const recentActivity = computed(() => props.recentItems ?? []);
 const articles = computed(() => props.recommendedArticles ?? []);
@@ -169,13 +159,13 @@ const alertState = computed(() => {
         <Head title="Dashboard" />
 
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-<!--            <Alert variant="destructive">-->
-<!--                <AlertCircle class="w-4 h-4" />-->
-<!--                <AlertTitle>Error</AlertTitle>-->
-<!--                <AlertDescription>-->
-<!--                    Your session has expired. Please log in again.-->
-<!--                </AlertDescription>-->
-<!--            </Alert>-->
+            <!--            <Alert variant="destructive">-->
+            <!--                <AlertCircle class="w-4 h-4" />-->
+            <!--                <AlertTitle>Error</AlertTitle>-->
+            <!--                <AlertDescription>-->
+            <!--                    Your session has expired. Please log in again.-->
+            <!--                </AlertDescription>-->
+            <!--            </Alert>-->
             <Alert :variant="alertState.variant">
                 <component :is="alertState.icon" class="h-5 w-5" />
                 <AlertTitle>{{ alertState.title }}</AlertTitle>
@@ -183,11 +173,7 @@ const alertState = computed(() => {
             </Alert>
 
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <Card
-                    v-for="(stat, index) in statCards"
-                    :key="index"
-                    class="overflow-hidden"
-                >
+                <Card v-for="(stat, index) in statCards" :key="index" class="overflow-hidden">
                     <CardHeader class="flex flex-row items-start justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">{{ stat.title }}</CardTitle>
                         <component :is="stat.icon" class="h-5 w-5 text-muted-foreground" />
@@ -212,9 +198,7 @@ const alertState = computed(() => {
                         :categories="chartSeries"
                         :y-formatter="(tick) => (typeof tick === 'number' ? formatNumber(tick) : '')"
                     />
-                    <p v-else class="text-sm text-muted-foreground">
-                        Not enough activity yet to visualise a trend.
-                    </p>
+                    <p v-else class="text-sm text-muted-foreground">Not enough activity yet to visualise a trend.</p>
                 </CardContent>
             </Card>
 
@@ -243,9 +227,7 @@ const alertState = computed(() => {
                                 </div>
                             </li>
                         </ul>
-                        <p v-else class="text-sm text-muted-foreground">
-                            We will list your recent interactions here once you start engaging.
-                        </p>
+                        <p v-else class="text-sm text-muted-foreground">We will list your recent interactions here once you start engaging.</p>
                     </CardContent>
                 </Card>
 
@@ -268,9 +250,7 @@ const alertState = computed(() => {
                                 </p>
                             </li>
                         </ul>
-                        <p v-else class="text-sm text-muted-foreground">
-                            Freshly published articles will appear here as soon as they are available.
-                        </p>
+                        <p v-else class="text-sm text-muted-foreground">Freshly published articles will appear here as soon as they are available.</p>
                     </CardContent>
                 </Card>
             </div>

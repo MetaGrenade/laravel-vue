@@ -59,7 +59,7 @@ const submit = () => {
                     </Button>
                 </div>
 
-                <div class="flex items-center gap-3 text-xs uppercase tracking-wide text-muted-foreground">
+                <div class="flex items-center gap-3 text-xs tracking-wide text-muted-foreground uppercase">
                     <Separator class="flex-1" />
                     <span>Or continue with email</span>
                     <Separator class="flex-1" />

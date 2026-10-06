@@ -22,8 +22,7 @@ class SupportTicketController extends Controller
     public function __construct(
         private readonly SupportTicketNotificationDispatcher $ticketNotifier,
         private readonly SupportTicketAutoAssigner $ticketAssigner,
-    ) {
-    }
+    ) {}
 
     public function show(Request $request, SupportTicket $ticket): JsonResponse
     {

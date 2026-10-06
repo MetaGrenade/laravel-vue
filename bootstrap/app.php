@@ -13,11 +13,11 @@ use App\Http\Middleware\UpdateLastActivity;
 use App\Jobs\AggregateSearchQueryStats;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneSearchQueryLogs;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
-use Illuminate\Console\Scheduling\Schedule;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -68,9 +68,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {
-        $schedule->job(new MonitorSupportTicketSlas())->everyFifteenMinutes();
-        $schedule->job(new AggregateSearchQueryStats())->dailyAt('00:30');
-        $schedule->job(new PruneSearchQueryLogs())->dailyAt('01:00');
+        $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();
+        $schedule->job(new AggregateSearchQueryStats)->dailyAt('00:30');
+        $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

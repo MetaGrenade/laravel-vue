@@ -9,9 +9,9 @@ use App\Support\Security\TwoFactorAuthenticator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use JsonException;
 use Inertia\Inertia;
 use Inertia\Response;
+use JsonException;
 
 class SecurityController extends Controller
 {

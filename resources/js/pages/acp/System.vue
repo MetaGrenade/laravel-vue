@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'vue-sonner';
 import { usePermissions } from '@/composables/usePermissions';
 
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'System Settings ACP',
@@ -79,11 +78,9 @@ const saveSettings = () => {
                 <!-- Settings Controls Section -->
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <!-- Maintenance Mode -->
-                    <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <h3 class="mb-2 text-lg font-semibold">Maintenance Mode</h3>
-                        <p class="mb-4 text-sm text-gray-500">
-                            Toggle maintenance mode to temporarily disable access for users.
-                        </p>
+                        <p class="mb-4 text-sm text-gray-500">Toggle maintenance mode to temporarily disable access for users.</p>
                         <div class="flex items-center">
                             <Switch v-model="form.maintenance_mode" :disabled="!canEditSystemSettings" />
                             <span class="ml-2 text-sm">
@@ -93,11 +90,9 @@ const saveSettings = () => {
                     </div>
 
                     <!-- Email Verification -->
-                    <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <h3 class="mb-2 text-lg font-semibold">Email Verification</h3>
-                        <p class="mb-4 text-sm text-gray-500">
-                            Require users to verify their email address upon registration.
-                        </p>
+                        <p class="mb-4 text-sm text-gray-500">Require users to verify their email address upon registration.</p>
                         <div class="flex items-center">
                             <Switch v-model="form.email_verification_required" :disabled="!canEditSystemSettings" />
                             <span class="ml-2 text-sm">
@@ -107,11 +102,9 @@ const saveSettings = () => {
                     </div>
 
                     <!-- Website Sections -->
-                    <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <h3 class="mb-2 text-lg font-semibold">Website Sections</h3>
-                        <p class="mb-4 text-sm text-gray-500">
-                            Enable or disable different sections of the website.
-                        </p>
+                        <p class="mb-4 text-sm text-gray-500">Enable or disable different sections of the website.</p>
                         <div class="space-y-3">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -165,17 +158,13 @@ const saveSettings = () => {
                     </div>
 
                     <!-- OAuth Providers -->
-                    <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <h3 class="mb-2 text-lg font-semibold">OAuth Providers</h3>
                         <p class="mb-4 text-sm text-gray-500">
                             Control which social authentication providers are available for login and account linking.
                         </p>
                         <div v-if="oauthProviderOptions.length" class="space-y-3">
-                            <div
-                                v-for="provider in oauthProviderOptions"
-                                :key="provider.key"
-                                class="flex items-center justify-between"
-                            >
+                            <div v-for="provider in oauthProviderOptions" :key="provider.key" class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium">{{ provider.label }}</p>
                                     <p v-if="provider.description" class="text-xs text-gray-500">
@@ -197,7 +186,7 @@ const saveSettings = () => {
                 </div>
 
                 <!-- System Information Section -->
-                <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                     <h3 class="mb-2 text-lg font-semibold">System Information</h3>
                     <ul class="space-y-2 text-sm">
                         <li>

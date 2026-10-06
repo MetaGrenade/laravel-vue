@@ -308,18 +308,10 @@ const refreshCategories = async () => {
     }
 };
 
-const createdAt = computed(() =>
-    props.blog.created_at ? formatDate(props.blog.created_at) : '—'
-);
-const updatedAt = computed(() =>
-    props.blog.updated_at ? formatDate(props.blog.updated_at) : '—'
-);
-const publishedAt = computed(() =>
-    props.blog.published_at ? formatDate(props.blog.published_at) : 'Not published'
-);
-const scheduledAt = computed(() =>
-    props.blog.scheduled_for ? formatDate(props.blog.scheduled_for) : '—'
-);
+const createdAt = computed(() => (props.blog.created_at ? formatDate(props.blog.created_at) : '—'));
+const updatedAt = computed(() => (props.blog.updated_at ? formatDate(props.blog.updated_at) : '—'));
+const publishedAt = computed(() => (props.blog.published_at ? formatDate(props.blog.published_at) : 'Not published'));
+const scheduledAt = computed(() => (props.blog.scheduled_for ? formatDate(props.blog.scheduled_for) : '—'));
 
 const coverImagePreview = ref<string | null>(null);
 const existingCoverImage = computed(() => coverImagePreview.value ?? props.blog.cover_image_url ?? null);
@@ -370,9 +362,7 @@ watch(
     (status) => {
         if (status === 'scheduled' && !form.scheduled_for) {
             form.scheduled_for =
-                props.blog.status === 'scheduled' && props.blog.scheduled_for
-                    ? toInputValue(props.blog.scheduled_for)
-                    : defaultScheduledAt();
+                props.blog.status === 'scheduled' && props.blog.scheduled_for ? toInputValue(props.blog.scheduled_for) : defaultScheduledAt();
         }
 
         if (status !== 'scheduled') {
@@ -382,9 +372,7 @@ watch(
     { immediate: true },
 );
 
-const selectedCategories = computed(() =>
-    categoryOptions.value.filter((category) => form.category_ids.includes(category.id)),
-);
+const selectedCategories = computed(() => categoryOptions.value.filter((category) => form.category_ids.includes(category.id)));
 const selectedTags = computed(() => tagOptions.value.filter((tag) => form.tag_ids.includes(tag.id)));
 
 const previewCover = computed(() => existingCoverImage.value ?? '/images/default-cover.jpg');
@@ -492,9 +480,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Edit blog post</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Update the article content or adjust its publication status.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Update the article content or adjust its publication status.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -502,25 +488,13 @@ const handleSubmit = () => {
                             <Link :href="route('acp.blogs.index')">Back to blogs</Link>
                         </Button>
                         <Button v-if="canViewRevisions" variant="outline" as-child>
-                            <Link :href="route('acp.blogs.revisions.index', { blog: props.blog.id })">
-                                Revision history
-                            </Link>
+                            <Link :href="route('acp.blogs.revisions.index', { blog: props.blog.id })"> Revision history </Link>
                         </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            class="flex items-center gap-2"
-                            @click="previewOpen = true"
-                        >
+                        <Button type="button" variant="secondary" class="flex items-center gap-2" @click="previewOpen = true">
                             <Eye class="h-4 w-4" />
                             Preview changes
                         </Button>
-                        <Button
-                            v-if="previewLink"
-                            variant="outline"
-                            as-child
-                            class="flex items-center gap-2"
-                        >
+                        <Button v-if="previewLink" variant="outline" as-child class="flex items-center gap-2">
                             <a :href="previewLink" target="_blank" rel="noopener">
                                 <LinkIcon class="h-4 w-4" />
                                 Open preview link
@@ -536,9 +510,7 @@ const handleSubmit = () => {
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />
                             <div class="relative space-y-1">
                                 <CardTitle>Post content</CardTitle>
-                                <CardDescription>
-                                    Keep the information accurate and engaging for readers.
-                                </CardDescription>
+                                <CardDescription> Keep the information accurate and engaging for readers. </CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-6">
@@ -561,12 +533,7 @@ const handleSubmit = () => {
 
                             <div class="grid gap-2">
                                 <Label for="cover_image">Cover image</Label>
-                                <Input
-                                    id="cover_image"
-                                    type="file"
-                                    accept="image/*"
-                                    @change="handleCoverImageChange"
-                                />
+                                <Input id="cover_image" type="file" accept="image/*" @change="handleCoverImageChange" />
                                 <p class="text-xs text-muted-foreground">
                                     Replace the existing banner to refresh how this post appears across the site.
                                 </p>
@@ -576,7 +543,7 @@ const handleSubmit = () => {
                                     <img
                                         :src="existingCoverImage"
                                         alt="Blog cover preview"
-                                        class="h-32 w-full rounded-md object-cover border border-dashed border-muted"
+                                        class="h-32 w-full rounded-md border border-dashed border-muted object-cover"
                                     />
                                 </div>
                             </div>
@@ -598,9 +565,7 @@ const handleSubmit = () => {
                                     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                         <div>
                                             <Label>Categories</Label>
-                                            <p class="text-sm text-muted-foreground">
-                                                Select the categories that best represent this article.
-                                            </p>
+                                            <p class="text-sm text-muted-foreground">Select the categories that best represent this article.</p>
                                         </div>
                                         <Button
                                             type="button"
@@ -628,10 +593,7 @@ const handleSubmit = () => {
                                             />
                                             <span>{{ category.name }}</span>
                                         </label>
-                                        <p
-                                            v-if="categoryOptions.length === 0"
-                                            class="text-sm text-muted-foreground sm:col-span-2"
-                                        >
+                                        <p v-if="categoryOptions.length === 0" class="text-sm text-muted-foreground sm:col-span-2">
                                             No categories available yet. Add some options to improve navigation.
                                         </p>
                                     </div>
@@ -645,9 +607,7 @@ const handleSubmit = () => {
                                     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                         <div>
                                             <Label>Tags</Label>
-                                            <p class="text-sm text-muted-foreground">
-                                                Use tags to surface cross-cutting topics and campaigns.
-                                            </p>
+                                            <p class="text-sm text-muted-foreground">Use tags to surface cross-cutting topics and campaigns.</p>
                                         </div>
                                         <Button
                                             type="button"
@@ -698,10 +658,7 @@ const handleSubmit = () => {
                                     <select
                                         id="status"
                                         v-model="form.status"
-                                        class="
-                                            flex h-10 w-full rounded-md border border-input bg-background px-3 py-2
-                                            text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2
-                                        "
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                                             {{ option.label }}
@@ -712,22 +669,14 @@ const handleSubmit = () => {
 
                                 <div v-if="form.status === 'scheduled'" class="grid gap-2">
                                     <Label for="scheduled_for">Schedule for</Label>
-                                    <Input
-                                        id="scheduled_for"
-                                        v-model="form.scheduled_for"
-                                        type="datetime-local"
-                                        :min="minScheduleValue"
-                                        required
-                                    />
-                                    <p class="text-xs text-muted-foreground">
-                                        We'll queue the post to publish automatically at this time.
-                                    </p>
+                                    <Input id="scheduled_for" v-model="form.scheduled_for" type="datetime-local" :min="minScheduleValue" required />
+                                    <p class="text-xs text-muted-foreground">We'll queue the post to publish automatically at this time.</p>
                                     <InputError :message="form.errors.scheduled_for" />
                                 </div>
 
                                 <p class="text-sm text-muted-foreground">
-                                    Publishing immediately sets the article live and records the publish time. Draft posts stay
-                                    private, scheduled entries go live automatically, and archived posts remain hidden.
+                                    Publishing immediately sets the article live and records the publish time. Draft posts stay private, scheduled
+                                    entries go live automatically, and archived posts remain hidden.
                                 </p>
                             </CardContent>
                             <CardFooter class="justify-end">
@@ -768,13 +717,9 @@ const handleSubmit = () => {
                                 <div class="space-y-3">
                                     <div class="flex flex-wrap items-center justify-between gap-2">
                                         <Label class="text-sm font-medium">Social links</Label>
-                                        <Button type="button" variant="outline" size="sm" @click="addAuthorSocialLink">
-                                            Add link
-                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" @click="addAuthorSocialLink"> Add link </Button>
                                     </div>
-                                    <p class="text-xs text-muted-foreground">
-                                        List destinations where readers can continue following this author.
-                                    </p>
+                                    <p class="text-xs text-muted-foreground">List destinations where readers can continue following this author.</p>
 
                                     <div v-if="form.author.social_links.length" class="space-y-3">
                                         <div
@@ -805,12 +750,7 @@ const handleSubmit = () => {
                                                 </div>
                                             </div>
                                             <div class="flex justify-end">
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    @click="removeAuthorSocialLink(index)"
-                                                >
+                                                <Button type="button" variant="ghost" size="sm" @click="removeAuthorSocialLink(index)">
                                                     Remove
                                                 </Button>
                                             </div>
@@ -856,9 +796,7 @@ const handleSubmit = () => {
                 <DialogContent class="sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle>Preview blog post</DialogTitle>
-                        <DialogDescription>
-                            Confirm how the article will look once saved or scheduled.
-                        </DialogDescription>
+                        <DialogDescription> Confirm how the article will look once saved or scheduled. </DialogDescription>
                     </DialogHeader>
 
                     <div class="space-y-6">
@@ -869,24 +807,13 @@ const handleSubmit = () => {
                         </Alert>
 
                         <div class="flex flex-wrap items-center gap-2">
-                            <Button
-                                v-if="previewLink"
-                                variant="outline"
-                                as-child
-                                class="flex items-center gap-2"
-                            >
+                            <Button v-if="previewLink" variant="outline" as-child class="flex items-center gap-2">
                                 <a :href="previewLink" target="_blank" rel="noopener">
                                     <LinkIcon class="h-4 w-4" />
                                     Open shareable preview
                                 </a>
                             </Button>
-                            <Button
-                                v-if="previewLink"
-                                type="button"
-                                variant="ghost"
-                                class="flex items-center gap-2"
-                                @click="copyPreviewLink"
-                            >
+                            <Button v-if="previewLink" type="button" variant="ghost" class="flex items-center gap-2" @click="copyPreviewLink">
                                 <LinkIcon class="h-4 w-4" />
                                 {{ previewCopied ? 'Copied!' : 'Copy preview link' }}
                             </Button>
@@ -899,7 +826,7 @@ const handleSubmit = () => {
 
                             <div class="space-y-4">
                                 <div>
-                                    <p class="text-xs uppercase tracking-wide text-muted-foreground">Title</p>
+                                    <p class="text-xs tracking-wide text-muted-foreground uppercase">Title</p>
                                     <h2 class="text-2xl font-semibold">{{ form.title || 'Untitled post' }}</h2>
                                 </div>
                                 <div v-if="form.excerpt" class="text-sm text-muted-foreground">
@@ -909,7 +836,7 @@ const handleSubmit = () => {
                             </div>
 
                             <div v-if="selectedCategories.length || selectedTags.length" class="space-y-3">
-                                <p class="text-xs uppercase tracking-wide text-muted-foreground">Metadata</p>
+                                <p class="text-xs tracking-wide text-muted-foreground uppercase">Metadata</p>
                                 <div class="flex flex-wrap gap-2 text-xs">
                                     <span
                                         v-for="category in selectedCategories"

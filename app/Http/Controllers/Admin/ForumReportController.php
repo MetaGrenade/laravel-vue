@@ -285,7 +285,7 @@ class ForumReportController extends Controller
                     'type' => $report['type'],
                 ];
             })
-            ->unique(fn (array $report) => $report['type'] . '-' . $report['id'])
+            ->unique(fn (array $report) => $report['type'].'-'.$report['id'])
             ->values();
 
         if ($normalized->isEmpty()) {

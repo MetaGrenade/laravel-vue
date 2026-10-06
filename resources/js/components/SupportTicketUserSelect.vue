@@ -191,17 +191,8 @@ onBeforeUnmount(() => {
 <template>
     <div class="space-y-3">
         <div class="flex flex-col gap-2 sm:flex-row">
-            <Input
-                :id="inputId"
-                v-model="searchQuery"
-                type="search"
-                placeholder="Search by nickname or email"
-                class="sm:flex-1"
-                autocomplete="off"
-            />
-            <Button type="button" variant="outline" @click="clearSelection" :disabled="!selectedUser && !searchQuery">
-                Clear
-            </Button>
+            <Input :id="inputId" v-model="searchQuery" type="search" placeholder="Search by nickname or email" class="sm:flex-1" autocomplete="off" />
+            <Button type="button" variant="outline" @click="clearSelection" :disabled="!selectedUser && !searchQuery"> Clear </Button>
         </div>
 
         <div v-if="selectedUser" class="rounded-md border border-border bg-muted/40 p-3 text-sm">
@@ -214,21 +205,14 @@ onBeforeUnmount(() => {
 
         <ul v-else-if="results.length" class="divide-y rounded-md border border-border">
             <li v-for="user in results" :key="user.id">
-                <button
-                    type="button"
-                    class="flex w-full flex-col items-start gap-1 px-3 py-2 text-left hover:bg-muted"
-                    @click="selectUser(user)"
-                >
+                <button type="button" class="flex w-full flex-col items-start gap-1 px-3 py-2 text-left hover:bg-muted" @click="selectUser(user)">
                     <span class="font-medium text-foreground">{{ user.nickname }}</span>
                     <span class="text-sm text-muted-foreground">{{ user.email }}</span>
                 </button>
             </li>
         </ul>
 
-        <p
-            v-else-if="searchQuery.trim().length >= MIN_QUERY_LENGTH"
-            class="text-sm text-muted-foreground"
-        >
+        <p v-else-if="searchQuery.trim().length >= MIN_QUERY_LENGTH" class="text-sm text-muted-foreground">
             No users found for “{{ searchQuery.trim() }}”.
         </p>
     </div>

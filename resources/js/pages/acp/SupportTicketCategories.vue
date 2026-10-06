@@ -93,9 +93,7 @@ const confirmDeleteCategory = () => {
                                 <FolderKanban class="h-5 w-5" />
                                 Ticket categories
                             </CardTitle>
-                            <CardDescription>
-                                Group incoming tickets by theme so the team can triage requests faster.
-                            </CardDescription>
+                            <CardDescription> Group incoming tickets by theme so the team can triage requests faster. </CardDescription>
                         </div>
                         <Button variant="secondary" as-child>
                             <Link :href="route('acp.support.ticket-categories.create')">

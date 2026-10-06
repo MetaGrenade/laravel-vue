@@ -10,7 +10,9 @@ use Illuminate\Support\Str;
 class TwoFactorAuthenticator
 {
     private const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
     private const DEFAULT_DIGITS = 6;
+
     private const DEFAULT_PERIOD = 30;
 
     /**
@@ -64,7 +66,7 @@ class TwoFactorAuthenticator
     {
         $normalizedCode = preg_replace('/\s+/', '', $code ?? '');
 
-        if (!preg_match('/^\d{6}$/', $normalizedCode)) {
+        if (! preg_match('/^\d{6}$/', $normalizedCode)) {
             return false;
         }
 

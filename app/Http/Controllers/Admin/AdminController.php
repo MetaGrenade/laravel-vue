@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Support\Database\Sql;
 use App\Http\Controllers\Controller;
 use App\Models\Blog;
 use App\Models\SearchQueryAggregate;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Support\Database\Sql;
 use App\Support\Localization\DateFormatter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -51,9 +51,9 @@ class AdminController extends Controller
         ];
 
         $ticketCounts = SupportTicket::select([
-                DB::raw('status'),
-                DB::raw('COUNT(*) as aggregate'),
-            ])
+            DB::raw('status'),
+            DB::raw('COUNT(*) as aggregate'),
+        ])
             ->groupBy('status')
             ->pluck('aggregate', 'status');
 
@@ -188,7 +188,7 @@ class AdminController extends Controller
 
         $pendingTicketsByDay = SupportTicket::query()
             ->select([
-                DB::raw("DATE(created_at) as day"),
+                DB::raw('DATE(created_at) as day'),
                 DB::raw('COUNT(*) as aggregate'),
             ])
             ->where('status', 'pending')
@@ -311,18 +311,18 @@ class AdminController extends Controller
         $start = now()->startOfMonth()->subMonths(11);
 
         $userRegistrationsByMonth = User::select([
-                Sql::yearMonth('created_at', 'month'),
-                DB::raw('COUNT(*) as total'),
-            ])
+            Sql::yearMonth('created_at', 'month'),
+            DB::raw('COUNT(*) as total'),
+        ])
             ->where('created_at', '>=', $start)
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('total', 'month');
 
         $supportTicketsByMonth = SupportTicket::select([
-                Sql::yearMonth('created_at', 'month'),
-                DB::raw('COUNT(*) as total'),
-            ])
+            Sql::yearMonth('created_at', 'month'),
+            DB::raw('COUNT(*) as total'),
+        ])
             ->where('created_at', '>=', $start)
             ->groupBy('month')
             ->orderBy('month')

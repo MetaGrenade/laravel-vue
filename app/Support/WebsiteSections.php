@@ -7,8 +7,11 @@ use App\Models\SystemSetting;
 class WebsiteSections
 {
     public const BLOG = 'blog';
+
     public const FORUM = 'forum';
+
     public const SUPPORT = 'support';
+
     public const COMMERCE = 'commerce';
 
     /**

@@ -68,7 +68,7 @@ class BlogArchivingTest extends TestCase
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Blog')
             ->where('blogs.data', fn ($data) => collect($data)->pluck('id')->contains($publishedBlog->id))
-            ->where('blogs.data', fn ($data) => !collect($data)->pluck('title')->contains('Hidden Post'))
+            ->where('blogs.data', fn ($data) => ! collect($data)->pluck('title')->contains('Hidden Post'))
         );
     }
 }

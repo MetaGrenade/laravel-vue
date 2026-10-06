@@ -96,9 +96,7 @@ const confirmDeleteCategory = () => {
                                 <LifeBuoy class="h-5 w-5" />
                                 FAQ categories
                             </CardTitle>
-                            <CardDescription>
-                                Group related questions together so visitors can skim support topics more easily.
-                            </CardDescription>
+                            <CardDescription> Group related questions together so visitors can skim support topics more easily. </CardDescription>
                         </div>
                         <Button variant="secondary" as-child>
                             <Link :href="route('acp.support.faq-categories.create')">
@@ -133,7 +131,7 @@ const confirmDeleteCategory = () => {
                                 <TableRow v-for="category in props.categories" :key="category.id">
                                     <TableCell class="font-medium">{{ category.name }}</TableCell>
                                     <TableCell>
-                                        <span class="rounded bg-muted px-2 py-1 text-xs font-mono">{{ category.slug }}</span>
+                                        <span class="rounded bg-muted px-2 py-1 font-mono text-xs">{{ category.slug }}</span>
                                     </TableCell>
                                     <TableCell class="text-center">{{ category.order }}</TableCell>
                                     <TableCell class="max-w-sm text-sm text-muted-foreground">
@@ -141,9 +139,7 @@ const confirmDeleteCategory = () => {
                                     </TableCell>
                                     <TableCell class="text-center">
                                         <span class="font-semibold">{{ category.faqs_count }}</span>
-                                        <span class="ml-1 text-xs text-muted-foreground">
-                                            item{{ category.faqs_count === 1 ? '' : 's' }}
-                                        </span>
+                                        <span class="ml-1 text-xs text-muted-foreground"> item{{ category.faqs_count === 1 ? '' : 's' }} </span>
                                     </TableCell>
                                     <TableCell class="text-center">
                                         {{ category.updated_at ? formatDate(category.updated_at, 'MMM D, YYYY h:mm A') : '—' }}

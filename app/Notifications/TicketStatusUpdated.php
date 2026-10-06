@@ -25,8 +25,7 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
         protected string $previousStatus,
         protected string $audience = 'owner',
         protected array $channels = ['mail', 'database', 'push'],
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -49,20 +48,20 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
     {
         $subject = $this->title();
 
-        $greeting = 'Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!';
+        $greeting = 'Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!';
 
         $lines = match ($this->audience) {
             'agent', 'team' => [
                 'A support ticket you are assigned to has a new status.',
-                'Subject: ' . $this->ticket->subject,
+                'Subject: '.$this->ticket->subject,
             ],
             default => [
                 'Your support ticket status has been updated.',
-                'Subject: ' . $this->ticket->subject,
+                'Subject: '.$this->ticket->subject,
             ],
         };
 
-        $mailMessage = (new MailMessage())
+        $mailMessage = (new MailMessage)
             ->subject($subject)
             ->greeting($greeting);
 
@@ -138,8 +137,8 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
     protected function title(): string
     {
         return match ($this->audience) {
-            'agent', 'team' => 'Ticket status updated: ' . $this->ticket->subject,
-            default => 'Support ticket status updated: ' . $this->ticket->subject,
+            'agent', 'team' => 'Ticket status updated: '.$this->ticket->subject,
+            default => 'Support ticket status updated: '.$this->ticket->subject,
         };
     }
 

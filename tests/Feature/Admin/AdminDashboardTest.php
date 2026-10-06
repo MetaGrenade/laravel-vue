@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;

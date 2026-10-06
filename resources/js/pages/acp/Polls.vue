@@ -32,9 +32,7 @@ const props = defineProps<{
     polls: PollSummary[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Polls ACP', href: route('acp.polls.index') },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Polls ACP', href: route('acp.polls.index') }];
 
 const hasPolls = computed(() => props.polls.length > 0);
 const { formatDate } = useUserTimezone();
@@ -113,9 +111,7 @@ const statusBadge = (status: string) => {
                                 <Vote class="h-5 w-5" />
                                 Polls & Surveys
                             </CardTitle>
-                            <CardDescription>
-                                Create time-bound polls, track responses, and share live results with your community.
-                            </CardDescription>
+                            <CardDescription> Create time-bound polls, track responses, and share live results with your community. </CardDescription>
                         </div>
                         <Button variant="secondary" as-child>
                             <Link :href="route('acp.polls.create')">
@@ -126,7 +122,10 @@ const statusBadge = (status: string) => {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div v-if="!hasPolls" class="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+                    <div
+                        v-if="!hasPolls"
+                        class="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground"
+                    >
                         No polls have been created yet. Use the button above to add the first poll.
                     </div>
 

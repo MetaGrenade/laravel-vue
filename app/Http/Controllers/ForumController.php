@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\Seo\Seo;
-use App\Support\Security\HtmlSanitizer;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Resources\MentionSuggestionResource;
 use App\Models\Badge;
@@ -14,9 +12,11 @@ use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
 use App\Support\Database\Transaction;
+use App\Support\Forum\ForumIndexCache;
 use App\Support\Localization\DateFormatter;
 use App\Support\Reputation\ReputationManager;
-use App\Support\Forum\ForumIndexCache;
+use App\Support\Security\HtmlSanitizer;
+use App\Support\Seo\Seo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,9 +35,7 @@ class ForumController extends Controller
     public function __construct(
         private readonly ReputationManager $reputation,
         private readonly ForumIndexCache $forumIndexCache
-    )
-    {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -138,10 +136,10 @@ class ForumController extends Controller
             ->whereNotNull('nickname')
             ->where('id', '!=', $user->id)
             ->where(function ($builder) use ($escaped) {
-                $builder->where('nickname', 'like', $escaped . '%')
-                    ->orWhere('nickname', 'like', '%' . $escaped . '%');
+                $builder->where('nickname', 'like', $escaped.'%')
+                    ->orWhere('nickname', 'like', '%'.$escaped.'%');
             })
-            ->orderByRaw('nickname like ? desc', [$escaped . '%'])
+            ->orderByRaw('nickname like ? desc', [$escaped.'%'])
             ->orderBy('nickname')
             ->limit(8)
             ->get()
@@ -177,7 +175,7 @@ class ForumController extends Controller
         $threadsQuery = $board->threads()
             ->select('forum_threads.*')
             ->leftJoin('users as thread_authors', 'thread_authors.id', '=', 'forum_threads.user_id')
-            ->when(!$isModerator, function ($query) {
+            ->when(! $isModerator, function ($query) {
                 $query->where('forum_threads.is_published', true);
             })
             ->when($includeReads, function ($query) use ($user) {
@@ -300,7 +298,7 @@ class ForumController extends Controller
 
         $formatter = DateFormatter::for($user);
 
-        if (!$thread->is_published && !$isModerator) {
+        if (! $thread->is_published && ! $isModerator) {
             abort(404);
         }
 
@@ -353,7 +351,7 @@ class ForumController extends Controller
             $canModerate = (bool) $isModerator;
             $canEdit = $canModerate;
 
-            if (!$canEdit && $user !== null && $user->id === $post->user_id && $thread->is_published && !$thread->is_locked) {
+            if (! $canEdit && $user !== null && $user->id === $post->user_id && $thread->is_published && ! $thread->is_locked) {
                 $canEdit = true;
             }
 
@@ -450,7 +448,7 @@ class ForumController extends Controller
             $canModerateThread || (
                 $user->id === $thread->user_id &&
                 $thread->is_published &&
-                !$thread->is_locked
+                ! $thread->is_locked
             )
         );
 
@@ -502,7 +500,7 @@ class ForumController extends Controller
                     'canModerate' => $canModerateThread,
                     'canEdit' => $canEditThread,
                     'canReport' => $user !== null && $user->id !== $thread->user_id,
-                    'canReply' => $user !== null && $thread->is_published && !$thread->is_locked,
+                    'canReply' => $user !== null && $thread->is_published && ! $thread->is_locked,
                 ],
             ],
             'posts' => array_merge([
@@ -536,10 +534,10 @@ class ForumController extends Controller
             $escaped = str_replace(["\r\n", "\r"], "\n", $escaped);
             $escaped = nl2br($escaped, false);
 
-            return '<p>' . $escaped . '</p>';
+            return '<p>'.$escaped.'</p>';
         })->implode('');
 
-        return '<blockquote>' . $quoteBody . '</blockquote><p></p>';
+        return '<blockquote>'.$quoteBody.'</blockquote><p></p>';
     }
 
     /**
@@ -603,7 +601,7 @@ class ForumController extends Controller
         $baseSlug = Str::limit($baseSlug, 240, '');
 
         do {
-            $slug = $baseSlug . '-' . Str::random(6);
+            $slug = $baseSlug.'-'.Str::random(6);
         } while (ForumThread::where('slug', $slug)->exists());
 
         $thread = null;

@@ -59,7 +59,7 @@ class UpdateSupportSlaRequest extends FormRequest
             $toKey = "priority_escalations.$priority.to";
             $reassignKey = "reassign_after.$priority";
 
-            $rules[$afterKey] = ['nullable', 'string', 'max:255', 'required_with:'.$toKey, new ValidDateInterval()];
+            $rules[$afterKey] = ['nullable', 'string', 'max:255', 'required_with:'.$toKey, new ValidDateInterval];
 
             $allowedTargets = array_filter(
                 array_keys(self::PRIORITY_ORDER),
@@ -76,7 +76,7 @@ class UpdateSupportSlaRequest extends FormRequest
 
             $rules[$toKey] = $targetRules;
 
-            $rules[$reassignKey] = ['nullable', 'string', 'max:255', new ValidDateInterval()];
+            $rules[$reassignKey] = ['nullable', 'string', 'max:255', new ValidDateInterval];
         }
 
         return $rules;

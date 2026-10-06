@@ -6,7 +6,7 @@ use App\Models\SupportTicketCategory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<\App\Models\SupportTicketCategory>
+ * @extends Factory<SupportTicketCategory>
  */
 class SupportTicketCategoryFactory extends Factory
 {

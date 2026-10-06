@@ -10,11 +10,11 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Notifications\UserDataExportReady;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 use ZipArchive;
@@ -150,7 +150,7 @@ class DataExportTest extends TestCase
             $this->assertSame($data['title'], $data['thread_title']);
             $this->assertSame(route('privacy.index'), $data['url']);
             $this->assertNotNull($data['download_url']);
-            $this->assertStringContainsString('settings/privacy/exports/' . $export->id . '/download', $data['download_url']);
+            $this->assertStringContainsString('settings/privacy/exports/'.$export->id.'/download', $data['download_url']);
             $this->assertSame($expectedExpiry, $data['download_expires_at']);
 
             return true;
@@ -167,12 +167,12 @@ class DataExportTest extends TestCase
             $mailMessage = $notification->toMail($user);
 
             $this->assertSame('Your data export is ready', $mailMessage->subject);
-            $this->assertStringContainsString('settings/privacy/exports/' . $export->id . '/download', $mailMessage->actionUrl);
+            $this->assertStringContainsString('settings/privacy/exports/'.$export->id.'/download', $mailMessage->actionUrl);
 
             return true;
         });
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $this->assertTrue($zip->open(Storage::disk('local')->path($export->file_path)) === true);
 
         $json = $zip->getFromName('export.json');

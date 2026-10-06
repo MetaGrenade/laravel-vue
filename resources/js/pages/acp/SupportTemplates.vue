@@ -208,9 +208,7 @@ const cancelDeleteTemplate = () => {
                                     <FileText class="h-5 w-5" />
                                     Response templates
                                 </CardTitle>
-                                <CardDescription>
-                                    Maintain reusable replies for quick, consistent support communication.
-                                </CardDescription>
+                                <CardDescription> Maintain reusable replies for quick, consistent support communication. </CardDescription>
                             </div>
                             <div v-if="props.can.create" class="hidden sm:flex">
                                 <Button
@@ -265,7 +263,7 @@ const cancelDeleteTemplate = () => {
                                         id="template_category"
                                         v-model="createForm.support_ticket_category_id"
                                         :disabled="createForm.processing"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         <option :value="null">All categories</option>
                                         <option v-for="category in props.categories" :key="category.id" :value="category.id">
@@ -282,15 +280,13 @@ const cancelDeleteTemplate = () => {
                                         v-model="createForm.support_team_ids"
                                         :disabled="createForm.processing"
                                         multiple
-                                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         <option v-for="team in props.teams" :key="team.id" :value="team.id">
                                             {{ team.name }}
                                         </option>
                                     </select>
-                                    <p class="text-xs text-muted-foreground">
-                                        Leave empty to make the template available to every team.
-                                    </p>
+                                    <p class="text-xs text-muted-foreground">Leave empty to make the template available to every team.</p>
                                     <InputError :message="createForm.errors.support_team_ids" />
                                 </div>
                             </div>
@@ -315,9 +311,7 @@ const cancelDeleteTemplate = () => {
                         </div>
 
                         <div>
-                            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                                Existing templates
-                            </h3>
+                            <h3 class="mb-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">Existing templates</h3>
                             <div
                                 v-if="!hasTemplates"
                                 class="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground"
@@ -366,12 +360,7 @@ const cancelDeleteTemplate = () => {
                                                 </span>
                                             </TableCell>
                                             <TableCell v-if="hasTemplateActions" class="flex justify-end gap-2">
-                                                <Button
-                                                    v-if="props.can.edit"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    @click="openEditDialog(template)"
-                                                >
+                                                <Button v-if="props.can.edit" variant="outline" size="sm" @click="openEditDialog(template)">
                                                     <Pencil class="h-4 w-4" />
                                                     Edit
                                                 </Button>
@@ -416,23 +405,12 @@ const cancelDeleteTemplate = () => {
                         <form class="mt-4 grid gap-4" @submit.prevent="submitEdit">
                             <div class="grid gap-2">
                                 <Label for="edit_title">Title</Label>
-                                <Input
-                                    id="edit_title"
-                                    v-model="editForm.title"
-                                    :disabled="editForm.processing"
-                                    required
-                                />
+                                <Input id="edit_title" v-model="editForm.title" :disabled="editForm.processing" required />
                                 <InputError :message="editForm.errors.title" />
                             </div>
                             <div class="grid gap-2">
                                 <Label for="edit_body">Body</Label>
-                                <Textarea
-                                    id="edit_body"
-                                    v-model="editForm.body"
-                                    :disabled="editForm.processing"
-                                    class="min-h-32"
-                                    required
-                                />
+                                <Textarea id="edit_body" v-model="editForm.body" :disabled="editForm.processing" class="min-h-32" required />
                                 <InputError :message="editForm.errors.body" />
                             </div>
                             <div class="grid gap-4 sm:grid-cols-2">
@@ -442,7 +420,7 @@ const cancelDeleteTemplate = () => {
                                         id="edit_category"
                                         v-model="editForm.support_ticket_category_id"
                                         :disabled="editForm.processing"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         <option :value="null">All categories</option>
                                         <option v-for="category in props.categories" :key="category.id" :value="category.id">
@@ -458,31 +436,25 @@ const cancelDeleteTemplate = () => {
                                         v-model="editForm.support_team_ids"
                                         :disabled="editForm.processing"
                                         multiple
-                                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         <option v-for="team in props.teams" :key="team.id" :value="team.id">
                                             {{ team.name }}
                                         </option>
                                     </select>
-                                    <p class="text-xs text-muted-foreground">
-                                        Leave empty to keep the template available to all teams.
-                                    </p>
+                                    <p class="text-xs text-muted-foreground">Leave empty to keep the template available to all teams.</p>
                                     <InputError :message="editForm.errors.support_team_ids" />
                                 </div>
                             </div>
                             <div class="flex items-center justify-between rounded-md border border-border/60 bg-muted/40 p-3">
                                 <div class="space-y-1">
                                     <span class="text-sm font-medium">Template active</span>
-                                    <p class="text-xs text-muted-foreground">
-                                        Hidden templates remain saved but disappear from the reply picker.
-                                    </p>
+                                    <p class="text-xs text-muted-foreground">Hidden templates remain saved but disappear from the reply picker.</p>
                                 </div>
                                 <Switch v-model="editForm.is_active" :disabled="editForm.processing" />
                             </div>
                             <CardFooter class="justify-end gap-2 px-0 pb-0">
-                                <Button type="button" variant="outline" :disabled="editForm.processing" @click="closeEditDialog">
-                                    Cancel
-                                </Button>
+                                <Button type="button" variant="outline" :disabled="editForm.processing" @click="closeEditDialog"> Cancel </Button>
                                 <Button type="submit" :disabled="editForm.processing">Update template</Button>
                             </CardFooter>
                         </form>

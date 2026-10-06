@@ -52,17 +52,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const {
-    sessions,
-    twoFactorEnabled,
-    twoFactorConfirmed,
-    pendingSecret,
-    qrCodeUrl,
-    recoveryCodes,
-    status,
-    socialAccounts,
-    availableSocialProviders,
-} = toRefs(props);
+const { sessions, twoFactorEnabled, twoFactorConfirmed, pendingSecret, qrCodeUrl, recoveryCodes, status, socialAccounts, availableSocialProviders } =
+    toRefs(props);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -80,14 +71,11 @@ const confirmForm = useForm({
     code: '',
 });
 
-watch(
-    pendingSecret,
-    (value) => {
-        if (!value) {
-            confirmForm.reset();
-        }
+watch(pendingSecret, (value) => {
+    if (!value) {
+        confirmForm.reset();
     }
-);
+});
 
 const statusDetails = computed(() => {
     switch (status.value) {
@@ -106,8 +94,7 @@ const statusDetails = computed(() => {
         case 'two-factor-secret-generated':
             return {
                 title: 'Verification required',
-                description:
-                    'Scan the secret with your authenticator app and confirm using a 6-digit code to finish enrolling.',
+                description: 'Scan the secret with your authenticator app and confirm using a 6-digit code to finish enrolling.',
                 variant: 'default' as const,
             };
         case 'two-factor-confirmed':
@@ -220,17 +207,13 @@ const unlinkProvider = (provider: string) => {
     });
 };
 
-const providerAccount = (provider: string) =>
-    linkedAccounts.value.find(account => account.provider === provider) ?? null;
+const providerAccount = (provider: string) => linkedAccounts.value.find((account) => account.provider === provider) ?? null;
 
-watch(
-    status,
-    (value) => {
-        if (value === 'two-factor-confirmed' || value === 'recovery-codes-generated') {
-            recoveryOpen.value = true;
-        }
+watch(status, (value) => {
+    if (value === 'two-factor-confirmed' || value === 'recovery-codes-generated') {
+        recoveryOpen.value = true;
     }
-);
+});
 
 watch(hasRecoveryCodes, (value) => {
     if (!value) {
@@ -246,10 +229,7 @@ watch(hasRecoveryCodes, (value) => {
         <SettingsLayout>
             <div class="space-y-10">
                 <div class="space-y-4">
-                    <HeadingSmall
-                        title="Active sessions"
-                        description="Review and revoke devices currently authenticated with your account."
-                    />
+                    <HeadingSmall title="Active sessions" description="Review and revoke devices currently authenticated with your account." />
 
                     <Alert
                         v-if="statusDetails"
@@ -272,28 +252,17 @@ watch(hasRecoveryCodes, (value) => {
                             <CardHeader>
                                 <CardTitle class="flex flex-col space-y-1">
                                     <span>{{ session.ip_address ?? 'Unknown location' }}</span>
-                                    <span
-                                        v-if="session.is_current_device"
-                                        class="text-sm font-normal text-primary"
-                                    >
-                                        Current device
-                                    </span>
+                                    <span v-if="session.is_current_device" class="text-sm font-normal text-primary"> Current device </span>
                                 </CardTitle>
-                                <CardDescription>
-                                    Last active {{ session.last_active_for_humans }}
-                                </CardDescription>
+                                <CardDescription> Last active {{ session.last_active_for_humans }} </CardDescription>
                             </CardHeader>
                             <CardContent class="space-y-2">
                                 <p class="text-sm text-muted-foreground">
                                     {{ session.user_agent ?? 'No user agent information recorded.' }}
                                 </p>
                             </CardContent>
-                            <CardFooter
-                                class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                                <span class="break-all text-xs text-muted-foreground">
-                                    Session ID: {{ session.id }}
-                                </span>
+                            <CardFooter class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <span class="text-xs break-all text-muted-foreground"> Session ID: {{ session.id }} </span>
                                 <Button
                                     v-if="!session.is_current_device"
                                     variant="outline"
@@ -303,9 +272,7 @@ watch(hasRecoveryCodes, (value) => {
                                 >
                                     Revoke
                                 </Button>
-                                <Button v-else variant="outline" size="sm" disabled>
-                                    Active
-                                </Button>
+                                <Button v-else variant="outline" size="sm" disabled> Active </Button>
                             </CardFooter>
                         </Card>
                         <Card v-if="!hasSessions" class="lg:col-span-2">
@@ -320,10 +287,7 @@ watch(hasRecoveryCodes, (value) => {
                 </div>
 
                 <div class="space-y-4">
-                    <HeadingSmall
-                        title="Connected accounts"
-                        description="Link trusted providers for quicker sign-ins and community integrations."
-                    />
+                    <HeadingSmall title="Connected accounts" description="Link trusted providers for quicker sign-ins and community integrations." />
 
                     <Card>
                         <CardContent class="space-y-4">
@@ -334,7 +298,7 @@ watch(hasRecoveryCodes, (value) => {
                             >
                                 <div class="space-y-2">
                                     <div>
-                                        <p class="font-medium leading-tight">{{ provider.label }}</p>
+                                        <p class="leading-tight font-medium">{{ provider.label }}</p>
                                         <p v-if="provider.description" class="text-sm text-muted-foreground">
                                             {{ provider.description }}
                                         </p>
@@ -344,10 +308,10 @@ watch(hasRecoveryCodes, (value) => {
                                         <p class="font-medium text-foreground">
                                             Linked as
                                             {{
-                                                providerAccount(provider.key)?.nickname
-                                                    ?? providerAccount(provider.key)?.name
-                                                    ?? providerAccount(provider.key)?.email
-                                                    ?? providerAccount(provider.key)?.provider_id
+                                                providerAccount(provider.key)?.nickname ??
+                                                providerAccount(provider.key)?.name ??
+                                                providerAccount(provider.key)?.email ??
+                                                providerAccount(provider.key)?.provider_id
                                             }}
                                         </p>
                                         <p v-if="providerAccount(provider.key)?.email" class="text-xs text-muted-foreground">
@@ -373,19 +337,13 @@ watch(hasRecoveryCodes, (value) => {
                                         />
                                         Disconnect
                                     </Button>
-                                    <Button
-                                        v-else
-                                        variant="secondary"
-                                        size="sm"
-                                        @click="connectProvider(provider.key)"
-                                    >
-                                        Connect
-                                    </Button>
+                                    <Button v-else variant="secondary" size="sm" @click="connectProvider(provider.key)"> Connect </Button>
                                 </div>
                             </div>
 
                             <div v-if="providerMetadata.length === 0" class="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-                                No social providers are available. Configure OAuth credentials in your environment and enable providers in the System Settings screen.
+                                No social providers are available. Configure OAuth credentials in your environment and enable providers in the System
+                                Settings screen.
                             </div>
                         </CardContent>
                     </Card>
@@ -405,14 +363,12 @@ watch(hasRecoveryCodes, (value) => {
                                 <CardHeader>
                                     <CardTitle>Protect your account</CardTitle>
                                     <CardDescription>
-                                        Multi-factor authentication requires both your password and a rotating code from an
-                                        authenticator app to sign in.
+                                        Multi-factor authentication requires both your password and a rotating code from an authenticator app to sign
+                                        in.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardFooter>
-                                    <Button :disabled="enableForm.processing" @click="enableTwoFactor">
-                                        Enable multi-factor authentication
-                                    </Button>
+                                    <Button :disabled="enableForm.processing" @click="enableTwoFactor"> Enable multi-factor authentication </Button>
                                 </CardFooter>
                             </Card>
                         </div>
@@ -461,15 +417,8 @@ watch(hasRecoveryCodes, (value) => {
                                                 <InputError :message="confirmForm.errors.code" />
                                             </div>
                                             <div class="flex flex-wrap gap-2">
-                                                <Button type="submit" :disabled="confirmForm.processing">
-                                                    Confirm setup
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    :disabled="disableForm.processing"
-                                                    @click="disableTwoFactor"
-                                                >
+                                                <Button type="submit" :disabled="confirmForm.processing"> Confirm setup </Button>
+                                                <Button type="button" variant="outline" :disabled="disableForm.processing" @click="disableTwoFactor">
                                                     Cancel
                                                 </Button>
                                             </div>
@@ -477,12 +426,7 @@ watch(hasRecoveryCodes, (value) => {
                                     </div>
 
                                     <div v-else class="flex flex-wrap gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            :disabled="disableForm.processing"
-                                            @click="disableTwoFactor"
-                                        >
+                                        <Button type="button" variant="destructive" :disabled="disableForm.processing" @click="disableTwoFactor">
                                             Disable multi-factor authentication
                                         </Button>
                                     </div>
@@ -500,12 +444,7 @@ watch(hasRecoveryCodes, (value) => {
                                                 </CardDescription>
                                             </div>
                                             <CollapsibleTrigger as-child>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    class="w-full sm:w-auto"
-                                                >
+                                                <Button type="button" variant="ghost" size="sm" class="w-full sm:w-auto">
                                                     <span class="flex items-center justify-center gap-2">
                                                         {{ open ? 'Hide recovery codes' : 'View recovery codes' }}
                                                         <ChevronDown
@@ -527,7 +466,7 @@ watch(hasRecoveryCodes, (value) => {
                                                             v-for="code in recoveryCodes"
                                                             :key="code"
                                                             tabindex="0"
-                                                            class="group relative cursor-pointer select-text rounded border border-dashed border-muted/60 bg-muted/40 px-3 py-2 font-mono text-sm transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                                            class="group relative cursor-pointer rounded border border-dashed border-muted/60 bg-muted/40 px-3 py-2 font-mono text-sm transition select-text focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                                         >
                                                             <span
                                                                 class="block text-transparent transition duration-200 group-hover:text-foreground group-focus-visible:text-foreground selection:text-foreground"

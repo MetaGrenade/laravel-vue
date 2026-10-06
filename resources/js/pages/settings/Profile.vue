@@ -44,7 +44,7 @@ const form = useForm({
     email: user.email,
     avatar_url: user.avatar_url ?? '',
     profile_bio: user.profile_bio ?? '',
-    social_links: user.social_links ? user.social_links.map(link => ({ ...link })) : [],
+    social_links: user.social_links ? user.social_links.map((link) => ({ ...link })) : [],
     forum_signature: user.forum_signature ?? '',
     timezone: user.timezone ?? fallbackTimezone,
     locale: user.locale ?? fallbackLocale,
@@ -77,15 +77,19 @@ const removeSocialLink = (index: number) => {
 
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
-                <HeadingSmall
-                    title="Profile information"
-                    description="Update how you appear across the community."
-                />
+                <HeadingSmall title="Profile information" description="Update how you appear across the community." />
 
                 <form @submit.prevent="submit" class="space-y-6">
                     <div class="grid gap-2">
                         <Label for="nickname">Nickname</Label>
-                        <Input id="nickname" class="mt-1 block w-full" v-model="form.nickname" required autocomplete="nickname" placeholder="Nickname / Display Name" />
+                        <Input
+                            id="nickname"
+                            class="mt-1 block w-full"
+                            v-model="form.nickname"
+                            required
+                            autocomplete="nickname"
+                            placeholder="Nickname / Display Name"
+                        />
                         <InputError class="mt-2" :message="form.errors.nickname" />
                     </div>
 
@@ -108,14 +112,10 @@ const removeSocialLink = (index: number) => {
                         <select
                             id="timezone"
                             v-model="form.timezone"
-                            class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-hidden"
                             autocomplete="off"
                         >
-                            <option
-                                v-for="option in props.timezoneOptions"
-                                :key="`timezone-${option.value}`"
-                                :value="option.value"
-                            >
+                            <option v-for="option in props.timezoneOptions" :key="`timezone-${option.value}`" :value="option.value">
                                 {{ option.label }}
                             </option>
                         </select>
@@ -127,14 +127,10 @@ const removeSocialLink = (index: number) => {
                         <select
                             id="locale"
                             v-model="form.locale"
-                            class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-hidden"
                             autocomplete="off"
                         >
-                            <option
-                                v-for="option in props.localeOptions"
-                                :key="`locale-${option.value}`"
-                                :value="option.value"
-                            >
+                            <option v-for="option in props.localeOptions" :key="`locale-${option.value}`" :value="option.value">
                                 {{ option.label }}
                             </option>
                         </select>
@@ -151,9 +147,7 @@ const removeSocialLink = (index: number) => {
                             autocomplete="off"
                             placeholder="https://example.com/avatar.png"
                         />
-                        <p class="text-xs text-muted-foreground">
-                            Provide a direct link to an image (PNG, JPG, or GIF) to use as your avatar.
-                        </p>
+                        <p class="text-xs text-muted-foreground">Provide a direct link to an image (PNG, JPG, or GIF) to use as your avatar.</p>
                         <InputError class="mt-2" :message="form.errors.avatar_url" />
                     </div>
 
@@ -166,18 +160,14 @@ const removeSocialLink = (index: number) => {
                             rows="4"
                             placeholder="Share a few sentences about yourself for readers."
                         />
-                        <p class="text-xs text-muted-foreground">
-                            This bio may appear alongside your blog posts to introduce you to readers.
-                        </p>
+                        <p class="text-xs text-muted-foreground">This bio may appear alongside your blog posts to introduce you to readers.</p>
                         <InputError class="mt-2" :message="form.errors.profile_bio" />
                     </div>
 
                     <div class="space-y-3">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <Label class="text-sm font-medium">Social links</Label>
-                            <Button type="button" variant="outline" size="sm" @click="addSocialLink">
-                                Add social link
-                            </Button>
+                            <Button type="button" variant="outline" size="sm" @click="addSocialLink"> Add social link </Button>
                         </div>
                         <p class="text-xs text-muted-foreground">
                             Highlight where readers can continue following your work (e.g., Mastodon, personal site).
@@ -212,16 +202,12 @@ const removeSocialLink = (index: number) => {
                                     </div>
                                 </div>
                                 <div class="flex justify-end">
-                                    <Button type="button" variant="ghost" size="sm" @click="removeSocialLink(index)">
-                                        Remove
-                                    </Button>
+                                    <Button type="button" variant="ghost" size="sm" @click="removeSocialLink(index)"> Remove </Button>
                                 </div>
                             </div>
                         </div>
 
-                        <div v-else class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                            No social links added yet.
-                        </div>
+                        <div v-else class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No social links added yet.</div>
                         <InputError :message="form.errors.social_links" />
                     </div>
 
@@ -235,9 +221,7 @@ const removeSocialLink = (index: number) => {
                             placeholder="Share a short sign-off, links, or pronouns."
                             maxlength="500"
                         />
-                        <p class="text-xs text-muted-foreground">
-                            This message appears beneath your forum posts. Markdown is not supported.
-                        </p>
+                        <p class="text-xs text-muted-foreground">This message appears beneath your forum posts. Markdown is not supported.</p>
                         <InputError class="mt-2" :message="form.errors.forum_signature" />
                     </div>
 

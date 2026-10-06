@@ -144,10 +144,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 const numberFormatter = new Intl.NumberFormat();
 
 const formatNumber = (value: number | null | undefined) => numberFormatter.format(value ?? 0);
-const formatHours = (value: number | null | undefined) =>
-    value === null || value === undefined ? '—' : Number(value).toFixed(1);
+const formatHours = (value: number | null | undefined) => (value === null || value === undefined ? '—' : Number(value).toFixed(1));
 const formatDateTime = (value: string | null | undefined) => {
-    if (! value) {
+    if (!value) {
         return null;
     }
 
@@ -240,13 +239,11 @@ const hasPendingVolumeData = computed(() => pendingVolumeChartData.value.some((p
 
 const responseTimeSeries = ['Average First Response (hrs)'] as const;
 const responseTimeChartData = computed(() => props.slaMetrics.response_times?.trend ?? []);
-const hasResponseTimeData = computed(() =>
-    responseTimeChartData.value.some((point) => point['Average First Response (hrs)'] > 0)
-);
+const hasResponseTimeData = computed(() => responseTimeChartData.value.some((point) => point['Average First Response (hrs)'] > 0));
 
 const searchInsights = computed(() => props.searchInsights ?? { top_queries: [], top_zero_queries: [], zero_result_total: 0 });
 const hasSearchInsights = computed(
-    () => (searchInsights.value.top_queries?.length ?? 0) > 0 || (searchInsights.value.top_zero_queries?.length ?? 0) > 0
+    () => (searchInsights.value.top_queries?.length ?? 0) > 0 || (searchInsights.value.top_zero_queries?.length ?? 0) > 0,
 );
 const topSearchQueries = computed(() => searchInsights.value.top_queries ?? []);
 const zeroResultQueries = computed(() => searchInsights.value.top_zero_queries ?? []);
@@ -292,12 +289,8 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                     <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <h2 class="mb-3 text-lg font-semibold">SLA Snapshot</h2>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <div
-                                v-for="card in slaSummaryCards"
-                                :key="card.title"
-                                class="rounded-lg border border-border/60 p-3"
-                            >
-                                <div class="text-xs uppercase text-muted-foreground">{{ card.title }}</div>
+                            <div v-for="card in slaSummaryCards" :key="card.title" class="rounded-lg border border-border/60 p-3">
+                                <div class="text-xs text-muted-foreground uppercase">{{ card.title }}</div>
                                 <div class="text-xl font-semibold">
                                     <template v-if="card.type === 'hours'">
                                         {{ formatHours(card.value) }}
@@ -320,10 +313,7 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                                         <span class="text-muted-foreground">{{ formatNumber(row.count) }} ({{ row.percentage }}%)</span>
                                     </div>
                                     <div class="mt-1 h-2 rounded-full bg-muted">
-                                        <div
-                                            class="h-2 rounded-full bg-primary"
-                                            :style="{ width: `${row.percentage}%` }"
-                                        ></div>
+                                        <div class="h-2 rounded-full bg-primary" :style="{ width: `${row.percentage}%` }"></div>
                                     </div>
                                 </li>
                             </ul>
@@ -374,25 +364,20 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                 <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                     <div class="mb-3 flex items-center justify-between">
                         <h2 class="text-lg font-semibold">Search Insights</h2>
-                        <span v-if="lastAggregatedAt" class="text-xs text-muted-foreground"
-                            >Refreshed {{ lastAggregatedAt }}</span
-                        >
+                        <span v-if="lastAggregatedAt" class="text-xs text-muted-foreground">Refreshed {{ lastAggregatedAt }}</span>
                     </div>
 
                     <template v-if="hasSearchInsights">
                         <div class="grid gap-4 md:grid-cols-2">
                             <div>
-                                <h3 class="text-sm font-semibold uppercase text-muted-foreground">Top Queries</h3>
+                                <h3 class="text-sm font-semibold text-muted-foreground uppercase">Top Queries</h3>
                                 <ul class="mt-2 space-y-3">
                                     <li v-for="entry in topSearchQueries" :key="entry.term">
                                         <div class="flex items-start justify-between text-sm">
                                             <span class="font-medium text-foreground">{{ entry.term }}</span>
                                             <span class="text-muted-foreground">{{ formatNumber(entry.total_count) }} searches</span>
                                         </div>
-                                        <p
-                                            v-if="entry.zero_result_count > 0"
-                                            class="text-xs font-medium text-amber-600"
-                                        >
+                                        <p v-if="entry.zero_result_count > 0" class="text-xs font-medium text-amber-600">
                                             {{ formatNumber(entry.zero_result_count) }} searches returned no results
                                         </p>
                                     </li>
@@ -400,7 +385,7 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                             </div>
 
                             <div>
-                                <h3 class="text-sm font-semibold uppercase text-muted-foreground">Zero Result Hotlist</h3>
+                                <h3 class="text-sm font-semibold text-muted-foreground uppercase">Zero Result Hotlist</h3>
                                 <p class="mt-1 text-xs text-muted-foreground">
                                     {{ formatNumber(zeroResultTotal) }} total zero-result searches in window.
                                 </p>
@@ -418,19 +403,13 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                             </div>
                         </div>
                     </template>
-                    <p v-else class="text-sm text-muted-foreground">
-                        Search data will appear after visitors use the global search.
-                    </p>
+                    <p v-else class="text-sm text-muted-foreground">Search data will appear after visitors use the global search.</p>
                 </div>
 
                 <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                     <h2 class="mb-2 text-lg font-semibold">Recent Activity</h2>
                     <ul v-if="recentActivities.length">
-                        <li
-                            v-for="activity in recentActivities"
-                            :key="activity.id"
-                            class="border-b border-gray-200 py-2 last:border-b-0"
-                        >
+                        <li v-for="activity in recentActivities" :key="activity.id" class="border-b border-gray-200 py-2 last:border-b-0">
                             <div class="flex justify-between">
                                 <span>{{ activity.activity }}</span>
                                 <span class="text-xs text-gray-500">{{ activity.time ?? '—' }}</span>

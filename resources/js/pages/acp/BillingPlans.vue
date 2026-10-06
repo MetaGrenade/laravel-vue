@@ -57,7 +57,7 @@ const deleteDialogTitle = computed(() => {
     return `Delete “${target.name}”?`;
 });
 
-watch(deleteDialogOpen, open => {
+watch(deleteDialogOpen, (open) => {
     if (!open) {
         pendingPlan.value = null;
     }
@@ -115,9 +115,7 @@ const confirmDeletePlan = () => {
                                 <Layers class="h-5 w-5" />
                                 Subscription plans
                             </CardTitle>
-                            <CardDescription>
-                                Configure the plans your community can subscribe to without touching config files.
-                            </CardDescription>
+                            <CardDescription> Configure the plans your community can subscribe to without touching config files. </CardDescription>
                         </div>
                         <Button variant="secondary" as-child>
                             <Link :href="route('acp.billing.plans.create')">
@@ -152,7 +150,7 @@ const confirmDeletePlan = () => {
                                 <TableRow v-for="plan in props.plans" :key="plan.id" class="align-top">
                                     <TableCell>
                                         <div class="flex flex-col gap-1 text-sm">
-                                            <div class="font-semibold leading-tight">{{ plan.name }}</div>
+                                            <div class="leading-tight font-semibold">{{ plan.name }}</div>
                                             <div class="text-xs text-muted-foreground">
                                                 <span class="font-mono">{{ plan.slug ?? 'auto' }}</span>
                                             </div>
@@ -196,12 +194,7 @@ const confirmDeletePlan = () => {
                                                 Edit
                                             </Link>
                                         </Button>
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            :disabled="deletingPlanId === plan.id"
-                                            @click="deletePlan(plan)"
-                                        >
+                                        <Button variant="destructive" size="sm" :disabled="deletingPlanId === plan.id" @click="deletePlan(plan)">
                                             <Trash2 class="h-4 w-4" />
                                             Delete
                                         </Button>

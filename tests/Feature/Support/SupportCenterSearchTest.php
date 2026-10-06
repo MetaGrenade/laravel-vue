@@ -113,21 +113,21 @@ class SupportCenterSearchTest extends TestCase
                 $ids = collect($data)->pluck('id');
 
                 return $ids->contains($olderInvoiceTicket->id)
-                    && !$ids->contains($newerInvoiceTicket->id);
+                    && ! $ids->contains($newerInvoiceTicket->id);
             })
             ->where('tickets.links.prev', function ($url) use ($billingCategory) {
                 return is_string($url)
                     && str_contains($url, 'tickets_search=invoice')
                     && str_contains($url, 'ticket_status=open')
                     && str_contains($url, 'faqs_search=billing')
-                    && str_contains($url, 'faq_category_id=' . $billingCategory->id);
+                    && str_contains($url, 'faq_category_id='.$billingCategory->id);
             })
             ->where('tickets.links.first', function ($url) use ($billingCategory) {
                 return is_string($url)
                     && str_contains($url, 'tickets_search=invoice')
                     && str_contains($url, 'ticket_status=open')
                     && str_contains($url, 'faqs_search=billing')
-                    && str_contains($url, 'faq_category_id=' . $billingCategory->id);
+                    && str_contains($url, 'faq_category_id='.$billingCategory->id);
             })
             ->where('faqs.filters.selectedCategoryId', $billingCategory->id)
             ->where('faqs.filters.search', 'billing')

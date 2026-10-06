@@ -40,12 +40,12 @@ type PriorityKey = (typeof props.priorities)[number]['value'];
 type EscalationState = Record<PriorityKey, { after: string; to: string }>;
 type ReassignState = Record<PriorityKey, string>;
 
-const priorityValues = computed(() => props.priorities.map(priority => priority.value as PriorityKey));
+const priorityValues = computed(() => props.priorities.map((priority) => priority.value as PriorityKey));
 
 const buildEscalationState = (): EscalationState => {
     const state = {} as EscalationState;
 
-    priorityValues.value.forEach(priority => {
+    priorityValues.value.forEach((priority) => {
         const rule = props.sla.priority_escalations?.[priority] ?? null;
 
         state[priority] = {
@@ -60,19 +60,17 @@ const buildEscalationState = (): EscalationState => {
 const buildReassignState = (): ReassignState => {
     const state = {} as ReassignState;
 
-    priorityValues.value.forEach(priority => {
+    priorityValues.value.forEach((priority) => {
         state[priority] = props.sla.reassign_after?.[priority] ?? '';
     });
 
     return state;
 };
 
-const form = useForm<{ priority_escalations: EscalationState; reassign_after: ReassignState }>(
-    {
-        priority_escalations: buildEscalationState(),
-        reassign_after: buildReassignState(),
-    }
-);
+const form = useForm<{ priority_escalations: EscalationState; reassign_after: ReassignState }>({
+    priority_escalations: buildEscalationState(),
+    reassign_after: buildReassignState(),
+});
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Support ACP', href: route('acp.support.index') },
@@ -81,18 +79,16 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const targetOptions = computed(() => {
     return Object.fromEntries(
-        props.priorities.map(priority => [
+        props.priorities.map((priority) => [
             priority.value,
             props.priorities
-                .filter(candidate => candidate.order > priority.order)
-                .map(candidate => ({ value: candidate.value, label: candidate.label })),
-        ])
+                .filter((candidate) => candidate.order > priority.order)
+                .map((candidate) => ({ value: candidate.value, label: candidate.label })),
+        ]),
     ) as Record<PriorityKey, Array<{ value: PriorityKey; label: string }>>;
 });
 
-const escalationPriorities = computed(() =>
-    props.priorities.filter(priority => targetOptions.value[priority.value as PriorityKey]?.length)
-);
+const escalationPriorities = computed(() => props.priorities.filter((priority) => targetOptions.value[priority.value as PriorityKey]?.length));
 
 const canSubmit = computed(() => props.can.edit && !form.processing);
 
@@ -125,17 +121,13 @@ const submit = () => {
                     <CardHeader>
                         <CardTitle>Priority escalations</CardTitle>
                         <CardDescription>
-                            Control when ticket priorities are automatically increased. Use natural language intervals
-                            like “24 hours” or “3 days”. Leave both fields blank to disable an escalation.
+                            Control when ticket priorities are automatically increased. Use natural language intervals like “24 hours” or “3 days”.
+                            Leave both fields blank to disable an escalation.
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="flex flex-col gap-6">
                         <template v-if="escalationPriorities.length">
-                            <div
-                                v-for="priority in escalationPriorities"
-                                :key="priority.value"
-                                class="grid gap-4 lg:grid-cols-2"
-                            >
+                            <div v-for="priority in escalationPriorities" :key="priority.value" class="grid gap-4 lg:grid-cols-2">
                                 <div class="flex flex-col gap-2">
                                     <Label :for="`escalate-after-${priority.value}`">
                                         Escalate {{ priority.label.toLowerCase() }} tickets after
@@ -154,7 +146,7 @@ const submit = () => {
                                         :id="`escalate-to-${priority.value}`"
                                         v-model="form.priority_escalations[priority.value as PriorityKey].to"
                                         :disabled="!canSubmit"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <option value="">No escalation</option>
                                         <option
@@ -169,9 +161,7 @@ const submit = () => {
                                 </div>
                             </div>
                         </template>
-                        <p v-else class="text-sm text-muted-foreground">
-                            No higher priority levels are available for automatic escalations.
-                        </p>
+                        <p v-else class="text-sm text-muted-foreground">No higher priority levels are available for automatic escalations.</p>
                     </CardContent>
                 </Card>
 
@@ -179,20 +169,13 @@ const submit = () => {
                     <CardHeader>
                         <CardTitle>Reassignment windows</CardTitle>
                         <CardDescription>
-                            Define how long a ticket can remain untouched before it is reassigned to another available
-                            agent.
+                            Define how long a ticket can remain untouched before it is reassigned to another available agent.
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="flex flex-col gap-4">
-                        <div
-                            v-for="priority in props.priorities"
-                            :key="priority.value"
-                            class="flex flex-col gap-2 lg:flex-row lg:items-end lg:gap-4"
-                        >
+                        <div v-for="priority in props.priorities" :key="priority.value" class="flex flex-col gap-2 lg:flex-row lg:items-end lg:gap-4">
                             <div class="flex flex-1 flex-col gap-2">
-                                <Label :for="`reassign-after-${priority.value}`">
-                                    Reassign {{ priority.label.toLowerCase() }} tickets after
-                                </Label>
+                                <Label :for="`reassign-after-${priority.value}`"> Reassign {{ priority.label.toLowerCase() }} tickets after </Label>
                                 <Input
                                     :id="`reassign-after-${priority.value}`"
                                     v-model="form.reassign_after[priority.value as PriorityKey]"
@@ -206,9 +189,7 @@ const submit = () => {
                 </Card>
 
                 <div class="flex justify-end">
-                    <Button type="submit" :disabled="!canSubmit">
-                        Save changes
-                    </Button>
+                    <Button type="submit" :disabled="!canSubmit"> Save changes </Button>
                 </div>
             </form>
         </AdminLayout>

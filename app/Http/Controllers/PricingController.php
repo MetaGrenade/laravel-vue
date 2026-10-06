@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\Seo\Seo;
 use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Seo\Seo;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,9 +23,7 @@ class PricingController extends Controller
 {
     use InteractsWithStripe;
 
-    public function __construct(protected SubscriptionManager $subscriptions)
-    {
-    }
+    public function __construct(protected SubscriptionManager $subscriptions) {}
 
     public function index(): InertiaResponse
     {

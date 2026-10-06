@@ -4,10 +4,9 @@ namespace App\Support\OAuth;
 
 use App\Support\OAuth\Contracts\Provider;
 use App\Support\OAuth\Exceptions\OAuthException;
-use App\Support\OAuth\OAuthProviders;
 use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\Session\Session;
 use Illuminate\Contracts\Routing\UrlGenerator;
+use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
@@ -24,8 +23,7 @@ class OAuthManager
         protected Application $app,
         protected Session $session,
         protected UrlGenerator $url,
-    ) {
-    }
+    ) {}
 
     /**
      * Get a provider implementation.

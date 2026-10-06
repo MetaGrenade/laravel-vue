@@ -3,15 +3,15 @@
 use App\Http\Controllers\Settings\DataErasureRequestController;
 use App\Http\Controllers\Settings\DataExportController;
 use App\Http\Controllers\Settings\LinkedSocialAccountController;
+use App\Http\Controllers\Settings\NotificationSettingsController;
 use App\Http\Controllers\Settings\PasswordController;
+use App\Http\Controllers\Settings\PrivacyController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\SecuritySessionController;
+use App\Http\Controllers\Settings\SubscriptionController;
 use App\Http\Controllers\Settings\TwoFactorController;
 use App\Http\Controllers\Settings\TwoFactorRecoveryCodeController;
-use App\Http\Controllers\Settings\PrivacyController;
-use App\Http\Controllers\Settings\NotificationSettingsController;
-use App\Http\Controllers\Settings\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 

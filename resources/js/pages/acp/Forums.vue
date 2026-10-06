@@ -8,9 +8,20 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useConfirmDialog } from '@/composables/useConfirmDialog';
 import {
-    Folder, MessageSquare, CheckCircle, Ellipsis, EyeOff, Shield,
-    Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Layers,
-    PlusCircle, ExternalLink
+    Folder,
+    MessageSquare,
+    CheckCircle,
+    Ellipsis,
+    EyeOff,
+    Shield,
+    Trash2,
+    MoveUp,
+    MoveDown,
+    Pencil,
+    MessageSquareShare,
+    Layers,
+    PlusCircle,
+    ExternalLink,
 } from '@lucide/vue';
 import Button from '@/components/ui/button/Button.vue';
 import {
@@ -96,13 +107,7 @@ const forumStats = computed(() =>
 const categories = computed(() => props.categories);
 const hasCategories = computed(() => categories.value.length > 0);
 
-const {
-    confirmDialogState,
-    confirmDialogDescription,
-    openConfirmDialog,
-    handleConfirmDialogConfirm,
-    handleConfirmDialogCancel,
-} = useConfirmDialog();
+const { confirmDialogState, confirmDialogDescription, openConfirmDialog, handleConfirmDialogConfirm, handleConfirmDialogCancel } = useConfirmDialog();
 
 const formatRelative = (value: string | null | undefined) => {
     if (!value) {
@@ -113,11 +118,7 @@ const formatRelative = (value: string | null | undefined) => {
 };
 
 const reorderCategory = (categoryId: number, direction: 'up' | 'down') => {
-    router.patch(
-        route('acp.forums.categories.reorder', { category: categoryId }),
-        { direction },
-        { preserveScroll: true },
-    );
+    router.patch(route('acp.forums.categories.reorder', { category: categoryId }), { direction }, { preserveScroll: true });
 };
 
 const goToCategoryEdit = (categoryId: number) => {
@@ -142,11 +143,7 @@ const openBoardCreate = (categoryId: number) => {
 };
 
 const reorderBoard = (boardId: number, direction: 'up' | 'down') => {
-    router.patch(
-        route('acp.forums.boards.reorder', { board: boardId }),
-        { direction },
-        { preserveScroll: true },
-    );
+    router.patch(route('acp.forums.boards.reorder', { board: boardId }), { direction }, { preserveScroll: true });
 };
 
 const goToBoardEdit = (boardId: number) => {
@@ -198,12 +195,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                 Create, arrange, and update the categories and boards that power the community forums.
                             </p>
                         </div>
-                        <Button
-                            v-if="createForums"
-                            variant="success"
-                            class="text-sm text-white bg-green-500 hover:bg-green-600"
-                            as-child
-                        >
+                        <Button v-if="createForums" variant="success" class="bg-green-500 text-sm text-white hover:bg-green-600" as-child>
                             <Link :href="route('acp.forums.categories.create')" preserve-scroll>
                                 <PlusCircle class="mr-2 h-4 w-4" />
                                 Create Category
@@ -240,10 +232,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                 <DropdownMenuContent>
                                     <DropdownMenuLabel>Category Actions</DropdownMenuLabel>
                                     <DropdownMenuGroup v-if="moveForums">
-                                        <DropdownMenuItem
-                                            :disabled="catIndex === 0"
-                                            @select="reorderCategory(category.id, 'up')"
-                                        >
+                                        <DropdownMenuItem :disabled="catIndex === 0" @select="reorderCategory(category.id, 'up')">
                                             <MoveUp class="h-4 w-4" />
                                             <span>Move Up</span>
                                         </DropdownMenuItem>
@@ -287,11 +276,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
                                     <DropdownMenuSeparator v-if="deleteForums" />
-                                    <DropdownMenuItem
-                                        v-if="deleteForums"
-                                        class="text-red-500"
-                                        @select="requestDeleteCategory(category)"
-                                    >
+                                    <DropdownMenuItem v-if="deleteForums" class="text-red-500" @select="requestDeleteCategory(category)">
                                         <Trash2 class="h-4 w-4" />
                                         <span>Delete Category</span>
                                     </DropdownMenuItem>
@@ -303,7 +288,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                             <div
                                 v-for="(board, boardIndex) in category.boards"
                                 :key="board.id"
-                                class="flex flex-col gap-3 p-4 transition hover:bg-gray-50 dark:hover:bg-neutral-800 md:flex-row md:items-center"
+                                class="flex flex-col gap-3 p-4 transition hover:bg-gray-50 md:flex-row md:items-center dark:hover:bg-neutral-800"
                             >
                                 <div class="mr-4 flex items-center md:items-start">
                                     <Folder class="h-8 w-8 text-gray-600" />
@@ -312,10 +297,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                                         <div>
                                             <h4 class="text-lg font-semibold">
-                                                <Link
-                                                    :href="route('forum.boards.show', { board: board.slug })"
-                                                    class="hover:underline"
-                                                >
+                                                <Link :href="route('forum.boards.show', { board: board.slug })" class="hover:underline">
                                                     {{ board.title }}
                                                 </Link>
                                             </h4>
@@ -324,23 +306,23 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                             </p>
                                         </div>
                                         <div class="mt-3 flex gap-6 text-sm text-muted-foreground md:mt-0">
-                                            <span><strong class="font-semibold">{{ board.thread_count }}</strong> Threads</span>
-                                            <span><strong class="font-semibold">{{ board.post_count }}</strong> Posts</span>
+                                            <span
+                                                ><strong class="font-semibold">{{ board.thread_count }}</strong> Threads</span
+                                            >
+                                            <span
+                                                ><strong class="font-semibold">{{ board.post_count }}</strong> Posts</span
+                                            >
                                         </div>
                                     </div>
                                     <div class="mt-2 text-xs text-muted-foreground">
                                         <template v-if="board.latest_post">
                                             Latest: <span class="font-medium">{{ board.latest_post.title }}</span>
-                                            <template v-if="board.latest_post.author">
-                                                by {{ board.latest_post.author.nickname }}
-                                            </template>
+                                            <template v-if="board.latest_post.author"> by {{ board.latest_post.author.nickname }} </template>
                                             <span v-if="formatRelative(board.latest_post.posted_at)" class="ml-1">
                                                 ({{ formatRelative(board.latest_post.posted_at) }})
                                             </span>
                                         </template>
-                                        <template v-else>
-                                            No posts yet.
-                                        </template>
+                                        <template v-else> No posts yet. </template>
                                     </div>
                                 </div>
                                 <div class="flex w-full items-center justify-between md:w-48 md:justify-end">
@@ -354,43 +336,33 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                             <DropdownMenuLabel>Board Actions</DropdownMenuLabel>
                                             <DropdownMenuGroup>
                                                 <DropdownMenuItem as-child>
-                                                    <Link
-                                                        :href="route('forum.boards.show', { board: board.slug })"
-                                                        class="flex items-center gap-2"
-                                                    >
+                                                    <Link :href="route('forum.boards.show', { board: board.slug })" class="flex items-center gap-2">
                                                         <ExternalLink class="h-4 w-4" />
                                                         <span>View Board</span>
                                                     </Link>
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
                                             <DropdownMenuGroup v-if="moveForums">
-                                            <DropdownMenuItem
-                                                :disabled="boardIndex === 0"
-                                                @select="reorderBoard(board.id, 'up')"
-                                                >
+                                                <DropdownMenuItem :disabled="boardIndex === 0" @select="reorderBoard(board.id, 'up')">
                                                     <MoveUp class="h-4 w-4" />
                                                     <span>Move Up</span>
                                                 </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                :disabled="boardIndex === category.boards.length - 1"
-                                                @select="reorderBoard(board.id, 'down')"
+                                                <DropdownMenuItem
+                                                    :disabled="boardIndex === category.boards.length - 1"
+                                                    @select="reorderBoard(board.id, 'down')"
                                                 >
                                                     <MoveDown class="h-4 w-4" />
                                                     <span>Move Down</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
                                             <DropdownMenuGroup v-if="editForums">
-                                            <DropdownMenuItem class="text-blue-500" @select="goToBoardEdit(board.id)">
+                                                <DropdownMenuItem class="text-blue-500" @select="goToBoardEdit(board.id)">
                                                     <Pencil class="h-4 w-4" />
                                                     <span>Edit Board</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
                                             <DropdownMenuSeparator v-if="deleteForums" />
-                                            <DropdownMenuItem
-                                                v-if="deleteForums"
-                                                class="text-red-500"
-                                                @select="requestDeleteBoard(board)"
-                                            >
+                                            <DropdownMenuItem v-if="deleteForums" class="text-red-500" @select="requestDeleteBoard(board)">
                                                 <Trash2 class="h-4 w-4" />
                                                 <span>Delete Board</span>
                                             </DropdownMenuItem>

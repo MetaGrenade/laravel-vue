@@ -50,9 +50,7 @@ const handleSubmit = () => {
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.reputation.badges.index')">Cancel</Link>
                         </Button>
-                        <Button type="submit" :disabled="form.processing">
-                            Save badge
-                        </Button>
+                        <Button type="submit" :disabled="form.processing"> Save badge </Button>
                     </div>
                 </div>
 
@@ -61,9 +59,7 @@ const handleSubmit = () => {
                         <PlaceholderPattern class="absolute inset-0 opacity-10" />
                         <div class="relative space-y-1">
                             <CardTitle>Badge details</CardTitle>
-                            <CardDescription>
-                                Choose a descriptive name and explain how members can earn this badge.
-                            </CardDescription>
+                            <CardDescription> Choose a descriptive name and explain how members can earn this badge. </CardDescription>
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-6">
@@ -75,13 +71,7 @@ const handleSubmit = () => {
 
                         <div class="grid gap-2">
                             <Label for="slug">Slug</Label>
-                            <Input
-                                id="slug"
-                                v-model="form.slug"
-                                type="text"
-                                autocomplete="off"
-                                placeholder="Optional custom slug"
-                            />
+                            <Input id="slug" v-model="form.slug" type="text" autocomplete="off" placeholder="Optional custom slug" />
                             <InputError :message="form.errors.slug" />
                         </div>
 
@@ -98,23 +88,14 @@ const handleSubmit = () => {
 
                         <div class="grid gap-2">
                             <Label for="points_required">Points required</Label>
-                            <Input
-                                id="points_required"
-                                v-model.number="form.points_required"
-                                type="number"
-                                min="0"
-                                step="1"
-                                required
-                            />
+                            <Input id="points_required" v-model.number="form.points_required" type="number" min="0" step="1" required />
                             <InputError :message="form.errors.points_required" />
                         </div>
 
                         <div class="flex items-center justify-between rounded-lg border p-4">
                             <div>
                                 <div class="font-medium">Active badge</div>
-                                <p class="text-sm text-muted-foreground">
-                                    Toggle off to hide the badge while you refine the requirements.
-                                </p>
+                                <p class="text-sm text-muted-foreground">Toggle off to hide the badge while you refine the requirements.</p>
                             </div>
                             <Switch v-model="form.is_active" />
                         </div>
@@ -124,9 +105,7 @@ const handleSubmit = () => {
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.reputation.badges.index')">Cancel</Link>
                         </Button>
-                        <Button type="submit" :disabled="form.processing">
-                            Save badge
-                        </Button>
+                        <Button type="submit" :disabled="form.processing"> Save badge </Button>
                     </CardFooter>
                 </Card>
             </form>

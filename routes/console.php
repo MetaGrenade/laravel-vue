@@ -1,8 +1,10 @@
 <?php
 
 use App\Support\OpenApi\Specification;
+use App\Support\Security\HtmlSanitizer;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -15,7 +17,7 @@ Artisan::command('api:docs', function () {
 })->purpose('Generate the OpenAPI specification for the JSON API');
 
 Artisan::command('content:sanitize {--dry-run : Report how many records would change without saving}', function () {
-    $sanitizer = app(\App\Support\Security\HtmlSanitizer::class);
+    $sanitizer = app(HtmlSanitizer::class);
 
     $targets = [
         'forum_posts' => 'forum',
@@ -27,7 +29,7 @@ Artisan::command('content:sanitize {--dry-run : Report how many records would ch
     foreach ($targets as $table => $policy) {
         $changed = 0;
 
-        \Illuminate\Support\Facades\DB::table($table)
+        DB::table($table)
             ->select(['id', 'body'])
             ->orderBy('id')
             ->chunkById(500, function ($rows) use ($sanitizer, $policy, $table, &$changed) {
@@ -45,7 +47,7 @@ Artisan::command('content:sanitize {--dry-run : Report how many records would ch
                     $changed++;
 
                     if (! $this->option('dry-run')) {
-                        \Illuminate\Support\Facades\DB::table($table)->where('id', $row->id)->update(['body' => $clean]);
+                        DB::table($table)->where('id', $row->id)->update(['body' => $clean]);
                     }
                 }
             });

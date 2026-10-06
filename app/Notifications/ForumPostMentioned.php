@@ -18,7 +18,7 @@ class ForumPostMentioned extends Notification implements ShouldQueue
     use SendsBroadcastsSynchronously;
 
     /**
-     * @param array<int, string> $channels
+     * @param  array<int, string>  $channels
      */
     public function __construct(
         protected ForumThread $thread,
@@ -50,11 +50,11 @@ class ForumPostMentioned extends Notification implements ShouldQueue
         $url = route('forum.threads.show', [
             'board' => $this->thread->board?->slug ?? $this->thread->board->slug,
             'thread' => $this->thread->slug,
-        ]) . '#post-' . $this->post->id;
+        ]).'#post-'.$this->post->id;
 
-        return (new MailMessage())
-            ->subject('You were mentioned in "' . $this->thread->title . '"')
-            ->greeting('Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!')
+        return (new MailMessage)
+            ->subject('You were mentioned in "'.$this->thread->title.'"')
+            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
             ->line('You were mentioned in a forum discussion.')
             ->line(Str::limit(strip_tags($this->post->body), 200))
             ->action('View mention', $url);
@@ -62,18 +62,18 @@ class ForumPostMentioned extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
-        return $this->payload('You were mentioned in "' . $this->thread->title . '"');
+        return $this->payload('You were mentioned in "'.$this->thread->title.'"');
     }
 
     public function toBroadcast(object $notifiable): BroadcastMessage
     {
-        return new BroadcastMessage($this->payload('You were mentioned in "' . $this->thread->title . '"'));
+        return new BroadcastMessage($this->payload('You were mentioned in "'.$this->thread->title.'"'));
     }
 
     /**
      * Limit the notification delivery channels.
      *
-     * @param array<int, string> $channels
+     * @param  array<int, string>  $channels
      */
     public function withChannels(array $channels): self
     {
@@ -99,7 +99,7 @@ class ForumPostMentioned extends Notification implements ShouldQueue
             'url' => route('forum.threads.show', [
                 'board' => $this->thread->board?->slug ?? $this->thread->board->slug,
                 'thread' => $this->thread->slug,
-            ]) . '#post-' . $this->post->id,
+            ]).'#post-'.$this->post->id,
             'created_at' => optional($this->post->created_at)->toIso8601String(),
         ];
     }

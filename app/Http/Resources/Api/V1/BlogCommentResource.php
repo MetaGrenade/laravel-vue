@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Models\BlogComment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\BlogComment
+ * @mixin BlogComment
  */
 class BlogCommentResource extends JsonResource
 {

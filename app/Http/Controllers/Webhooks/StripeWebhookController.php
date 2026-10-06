@@ -11,8 +11,7 @@ class StripeWebhookController extends CashierWebhookController
 {
     public function __construct(
         private readonly BillingWebhookProcessor $processor,
-    ) {
-    }
+    ) {}
 
     public function __invoke(Request $request): Response
     {
@@ -64,7 +63,7 @@ class StripeWebhookController extends CashierWebhookController
     }
 
     /**
-     * @param mixed $value
+     * @param  mixed  $value
      * @return list<string>
      */
     protected function normaliseSecrets($value): array

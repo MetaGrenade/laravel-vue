@@ -468,11 +468,7 @@ const viewNotification = (notification: NotificationItem) => {
                 <div class="hidden h-full lg:flex lg:flex-1">
                     <NavigationMenu class="ml-10 flex h-full items-stretch">
                         <NavigationMenuList class="flex h-full items-stretch space-x-2">
-                            <NavigationMenuItem
-                                v-for="(item, index) in mainNavItems"
-                                :key="index"
-                                class="relative flex h-full items-center"
-                            >
+                            <NavigationMenuItem v-for="(item, index) in mainNavItems" :key="index" class="relative flex h-full items-center">
                                 <Link :href="item.href" :target="item.target">
                                     <NavigationMenuLink
                                         :class="[navigationMenuTriggerStyle(), activeItemStyles(item.href), 'h-9 cursor-pointer px-3']"
@@ -532,16 +528,11 @@ const viewNotification = (notification: NotificationItem) => {
 
                     <Sheet v-if="commerceEnabled">
                         <SheetTrigger :as-child="true">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="group relative h-9 w-9 cursor-pointer"
-                                aria-label="Open cart"
-                            >
+                            <Button variant="ghost" size="icon" class="group relative h-9 w-9 cursor-pointer" aria-label="Open cart">
                                 <ShoppingCart class="size-5 opacity-80 group-hover:opacity-100" />
                                 <span
                                     v-if="cartItemCount > 0"
-                                    class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
+                                    class="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
                                 >
                                     {{ cartItemCount > 9 ? '9+' : cartItemCount }}
                                 </span>
@@ -613,7 +604,7 @@ const viewNotification = (notification: NotificationItem) => {
                                 <Bell class="size-5 opacity-80 group-hover:opacity-100" />
                                 <span
                                     v-if="unreadNotificationCount > 0"
-                                    class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
+                                    class="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
                                 >
                                     {{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}
                                 </span>
@@ -653,7 +644,7 @@ const viewNotification = (notification: NotificationItem) => {
                                         </p>
                                         <p
                                             v-if="notification.created_at_for_humans"
-                                            class="mt-1 text-xs uppercase tracking-wide text-muted-foreground"
+                                            class="mt-1 text-xs tracking-wide text-muted-foreground uppercase"
                                         >
                                             {{ notification.created_at_for_humans }}
                                         </p>
@@ -707,11 +698,7 @@ const viewNotification = (notification: NotificationItem) => {
                                 class="relative size-10 w-auto rounded-full p-1 focus-within:ring-2 focus-within:ring-primary"
                             >
                                 <Avatar class="size-8 overflow-hidden rounded-full">
-                                    <AvatarImage
-                                        v-if="user?.avatar_url"
-                                        :src="user.avatar_url"
-                                        :alt="user?.nickname ?? ''"
-                                    />
+                                    <AvatarImage v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.nickname ?? ''" />
                                     <AvatarFallback class="rounded-lg bg-neutral-200 font-semibold text-black dark:bg-neutral-700 dark:text-white">
                                         {{ getInitials(user?.nickname ?? '') }}
                                     </AvatarFallback>
@@ -727,10 +714,7 @@ const viewNotification = (notification: NotificationItem) => {
         </div>
 
         <!-- Breadcrumbs, pushed below fixed header -->
-        <div
-            v-if="props.breadcrumbs.length > 1"
-            class="flex w-full border-b border-sidebar-border/70"
-        >
+        <div v-if="props.breadcrumbs.length > 1" class="flex w-full border-b border-sidebar-border/70">
             <div class="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500">
                 <Breadcrumbs :breadcrumbs="breadcrumbs" />
             </div>

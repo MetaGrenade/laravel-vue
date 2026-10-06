@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Support\Security\HtmlSanitizer;
 use App\Events\ForumPostCreated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Forum\StoreForumPostRequest;
@@ -16,6 +15,7 @@ use App\Models\User;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
 use App\Support\Reputation\ReputationManager;
+use App\Support\Security\HtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -23,9 +23,7 @@ use Illuminate\Validation\ValidationException;
 
 class ForumPostCommandController extends Controller
 {
-    public function __construct(private readonly ReputationManager $reputation)
-    {
-    }
+    public function __construct(private readonly ReputationManager $reputation) {}
 
     public function store(StoreForumPostRequest $request, ForumBoard $board, ForumThread $thread): JsonResponse
     {
@@ -204,7 +202,7 @@ class ForumPostCommandController extends Controller
     }
 
     /**
-     * @param Collection<int, User> $mentionedUsers
+     * @param  Collection<int, User>  $mentionedUsers
      */
     private function notifyMentionedUsers(Collection $mentionedUsers, ForumThread $thread, ForumPost $post): void
     {

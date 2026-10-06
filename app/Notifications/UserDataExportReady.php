@@ -47,10 +47,10 @@ class UserDataExportReady extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $greeting = 'Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!';
+        $greeting = 'Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!';
         $downloadUrl = $this->downloadUrl();
 
-        $mailMessage = (new MailMessage())
+        $mailMessage = (new MailMessage)
             ->subject('Your data export is ready')
             ->greeting($greeting)
             ->line('Your privacy data export is ready to download.')
@@ -62,7 +62,7 @@ class UserDataExportReady extends Notification implements ShouldQueue
             $mailMessage->action('View privacy settings', route('privacy.index'));
         }
 
-        $mailMessage->line('This download link will expire in ' . DataExport::DOWNLOAD_TTL_MINUTES . ' minutes.')
+        $mailMessage->line('This download link will expire in '.DataExport::DOWNLOAD_TTL_MINUTES.' minutes.')
             ->line('If you did not request this export, please contact support.');
 
         return $mailMessage;

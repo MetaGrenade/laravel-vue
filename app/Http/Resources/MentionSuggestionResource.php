@@ -2,12 +2,13 @@
 
 namespace App\Http\Resources;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Route;
 
 /**
- * @mixin \App\Models\User
+ * @mixin User
  */
 class MentionSuggestionResource extends JsonResource
 {
@@ -34,4 +35,3 @@ class MentionSuggestionResource extends JsonResource
         ];
     }
 }
-

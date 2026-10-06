@@ -194,9 +194,7 @@ const membershipForm = useForm({
     team_ids: [] as number[],
 });
 
-const membershipError = computed(() =>
-    membershipForm.errors.team_ids ?? membershipForm.errors['team_ids.0'] ?? '',
-);
+const membershipError = computed(() => membershipForm.errors.team_ids ?? membershipForm.errors['team_ids.0'] ?? '');
 
 const openMembershipDialog = (member: TeamMembershipItem) => {
     if (!props.can.edit) {
@@ -253,9 +251,7 @@ const submitMembership = () => {
                                     <Users class="h-5 w-5" />
                                     Support teams
                                 </CardTitle>
-                                <CardDescription>
-                                    Organize support staff into teams so templates can target specific groups.
-                                </CardDescription>
+                                <CardDescription> Organize support staff into teams so templates can target specific groups. </CardDescription>
                             </div>
                             <div v-if="props.can.create" class="hidden sm:flex">
                                 <Button
@@ -296,15 +292,13 @@ const submitMembership = () => {
                                     v-model="createForm.member_ids"
                                     :disabled="createForm.processing"
                                     multiple
-                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
                                         {{ agent.nickname }} ({{ agent.email }})
                                     </option>
                                 </select>
-                                <p class="text-xs text-muted-foreground">
-                                    Leave empty to add members later.
-                                </p>
+                                <p class="text-xs text-muted-foreground">Leave empty to add members later.</p>
                                 <InputError :message="createForm.errors.member_ids" />
                             </div>
                             <CardFooter class="justify-end px-0 pb-0">
@@ -317,9 +311,7 @@ const submitMembership = () => {
                         </div>
 
                         <div>
-                            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                                Existing teams
-                            </h3>
+                            <h3 class="mb-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">Existing teams</h3>
                             <div
                                 v-if="!hasTeams"
                                 class="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground"
@@ -364,12 +356,7 @@ const submitMembership = () => {
                                                 </span>
                                             </TableCell>
                                             <TableCell v-if="hasTeamActions" class="flex justify-end gap-2">
-                                                <Button
-                                                    v-if="props.can.edit"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    @click="openEditDialog(team)"
-                                                >
+                                                <Button v-if="props.can.edit" variant="outline" size="sm" @click="openEditDialog(team)">
                                                     <Pencil class="h-4 w-4" />
                                                     Edit
                                                 </Button>
@@ -395,12 +382,13 @@ const submitMembership = () => {
                 <Card>
                     <CardHeader>
                         <CardTitle>Team membership</CardTitle>
-                        <CardDescription>
-                            Review which support agents belong to each team and make adjustments in one place.
-                        </CardDescription>
+                        <CardDescription> Review which support agents belong to each team and make adjustments in one place. </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div v-if="!hasMemberships" class="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+                        <div
+                            v-if="!hasMemberships"
+                            class="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground"
+                        >
                             No eligible support agents found. Once agents are available you can manage their team assignments here.
                         </div>
                         <div v-else class="overflow-x-auto">
@@ -409,7 +397,7 @@ const submitMembership = () => {
                                     <TableRow>
                                         <TableHead>Agent</TableHead>
                                         <TableHead>Teams</TableHead>
-                                        <TableHead v-if="props.can.edit" class="w-[1%] whitespace-nowrap text-right">Actions</TableHead>
+                                        <TableHead v-if="props.can.edit" class="w-[1%] text-right whitespace-nowrap">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -467,12 +455,7 @@ const submitMembership = () => {
                         <form class="mt-4 grid gap-4" @submit.prevent="submitEdit">
                             <div class="grid gap-2">
                                 <Label for="edit_team_name">Team name</Label>
-                                <Input
-                                    id="edit_team_name"
-                                    v-model="editForm.name"
-                                    :disabled="editForm.processing"
-                                    required
-                                />
+                                <Input id="edit_team_name" v-model="editForm.name" :disabled="editForm.processing" required />
                                 <InputError :message="editForm.errors.name" />
                             </div>
                             <div class="grid gap-2">
@@ -482,21 +465,17 @@ const submitMembership = () => {
                                     v-model="editForm.member_ids"
                                     :disabled="editForm.processing"
                                     multiple
-                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
                                         {{ agent.nickname }} ({{ agent.email }})
                                     </option>
                                 </select>
-                                <p class="text-xs text-muted-foreground">
-                                    Leave empty to clear all members.
-                                </p>
+                                <p class="text-xs text-muted-foreground">Leave empty to clear all members.</p>
                                 <InputError :message="editForm.errors.member_ids" />
                             </div>
                             <CardFooter class="justify-end gap-2 px-0 pb-0">
-                                <Button type="button" variant="outline" :disabled="editForm.processing" @click="closeEditDialog">
-                                    Cancel
-                                </Button>
+                                <Button type="button" variant="outline" :disabled="editForm.processing" @click="closeEditDialog"> Cancel </Button>
                                 <Button type="submit" :disabled="editForm.processing">Update team</Button>
                             </CardFooter>
                         </form>
@@ -508,12 +487,8 @@ const submitMembership = () => {
                 <Dialog v-model:open="membershipDialogOpen">
                     <DialogContent class="sm:max-w-lg">
                         <DialogHeader>
-                            <DialogTitle>
-                                Manage teams for {{ editingMember?.nickname ?? 'agent' }}
-                            </DialogTitle>
-                            <DialogDescription>
-                                Select all teams this agent should belong to. Changes apply immediately.
-                            </DialogDescription>
+                            <DialogTitle> Manage teams for {{ editingMember?.nickname ?? 'agent' }} </DialogTitle>
+                            <DialogDescription> Select all teams this agent should belong to. Changes apply immediately. </DialogDescription>
                         </DialogHeader>
                         <form class="mt-4 grid gap-4" @submit.prevent="submitMembership">
                             <div class="grid gap-2">
@@ -523,7 +498,7 @@ const submitMembership = () => {
                                     v-model="membershipForm.team_ids"
                                     multiple
                                     :disabled="membershipForm.processing"
-                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option v-for="team in props.teams" :key="team.id" :value="team.id">
                                         {{ team.name }}
@@ -536,9 +511,7 @@ const submitMembership = () => {
                                 <Button type="button" variant="outline" :disabled="membershipForm.processing" @click="closeMembershipDialog">
                                     Cancel
                                 </Button>
-                                <Button type="submit" :disabled="membershipForm.processing">
-                                    Save membership
-                                </Button>
+                                <Button type="submit" :disabled="membershipForm.processing"> Save membership </Button>
                             </CardFooter>
                         </form>
                     </DialogContent>

@@ -37,15 +37,7 @@ function normalizeNumber(value: unknown, fallback: number): number {
 }
 
 export function useInertiaPagination(options: UseInertiaPaginationOptions): UseInertiaPaginationResult {
-    const {
-        meta: metaSource,
-        itemsLength = 0,
-        defaultPerPage = 15,
-        itemLabel = 'item',
-        itemLabelPlural,
-        emptyLabel,
-        onNavigate,
-    } = options;
+    const { meta: metaSource, itemsLength = 0, defaultPerPage = 15, itemLabel = 'item', itemLabelPlural, emptyLabel, onNavigate } = options;
 
     const itemsCount = computed(() => Math.max(0, normalizeNumber(toValue(itemsLength), 0)));
 
@@ -106,29 +98,26 @@ export function useInertiaPagination(options: UseInertiaPaginationOptions): UseI
 
     let skipNextNavigate = false;
 
-    watch(
-        page,
-        (newPage) => {
-            const safePage = Math.min(Math.max(newPage, 1), pageCount.value);
+    watch(page, (newPage) => {
+        const safePage = Math.min(Math.max(newPage, 1), pageCount.value);
 
-            if (safePage !== newPage) {
-                page.value = safePage;
-                skipNextNavigate = false;
-                return;
-            }
+        if (safePage !== newPage) {
+            page.value = safePage;
+            skipNextNavigate = false;
+            return;
+        }
 
-            if (skipNextNavigate) {
-                skipNextNavigate = false;
-                return;
-            }
+        if (skipNextNavigate) {
+            skipNextNavigate = false;
+            return;
+        }
 
-            if (safePage === meta.value.current_page) {
-                return;
-            }
+        if (safePage === meta.value.current_page) {
+            return;
+        }
 
-            onNavigate?.(safePage);
-        },
-    );
+        onNavigate?.(safePage);
+    });
 
     const setPage = (value: number, options: SetPageOptions = {}) => {
         skipNextNavigate = options.emitNavigate === false;

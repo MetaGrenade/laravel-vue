@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue';
 import type { CheckboxRootProps } from 'reka-ui';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { type BreadcrumbItem , type QueryParams } from '@/types';
+import { type BreadcrumbItem, type QueryParams } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
@@ -102,14 +102,12 @@ const buildQueryParams = (
         params.sort = sortValue;
     }
 
-    const minViewsValue =
-        overrides.min_views !== undefined ? overrides.min_views : parseViews(minViews.value);
+    const minViewsValue = overrides.min_views !== undefined ? overrides.min_views : parseViews(minViews.value);
     if (typeof minViewsValue === 'number') {
         params.min_views = minViewsValue;
     }
 
-    const maxViewsValue =
-        overrides.max_views !== undefined ? overrides.max_views : parseViews(maxViews.value);
+    const maxViewsValue = overrides.max_views !== undefined ? overrides.max_views : parseViews(maxViews.value);
     if (typeof maxViewsValue === 'number') {
         if (typeof params.min_views === 'number' && maxViewsValue < params.min_views) {
             // Skip conflicting max views filter
@@ -136,15 +134,11 @@ const navigateWithFilters = (
         max_views: number | null;
     }> = {},
 ) => {
-    router.get(
-        route('acp.blogs.index'),
-        buildQueryParams(overrides),
-        {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        },
-    );
+    router.get(route('acp.blogs.index'), buildQueryParams(overrides), {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
 };
 
 // Permission checks
@@ -230,12 +224,8 @@ const statusFilters = computed(() => props.filters.status ?? []);
 let skipSearchWatch = false;
 const defaultSortOption: SortOption = 'created_desc';
 const sortOption = ref<SortOption>(props.filters.sort ?? defaultSortOption);
-const minViews = ref(
-    typeof props.filters.min_views === 'number' ? String(props.filters.min_views) : '',
-);
-const maxViews = ref(
-    typeof props.filters.max_views === 'number' ? String(props.filters.max_views) : '',
-);
+const minViews = ref(typeof props.filters.min_views === 'number' ? String(props.filters.min_views) : '');
+const maxViews = ref(typeof props.filters.max_views === 'number' ? String(props.filters.max_views) : '');
 let skipSortWatch = false;
 let skipViewsWatch = false;
 
@@ -310,9 +300,7 @@ watch(
 );
 
 const hasBlogSelection = computed(() => selectedBlogIds.value.length > 0);
-const allBlogsSelected = computed(
-    () => blogRows.value.length > 0 && selectedBlogIds.value.length === blogRows.value.length,
-);
+const allBlogsSelected = computed(() => blogRows.value.length > 0 && selectedBlogIds.value.length === blogRows.value.length);
 const blogHeaderCheckboxState = computed<CheckboxState>(() => {
     if (allBlogsSelected.value) {
         return true;
@@ -465,43 +453,52 @@ watch([minViews, maxViews], () => {
 });
 
 const publishPost = (postId: number) => {
-    router.put(route('acp.blogs.publish', { blog: postId }), {}, {
-        preserveScroll: true,
-    });
+    router.put(
+        route('acp.blogs.publish', { blog: postId }),
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
 };
 
 const unpublishPost = (postId: number) => {
-    router.put(route('acp.blogs.unpublish', { blog: postId }), {}, {
-        preserveScroll: true,
-    });
+    router.put(
+        route('acp.blogs.unpublish', { blog: postId }),
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
 };
 
-const {
-    confirmDialogState,
-    confirmDialogDescription,
-    openConfirmDialog,
-    handleConfirmDialogConfirm,
-    handleConfirmDialogCancel,
-} = useConfirmDialog();
+const { confirmDialogState, confirmDialogDescription, openConfirmDialog, handleConfirmDialogConfirm, handleConfirmDialogCancel } = useConfirmDialog();
 
 const confirmArchivePost = (post: BlogRow) => {
     openConfirmDialog({
         title: `Archive “${post.title}”?`,
-        description:
-            'Archiving this post will hide it from the public blog listing. You can restore it from the admin panel at any time.',
+        description: 'Archiving this post will hide it from the public blog listing. You can restore it from the admin panel at any time.',
         confirmLabel: 'Archive post',
         onConfirm: () => {
-            router.put(route('acp.blogs.archive', { blog: post.id }), {}, {
-                preserveScroll: true,
-            });
+            router.put(
+                route('acp.blogs.archive', { blog: post.id }),
+                {},
+                {
+                    preserveScroll: true,
+                },
+            );
         },
     });
 };
 
 const unarchivePost = (postId: number) => {
-    router.put(route('acp.blogs.unarchive', { blog: postId }), {}, {
-        preserveScroll: true,
-    });
+    router.put(
+        route('acp.blogs.unarchive', { blog: postId }),
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
 };
 
 const enableComments = (postId: number) => {
@@ -538,7 +535,7 @@ const confirmDeletePost = (post: BlogRow) => {
                     <div
                         v-for="(stat, index) in stats"
                         :key="index"
-                        class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center"
+                        class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
                     >
                         <div class="mr-4">
                             <component :is="stat.icon" class="h-8 w-8 text-gray-600" />
@@ -552,20 +549,16 @@ const confirmDeletePost = (post: BlogRow) => {
                     </div>
                 </div>
 
-                <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                     <div class="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <div>
                             <h2 class="flex items-center gap-2 text-lg font-semibold">
                                 <TrendingUp class="h-5 w-5 text-muted-foreground" />
                                 Trending posts
                             </h2>
-                            <p class="text-sm text-muted-foreground">
-                                Top-performing articles from the past 30 days based on view counts.
-                            </p>
+                            <p class="text-sm text-muted-foreground">Top-performing articles from the past 30 days based on view counts.</p>
                         </div>
-                        <div class="text-sm text-muted-foreground">
-                            {{ formatNumber(props.blogStats.total_views) }} total views recorded
-                        </div>
+                        <div class="text-sm text-muted-foreground">{{ formatNumber(props.blogStats.total_views) }} total views recorded</div>
                     </div>
 
                     <LineChart
@@ -577,24 +570,16 @@ const confirmDeletePost = (post: BlogRow) => {
                         :curve-type="CurveType.Linear"
                         :y-formatter="(tick) => (typeof tick === 'number' ? formatNumber(tick) : '')"
                     />
-                    <p v-else class="text-sm text-muted-foreground">
-                        We will chart trends here once posts accumulate enough views.
-                    </p>
+                    <p v-else class="text-sm text-muted-foreground">We will chart trends here once posts accumulate enough views.</p>
 
-                    <ul
-                        v-if="hasTrendingData"
-                        class="mt-4 grid gap-3 md:grid-cols-2"
-                    >
+                    <ul v-if="hasTrendingData" class="mt-4 grid gap-3 md:grid-cols-2">
                         <li
                             v-for="post in trendingPosts"
                             :key="post.id"
                             class="rounded-lg border border-sidebar-border/60 p-3 text-sm dark:border-sidebar-border"
                         >
                             <div class="flex flex-col gap-2">
-                                <Link
-                                    :href="route('blogs.view', { slug: post.slug })"
-                                    class="font-medium text-primary hover:underline"
-                                >
+                                <Link :href="route('blogs.view', { slug: post.slug })" class="font-medium text-primary hover:underline">
                                     {{ post.title }}
                                 </Link>
                                 <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -607,25 +592,19 @@ const confirmDeletePost = (post: BlogRow) => {
                 </div>
 
                 <!-- Blog Posts Management Section -->
-                <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                     <div class="mb-4 space-y-3">
                         <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                             <h2 class="text-lg font-semibold">Blog Posts</h2>
                             <div class="flex flex-wrap justify-end gap-2">
                                 <Link v-if="manageCategories" :href="route('acp.blog-categories.index')">
-                                    <Button variant="outline" class="text-sm">
-                                        Manage Categories
-                                    </Button>
+                                    <Button variant="outline" class="text-sm"> Manage Categories </Button>
                                 </Link>
                                 <Link v-if="manageTags" :href="route('acp.blog-tags.index')">
-                                    <Button variant="outline" class="text-sm">
-                                        Manage Tags
-                                    </Button>
+                                    <Button variant="outline" class="text-sm"> Manage Tags </Button>
                                 </Link>
                                 <Link v-if="createBlogs" :href="route('acp.blogs.create')">
-                                    <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                        Create New Post
-                                    </Button>
+                                    <Button variant="secondary" class="bg-green-500 text-sm text-white hover:bg-green-600"> Create New Post </Button>
                                 </Link>
                             </div>
                         </div>
@@ -636,11 +615,11 @@ const confirmDeletePost = (post: BlogRow) => {
                                 class="w-full rounded-md md:w-64"
                                 aria-label="Search blog posts"
                             />
-                            <label class="w-full md:w-48 text-sm">
+                            <label class="w-full text-sm md:w-48">
                                 <span class="sr-only">Sort blog posts</span>
                                 <select
                                     v-model="sortOption"
-                                    class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                    class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-hidden"
                                 >
                                     <option value="created_desc">Newest first</option>
                                     <option value="created_asc">Oldest first</option>
@@ -674,40 +653,23 @@ const confirmDeletePost = (post: BlogRow) => {
                         <p class="text-sm text-muted-foreground">{{ blogSelectionLabel }}</p>
                         <DropdownMenu v-if="publishBlogs">
                             <DropdownMenuTrigger as-child>
-                                <Button
-                                    variant="outline"
-                                    :disabled="!hasBlogSelection || bulkBlogForm.processing"
-                                >
-                                    Bulk status
-                                </Button>
+                                <Button variant="outline" :disabled="!hasBlogSelection || bulkBlogForm.processing"> Bulk status </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" class="w-56">
                                 <DropdownMenuLabel>Set blog status</DropdownMenuLabel>
-                                <DropdownMenuItem
-                                    :disabled="bulkBlogForm.processing"
-                                    @select="submitBulkBlogAction('publish')"
-                                >
+                                <DropdownMenuItem :disabled="bulkBlogForm.processing" @select="submitBulkBlogAction('publish')">
                                     <Eye class="mr-2 h-4 w-4" />
                                     <span>Publish now</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    :disabled="bulkBlogForm.processing"
-                                    @select="submitBulkBlogAction('unpublish')"
-                                >
+                                <DropdownMenuItem :disabled="bulkBlogForm.processing" @select="submitBulkBlogAction('unpublish')">
                                     <EyeOff class="mr-2 h-4 w-4" />
                                     <span>Move to draft</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    :disabled="bulkBlogForm.processing"
-                                    @select="submitBulkBlogAction('archive')"
-                                >
+                                <DropdownMenuItem :disabled="bulkBlogForm.processing" @select="submitBulkBlogAction('archive')">
                                     <Archive class="mr-2 h-4 w-4" />
                                     <span>Archive posts</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    :disabled="bulkBlogForm.processing"
-                                    @select="submitBulkBlogAction('unarchive')"
-                                >
+                                <DropdownMenuItem :disabled="bulkBlogForm.processing" @select="submitBulkBlogAction('unarchive')">
                                     <ArchiveRestore class="mr-2 h-4 w-4" />
                                     <span>Restore to draft</span>
                                 </DropdownMenuItem>
@@ -737,7 +699,7 @@ const confirmDeletePost = (post: BlogRow) => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow v-for="(post) in blogRows" :key="post.id">
+                                <TableRow v-for="post in blogRows" :key="post.id">
                                     <TableCell class="align-middle">
                                         <Checkbox
                                             :model-value="selectedBlogIds.includes(post.id)"
@@ -752,13 +714,17 @@ const confirmDeletePost = (post: BlogRow) => {
                                     <TableCell class="text-center">{{ post.created_at ? fromNow(post.created_at) : '—' }}</TableCell>
                                     <TableCell class="text-center">{{ formatNumber(post.views) }}</TableCell>
                                     <TableCell class="text-center">{{ post.last_viewed_at ? fromNow(post.last_viewed_at) : '—' }}</TableCell>
-                                    <TableCell class="text-center" :class="{
-                                        'text-green-500': post.status === 'published',
-                                        'text-red-500': post.status === 'archived',
-                                        'text-blue-500': post.status === 'draft',
-                                        'text-amber-500': post.status === 'scheduled',
-                                    }">
-                                        {{ post.status }}</TableCell>
+                                    <TableCell
+                                        class="text-center"
+                                        :class="{
+                                            'text-green-500': post.status === 'published',
+                                            'text-red-500': post.status === 'archived',
+                                            'text-blue-500': post.status === 'draft',
+                                            'text-amber-500': post.status === 'scheduled',
+                                        }"
+                                    >
+                                        {{ post.status }}</TableCell
+                                    >
                                     <TableCell class="text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger as-child>
@@ -777,31 +743,19 @@ const confirmDeletePost = (post: BlogRow) => {
                                                         <Eye class="mr-2" />
                                                         <span>Publish now</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        v-if="post.status === 'published'"
-                                                        @click="unpublishPost(post.id)"
-                                                    >
+                                                    <DropdownMenuItem v-if="post.status === 'published'" @click="unpublishPost(post.id)">
                                                         <EyeOff class="mr-2" />
                                                         <span>Unpublish</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        v-if="post.status === 'scheduled'"
-                                                        @click="unpublishPost(post.id)"
-                                                    >
+                                                    <DropdownMenuItem v-if="post.status === 'scheduled'" @click="unpublishPost(post.id)">
                                                         <EyeOff class="mr-2" />
                                                         <span>Unschedule</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        v-if="post.status === 'archived'"
-                                                        @click="unarchivePost(post.id)"
-                                                    >
+                                                    <DropdownMenuItem v-if="post.status === 'archived'" @click="unarchivePost(post.id)">
                                                         <ArchiveRestore class="mr-2" />
                                                         <span>Unarchive</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        v-if="post.status !== 'archived'"
-                                                        @click="confirmArchivePost(post)"
-                                                    >
+                                                    <DropdownMenuItem v-if="post.status !== 'archived'" @click="confirmArchivePost(post)">
                                                         <Archive class="mr-2" />
                                                         <span>Archive</span>
                                                     </DropdownMenuItem>
@@ -811,10 +765,7 @@ const confirmDeletePost = (post: BlogRow) => {
                                                     v-if="editBlogs"
                                                     @click="post.comments_enabled ? disableComments(post.id) : enableComments(post.id)"
                                                 >
-                                                    <component
-                                                        :is="post.comments_enabled ? MessageSquareOff : MessageSquare"
-                                                        class="mr-2"
-                                                    />
+                                                    <component :is="post.comments_enabled ? MessageSquareOff : MessageSquare" class="mr-2" />
                                                     <span>
                                                         {{ post.comments_enabled ? 'Disable comments' : 'Enable comments' }}
                                                     </span>
@@ -829,11 +780,7 @@ const confirmDeletePost = (post: BlogRow) => {
                                                     </Link>
                                                 </DropdownMenuGroup>
                                                 <DropdownMenuSeparator v-if="deleteBlogs" />
-                                                <DropdownMenuItem
-                                                    v-if="deleteBlogs"
-                                                    class="text-red-500"
-                                                    @click="confirmDeletePost(post)"
-                                                >
+                                                <DropdownMenuItem v-if="deleteBlogs" class="text-red-500" @click="confirmDeletePost(post)">
                                                     <Trash2 class="mr-2" />
                                                     <span>Delete</span>
                                                 </DropdownMenuItem>
@@ -853,7 +800,7 @@ const confirmDeletePost = (post: BlogRow) => {
 
                 <!-- Bottom Pagination -->
                 <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                    <div class="text-sm text-muted-foreground text-center md:text-left">
+                    <div class="text-center text-sm text-muted-foreground md:text-left">
                         {{ blogsRangeLabel }}
                     </div>
                     <Pagination
@@ -872,19 +819,12 @@ const confirmDeletePost = (post: BlogRow) => {
                                 <PaginationPrev />
 
                                 <template v-for="(item, index) in items" :key="index">
-                                    <PaginationListItem
-                                        v-if="item.type === 'page'"
-                                        :value="item.value"
-                                        as-child
-                                    >
-                                        <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                    <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                        <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                             {{ item.value }}
                                         </Button>
                                     </PaginationListItem>
-                                    <PaginationEllipsis
-                                        v-else
-                                        :index="index"
-                                    />
+                                    <PaginationEllipsis v-else :index="index" />
                                 </template>
 
                                 <PaginationNext />

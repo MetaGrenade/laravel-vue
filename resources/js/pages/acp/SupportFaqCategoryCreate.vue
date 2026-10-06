@@ -41,9 +41,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Create FAQ category</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Create a grouping for related help articles so you can filter FAQs by topic.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Create a grouping for related help articles so you can filter FAQs by topic.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">

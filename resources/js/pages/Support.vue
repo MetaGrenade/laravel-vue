@@ -135,9 +135,7 @@ const props = defineProps<{
     ticketCategories: TicketCategory[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Support', href: '/support' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Support', href: '/support' }];
 
 type FlashMessages = {
     success?: string | null;
@@ -169,31 +167,24 @@ const readNumberParam = (location: string, key: string): number | null => {
     return Number.isNaN(parsed) ? null : parsed;
 };
 
-const readEnumParam = (
-    location: string,
-    key: string,
-    allowed: readonly string[],
-): string | null => {
+const readEnumParam = (location: string, key: string, allowed: readonly string[]): string | null => {
     const value = readSearchParam(location, key);
 
     return allowed.includes(value) ? value : null;
 };
 
 const ticketSearchQuery = ref(readSearchParam(page.props.ziggy.location, 'tickets_search'));
-const ticketCategoryFilter = ref<number | null>(
-    readNumberParam(page.props.ziggy.location, 'ticket_category_id'),
+const ticketCategoryFilter = ref<number | null>(readNumberParam(page.props.ziggy.location, 'ticket_category_id'));
+const faqFilters = computed(
+    () =>
+        props.faqs?.filters ?? {
+            categories: [] as FAQCategoryFilters[],
+            selectedCategoryId: null,
+            search: null,
+            totalPublished: 0,
+        },
 );
-const faqFilters = computed(() =>
-    props.faqs?.filters ?? {
-        categories: [] as FAQCategoryFilters[],
-        selectedCategoryId: null,
-        search: null,
-        totalPublished: 0,
-    },
-);
-const faqSearchQuery = ref(
-    faqFilters.value.search ?? readSearchParam(page.props.ziggy.location, 'faqs_search'),
-);
+const faqSearchQuery = ref(faqFilters.value.search ?? readSearchParam(page.props.ziggy.location, 'faqs_search'));
 const ticketsMetaSource = computed(() => props.tickets.meta ?? null);
 const ticketItems = computed(() => props.tickets.data ?? []);
 const faqGroups = computed(() => props.faqs.groups ?? []);
@@ -203,21 +194,15 @@ const selectedFaqCategoryId = ref<number | null>(faqFilters.value.selectedCatego
 const ticketStatusValues = ['open', 'pending', 'closed'] as const;
 const ticketPriorityValues = ['low', 'medium', 'high'] as const;
 const ticketStatusFilter = ref<Ticket['status'] | null>(
-    (readEnumParam(page.props.ziggy.location, 'ticket_status', ticketStatusValues) as Ticket['status'] | null) ??
-        null,
+    (readEnumParam(page.props.ziggy.location, 'ticket_status', ticketStatusValues) as Ticket['status'] | null) ?? null,
 );
 const ticketPriorityFilter = ref<Ticket['priority'] | null>(
-    (readEnumParam(page.props.ziggy.location, 'ticket_priority', ticketPriorityValues) as Ticket['priority'] | null) ??
-        null,
+    (readEnumParam(page.props.ziggy.location, 'ticket_priority', ticketPriorityValues) as Ticket['priority'] | null) ?? null,
 );
-const totalPublishedFaqs = computed(() => faqFilters.value.totalPublished ?? faqCategories.value.reduce(
-    (total, category) => total + category.published_faqs_count,
-    0,
-));
-const faqMatchCount = computed(() => props.faqs.matchingCount ?? faqGroups.value.reduce(
-    (total, group) => total + group.faqs.length,
-    0,
-));
+const totalPublishedFaqs = computed(
+    () => faqFilters.value.totalPublished ?? faqCategories.value.reduce((total, category) => total + category.published_faqs_count, 0),
+);
+const faqMatchCount = computed(() => props.faqs.matchingCount ?? faqGroups.value.reduce((total, group) => total + group.faqs.length, 0));
 const submittingFaqFeedback = ref<Record<number, boolean>>({});
 
 const submitFaqFeedback = (faq: FAQItem, value: 'helpful' | 'not_helpful') => {
@@ -243,8 +228,7 @@ const submitFaqFeedback = (faq: FAQItem, value: 'helpful' | 'not_helpful') => {
             preserveScroll: true,
             preserveState: true,
             onError: (errors) => {
-                const message = Object.values(errors)[0] ??
-                    'Unable to submit feedback right now. Please try again later.';
+                const message = Object.values(errors)[0] ?? 'Unable to submit feedback right now. Please try again later.';
 
                 toast.error(message);
             },
@@ -281,9 +265,7 @@ const faqCategoryOptions = computed<FAQCategoryOption[]>(() => {
 
     return options;
 });
-const activeFaqCategory = computed(() =>
-    faqCategoryOptions.value.find((option) => option.id === selectedFaqCategoryId.value) ?? null,
-);
+const activeFaqCategory = computed(() => faqCategoryOptions.value.find((option) => option.id === selectedFaqCategoryId.value) ?? null);
 
 const ticketCategoryOptions = computed<TicketCategoryFilterOption[]>(() => {
     const options: TicketCategoryFilterOption[] = [
@@ -322,12 +304,10 @@ const ticketPriorityOptions: TicketFilterOption<Ticket['priority'] | null>[] = [
     { value: 'low', label: 'Low' },
 ];
 
-const ticketStatusLabel = computed(() =>
-    ticketStatusOptions.find((option) => option.value === ticketStatusFilter.value)?.label ?? 'All statuses',
-);
+const ticketStatusLabel = computed(() => ticketStatusOptions.find((option) => option.value === ticketStatusFilter.value)?.label ?? 'All statuses');
 
-const ticketPriorityLabel = computed(() =>
-    ticketPriorityOptions.find((option) => option.value === ticketPriorityFilter.value)?.label ?? 'All priorities',
+const ticketPriorityLabel = computed(
+    () => ticketPriorityOptions.find((option) => option.value === ticketPriorityFilter.value)?.label ?? 'All priorities',
 );
 
 interface SupportQueryOverrides {
@@ -466,9 +446,7 @@ const resetAttachmentsInput = () => {
 };
 
 const attachmentErrors = computed(() => {
-    const errorEntries = Object.entries(form.errors).filter(([key]) =>
-        key === 'attachments' || key.startsWith('attachments.'),
-    );
+    const errorEntries = Object.entries(form.errors).filter(([key]) => key === 'attachments' || key.startsWith('attachments.'));
 
     return errorEntries.length > 0 ? errorEntries[0][1] : '';
 });
@@ -703,11 +681,9 @@ const priorityClass = (priority: Ticket['priority']) => {
     return classes[priority] ?? '';
 };
 
-const formatStatus = (status: Ticket['status']) =>
-    status.charAt(0).toUpperCase() + status.slice(1);
+const formatStatus = (status: Ticket['status']) => status.charAt(0).toUpperCase() + status.slice(1);
 
-const formatPriority = (priority: Ticket['priority']) =>
-    priority.charAt(0).toUpperCase() + priority.slice(1);
+const formatPriority = (priority: Ticket['priority']) => priority.charAt(0).toUpperCase() + priority.slice(1);
 
 const formatDate = (value: string | null) => {
     if (!value) {
@@ -729,8 +705,7 @@ const formatDate = (value: string | null) => {
     }).format(date);
 };
 
-const formatRating = (rating: number | null) =>
-    typeof rating === 'number' ? `${rating}/5` : '—';
+const formatRating = (rating: number | null) => (typeof rating === 'number' ? `${rating}/5` : '—');
 
 const handleFaqCategorySelect = (categoryId: number | null) => {
     if (selectedFaqCategoryId.value === categoryId) {
@@ -739,15 +714,14 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
 
     selectedFaqCategoryId.value = categoryId;
 };
-
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Support Center" />
-        <div class="container mx-auto p-4 space-y-8">
-            <h1 class="text-3xl font-bold mb-4">
-                <LifeBuoy class="h-8 w-8 text-green-600 inline-block" />
+        <div class="container mx-auto space-y-8 p-4">
+            <h1 class="mb-4 text-3xl font-bold">
+                <LifeBuoy class="inline-block h-8 w-8 text-green-600" />
                 Support Center
             </h1>
 
@@ -771,14 +745,10 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             />
                             <select
                                 v-model="ticketCategoryFilter"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:w-60"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:w-60"
                                 :disabled="!props.canSubmitTicket"
                             >
-                                <option
-                                    v-for="category in ticketCategoryOptions"
-                                    :key="category.id ?? 'all'"
-                                    :value="category.id"
-                                >
+                                <option v-for="category in ticketCategoryOptions" :key="category.id ?? 'all'" :value="category.id">
                                     {{ category.name }}
                                 </option>
                             </select>
@@ -804,10 +774,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                         >
                                             <div class="flex w-full items-center justify-between">
                                                 <span>{{ option.label }}</span>
-                                                <Check
-                                                    v-if="ticketStatusFilter === option.value"
-                                                    class="h-4 w-4"
-                                                />
+                                                <Check v-if="ticketStatusFilter === option.value" class="h-4 w-4" />
                                             </div>
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
@@ -835,29 +802,16 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                         >
                                             <div class="flex w-full items-center justify-between">
                                                 <span>{{ option.label }}</span>
-                                                <Check
-                                                    v-if="ticketPriorityFilter === option.value"
-                                                    class="h-4 w-4"
-                                                />
+                                                <Check v-if="ticketPriorityFilter === option.value" class="h-4 w-4" />
                                             </div>
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                            <Button
-                                v-if="props.canSubmitTicket"
-                                variant="secondary"
-                                class="cursor-pointer md:ml-4"
-                                as-child
-                            >
+                            <Button v-if="props.canSubmitTicket" variant="secondary" class="cursor-pointer md:ml-4" as-child>
                                 <a href="#create_ticket">Create New Ticket</a>
                             </Button>
-                            <Button
-                                v-else
-                                variant="secondary"
-                                class="cursor-pointer md:ml-4"
-                                as-child
-                            >
+                            <Button v-else variant="secondary" class="cursor-pointer md:ml-4" as-child>
                                 <Link :href="route('login')">Sign in to submit</Link>
                             </Button>
                         </div>
@@ -865,7 +819,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
 
                     <template v-if="props.canSubmitTicket">
                         <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                            <div class="text-sm text-muted-foreground text-center md:text-left">
+                            <div class="text-center text-sm text-muted-foreground md:text-left">
                                 {{ ticketsRangeLabel }}
                             </div>
                             <Pagination
@@ -878,23 +832,14 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                 show-edges
                             >
                                 <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
-                                    <span class="text-sm text-muted-foreground">
-                                        Page {{ page }} of {{ pageCount }}
-                                    </span>
+                                    <span class="text-sm text-muted-foreground"> Page {{ page }} of {{ pageCount }} </span>
                                     <PaginationList v-slot="{ items }" class="flex items-center gap-1">
                                         <PaginationFirst />
                                         <PaginationPrev />
 
                                         <template v-for="(item, index) in items" :key="index">
-                                            <PaginationListItem
-                                                v-if="item.type === 'page'"
-                                                :value="item.value"
-                                                as-child
-                                            >
-                                                <Button
-                                                    class="w-9 h-9 p-0"
-                                                    :variant="item.value === page ? 'default' : 'outline'"
-                                                >
+                                            <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                                <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                     {{ item.value }}
                                                 </Button>
                                             </PaginationListItem>
@@ -965,9 +910,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                             <span v-if="ticket.assignee">
                                                 {{ ticket.assignee.nickname }}
                                             </span>
-                                            <span v-else-if="ticket.team">
-                                                Team: {{ ticket.team.name }}
-                                            </span>
+                                            <span v-else-if="ticket.team"> Team: {{ ticket.team.name }} </span>
                                             <span v-else>—</span>
                                         </TableCell>
                                         <TableCell class="text-center">{{ formatDate(ticket.created_at) }}</TableCell>
@@ -989,10 +932,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
                                                             class="text-red-500"
-                                                            :disabled="
-                                                                ticket.status === 'closed' ||
-                                                                closingTicketId === ticket.id
-                                                            "
+                                                            :disabled="ticket.status === 'closed' || closingTicketId === ticket.id"
                                                             @select="closeTicket(ticket)"
                                                         >
                                                             <TicketX class="h-8 w-8" />
@@ -1020,11 +960,8 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             </Table>
                         </div>
 
-                        <div
-                            v-if="showTicketPagination"
-                            class="flex flex-col items-center justify-between gap-4 md:flex-row"
-                        >
-                            <div class="text-sm text-muted-foreground text-center md:text-left">
+                        <div v-if="showTicketPagination" class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                            <div class="text-center text-sm text-muted-foreground md:text-left">
                                 {{ ticketsRangeLabel }}
                             </div>
                             <Pagination
@@ -1036,23 +973,14 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                 show-edges
                             >
                                 <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
-                                    <span class="text-sm text-muted-foreground">
-                                        Page {{ page }} of {{ pageCount }}
-                                    </span>
+                                    <span class="text-sm text-muted-foreground"> Page {{ page }} of {{ pageCount }} </span>
                                     <PaginationList v-slot="{ items }" class="flex items-center gap-1">
                                         <PaginationFirst />
                                         <PaginationPrev />
 
                                         <template v-for="(item, index) in items" :key="index">
-                                            <PaginationListItem
-                                                v-if="item.type === 'page'"
-                                                :value="item.value"
-                                                as-child
-                                            >
-                                                <Button
-                                                    class="w-9 h-9 p-0"
-                                                    :variant="item.value === page ? 'default' : 'outline'"
-                                                >
+                                            <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                                <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                     {{ item.value }}
                                                 </Button>
                                             </PaginationListItem>
@@ -1087,15 +1015,11 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <select
                                         id="ticket-category"
                                         v-model="form.support_ticket_category_id"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
                                         :disabled="form.processing"
                                     >
                                         <option :value="null">Uncategorised</option>
-                                        <option
-                                            v-for="category in ticketCategories"
-                                            :key="category.id"
-                                            :value="category.id"
-                                        >
+                                        <option v-for="category in ticketCategories" :key="category.id" :value="category.id">
                                             {{ category.name }}
                                         </option>
                                     </select>
@@ -1106,7 +1030,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <select
                                         id="ticket-priority"
                                         v-model="form.priority"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
                                         :disabled="form.processing"
                                         required
                                     >
@@ -1115,18 +1039,13 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                         <option value="high">High</option>
                                     </select>
                                     <p class="text-xs text-muted-foreground">
-                                        Higher priority tickets jump the queue for triage, while lower priority requests may
-                                        receive responses during standard support hours.
+                                        Higher priority tickets jump the queue for triage, while lower priority requests may receive responses during
+                                        standard support hours.
                                     </p>
                                     <InputError :message="form.errors.priority" />
                                 </div>
                                 <div class="space-y-2">
-                                    <Textarea
-                                        v-model="form.body"
-                                        placeholder="Describe your issue..."
-                                        class="w-full rounded-md"
-                                        required
-                                    />
+                                    <Textarea v-model="form.body" placeholder="Describe your issue..." class="w-full rounded-md" required />
                                     <InputError :message="form.errors.body" />
                                 </div>
                                 <div class="flex flex-col gap-2">
@@ -1156,23 +1075,15 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <InputError :message="attachmentErrors" />
                                 </div>
                                 <div class="flex justify-end">
-                                    <Button
-                                        type="submit"
-                                        class="bg-green-500 hover:bg-green-600"
-                                        :disabled="form.processing"
-                                    >
-                                        Submit Ticket
-                                    </Button>
+                                    <Button type="submit" class="bg-green-500 hover:bg-green-600" :disabled="form.processing"> Submit Ticket </Button>
                                 </div>
                             </form>
                         </div>
                     </template>
                     <template v-else>
-                        <div class="rounded-xl border p-6 shadow-sm space-y-4 text-center">
+                        <div class="space-y-4 rounded-xl border p-6 text-center shadow-sm">
                             <p class="text-lg font-semibold">Need personalised help?</p>
-                            <p class="text-sm text-muted-foreground">
-                                Sign in to create support requests and review your ticket history.
-                            </p>
+                            <p class="text-sm text-muted-foreground">Sign in to create support requests and review your ticket history.</p>
                             <div class="flex justify-center">
                                 <Button as-child>
                                     <Link :href="route('login')">Sign in</Link>
@@ -1188,17 +1099,11 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                             <div class="space-y-1">
                                 <h3 class="text-2xl font-semibold">Frequently Asked Questions</h3>
-                                <p class="text-sm text-muted-foreground">
-                                    Browse curated answers by topic or search for what you need.
-                                </p>
+                                <p class="text-sm text-muted-foreground">Browse curated answers by topic or search for what you need.</p>
                             </div>
 
                             <div class="flex w-full flex-col gap-3 md:w-auto">
-                                <Input
-                                    v-model="faqSearchQuery"
-                                    placeholder="Search FAQs..."
-                                    class="w-full"
-                                />
+                                <Input v-model="faqSearchQuery" placeholder="Search FAQs..." class="w-full" />
                                 <div class="flex flex-wrap items-center gap-2">
                                     <Button
                                         v-for="option in faqCategoryOptions"
@@ -1226,30 +1131,19 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                         <div class="flex flex-col gap-2 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
                             <span>
                                 Showing {{ faqMatchCount }} {{ faqMatchCount === 1 ? 'answer' : 'answers' }}
-                                <template v-if="faqSearchQuery">
-                                    matching “{{ faqSearchQuery }}”
-                                </template>
+                                <template v-if="faqSearchQuery"> matching “{{ faqSearchQuery }}” </template>
                             </span>
-                            <span v-if="selectedFaqCategoryId !== null">
-                                Filtered by {{ activeFaqCategory?.name ?? 'selected category' }}
-                            </span>
+                            <span v-if="selectedFaqCategoryId !== null"> Filtered by {{ activeFaqCategory?.name ?? 'selected category' }} </span>
                         </div>
 
                         <div v-if="faqGroups.length" class="space-y-8">
-                            <section
-                                v-for="group in faqGroups"
-                                :key="group.category?.id ?? 'uncategorized'"
-                                class="space-y-4"
-                            >
+                            <section v-for="group in faqGroups" :key="group.category?.id ?? 'uncategorized'" class="space-y-4">
                                 <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                                     <div>
                                         <h4 class="text-xl font-semibold">
                                             {{ group.category?.name ?? 'FAQs' }}
                                         </h4>
-                                        <p
-                                            v-if="group.category?.description"
-                                            class="text-sm text-muted-foreground"
-                                        >
+                                        <p v-if="group.category?.description" class="text-sm text-muted-foreground">
                                             {{ group.category.description }}
                                         </p>
                                     </div>
@@ -1259,11 +1153,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                 </div>
 
                                 <div class="space-y-3">
-                                    <Collapsible
-                                        v-for="(faq, index) in group.faqs"
-                                        :key="faq.id"
-                                        :default-open="index === 0"
-                                    >
+                                    <Collapsible v-for="(faq, index) in group.faqs" :key="faq.id" :default-open="index === 0">
                                         <template #default="{ open }">
                                             <div class="overflow-hidden rounded-lg border bg-background shadow-xs">
                                                 <CollapsibleTrigger as-child>
@@ -1279,13 +1169,13 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                     </button>
                                                 </CollapsibleTrigger>
                                                 <CollapsibleContent>
-                                                    <div class="px-4 pb-4 space-y-4">
-                                                        <div class="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                                                    <div class="space-y-4 px-4 pb-4">
+                                                        <div class="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
                                                             {{ faq.answer }}
                                                         </div>
                                                         <div class="space-y-3 rounded-lg border border-dashed border-muted/40 bg-muted/20 p-3">
                                                             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                                                <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                                                <span class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                                                     Was this helpful?
                                                                 </span>
                                                                 <span class="text-xs text-muted-foreground">
@@ -1309,7 +1199,9 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                                     @click="submitFaqFeedback(faq, 'helpful')"
                                                                 >
                                                                     Helpful
-                                                                    <span class="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                                                                    <span
+                                                                        class="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+                                                                    >
                                                                         {{ faq.helpful_feedback_count }}
                                                                     </span>
                                                                 </Button>
@@ -1328,26 +1220,20 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                                     @click="submitFaqFeedback(faq, 'not_helpful')"
                                                                 >
                                                                     Not helpful
-                                                                    <span class="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                                                                    <span
+                                                                        class="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+                                                                    >
                                                                         {{ faq.not_helpful_feedback_count }}
                                                                     </span>
                                                                 </Button>
                                                             </div>
-                                                            <p
-                                                                v-if="faq.user_feedback"
-                                                                class="text-xs text-muted-foreground"
-                                                            >
+                                                            <p v-if="faq.user_feedback" class="text-xs text-muted-foreground">
                                                                 You marked this answer as
-                                                                <span
-                                                                    class="font-medium"
-                                                                >
-                                                                    {{ faq.user_feedback === 'helpful' ? 'helpful' : 'not helpful' }}
-                                                                </span>.
+                                                                <span class="font-medium">
+                                                                    {{ faq.user_feedback === 'helpful' ? 'helpful' : 'not helpful' }} </span
+                                                                >.
                                                             </p>
-                                                            <p
-                                                                v-else-if="!isAuthenticated"
-                                                                class="text-xs text-muted-foreground"
-                                                            >
+                                                            <p v-else-if="!isAuthenticated" class="text-xs text-muted-foreground">
                                                                 Sign in to add your vote and help us improve our help centre.
                                                             </p>
                                                         </div>
@@ -1360,10 +1246,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             </section>
                         </div>
 
-                        <div
-                            v-else
-                            class="rounded-xl border border-dashed border-muted-foreground/40 p-8 text-center text-sm text-muted-foreground"
-                        >
+                        <div v-else class="rounded-xl border border-dashed border-muted-foreground/40 p-8 text-center text-sm text-muted-foreground">
                             No FAQs match your filters. Try adjusting the search or choosing a different category.
                         </div>
                     </div>

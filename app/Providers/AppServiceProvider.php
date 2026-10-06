@@ -9,25 +9,25 @@ use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\PersonalAccessToken;
-use App\Policies\BlogPolicy;
+use App\Observers\ForumIndexCacheObserver;
 use App\Policies\BlogCommentPolicy;
+use App\Policies\BlogPolicy;
 use App\Policies\ForumPostPolicy;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
 use Illuminate\Cache\RateLimiting\Limit;
-use App\Observers\ForumIndexCacheObserver;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
-use Illuminate\Validation\Rules\Password;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Illuminate\Http\Request;
+use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
@@ -37,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(SubscriptionManager::class, fn () => new SubscriptionManager());
+        $this->app->singleton(SubscriptionManager::class, fn () => new SubscriptionManager);
         $this->app->singleton(HtmlSanitizer::class);
         $this->app->scoped(Seo::class);
     }
@@ -51,7 +51,7 @@ class AppServiceProvider extends ServiceProvider
         // When GitHub Actions run there is no real .env file, so Laravel falls back to its default database connection
         // Which is set in config/database.php :19 'default' => env('DB_CONNECTION', 'sqlite'),
         if (DB::getDriverName() === 'mysql') {
-            //force DB timestamps to use 'UTC' timezone for more accurate dayjs conversion to local timezones
+            // force DB timestamps to use 'UTC' timezone for more accurate dayjs conversion to local timezones
             DB::statement("SET time_zone = '+00:00'");
         }
 
@@ -82,6 +82,7 @@ class AppServiceProvider extends ServiceProvider
         ForumPost::observe($cacheObserver);
 
     }
+
     /**
      * Safer defaults: stricter passwords and no destructive commands in
      * production, N+1 query warnings during local development, and asset

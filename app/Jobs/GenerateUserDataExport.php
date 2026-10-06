@@ -24,9 +24,7 @@ class GenerateUserDataExport implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public function __construct(public int $exportId)
-    {
-    }
+    public function __construct(public int $exportId) {}
 
     public function handle(): void
     {
@@ -53,7 +51,7 @@ class GenerateUserDataExport implements ShouldQueue
             $relativePath = sprintf('exports/user-%d-%s.zip', $user->id, now()->format('Ymd_His'));
             $zipPath = $disk->path($relativePath);
 
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             $created = $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
             if ($created !== true) {
@@ -169,7 +167,7 @@ class GenerateUserDataExport implements ShouldQueue
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function buildCsv(array $payload): string
     {

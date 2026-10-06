@@ -118,8 +118,8 @@ const resolveStripe = async (): Promise<StripeInstance | null> => {
 };
 
 const initialPlanId = props.subscription
-    ? props.plans.find(plan => plan.stripe_price_id === props.subscription?.stripe_price)?.id ?? null
-    : props.plans[0]?.id ?? null;
+    ? (props.plans.find((plan) => plan.stripe_price_id === props.subscription?.stripe_price)?.id ?? null)
+    : (props.plans[0]?.id ?? null);
 
 const selectedPlanId = ref<number | null>(initialPlanId);
 
@@ -128,7 +128,7 @@ const currentPlan = computed(() => {
         return null;
     }
 
-    return props.plans.find(plan => plan.stripe_price_id === props.subscription?.stripe_price) ?? null;
+    return props.plans.find((plan) => plan.stripe_price_id === props.subscription?.stripe_price) ?? null;
 });
 
 const formatCurrency = (amount: number, currency: string) => {
@@ -199,7 +199,7 @@ const fetchSetupIntent = async () => {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
             },
         });
@@ -260,7 +260,7 @@ const subscribe = async () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
             },
@@ -349,7 +349,7 @@ const resume = () => {
     );
 };
 
-watch(stripeKey, async newKey => {
+watch(stripeKey, async (newKey) => {
     if (!newKey) {
         teardownElements();
         setupIntentSecret.value = null;
@@ -378,19 +378,13 @@ onBeforeUnmount(() => {
 
         <SettingsLayout>
             <section class="space-y-6">
-                <HeadingSmall
-                    title="Subscription plans"
-                    description="Choose the plan that fits your community involvement."
-                />
+                <HeadingSmall title="Subscription plans" description="Choose the plan that fits your community involvement." />
 
                 <div class="grid gap-4 md:grid-cols-2">
                     <Card
                         v-for="plan in props.plans"
                         :key="plan.id"
-                        :class="[
-                            'border transition',
-                            plan.id === selectedPlanId ? 'border-primary shadow-sm' : 'border-border'
-                        ]"
+                        :class="['border transition', plan.id === selectedPlanId ? 'border-primary shadow-sm' : 'border-border']"
                     >
                         <CardHeader>
                             <CardTitle class="flex items-center justify-between">
@@ -412,16 +406,10 @@ onBeforeUnmount(() => {
                             </ul>
                         </CardContent>
                         <CardFooter class="flex flex-col gap-2">
-                            <Button
-                                :variant="plan.id === selectedPlanId ? 'default' : 'outline'"
-                                class="w-full"
-                                @click="selectedPlanId = plan.id"
-                            >
+                            <Button :variant="plan.id === selectedPlanId ? 'default' : 'outline'" class="w-full" @click="selectedPlanId = plan.id">
                                 {{ plan.id === selectedPlanId ? 'Selected' : 'Select this plan' }}
                             </Button>
-                            <p v-if="currentPlan && currentPlan.id === plan.id" class="text-center text-xs text-emerald-600">
-                                You are on this plan
-                            </p>
+                            <p v-if="currentPlan && currentPlan.id === plan.id" class="text-center text-xs text-emerald-600">You are on this plan</p>
                         </CardFooter>
                     </Card>
                 </div>
@@ -431,10 +419,7 @@ onBeforeUnmount(() => {
 
             <section class="grid gap-6 md:grid-cols-[2fr_1fr]">
                 <div class="space-y-4">
-                    <HeadingSmall
-                        title="Payment details"
-                        description="Securely add or update your payment method through Stripe."
-                    />
+                    <HeadingSmall title="Payment details" description="Securely add or update your payment method through Stripe." />
                     <div class="grid gap-4">
                         <div
                             v-if="!isStripeConfigured"
@@ -445,51 +430,28 @@ onBeforeUnmount(() => {
                         <template v-else>
                             <div class="grid gap-2">
                                 <label class="text-sm font-medium" for="payment-element">Payment method</label>
-                                <div
-                                    id="payment-element"
-                                    class="rounded-lg border border-border bg-card p-4 shadow-xs"
-                                />
-                                <p v-if="!paymentElementReady" class="text-sm text-muted-foreground">
-                                    Loading the secure payment form…
-                                </p>
+                                <div id="payment-element" class="rounded-lg border border-border bg-card p-4 shadow-xs" />
+                                <p v-if="!paymentElementReady" class="text-sm text-muted-foreground">Loading the secure payment form…</p>
                             </div>
                             <div class="grid gap-2">
                                 <label class="text-sm font-medium" for="coupon">Coupon (optional)</label>
-                                <Input
-                                    id="coupon"
-                                    v-model="coupon"
-                                    placeholder="PROMO2025"
-                                    class="w-full"
-                                />
+                                <Input id="coupon" v-model="coupon" placeholder="PROMO2025" class="w-full" />
                             </div>
                             <div class="flex flex-wrap items-center gap-3">
-                                <Button
-                                    :disabled="subscribing || !paymentElementReady || confirmingPayment"
-                                    @click="subscribe"
-                                >
+                                <Button :disabled="subscribing || !paymentElementReady || confirmingPayment" @click="subscribe">
                                     <span v-if="subscribing">Activating...</span>
                                     <span v-else-if="confirmingPayment">Confirming…</span>
                                     <span v-else>Activate subscription</span>
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    :disabled="setupLoading || subscribing"
-                                    @click="fetchSetupIntent"
-                                >
+                                <Button variant="outline" :disabled="setupLoading || subscribing" @click="fetchSetupIntent">
                                     <span v-if="setupLoading">Refreshing…</span>
                                     <span v-else>Refresh payment form</span>
                                 </Button>
                             </div>
-                            <p
-                                v-if="paymentError"
-                                class="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                            >
+                            <p v-if="paymentError" class="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                                 {{ paymentError }}
                             </p>
-                            <p
-                                v-if="successMessage"
-                                class="rounded border border-emerald-400/40 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
-                            >
+                            <p v-if="successMessage" class="rounded border border-emerald-400/40 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                                 {{ successMessage }}
                             </p>
                         </template>
@@ -497,10 +459,7 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="space-y-4">
-                    <HeadingSmall
-                        title="Current status"
-                        description="Manage the lifecycle of your subscription."
-                    />
+                    <HeadingSmall title="Current status" description="Manage the lifecycle of your subscription." />
                     <div class="rounded-lg border border-border bg-card p-4 shadow-xs">
                         <p class="text-sm">
                             Status:
@@ -510,8 +469,8 @@ onBeforeUnmount(() => {
                                     props.subscription?.stripe_status === 'active'
                                         ? 'bg-emerald-100 text-emerald-700'
                                         : props.subscription?.cancelled
-                                            ? 'bg-amber-100 text-amber-700'
-                                            : 'bg-slate-100 text-slate-600'
+                                          ? 'bg-amber-100 text-amber-700'
+                                          : 'bg-slate-100 text-slate-600',
                                 ]"
                             >
                                 {{ props.subscription?.stripe_status ?? 'inactive' }}
@@ -539,9 +498,7 @@ onBeforeUnmount(() => {
                                 <span v-if="resuming">Resuming...</span>
                                 <span v-else>Resume subscription</span>
                             </Button>
-                            <p v-else class="text-xs text-muted-foreground">
-                                Activate a plan to unlock community billing perks.
-                            </p>
+                            <p v-else class="text-xs text-muted-foreground">Activate a plan to unlock community billing perks.</p>
                         </div>
                     </div>
                 </div>
@@ -550,10 +507,7 @@ onBeforeUnmount(() => {
             <Separator />
 
             <section class="space-y-4">
-                <HeadingSmall
-                    title="Recent invoices"
-                    description="A history of billing events handled via Stripe webhooks."
-                />
+                <HeadingSmall title="Recent invoices" description="A history of billing events handled via Stripe webhooks." />
                 <div class="overflow-x-auto rounded-lg border border-border">
                     <Table>
                         <TableHeader>

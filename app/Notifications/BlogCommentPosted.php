@@ -18,7 +18,7 @@ class BlogCommentPosted extends Notification implements ShouldQueue
     use SendsBroadcastsSynchronously;
 
     /**
-     * @param array<int, string> $channels
+     * @param  array<int, string>  $channels
      */
     public function __construct(
         protected Blog $blog,
@@ -52,10 +52,10 @@ class BlogCommentPosted extends Notification implements ShouldQueue
         $url = $this->commentUrl();
         $excerpt = $this->commentExcerpt(200);
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject($this->notificationTitle())
-            ->greeting('Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!')
-            ->line($commentAuthor . ' just left a new reply on "' . $this->blog->title . '".')
+            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
+            ->line($commentAuthor.' just left a new reply on "'.$this->blog->title.'".')
             ->line($excerpt)
             ->action('Read the reply', $url)
             ->line('You are receiving this email because you opted in to comment notifications for this post.');
@@ -74,7 +74,7 @@ class BlogCommentPosted extends Notification implements ShouldQueue
     /**
      * Limit the notification delivery channels.
      *
-     * @param array<int, string> $channels
+     * @param  array<int, string>  $channels
      */
     public function withChannels(array $channels): self
     {
@@ -119,7 +119,7 @@ class BlogCommentPosted extends Notification implements ShouldQueue
 
     protected function commentUrl(): string
     {
-        return route('blogs.view', ['slug' => $this->blog->slug]) . '#comment-' . $this->comment->id;
+        return route('blogs.view', ['slug' => $this->blog->slug]).'#comment-'.$this->comment->id;
     }
 
     protected function commentAuthor(): string
@@ -131,11 +131,11 @@ class BlogCommentPosted extends Notification implements ShouldQueue
 
     protected function notificationTitle(): string
     {
-        return 'New reply on "' . $this->blog->title . '"';
+        return 'New reply on "'.$this->blog->title.'"';
     }
 
     protected function excerptLine(string $commentAuthor, string $excerpt): string
     {
-        return $commentAuthor . ' replied: ' . $excerpt;
+        return $commentAuthor.' replied: '.$excerpt;
     }
 }

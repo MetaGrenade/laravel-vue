@@ -67,7 +67,7 @@ class ForumThreadActionController extends Controller
 
         $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
 
-        if (!$thread->is_published && !$isModerator) {
+        if (! $thread->is_published && ! $isModerator) {
             abort(403);
         }
 
@@ -128,7 +128,7 @@ class ForumThreadActionController extends Controller
 
         $threads = $board->threads()
             ->select('forum_threads.id', 'forum_threads.last_posted_at')
-            ->when(!$isModerator, function ($query) {
+            ->when(! $isModerator, function ($query) {
                 $query->where('forum_threads.is_published', true);
             })
             ->with(['latestPost' => function ($query) {
@@ -189,7 +189,7 @@ class ForumThreadActionController extends Controller
 
         $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
 
-        if (!$thread->is_published && !$isModerator) {
+        if (! $thread->is_published && ! $isModerator) {
             abort(403);
         }
 

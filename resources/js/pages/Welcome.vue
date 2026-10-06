@@ -3,9 +3,9 @@ import type { SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { Anvil } from '@lucide/vue';
-import { Card, CardContent } from '@/components/ui/card'
-import Autoplay from 'embla-carousel-autoplay'
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
+import { Card, CardContent } from '@/components/ui/card';
+import Autoplay from 'embla-carousel-autoplay';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 const page = usePage<SharedData>();
@@ -43,12 +43,10 @@ function sanitizeAndPrepareSvg(rawSvg: string) {
     // - set role/focusable attributes for accessibility
     svg = svg.replace(/<svg([^>]*)>/i, (match, attrs) => {
         // strip width/height/style attributes from attrs
-        const cleaned = attrs
-            .replace(/\s(width|height)=["'][^"']*["']/gi, '')
-            .replace(/\s(style)=["'][^"']*["']/gi, '');
+        const cleaned = attrs.replace(/\s(width|height)=["'][^"']*["']/gi, '').replace(/\s(style)=["'][^"']*["']/gi, '');
 
         // ensure there's a space between <svg and attributes if attrs not empty
-        const attrsFragment = (cleaned && cleaned.trim().length) ? ' ' + cleaned.trim() : '';
+        const attrsFragment = cleaned && cleaned.trim().length ? ' ' + cleaned.trim() : '';
 
         // add inline style for consistent height (3rem -> 48px equals Tailwind h-12)
         // display:block prevents inline-gap issues in some browsers
@@ -102,24 +100,30 @@ const productFeatures = [
         <div class="flex min-h-screen flex-col bg-[#FDFDFC] text-[#1b1b18] dark:bg-[#0a0a0a]">
             <main class="flex flex-1 justify-center p-6">
                 <div class="flex w-full max-w-7xl flex-col gap-12">
-                    <section class="overflow-hidden rounded-xl bg-white p-8 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] lg:flex lg:items-center lg:gap-12 lg:p-12">
+                    <section
+                        class="overflow-hidden rounded-xl bg-white p-8 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] lg:flex lg:items-center lg:gap-12 lg:p-12 dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
+                    >
                         <div class="flex-1 space-y-6">
-
                             <div class="space-y-4">
                                 <!-- Primary H1: keep keyword front-loaded for SEO -->
-                                <h1 class="mt-4 text-3xl font-semibold leading-tight tracking-tight text-[#1b1b18] dark:text-[#EDEDEC] sm:text-4xl">
+                                <h1 class="mt-4 text-3xl leading-tight font-semibold tracking-tight text-[#1b1b18] sm:text-4xl dark:text-[#EDEDEC]">
                                     Laravel Vue Starter Kit — Production-ready boilerplate for SaaS
                                 </h1>
                                 <!-- Subhead that hits benefits -->
                                 <p class="mt-4 max-w-2xl text-base text-[#706f6c] dark:text-[#A1A09A]">
-                                    Launch your SaaS app faster with ready-to-ship modules, opinionated flows for auth, billing, admin, content, and community—fully wired with Laravel 13, Inertia + Vue 3, Vite, and Tailwind.
+                                    Launch your SaaS app faster with ready-to-ship modules, opinionated flows for auth, billing, admin, content, and
+                                    community—fully wired with Laravel 13, Inertia + Vue 3, Vite, and Tailwind.
                                 </p>
                             </div>
 
-                            <div class="inline-flex items-center rounded-full bg-[#e6f9ed] px-3 py-1 text-xs font-medium text-[#008b2c] dark:bg-[#142619] dark:text-[#9ef3b6] mr-2">
+                            <div
+                                class="mr-2 inline-flex items-center rounded-full bg-[#e6f9ed] px-3 py-1 text-xs font-medium text-[#008b2c] dark:bg-[#142619] dark:text-[#9ef3b6]"
+                            >
                                 Open-source
                             </div>
-                            <div class="inline-flex items-center rounded-full bg-[#f9f3e6] px-3 py-1 text-xs font-medium text-[#8b5a00] dark:bg-[#261f14] dark:text-[#f3d29e]">
+                            <div
+                                class="inline-flex items-center rounded-full bg-[#f9f3e6] px-3 py-1 text-xs font-medium text-[#8b5a00] dark:bg-[#261f14] dark:text-[#f3d29e]"
+                            >
                                 Laravel + Vue SaaS Starter kit
                             </div>
 
@@ -154,33 +158,52 @@ const productFeatures = [
                             </div>
                         </div>
                         <div class="mt-10 flex flex-1 justify-center lg:mt-0">
-                            <div class="w-full max-w-md rounded-lg bg-linear-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] p-6 text-[#1b1b18] shadow-[0px_10px_40px_rgba(0,0,0,0.08)] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]">
+                            <div
+                                class="w-full max-w-md rounded-lg bg-linear-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] p-6 text-[#1b1b18] shadow-[0px_10px_40px_rgba(0,0,0,0.08)] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]"
+                            >
                                 <div class="space-y-4">
                                     <div>
-                                        <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Starter Layout</p>
+                                        <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Starter Layout</p>
                                         <h2 class="text-xl font-semibold">Curated Modules</h2>
-                                        <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Prebuilt flows that keep brand consistency across every surface.</p>
+                                        <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                            Prebuilt flows that keep brand consistency across every surface.
+                                        </p>
                                     </div>
                                     <ul class="space-y-3 text-sm">
                                         <li class="flex items-start gap-3">
-                                            <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]">1</span>
+                                            <span
+                                                class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]"
+                                                >1</span
+                                            >
                                             <div>
                                                 <p class="font-medium">Story-driven Blog</p>
-                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Feature posts, categories, tags, and RSS without extra setup.</p>
+                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">
+                                                    Feature posts, categories, tags, and RSS without extra setup.
+                                                </p>
                                             </div>
                                         </li>
                                         <li class="flex items-start gap-3">
-                                            <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]">2</span>
+                                            <span
+                                                class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]"
+                                                >2</span
+                                            >
                                             <div>
                                                 <p class="font-medium">Community Forum</p>
-                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Boards, threads, moderation, and subscriptions ready to go.</p>
+                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">
+                                                    Boards, threads, moderation, and subscriptions ready to go.
+                                                </p>
                                             </div>
                                         </li>
                                         <li class="flex items-start gap-3">
-                                            <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]">3</span>
+                                            <span
+                                                class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#1b1b18] shadow-[0px_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#0f0f0d] dark:text-[#EDEDEC]"
+                                                >3</span
+                                            >
                                             <div>
                                                 <p class="font-medium">Support & Billing</p>
-                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">Prove readiness with ticketing, FAQs, and subscription management out of the box.</p>
+                                                <p class="text-[#706f6c] dark:text-[#A1A09A]">
+                                                    Prove readiness with ticketing, FAQs, and subscription management out of the box.
+                                                </p>
                                             </div>
                                         </li>
                                     </ul>
@@ -194,12 +217,17 @@ const productFeatures = [
                         <div class="lg:col-span-2">
                             <h2 id="why-heading" class="text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Why choose this starter kit?</h2>
                             <p class="mt-2 max-w-prose text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                Built by engineers for engineers — opinionated defaults and tuned developer workflows so you can focus on growth, not configuration.
+                                Built by engineers for engineers — opinionated defaults and tuned developer workflows so you can focus on growth, not
+                                configuration.
                             </p>
 
                             <div class="mt-6 grid gap-4 sm:grid-cols-2">
-                                <article v-for="(f, i) in productFeatures" :key="i" class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
-                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">{{ f.title }}</p>
+                                <article
+                                    v-for="(f, i) in productFeatures"
+                                    :key="i"
+                                    class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]"
+                                >
+                                    <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">{{ f.title }}</p>
                                     <h3 class="mt-2 font-semibold">{{ f.title }}</h3>
                                     <p class="mt-1 text-sm text-[#706f6c] dark:text-[#A1A09A]">{{ f.desc }}</p>
                                 </article>
@@ -209,19 +237,33 @@ const productFeatures = [
                             <div class="mt-8">
                                 <h4 class="text-sm font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">What teams are saying about MetaForge:</h4>
                                 <blockquote class="mt-3 rounded-lg bg-white p-4 text-sm text-[#706f6c] dark:bg-[#0f0f0d] dark:text-[#A1A09A]">
-                                    “The starter kit saved us weeks of setup — built-in billing and admin UI were a huge win.” — <span class="font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Beta user</span>
+                                    “The starter kit saved us weeks of setup — built-in billing and admin UI were a huge win.” —
+                                    <span class="font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Beta user</span>
                                 </blockquote>
                             </div>
                         </div>
 
                         <!-- Quick links / resources (right rail) -->
-                        <aside class="rounded-lg bg-white p-6 text-sm shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]" aria-label="Resources">
-                            <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Get Started</p>
+                        <aside
+                            class="rounded-lg bg-white p-6 text-sm shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
+                            aria-label="Resources"
+                        >
+                            <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Get Started</p>
                             <div class="mt-6 space-y-2">
-                                <a href="#" target="_blank" rel="noreferrer" class="inline-flex w-full items-center justify-center rounded-sm px-4 py-2 text-sm font-medium text-[#1b1b18] hover:text-white dark:text-[#0f0f0d] transition bg-[#f3d29e] hover:bg-black dark:bg-[#f3d29e] dark:hover:bg-white">
+                                <a
+                                    href="#"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    class="inline-flex w-full items-center justify-center rounded-sm bg-[#f3d29e] px-4 py-2 text-sm font-medium text-[#1b1b18] transition hover:bg-black hover:text-white dark:bg-[#f3d29e] dark:text-[#0f0f0d] dark:hover:bg-white"
+                                >
                                     Download Now
                                 </a>
-                                <a href="https://github.com/MetaGrenade/laravel-vue" target="_blank" rel="noreferrer" class="mt-4 inline-flex w-full items-center justify-center rounded-sm bg-[#1b1b18] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]">
+                                <a
+                                    href="https://github.com/MetaGrenade/laravel-vue"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    class="mt-4 inline-flex w-full items-center justify-center rounded-sm bg-[#1b1b18] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#11110f] dark:bg-white dark:text-[#0f0f0d] dark:hover:bg-[#f5f5f0]"
+                                >
                                     View on GitHub
                                 </a>
                             </div>
@@ -296,31 +338,37 @@ const productFeatures = [
                     <section>
                         <div class="flex flex-col gap-6">
                             <div class="flex flex-col gap-2">
-                                <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Marketing & SEO Ready</p>
+                                <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Marketing & SEO Ready</p>
                                 <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Built to earn trust from the first scroll</h2>
-                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Founders, agencies, and OSS adopters can drop visitors straight into real blog, forum, support, and storefront flows—so pitches, proposals, and readme files point to live proof, not empty shells.</p>
+                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Founders, agencies, and OSS adopters can drop visitors straight into real blog, forum, support, and storefront
+                                    flows—so pitches, proposals, and readme files point to live proof, not empty shells.
+                                </p>
                             </div>
                             <div class="flex flex-col gap-3">
-                                <div class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">SSR, clean markup, and lightweight UI components keep marketing pages fast, indexable, and credible for anyone evaluating the starter.</div>
+                                <div class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">
+                                    SSR, clean markup, and lightweight UI components keep marketing pages fast, indexable, and credible for anyone
+                                    evaluating the starter.
+                                </div>
                                 <Carousel
                                     class="mx-auto w-full lg:w-[calc(100%-6rem)]"
                                     :opts="{
-                                      align: 'start',
-                                      loop: true,
+                                        align: 'start',
+                                        loop: true,
                                     }"
-                                    :plugins="[Autoplay({
-                                      delay: 2000,
-                                    })]"
+                                    :plugins="[
+                                        Autoplay({
+                                            delay: 2000,
+                                        }),
+                                    ]"
                                 >
                                     <CarouselContent class="-ml-1">
                                         <!-- Inline SVG icons — wrapper controls text color which icons inherit -->
-                                        <CarouselItem
-                                            v-for="icon in techIconsInline"
-                                            :key="icon.name"
-                                            class="pl-1 md:basis-1/4 lg:basis-1/5"
-                                        >
+                                        <CarouselItem v-for="icon in techIconsInline" :key="icon.name" class="pl-1 md:basis-1/4 lg:basis-1/5">
                                             <div class="p-1">
-                                                <Card class="bg-linear-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] text-[#1b1b18] dark:text-[#EDEDEC]">
+                                                <Card
+                                                    class="bg-linear-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] text-[#1b1b18] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]"
+                                                >
                                                     <CardContent class="flex aspect-square items-center justify-center p-4">
                                                         <!-- wrapper sets the color; svg markup is injected and inherits currentColor -->
                                                         <div
@@ -344,16 +392,21 @@ const productFeatures = [
 
                     <section class="space-y-6">
                         <div class="flex flex-col gap-2">
-                            <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Storytelling-first layout</p>
-                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Content, community, and support that prove the value</h2>
-                            <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Walk prospects and contributors through the same journey your SaaS promises: read a post, jump into a moderated thread, open a support ticket, and see consistent UX without extra wiring.</p>
+                            <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Storytelling-first layout</p>
+                            <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">
+                                Content, community, and support that prove the value
+                            </h2>
+                            <p class="max-w-3xl text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                Walk prospects and contributors through the same journey your SaaS promises: read a post, jump into a moderated
+                                thread, open a support ticket, and see consistent UX without extra wiring.
+                            </p>
                         </div>
                         <div class="grid gap-4 lg:grid-cols-4">
                             <div
                                 v-if="websiteSections.blog"
                                 class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
                             >
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Editorial</p>
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Editorial</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Blog</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                     Publish announcements, guides, and release notes with SEO-friendly layouts that already feel launch-ready.
@@ -372,10 +425,11 @@ const productFeatures = [
                                 v-if="websiteSections.forum"
                                 class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
                             >
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Community</p>
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Community</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Forum</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Organized boards, thread subscriptions, and moderation tools so founders and clients see healthy discourse from day one.
+                                    Organized boards, thread subscriptions, and moderation tools so founders and clients see healthy discourse from
+                                    day one.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -391,10 +445,11 @@ const productFeatures = [
                                 v-if="websiteSections.commerce"
                                 class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
                             >
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Commerce</p>
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Commerce</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Storefront & Checkout</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Product catalog, detail pages, and cart flows powered by Laravel + Stripe so prospects can explore a live store before you write custom code.
+                                    Product catalog, detail pages, and cart flows powered by Laravel + Stripe so prospects can explore a live store
+                                    before you write custom code.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -416,10 +471,11 @@ const productFeatures = [
                                 v-if="websiteSections.support"
                                 class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
                             >
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Help</p>
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Help</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Support Center</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Ticketing, FAQs, and satisfaction surveys that plug into member accounts to show you’re ready to support paying users.
+                                    Ticketing, FAQs, and satisfaction surveys that plug into member accounts to show you’re ready to support paying
+                                    users.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -435,18 +491,24 @@ const productFeatures = [
 
                     <section class="space-y-6">
                         <div class="flex flex-col gap-2">
-                            <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#9ef3b6]">Revenue & retention</p>
+                            <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#9ef3b6]">Revenue & retention</p>
                             <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Show the business side is already live</h2>
-                            <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Stripe billing, dashboards, and admin controls are wired up so founders, agencies, and contributors can preview real monetization flows without building scaffolding first.</p>
+                            <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                Stripe billing, dashboards, and admin controls are wired up so founders, agencies, and contributors can preview real
+                                monetization flows without building scaffolding first.
+                            </p>
                         </div>
                         <div class="grid gap-4 lg:grid-cols-4">
-                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:col-span-2">
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Monetization</p>
+                            <div
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] lg:col-span-2 dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Monetization</p>
                                 <div class="mt-2 flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between">
                                     <div>
                                         <h3 class="text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Pricing & Billing</h3>
                                         <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                            Stripe-backed subscriptions, invoices, and webhooks with member-facing billing screens your stakeholders can click through today.
+                                            Stripe-backed subscriptions, invoices, and webhooks with member-facing billing screens your stakeholders
+                                            can click through today.
                                         </p>
                                     </div>
                                     <div class="flex flex-wrap gap-2">
@@ -461,21 +523,30 @@ const productFeatures = [
                                 <div class="mt-6 grid gap-4 sm:grid-cols-3">
                                     <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
                                         <p class="font-semibold">Subscription Flows</p>
-                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Upgrade, cancel, resume, and retry payments directly from member settings so prospects see retention flows in motion.</p>
+                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">
+                                            Upgrade, cancel, resume, and retry payments directly from member settings so prospects see retention flows
+                                            in motion.
+                                        </p>
                                     </div>
                                     <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
                                         <p class="font-semibold">Invoices & Webhooks</p>
-                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Audit webhook deliveries and keep invoices aligned with your Stripe catalog before clients sign off.</p>
+                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">
+                                            Audit webhook deliveries and keep invoices aligned with your Stripe catalog before clients sign off.
+                                        </p>
                                     </div>
                                     <div class="rounded-md bg-[#f9f7f2] p-4 text-sm text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
                                         <p class="font-semibold">Pricing Presets</p>
-                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">Start with common plan tiers and tailor the copy so your proposal shows pricing clarity immediately.</p>
+                                        <p class="mt-1 text-[#706f6c] dark:text-[#A1A09A]">
+                                            Start with common plan tiers and tailor the copy so your proposal shows pricing clarity immediately.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Insights</p>
+                            <div
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Insights</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Member Dashboard</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                     Unified dashboard that surfaces blog recommendations, forum engagement, and support updates.
@@ -494,10 +565,11 @@ const productFeatures = [
                                 v-if="websiteSections.commerce"
                                 class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
                             >
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Commerce</p>
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Commerce</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Storefront Demo</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Merch-ready storefront with search, product detail, and cart so stakeholders can experience live checkout flows alongside billing and subscriptions.
+                                    Merch-ready storefront with search, product detail, and cart so stakeholders can experience live checkout flows
+                                    alongside billing and subscriptions.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -516,11 +588,14 @@ const productFeatures = [
                             </div>
                         </div>
                         <div class="grid gap-4 lg:grid-cols-3">
-                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Operations</p>
+                            <div
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Operations</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Admin Control Panel</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Manage users, permissions, support queues, and moderation workflows inside the Inertia-powered ACP ready for stakeholder demos.
+                                    Manage users, permissions, support queues, and moderation workflows inside the Inertia-powered ACP ready for
+                                    stakeholder demos.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -532,11 +607,14 @@ const productFeatures = [
                                 </div>
                             </div>
 
-                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Toggles</p>
+                            <div
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Toggles</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Website Modules</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Enable or disable the blog, forum, support center, billing, and social logins so you can curate a focused walkthrough for each audience.
+                                    Enable or disable the blog, forum, support center, billing, and social logins so you can curate a focused
+                                    walkthrough for each audience.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -548,11 +626,14 @@ const productFeatures = [
                                 </div>
                             </div>
 
-                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Security</p>
+                            <div
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Security</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Identity & MFA</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    TOTP multi-factor authentication, recovery codes, session management, and OAuth identity linking live in member settings to reassure teams evaluating security.
+                                    TOTP multi-factor authentication, recovery codes, session management, and OAuth identity linking live in member
+                                    settings to reassure teams evaluating security.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -564,11 +645,14 @@ const productFeatures = [
                                 </div>
                             </div>
 
-                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:col-span-2">
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">API</p>
+                            <div
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] lg:col-span-2 dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">API</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Docs & Tokens</h3>
                                 <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Versioned `/api/v1` endpoints, Swagger UI at <code>/api/docs</code>, and Sanctum token management so technical buyers and OSS contributors can verify integrations fast.
+                                    Versioned `/api/v1` endpoints, Swagger UI at <code>/api/docs</code>, and Sanctum token management so technical
+                                    buyers and OSS contributors can verify integrations fast.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
@@ -584,15 +668,23 @@ const productFeatures = [
 
                     <section class="space-y-6">
                         <div class="flex flex-col gap-2">
-                            <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f39eb1]">Choose your path</p>
+                            <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#f39eb1]">Choose your path</p>
                             <h2 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">MetaForge adoption options for every team</h2>
-                            <p class="max-w-4xl text-sm text-[#706f6c] dark:text-[#A1A09A]">Whether you’re evaluating the open source starter, pitching a client, or requesting a licensed build, the page you’re viewing is the same boilerplate your stakeholders will experience.</p>
+                            <p class="max-w-4xl text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                Whether you’re evaluating the open source starter, pitching a client, or requesting a licensed build, the page you’re
+                                viewing is the same boilerplate your stakeholders will experience.
+                            </p>
                         </div>
                         <div class="grid gap-4 lg:grid-cols-3">
-                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Open Source</p>
+                            <div
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Open Source</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Self-host & contribute</h3>
-                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Clone, run migrations, and start shipping—PR-friendly conventions and TypeScript-first components make it easy to extend and give back.</p>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Clone, run migrations, and start shipping—PR-friendly conventions and TypeScript-first components make it easy to
+                                    extend and give back.
+                                </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <a
                                         href="https://github.com/MetaGrenade/laravel-vue"
@@ -604,10 +696,15 @@ const productFeatures = [
                                     </a>
                                 </div>
                             </div>
-                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Commercial</p>
+                            <div
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Commercial</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Licensing & SLAs</h3>
-                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Secure a commercial license with upgrade paths, support coverage, and brand-safe defaults so your client or leadership team signs off quickly.</p>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Secure a commercial license with upgrade paths, support coverage, and brand-safe defaults so your client or
+                                    leadership team signs off quickly.
+                                </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
                                         :href="route('pricing')"
@@ -617,10 +714,15 @@ const productFeatures = [
                                     </Link>
                                 </div>
                             </div>
-                            <div class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                                <p class="text-xs uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">Services</p>
+                            <div
+                                class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] transition hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                            >
+                                <p class="text-xs tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Services</p>
                                 <h3 class="mt-2 text-xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Custom builds & onboarding</h3>
-                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Hand the project to us for bespoke flows, integrations, or white-label delivery—built on the same MetaForge codebase you see here.</p>
+                                <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Hand the project to us for bespoke flows, integrations, or white-label delivery—built on the same MetaForge
+                                    codebase you see here.
+                                </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <a
                                         href="https://github.com/MetaGrenade/laravel-vue/issues/new/choose"
@@ -635,48 +737,68 @@ const productFeatures = [
                         </div>
                     </section>
 
-                    <section class="rounded-xl bg-white p-8 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
+                    <section
+                        class="rounded-xl bg-white p-8 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
+                    >
                         <div class="flex flex-col gap-6">
                             <div class="space-y-2">
-                                <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Evaluation Playbook</p>
+                                <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Evaluation Playbook</p>
                                 <h3 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Shorten your proof-of-value loop</h3>
-                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Use these steps to demo MetaForge to teammates, clients, or investors without rewriting copy or stitching together mock screens.</p>
+                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Use these steps to demo MetaForge to teammates, clients, or investors without rewriting copy or stitching together
+                                    mock screens.
+                                </p>
                             </div>
                             <div class="grid gap-4 md:grid-cols-4">
                                 <div class="rounded-lg bg-[#f9f7f2] p-4 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
-                                    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">01</p>
-                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Spin up the demo account to preview the unified UX across blog, forum, billing, and admin.</p>
+                                    <p class="text-xs font-semibold tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">01</p>
+                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                        Spin up the demo account to preview the unified UX across blog, forum, billing, and admin.
+                                    </p>
                                 </div>
                                 <div class="rounded-lg bg-[#f9f7f2] p-4 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
-                                    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">02</p>
-                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Clone the repo, install dependencies, and reuse the seeded content structure for your own messaging.</p>
+                                    <p class="text-xs font-semibold tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">02</p>
+                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                        Clone the repo, install dependencies, and reuse the seeded content structure for your own messaging.
+                                    </p>
                                 </div>
                                 <div class="rounded-lg bg-[#f9f7f2] p-4 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
-                                    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">03</p>
-                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Toggle blog, forum, and support sections via settings to match the story you’re presenting.</p>
+                                    <p class="text-xs font-semibold tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">03</p>
+                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                        Toggle blog, forum, and support sections via settings to match the story you’re presenting.
+                                    </p>
                                 </div>
                                 <div class="rounded-lg bg-[#f9f7f2] p-4 text-[#1b1b18] dark:bg-[#1c1b17] dark:text-[#EDEDEC]">
-                                    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#8b5a00] dark:text-[#f3d29e]">04</p>
-                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">Share staging links or screen recordings with stakeholders—every surface is consistent out of the box.</p>
+                                    <p class="text-xs font-semibold tracking-[0.12em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">04</p>
+                                    <p class="mt-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                        Share staging links or screen recordings with stakeholders—every surface is consistent out of the box.
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </section>
 
-                    <section class="rounded-xl bg-[#11110f] px-6 py-10 text-white bg-linear-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]">
+                    <section
+                        class="rounded-xl bg-[#11110f] bg-linear-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] px-6 py-10 text-white shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
+                    >
                         <div class="flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:justify-between">
                             <div class="max-w-4xl space-y-3">
-                                <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Launch Faster</p>
-                                <h3 class="text-2xl font-semibold leading-tight text-[#1b1b18] dark:text-[#EDEDEC]">Plug into <Anvil class="inline text-[#8b5a00] dark:text-[#f3d29e]" /> <span class="text-[#8b5a00] dark:text-[#f3d29e]">MetaForge</span> and ship your product story</h3>
+                                <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#f3d29e]">Launch Faster</p>
+                                <h3 class="text-2xl leading-tight font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">
+                                    Plug into <Anvil class="inline text-[#8b5a00] dark:text-[#f3d29e]" />
+                                    <span class="text-[#8b5a00] dark:text-[#f3d29e]">MetaForge</span> and ship your product story
+                                </h3>
                                 <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Launch faster with opinionated flows for auth, billing, admin, content, and community—fully wired with Laravel 13, Inertia + Vue 3, Vite, and Tailwind.
-                                    Every module uses the same typography, spacing, and components so founders, agencies, and OSS contributors can focus on content, customization, and onboarding instead of wiring basics together.
+                                    Launch faster with opinionated flows for auth, billing, admin, content, and community—fully wired with Laravel 13,
+                                    Inertia + Vue 3, Vite, and Tailwind. Every module uses the same typography, spacing, and components so founders,
+                                    agencies, and OSS contributors can focus on content, customization, and onboarding instead of wiring basics
+                                    together.
                                 </p>
                             </div>
                             <div class="flex flex-wrap gap-3">
                                 <Link
                                     :href="route('register')"
-                                    class="inline-flex items-center rounded-sm px-5 py-2 text-sm font-medium text-[#1b1b18] hover:text-white dark:text-[#0f0f0d] transition bg-[#f3d29e] hover:bg-black dark:bg-[#f3d29e] dark:hover:bg-white"
+                                    class="inline-flex items-center rounded-sm bg-[#f3d29e] px-5 py-2 text-sm font-medium text-[#1b1b18] transition hover:bg-black hover:text-white dark:bg-[#f3d29e] dark:text-[#0f0f0d] dark:hover:bg-white"
                                 >
                                     Get Started Free
                                 </Link>
@@ -691,16 +813,20 @@ const productFeatures = [
                         </div>
                     </section>
 
-                    <section class="rounded-xl bg-white p-8 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
+                    <section
+                        class="rounded-xl bg-white p-8 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
+                    >
                         <div class="flex flex-col gap-6">
                             <div class="space-y-2">
-                                <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#9ebff3]">Tech Stack</p>
+                                <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#9ebff3]">Tech Stack</p>
                                 <h3 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Frontend, Backend, and Requirements</h3>
-                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">A concise overview of the frameworks, tooling, and references so evaluators can trust the stack before cloning.</p>
+                                <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    A concise overview of the frameworks, tooling, and references so evaluators can trust the stack before cloning.
+                                </p>
                             </div>
                             <div class="grid gap-6 md:grid-cols-3">
                                 <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#17181c] dark:text-[#EDEDEC]">
-                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#9ebff3]">Frontend</p>
+                                    <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#9ebff3]">Frontend</p>
                                     <h4 class="mt-2 text-lg font-semibold">Vue 3 + Inertia</h4>
                                     <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                         <li>Vue 3 with TypeScript and Inertia.js for SPA routing.</li>
@@ -710,7 +836,7 @@ const productFeatures = [
                                     </ul>
                                 </div>
                                 <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#17181c] dark:text-[#EDEDEC]">
-                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#9ebff3]">Backend</p>
+                                    <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#9ebff3]">Backend</p>
                                     <h4 class="mt-2 text-lg font-semibold">Laravel Core</h4>
                                     <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                         <li>Laravel 13 with Sanctum tokens and Spatie Permissions.</li>
@@ -720,7 +846,7 @@ const productFeatures = [
                                     </ul>
                                 </div>
                                 <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#17181c] dark:text-[#EDEDEC]">
-                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#9ebff3]">Requirements</p>
+                                    <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#9ebff3]">Requirements</p>
                                     <h4 class="mt-2 text-lg font-semibold">Environment</h4>
                                     <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                         <li>PHP 8.2+ with Composer.</li>
@@ -732,7 +858,7 @@ const productFeatures = [
                             </div>
                             <div class="grid gap-6 md:grid-cols-2">
                                 <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#17181c] dark:text-[#EDEDEC]">
-                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#9ebff3]">Continuous Integration</p>
+                                    <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#9ebff3]">Continuous Integration</p>
                                     <h4 class="mt-2 text-lg font-semibold">GitHub Actions</h4>
                                     <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                         <li>Automated linting with PHP Pint plus ESLint/Prettier via <code>linter</code> workflow.</li>
@@ -741,7 +867,7 @@ const productFeatures = [
                                     </ul>
                                 </div>
                                 <div class="rounded-lg bg-[#f9f7f2] p-5 text-[#1b1b18] dark:bg-[#17181c] dark:text-[#EDEDEC]">
-                                    <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#9ebff3]">Testing</p>
+                                    <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#9ebff3]">Testing</p>
                                     <h4 class="mt-2 text-lg font-semibold">Unit & Feature Coverage</h4>
                                     <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                         <li>PHPUnit runs automatically in the <code>tests</code> workflow with Xdebug coverage enabled.</li>
@@ -825,26 +951,26 @@ const productFeatures = [
                                 </a>
                             </div>
                         </div>
-                        <div class="flex flex-col gap-3 mt-6">
+                        <div class="mt-6 flex flex-col gap-3">
                             <Carousel
                                 class="w-full"
                                 :opts="{
-                                      align: 'start',
-                                      loop: true,
-                                    }"
-                                :plugins="[Autoplay({
-                                      delay: 2000,
-                                    })]"
+                                    align: 'start',
+                                    loop: true,
+                                }"
+                                :plugins="[
+                                    Autoplay({
+                                        delay: 2000,
+                                    }),
+                                ]"
                             >
                                 <CarouselContent class="-ml-1">
                                     <!-- Inline SVG icons — wrapper controls text color which icons inherit -->
-                                    <CarouselItem
-                                        v-for="icon in techIconsInline"
-                                        :key="icon.name"
-                                        class="pl-1 md:basis-1/4 lg:basis-1/5"
-                                    >
+                                    <CarouselItem v-for="icon in techIconsInline" :key="icon.name" class="pl-1 md:basis-1/4 lg:basis-1/5">
                                         <div class="p-1">
-                                            <Card class="bg-linear-to-br from-[#e6eeff] via-[#e8ecf4] to-[#e8e5dc] dark:from-[#191a1d] dark:via-[#121317] dark:to-[#0d0e11] text-[#1b1b18] dark:text-[#EDEDEC]">
+                                            <Card
+                                                class="bg-linear-to-br from-[#e6eeff] via-[#e8ecf4] to-[#e8e5dc] text-[#1b1b18] dark:from-[#191a1d] dark:via-[#121317] dark:to-[#0d0e11] dark:text-[#EDEDEC]"
+                                            >
                                                 <CardContent class="flex aspect-square items-center justify-center p-4">
                                                     <!-- wrapper sets the color; svg markup is injected and inherits currentColor -->
                                                     <div
@@ -858,17 +984,19 @@ const productFeatures = [
                                         </div>
                                     </CarouselItem>
                                 </CarouselContent>
-<!--                                <CarouselPrevious class="text-[#1b1b18] dark:text-[#EDEDEC]" />-->
-<!--                                <CarouselNext class="text-[#1b1b18] dark:text-[#EDEDEC]" />-->
+                                <!--                                <CarouselPrevious class="text-[#1b1b18] dark:text-[#EDEDEC]" />-->
+                                <!--                                <CarouselNext class="text-[#1b1b18] dark:text-[#EDEDEC]" />-->
                             </Carousel>
                         </div>
                     </section>
 
                     <!-- PRICING SUMMARY / MONETIZATION CALL-TO-ACTION -->
-                    <section class="rounded-xl bg-linear-to-br from-[#e6ffef] via-[#f4f0e8] to-[#dce8e1] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] p-8 dark:from-[#191d1b] dark:via-[#121714] dark:to-[#0d110f]">
+                    <section
+                        class="rounded-xl bg-linear-to-br from-[#e6ffef] via-[#f4f0e8] to-[#dce8e1] p-8 shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:from-[#191d1b] dark:via-[#121714] dark:to-[#0d110f] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
+                    >
                         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#9ef3b6]">Monetize faster</p>
+                                <p class="text-xs tracking-[0.14em] text-[#8b5a00] uppercase dark:text-[#9ef3b6]">Monetize faster</p>
                                 <h3 class="text-2xl font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Billing, subscriptions, and invoices ready</h3>
                                 <p class="mt-2 max-w-prose text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                     Built-in Stripe Cashier flows plus webhook auditing make it straightforward to convert users to paying customers.
@@ -878,7 +1006,7 @@ const productFeatures = [
                             <div class="flex flex-wrap gap-3">
                                 <Link
                                     :href="route('register')"
-                                    class="inline-flex items-center rounded-sm px-5 py-2 text-sm font-medium text-[#1b1b18] hover:text-white dark:text-[#0f0f0d] transition bg-[#f3d29e] hover:bg-black dark:bg-[#9ef3b6] dark:hover:bg-white"
+                                    class="inline-flex items-center rounded-sm bg-[#f3d29e] px-5 py-2 text-sm font-medium text-[#1b1b18] transition hover:bg-black hover:text-white dark:bg-[#9ef3b6] dark:text-[#0f0f0d] dark:hover:bg-white"
                                 >
                                     Get Started Free
                                 </Link>
@@ -894,18 +1022,24 @@ const productFeatures = [
                     </section>
 
                     <!-- FAQ placeholder (good for SEO long-tail queries) -->
-                    <section class="rounded-lg bg-white shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] p-6 dark:bg-[#161615]">
+                    <section
+                        class="rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:bg-[#161615] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
+                    >
                         <h3 class="text-lg font-semibold text-[#1b1b18] dark:text-[#EDEDEC]">Frequently asked</h3>
 
                         <dl class="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
-                                <dt class="font-medium text-sm text-[#1b1b18] dark:text-[#EDEDEC]">Is this production-ready?</dt>
-                                <dd class="mt-1 text-sm text-[#706f6c] dark:text-[#A1A09A]">Yes — the kit includes CI, tests, and common production-ready patterns; customize as needed.</dd>
+                                <dt class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">Is this production-ready?</dt>
+                                <dd class="mt-1 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Yes — the kit includes CI, tests, and common production-ready patterns; customize as needed.
+                                </dd>
                             </div>
 
                             <div>
-                                <dt class="font-medium text-sm text-[#1b1b18] dark:text-[#EDEDEC]">Can I use my own payment provider?</dt>
-                                <dd class="mt-1 text-sm text-[#706f6c] dark:text-[#A1A09A]">Stripe is built-in; you can swap or add integrations within the billing module.</dd>
+                                <dt class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">Can I use my own payment provider?</dt>
+                                <dd class="mt-1 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                    Stripe is built-in; you can swap or add integrations within the billing module.
+                                </dd>
                             </div>
                         </dl>
                     </section>

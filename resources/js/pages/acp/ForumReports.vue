@@ -4,7 +4,7 @@ import type { CheckboxRootProps } from 'reka-ui';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { type BreadcrumbItem , type QueryParams } from '@/types';
+import { type BreadcrumbItem, type QueryParams } from '@/types';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
@@ -23,13 +23,7 @@ import {
     PaginationNext,
     PaginationPrev,
 } from '@/components/ui/pagination';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Ellipsis, RotateCcw, ShieldAlert, ShieldCheck, ShieldX } from '@lucide/vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
@@ -101,13 +95,7 @@ type Report = (typeof props.reports.data)[number];
 
 type ModerationStatus = 'reviewed' | 'dismissed';
 
-type ModerationAction =
-    | 'none'
-    | 'lock_thread'
-    | 'unlock_thread'
-    | 'unpublish_thread'
-    | 'republish_thread'
-    | 'delete_post';
+type ModerationAction = 'none' | 'lock_thread' | 'unlock_thread' | 'unpublish_thread' | 'republish_thread' | 'delete_post';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Control Panel', href: '/acp/dashboard' },
@@ -163,9 +151,7 @@ watch(
 );
 
 const hasReportSelection = computed(() => selectedReportKeys.value.length > 0);
-const allReportsSelected = computed(
-    () => reportItems.value.length > 0 && selectedReportKeys.value.length === reportItems.value.length,
-);
+const allReportsSelected = computed(() => reportItems.value.length > 0 && selectedReportKeys.value.length === reportItems.value.length);
 const reportHeaderCheckboxState = computed<CheckboxState>(() => {
     if (allReportsSelected.value) {
         return true;
@@ -316,11 +302,7 @@ const buildQuery = (overrides: QueryParams = {}) => {
 };
 
 const applyFilters = (overrides: QueryParams = {}) => {
-    router.get(
-        route('acp.forums.reports.index'),
-        buildQuery({ page: 1, ...overrides }),
-        quickVisitOptions,
-    );
+    router.get(route('acp.forums.reports.index'), buildQuery({ page: 1, ...overrides }), quickVisitOptions);
 };
 
 const clearFilters = () => {
@@ -344,11 +326,7 @@ const {
     itemLabel: 'report',
     itemLabelPlural: 'reports',
     onNavigate: (page) => {
-        router.get(
-            route('acp.forums.reports.index'),
-            buildQuery({ page }),
-            quickVisitOptions,
-        );
+        router.get(route('acp.forums.reports.index'), buildQuery({ page }), quickVisitOptions);
     },
 });
 
@@ -370,16 +348,11 @@ const openModerationDialog = (report: Report, status: ModerationStatus) => {
     moderationDialogOpen.value = true;
 };
 
-const moderationDialogTitle = computed(() =>
-    moderationStatus.value === 'reviewed' ? 'Mark report as reviewed' : 'Dismiss report',
-);
+const moderationDialogTitle = computed(() => (moderationStatus.value === 'reviewed' ? 'Mark report as reviewed' : 'Dismiss report'));
 
-const moderationDialogDescription =
-    'Select an optional moderation action to apply before updating the report status.';
+const moderationDialogDescription = 'Select an optional moderation action to apply before updating the report status.';
 
-const moderationDialogConfirmLabel = computed(() =>
-    moderationStatus.value === 'reviewed' ? 'Mark as reviewed' : 'Dismiss report',
-);
+const moderationDialogConfirmLabel = computed(() => (moderationStatus.value === 'reviewed' ? 'Mark as reviewed' : 'Dismiss report'));
 
 const isModerationConfirmDisabled = computed(() => moderationTarget.value === null);
 
@@ -410,9 +383,7 @@ const submitModeration = () => {
     }
 
     const report = moderationTarget.value;
-    const routeName = report.type === 'thread'
-        ? 'acp.forums.reports.threads.update'
-        : 'acp.forums.reports.posts.update';
+    const routeName = report.type === 'thread' ? 'acp.forums.reports.threads.update' : 'acp.forums.reports.posts.update';
 
     const payload: QueryParams = {
         status: moderationStatus.value,
@@ -476,11 +447,11 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <p class="mt-1 text-xs text-muted-foreground">{{ reviewedTotals.threads }} threads · {{ reviewedTotals.posts }} posts</p>
                         </div>
                         <div class="rounded-lg border bg-muted/20 p-4">
-                            <div class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                <ShieldX class="h-4 w-4" /> Dismissed
-                            </div>
+                            <div class="flex items-center gap-2 text-sm font-medium text-muted-foreground"><ShieldX class="h-4 w-4" /> Dismissed</div>
                             <div class="mt-2 text-2xl font-semibold">{{ dismissedTotals.total }}</div>
-                            <p class="mt-1 text-xs text-muted-foreground">{{ dismissedTotals.threads }} threads · {{ dismissedTotals.posts }} posts</p>
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                {{ dismissedTotals.threads }} threads · {{ dismissedTotals.posts }} posts
+                            </p>
                         </div>
                     </div>
                 </section>
@@ -493,7 +464,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="filter-type"
                                     v-model="filterState.type"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option v-for="option in typeOptions" :key="option.value" :value="option.value">
                                         {{ option.label }}
@@ -506,7 +477,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="filter-status"
                                     v-model="filterState.status"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                                         {{ option.label }}
@@ -519,7 +490,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="filter-reason"
                                     v-model="filterState.reason_category"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option value="">All reasons</option>
                                     <option v-for="reason in props.reportReasons" :key="reason.value" :value="reason.value">
@@ -533,7 +504,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="filter-board"
                                     v-model="filterState.board_id"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option value="">All boards</option>
                                     <option v-for="board in props.boards" :key="board.id" :value="String(board.id)">
@@ -562,7 +533,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                         id="filter-per-page"
                                         v-model="filterState.per_page"
                                         @change="applyFilters({ per_page: Number.parseInt(filterState.per_page, 10) || 25 })"
-                                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         <option value="15">15</option>
                                         <option value="25">25</option>
@@ -578,33 +549,19 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <p class="text-sm text-muted-foreground">{{ reportSelectionLabel }}</p>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
-                                        <Button
-                                            variant="outline"
-                                            :disabled="!hasReportSelection || bulkReportForm.processing"
-                                        >
-                                            Bulk status
-                                        </Button>
+                                        <Button variant="outline" :disabled="!hasReportSelection || bulkReportForm.processing"> Bulk status </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" class="w-56">
                                         <DropdownMenuLabel>Set report status</DropdownMenuLabel>
-                                        <DropdownMenuItem
-                                            :disabled="bulkReportForm.processing"
-                                            @select="submitBulkReportStatus('reviewed')"
-                                        >
+                                        <DropdownMenuItem :disabled="bulkReportForm.processing" @select="submitBulkReportStatus('reviewed')">
                                             <ShieldCheck class="mr-2 h-4 w-4" />
                                             <span>Mark reviewed</span>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            :disabled="bulkReportForm.processing"
-                                            @select="submitBulkReportStatus('dismissed')"
-                                        >
+                                        <DropdownMenuItem :disabled="bulkReportForm.processing" @select="submitBulkReportStatus('dismissed')">
                                             <ShieldX class="mr-2 h-4 w-4" />
                                             <span>Dismiss reports</span>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            :disabled="bulkReportForm.processing"
-                                            @select="submitBulkReportStatus('pending')"
-                                        >
+                                        <DropdownMenuItem :disabled="bulkReportForm.processing" @select="submitBulkReportStatus('pending')">
                                             <RotateCcw class="mr-2 h-4 w-4" />
                                             <span>Reopen reports</span>
                                         </DropdownMenuItem>
@@ -630,11 +587,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow
-                                            v-for="report in reportItems"
-                                            :key="`${report.type}-${report.id}`"
-                                            class="align-top"
-                                        >
+                                        <TableRow v-for="report in reportItems" :key="`${report.type}-${report.id}`" class="align-top">
                                             <TableCell class="align-middle">
                                                 <Checkbox
                                                     :model-value="selectedReportKeys.includes(reportKey(report))"
@@ -652,7 +605,9 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                                         </div>
                                                     </div>
                                                     <div class="rounded-md bg-muted/30 px-2 py-1 text-xs">
-                                                        <div class="font-medium">{{ reasonLookup[report.reason_category ?? ''] ?? 'Not specified' }}</div>
+                                                        <div class="font-medium">
+                                                            {{ reasonLookup[report.reason_category ?? ''] ?? 'Not specified' }}
+                                                        </div>
                                                         <div v-if="report.reason_category" class="text-muted-foreground">
                                                             {{ report.reason_category }}
                                                         </div>
@@ -665,10 +620,12 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                                         <div class="font-semibold">
                                                             <Link
                                                                 v-if="report.thread.board?.slug"
-                                                                :href="route('forum.threads.show', {
-                                                                    board: report.thread.board.slug,
-                                                                    thread: report.thread.slug,
-                                                                })"
+                                                                :href="
+                                                                    route('forum.threads.show', {
+                                                                        board: report.thread.board.slug,
+                                                                        thread: report.thread.slug,
+                                                                    })
+                                                                "
                                                                 class="hover:underline"
                                                             >
                                                                 {{ report.thread.title }}
@@ -692,12 +649,21 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                                         </p>
                                                     </div>
 
-                                                    <div v-if="report.reason" class="rounded-md border border-dashed border-muted bg-muted/20 p-2 text-xs text-muted-foreground">
+                                                    <div
+                                                        v-if="report.reason"
+                                                        class="rounded-md border border-dashed border-muted bg-muted/20 p-2 text-xs text-muted-foreground"
+                                                    >
                                                         "{{ report.reason }}"
                                                     </div>
 
                                                     <div v-if="report.evidence_url" class="text-xs">
-                                                        <a :href="report.evidence_url" class="text-primary hover:underline" target="_blank" rel="noopener">Evidence link</a>
+                                                        <a
+                                                            :href="report.evidence_url"
+                                                            class="text-primary hover:underline"
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            >Evidence link</a
+                                                        >
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -813,7 +779,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                     <select
                         id="moderation-action"
                         v-model="moderationAction"
-                        class="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        class="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                     >
                         <option v-for="option in moderationOptions" :key="option.value" :value="option.value">
                             {{ option.label }}

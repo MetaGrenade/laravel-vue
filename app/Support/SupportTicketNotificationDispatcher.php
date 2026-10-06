@@ -91,7 +91,7 @@ class SupportTicketNotificationDispatcher
 
         collect($recipients)
             ->values()
-            ->each(function (array $recipientData) use ($ticket, $notificationFactory, $channelResolver): void {
+            ->each(function (array $recipientData) use ($notificationFactory, $channelResolver): void {
                 /** @var User $recipient */
                 $recipient = $recipientData['user'];
                 $audience = $recipientData['audience'];
@@ -159,5 +159,4 @@ class SupportTicketNotificationDispatcher
 
         return $notification;
     }
-
 }

@@ -177,7 +177,7 @@ class DashboardController extends Controller
                     'context' => 'Forum reply',
                     'time' => $formatter->human($timestamp),
                     'url' => $thread && $board
-                        ? route('forum.threads.show', [$board->slug, $thread->slug]) . "#post-{$post->id}"
+                        ? route('forum.threads.show', [$board->slug, $thread->slug])."#post-{$post->id}"
                         : null,
                     'timestamp' => $timestamp,
                 ];

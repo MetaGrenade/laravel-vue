@@ -132,10 +132,7 @@ const formatCurrency = (amount: number, currency: string) => {
 };
 
 const getPriceRangeLabel = (product: Product) => {
-    const allPrices = [
-        ...product.prices,
-        ...product.variants.flatMap((variant) => variant.prices || []),
-    ];
+    const allPrices = [...product.prices, ...product.variants.flatMap((variant) => variant.prices || [])];
 
     if (!allPrices.length) {
         return 'Add pricing to this item';
@@ -221,12 +218,7 @@ const toggleTag = (tagId: number) => {
                     <div class="grid gap-4 md:grid-cols-4">
                         <div class="space-y-2">
                             <label class="text-sm font-semibold text-foreground" for="search">Search</label>
-                            <Input
-                                id="search"
-                                v-model="filterState.search"
-                                placeholder="Search by name or description"
-                                @keyup.enter="applyFilters"
-                            />
+                            <Input id="search" v-model="filterState.search" placeholder="Search by name or description" @keyup.enter="applyFilters" />
                         </div>
 
                         <div class="space-y-2">
@@ -266,7 +258,8 @@ const toggleTag = (tagId: number) => {
                                     size="sm"
                                     variant="outline"
                                     :class="filterState.tags.includes(tag.id) ? 'border-primary text-primary' : ''"
-                                    @click="toggleTag(tag.id)">
+                                    @click="toggleTag(tag.id)"
+                                >
                                     {{ tag.name }}
                                 </Button>
                             </div>
@@ -287,7 +280,7 @@ const toggleTag = (tagId: number) => {
                         <div v-if="product.brand" class="flex items-center gap-2 text-sm text-muted-foreground">
                             <Badge variant="outline">{{ product.brand.name }}</Badge>
                         </div>
-                        <p class="text-sm text-muted-foreground line-clamp-2">{{ product.description || 'No description yet.' }}</p>
+                        <p class="line-clamp-2 text-sm text-muted-foreground">{{ product.description || 'No description yet.' }}</p>
                     </CardHeader>
                     <CardContent class="flex flex-1 flex-col justify-between space-y-4">
                         <div class="space-y-3">
@@ -317,7 +310,11 @@ const toggleTag = (tagId: number) => {
                                 <select
                                     class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
                                     :value="getSelectedVariantId(product) ?? ''"
-                                    @change="selectedVariants[product.id] = ($event.target as HTMLSelectElement).value ? Number(($event.target as HTMLSelectElement).value) : null"
+                                    @change="
+                                        selectedVariants[product.id] = ($event.target as HTMLSelectElement).value
+                                            ? Number(($event.target as HTMLSelectElement).value)
+                                            : null
+                                    "
                                 >
                                     <option v-for="variant in product.variants" :key="variant.id" :value="variant.id">
                                         {{ variant.name }}

@@ -37,9 +37,7 @@ class Seo
     /** @var list<array<string, mixed>> */
     private array $schemas = [];
 
-    public function __construct(private readonly Request $request)
-    {
-    }
+    public function __construct(private readonly Request $request) {}
 
     public function title(?string $title): static
     {
@@ -242,6 +240,7 @@ class Seo
             ->map(fn (string $value, string $name) => sprintf('%s="%s"', $name, e($value)))
             ->implode(' ');
     }
+
     private function defaultImage(): ?string
     {
         $image = config('seo.image');

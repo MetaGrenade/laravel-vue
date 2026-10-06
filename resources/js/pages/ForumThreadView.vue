@@ -17,13 +17,13 @@ import {
     PaginationListItem,
     PaginationNext,
     PaginationPrev,
-} from '@/components/ui/pagination'
-import { Textarea } from '@/components/ui/textarea'
+} from '@/components/ui/pagination';
+import { Textarea } from '@/components/ui/textarea';
 import RichTextEditor from '@/components/editor/RichTextEditor.vue';
 import { useInitials } from '@/composables/useInitials';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -50,7 +50,7 @@ import {
     Quote,
     RotateCcw,
 } from '@lucide/vue';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { loadEcho, leaveEchoChannel } from '@/lib/echo';
 import type { PresenceChannel } from 'laravel-echo';
@@ -275,7 +275,8 @@ const joinThreadPresence = async () => {
 
     activePresenceChannelName = channelName;
 
-    presenceChannel = echo.join(channelName)
+    presenceChannel = echo
+        .join(channelName)
         .here((members: ThreadPresenceMember[]) => {
             updatePresenceMembers(members);
         })
@@ -350,8 +351,7 @@ watch(
 watch(
     () => props.thread.id,
     (_, previousThreadId) => {
-        const previousChannelName =
-            typeof previousThreadId === 'number' ? `forum.threads.${previousThreadId}` : activePresenceChannelName;
+        const previousChannelName = typeof previousThreadId === 'number' ? `forum.threads.${previousThreadId}` : activePresenceChannelName;
 
         leaveThreadPresence(previousChannelName);
         void joinThreadPresence();
@@ -595,9 +595,7 @@ const postReportTarget = ref<ThreadPost | null>(null);
 const deleteThreadDialogOpen = ref(false);
 const deletePostDialogOpen = ref(false);
 const pendingDeletePost = ref<ThreadPost | null>(null);
-const deleteThreadDialogTitle = computed(
-    () => `Delete "${props.thread.title}"?`,
-);
+const deleteThreadDialogTitle = computed(() => `Delete "${props.thread.title}"?`);
 const deletePostDialogTitle = computed(() => {
     const target = pendingDeletePost.value;
 
@@ -624,13 +622,9 @@ const postReportForm = useForm({
     page: postsMeta.value.current_page,
 });
 
-const selectedThreadReason = computed(() =>
-    reportReasons.value.find((option) => option.value === threadReportForm.reason_category) ?? null,
-);
+const selectedThreadReason = computed(() => reportReasons.value.find((option) => option.value === threadReportForm.reason_category) ?? null);
 
-const selectedPostReason = computed(() =>
-    reportReasons.value.find((option) => option.value === postReportForm.reason_category) ?? null,
-);
+const selectedPostReason = computed(() => reportReasons.value.find((option) => option.value === postReportForm.reason_category) ?? null);
 
 watch(
     () => postsMeta.value.current_page,
@@ -674,11 +668,7 @@ watch(deletePostDialogOpen, (open) => {
     }
 });
 
-const performThreadAction = (
-    method: 'put' | 'post',
-    routeName: string,
-    payload: Record<string, unknown> = {},
-) => {
+const performThreadAction = (method: 'put' | 'post', routeName: string, payload: Record<string, unknown> = {}) => {
     threadActionLoading.value = true;
 
     const url = route(routeName, { board: props.board.slug, thread: props.thread.slug });
@@ -758,20 +748,17 @@ const unsubscribeFromThread = () => {
 
     threadActionLoading.value = true;
 
-    router.delete(
-        route('forum.threads.unsubscribe', { board: props.board.slug, thread: props.thread.slug }),
-        {
-            data: {
-                page: postsMeta.value.current_page,
-            },
-            preserveScroll: true,
-            preserveState: false,
-            replace: true,
-            onFinish: () => {
-                threadActionLoading.value = false;
-            },
+    router.delete(route('forum.threads.unsubscribe', { board: props.board.slug, thread: props.thread.slug }), {
+        data: {
+            page: postsMeta.value.current_page,
         },
-    );
+        preserveScroll: true,
+        preserveState: false,
+        replace: true,
+        onFinish: () => {
+            threadActionLoading.value = false;
+        },
+    });
 };
 
 const publishThread = () => {
@@ -937,12 +924,7 @@ const cancelDeleteThread = () => {
     deleteThreadDialogOpen.value = false;
 };
 
-const performPostAction = (
-    post: ThreadPost,
-    method: 'put' | 'delete' | 'post',
-    routeName: string,
-    payload: Record<string, unknown> = {},
-) => {
+const performPostAction = (post: ThreadPost, method: 'put' | 'delete' | 'post', routeName: string, payload: Record<string, unknown> = {}) => {
     activePostActionId.value = post.id;
 
     const url = route(routeName, { board: props.board.slug, thread: props.thread.slug, post: post.id });
@@ -1223,9 +1205,7 @@ const submitReply = () => {
             <DialogContent class="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Edit thread title</DialogTitle>
-                    <DialogDescription>
-                        Update the discussion title to better reflect the current topic.
-                    </DialogDescription>
+                    <DialogDescription> Update the discussion title to better reflect the current topic. </DialogDescription>
                 </DialogHeader>
                 <form class="space-y-5" @submit.prevent="submitThreadEdit">
                     <div class="space-y-2">
@@ -1242,17 +1222,10 @@ const submitReply = () => {
                         </p>
                     </div>
                     <DialogFooter class="gap-2 sm:gap-3">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            :disabled="threadEditForm.processing"
-                            @click="threadEditDialogOpen = false"
-                        >
+                        <Button type="button" variant="outline" :disabled="threadEditForm.processing" @click="threadEditDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button type="submit" :disabled="threadEditForm.processing">
-                            Save changes
-                        </Button>
+                        <Button type="submit" :disabled="threadEditForm.processing"> Save changes </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -1261,27 +1234,17 @@ const submitReply = () => {
             <DialogContent class="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Forum profile</DialogTitle>
-                    <DialogDescription>
-                        Update your avatar and signature. These details appear next to every post you make.
-                    </DialogDescription>
+                    <DialogDescription> Update your avatar and signature. These details appear next to every post you make. </DialogDescription>
                 </DialogHeader>
                 <form class="space-y-5" @submit.prevent="submitForumProfile">
                     <div class="flex items-center gap-4">
                         <Avatar class="h-16 w-16 overflow-hidden rounded-full">
-                            <AvatarImage
-                                v-if="forumProfileForm.avatar_url"
-                                :src="forumProfileForm.avatar_url"
-                                alt="Avatar preview"
-                            />
-                            <AvatarFallback
-                                class="flex h-full w-full items-center justify-center bg-muted text-lg font-semibold uppercase"
-                            >
+                            <AvatarImage v-if="forumProfileForm.avatar_url" :src="forumProfileForm.avatar_url" alt="Avatar preview" />
+                            <AvatarFallback class="flex h-full w-full items-center justify-center bg-muted text-lg font-semibold uppercase">
                                 {{ getInitials(authUser?.nickname ?? 'User') }}
                             </AvatarFallback>
                         </Avatar>
-                        <p class="text-sm text-muted-foreground">
-                            Paste a direct link to an image to use as your avatar. Square images look best.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Paste a direct link to an image to use as your avatar. Square images look best.</p>
                     </div>
                     <div class="space-y-2">
                         <Label for="forum_profile_avatar">Avatar URL</Label>
@@ -1304,25 +1267,16 @@ const submitReply = () => {
                             maxlength="500"
                             placeholder="Share a short sign-off, pronouns, or helpful links."
                         />
-                        <p class="text-xs text-muted-foreground">
-                            Plain text only. Your signature is shown below each of your posts.
-                        </p>
+                        <p class="text-xs text-muted-foreground">Plain text only. Your signature is shown below each of your posts.</p>
                         <p v-if="forumProfileForm.errors.forum_signature" class="text-sm text-destructive">
                             {{ forumProfileForm.errors.forum_signature }}
                         </p>
                     </div>
                     <DialogFooter class="gap-2 sm:gap-3">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            :disabled="forumProfileForm.processing"
-                            @click="forumProfileDialogOpen = false"
-                        >
+                        <Button type="button" variant="outline" :disabled="forumProfileForm.processing" @click="forumProfileDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button type="submit" :disabled="forumProfileForm.processing">
-                            Save profile
-                        </Button>
+                        <Button type="submit" :disabled="forumProfileForm.processing"> Save profile </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -1331,9 +1285,7 @@ const submitReply = () => {
             <DialogContent class="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Edit post</DialogTitle>
-                    <DialogDescription>
-                        Make adjustments to your reply before saving the update.
-                    </DialogDescription>
+                    <DialogDescription> Make adjustments to your reply before saving the update. </DialogDescription>
                 </DialogHeader>
                 <form class="space-y-5" @submit.prevent="submitPostEdit">
                     <div class="space-y-2">
@@ -1349,17 +1301,10 @@ const submitReply = () => {
                         </p>
                     </div>
                     <DialogFooter class="gap-2 sm:gap-3">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            :disabled="postEditForm.processing"
-                            @click="postEditDialogOpen = false"
-                        >
+                        <Button type="button" variant="outline" :disabled="postEditForm.processing" @click="postEditDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button type="submit" :disabled="postEditForm.processing">
-                            Save post
-                        </Button>
+                        <Button type="submit" :disabled="postEditForm.processing"> Save post </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -1369,8 +1314,8 @@ const submitReply = () => {
                 <DialogHeader>
                     <DialogTitle>Report thread</DialogTitle>
                     <DialogDescription>
-                        Let the moderation team know why this discussion needs attention. Provide as much
-                        context as you can so we can review it quickly.
+                        Let the moderation team know why this discussion needs attention. Provide as much context as you can so we can review it
+                        quickly.
                     </DialogDescription>
                 </DialogHeader>
                 <form class="space-y-5" @submit.prevent="submitThreadReport">
@@ -1379,10 +1324,10 @@ const submitReply = () => {
                         <select
                             id="thread_report_reason"
                             v-model="threadReportForm.reason_category"
-                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-xs focus:outline-hidden focus:ring-2"
-                            :class="threadReportForm.errors.reason_category
-                                ? 'border-destructive focus:ring-destructive/40'
-                                : 'focus:ring-primary/40'"
+                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-xs focus:ring-2 focus:outline-hidden"
+                            :class="
+                                threadReportForm.errors.reason_category ? 'border-destructive focus:ring-destructive/40' : 'focus:ring-primary/40'
+                            "
                             :disabled="!hasReportReasons"
                             required
                         >
@@ -1409,9 +1354,7 @@ const submitReply = () => {
                             placeholder="Share specific quotes, timeline, or any other details that explain the problem."
                             class="min-h-[120px]"
                         />
-                        <p class="text-xs text-muted-foreground">
-                            Optional, but detailed reports help moderators resolve issues faster.
-                        </p>
+                        <p class="text-xs text-muted-foreground">Optional, but detailed reports help moderators resolve issues faster.</p>
                         <p v-if="threadReportForm.errors.reason" class="text-sm text-destructive">
                             {{ threadReportForm.errors.reason }}
                         </p>
@@ -1424,27 +1367,16 @@ const submitReply = () => {
                             type="url"
                             placeholder="https://example.com/screenshot-or-proof"
                         />
-                        <p class="text-xs text-muted-foreground">
-                            Share a link to screenshots, logs, or other evidence that supports your report.
-                        </p>
+                        <p class="text-xs text-muted-foreground">Share a link to screenshots, logs, or other evidence that supports your report.</p>
                         <p v-if="threadReportForm.errors.evidence_url" class="text-sm text-destructive">
                             {{ threadReportForm.errors.evidence_url }}
                         </p>
                     </div>
                     <DialogFooter class="gap-2 sm:gap-3">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            :disabled="threadReportForm.processing"
-                            @click="threadReportDialogOpen = false"
-                        >
+                        <Button type="button" variant="secondary" :disabled="threadReportForm.processing" @click="threadReportDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button
-                            type="submit"
-                            class="bg-orange-500 hover:bg-orange-600"
-                            :disabled="threadReportForm.processing || !hasReportReasons"
-                        >
+                        <Button type="submit" class="bg-orange-500 hover:bg-orange-600" :disabled="threadReportForm.processing || !hasReportReasons">
                             Submit report
                         </Button>
                     </DialogFooter>
@@ -1460,13 +1392,11 @@ const submitReply = () => {
                             #{{ postReportTarget.number }} by {{ postReportTarget.author?.nickname ?? 'Unknown user' }}
                         </template>
                     </DialogTitle>
-                    <DialogDescription>
-                        Flag this reply for moderator review. We will notify you once a decision has been made.
-                    </DialogDescription>
+                    <DialogDescription> Flag this reply for moderator review. We will notify you once a decision has been made. </DialogDescription>
                 </DialogHeader>
                 <div v-if="postReportTarget" class="rounded-md border border-muted bg-muted/20 p-3 text-sm">
-                    <p class="text-xs uppercase text-muted-foreground">Post preview</p>
-                    <p class="mt-2 whitespace-pre-wrap text-sm text-foreground">
+                    <p class="text-xs text-muted-foreground uppercase">Post preview</p>
+                    <p class="mt-2 text-sm whitespace-pre-wrap text-foreground">
                         {{ postReportTarget.body_raw }}
                     </p>
                 </div>
@@ -1476,10 +1406,8 @@ const submitReply = () => {
                         <select
                             id="post_report_reason"
                             v-model="postReportForm.reason_category"
-                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-xs focus:outline-hidden focus:ring-2"
-                            :class="postReportForm.errors.reason_category
-                                ? 'border-destructive focus:ring-destructive/40'
-                                : 'focus:ring-primary/40'"
+                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-xs focus:ring-2 focus:outline-hidden"
+                            :class="postReportForm.errors.reason_category ? 'border-destructive focus:ring-destructive/40' : 'focus:ring-primary/40'"
                             :disabled="!hasReportReasons"
                             required
                         >
@@ -1506,9 +1434,7 @@ const submitReply = () => {
                             placeholder="Explain what is wrong with this reply and why it breaks the rules."
                             class="min-h-[120px]"
                         />
-                        <p class="text-xs text-muted-foreground">
-                            Optional, but context helps moderators resolve issues faster.
-                        </p>
+                        <p class="text-xs text-muted-foreground">Optional, but context helps moderators resolve issues faster.</p>
                         <p v-if="postReportForm.errors.reason" class="text-sm text-destructive">
                             {{ postReportForm.errors.reason }}
                         </p>
@@ -1521,27 +1447,16 @@ const submitReply = () => {
                             type="url"
                             placeholder="https://example.com/screenshot-or-proof"
                         />
-                        <p class="text-xs text-muted-foreground">
-                            Share a link to screenshots, logs, or other evidence that supports your report.
-                        </p>
+                        <p class="text-xs text-muted-foreground">Share a link to screenshots, logs, or other evidence that supports your report.</p>
                         <p v-if="postReportForm.errors.evidence_url" class="text-sm text-destructive">
                             {{ postReportForm.errors.evidence_url }}
                         </p>
                     </div>
                     <DialogFooter class="gap-2 sm:gap-3">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            :disabled="postReportForm.processing"
-                            @click="postReportDialogOpen = false"
-                        >
+                        <Button type="button" variant="secondary" :disabled="postReportForm.processing" @click="postReportDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button
-                            type="submit"
-                            class="bg-orange-500 hover:bg-orange-600"
-                            :disabled="postReportForm.processing || !hasReportReasons"
-                        >
+                        <Button type="submit" class="bg-orange-500 hover:bg-orange-600" :disabled="postReportForm.processing || !hasReportReasons">
                             Submit report
                         </Button>
                     </DialogFooter>
@@ -1568,26 +1483,20 @@ const submitReply = () => {
             @confirm="confirmDeletePost"
             @cancel="cancelDeletePost"
         />
-        <div class="p-4 space-y-8">
+        <div class="space-y-8 p-4">
             <!-- Forum Header -->
             <header class="flex flex-col items-center justify-between gap-4 lg:flex-row">
                 <h1 id="thread_title" class="text-2xl font-bold text-green-500">
-                    <Pin v-if="props.thread.is_pinned" class="h-8 w-8 inline-block mr-2" />
+                    <Pin v-if="props.thread.is_pinned" class="mr-2 inline-block h-8 w-8" />
                     {{ props.thread.title }}
-                    <Lock
-                        v-if="props.thread.is_locked"
-                        class="h-8 w-8 inline-block ml-2 text-muted-foreground"
-                    />
+                    <Lock v-if="props.thread.is_locked" class="ml-2 inline-block h-8 w-8 text-muted-foreground" />
                 </h1>
                 <div class="flex flex-wrap justify-center gap-2 lg:justify-end xl:flex-nowrap">
                     <div class="flex flex-col items-end justify-center rounded-md border border-border px-3 py-1">
-                        <span class="text-xs font-medium uppercase text-muted-foreground">Followers</span>
+                        <span class="text-xs font-medium text-muted-foreground uppercase">Followers</span>
                         <span class="text-base font-semibold text-foreground">{{ props.thread.subscribers_count }}</span>
                     </div>
-                    <div
-                        v-if="authUser && presenceCount > 0"
-                        class="flex items-center gap-3 rounded-md border border-border px-3 py-1"
-                    >
+                    <div v-if="authUser && presenceCount > 0" class="flex items-center gap-3 rounded-md border border-border px-3 py-1">
                         <div class="flex -space-x-2">
                             <Avatar
                                 v-for="member in presencePreviewMembers"
@@ -1595,18 +1504,14 @@ const submitReply = () => {
                                 class="border-2 border-background"
                                 :title="member.nickname ?? 'Online member'"
                             >
-                                <AvatarImage
-                                    v-if="member.avatar_url"
-                                    :src="member.avatar_url"
-                                    :alt="member.nickname ?? 'Online member'"
-                                />
+                                <AvatarImage v-if="member.avatar_url" :src="member.avatar_url" :alt="member.nickname ?? 'Online member'" />
                                 <AvatarFallback>
                                     {{ getInitials(member.nickname ?? 'Online member') }}
                                 </AvatarFallback>
                             </Avatar>
                         </div>
                         <div class="flex flex-col text-right">
-                            <span class="text-xs font-medium uppercase text-muted-foreground">Online now</span>
+                            <span class="text-xs font-medium text-muted-foreground uppercase">Online now</span>
                             <span class="text-base font-semibold text-foreground">{{ presenceCount }}</span>
                             <span v-if="presenceNamesSummary" class="text-xs text-muted-foreground">
                                 {{ presenceNamesSummary }}
@@ -1618,9 +1523,7 @@ const submitReply = () => {
                         Locked
                     </Button>
                     <a href="#post_reply">
-                        <Button variant="secondary" class="cursor-pointer" :disabled="!props.thread.permissions.canReply">
-                            Post Reply
-                        </Button>
+                        <Button variant="secondary" class="cursor-pointer" :disabled="!props.thread.permissions.canReply"> Post Reply </Button>
                     </a>
                     <Button
                         v-if="authUser"
@@ -1632,21 +1535,10 @@ const submitReply = () => {
                         <component :is="props.thread.is_subscribed ? BellOff : Bell" class="mr-2 h-4 w-4" />
                         {{ props.thread.is_subscribed ? 'Following' : 'Follow thread' }}
                     </Button>
-                    <Button
-                        v-if="authUser"
-                        variant="outline"
-                        class="cursor-pointer"
-                        @click="forumProfileDialogOpen = true"
-                    >
+                    <Button v-if="authUser" variant="outline" class="cursor-pointer" @click="forumProfileDialogOpen = true">
                         Edit forum profile
                     </Button>
-                    <DropdownMenu
-                        v-if="
-                            threadPermissions.canReport ||
-                            threadPermissions.canModerate ||
-                            threadPermissions.canEdit
-                        "
-                    >
+                    <DropdownMenu v-if="threadPermissions.canReport || threadPermissions.canModerate || threadPermissions.canEdit">
                         <DropdownMenuTrigger as-child>
                             <Button variant="outline" size="icon">
                                 <Ellipsis class="h-8 w-8" />
@@ -1666,11 +1558,7 @@ const submitReply = () => {
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                             <DropdownMenuGroup v-if="threadPermissions.canEdit">
-                                <DropdownMenuItem
-                                    class="text-blue-500"
-                                    :disabled="threadActionLoading"
-                                    @select="renameThread"
-                                >
+                                <DropdownMenuItem class="text-blue-500" :disabled="threadActionLoading" @select="renameThread">
                                     <Pencil class="h-8 w-8" />
                                     <span>Edit Title</span>
                                 </DropdownMenuItem>
@@ -1680,51 +1568,27 @@ const submitReply = () => {
                                 <DropdownMenuLabel>Mod Actions</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuGroup>
-                                    <DropdownMenuItem
-                                        v-if="!props.thread.is_published"
-                                        :disabled="threadActionLoading"
-                                        @select="publishThread"
-                                    >
+                                    <DropdownMenuItem v-if="!props.thread.is_published" :disabled="threadActionLoading" @select="publishThread">
                                         <Eye class="h-8 w-8" />
                                         <span>Publish</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        v-if="props.thread.is_published"
-                                        :disabled="threadActionLoading"
-                                        @select="unpublishThread"
-                                    >
+                                    <DropdownMenuItem v-if="props.thread.is_published" :disabled="threadActionLoading" @select="unpublishThread">
                                         <EyeOff class="h-8 w-8" />
                                         <span>Unpublish</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        v-if="!props.thread.is_locked"
-                                        :disabled="threadActionLoading"
-                                        @select="lockThread"
-                                    >
+                                    <DropdownMenuItem v-if="!props.thread.is_locked" :disabled="threadActionLoading" @select="lockThread">
                                         <Lock class="h-8 w-8" />
                                         <span>Lock</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        v-if="props.thread.is_locked"
-                                        :disabled="threadActionLoading"
-                                        @select="unlockThread"
-                                    >
+                                    <DropdownMenuItem v-if="props.thread.is_locked" :disabled="threadActionLoading" @select="unlockThread">
                                         <LockOpen class="h-8 w-8" />
                                         <span>Unlock</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        v-if="!props.thread.is_pinned"
-                                        :disabled="threadActionLoading"
-                                        @select="pinThread"
-                                    >
+                                    <DropdownMenuItem v-if="!props.thread.is_pinned" :disabled="threadActionLoading" @select="pinThread">
                                         <Pin class="h-8 w-8" />
                                         <span>Pin</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        v-if="props.thread.is_pinned"
-                                        :disabled="threadActionLoading"
-                                        @select="unpinThread"
-                                    >
+                                    <DropdownMenuItem v-if="props.thread.is_pinned" :disabled="threadActionLoading" @select="unpinThread">
                                         <PinOff class="h-8 w-8" />
                                         <span>Unpin</span>
                                     </DropdownMenuItem>
@@ -1744,28 +1608,21 @@ const submitReply = () => {
                     </DropdownMenu>
                 </div>
             </header>
-            <Alert
-                v-if="liveReplyNotice"
-                class="flex flex-col gap-2 border border-primary/40 bg-primary/10 text-foreground"
-            >
+            <Alert v-if="liveReplyNotice" class="flex flex-col gap-2 border border-primary/40 bg-primary/10 text-foreground">
                 <AlertTitle>New reply from {{ liveReplyAuthorName }}</AlertTitle>
                 <AlertDescription class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <p v-if="liveReplyExcerpt" class="text-sm text-muted-foreground md:flex-1">
                         {{ liveReplyExcerpt }}
                     </p>
                     <div class="flex items-center gap-2 md:justify-end">
-                        <Button size="sm" :disabled="!liveReplyUrl" @click="viewLiveReply">
-                            View reply
-                        </Button>
-                        <Button size="sm" variant="outline" @click="dismissLiveReplyNotice">
-                            Dismiss
-                        </Button>
+                        <Button size="sm" :disabled="!liveReplyUrl" @click="viewLiveReply"> View reply </Button>
+                        <Button size="sm" variant="outline" @click="dismissLiveReplyNotice"> Dismiss </Button>
                     </div>
                 </AlertDescription>
             </Alert>
             <!-- Top Pagination and Search -->
             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                <div class="text-sm text-muted-foreground text-center md:text-left">
+                <div class="text-center text-sm text-muted-foreground md:text-left">
                     {{ postsRangeLabel }}
                 </div>
                 <Pagination
@@ -1784,7 +1641,7 @@ const submitReply = () => {
 
                             <template v-for="(item, index) in items">
                                 <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
-                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                    <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                         {{ item.value }}
                                     </Button>
                                 </PaginationListItem>
@@ -1804,23 +1661,19 @@ const submitReply = () => {
                     v-for="post in props.posts.data"
                     :key="post.id"
                     :id="`post-${post.id}`"
-                    class="flex flex-col md:flex-row gap-4 rounded-xl border p-4 shadow-xs"
+                    class="flex flex-col gap-4 rounded-xl border p-4 shadow-xs md:flex-row"
                 >
                     <!-- Left Side: User Info -->
-                    <div class="shrink-0 w-full md:w-1/5 border-r pr-4">
+                    <div class="w-full shrink-0 border-r pr-4 md:w-1/5">
                         <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
-                            <AvatarImage
-                                v-if="post.author.avatar_url"
-                                :src="post.author.avatar_url"
-                                :alt="post.author.nickname ?? 'Forum user'"
-                            />
+                            <AvatarImage v-if="post.author.avatar_url" :src="post.author.avatar_url" :alt="post.author.nickname ?? 'Forum user'" />
                             <AvatarFallback
-                                class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold uppercase text-muted-foreground"
+                                class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground uppercase"
                             >
                                 {{ getInitials(post.author.nickname ?? 'Member') }}
                             </AvatarFallback>
                         </Avatar>
-                        <div class="font-bold text-lg">{{ post.author.nickname ?? 'Unknown' }}</div>
+                        <div class="text-lg font-bold">{{ post.author.nickname ?? 'Unknown' }}</div>
                         <div class="text-sm text-gray-500">{{ post.author.primary_role ?? 'Member' }}</div>
                         <div class="mt-2 text-xs text-gray-600">
                             Joined: <span class="font-medium">{{ post.author.joined_at ?? '—' }}</span>
@@ -1831,10 +1684,7 @@ const submitReply = () => {
                         <div class="mt-1 text-xs text-gray-600">
                             Reputation: <span class="font-medium">{{ post.author.reputation_points }}</span>
                         </div>
-                        <div
-                            v-if="post.author.badges.length > 0"
-                            class="mt-3 flex flex-wrap gap-2"
-                        >
+                        <div v-if="post.author.badges.length > 0" class="mt-3 flex flex-wrap gap-2">
                             <span
                                 v-for="badge in post.author.badges"
                                 :key="badge.id"
@@ -1848,7 +1698,7 @@ const submitReply = () => {
 
                     <!-- Right Side: Post Content -->
                     <div class="flex-1">
-                        <div class="flex justify-between items-center border-b pb-2 mb-4">
+                        <div class="mb-4 flex items-center justify-between border-b pb-2">
                             <div class="text-sm text-gray-500">{{ post.created_at }}</div>
                             <div class="flex items-center gap-2">
                                 <div class="text-sm font-medium text-gray-500">#{{ post.number }}</div>
@@ -1881,9 +1731,7 @@ const submitReply = () => {
                                         <DropdownMenuSeparator
                                             v-if="
                                                 threadPermissions.canReply &&
-                                                (post.permissions.canReport ||
-                                                    post.permissions.canEdit ||
-                                                    post.permissions.canDelete)
+                                                (post.permissions.canReport || post.permissions.canEdit || post.permissions.canDelete)
                                             "
                                         />
                                         <DropdownMenuGroup v-if="post.permissions.canReport">
@@ -1907,10 +1755,7 @@ const submitReply = () => {
                                             </DropdownMenuItem>
                                         </DropdownMenuGroup>
                                         <DropdownMenuSeparator
-                                            v-if="
-                                                post.permissions.canDelete &&
-                                                (post.permissions.canReport || post.permissions.canEdit)
-                                            "
+                                            v-if="post.permissions.canDelete && (post.permissions.canReport || post.permissions.canEdit)"
                                         />
                                         <DropdownMenuItem
                                             v-if="post.permissions.canDelete"
@@ -1930,11 +1775,7 @@ const submitReply = () => {
                                                     post.permissions.canDelete)
                                             "
                                         />
-                                        <DropdownMenuItem
-                                            v-if="post.permissions.canModerate"
-                                            class="text-purple-500"
-                                            @select="viewPostHistory(post)"
-                                        >
+                                        <DropdownMenuItem v-if="post.permissions.canModerate" class="text-purple-500" @select="viewPostHistory(post)">
                                             <RotateCcw class="h-4 w-4" />
                                             <span>View Post History</span>
                                         </DropdownMenuItem>
@@ -1945,10 +1786,7 @@ const submitReply = () => {
                         <!-- Post Body -->
                         <div class="tiptap ProseMirror prose prose-sm dark:prose-invert max-w-none" v-html="renderPostBody(post)"></div>
                         <!-- Forum Signature -->
-                        <div
-                            v-if="post.author.forum_signature"
-                            class="mt-4 border-t pt-2 text-xs text-gray-500 whitespace-pre-line"
-                        >
+                        <div v-if="post.author.forum_signature" class="mt-4 border-t pt-2 text-xs whitespace-pre-line text-gray-500">
                             {{ post.author.forum_signature }}
                         </div>
                     </div>
@@ -1956,7 +1794,7 @@ const submitReply = () => {
             </div>
 
             <header class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                <div class="text-sm text-muted-foreground text-center md:text-left">
+                <div class="text-center text-sm text-muted-foreground md:text-left">
                     {{ postsRangeLabel }}
                 </div>
                 <Pagination
@@ -1975,7 +1813,7 @@ const submitReply = () => {
 
                             <template v-for="(item, index) in items">
                                 <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
-                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                    <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                         {{ item.value }}
                                     </Button>
                                 </PaginationListItem>
@@ -1989,26 +1827,20 @@ const submitReply = () => {
                 </Pagination>
                 <div class="flex w-full max-w-md justify-end">
                     <a href="#thread_title">
-                        <Button variant="secondary" class="cursor-pointer">
-                            Go To Top
-                        </Button>
+                        <Button variant="secondary" class="cursor-pointer"> Go To Top </Button>
                     </a>
                 </div>
             </header>
 
             <Alert v-if="props.thread.is_locked" variant="warning">
-                <MessageSquareLock class="w-6 h-6" />
+                <MessageSquareLock class="h-6 w-6" />
                 <AlertTitle>Thread Locked</AlertTitle>
-                <AlertDescription>
-                    This thread has been locked by a moderator.
-                </AlertDescription>
+                <AlertDescription> This thread has been locked by a moderator. </AlertDescription>
             </Alert>
 
             <Alert v-if="!props.thread.is_published" variant="default">
                 <AlertTitle>Thread Not Published</AlertTitle>
-                <AlertDescription>
-                    Replies are disabled until this discussion has been published.
-                </AlertDescription>
+                <AlertDescription> Replies are disabled until this discussion has been published. </AlertDescription>
             </Alert>
 
             <!-- Reply Input Section -->
@@ -2025,12 +1857,7 @@ const submitReply = () => {
                         {{ replyForm.errors.body }}
                     </p>
 
-                    <Button
-                        type="submit"
-                        variant="secondary"
-                        class="cursor-pointer bg-green-500 hover:bg-green-600"
-                        :disabled="replySubmitDisabled"
-                    >
+                    <Button type="submit" variant="secondary" class="cursor-pointer bg-green-500 hover:bg-green-600" :disabled="replySubmitDisabled">
                         Submit Reply
                     </Button>
                 </form>

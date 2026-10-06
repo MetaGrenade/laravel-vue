@@ -143,7 +143,7 @@ const fetchSetupIntent = async () => {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
             },
         });
@@ -205,7 +205,7 @@ const addPaymentMethod = async () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
             },
@@ -307,10 +307,7 @@ onBeforeUnmount(() => {
 
         <SettingsLayout>
             <section class="space-y-4">
-                <HeadingSmall
-                    title="Saved payment methods"
-                    description="Manage the cards connected to your subscription and purchases."
-                />
+                <HeadingSmall title="Saved payment methods" description="Manage the cards connected to your subscription and purchases." />
 
                 <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
                     <Table>
@@ -324,9 +321,7 @@ onBeforeUnmount(() => {
                         </TableHeader>
                         <TableBody>
                             <TableRow v-if="props.payment_methods.length === 0">
-                                <TableCell colspan="4" class="text-center text-sm text-muted-foreground">
-                                    No payment methods saved yet.
-                                </TableCell>
+                                <TableCell colspan="4" class="text-center text-sm text-muted-foreground"> No payment methods saved yet. </TableCell>
                             </TableRow>
                             <TableRow v-for="method in props.payment_methods" :key="method.id">
                                 <TableCell>
@@ -339,9 +334,7 @@ onBeforeUnmount(() => {
                                 </TableCell>
                                 <TableCell>{{ formatExpiry(method.exp_month, method.exp_year) }}</TableCell>
                                 <TableCell>
-                                    <Badge v-if="method.id === props.default_payment_method" variant="secondary">
-                                        Default
-                                    </Badge>
+                                    <Badge v-if="method.id === props.default_payment_method" variant="secondary"> Default </Badge>
                                     <span v-else class="text-sm text-muted-foreground">Backup</span>
                                 </TableCell>
                                 <TableCell class="text-right">
@@ -374,10 +367,7 @@ onBeforeUnmount(() => {
             </section>
 
             <section class="space-y-4">
-                <HeadingSmall
-                    title="Add a new payment method"
-                    description="Use the secure Stripe form to attach an additional card."
-                />
+                <HeadingSmall title="Add a new payment method" description="Use the secure Stripe form to attach an additional card." />
 
                 <Card>
                     <CardHeader>
@@ -394,30 +384,18 @@ onBeforeUnmount(() => {
                         <template v-else>
                             <div class="grid gap-2">
                                 <label class="text-sm font-medium" for="payment-element">Payment method</label>
-                                <div
-                                    id="payment-element"
-                                    class="rounded-lg border border-border bg-card p-4 shadow-xs"
-                                />
-                                <p v-if="!paymentElementReady" class="text-sm text-muted-foreground">
-                                    Loading the secure payment form…
-                                </p>
+                                <div id="payment-element" class="rounded-lg border border-border bg-card p-4 shadow-xs" />
+                                <p v-if="!paymentElementReady" class="text-sm text-muted-foreground">Loading the secure payment form…</p>
                             </div>
                         </template>
                     </CardContent>
                     <CardFooter class="flex items-center justify-between gap-4">
                         <div class="flex flex-wrap gap-2">
-                            <Button
-                                :disabled="!isStripeConfigured || saving || !paymentElementReady"
-                                @click="addPaymentMethod"
-                            >
+                            <Button :disabled="!isStripeConfigured || saving || !paymentElementReady" @click="addPaymentMethod">
                                 <span v-if="saving">Saving…</span>
                                 <span v-else>Save payment method</span>
                             </Button>
-                            <Button
-                                variant="outline"
-                                :disabled="setupLoading || !isStripeConfigured"
-                                @click="fetchSetupIntent"
-                            >
+                            <Button variant="outline" :disabled="setupLoading || !isStripeConfigured" @click="fetchSetupIntent">
                                 <span v-if="setupLoading">Refreshing…</span>
                                 <span v-else>Refresh form</span>
                             </Button>

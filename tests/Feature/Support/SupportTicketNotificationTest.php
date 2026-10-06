@@ -94,7 +94,7 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame($data['title'], $data['thread_title']);
             $this->assertSame('I am unable to access certain features and need assistance.', $data['excerpt']);
 
-            $expectedUrl = route('support.tickets.show', $ticket) . '#message-' . $message->id;
+            $expectedUrl = route('support.tickets.show', $ticket).'#message-'.$message->id;
             $this->assertSame($expectedUrl, $data['url']);
 
             return true;
@@ -109,7 +109,7 @@ class SupportTicketNotificationTest extends TestCase
             }
 
             $mailMessage = $notification->toMail($user);
-            $expectedUrl = route('support.tickets.show', $ticket) . '#message-' . $message->id;
+            $expectedUrl = route('support.tickets.show', $ticket).'#message-'.$message->id;
 
             $this->assertSame($expectedUrl, $mailMessage->actionUrl);
 
@@ -152,7 +152,7 @@ class SupportTicketNotificationTest extends TestCase
         Notification::assertSentToTimes($owner, TicketReplied::class, 2);
         Notification::assertSentToTimes($agent, TicketReplied::class, 2);
 
-        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message, $agent) {
+        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message) {
             if ($channels !== ['database']) {
                 return false;
             }
@@ -167,7 +167,7 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame('Here is some additional context about the failure logs.', $data['excerpt']);
             $this->assertSame($owner->nickname, $data['message_author_name']);
 
-            $expectedUrl = route('support.tickets.show', $ticket) . '#message-' . $message->id;
+            $expectedUrl = route('support.tickets.show', $ticket).'#message-'.$message->id;
             $this->assertSame($expectedUrl, $data['url']);
 
             return true;
@@ -188,13 +188,13 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame('Here is some additional context about the failure logs.', $data['excerpt']);
             $this->assertSame($owner->nickname, $data['message_author_name']);
 
-            $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]) . '#message-' . $message->id;
+            $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]).'#message-'.$message->id;
             $this->assertSame($expectedUrl, $data['url']);
 
             return true;
         });
 
-        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message, $agent) {
+        Notification::assertSentTo($owner, TicketReplied::class, function (TicketReplied $notification, array $channels) use ($owner, $ticket, $message) {
             $sortedChannels = $channels;
             sort($sortedChannels);
 
@@ -203,7 +203,7 @@ class SupportTicketNotificationTest extends TestCase
             }
 
             $mailMessage = $notification->toMail($owner);
-            $expectedUrl = route('support.tickets.show', $ticket) . '#message-' . $message->id;
+            $expectedUrl = route('support.tickets.show', $ticket).'#message-'.$message->id;
 
             $this->assertSame($expectedUrl, $mailMessage->actionUrl);
 
@@ -219,7 +219,7 @@ class SupportTicketNotificationTest extends TestCase
             }
 
             $mailMessage = $notification->toMail($agent);
-            $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]) . '#message-' . $message->id;
+            $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]).'#message-'.$message->id;
 
             $this->assertSame($expectedUrl, $mailMessage->actionUrl);
 
@@ -277,7 +277,7 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame('Thanks for the report! We are investigating now.', $data['excerpt']);
             $this->assertSame($agent->nickname, $data['message_author_name']);
 
-            $expectedUrl = route('support.tickets.show', $ticket) . '#message-' . $message->id;
+            $expectedUrl = route('support.tickets.show', $ticket).'#message-'.$message->id;
             $this->assertSame($expectedUrl, $data['url']);
 
             return true;
@@ -298,7 +298,7 @@ class SupportTicketNotificationTest extends TestCase
             $this->assertSame('Thanks for the report! We are investigating now.', $data['excerpt']);
             $this->assertSame($agent->nickname, $data['message_author_name']);
 
-            $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]) . '#message-' . $message->id;
+            $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]).'#message-'.$message->id;
             $this->assertSame($expectedUrl, $data['url']);
 
             return true;
@@ -320,7 +320,7 @@ class SupportTicketNotificationTest extends TestCase
             }
 
             $mailMessage = $notification->toMail($agent);
-            $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]) . '#message-' . $message->id;
+            $expectedUrl = route('acp.support.tickets.show', ['ticket' => $ticket->id]).'#message-'.$message->id;
 
             $this->assertSame($expectedUrl, $mailMessage->actionUrl);
 

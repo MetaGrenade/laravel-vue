@@ -13,8 +13,7 @@ void createInertiaApp({
         const ziggy = page.props.ziggy as Config & { location: string };
         const config = { ...ziggy, location: new URL(ziggy.location) };
 
-        const route = (name: string, params?: RouteParams<string>, absolute?: boolean) =>
-            ziggyRoute(name, params, absolute, config);
+        const route = (name: string, params?: RouteParams<string>, absolute?: boolean) => ziggyRoute(name, params, absolute, config);
 
         (globalThis as unknown as { route: typeof route }).route = route;
 

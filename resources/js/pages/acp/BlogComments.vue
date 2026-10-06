@@ -150,7 +150,11 @@ const visitWithFilters = (overrides: Partial<typeof filterState & { page: number
 const debouncedSearch = useDebounceFn(() => visitWithFilters(), 300);
 watch(() => filterState.search, debouncedSearch);
 
-const { meta: paginationMeta, page: paginationPage, rangeLabel } = useInertiaPagination({
+const {
+    meta: paginationMeta,
+    page: paginationPage,
+    rangeLabel,
+} = useInertiaPagination({
     meta: computed(() => props.reports.meta ?? null),
     itemsLength: computed(() => props.reports.data?.length ?? 0),
     defaultPerPage: props.filters.per_page ?? 25,
@@ -269,8 +273,7 @@ const blockUser = (comment: ReportComment | null | undefined) => {
     router.put(route('acp.users.ban', comment.user.id), {}, { preserveScroll: true });
 };
 
-const reportReasonLabel = (value: string) =>
-    props.reportReasons.find((reason) => reason.value === value)?.label ?? value;
+const reportReasonLabel = (value: string) => props.reportReasons.find((reason) => reason.value === value)?.label ?? value;
 
 const statusBadges: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     pending: 'secondary',
@@ -299,21 +302,14 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                         <h1 class="text-3xl font-bold">Blog Comment Reports</h1>
                     </div>
 
-                    <Badge variant="outline" class="h-10 items-center justify-center">
-                        {{ props.reports.meta?.total ?? 0 }} total
-                    </Badge>
+                    <Badge variant="outline" class="h-10 items-center justify-center"> {{ props.reports.meta?.total ?? 0 }} total </Badge>
                 </div>
 
                 <div class="rounded-lg border bg-card p-4 shadow-xs">
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
                         <div class="md:col-span-2">
                             <label class="mb-1 block text-sm font-medium text-foreground" for="search">Search body</label>
-                            <Input
-                                id="search"
-                                v-model="filterState.search"
-                                type="text"
-                                placeholder="Find keywords in comments"
-                            />
+                            <Input id="search" v-model="filterState.search" type="text" placeholder="Find keywords in comments" />
                         </div>
 
                         <div>
@@ -321,7 +317,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="status"
                                 v-model="filterState.status"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
                                 @change="visitWithFilters()"
                             >
                                 <option value="all">All</option>
@@ -336,7 +332,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="reason"
                                 v-model="filterState.reasonCategory"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
                                 @change="visitWithFilters()"
                             >
                                 <option value="all">All</option>
@@ -351,7 +347,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="perPage"
                                 v-model="filterState.perPage"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
                                 @change="visitWithFilters()"
                             >
                                 <option value="10">10</option>
@@ -366,7 +362,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="sortBy"
                                 v-model="filterState.sort"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
                                 @change="visitWithFilters()"
                             >
                                 <option value="newest">Newest reports</option>
@@ -402,31 +398,13 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
 
                 <div class="flex flex-wrap items-center gap-2" v-if="hasSelection">
                     <span class="text-sm text-muted-foreground">Bulk actions:</span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        :disabled="bulkForm.processing"
-                        class="gap-1"
-                        @click="submitBulkStatus('reviewed')"
-                    >
+                    <Button variant="outline" size="sm" :disabled="bulkForm.processing" class="gap-1" @click="submitBulkStatus('reviewed')">
                         <CheckCircle class="h-4 w-4" /> Review
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        :disabled="bulkForm.processing"
-                        class="gap-1"
-                        @click="submitBulkStatus('dismissed')"
-                    >
+                    <Button variant="outline" size="sm" :disabled="bulkForm.processing" class="gap-1" @click="submitBulkStatus('dismissed')">
                         <XCircle class="h-4 w-4" /> Dismiss
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        :disabled="bulkForm.processing"
-                        class="gap-1"
-                        @click="submitBulkStatus('pending')"
-                    >
+                    <Button variant="outline" size="sm" :disabled="bulkForm.processing" class="gap-1" @click="submitBulkStatus('pending')">
                         <ShieldAlert class="h-4 w-4" /> Mark pending
                     </Button>
                 </div>
@@ -438,10 +416,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <TableHead class="w-12 text-center">
                                     <Checkbox
                                         :model-value="selectedCommentIds.length === props.reports.data.length && props.reports.data.length > 0"
-                                        :indeterminate="
-                                            selectedCommentIds.length > 0 &&
-                                            selectedCommentIds.length < props.reports.data.length
-                                        "
+                                        :indeterminate="selectedCommentIds.length > 0 && selectedCommentIds.length < props.reports.data.length"
                                         @update:model-value="toggleAllReports"
                                     />
                                 </TableHead>
@@ -465,10 +440,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                         <div class="flex items-center gap-2 text-xs text-muted-foreground">
                                             <Badge variant="secondary">#{{ report.id }}</Badge>
                                             <span v-if="report.blog">Blog: {{ report.blog.title }}</span>
-                                            <span
-                                                v-if="report.comment?.is_flagged"
-                                                class="flex items-center gap-1 text-destructive"
-                                            >
+                                            <span v-if="report.comment?.is_flagged" class="flex items-center gap-1 text-destructive">
                                                 <Flag class="h-3 w-3" /> Flagged
                                             </span>
                                         </div>
@@ -483,10 +455,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                         <div v-if="report.latest_report" class="space-y-1 text-xs text-muted-foreground">
                                             <div class="flex items-center gap-2">
                                                 <Badge :variant="statusBadges[report.latest_report.status] ?? 'secondary'" class="gap-1">
-                                                    <component
-                                                        :is="statusIcons[report.latest_report.status] ?? ShieldAlert"
-                                                        class="h-3.5 w-3.5"
-                                                    />
+                                                    <component :is="statusIcons[report.latest_report.status] ?? ShieldAlert" class="h-3.5 w-3.5" />
                                                     {{ report.latest_report.status }}
                                                 </Badge>
                                                 <span>{{ reportReasonLabel(report.latest_report.reason_category) }}</span>
@@ -574,7 +543,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                             variant="ghost"
                                             size="sm"
                                             class="gap-1"
-                                            @click="openEditor(report.comment)">
+                                            @click="openEditor(report.comment)"
+                                        >
                                             <Pencil class="h-4 w-4" />
                                             Edit comment
                                         </Button>
@@ -593,7 +563,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                             variant="ghost"
                                             size="sm"
                                             class="gap-1 text-destructive"
-                                            @click="blockUser(report.comment)">
+                                            @click="blockUser(report.comment)"
+                                        >
                                             <ShieldAlert class="h-4 w-4" />
                                             Block user
                                         </Button>
@@ -625,10 +596,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
 
                                     <template v-for="(item, index) in items" :key="index">
                                         <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
-                                            <Button
-                                                class="h-9 w-9 p-0"
-                                                :variant="item.value === page ? 'default' : 'outline'"
-                                            >
+                                            <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                 {{ item.value }}
                                             </Button>
                                         </PaginationListItem>
@@ -665,13 +633,9 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="editStatus"
                                     v-model="editForm.status"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
                                 >
-                                    <option
-                                        v-for="statusOption in props.commentStatuses"
-                                        :key="statusOption"
-                                        :value="statusOption"
-                                    >
+                                    <option v-for="statusOption in props.commentStatuses" :key="statusOption" :value="statusOption">
                                         {{ statusOption.charAt(0).toUpperCase() + statusOption.slice(1) }}
                                     </option>
                                 </select>

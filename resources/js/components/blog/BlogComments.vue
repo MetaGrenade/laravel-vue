@@ -173,8 +173,7 @@ function updatePaginationTotals(total: number) {
 
     pagination.value = {
         ...previous,
-        current_page:
-            loadedCount >= total ? lastPage : Math.min(previous.current_page, lastPage),
+        current_page: loadedCount >= total ? lastPage : Math.min(previous.current_page, lastPage),
         last_page: lastPage,
         total,
         from: loadedCount > 0 ? 1 : null,
@@ -205,10 +204,7 @@ const loadMore = async () => {
         updatePaginationTotals(payload.meta.total);
     } catch (error) {
         console.error(error);
-        const message =
-            error instanceof Error
-                ? error.message
-                : 'Unable to load more comments right now.';
+        const message = error instanceof Error ? error.message : 'Unable to load more comments right now.';
 
         loadMoreError.value = message;
         toast.error(message);
@@ -258,10 +254,7 @@ const reloadComments = async () => {
         updatePaginationTotals(payload.meta.total);
     } catch (error) {
         console.error(error);
-        const message =
-            error instanceof Error
-                ? error.message
-                : 'Unable to load comments right now.';
+        const message = error instanceof Error ? error.message : 'Unable to load comments right now.';
 
         loadMoreError.value = message;
         toast.error(message);
@@ -317,9 +310,7 @@ const reportForm = reactive({
     processing: false,
 });
 
-const selectedReportReason = computed(() =>
-    reportReasons.value.find((reason) => reason.value === reportForm.reason_category) ?? null,
-);
+const selectedReportReason = computed(() => reportReasons.value.find((reason) => reason.value === reportForm.reason_category) ?? null);
 
 watch(
     () => reportReasons.value,
@@ -345,7 +336,6 @@ watch(reportDialogOpen, (open) => {
         reportForm.reason_category = defaultReportReason.value;
     }
 });
-
 
 const { formatDate, fromNow } = useUserTimezone();
 
@@ -571,9 +561,7 @@ const submitComment = async () => {
                 comments.value = [...comments.value, created];
                 updatePaginationTotals(pagination.value.total + 1);
             } else {
-                comments.value = comments.value.map((existing) =>
-                    existing.id === created.id ? created : existing,
-                );
+                comments.value = comments.value.map((existing) => (existing.id === created.id ? created : existing));
             }
         }
 
@@ -642,9 +630,7 @@ const updateComment = async (commentId: number) => {
         const updated = payload?.data as BlogComment | undefined;
 
         if (updated) {
-            comments.value = comments.value.map((existing) =>
-                existing.id === updated.id ? updated : existing,
-            );
+            comments.value = comments.value.map((existing) => (existing.id === updated.id ? updated : existing));
         }
 
         toast.success('Comment updated.');
@@ -765,22 +751,19 @@ const submitReport = async () => {
     reportForm.errors.evidence_url = null;
 
     try {
-        const response = await fetch(
-            route('blogs.comments.report', { blog: props.blogSlug, comment: target.id }),
-            {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    ...csrfHeaders(),
-                },
-                body: JSON.stringify({
-                    reason_category: reportForm.reason_category || defaultReportReason.value,
-                    reason: reportForm.reason || null,
-                    evidence_url: reportForm.evidence_url || null,
-                }),
+        const response = await fetch(route('blogs.comments.report', { blog: props.blogSlug, comment: target.id }), {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                ...csrfHeaders(),
             },
-        );
+            body: JSON.stringify({
+                reason_category: reportForm.reason_category || defaultReportReason.value,
+                reason: reportForm.reason || null,
+                evidence_url: reportForm.evidence_url || null,
+            }),
+        });
 
         if (!response.ok) {
             const payload = await response.json().catch(() => null);
@@ -797,8 +780,7 @@ const submitReport = async () => {
         }
 
         const payload = await response.json().catch(() => null);
-        const successMessage =
-            payload?.message ?? 'Report submitted. Our moderators will review it soon.';
+        const successMessage = payload?.message ?? 'Report submitted. Our moderators will review it soon.';
 
         toast.success(successMessage);
         reportDialogOpen.value = false;
@@ -812,7 +794,7 @@ const submitReport = async () => {
 </script>
 
 <template>
-    <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow-sm">
+    <div class="rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
         <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-2xl font-bold">Comments</h2>
             <div class="flex items-center gap-2 text-sm">
@@ -820,7 +802,7 @@ const submitReport = async () => {
                 <select
                     id="commentSort"
                     v-model="sortMode"
-                    class="flex h-9 items-center rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    class="flex h-9 items-center rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
                     :disabled="isReloading || isLoadingMore"
                     @change="reloadComments"
                 >
@@ -834,21 +816,13 @@ const submitReport = async () => {
 
         <div
             v-if="!commentsEnabled"
-            class="mb-8 rounded-lg border border-dashed border-sidebar-border/70 dark:border-sidebar-border p-4 text-sm text-muted-foreground"
+            class="mb-8 rounded-lg border border-dashed border-sidebar-border/70 p-4 text-sm text-muted-foreground dark:border-sidebar-border"
         >
             <p>Comments are disabled for this post.</p>
         </div>
-        <div
-            v-else-if="authUser"
-            class="mb-8 space-y-3 rounded-lg border border-sidebar-border/70 dark:border-sidebar-border p-4"
-        >
+        <div v-else-if="authUser" class="mb-8 space-y-3 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border">
             <h3 class="text-lg font-semibold">Join the conversation</h3>
-            <Textarea
-                v-model="newComment"
-                rows="4"
-                placeholder="Share your thoughts..."
-                class="w-full"
-            />
+            <Textarea v-model="newComment" rows="4" placeholder="Share your thoughts..." class="w-full" />
             <Input
                 v-model="honeypot"
                 type="text"
@@ -867,7 +841,7 @@ const submitReport = async () => {
         </div>
         <div
             v-else
-            class="mb-8 rounded-lg border border-dashed border-sidebar-border/70 dark:border-sidebar-border p-4 text-sm text-muted-foreground"
+            class="mb-8 rounded-lg border border-dashed border-sidebar-border/70 p-4 text-sm text-muted-foreground dark:border-sidebar-border"
         >
             <p>
                 <a :href="route('login')" class="font-medium text-primary hover:underline">Sign in</a>
@@ -883,15 +857,11 @@ const submitReport = async () => {
                 v-for="comment in sortedComments"
                 :key="comment.id"
                 :id="`comment-${comment.id}`"
-                class="rounded-lg border border-sidebar-border/50 dark:border-sidebar-border/80 p-4"
+                class="rounded-lg border border-sidebar-border/50 p-4 dark:border-sidebar-border/80"
             >
                 <div class="flex gap-4">
                     <Avatar size="sm" class="mt-1">
-                        <AvatarImage
-                            v-if="comment.user?.avatar_url"
-                            :src="comment.user.avatar_url"
-                            :alt="`${commentAuthor(comment)} avatar`"
-                        />
+                        <AvatarImage v-if="comment.user?.avatar_url" :src="comment.user.avatar_url" :alt="`${commentAuthor(comment)} avatar`" />
                         <AvatarFallback>{{ commentInitials(comment) }}</AvatarFallback>
                     </Avatar>
 
@@ -905,10 +875,7 @@ const submitReport = async () => {
                                     {{ formatCommentTimestamp(comment) }}
                                     <span v-if="isEdited(comment)" class="ml-1 italic">(edited)</span>
                                 </p>
-                                <p
-                                    v-if="authorBioSnippet(comment)"
-                                    class="mt-1 text-xs text-muted-foreground"
-                                >
+                                <p v-if="authorBioSnippet(comment)" class="mt-1 text-xs text-muted-foreground">
                                     {{ authorBioSnippet(comment) }}
                                 </p>
                             </div>
@@ -990,7 +957,7 @@ const submitReport = async () => {
                             <Textarea v-model="editingContent" rows="4" class="w-full" />
                             <InputError :message="editError" />
                         </div>
-                        <p v-else class="whitespace-pre-line text-sm text-foreground">
+                        <p v-else class="text-sm whitespace-pre-line text-foreground">
                             {{ comment.body }}
                         </p>
                     </div>
@@ -1009,9 +976,7 @@ const submitReport = async () => {
         <DialogContent class="sm:max-w-lg">
             <DialogHeader>
                 <DialogTitle>Report comment</DialogTitle>
-                <DialogDescription>
-                    Flag this comment for review by our moderators.
-                </DialogDescription>
+                <DialogDescription> Flag this comment for review by our moderators. </DialogDescription>
             </DialogHeader>
 
             <div v-if="reportTarget" class="rounded-md border border-sidebar-border/60 bg-muted/30 p-3 text-sm">
@@ -1025,7 +990,7 @@ const submitReport = async () => {
                     <select
                         id="reportReason"
                         v-model="reportForm.reason_category"
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
                         :disabled="reportForm.processing || !hasReportReasons"
                     >
                         <option v-for="reason in reportReasons" :key="reason.value" :value="reason.value">
@@ -1066,9 +1031,7 @@ const submitReport = async () => {
             </div>
 
             <DialogFooter class="mt-2">
-                <Button variant="ghost" :disabled="reportForm.processing" @click="reportDialogOpen = false">
-                    Cancel
-                </Button>
+                <Button variant="ghost" :disabled="reportForm.processing" @click="reportDialogOpen = false"> Cancel </Button>
                 <Button :disabled="reportForm.processing || !hasReportReasons" @click="submitReport">
                     <span v-if="reportForm.processing">Submitting...</span>
                     <span v-else>Submit report</span>

@@ -70,9 +70,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Billing invoices', href: route('acp.billing.invoices.index') },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Billing invoices', href: route('acp.billing.invoices.index') }];
 
 const invoices = computed(() => props.invoices.data ?? []);
 const searchQuery = ref(props.filters.search ?? '');
@@ -128,29 +126,21 @@ const formatCurrency = (amount: number, currency: string) => {
         <Head title="Billing invoices" />
 
         <AdminLayout>
-            <section class="flex flex-col w-full space-y-6">
-                <HeadingSmall
-                    title="Stripe invoices"
-                    description="Monitor webhook-synced invoice activity across the community."
-                />
+            <section class="flex w-full flex-col space-y-6">
+                <HeadingSmall title="Stripe invoices" description="Monitor webhook-synced invoice activity across the community." />
 
-                <div class="rounded-lg border border-border bg-card p-4 shadow-xs space-y-4">
+                <div class="space-y-4 rounded-lg border border-border bg-card p-4 shadow-xs">
                     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <div class="space-y-2">
                             <Label for="invoice-search">Search</Label>
-                            <Input
-                                id="invoice-search"
-                                v-model="searchQuery"
-                                type="search"
-                                placeholder="Stripe ID, customer, or plan"
-                            />
+                            <Input id="invoice-search" v-model="searchQuery" type="search" placeholder="Stripe ID, customer, or plan" />
                         </div>
                         <div class="space-y-2">
                             <Label for="invoice-status">Status</Label>
                             <select
                                 id="invoice-status"
                                 v-model="statusFilter"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                             >
                                 <option value="">All statuses</option>
                                 <option v-for="status in props.statusOptions" :key="status" :value="status">
@@ -191,9 +181,7 @@ const formatCurrency = (amount: number, currency: string) => {
                         </TableHeader>
                         <TableBody>
                             <TableRow v-if="invoices.length === 0">
-                                <TableCell colspan="7" class="text-center text-sm text-muted-foreground">
-                                    No invoices recorded yet.
-                                </TableCell>
+                                <TableCell colspan="7" class="text-center text-sm text-muted-foreground"> No invoices recorded yet. </TableCell>
                             </TableRow>
                             <TableRow v-for="invoice in invoices" :key="invoice.id">
                                 <TableCell class="font-mono text-xs">{{ invoice.stripe_id }}</TableCell>

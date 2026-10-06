@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Commerce\CartManager;
 use App\Support\Localization\DateFormatter;
 use App\Support\OAuth\OAuthProviders;
-use App\Support\Commerce\CartManager;
 use App\Support\Routing\ZiggyRouteGroup;
 use App\Support\Seo\Seo;
 use App\Support\WebsiteSections;
@@ -118,7 +118,7 @@ class HandleInertiaRequests extends Middleware
                 'oauth_providers' => OAuthProviders::all(),
             ],
             'cart' => function () use ($request, $websiteSections) {
-                if (!$websiteSections['commerce']) {
+                if (! $websiteSections['commerce']) {
                     return null;
                 }
 

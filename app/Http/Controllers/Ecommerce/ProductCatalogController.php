@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Ecommerce;
 
-use App\Support\Seo\Seo;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
+use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductTag;
-use App\Models\Product;
+use App\Support\Seo\Seo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;

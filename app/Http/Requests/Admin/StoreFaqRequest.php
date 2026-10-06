@@ -15,9 +15,9 @@ class StoreFaqRequest extends FormRequest
     {
         return [
             'faq_category_id' => 'required|integer|exists:faq_categories,id',
-            'question'  => 'required|string|max:255',
-            'answer'    => 'required|string',
-            'order'     => 'integer',
+            'question' => 'required|string|max:255',
+            'answer' => 'required|string',
+            'order' => 'integer',
             'published' => 'boolean',
         ];
     }

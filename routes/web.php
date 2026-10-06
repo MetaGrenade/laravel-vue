@@ -10,8 +10,8 @@ use App\Http\Controllers\Ecommerce\OrderController;
 use App\Http\Controllers\Ecommerce\ProductCatalogController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumPostController;
-use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumPostRevisionController;
+use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumThreadModerationController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PricingController;
@@ -21,14 +21,15 @@ use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SupportCenterController;
 use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
 
 Route::view('/api/docs', 'api.docs')->name('api.docs');
 Route::get('/api/docs/openapi.json', ApiDocumentationController::class)
     ->name('api.docs.schema');
 
-//PUBLIC PAGES
+// PUBLIC PAGES
 Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 
@@ -196,7 +197,7 @@ Route::middleware('section.enabled:support')->group(function () {
     });
 });
 
-//AUTH REQUIRED PAGES
+// AUTH REQUIRED PAGES
 Route::get('dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
@@ -208,6 +209,6 @@ require __DIR__.'/auth.php';
 Route::post('stripe/webhook', StripeWebhookController::class)
     ->name('stripe.webhook')
     ->withoutMiddleware([
-        \Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class,
-        \Laravel\Cashier\Http\Middleware\VerifyWebhookSignature::class,
+        PreventRequestForgery::class,
+        VerifyWebhookSignature::class,
     ]);

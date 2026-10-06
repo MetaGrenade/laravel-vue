@@ -7,8 +7,8 @@ use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Support\Commerce\CartManager;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -46,7 +46,7 @@ class CartController extends Controller
             ?? $product->prices()->where('is_active', true)->orderBy('amount')->first()
             ?? $product->prices()->orderBy('amount')->first();
 
-        if (!$price instanceof Price) {
+        if (! $price instanceof Price) {
             return back()->with('error', 'This product is not available for purchase yet.');
         }
 

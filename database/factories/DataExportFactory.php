@@ -29,7 +29,7 @@ class DataExportFactory extends Factory
     {
         return $this->state(fn () => [
             'status' => DataExport::STATUS_COMPLETED,
-            'file_path' => 'exports/' . $this->faker->uuid . '.zip',
+            'file_path' => 'exports/'.$this->faker->uuid.'.zip',
             'completed_at' => now(),
         ]);
     }

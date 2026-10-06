@@ -61,9 +61,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Billing webhooks', href: route('acp.billing.webhooks.index') },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Billing webhooks', href: route('acp.billing.webhooks.index') }];
 
 const calls = computed(() => props.calls.data ?? []);
 const PER_PAGE_OPTIONS = [10, 25, 50, 100];
@@ -72,7 +70,7 @@ const filterState = reactive({
     search: props.filters?.search ?? '',
     type: props.filters?.type ?? '',
     processed: props.filters?.processed ?? '',
-    per_page: props.filters?.per_page ?? (props.calls.meta?.per_page ?? 25),
+    per_page: props.filters?.per_page ?? props.calls.meta?.per_page ?? 25,
 });
 
 watch(
@@ -115,15 +113,11 @@ const { meta, page, setPage, pageCount, rangeLabel } = useInertiaPagination({
     itemLabel: 'webhook call',
     itemLabelPlural: 'webhook calls',
     onNavigate: (newPage) => {
-        router.get(
-            route('acp.billing.webhooks.index'),
-            buildQuery({ page: newPage }),
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
+        router.get(route('acp.billing.webhooks.index'), buildQuery({ page: newPage }), {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
     },
 });
 
@@ -157,15 +151,11 @@ function buildQuery(overrides: QueryParams = {}) {
 const applyFilters = () => {
     setPage(1, { emitNavigate: false });
 
-    router.get(
-        route('acp.billing.webhooks.index'),
-        buildQuery({ page: 1 }),
-        {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        },
-    );
+    router.get(route('acp.billing.webhooks.index'), buildQuery({ page: 1 }), {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
 };
 
 const resetFilters = () => {
@@ -178,7 +168,7 @@ const resetFilters = () => {
 };
 
 const formatDateTime = (value: string | null) => {
-    if (! value) {
+    if (!value) {
         return '—';
     }
 
@@ -209,12 +199,7 @@ const formatDateTime = (value: string | null) => {
                 >
                     <div class="flex flex-col gap-2">
                         <label for="search" class="text-sm font-medium text-foreground">Search</label>
-                        <Input
-                            id="search"
-                            v-model="filterState.search"
-                            type="search"
-                            placeholder="Search by Stripe ID or type"
-                        />
+                        <Input id="search" v-model="filterState.search" type="search" placeholder="Search by Stripe ID or type" />
                     </div>
 
                     <div class="flex flex-col gap-2">
@@ -222,7 +207,7 @@ const formatDateTime = (value: string | null) => {
                         <select
                             id="type"
                             v-model="filterState.type"
-                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"
+                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:outline-hidden"
                         >
                             <option value="">All types</option>
                             <option v-for="type in typeOptions" :key="type" :value="type">{{ type }}</option>
@@ -234,7 +219,7 @@ const formatDateTime = (value: string | null) => {
                         <select
                             id="processed"
                             v-model="filterState.processed"
-                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"
+                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:outline-hidden"
                         >
                             <option value="">All</option>
                             <option value="processed">Processed</option>
@@ -247,7 +232,7 @@ const formatDateTime = (value: string | null) => {
                         <select
                             id="per_page"
                             v-model.number="filterState.per_page"
-                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"
+                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:outline-hidden"
                         >
                             <option v-for="option in PER_PAGE_OPTIONS" :key="option" :value="option">{{ option }}</option>
                         </select>
@@ -275,9 +260,7 @@ const formatDateTime = (value: string | null) => {
                         </TableHeader>
                         <TableBody>
                             <TableRow v-if="calls.length === 0">
-                                <TableCell colspan="6" class="text-center text-sm text-muted-foreground">
-                                    No webhook calls archived yet.
-                                </TableCell>
+                                <TableCell colspan="6" class="text-center text-sm text-muted-foreground"> No webhook calls archived yet. </TableCell>
                             </TableRow>
                             <TableRow v-for="call in calls" :key="call.id">
                                 <TableCell class="font-mono text-xs">{{ call.stripe_id ?? '—' }}</TableCell>
@@ -292,7 +275,7 @@ const formatDateTime = (value: string | null) => {
                                 <TableCell class="text-sm">{{ formatDateTime(call.created_at) }}</TableCell>
                                 <TableCell class="text-sm">
                                     <span v-if="call.processed_at">{{ formatDateTime(call.processed_at) }}</span>
-                                    <span v-else class="text-xs font-medium uppercase tracking-wide text-amber-600">Pending</span>
+                                    <span v-else class="text-xs font-medium tracking-wide text-amber-600 uppercase">Pending</span>
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <Button variant="outline" size="sm" as-child>

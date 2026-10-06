@@ -51,9 +51,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Create FAQ</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Draft a helpful answer for common support questions to deflect future tickets.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Draft a helpful answer for common support questions to deflect future tickets.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -70,9 +68,7 @@ const handleSubmit = () => {
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />
                             <div class="relative space-y-1">
                                 <CardTitle>Question &amp; answer</CardTitle>
-                                <CardDescription>
-                                    Write concise, friendly guidance that is easy for readers to follow.
-                                </CardDescription>
+                                <CardDescription> Write concise, friendly guidance that is easy for readers to follow. </CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-6">
@@ -107,21 +103,15 @@ const handleSubmit = () => {
                                 <select
                                     id="faq_category_id"
                                     v-model.number="form.faq_category_id"
-                                    class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden"
                                     :disabled="!props.categories.length"
                                     required
                                 >
-                                    <option
-                                        v-for="category in props.categories"
-                                        :key="category.id"
-                                        :value="category.id"
-                                    >
+                                    <option v-for="category in props.categories" :key="category.id" :value="category.id">
                                         {{ category.name }}
                                     </option>
                                 </select>
-                                <p v-if="!props.categories.length" class="text-sm text-muted-foreground">
-                                    Create a category before adding FAQs.
-                                </p>
+                                <p v-if="!props.categories.length" class="text-sm text-muted-foreground">Create a category before adding FAQs.</p>
                                 <InputError :message="form.errors.faq_category_id" />
                             </div>
 

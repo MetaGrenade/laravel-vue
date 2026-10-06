@@ -53,7 +53,7 @@ const submit = () => {
                     </Button>
                 </div>
 
-                <div class="flex items-center gap-3 text-xs uppercase tracking-wide text-muted-foreground">
+                <div class="flex items-center gap-3 text-xs tracking-wide text-muted-foreground uppercase">
                     <Separator class="flex-1" />
                     <span>Or continue with email</span>
                     <Separator class="flex-1" />
@@ -63,7 +63,16 @@ const submit = () => {
             <div class="grid gap-6">
                 <div class="grid gap-2">
                     <Label for="nickname">Nickname</Label>
-                    <Input id="nickname" type="text" required autofocus :tabindex="1" autocomplete="nickname" v-model="form.nickname" placeholder="Nickname" />
+                    <Input
+                        id="nickname"
+                        type="text"
+                        required
+                        autofocus
+                        :tabindex="1"
+                        autocomplete="nickname"
+                        v-model="form.nickname"
+                        placeholder="Nickname"
+                    />
                     <InputError :message="form.errors.nickname" />
                 </div>
 

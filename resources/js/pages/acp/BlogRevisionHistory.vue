@@ -167,13 +167,7 @@ const restoreRevision = (revisionId: number) => {
     );
 };
 
-const {
-    confirmDialogState,
-    confirmDialogDescription,
-    openConfirmDialog,
-    handleConfirmDialogConfirm,
-    handleConfirmDialogCancel,
-} = useConfirmDialog();
+const { confirmDialogState, confirmDialogDescription, openConfirmDialog, handleConfirmDialogConfirm, handleConfirmDialogCancel } = useConfirmDialog();
 
 const requestRestore = (revisionId: number) => {
     if (!canRestore.value) {
@@ -205,28 +199,18 @@ const requestRestore = (revisionId: number) => {
                         </Link>
                         <div>
                             <h1 class="text-3xl font-bold">Blog revision history</h1>
-                            <p class="text-sm text-muted-foreground">
-                                {{ blog.title }} · Status: {{ blog.status }}
-                            </p>
+                            <p class="text-sm text-muted-foreground">{{ blog.title }} · Status: {{ blog.status }}</p>
                         </div>
                     </div>
-                    <div class="text-sm text-muted-foreground md:text-right space-y-1">
+                    <div class="space-y-1 text-sm text-muted-foreground md:text-right">
                         <p v-if="blog.author">Author: {{ blog.author.nickname }}</p>
-                        <p v-if="formatExact(blog.created_at)">
-                            Created {{ formatExact(blog.created_at) }}
-                        </p>
+                        <p v-if="formatExact(blog.created_at)">Created {{ formatExact(blog.created_at) }}</p>
                         <p v-if="formatExact(blog.updated_at)">
                             Updated {{ formatExact(blog.updated_at) }}
-                            <span v-if="formatRelative(blog.updated_at)">
-                                ({{ formatRelative(blog.updated_at) }})
-                            </span>
+                            <span v-if="formatRelative(blog.updated_at)"> ({{ formatRelative(blog.updated_at) }}) </span>
                         </p>
-                        <p v-if="formatExact(blog.published_at)">
-                            Published {{ formatExact(blog.published_at) }}
-                        </p>
-                        <p v-if="formatExact(blog.scheduled_for)">
-                            Scheduled for {{ formatExact(blog.scheduled_for) }}
-                        </p>
+                        <p v-if="formatExact(blog.published_at)">Published {{ formatExact(blog.published_at) }}</p>
+                        <p v-if="formatExact(blog.scheduled_for)">Scheduled for {{ formatExact(blog.scheduled_for) }}</p>
                     </div>
                 </div>
 
@@ -279,11 +263,7 @@ const requestRestore = (revisionId: number) => {
                                 <div v-if="blog.tags.length" class="rounded-lg border bg-muted/30 p-4">
                                     <h3 class="font-semibold">Tags</h3>
                                     <ul class="mt-2 flex flex-wrap gap-2 text-sm">
-                                        <li
-                                            v-for="tag in blog.tags"
-                                            :key="tag.id"
-                                            class="rounded-full bg-background px-3 py-1 shadow-sm"
-                                        >
+                                        <li v-for="tag in blog.tags" :key="tag.id" class="rounded-full bg-background px-3 py-1 shadow-sm">
                                             {{ tag.name }}
                                         </li>
                                     </ul>
@@ -291,7 +271,7 @@ const requestRestore = (revisionId: number) => {
 
                                 <div class="rounded-lg border bg-background p-4 shadow-xs">
                                     <h3 class="font-semibold">Excerpt</h3>
-                                    <p class="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+                                    <p class="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">
                                         {{ blog.excerpt ?? '—' }}
                                     </p>
                                 </div>
@@ -312,19 +292,12 @@ const requestRestore = (revisionId: number) => {
                                 </span>
                             </div>
 
-                            <div
-                                v-if="revisions.length === 0"
-                                class="mt-6 rounded-lg border border-dashed p-6 text-center text-muted-foreground"
-                            >
+                            <div v-if="revisions.length === 0" class="mt-6 rounded-lg border border-dashed p-6 text-center text-muted-foreground">
                                 No revisions recorded yet. Updates to this blog will appear here automatically.
                             </div>
 
                             <div v-else class="mt-6 space-y-4">
-                                <div
-                                    v-for="revision in revisions"
-                                    :key="revision.id"
-                                    class="rounded-lg border p-4 shadow-xs"
-                                >
+                                <div v-for="revision in revisions" :key="revision.id" class="rounded-lg border p-4 shadow-xs">
                                     <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                         <div>
                                             <p class="font-semibold">Saved {{ formatExact(revision.created_at) ?? 'Unknown time' }}</p>
@@ -339,13 +312,7 @@ const requestRestore = (revisionId: number) => {
                                                 {{ formatRelative(revision.created_at) }}
                                             </p>
                                         </div>
-                                        <Button
-                                            v-if="canRestore"
-                                            variant="outline"
-                                            size="sm"
-                                            class="shrink-0"
-                                            @click="requestRestore(revision.id)"
-                                        >
+                                        <Button v-if="canRestore" variant="outline" size="sm" class="shrink-0" @click="requestRestore(revision.id)">
                                             <RotateCcw class="mr-2 h-4 w-4" />
                                             Restore this version
                                         </Button>
@@ -413,7 +380,7 @@ const requestRestore = (revisionId: number) => {
                                         <div class="space-y-3">
                                             <div class="rounded-lg border bg-background p-3 shadow-xs">
                                                 <h4 class="font-semibold">Excerpt</h4>
-                                                <p class="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+                                                <p class="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">
                                                     {{ revision.excerpt ?? '—' }}
                                                 </p>
                                             </div>
@@ -434,8 +401,8 @@ const requestRestore = (revisionId: number) => {
                         </div>
                         <div class="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
                             <p>
-                                Need to investigate an older version? Use the restore button on any revision. We'll keep a
-                                copy of the current content so you can undo the change if needed.
+                                Need to investigate an older version? Use the restore button on any revision. We'll keep a copy of the current content
+                                so you can undo the change if needed.
                             </p>
                         </div>
                     </aside>

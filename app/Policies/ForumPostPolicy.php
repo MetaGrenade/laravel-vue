@@ -38,6 +38,6 @@ class ForumPostPolicy
 
         return $user->id === $post->user_id
             && $thread->is_published
-            && !$thread->is_locked;
+            && ! $thread->is_locked;
     }
 }

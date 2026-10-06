@@ -14,7 +14,7 @@ class ForumThreadModerationController extends Controller
     {
         $this->ensureThreadBelongsToBoard($board, $thread);
 
-        if (!$thread->is_published) {
+        if (! $thread->is_published) {
             $thread->forceFill(['is_published' => true])->save();
         }
 
@@ -36,7 +36,7 @@ class ForumThreadModerationController extends Controller
     {
         $this->ensureThreadBelongsToBoard($board, $thread);
 
-        if (!$thread->is_locked) {
+        if (! $thread->is_locked) {
             $thread->forceFill(['is_locked' => true])->save();
         }
 
@@ -58,7 +58,7 @@ class ForumThreadModerationController extends Controller
     {
         $this->ensureThreadBelongsToBoard($board, $thread);
 
-        if (!$thread->is_pinned) {
+        if (! $thread->is_pinned) {
             $thread->forceFill(['is_pinned' => true])->save();
         }
 
@@ -85,7 +85,7 @@ class ForumThreadModerationController extends Controller
         abort_if($user === null, 403);
 
         $isModerator = $user->hasAnyRole(['admin', 'editor', 'moderator']);
-        $canEditAsAuthor = $user->id === $thread->user_id && $thread->is_published && !$thread->is_locked;
+        $canEditAsAuthor = $user->id === $thread->user_id && $thread->is_published && ! $thread->is_locked;
 
         abort_unless($isModerator || $canEditAsAuthor, 403);
 

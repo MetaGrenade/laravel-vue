@@ -1,5 +1,13 @@
 <?php
 
+use App\Models\ForumBoard;
+use App\Models\ForumCategory;
+use App\Models\ForumPost;
+use App\Models\ForumThread;
+use App\Models\SupportAssignmentRule;
+use App\Models\SupportTeam;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
 return [
@@ -136,14 +144,14 @@ return [
     */
 
     'serializable_classes' => [
-        Illuminate\Database\Eloquent\Collection::class,
-        App\Models\ForumBoard::class,
-        App\Models\ForumCategory::class,
-        App\Models\ForumPost::class,
-        App\Models\ForumThread::class,
-        App\Models\SupportAssignmentRule::class,
-        App\Models\SupportTeam::class,
-        App\Models\User::class,
+        Collection::class,
+        ForumBoard::class,
+        ForumCategory::class,
+        ForumPost::class,
+        ForumThread::class,
+        SupportAssignmentRule::class,
+        SupportTeam::class,
+        User::class,
     ],
 
 ];

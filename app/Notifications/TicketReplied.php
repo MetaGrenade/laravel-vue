@@ -19,7 +19,7 @@ class TicketReplied extends Notification implements ShouldQueue
     use SendsBroadcastsSynchronously;
 
     /**
-     * @param array<int, string> $channels
+     * @param  array<int, string>  $channels
      */
     public function __construct(
         protected SupportTicket $ticket,
@@ -53,16 +53,16 @@ class TicketReplied extends Notification implements ShouldQueue
         $authorName = $this->authorName();
 
         $subject = match ($this->audience) {
-            'agent', 'team' => 'New reply on support ticket: ' . $this->ticket->subject,
-            default => 'We received your reply: ' . $this->ticket->subject,
+            'agent', 'team' => 'New reply on support ticket: '.$this->ticket->subject,
+            default => 'We received your reply: '.$this->ticket->subject,
         };
 
-        $greeting = 'Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!';
+        $greeting = 'Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!';
 
         $messageLines = match ($this->audience) {
             'agent', 'team' => [
                 'There is a new reply on a ticket you are assigned to.',
-                'From: ' . $authorName,
+                'From: '.$authorName,
             ],
             default => [
                 'Your reply has been added to the conversation.',
@@ -70,7 +70,7 @@ class TicketReplied extends Notification implements ShouldQueue
             ],
         };
 
-        $mailMessage = (new MailMessage())
+        $mailMessage = (new MailMessage)
             ->subject($subject)
             ->greeting($greeting);
 
@@ -79,7 +79,7 @@ class TicketReplied extends Notification implements ShouldQueue
         }
 
         if ($excerpt = $this->messageExcerpt()) {
-            $mailMessage->line('Message: ' . $excerpt);
+            $mailMessage->line('Message: '.$excerpt);
         }
 
         $mailMessage
@@ -100,7 +100,7 @@ class TicketReplied extends Notification implements ShouldQueue
     }
 
     /**
-     * @param array<int, string> $channels
+     * @param  array<int, string>  $channels
      */
     public function withChannels(array $channels): self
     {
@@ -139,8 +139,8 @@ class TicketReplied extends Notification implements ShouldQueue
     protected function title(): string
     {
         return match ($this->audience) {
-            'agent', 'team' => 'New reply on ticket: ' . $this->ticket->subject,
-            default => 'New reply on your ticket: ' . $this->ticket->subject,
+            'agent', 'team' => 'New reply on ticket: '.$this->ticket->subject,
+            default => 'New reply on your ticket: '.$this->ticket->subject,
         };
     }
 
@@ -151,7 +151,7 @@ class TicketReplied extends Notification implements ShouldQueue
         }
 
         return match ($this->audience) {
-            'agent', 'team' => $this->authorName() . ' replied to the ticket.',
+            'agent', 'team' => $this->authorName().' replied to the ticket.',
             default => 'Your reply has been added to the conversation.',
         };
     }
@@ -182,7 +182,6 @@ class TicketReplied extends Notification implements ShouldQueue
             ? route('acp.support.tickets.show', ['ticket' => $this->ticket->id])
             : route('support.tickets.show', $this->ticket);
 
-        return $route . '#message-' . $this->message->id;
+        return $route.'#message-'.$this->message->id;
     }
 }
-

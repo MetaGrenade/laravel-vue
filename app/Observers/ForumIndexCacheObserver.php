@@ -7,9 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ForumIndexCacheObserver
 {
-    public function __construct(private readonly ForumIndexCache $cache)
-    {
-    }
+    public function __construct(private readonly ForumIndexCache $cache) {}
 
     public function saved(Model $model): void
     {
