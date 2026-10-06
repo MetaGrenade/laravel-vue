@@ -9,13 +9,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class SecuritySettingsTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function user_can_revoke_an_active_session(): void
     {
         $user = User::factory()->create();
@@ -36,7 +37,7 @@ class SecuritySettingsTest extends TestCase
         $this->assertDatabaseMissing('sessions', ['id' => $sessionId]);
     }
 
-    /** @test */
+    #[Test]
     public function user_can_enable_confirm_and_refresh_multi_factor_authentication(): void
     {
         $user = User::factory()->create();
@@ -83,7 +84,7 @@ class SecuritySettingsTest extends TestCase
         Carbon::setTestNow();
     }
 
-    /** @test */
+    #[Test]
     public function pending_secret_and_qr_code_are_shown_after_generation(): void
     {
         $user = User::factory()->create();

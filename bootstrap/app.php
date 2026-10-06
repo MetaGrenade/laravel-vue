@@ -42,11 +42,11 @@ return Application::configure(basePath: dirname(__DIR__))
             ]
         );
 
+        // PreventBannedUser must run after StartSession so it can resolve the
+        // session-authenticated user and invalidate their session.
         $middleware->web(
-            prepend: [
-                PreventBannedUser::class,
-            ],
             append: [
+                PreventBannedUser::class,
                 EnsureSiteIsAvailable::class,
                 HandleAppearance::class,
                 HandleInertiaRequests::class,

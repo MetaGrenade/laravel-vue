@@ -34,17 +34,14 @@ class BillingWebhookProcessor
         $subscription = $subscriptionId ? Subscription::where('stripe_id', $subscriptionId)->first() : null;
 
         if ($subscription) {
-            $subscription->stripe_status = 'canceled';
+            // The subscription has already been deleted in Stripe, so only the
+            // local record is updated. Calling the Stripe API here would 404.
+            $endedAt = Arr::get($payload, 'data.object.ended_at');
 
-            $secret = (string) config('cashier.secret', '');
-
-            if ($secret !== '') {
-                $subscription->cancel(now());
-            } else {
-                $subscription->forceFill([
-                    'ends_at' => now(),
-                ])->save();
-            }
+            $subscription->forceFill([
+                'stripe_status' => 'canceled',
+                'ends_at' => is_numeric($endedAt) ? Carbon::createFromTimestamp((int) $endedAt) : now(),
+            ])->save();
         }
 
         $this->storeWebhook($payload, $subscription?->user_id ?? $fallbackUserId);
