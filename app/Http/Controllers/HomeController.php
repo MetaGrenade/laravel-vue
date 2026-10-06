@@ -12,8 +12,8 @@ class HomeController extends Controller
     {
         $siteName = (string) config('seo.site_name');
 
-        $seo->title('Laravel Vue Starter Kit — Production-ready Boilerplate for SaaS')
-            ->description('Launch faster with a production-ready Laravel + Vue starter kit with authentication, billing, forums, a blog, a support center and an admin control panel.')
+        $seo->title((string) config('seo.home.title'))
+            ->description((string) config('seo.home.description'))
             ->canonical(route('home'))
             ->schema([
                 '@type' => 'WebSite',

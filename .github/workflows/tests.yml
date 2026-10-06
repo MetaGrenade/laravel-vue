@@ -59,6 +59,7 @@ jobs:
           --health-retries=10
 
     env:
+      EXPECTED_DB_DRIVER: mysql
       DB_CONNECTION: mysql
       DB_HOST: 127.0.0.1
       DB_PORT: 3306
@@ -96,6 +97,7 @@ jobs:
           --health-retries=10
 
     env:
+      EXPECTED_DB_DRIVER: pgsql
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
       DB_PORT: 5432

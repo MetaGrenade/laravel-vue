@@ -17,6 +17,13 @@ return [
     'description' => env('SEO_DESCRIPTION')
         ?: 'A modern platform with community forums, a blog, a support center and subscription billing.',
 
+    // Home page copy. The site name is appended to the title automatically.
+    'home' => [
+        'title' => env('SEO_HOME_TITLE') ?: 'The production-ready starter kit for SaaS and communities',
+        'description' => env('SEO_HOME_DESCRIPTION')
+            ?: 'Launch faster with authentication, billing, a shop, forums, a blog, a support center and an admin control panel, built on Laravel and Vue.',
+    ],
+
     // Absolute URL or path (relative to APP_URL) of the default social share image (1200x630).
     'image' => env('SEO_IMAGE') ?: null,
 

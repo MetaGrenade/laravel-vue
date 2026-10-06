@@ -22,6 +22,7 @@ use App\Http\Controllers\SupportAttachmentController;
 use App\Http\Controllers\SupportCenterController;
 use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
+use App\Http\Controllers\WebManifestController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
 use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
@@ -33,6 +34,7 @@ Route::get('/api/docs/openapi.json', ApiDocumentationController::class)
 // PUBLIC PAGES
 Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+Route::get('/site.webmanifest', WebManifestController::class)->name('webmanifest');
 
 Route::get('/', HomeController::class)->name('home');
 
