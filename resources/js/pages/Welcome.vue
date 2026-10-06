@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { SharedData } from '@/types';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
     ArrowUpRight,
@@ -205,8 +205,7 @@ const faqs = [
 
 <template>
     <AppLayout full-width>
-        <!-- Description, canonical and social tags are set server-side (HomeController). -->
-        <Head title="Laravel Vue Starter Kit — Production-ready Boilerplate for SaaS" />
+        <!-- Title, description, canonical and social tags are set server-side (HomeController). -->
 
         <!-- Hero -->
         <section class="relative overflow-hidden border-b bg-background">

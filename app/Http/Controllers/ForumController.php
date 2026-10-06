@@ -136,10 +136,10 @@ class ForumController extends Controller
             ->whereNotNull('nickname')
             ->where('id', '!=', $user->id)
             ->where(function ($builder) use ($escaped) {
-                $builder->where('nickname', 'like', $escaped.'%')
-                    ->orWhere('nickname', 'like', '%'.$escaped.'%');
+                $builder->whereLike('nickname', $escaped.'%')
+                    ->orWhereLike('nickname', '%'.$escaped.'%');
             })
-            ->orderByRaw('nickname like ? desc', [$escaped.'%'])
+            ->orderByRaw('LOWER(nickname) like ? desc', [Str::lower($escaped).'%'])
             ->orderBy('nickname')
             ->limit(8)
             ->get()
@@ -195,15 +195,15 @@ class ForumController extends Controller
             $likeTerm = "%{$escaped}%";
 
             $threadsQuery->where(function ($query) use ($likeTerm) {
-                $query->where('forum_threads.title', 'like', $likeTerm)
-                    ->orWhere('forum_threads.excerpt', 'like', $likeTerm)
-                    ->orWhere('thread_authors.nickname', 'like', $likeTerm)
+                $query->whereLike('forum_threads.title', $likeTerm)
+                    ->orWhereLike('forum_threads.excerpt', $likeTerm)
+                    ->orWhereLike('thread_authors.nickname', $likeTerm)
                     ->orWhereExists(function ($postQuery) use ($likeTerm) {
                         $postQuery->selectRaw('1')
                             ->from('forum_posts')
                             ->whereColumn('forum_posts.forum_thread_id', 'forum_threads.id')
                             ->whereNull('forum_posts.deleted_at')
-                            ->where('forum_posts.body', 'like', $likeTerm);
+                            ->whereLike('forum_posts.body', $likeTerm);
                     });
             });
         }

@@ -9,6 +9,7 @@ on:
     branches:
       - develop
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,6 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # SQLite: the fast path, also used for local development. Also audits dependencies.
   ci:
     runs-on: ubuntu-latest
 
@@ -25,48 +27,89 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          tools: composer:v2
-          coverage: none
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
 
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v6
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: composer-${{ hashFiles('composer.lock') }}
-          restore-keys: composer-
-
-      - name: Install PHP dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Install Node dependencies
-        run: npm ci
-
-      - name: Prepare environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-
-      - name: Build assets
-        run: npm run build
-
-      - name: Run tests
+      - name: Run tests (SQLite)
         run: php artisan test
 
       - name: Audit dependencies
         run: |
           composer audit
           npm audit --omit=dev --audit-level=high
+
+  # MySQL 8: a supported production database.
+  ci-mysql:
+    name: ci-mysql (MySQL 8)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: metaforge
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      EXPECTED_DB_DRIVER: mysql
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: metaforge
+      DB_USERNAME: root
+      DB_PASSWORD: password
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
+
+      - name: Run tests (MySQL 8)
+        run: php artisan test
+
+  # PostgreSQL 16: a supported production database.
+  ci-pgsql:
+    name: ci-pgsql (PostgreSQL 16)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: metaforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      EXPECTED_DB_DRIVER: pgsql
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: metaforge
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
+
+      - name: Run tests (PostgreSQL 16)
+        run: php artisan test

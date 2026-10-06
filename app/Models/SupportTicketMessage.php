@@ -16,7 +16,7 @@ class SupportTicketMessage extends Model
 
     public function ticket(): BelongsTo
     {
-        return $this->belongsTo(SupportTicket::class);
+        return $this->belongsTo(SupportTicket::class, 'support_ticket_id');
     }
 
     public function author(): BelongsTo

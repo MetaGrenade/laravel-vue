@@ -1,6 +1,8 @@
 <?php
 
 return [
+    // 'database' searches with case-insensitive LIKE and works on MySQL, PostgreSQL and SQLite.
+    // A Meilisearch driver is planned for the 1.0 release.
     'driver' => env('SEARCH_DRIVER', 'database'),
 
     'highlight' => [

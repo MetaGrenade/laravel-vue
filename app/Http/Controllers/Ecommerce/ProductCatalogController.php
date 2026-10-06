@@ -31,8 +31,8 @@ class ProductCatalogController extends Controller
             ->where('is_active', true)
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
+                    $query->whereLike('name', "%{$search}%")
+                        ->orWhereLike('description', "%{$search}%");
                 });
             })
             ->when($filters['category'] ?? null, function ($query, array $categories) {

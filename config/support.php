@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'attachments' => [
+        // Private disk: attachments must not be served directly by the web server.
+        'disk' => env('SUPPORT_ATTACHMENT_DISK', 'local'),
+        'directory' => 'support-attachments',
+    ],
+
     'sla' => [
         'priority_escalations' => [
             'low' => [

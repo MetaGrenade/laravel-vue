@@ -98,9 +98,9 @@ class TokenController extends Controller
         $tokenFilter = trim((string) $request->query('token', ''));
         if ($tokenFilter !== '') {
             $tokenLogQuery->where(function ($query) use ($tokenFilter) {
-                $query->where('token_name', 'like', "%{$tokenFilter}%")
+                $query->whereLike('token_name', "%{$tokenFilter}%")
                     ->orWhereHas('token', function ($innerQuery) use ($tokenFilter) {
-                        $innerQuery->where('name', 'like', "%{$tokenFilter}%");
+                        $innerQuery->whereLike('name', "%{$tokenFilter}%");
                     });
             });
         }

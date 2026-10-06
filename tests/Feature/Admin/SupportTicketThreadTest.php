@@ -130,7 +130,7 @@ class SupportTicketThreadTest extends TestCase
 
     public function test_support_agent_can_reply_with_attachments(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $agent = $this->createSupportAgent(['support.acp.view', 'support.acp.reply']);
         $requester = User::factory()->create();
@@ -171,7 +171,8 @@ class SupportTicketThreadTest extends TestCase
         /** @var SupportTicketMessageAttachment $attachment */
         $attachment = $message->attachments->first();
 
-        Storage::disk('public')->assertExists($attachment->path);
+        $this->assertSame('local', $attachment->disk);
+        Storage::disk('local')->assertExists($attachment->path);
         $this->assertSame('checklist.pdf', $attachment->name);
         $this->assertSame('application/pdf', $attachment->mime_type);
         $this->assertGreaterThan(0, $attachment->size);

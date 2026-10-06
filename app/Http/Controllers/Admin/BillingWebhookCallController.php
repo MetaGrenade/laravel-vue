@@ -30,8 +30,8 @@ class BillingWebhookCallController extends Controller
         $search = trim((string) $request->query('search', ''));
         if ($search !== '') {
             $query->where(function ($innerQuery) use ($search) {
-                $innerQuery->where('stripe_id', 'like', "%{$search}%")
-                    ->orWhere('type', 'like', "%{$search}%");
+                $innerQuery->whereLike('stripe_id', "%{$search}%")
+                    ->orWhereLike('type', "%{$search}%");
             });
         }
 

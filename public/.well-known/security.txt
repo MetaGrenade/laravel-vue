@@ -1,0 +1,6 @@
+# Security contact for this application.
+# Replace the placeholder below with your own contact before going to production.
+# See https://securitytxt.org/ for the format.
+Contact: https://github.com/MetaGrenade/laravel-vue/security/advisories/new
+Preferred-Languages: en
+Expires: 2027-10-06T00:00:00.000Z

@@ -8,6 +8,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
 use App\Http\Middleware\PreventBannedUser;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\ThrottleTokenUsage;
 use App\Http\Middleware\UpdateLastActivity;
 use App\Jobs\AggregateSearchQueryStats;
@@ -51,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 PreventBannedUser::class,
                 EnsureSiteIsAvailable::class,
                 HandleAppearance::class,
+                SetLocale::class,
                 HandleInertiaRequests::class,
                 AddLinkHeadersForPreloadedAssets::class,
                 UpdateLastActivity::class,

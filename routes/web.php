@@ -18,9 +18,11 @@ use App\Http\Controllers\PricingController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SearchResultsController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\SupportAttachmentController;
 use App\Http\Controllers\SupportCenterController;
 use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
+use App\Http\Controllers\WebManifestController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
 use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
@@ -32,6 +34,7 @@ Route::get('/api/docs/openapi.json', ApiDocumentationController::class)
 // PUBLIC PAGES
 Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+Route::get('/site.webmanifest', WebManifestController::class)->name('webmanifest');
 
 Route::get('/', HomeController::class)->name('home');
 
@@ -164,6 +167,12 @@ Route::middleware('section.enabled:forum')->group(function () {
             ->name('forum.threads.destroy');
     });
 });
+
+// Attachment downloads stay available to ticket owners and staff even if the public
+// support section is switched off, so they sit outside the section toggle.
+Route::middleware('auth')
+    ->get('support/attachments/{attachment}', [SupportAttachmentController::class, 'download'])
+    ->name('support.attachments.download');
 
 Route::middleware('section.enabled:support')->group(function () {
     Route::get('support', [SupportCenterController::class, 'index'])->name('support');

@@ -1,8 +1,10 @@
-# Laravel Vue Starter
+# MetaForge
 
-A batteries-included boilerplate for building SaaS products and large community websites with Laravel and Vue. The project ships with a production-ready forum, blog, support center, and admin tooling so teams can focus on features rather than scaffolding. Inertia.js keeps the frontend and backend in sync, Tailwind CSS powers the design system, and first-class TypeScript support ensures maintainable UI code.
+A batteries-included boilerplate for building SaaS products, online shops and large community websites with Laravel and Vue. The project ships with a production-ready forum, blog, support center, and admin tooling so teams can focus on features rather than scaffolding. Inertia.js keeps the frontend and backend in sync, Tailwind CSS powers the design system, and first-class TypeScript support ensures maintainable UI code.
 
 ![Forum Page Example](https://i.imgur.com/gYNFkFl.png)
+
+> **Status: pre-1.0.** The foundation is in place and the road to a stable 1.0.0 (checkout and orders, Stripe and Tebex payments, plan entitlements, search at scale and more) is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md). Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Stack Highlights
 - **Backend – Laravel 13 (PHP 8.4+)** with Sanctum for API tokens, Spatie Permissions for RBAC, Laravel Cashier (Stripe) for billing, queue/listener scaffolding, and opinionated seeders for fast iteration.
@@ -17,6 +19,9 @@ A batteries-included boilerplate for building SaaS products and large community 
 - **Blog & Previewing**: Public blog listing, tokenized preview links, and authenticated commenting APIs.
 - **Support Center**: Ticket submission, messaging threads, authenticated access to customer conversations, and configurable
   assignment rules so tickets auto-route to the right agents or support teams without touching the database.
+- **Shop (in progress)**: Product catalogue with variants, prices and inventory, a cart and an order history page. Checkout and payment are on the 1.0 roadmap.
+- **Polls & Surveys**: Polls with admin management, voting and an API.
+- **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics.
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
 - **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, support assignment rules, team membership, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
 - **Authentication & Authorization**: Starter-kit authentication (registration, login, password reset, email verification, TOTP two-factor and social login) plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
@@ -45,7 +50,8 @@ resources/
 ## Prerequisites
 - PHP 8.4+ with Composer 2.
 - Node.js 22.13+ (24 LTS recommended, see `.nvmrc`) with npm.
-- A database supported by Laravel: SQLite (default), MySQL/MariaDB, PostgreSQL or SQL Server. Configure credentials in `.env`.
+- A database: SQLite (the default, for local development and tests), **MySQL 8** or **PostgreSQL 16**. CI runs the whole test suite on all three. Configure credentials in `.env`.
+- Optional: Docker, for the backing services in `compose.yaml` (see below).
 
 ## Quick Start
 > **Shortcut:** after cloning, `composer setup` installs PHP and Node dependencies, creates `.env`, generates the app key, runs migrations and builds the frontend.
@@ -78,6 +84,14 @@ resources/
    - Start Laravel: `php artisan serve`
    - Start Vite dev server: `npm run dev`
    - Or run everything (Laravel, queues, and Vite) in one terminal: `composer dev`
+
+### Local services with Docker (optional)
+`compose.yaml` provides MySQL, PostgreSQL, Redis, Meilisearch and Mailpit for local development; the application itself still runs on your machine.
+```bash
+docker compose up -d mysql redis mailpit        # choose what you need
+docker compose --profile pgsql up -d pgsql      # PostgreSQL is opt-in
+```
+Then point `.env` at them (database, `REDIS_*`, and `MAIL_*` for Mailpit on `127.0.0.1:1025`). See [CONTRIBUTING.md](CONTRIBUTING.md) for running the tests against each database.
 
 ### Realtime Broadcasting & Pusher Setup
 The starter comes pre-wired for private and presence channels using Laravel Echo and Pusher. If Pusher
@@ -314,7 +328,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - **Env hardening**: Configure HTTPS (`SESSION_SECURE_COOKIE=true`, `APP_FORCE_HTTPS` behind a proxy), queues (e.g., Redis), the scheduler and mail drivers in `.env` before deploying. Run `php artisan optimize` during deployment.
 
 ## Contributing
-Issues and pull requests are welcome! Please include tests or updates to this documentation when modifying setup steps, tooling, or major features.
+Issues and pull requests are welcome! Read [CONTRIBUTING.md](CONTRIBUTING.md) first; it covers setup, the checks every change must pass and how to write code that works on all supported databases. Please include tests or updates to this documentation when modifying setup steps, tooling, or major features. Report security problems privately as described in [SECURITY.md](SECURITY.md).
 
 ## Useful Links
 
@@ -332,7 +346,7 @@ Issues and pull requests are welcome! Please include tests or updates to this do
 
 - **Layout Height Utilities**: `html`, `body`, and `#app` are set to `height: 100%` in `resources/views/app.blade.php` so flex layouts and `h-full` panels render as expected across the SPA.
 - **N+1 queries**: In the `local` environment lazy loading is detected and logged as a warning (`storage/logs`), so missing eager loads show up during development.
-- **Storage Symlink**: Run `php artisan storage:link` after provisioning to expose public asset uploads (e.g., avatars, attachments) served from `storage/app/public`.
+- **Storage Symlink**: Run `php artisan storage:link` after provisioning to expose public uploads (for example blog cover images) served from `storage/app/public`. Support-ticket attachments are private: they live on the disk named by `SUPPORT_ATTACHMENT_DISK` (default `local`) and are only served through an authorised download route.
 - **Keep Docs Current**: When introducing new tooling, scripts, or workflows, update this README so onboarding remains frictionless for future contributors.
 
 ## License

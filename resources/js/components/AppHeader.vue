@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
+import { useI18n } from '@/composables/useI18n';
 import { useRoles } from '@/composables/useRoles';
 import { currentEcho, loadEcho } from '@/lib/echo';
 import { cn } from '@/lib/utils';
@@ -235,6 +236,7 @@ type SectionAwareNavItem = NavItem & {
 };
 
 const { hasRole } = useRoles();
+const { t } = useI18n();
 
 const isNavItemVisible = (item: SectionAwareNavItem): boolean => {
     if (item.section && !websiteSections.value[item.section]) {
@@ -263,31 +265,31 @@ const websiteSections = computed(() => {
 const commerceEnabled = computed(() => Boolean(websiteSections.value.commerce));
 
 const baseMainNavItems: SectionAwareNavItem[] = [
-    { title: 'Home', href: '/', target: '_self', icon: Home },
-    { title: 'Pricing', href: '/pricing', target: '_self', icon: Layers },
-    { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag, section: 'commerce' },
-    { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid, requiresAuth: true },
-    { title: 'Blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
-    { title: 'Forum', href: '/forum', target: '_self', icon: MessagesSquare, section: 'forum' },
+    { title: 'ui.nav.home', href: '/', target: '_self', icon: Home },
+    { title: 'ui.nav.pricing', href: '/pricing', target: '_self', icon: Layers },
+    { title: 'ui.nav.shop', href: '/shop', target: '_self', icon: ShoppingBag, section: 'commerce' },
+    { title: 'ui.nav.dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid, requiresAuth: true },
+    { title: 'ui.nav.blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
+    { title: 'ui.nav.forum', href: '/forum', target: '_self', icon: MessagesSquare, section: 'forum' },
 ];
 
 const baseRightNavItems: SectionAwareNavItem[] = [
     {
-        title: 'Admin',
+        title: 'ui.nav.admin',
         href: '/acp',
         target: '_self',
         icon: Shield,
         roles: 'admin|editor|moderator',
     },
     {
-        title: 'Support',
+        title: 'ui.nav.support',
         href: '/support',
         target: '_self',
         icon: LifeBuoy,
         section: 'support',
     },
     {
-        title: 'Repository',
+        title: 'ui.nav.repository',
         href: 'https://github.com/MetaGrenade/laravel-vue',
         target: '_blank',
         icon: FolderGit2,
@@ -296,9 +298,12 @@ const baseRightNavItems: SectionAwareNavItem[] = [
 
 const isExternal = (item: NavItem) => item.target === '_blank';
 
-const mainNavItems = computed<NavItem[]>(() => baseMainNavItems.filter(isNavItemVisible));
+// Item titles above are translation keys; resolve them for display.
+const translateItems = (items: SectionAwareNavItem[]): NavItem[] => items.filter(isNavItemVisible).map((item) => ({ ...item, title: t(item.title) }));
 
-const rightNavItems = computed<NavItem[]>(() => baseRightNavItems.filter(isNavItemVisible));
+const mainNavItems = computed<NavItem[]>(() => translateItems(baseMainNavItems));
+
+const rightNavItems = computed<NavItem[]>(() => translateItems(baseRightNavItems));
 
 const setNotificationProcessing = (id: string, processing: boolean) => {
     if (!id) {
@@ -415,7 +420,7 @@ const viewNotification = (notification: NotificationItem) => {
             <!-- Mobile menu -->
             <Sheet>
                 <SheetTrigger as-child>
-                    <Button variant="ghost" size="icon" class="-ml-2 lg:hidden" aria-label="Open navigation menu">
+                    <Button variant="ghost" size="icon" class="-ml-2 lg:hidden" :aria-label="t('ui.nav.open_menu')">
                         <Menu class="size-5" />
                     </Button>
                 </SheetTrigger>
@@ -424,7 +429,7 @@ const viewNotification = (notification: NotificationItem) => {
                         <SheetTitle class="sr-only">Navigation menu</SheetTitle>
                         <AppLogo />
                     </SheetHeader>
-                    <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Main">
+                    <nav class="flex-1 space-y-1 overflow-y-auto p-3" :aria-label="t('ui.nav.main')">
                         <Link
                             v-for="item in mainNavItems"
                             :key="item.title"
@@ -459,22 +464,22 @@ const viewNotification = (notification: NotificationItem) => {
                     </div>
                     <div v-if="!user" class="grid gap-2 border-t p-4">
                         <Button variant="outline" as-child>
-                            <Link :href="route('login')">Log in</Link>
+                            <Link :href="route('login')">{{ t('ui.actions.log_in') }}</Link>
                         </Button>
                         <Button v-if="canRegister" as-child>
-                            <Link :href="route('register')">Get started</Link>
+                            <Link :href="route('register')">{{ t('ui.actions.get_started') }}</Link>
                         </Button>
                     </div>
                 </SheetContent>
             </Sheet>
 
             <!-- Logo -->
-            <Link :href="route('home')" class="mr-4 flex shrink-0 items-center rounded-md" aria-label="Home">
+            <Link :href="route('home')" class="mr-4 flex shrink-0 items-center rounded-md" :aria-label="t('ui.nav.home')">
                 <AppLogo />
             </Link>
 
             <!-- Desktop navigation -->
-            <nav class="hidden items-center gap-1 lg:flex" aria-label="Main">
+            <nav class="hidden items-center gap-1 lg:flex" :aria-label="t('ui.nav.main')">
                 <Link
                     v-for="item in mainNavItems"
                     :key="item.title"
@@ -500,14 +505,14 @@ const viewNotification = (notification: NotificationItem) => {
                     @click="openCommandPalette"
                 >
                     <Search class="size-4" />
-                    <span>Search…</span>
+                    <span>{{ t('ui.actions.search_placeholder') }}</span>
                     <kbd class="ml-auto rounded border bg-background px-1.5 font-mono text-[0.7rem] font-medium">Ctrl K</kbd>
                 </button>
                 <Button
                     variant="ghost"
                     size="icon"
                     class="text-muted-foreground hover:text-foreground md:hidden"
-                    aria-label="Search"
+                    :aria-label="t('ui.actions.search')"
                     @click="openCommandPalette"
                 >
                     <Search class="size-[1.15rem]" />
@@ -704,10 +709,10 @@ const viewNotification = (notification: NotificationItem) => {
 
                 <template v-else>
                     <Button variant="ghost" size="sm" class="ml-1 hidden sm:inline-flex" as-child>
-                        <Link :href="route('login')">Log in</Link>
+                        <Link :href="route('login')">{{ t('ui.actions.log_in') }}</Link>
                     </Button>
                     <Button v-if="canRegister" size="sm" class="hidden sm:inline-flex" as-child>
-                        <Link :href="route('register')">Get started</Link>
+                        <Link :href="route('register')">{{ t('ui.actions.get_started') }}</Link>
                     </Button>
                 </template>
             </div>

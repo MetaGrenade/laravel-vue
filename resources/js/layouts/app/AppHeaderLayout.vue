@@ -3,6 +3,7 @@ import AppContent from '@/components/AppContent.vue';
 import AppFooter from '@/components/AppFooter.vue';
 import AppHeader from '@/components/AppHeader.vue';
 import AppShell from '@/components/AppShell.vue';
+import { useI18n } from '@/composables/useI18n';
 import type { BreadcrumbItemType } from '@/types';
 
 interface Props {
@@ -14,6 +15,8 @@ withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
     fullWidth: false,
 });
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -22,7 +25,7 @@ withDefaults(defineProps<Props>(), {
             href="#main-content"
             class="sr-only z-50 rounded-md bg-background px-4 py-2 text-sm font-medium shadow focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
         >
-            Skip to content
+            {{ t('ui.nav.skip_to_content') }}
         </a>
         <AppHeader :breadcrumbs="breadcrumbs" />
         <AppContent :full-width="fullWidth">

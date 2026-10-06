@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import type { SharedData } from '@/types';
+import { usePage } from '@inertiajs/vue3';
 
 withDefaults(
     defineProps<{
@@ -8,6 +10,8 @@ withDefaults(
     }>(),
     { iconOnly: false },
 );
+
+const page = usePage<SharedData>();
 </script>
 
 <template>
@@ -16,6 +20,6 @@ withDefaults(
             <AppLogoIcon class="size-[1.1rem]" />
             <span class="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full bg-highlight ring-2 ring-background" aria-hidden="true" />
         </span>
-        <span v-if="!iconOnly" class="truncate text-[0.95rem] font-semibold tracking-tight">MetaForge</span>
+        <span v-if="!iconOnly" class="truncate text-[0.95rem] font-semibold tracking-tight">{{ page.props.name }}</span>
     </span>
 </template>

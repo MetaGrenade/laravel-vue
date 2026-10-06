@@ -50,6 +50,13 @@ return new class extends Migration
     {
         $driver = Schema::getConnection()->getDriverName();
 
+        // The older status set has no 'scheduled' value. Posts that were waiting
+        // to be published go back to drafts first; otherwise restoring the enum
+        // (MySQL strict mode) or the column (SQLite) fails as soon as any post
+        // has used the status. PostgreSQL is handled by
+        // 2026_10_08_000100_allow_scheduled_blog_status_on_postgresql.
+        DB::table('blogs')->where('status', 'scheduled')->update(['status' => 'draft']);
+
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE blogs MODIFY status ENUM('draft','published','archived') DEFAULT 'draft'");
 

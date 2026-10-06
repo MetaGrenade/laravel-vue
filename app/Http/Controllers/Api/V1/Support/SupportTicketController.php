@@ -10,12 +10,11 @@ use App\Models\SupportTicketMessageAttachment;
 use App\Notifications\TicketOpened;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
+use App\Support\SupportAttachmentStorage;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class SupportTicketController extends Controller
 {
@@ -65,31 +64,9 @@ class SupportTicketController extends Controller
 
             $message->setRelation('author', $ticket->user);
 
-            $attachments = $request->file('attachments', []);
+            $attachments = $request->file('attachments');
 
-            if ($attachments instanceof UploadedFile) {
-                $attachments = [$attachments];
-            } elseif (! is_array($attachments)) {
-                $attachments = [];
-            }
-
-            $disk = 'public';
-
-            foreach ($attachments as $file) {
-                if (! $file) {
-                    continue;
-                }
-
-                $path = $file->store("support-attachments/{$ticket->id}", $disk);
-
-                $message->attachments()->create([
-                    'disk' => $disk,
-                    'path' => $path,
-                    'name' => $file->getClientOriginalName() ?: $file->hashName(),
-                    'mime_type' => $file->getClientMimeType(),
-                    'size' => $file->getSize() ?: 0,
-                ]);
-            }
+            app(SupportAttachmentStorage::class)->attach($message, $ticket, $attachments);
 
             $message->touch();
 
@@ -168,7 +145,7 @@ class SupportTicketController extends Controller
                     'id' => $attachment->id,
                     'name' => $attachment->name,
                     'size' => $attachment->size,
-                    'download_url' => Storage::disk($attachment->disk)->url($attachment->path),
+                    'download_url' => app(SupportAttachmentStorage::class)->downloadUrl($attachment, true),
                 ])
                 ->values()
                 ->all(),

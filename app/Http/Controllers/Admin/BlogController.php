@@ -83,13 +83,13 @@ class BlogController extends Controller
                 $like = "%{$search}%";
 
                 $query
-                    ->where('title', 'like', $like)
-                    ->orWhere('slug', 'like', $like)
-                    ->orWhere('status', 'like', $like)
+                    ->whereLike('title', $like)
+                    ->orWhereLike('slug', $like)
+                    ->orWhereLike('status', $like)
                     ->orWhereHas('user', function ($userQuery) use ($like) {
                         $userQuery
-                            ->where('nickname', 'like', $like)
-                            ->orWhere('email', 'like', $like);
+                            ->whereLike('nickname', $like)
+                            ->orWhereLike('email', $like);
                     });
             });
         }

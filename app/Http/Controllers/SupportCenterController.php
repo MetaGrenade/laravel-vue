@@ -19,12 +19,11 @@ use App\Notifications\TicketReplied;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
 use App\Support\Seo\Seo;
+use App\Support\SupportAttachmentStorage;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -92,13 +91,13 @@ class SupportCenterController extends Controller
 
                     $query->where(function ($query) use ($like) {
                         $query
-                            ->where('subject', 'like', $like)
-                            ->orWhere('status', 'like', $like)
-                            ->orWhere('priority', 'like', $like)
+                            ->whereLike('subject', $like)
+                            ->orWhereLike('status', $like)
+                            ->orWhereLike('priority', $like)
                             ->orWhereHas('assignee', function ($query) use ($like) {
                                 $query
-                                    ->where('nickname', 'like', $like)
-                                    ->orWhere('email', 'like', $like);
+                                    ->whereLike('nickname', $like)
+                                    ->orWhereLike('email', $like);
                             });
                     });
                 })
@@ -170,8 +169,8 @@ class SupportCenterController extends Controller
 
                 $query->where(function ($query) use ($like) {
                     $query
-                        ->where('question', 'like', $like)
-                        ->orWhere('answer', 'like', $like);
+                        ->whereLike('question', $like)
+                        ->orWhereLike('answer', $like);
                 });
             })
             ->orderBy('order')
@@ -326,31 +325,9 @@ class SupportCenterController extends Controller
 
             $message->setRelation('author', $ticket->user);
 
-            $attachments = $request->file('attachments', []);
+            $attachments = $request->file('attachments');
 
-            if ($attachments instanceof UploadedFile) {
-                $attachments = [$attachments];
-            } elseif (! is_array($attachments)) {
-                $attachments = [];
-            }
-
-            $disk = 'public';
-
-            foreach ($attachments as $file) {
-                if (! $file) {
-                    continue;
-                }
-
-                $path = $file->store("support-attachments/{$ticket->id}", $disk);
-
-                $message->attachments()->create([
-                    'disk' => $disk,
-                    'path' => $path,
-                    'name' => $file->getClientOriginalName() ?: $file->hashName(),
-                    'mime_type' => $file->getClientMimeType(),
-                    'size' => $file->getSize() ?: 0,
-                ]);
-            }
+            app(SupportAttachmentStorage::class)->attach($message, $ticket, $attachments);
 
             $message->touch();
 
@@ -408,7 +385,7 @@ class SupportCenterController extends Controller
                                 'id' => $attachment->id,
                                 'name' => $attachment->name,
                                 'size' => $attachment->size,
-                                'download_url' => Storage::disk($attachment->disk)->url($attachment->path),
+                                'download_url' => app(SupportAttachmentStorage::class)->downloadUrl($attachment),
                             ];
                         })
                         ->values()
@@ -486,31 +463,9 @@ class SupportCenterController extends Controller
 
             $message->setRelation('author', $request->user());
 
-            $attachments = $request->file('attachments', []);
+            $attachments = $request->file('attachments');
 
-            if ($attachments instanceof UploadedFile) {
-                $attachments = [$attachments];
-            } elseif (! is_array($attachments)) {
-                $attachments = [];
-            }
-
-            $disk = 'public';
-
-            foreach ($attachments as $file) {
-                if (! $file) {
-                    continue;
-                }
-
-                $path = $file->store("support-attachments/{$ticket->id}", $disk);
-
-                $message->attachments()->create([
-                    'disk' => $disk,
-                    'path' => $path,
-                    'name' => $file->getClientOriginalName() ?: $file->hashName(),
-                    'mime_type' => $file->getClientMimeType(),
-                    'size' => $file->getSize() ?: 0,
-                ]);
-            }
+            app(SupportAttachmentStorage::class)->attach($message, $ticket, $attachments);
 
             $ticket->touch();
             $message->touch();

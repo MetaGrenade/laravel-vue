@@ -86,6 +86,11 @@ export interface CartSummary {
 
 export interface SharedData extends PageProps {
     name: string;
+    /** Active interface language (see config/i18n.php). */
+    locale: string;
+    locales: string[];
+    /** Flattened translations for the shared groups, e.g. `{ 'ui.nav.home': 'Home' }`. */
+    translations: Record<string, string>;
     quote: { message: string; author: string };
     auth: Auth;
     notifications: NotificationBag;

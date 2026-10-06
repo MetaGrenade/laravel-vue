@@ -1,0 +1,15 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    # Raise this over time. 1.0.0 targets level 5; see docs/ROADMAP-v1.0.0.md.
+    level: 5
+
+    paths:
+        - app
+        - routes
+        - database/factories
+        - database/seeders
+
+    tmpDir: storage/framework/phpstan

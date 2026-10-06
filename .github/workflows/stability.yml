@@ -1,0 +1,45 @@
+name: stability
+
+# Runs the test suite repeatedly in random order to surface order-dependent
+# or flaky tests. When a run fails, the log prints the random seed so the
+# failure can be reproduced locally with:
+#   vendor/bin/phpunit --order-by=random --random-order-seed=<seed>
+
+on:
+  schedule:
+    - cron: '43 4 * * 3'
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Number of repeated runs
+        default: '10'
+
+permissions:
+  contents: read
+
+jobs:
+  repeat:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
+
+      - name: Run the suite repeatedly in random order
+        shell: bash
+        run: |
+          runs="${{ github.event.inputs.runs || '10' }}"
+          failed=0
+          for i in $(seq 1 "$runs"); do
+            echo "::group::run $i of $runs"
+            if ! vendor/bin/phpunit --order-by=random --colors=never; then
+              echo "::error::run $i failed; see the Random Seed line above to reproduce"
+              failed=$((failed + 1))
+            fi
+            echo "::endgroup::"
+          done
+          echo "$failed of $runs runs failed"
+          test "$failed" -eq 0
