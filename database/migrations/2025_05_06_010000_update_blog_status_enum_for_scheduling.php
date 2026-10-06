@@ -20,6 +20,14 @@ return new class extends Migration
             return;
         }
 
+        if ($driver === 'pgsql') {
+            // Laravel's enum() is a varchar with an inline CHECK constraint on PostgreSQL.
+            DB::statement('ALTER TABLE blogs DROP CONSTRAINT IF EXISTS blogs_status_check');
+            DB::statement("ALTER TABLE blogs ADD CONSTRAINT blogs_status_check CHECK (status IN ('draft','scheduled','published','archived'))");
+
+            return;
+        }
+
         if ($driver === 'sqlite') {
             Schema::table('blogs', function (Blueprint $table) {
                 $table->string('status_temp')->default('draft');
@@ -52,6 +60,13 @@ return new class extends Migration
 
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE blogs MODIFY status ENUM('draft','published','archived') DEFAULT 'draft'");
+
+            return;
+        }
+
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE blogs DROP CONSTRAINT IF EXISTS blogs_status_check');
+            DB::statement("ALTER TABLE blogs ADD CONSTRAINT blogs_status_check CHECK (status IN ('draft','published','archived'))");
 
             return;
         }
