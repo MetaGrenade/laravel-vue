@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Support\Database\Sql;
 use App\Http\Controllers\Controller;
 use App\Models\Blog;
 use App\Models\SearchQueryAggregate;
@@ -310,7 +311,7 @@ class AdminController extends Controller
         $start = now()->startOfMonth()->subMonths(11);
 
         $userRegistrationsByMonth = User::select([
-                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
+                Sql::yearMonth('created_at', 'month'),
                 DB::raw('COUNT(*) as total'),
             ])
             ->where('created_at', '>=', $start)
@@ -319,7 +320,7 @@ class AdminController extends Controller
             ->pluck('total', 'month');
 
         $supportTicketsByMonth = SupportTicket::select([
-                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
+                Sql::yearMonth('created_at', 'month'),
                 DB::raw('COUNT(*) as total'),
             ])
             ->where('created_at', '>=', $start)

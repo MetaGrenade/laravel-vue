@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Seo\Seo;
 use App\Support\Security\HtmlSanitizer;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Resources\MentionSuggestionResource;
@@ -45,6 +46,10 @@ class ForumController extends Controller
         $categories = $this->forumIndexCache->categories();
         $trendingThreads = $this->forumIndexCache->trendingThreads();
         $latestPosts = $this->forumIndexCache->latestPosts();
+
+        app(Seo::class)
+            ->title('Community Forum')
+            ->description('Join the conversation: ask questions, share ideas and get help from the community.');
 
         return Inertia::render('Forum', [
             'categories' => $categories->map(function (ForumCategory $category) use ($formatter) {
@@ -256,6 +261,11 @@ class ForumController extends Controller
             })
             ->values();
 
+        app(Seo::class)
+            ->title($board->title.' - Forum')
+            ->description($board->description ?: "Discussions in {$board->title}.")
+            ->canonical($this->paginatedCanonical(route('forum.boards.show', $board), $request));
+
         return Inertia::render('ForumThreads', [
             'board' => [
                 'id' => $board->id,
@@ -444,6 +454,29 @@ class ForumController extends Controller
             )
         );
 
+        $opener = $thread->posts()->oldest()->first(['id', 'body', 'created_at']);
+        $threadUrl = route('forum.threads.show', [$board, $thread]);
+
+        app(Seo::class)
+            ->title($thread->title)
+            ->description($thread->excerpt ?: $opener?->body)
+            ->canonical($this->paginatedCanonical($threadUrl, $request))
+            ->type('article')
+            ->schema(array_filter([
+                '@type' => 'DiscussionForumPosting',
+                'headline' => $thread->title,
+                'url' => $threadUrl,
+                'datePublished' => $thread->created_at?->toAtomString(),
+                'dateModified' => ($thread->last_posted_at ?? $thread->updated_at)?->toAtomString(),
+                'author' => $thread->author ? ['@type' => 'Person', 'name' => $thread->author->nickname] : null,
+                'text' => $opener ? Str::limit(trim(strip_tags($opener->body)), 500) : null,
+                'interactionStatistic' => [
+                    '@type' => 'InteractionCounter',
+                    'interactionType' => 'https://schema.org/CommentAction',
+                    'userInteractionCount' => max(0, $posts->total() - 1),
+                ],
+            ]));
+
         return Inertia::render('ForumThreadView', [
             'board' => [
                 'title' => $board->title,
@@ -507,6 +540,16 @@ class ForumController extends Controller
         })->implode('');
 
         return '<blockquote>' . $quoteBody . '</blockquote><p></p>';
+    }
+
+    /**
+     * Canonical URL for a paginated listing: keeps the page number, drops filters.
+     */
+    private function paginatedCanonical(string $url, Request $request): string
+    {
+        $page = (int) $request->query('page', 1);
+
+        return $page > 1 ? $url.'?'.http_build_query(['page' => $page]) : $url;
     }
 
     public function createThread(Request $request, ForumBoard $board): Response

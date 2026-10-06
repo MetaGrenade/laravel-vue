@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use App\Support\Localization\DateFormatter;
 use App\Support\OAuth\OAuthProviders;
 use App\Support\Commerce\CartManager;
+use App\Support\Routing\ZiggyRouteGroup;
+use App\Support\Seo\Seo;
 use App\Support\WebsiteSections;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
@@ -41,8 +43,6 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
-
         $user = $request->user();
         $formatter = DateFormatter::for($user);
         $websiteSections = WebsiteSections::all();
@@ -50,13 +50,19 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
-            'quote' => [
-                'message' => trim($message),
-                'author' => trim($author)
-            ],
+            'quote' => function () {
+                [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
+
+                return [
+                    'message' => trim($message),
+                    'author' => trim($author),
+                ];
+            },
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
+                'warning' => $request->session()->get('warning'),
+                'info' => $request->session()->get('info'),
                 'plain_text_token' => $request->session()->get('plain_text_token'),
             ],
             'auth' => [
@@ -65,7 +71,7 @@ class HandleInertiaRequests extends Middleware
                     ? $user->getAllPermissions()->pluck('name')
                     : [],
             ],
-            'notifications' => $user ? (function () use ($user, $formatter) {
+            'notifications' => fn () => $user ? (function () use ($user, $formatter) {
                 $unreadQuery = $user->unreadNotifications()->latest();
 
                 $unreadCount = (clone $unreadQuery)->count();
@@ -101,10 +107,9 @@ class HandleInertiaRequests extends Middleware
                 'unread_count' => 0,
                 'has_more' => false,
             ],
-            'ziggy' => [
-                ...(new Ziggy)->toArray(),
-                'location' => $request->url(),
-            ],
+            'ziggy' => fn () => $this->ziggy($request),
+            // Rendered into <head> by Inertia's `serverHead` option (see resources/js/app.ts).
+            'seoHead' => fn () => app(Seo::class)->headElements(),
             'billing' => [
                 'stripeKey' => config('cashier.key'),
             ],
@@ -121,6 +126,29 @@ class HandleInertiaRequests extends Middleware
 
                 return CartManager::summary($cart);
             },
+        ];
+    }
+
+    /**
+     * Ziggy data for the page.
+     *
+     * The route map is only needed when the initial HTML response is rendered
+     * by the SSR server; the browser receives it once via the @routes Blade
+     * directive. Subsequent Inertia visits only need the current location.
+     *
+     * @return array<string, mixed>
+     */
+    protected function ziggy(Request $request): array
+    {
+        $location = ['location' => $request->fullUrl()];
+
+        if ($request->inertia() || ! config('inertia.ssr.enabled')) {
+            return $location;
+        }
+
+        return [
+            ...(new Ziggy(ZiggyRouteGroup::for($request->user())))->toArray(),
+            ...$location,
         ];
     }
 }

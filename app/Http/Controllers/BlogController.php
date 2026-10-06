@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Seo\Seo;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Models\Blog;
 use App\Models\BlogCategory;
@@ -14,7 +15,6 @@ use App\Support\Spam\CommentGuard;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\HtmlString;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -150,6 +150,10 @@ class BlogController extends Controller
             ])
             ->values()
             ->all();
+
+        app(Seo::class)
+            ->title('Blog')
+            ->description('News, product updates and guides from the team.');
 
         return Inertia::render('Blog', [
             'blogs' => array_merge([
@@ -425,37 +429,38 @@ class BlogController extends Controller
             ->values()
             ->all();
 
-        $renderTag = static function (string $tag, array $attributes): HtmlString {
-            $attributeString = collect($attributes)
-                ->map(fn ($value, $key) => sprintf('%s="%s"', $key, e($value)))
-                ->implode(' ');
+        $seo = app(Seo::class)
+            ->title($blog->title)
+            ->description($metaDescription ?? $blog->body)
+            ->canonical($canonicalUrl)
+            ->image($metaImage, $blog->title)
+            ->article(
+                publishedAt: $blog->published_at,
+                modifiedAt: $blog->updated_at,
+                author: $authorName,
+                section: $blog->categories->first()?->name,
+            );
 
-            $closing = $tag === 'meta' || $tag === 'link' ? ' />' : '>';
+        $seo->schema(array_filter([
+            '@type' => 'BlogPosting',
+            'headline' => $blog->title,
+            'description' => $metaDescription,
+            'image' => $metaImage ? [$metaImage] : null,
+            'datePublished' => $blog->published_at?->toAtomString(),
+            'dateModified' => $blog->updated_at?->toAtomString(),
+            'mainEntityOfPage' => $canonicalUrl,
+            'author' => $authorName ? ['@type' => 'Person', 'name' => $authorName] : null,
+            'publisher' => ['@type' => 'Organization', 'name' => config('seo.site_name')],
+            'keywords' => $blog->tags->pluck('name')->implode(', ') ?: null,
+        ]));
 
-            return new HtmlString(sprintf('<%s %s%s', $tag, $attributeString, $closing));
-        };
-
-        $metaTags = collect([
-            $metaDescription ? ['name' => 'description', 'content' => $metaDescription] : null,
-            ['property' => 'og:type', 'content' => 'article'],
-            ['property' => 'og:title', 'content' => $blog->title],
-            $metaDescription ? ['property' => 'og:description', 'content' => $metaDescription] : null,
-            ['property' => 'og:url', 'content' => $canonicalUrl],
-            $metaImage ? ['property' => 'og:image', 'content' => $metaImage] : null,
-            $authorName ? ['property' => 'article:author', 'content' => $authorName] : null,
-            ['name' => 'twitter:card', 'content' => $metaImage ? 'summary_large_image' : 'summary'],
-            ['name' => 'twitter:title', 'content' => $blog->title],
-            $metaDescription ? ['name' => 'twitter:description', 'content' => $metaDescription] : null,
-            $metaImage ? ['name' => 'twitter:image', 'content' => $metaImage] : null,
-            $authorName ? ['name' => 'twitter:creator', 'content' => $authorName] : null,
-        ])->filter()
-            ->map(fn (array $attributes) => $renderTag('meta', $attributes))
-            ->all();
-
-        $linkTags = collect([
-            ['rel' => 'canonical', 'href' => $canonicalUrl],
-        ])->map(fn (array $attributes) => $renderTag('link', $attributes))
-            ->all();
+        $seo->schema([
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => [
+                ['@type' => 'ListItem', 'position' => 1, 'name' => 'Blog', 'item' => route('blogs.index')],
+                ['@type' => 'ListItem', 'position' => 2, 'name' => $blog->title, 'item' => $canonicalUrl],
+            ],
+        ]);
 
         $currentUser = $request->user();
 
@@ -508,9 +513,6 @@ class BlogController extends Controller
             'commentsEnabled' => (bool) $blog->comments_enabled,
             'commentReportReasons' => $reportReasons,
             'commentCaptchaToken' => $commentCaptchaToken,
-        ])->withViewData([
-            'metaTags' => $metaTags,
-            'linkTags' => $linkTags,
         ]);
     }
 
@@ -590,6 +592,8 @@ class BlogController extends Controller
         ]);
 
         $formatter = DateFormatter::for(request()->user());
+
+        app(Seo::class)->title($blog->title)->noindex();
 
         return Inertia::render('BlogPreview', [
             'blog' => [

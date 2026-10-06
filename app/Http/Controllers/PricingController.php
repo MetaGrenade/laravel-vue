@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Seo\Seo;
 use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
@@ -42,6 +43,10 @@ class PricingController extends Controller
                 'features' => $plan->features ?? [],
                 'stripe_price_id' => $plan->stripe_price_id,
             ])->values();
+
+        app(Seo::class)
+            ->title('Pricing')
+            ->description('Simple, transparent pricing. Compare plans and pick the one that fits your team.');
 
         return Inertia::render('Pricing', [
             'plans' => $plans,

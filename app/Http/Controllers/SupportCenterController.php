@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Seo\Seo;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Requests\StoreFaqFeedbackRequest;
 use App\Http\Requests\StorePublicSupportTicketMessageRequest;
@@ -244,6 +245,10 @@ class SupportCenterController extends Controller
             })
             ->values()
             ->all();
+
+        app(Seo::class)
+            ->title('Help & Support')
+            ->description('Answers to common questions, plus a ticket system for anything else.');
 
         return Inertia::render('Support', [
             'tickets' => $ticketsPayload,

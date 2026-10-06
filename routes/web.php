@@ -13,9 +13,11 @@ use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumPostRevisionController;
 use App\Http\Controllers\ForumThreadModerationController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SearchResultsController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SupportCenterController;
 use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
@@ -27,9 +29,10 @@ Route::get('/api/docs/openapi.json', ApiDocumentationController::class)
     ->name('api.docs.schema');
 
 //PUBLIC PAGES
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('home');
+Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+
+Route::get('/', HomeController::class)->name('home');
 
 Route::get('/search', SearchController::class)->name('search');
 Route::get('/search/results', SearchResultsController::class)->name('search.results');

@@ -14,6 +14,7 @@ use App\Policies\BlogCommentPolicy;
 use App\Policies\ForumPostPolicy;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\Security\HtmlSanitizer;
+use App\Support\Seo\Seo;
 use Illuminate\Cache\RateLimiting\Limit;
 use App\Observers\ForumIndexCacheObserver;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(SubscriptionManager::class, fn () => new SubscriptionManager());
         $this->app->singleton(HtmlSanitizer::class);
+        $this->app->scoped(Seo::class);
     }
 
     /**

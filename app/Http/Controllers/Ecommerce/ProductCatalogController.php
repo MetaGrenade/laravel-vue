@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Ecommerce;
 
+use App\Support\Seo\Seo;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\ProductCategory;
 use App\Models\ProductTag;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -64,6 +66,10 @@ class ProductCatalogController extends Controller
                 ];
             });
 
+        app(Seo::class)
+            ->title('Shop')
+            ->description('Browse our products.');
+
         return Inertia::render('commerce/Catalog', [
             'products' => $products,
             'filters' => [
@@ -82,7 +88,21 @@ class ProductCatalogController extends Controller
 
     public function show(Product $product): Response
     {
+        abort_unless($product->is_active, 404);
+
         $product->load(['options.values', 'variants.prices', 'prices', 'inventoryItems', 'categories', 'tags', 'brand']);
+
+        app(Seo::class)
+            ->title($product->name)
+            ->description($product->description)
+            ->canonical(route('shop.products.show', $product))
+            ->schema(array_filter([
+                '@type' => 'Product',
+                'name' => $product->name,
+                'description' => $product->description ? Str::limit(strip_tags($product->description), 500) : null,
+                'brand' => $product->brand ? ['@type' => 'Brand', 'name' => $product->brand->name] : null,
+                'url' => route('shop.products.show', $product),
+            ]));
 
         return Inertia::render('commerce/ProductDetail', [
             'product' => $product,
