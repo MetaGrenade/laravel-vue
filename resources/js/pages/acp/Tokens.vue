@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { type BreadcrumbItem, type SharedData } from '@/types';
+import { type BreadcrumbItem, type SharedData , type QueryParams } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -142,7 +142,7 @@ const tokenSecretDialogOpen = ref(false);
 const tokenSecretValue = ref('');
 const tokenSecretCopied = ref(false);
 const tokenSecretCopyError = ref<string | null>(null);
-let tokenSecretCopyTimeout: ReturnType<typeof setTimeout> | null = null;
+let tokenSecretCopyTimeout: number | null = null;
 
 watch(flashPlainTextToken, (value) => {
     if (value) {
@@ -314,7 +314,7 @@ const {
     },
 });
 
-function cleanQuery(query: Record<string, unknown>) {
+function cleanQuery(query: QueryParams) {
     return Object.fromEntries(
         Object.entries(query).filter(([, value]) => {
             if (value === null || value === undefined) {
@@ -330,7 +330,7 @@ function cleanQuery(query: Record<string, unknown>) {
     );
 }
 
-function buildQueryParams(overrides: Record<string, unknown> = {}) {
+function buildQueryParams(overrides: QueryParams = {}) {
     return cleanQuery({
         page: tokensPage.value,
         logs_page: tokenLogsPage.value,
@@ -343,7 +343,7 @@ function buildQueryParams(overrides: Record<string, unknown> = {}) {
     });
 }
 
-const applyLogFilters = (overrides: Record<string, unknown> = {}) => {
+const applyLogFilters = (overrides: QueryParams = {}) => {
     setTokenLogsPage(1, { emitNavigate: false });
 
     router.get(

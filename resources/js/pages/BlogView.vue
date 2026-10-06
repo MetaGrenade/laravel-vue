@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
+import { csrfHeaders } from '@/lib/http';
 import Button from '@/components/ui/button/Button.vue';
 import BlogComments from '@/components/blog/BlogComments.vue';
 import { Share2 } from '@lucide/vue';
@@ -102,6 +103,8 @@ type BlogPayload = {
     user?: BlogAuthor | null;
     comments?: PaginatedComments;
     comments_enabled?: boolean;
+    views?: number;
+    last_viewed_at?: string | null;
     comment_report_reasons?: ReportReasonOption[];
     cover_image?: string | null;
     categories?: BlogTaxonomyItem[];
@@ -160,7 +163,6 @@ watch(
     },
 );
 
-const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 
 const extractSubscriptionError = async (response: Response): Promise<string> => {
     try {
@@ -209,7 +211,7 @@ const subscribeToComments = async () => {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
+                ...csrfHeaders(),
             },
         });
 
@@ -249,7 +251,7 @@ const unsubscribeFromComments = async () => {
             method: 'DELETE',
             headers: {
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
+                ...csrfHeaders(),
             },
         });
 
@@ -474,9 +476,9 @@ const shareLinks = computed(() => ({
             </div>
 
             <!-- Share Section -->
-            <div class="mb-8 flex items-center justify-between rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+            <div class="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
                 <span class="text-lg font-semibold">Share this post:</span>
-                <div class="flex space-x-2">
+                <div class="flex flex-wrap gap-2">
                     <Button
                         as="a"
                         :href="shareLinks.facebook"

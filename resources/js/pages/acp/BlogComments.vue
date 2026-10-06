@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { QueryParams } from '@/types';
 import { computed, reactive, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
@@ -103,7 +104,7 @@ const filterState = reactive({
 });
 
 const buildFilters = (overrides: Partial<typeof filterState & { page: number }> = {}) => {
-    const params: Record<string, unknown> = {};
+    const params: QueryParams = {};
 
     const searchValue = overrides.search ?? filterState.search;
     if (searchValue && searchValue.trim() !== '') {
@@ -174,8 +175,8 @@ const reportIdsForSelection = (ids: number[]) => {
     return Array.from(uniqueIds.values());
 };
 
-const toggleReportSelection = (id: number, checked: boolean) => {
-    if (checked) {
+const toggleReportSelection = (id: number, checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         if (!selectedCommentIds.value.includes(id)) {
             selectedCommentIds.value = [...selectedCommentIds.value, id];
         }
@@ -184,8 +185,8 @@ const toggleReportSelection = (id: number, checked: boolean) => {
     }
 };
 
-const toggleAllReports = (checked: boolean) => {
-    if (checked) {
+const toggleAllReports = (checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         selectedCommentIds.value = props.reports.data.map((report) => report.id);
     } else {
         selectedCommentIds.value = [];
@@ -321,7 +322,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 id="status"
                                 v-model="filterState.status"
                                 class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
-                                @change="visitWithFilters"
+                                @change="visitWithFilters()"
                             >
                                 <option value="all">All</option>
                                 <option v-for="statusOption in props.statuses" :key="statusOption" :value="statusOption">
@@ -336,7 +337,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 id="reason"
                                 v-model="filterState.reasonCategory"
                                 class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
-                                @change="visitWithFilters"
+                                @change="visitWithFilters()"
                             >
                                 <option value="all">All</option>
                                 <option v-for="reason in props.reportReasons" :key="reason.value" :value="reason.value">
@@ -351,7 +352,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 id="perPage"
                                 v-model="filterState.perPage"
                                 class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
-                                @change="visitWithFilters"
+                                @change="visitWithFilters()"
                             >
                                 <option value="10">10</option>
                                 <option value="25">25</option>
@@ -366,7 +367,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 id="sortBy"
                                 v-model="filterState.sort"
                                 class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
-                                @change="visitWithFilters"
+                                @change="visitWithFilters()"
                             >
                                 <option value="newest">Newest reports</option>
                                 <option value="oldest">Oldest reports</option>
@@ -376,7 +377,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-2">
-                        <Button variant="secondary" size="sm" class="gap-2" @click="visitWithFilters">
+                        <Button variant="secondary" size="sm" class="gap-2" @click="visitWithFilters()">
                             <Filter class="h-4 w-4" />
                             Apply filters
                         </Button>

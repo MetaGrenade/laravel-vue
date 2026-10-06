@@ -50,3 +50,6 @@ jobs:
 
       - name: Lint frontend (ESLint)
         run: npm run lint:check
+
+      - name: Type-check frontend (vue-tsc)
+        run: npm run types:check

@@ -85,8 +85,8 @@ const statusAlert = computed(() => {
     }
 });
 
-const exportError = computed(() => exportForm.errors.export ?? null);
-const erasureError = computed(() => erasureForm.errors.erasure ?? null);
+const exportError = computed(() => (exportForm.errors as Record<string, string | undefined>).export ?? null);
+const erasureError = computed(() => (erasureForm.errors as Record<string, string | undefined>).erasure ?? null);
 
 const requestExport = () => {
     if (!exportForm.processing) {

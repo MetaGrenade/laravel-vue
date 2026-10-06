@@ -4,7 +4,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem , type QueryParams } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import Label from '@/components/ui/label/Label.vue';
@@ -120,8 +120,8 @@ const quickVisitOptions = {
     replace: true,
 } as const;
 
-const buildQuery = (overrides: Record<string, unknown> = {}) => {
-    const query: Record<string, unknown> = {};
+const buildQuery = (overrides: QueryParams = {}) => {
+    const query: QueryParams = {};
 
     const trimmedSearch = searchQuery.value.trim();
     if (trimmedSearch !== '') {
@@ -151,7 +151,7 @@ const buildQuery = (overrides: Record<string, unknown> = {}) => {
     return { ...query, ...overrides };
 };
 
-const applyFilters = (overrides: Record<string, unknown> = {}) => {
+const applyFilters = (overrides: QueryParams = {}) => {
     router.get(route('acp.users.index'), buildQuery(overrides), quickVisitOptions);
 };
 
@@ -418,8 +418,8 @@ const bulkActionForm = useForm<{ ids: number[]; action: BulkAction }>({
     action: 'verify',
 });
 
-const updateUserSelection = (userId: number, checked: boolean) => {
-    if (checked) {
+const updateUserSelection = (userId: number, checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         if (!selectedUserIds.value.includes(userId)) {
             selectedUserIds.value = [...selectedUserIds.value, userId];
         }
@@ -430,8 +430,8 @@ const updateUserSelection = (userId: number, checked: boolean) => {
     selectedUserIds.value = selectedUserIds.value.filter((id) => id !== userId);
 };
 
-const toggleAllUsers = (checked: boolean) => {
-    if (checked) {
+const toggleAllUsers = (checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         selectedUserIds.value = userItems.value.map((item) => item.id);
 
         return;

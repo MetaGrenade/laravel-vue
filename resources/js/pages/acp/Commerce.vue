@@ -126,7 +126,7 @@ const variantOptionsText = ref('');
 
 const priceForm = useForm({
     priceable_type: 'App\\Models\\Product',
-    priceable_id: props.products[0]?.id ?? null,
+    priceable_id: (props.products[0]?.id ?? null) as number | null,
     currency: 'USD',
     amount: 0,
     compare_at_amount: null as number | null,

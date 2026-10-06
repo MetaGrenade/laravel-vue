@@ -62,7 +62,7 @@ const form = useForm({
     allow_multiple: props.poll.allow_multiple,
     starts_at: toLocalInput(props.poll.starts_at),
     ends_at: toLocalInput(props.poll.ends_at),
-    options: props.poll.options.map((option) => ({
+    options: props.poll.options.map((option): { id?: number; label: string } => ({
         id: option.id,
         label: option.label,
     })),

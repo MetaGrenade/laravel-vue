@@ -61,7 +61,7 @@ return [
             'img-src' => ["'self'", 'data:', 'blob:', 'https:'],
             'font-src' => ["'self'", 'data:'],
             'connect-src' => ["'self'", 'https://api.stripe.com', 'https://*.pusher.com', 'wss://*.pusher.com'],
-            'frame-src' => ['https://js.stripe.com', 'https://*.js.stripe.com', 'https://hooks.stripe.com'],
+            'frame-src' => ["'self'", 'https://js.stripe.com', 'https://*.js.stripe.com', 'https://hooks.stripe.com'],
             'frame-ancestors' => ["'self'"],
             'form-action' => ["'self'"],
             'base-uri' => ["'self'"],

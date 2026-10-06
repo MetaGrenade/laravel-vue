@@ -286,7 +286,6 @@ const subscribe = async () => {
             successMessage.value = 'Payment confirmed! Refreshing your subscription details.';
             await router.reload({
                 only: ['subscription', 'invoices'],
-                preserveScroll: true,
             });
             await fetchSetupIntent();
             coupon.value = '';
@@ -304,7 +303,6 @@ const subscribe = async () => {
 
         await router.reload({
             only: ['subscription', 'invoices'],
-            preserveScroll: true,
         });
 
         await fetchSetupIntent();

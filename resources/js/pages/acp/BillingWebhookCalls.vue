@@ -18,7 +18,7 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, QueryParams } from '@/types';
 
 interface WebhookUser {
     id: number;
@@ -108,7 +108,7 @@ const typeOptions = computed(() => {
     return Array.from(types).sort((a, b) => a.localeCompare(b));
 });
 
-const { page, setPage, pageCount, rangeLabel } = useInertiaPagination({
+const { meta, page, setPage, pageCount, rangeLabel } = useInertiaPagination({
     meta: computed(() => props.calls.meta ?? null),
     itemsLength: computed(() => calls.value.length),
     defaultPerPage: filterState.per_page || 25,
@@ -127,7 +127,7 @@ const { page, setPage, pageCount, rangeLabel } = useInertiaPagination({
     },
 });
 
-function cleanQuery(query: Record<string, unknown>) {
+function cleanQuery(query: QueryParams) {
     return Object.fromEntries(
         Object.entries(query).filter(([, value]) => {
             if (value === null || value === undefined) {
@@ -143,7 +143,7 @@ function cleanQuery(query: Record<string, unknown>) {
     );
 }
 
-function buildQuery(overrides: Record<string, unknown> = {}) {
+function buildQuery(overrides: QueryParams = {}) {
     return cleanQuery({
         page: page.value,
         per_page: filterState.per_page,
@@ -205,7 +205,7 @@ const formatDateTime = (value: string | null) => {
 
                 <form
                     class="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-xs md:grid-cols-4 md:items-end"
-                    @submit.prevent="applyFilters"
+                    @submit.prevent="applyFilters()"
                 >
                     <div class="flex flex-col gap-2">
                         <label for="search" class="text-sm font-medium text-foreground">Search</label>
@@ -306,29 +306,30 @@ const formatDateTime = (value: string | null) => {
 
                 <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <p class="text-sm text-muted-foreground">{{ rangeLabel }}</p>
-                    <Pagination v-if="pageCount > 1">
-                        <PaginationList>
-                            <PaginationListItem>
-                                <PaginationFirst :disabled="page <= 1" @click="setPage(1)" />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <PaginationPrev :disabled="page <= 1" @click="setPage(page - 1)" />
-                            </PaginationListItem>
-                            <PaginationListItem v-if="page > 2">
-                                <PaginationEllipsis />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <Button variant="outline" class="h-8 min-w-8 px-3" disabled>{{ page }}</Button>
-                            </PaginationListItem>
-                            <PaginationListItem v-if="page < pageCount - 1">
-                                <PaginationEllipsis />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <PaginationNext :disabled="page >= pageCount" @click="setPage(page + 1)" />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <PaginationLast :disabled="page >= pageCount" @click="setPage(pageCount)" />
-                            </PaginationListItem>
+                    <Pagination
+                        v-if="pageCount > 1"
+                        v-slot="{ page: currentPage }"
+                        v-model:page="page"
+                        :items-per-page="Math.max(meta.per_page, 1)"
+                        :total="meta.total"
+                        :sibling-count="1"
+                        show-edges
+                    >
+                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationFirst />
+                            <PaginationPrev />
+
+                            <template v-for="(item, index) in items" :key="index">
+                                <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                    <Button class="h-9 w-9 p-0" :variant="item.value === currentPage ? 'default' : 'outline'">
+                                        {{ item.value }}
+                                    </Button>
+                                </PaginationListItem>
+                                <PaginationEllipsis v-else :index="index" />
+                            </template>
+
+                            <PaginationNext />
+                            <PaginationLast />
                         </PaginationList>
                     </Pagination>
                 </div>

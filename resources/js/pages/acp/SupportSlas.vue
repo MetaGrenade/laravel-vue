@@ -104,7 +104,7 @@ const submit = () => {
     form.put(route('acp.support.sla.update'), {
         preserveScroll: true,
         onSuccess: () => {
-            form.setDefaults({
+            form.defaults({
                 priority_escalations: buildEscalationState(),
                 reassign_after: buildReassignState(),
             });

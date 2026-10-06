@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue';
 import type { CheckboxRootProps } from 'reka-ui';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem , type QueryParams } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
@@ -85,7 +85,7 @@ const buildQueryParams = (
         max_views: number | null;
     }> = {},
 ) => {
-    const params: Record<string, unknown> = {};
+    const params: QueryParams = {};
 
     const searchValue = overrides.search ?? searchQuery.value;
     if (searchValue && searchValue.trim() !== '') {
@@ -247,7 +247,7 @@ const trendingChartData = computed(() =>
         Views: post.views,
     })),
 );
-const trendingChartCategories = ['Views'];
+const trendingChartCategories = ['Views'] as const;
 
 const {
     meta: blogsMeta,
@@ -291,6 +291,7 @@ type BlogRow = {
     scheduled_for: string | null;
     views: number;
     last_viewed_at: string | null;
+    comments_enabled: boolean;
 };
 
 const blogRows = computed<BlogRow[]>(() => props.blogs.data ?? []);
@@ -343,8 +344,8 @@ const bulkBlogForm = useForm<{ ids: number[]; action: 'publish' | 'unpublish' | 
     action: 'publish',
 });
 
-const updateBlogSelection = (blogId: number, checked: boolean) => {
-    if (checked) {
+const updateBlogSelection = (blogId: number, checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         if (!selectedBlogIds.value.includes(blogId)) {
             selectedBlogIds.value = [...selectedBlogIds.value, blogId];
         }
@@ -355,8 +356,8 @@ const updateBlogSelection = (blogId: number, checked: boolean) => {
     selectedBlogIds.value = selectedBlogIds.value.filter((id) => id !== blogId);
 };
 
-const toggleAllBlogs = (checked: boolean) => {
-    if (checked) {
+const toggleAllBlogs = (checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         selectedBlogIds.value = blogRows.value.map((row) => row.id);
 
         return;

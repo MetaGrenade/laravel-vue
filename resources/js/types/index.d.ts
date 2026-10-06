@@ -31,6 +31,7 @@ export interface User {
     forum_signature?: string | null;
     reputation_points?: number;
     badges?: Array<UserBadge>;
+    roles?: Array<{ id: number; name: string }>;
     timezone: string;
     locale: string;
     email_verified_at: string | null;
@@ -104,3 +105,8 @@ export interface SharedData extends PageProps {
     };
     cart: CartSummary | null;
 }
+
+/**
+ * Query string / request data accepted by Inertia's router (router.get, router.post, ...).
+ */
+export type QueryParams = Record<string, import('@inertiajs/core').FormDataConvertible>;

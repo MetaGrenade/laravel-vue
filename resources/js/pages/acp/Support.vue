@@ -39,6 +39,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 import {
     XCircle, HelpCircle, Ticket, TicketX, MessageSquare, CheckCircle, Ellipsis, UserPlus, SquareChevronUp,
     Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff, X, ThumbsUp, ThumbsDown, Star,
@@ -188,6 +189,32 @@ const quickActionVisitOptions = {
     preserveState: true,
     replace: true,
 } as const;
+
+const {
+    confirmDialogState,
+    confirmDialogDescription,
+    openConfirmDialog,
+    handleConfirmDialogConfirm,
+    handleConfirmDialogCancel,
+} = useConfirmDialog();
+
+const confirmDeleteTicket = (ticketId: number) => {
+    openConfirmDialog({
+        title: `Delete ticket #${ticketId}?`,
+        description: 'The ticket and its full message history will be permanently removed.',
+        confirmLabel: 'Delete ticket',
+        onConfirm: () => router.delete(route('acp.support.tickets.destroy', { ticket: ticketId }), quickActionVisitOptions),
+    });
+};
+
+const confirmDeleteFaq = (faqId: number) => {
+    openConfirmDialog({
+        title: 'Delete this FAQ?',
+        description: 'The FAQ will be removed from the help center.',
+        confirmLabel: 'Delete FAQ',
+        onConfirm: () => router.delete(route('acp.support.faqs.destroy', { faq: faqId }), quickActionVisitOptions),
+    });
+};
 
 const assignDialogOpen = ref(false);
 const assignDialogTicket = ref<Ticket | null>(null);
@@ -499,8 +526,8 @@ const bulkStatusForm = useForm<{ ids: number[]; status: TicketStatus }>({
     status: 'open',
 });
 
-const updateTicketSelection = (ticketId: number, checked: boolean) => {
-    if (checked) {
+const updateTicketSelection = (ticketId: number, checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         if (!selectedTicketIds.value.includes(ticketId)) {
             selectedTicketIds.value = [...selectedTicketIds.value, ticketId];
         }
@@ -511,8 +538,8 @@ const updateTicketSelection = (ticketId: number, checked: boolean) => {
     selectedTicketIds.value = selectedTicketIds.value.filter((id) => id !== ticketId);
 };
 
-const toggleAllTickets = (checked: boolean) => {
-    if (checked) {
+const toggleAllTickets = (checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         selectedTicketIds.value = ticketItems.value.map((item) => item.id);
 
         return;
@@ -1054,7 +1081,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                 :categories="['average']"
                                 index="month"
                                 :show-legend="false"
-                                :y-formatter="(value: number) => `${value.toFixed(1)}`"
+                                :y-formatter="(value: number | Date) => (typeof value === 'number' ? value.toFixed(1) : '')"
                             />
                             <div class="text-xs text-gray-500">Includes resolved tickets with ratings.</div>
                         </div>
@@ -1468,7 +1495,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                         <DropdownMenuSeparator v-if="deleteSupport" />
                                                         <DropdownMenuGroup v-if="deleteSupport">
                                                             <DropdownMenuItem
-                                                                @select="$inertia.delete(route('acp.support.tickets.destroy', { ticket: t.id }))"
+                                                                @select="confirmDeleteTicket(t.id)"
                                                             >
                                                                 <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
@@ -1641,7 +1668,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                             </Link>
                                                             <DropdownMenuItem
                                                                 v-if="deleteSupport"
-                                                                @select="$inertia.delete(route('acp.support.faqs.destroy', { faq: f.id }))"
+                                                                @select="confirmDeleteFaq(f.id)"
                                                             >
                                                                 <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
@@ -1788,6 +1815,18 @@ const unpublishFaq = (faq: FaqItem) => {
             @update:open="handleStatusDialogChange"
             @confirm="confirmStatusUpdate"
             @cancel="handleStatusDialogChange(false)"
+        />
+
+        <ConfirmDialog
+            v-model:open="confirmDialogState.open"
+            :title="confirmDialogState.title"
+            :description="confirmDialogDescription"
+            :confirm-label="confirmDialogState.confirmLabel"
+            :cancel-label="confirmDialogState.cancelLabel"
+            :confirm-variant="confirmDialogState.confirmVariant"
+            :confirm-disabled="confirmDialogState.confirmDisabled"
+            @confirm="handleConfirmDialogConfirm"
+            @cancel="handleConfirmDialogCancel"
         />
     </AppLayout>
 </template>

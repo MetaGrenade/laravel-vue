@@ -4,7 +4,7 @@ import type { CheckboxRootProps } from 'reka-ui';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem , type QueryParams } from '@/types';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
@@ -193,10 +193,10 @@ const bulkReportForm = useForm<{ status: ReportStatus; reports: Array<{ id: numb
     reports: [],
 });
 
-const updateReportSelection = (report: Report, checked: boolean) => {
+const updateReportSelection = (report: Report, checked: boolean | 'indeterminate') => {
     const key = reportKey(report);
 
-    if (checked) {
+    if (checked === true) {
         if (!selectedReportKeys.value.includes(key)) {
             selectedReportKeys.value = [...selectedReportKeys.value, key];
         }
@@ -207,8 +207,8 @@ const updateReportSelection = (report: Report, checked: boolean) => {
     selectedReportKeys.value = selectedReportKeys.value.filter((value) => value !== key);
 };
 
-const toggleAllReports = (checked: boolean) => {
-    if (checked) {
+const toggleAllReports = (checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         selectedReportKeys.value = reportItems.value.map((item) => reportKey(item));
 
         return;
@@ -286,8 +286,8 @@ const pendingTotals = computed(() => statusSummary.value['pending'] ?? { threads
 const reviewedTotals = computed(() => statusSummary.value['reviewed'] ?? { threads: 0, posts: 0, total: 0 });
 const dismissedTotals = computed(() => statusSummary.value['dismissed'] ?? { threads: 0, posts: 0, total: 0 });
 
-const buildQuery = (overrides: Record<string, unknown> = {}) => {
-    const query: Record<string, unknown> = {
+const buildQuery = (overrides: QueryParams = {}) => {
+    const query: QueryParams = {
         type: filterState.type,
         status: filterState.status,
         per_page: Number.parseInt(filterState.per_page, 10) || undefined,
@@ -315,7 +315,7 @@ const buildQuery = (overrides: Record<string, unknown> = {}) => {
     return query;
 };
 
-const applyFilters = (overrides: Record<string, unknown> = {}) => {
+const applyFilters = (overrides: QueryParams = {}) => {
     router.get(
         route('acp.forums.reports.index'),
         buildQuery({ page: 1, ...overrides }),
@@ -335,8 +335,8 @@ const clearFilters = () => {
 
 const {
     meta: reportsMeta,
+    page: reportsPage,
     rangeLabel: reportsRangeLabel,
-    setPage: setReportsPage,
 } = useInertiaPagination({
     meta: computed(() => props.reports.meta ?? null),
     itemsLength: computed(() => props.reports.data?.length ?? 0),
@@ -414,7 +414,7 @@ const submitModeration = () => {
         ? 'acp.forums.reports.threads.update'
         : 'acp.forums.reports.posts.update';
 
-    const payload: Record<string, unknown> = {
+    const payload: QueryParams = {
         status: moderationStatus.value,
     };
 
@@ -487,7 +487,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
 
                 <section class="rounded-xl border bg-background p-6 shadow-xs">
                     <div class="flex flex-col gap-6">
-                        <form class="grid gap-4 md:grid-cols-5" @submit.prevent="applyFilters">
+                        <form class="grid gap-4 md:grid-cols-5" @submit.prevent="applyFilters()">
                             <div class="grid gap-2">
                                 <Label for="filter-type">Content</Label>
                                 <select
@@ -750,39 +750,29 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <div class="flex flex-col items-start gap-2 md:flex-row md:items-center md:justify-between">
                                 <p class="text-sm text-muted-foreground">{{ reportsRangeLabel }}</p>
 
-                                <Pagination v-if="reportsMeta.total > reportsMeta.per_page" class="w-full justify-end md:w-auto">
+                                <Pagination
+                                    v-if="reportsMeta.total > reportsMeta.per_page"
+                                    v-slot="{ page: currentPage }"
+                                    v-model:page="reportsPage"
+                                    :items-per-page="Math.max(reportsMeta.per_page, 1)"
+                                    :total="reportsMeta.total"
+                                    :sibling-count="1"
+                                    show-edges
+                                    class="w-full justify-end md:w-auto"
+                                >
                                     <PaginationList v-slot="{ items }" class="flex items-center gap-1">
-                                        <PaginationFirst
-                                            :href="props.reports.links?.first ?? undefined"
-                                            :disabled="reportsMeta.current_page === 1"
-                                            @click.prevent="setReportsPage(1)"
-                                        />
-                                        <PaginationPrev
-                                            :href="props.reports.links?.prev ?? undefined"
-                                            :disabled="reportsMeta.current_page === 1"
-                                            @click.prevent="setReportsPage(Math.max(reportsMeta.current_page - 1, 1))"
-                                        />
+                                        <PaginationFirst />
+                                        <PaginationPrev />
                                         <template v-for="(item, index) in items" :key="index">
-                                            <PaginationListItem
-                                                v-if="item.type === 'page'"
-                                                :value="item.value"
-                                                :is-active="item.value === reportsMeta.current_page"
-                                                @click="setReportsPage(item.value)"
-                                            >
-                                                {{ item.value }}
+                                            <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                                <Button class="h-9 w-9 p-0" :variant="item.value === currentPage ? 'default' : 'outline'">
+                                                    {{ item.value }}
+                                                </Button>
                                             </PaginationListItem>
-                                            <PaginationEllipsis v-else />
+                                            <PaginationEllipsis v-else :index="index" />
                                         </template>
-                                        <PaginationNext
-                                            :href="props.reports.links?.next ?? undefined"
-                                            :disabled="reportsMeta.current_page >= reportsMeta.last_page"
-                                            @click.prevent="setReportsPage(Math.min(reportsMeta.current_page + 1, reportsMeta.last_page))"
-                                        />
-                                        <PaginationLast
-                                            :href="props.reports.links?.last ?? undefined"
-                                            :disabled="reportsMeta.current_page >= reportsMeta.last_page"
-                                            @click.prevent="setReportsPage(reportsMeta.last_page)"
-                                        />
+                                        <PaginationNext />
+                                        <PaginationLast />
                                     </PaginationList>
                                 </Pagination>
                             </div>

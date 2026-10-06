@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem , type QueryParams } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
 import {
@@ -116,7 +116,7 @@ const buildQueryParams = (params: {
     sort?: BlogSortOption | null;
     page?: number;
 }) => {
-    const query: Record<string, unknown> = {};
+    const query: QueryParams = {};
 
     if (params.category) {
         query.category = params.category;

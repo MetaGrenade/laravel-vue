@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem , type QueryParams } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -217,7 +217,7 @@ const toDateTimeLocal = (value: string | null) => {
 };
 
 const applyFilters = (overrides: Partial<{ export_page: number; erasure_page: number }> = {}) => {
-    const query: Record<string, unknown> = {};
+    const query: QueryParams = {};
     const trimmedSearch = searchQuery.value.trim();
 
     if (trimmedSearch !== '') {

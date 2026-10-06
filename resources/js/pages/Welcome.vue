@@ -303,7 +303,7 @@ const productFeatures = [
                             <div class="flex flex-col gap-3">
                                 <div class="text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC]">SSR, clean markup, and lightweight UI components keep marketing pages fast, indexable, and credible for anyone evaluating the starter.</div>
                                 <Carousel
-                                    class="w-full w-max-7xl"
+                                    class="mx-auto w-full lg:w-[calc(100%-6rem)]"
                                     :opts="{
                                       align: 'start',
                                       loop: true,
@@ -334,8 +334,9 @@ const productFeatures = [
                                             </div>
                                         </CarouselItem>
                                     </CarouselContent>
-                                    <CarouselPrevious class="text-[#1b1b18] dark:text-[#EDEDEC]" />
-                                    <CarouselNext class="text-[#1b1b18] dark:text-[#EDEDEC]" />
+                                    <!-- Arrows sit outside the track; on small screens users swipe instead. -->
+                                    <CarouselPrevious class="text-[#1b1b18] max-lg:hidden dark:text-[#EDEDEC]" />
+                                    <CarouselNext class="text-[#1b1b18] max-lg:hidden dark:text-[#EDEDEC]" />
                                 </Carousel>
                             </div>
                         </div>
@@ -826,7 +827,7 @@ const productFeatures = [
                         </div>
                         <div class="flex flex-col gap-3 mt-6">
                             <Carousel
-                                class="w-full w-max-7xl"
+                                class="w-full"
                                 :opts="{
                                       align: 'start',
                                       loop: true,

@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
+import { useRoles } from '@/composables/useRoles';
 import { currentEcho, loadEcho } from '@/lib/echo';
 import type { BreadcrumbItem, CartSummary, NavItem, NotificationItem, SharedData, User } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
@@ -225,7 +226,26 @@ onBeforeUnmount(() => {
     leaveNotificationChannel();
 });
 
-type SectionAwareNavItem = NavItem & { section?: 'blog' | 'forum' | 'support' | 'commerce' };
+type SectionAwareNavItem = NavItem & {
+    section?: 'blog' | 'forum' | 'support' | 'commerce';
+    /** Only show to signed-in users, or to users with one of these roles (pipe-separated). */
+    requiresAuth?: boolean;
+    roles?: string;
+};
+
+const { hasRole } = useRoles();
+
+const isNavItemVisible = (item: SectionAwareNavItem): boolean => {
+    if (item.section && !websiteSections.value[item.section]) {
+        return false;
+    }
+
+    if ((item.requiresAuth || item.roles) && !user.value) {
+        return false;
+    }
+
+    return item.roles ? hasRole(item.roles) : true;
+};
 
 const websiteSections = computed(() => {
     const defaults = { blog: true, forum: true, support: true, commerce: true } as const;
@@ -245,7 +265,7 @@ const baseMainNavItems: SectionAwareNavItem[] = [
     { title: 'Home', href: '/', target: '_self', icon: Home },
     { title: 'Pricing', href: '/pricing', target: '_self', icon: Layers },
     { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag, section: 'commerce' },
-    { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid },
+    { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid, requiresAuth: true },
     { title: 'Blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
     { title: 'Forum', href: '/forum', target: '_self', icon: Megaphone, section: 'forum' },
 ];
@@ -257,6 +277,7 @@ const baseRightNavItems: SectionAwareNavItem[] = [
         target: '_self',
         icon: Shield,
         color: 'rgb(197,102,34)', // orange
+        roles: 'admin|editor|moderator',
     },
     {
         title: 'Support',
@@ -275,25 +296,9 @@ const baseRightNavItems: SectionAwareNavItem[] = [
     },
 ];
 
-const mainNavItems = computed<NavItem[]>(() =>
-    baseMainNavItems.filter((item) => {
-        if (!item.section) {
-            return true;
-        }
+const mainNavItems = computed<NavItem[]>(() => baseMainNavItems.filter(isNavItemVisible));
 
-        return Boolean(websiteSections.value[item.section]);
-    }),
-);
-
-const rightNavItems = computed<NavItem[]>(() =>
-    baseRightNavItems.filter((item) => {
-        if (!item.section) {
-            return true;
-        }
-
-        return Boolean(websiteSections.value[item.section]);
-    }),
-);
+const rightNavItems = computed<NavItem[]>(() => baseRightNavItems.filter(isNavItemVisible));
 
 const setNotificationProcessing = (id: string, processing: boolean) => {
     if (!id) {

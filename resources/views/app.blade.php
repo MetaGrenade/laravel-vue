@@ -24,6 +24,7 @@
 
         {{-- Match the page background to the theme before the stylesheet loads --}}
         <style @if ($nonce) nonce="{{ $nonce }}" @endif>
+            html, body, #app { height: 100%; }
             html { background-color: #ffffff; }
             html.dark { background-color: #0a0a0a; }
         </style>

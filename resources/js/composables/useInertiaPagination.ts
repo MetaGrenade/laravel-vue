@@ -12,7 +12,7 @@ export interface PaginationMeta {
 export interface UseInertiaPaginationOptions {
     meta: MaybeRefOrGetter<Partial<PaginationMeta> | null | undefined>;
     itemsLength?: MaybeRefOrGetter<number | null | undefined>;
-    defaultPerPage?: number;
+    defaultPerPage?: MaybeRefOrGetter<number>;
     itemLabel?: string;
     itemLabelPlural?: string;
     emptyLabel?: string;
@@ -53,7 +53,7 @@ export function useInertiaPagination(options: UseInertiaPaginationOptions): UseI
         const raw = toValue(metaSource) ?? {};
 
         const total = normalizeNumber(raw.total, itemsCount.value);
-        const perPageDefault = itemsCount.value > 0 ? itemsCount.value : defaultPerPage;
+        const perPageDefault = itemsCount.value > 0 ? itemsCount.value : toValue(defaultPerPage);
         const perPage = Math.max(1, normalizeNumber(raw.per_page, perPageDefault) || perPageDefault);
         const currentPage = Math.max(1, normalizeNumber(raw.current_page, 1));
         const derivedLastPage = Math.max(Math.ceil(total / Math.max(perPage, 1)), 1);

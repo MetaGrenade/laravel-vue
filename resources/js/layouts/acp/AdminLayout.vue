@@ -226,9 +226,9 @@ const filteredNavItems = computed(() => {
 
             <Separator class="my-6 md:hidden" />
 
-            <div class="flex flex-1 flex-col">
-                <!-- Ensure the section fills remaining space -->
-                <section class="flex flex-1 h-full space-y-12">
+            <!-- min-w-0 + a minmax(0,1fr) column let wide tables scroll within their own container instead of stretching the page -->
+            <div class="flex min-w-0 flex-1 flex-col">
+                <section class="grid h-full min-w-0 flex-1 grid-cols-[minmax(0,1fr)] content-start">
                     <slot />
                 </section>
             </div>

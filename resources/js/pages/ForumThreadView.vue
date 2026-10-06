@@ -1570,7 +1570,7 @@ const submitReply = () => {
         />
         <div class="p-4 space-y-8">
             <!-- Forum Header -->
-            <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
+            <header class="flex flex-col items-center justify-between gap-4 lg:flex-row">
                 <h1 id="thread_title" class="text-2xl font-bold text-green-500">
                     <Pin v-if="props.thread.is_pinned" class="h-8 w-8 inline-block mr-2" />
                     {{ props.thread.title }}
@@ -1579,7 +1579,7 @@ const submitReply = () => {
                         class="h-8 w-8 inline-block ml-2 text-muted-foreground"
                     />
                 </h1>
-                <div class="flex flex-wrap justify-end gap-2 md:flex-nowrap">
+                <div class="flex flex-wrap justify-center gap-2 lg:justify-end xl:flex-nowrap">
                     <div class="flex flex-col items-end justify-center rounded-md border border-border px-3 py-1">
                         <span class="text-xs font-medium uppercase text-muted-foreground">Followers</span>
                         <span class="text-base font-semibold text-foreground">{{ props.thread.subscribers_count }}</span>

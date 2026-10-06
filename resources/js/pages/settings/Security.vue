@@ -73,7 +73,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const enableForm = useForm({});
 const disableForm = useForm({});
-const recoveryForm = useForm({});
+// Server-side errors for this form are reported under the `recovery` key.
+const recoveryForm = useForm<{ recovery?: never }>({});
 const revokeForm = useForm({});
 const confirmForm = useForm({
     code: '',

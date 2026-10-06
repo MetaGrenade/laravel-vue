@@ -2,7 +2,7 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem , type QueryParams } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -295,7 +295,7 @@ const performThreadAction = (
     thread: ThreadSummary,
     method: 'put' | 'delete' | 'post',
     routeName: string,
-    payload: Record<string, unknown> = {},
+    payload: QueryParams = {},
 ) => {
     activeActionThreadId.value = thread.id;
 
@@ -376,7 +376,7 @@ const submitThreadEdit = () => {
 
     threadEditForm
         .transform(() => {
-            const payload: Record<string, unknown> = {
+            const payload: QueryParams = {
                 title: trimmed,
                 page: threadsMeta.value.current_page,
             };
@@ -450,7 +450,7 @@ const markBoardAsRead = () => {
 
     boardMarking.value = true;
 
-    const payload: Record<string, unknown> = {
+    const payload: QueryParams = {
         page: threadsMeta.value.current_page,
     };
 
@@ -619,7 +619,7 @@ const markBoardAsRead = () => {
                         <template v-if="canStartThread">
                             <Button
                                 variant="secondary"
-                                class="w-full cursor-pointer md:w-auto"
+                                class="shrink-0 cursor-pointer"
                                 as-child
                             >
                                 <Link :href="route('forum.threads.create', { board: props.board.slug })">
@@ -628,7 +628,7 @@ const markBoardAsRead = () => {
                             </Button>
                         </template>
                         <template v-else>
-                            <Button variant="secondary" class="w-full cursor-pointer md:w-auto" as-child>
+                            <Button variant="secondary" class="shrink-0 cursor-pointer" as-child>
                                 <Link :href="route('login')">
                                     New Thread
                                 </Link>

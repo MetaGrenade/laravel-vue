@@ -71,7 +71,10 @@ const props = defineProps<Props>();
 const selectedVariants = reactive<Record<number, number | null>>({});
 const quantities = reactive<Record<number, number>>({});
 const submittingProductId = ref<number | null>(null);
-const filterState = reactive({
+// Selects bind '' for "any", or the selected id.
+const breadcrumbs = [{ title: 'Shop', href: route('shop.index') }];
+
+const filterState = reactive<{ search: string; category: number | ''; tags: number[]; brand: number | '' }>({
     search: props.filters.search ?? '',
     category: props.filters.category?.[0] ?? '',
     tags: [...(props.filters.tags ?? [])],

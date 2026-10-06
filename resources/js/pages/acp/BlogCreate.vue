@@ -90,6 +90,12 @@ const form = useForm<BlogForm>({
     },
 });
 
+// Errors for nested fields (e.g. `social_links.0.url`) are keyed by dot notation.
+// Kept in script: vue-tsc mis-parses '//' inside v-for templates.
+const socialLinkUrlPlaceholder = 'https://example.com/about';
+
+const fieldError = (key: string): string | undefined => (form.errors as Record<string, string | undefined>)[key];
+
 const coverImagePreview = ref<string | null>(null);
 const previewOpen = ref(false);
 
@@ -670,7 +676,7 @@ const handleSubmit = () => {
                                                     type="text"
                                                     placeholder="Website"
                                                 />
-                                                <InputError :message="form.errors[`author.social_links.${index}.label`]" />
+                                                <InputError :message="fieldError('author.social_links.' + index + '.label')" />
                                             </div>
                                             <div class="grid gap-2">
                                                 <Label :for="`create-author-social-link-url-${index}`">URL</Label>
@@ -678,9 +684,9 @@ const handleSubmit = () => {
                                                     :id="`create-author-social-link-url-${index}`"
                                                     v-model="form.author.social_links[index].url"
                                                     type="url"
-                                                    placeholder="https://example.com/about"
+                                                    :placeholder="socialLinkUrlPlaceholder"
                                                 />
-                                                <InputError :message="form.errors[`author.social_links.${index}.url`]" />
+                                                <InputError :message="fieldError('author.social_links.' + index + '.url')" />
                                             </div>
                                         </div>
                                         <div class="flex justify-end">

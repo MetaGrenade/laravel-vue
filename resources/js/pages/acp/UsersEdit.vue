@@ -106,6 +106,12 @@ const form = useForm<UserForm>({
         })) ?? [],
 });
 
+// Errors for nested fields (e.g. `social_links.0.url`) are keyed by dot notation.
+// Kept in script: vue-tsc mis-parses '//' inside v-for templates.
+const socialLinkUrlPlaceholder = 'https://social.example/@username';
+
+const fieldError = (key: string): string | undefined => (form.errors as Record<string, string | undefined>)[key];
+
 const verifyForm = useForm({});
 const deleteForm = useForm({});
 const deleteDialogOpen = ref(false);
@@ -322,7 +328,7 @@ const removeSocialLink = (index: number) => {
                                                         type="text"
                                                         placeholder="Twitter"
                                                     />
-                                                    <InputError :message="form.errors[`social_links.${index}.label`]" />
+                                                    <InputError :message="fieldError('social_links.' + index + '.label')" />
                                                 </div>
                                                 <div class="grid gap-2">
                                                     <Label :for="`social-link-url-${index}`">URL</Label>
@@ -330,9 +336,9 @@ const removeSocialLink = (index: number) => {
                                                         :id="`social-link-url-${index}`"
                                                         v-model="form.social_links[index].url"
                                                         type="url"
-                                                        placeholder="https://social.example/@username"
+                                                        :placeholder="socialLinkUrlPlaceholder"
                                                     />
-                                                    <InputError :message="form.errors[`social_links.${index}.url`]" />
+                                                    <InputError :message="fieldError('social_links.' + index + '.url')" />
                                                 </div>
                                             </div>
                                             <div class="flex justify-end">

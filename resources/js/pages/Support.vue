@@ -490,8 +490,8 @@ const formatFileSize = (bytes: number) => {
 const submitTicket = () => {
     form.transform((data) => {
         if (!data.attachments || data.attachments.length === 0) {
-            const payload = { ...data };
-            delete payload.attachments;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { attachments, ...payload } = data;
 
             return payload;
         }
@@ -760,9 +760,9 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                 <!-- My Tickets Tab -->
                 <TabsContent value="tickets" class="space-y-6">
                     <!-- Search and New Ticket Button -->
-                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                         <h3 class="text-2xl font-semibold">My Tickets</h3>
-                        <div class="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
+                        <div class="flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:items-center xl:w-auto xl:justify-end">
                             <Input
                                 v-model="ticketSearchQuery"
                                 placeholder="Search your tickets..."

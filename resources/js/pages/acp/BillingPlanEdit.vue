@@ -61,7 +61,12 @@ const form = useForm({
     is_active: props.plan.is_active,
 });
 
-const featuresError = computed(() => form.errors.features ?? form.errors['features.0'] ?? null);
+const featuresError = computed(() => {
+    // Array validation errors are keyed by dot notation (features.0) as well as the field name.
+    const errors = form.errors as Record<string, string | undefined>;
+
+    return errors.features ?? errors['features.0'] ?? null;
+});
 const { formatDate } = useUserTimezone();
 
 const parsePrice = (value: string | number): number => {

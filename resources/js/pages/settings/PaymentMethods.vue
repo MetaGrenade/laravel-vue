@@ -226,7 +226,6 @@ const addPaymentMethod = async () => {
 
         await router.reload({
             only: ['payment_methods', 'default_payment_method'],
-            preserveScroll: true,
         });
 
         await fetchSetupIntent();
@@ -248,7 +247,6 @@ const setDefault = (paymentMethodId: string) => {
                 successMessage.value = 'Default payment method updated.';
                 await router.reload({
                     only: ['payment_methods', 'default_payment_method'],
-                    preserveScroll: true,
                 });
             },
         },
@@ -267,7 +265,6 @@ const removePaymentMethod = (paymentMethodId: string) => {
 
             await router.reload({
                 only: ['payment_methods', 'default_payment_method'],
-                preserveScroll: true,
             });
         },
     });

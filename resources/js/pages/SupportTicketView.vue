@@ -158,8 +158,8 @@ const submitReply = () => {
 
     replyForm.transform((data) => {
         if (!data.attachments || data.attachments.length === 0) {
-            const payload = { ...data };
-            delete payload.attachments;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { attachments, ...payload } = data;
 
             return payload;
         }

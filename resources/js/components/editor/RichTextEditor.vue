@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type HTMLAttributes } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch, type HTMLAttributes } from 'vue'
 import { Editor, EditorContent, VueRenderer } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { TextStyle } from '@tiptap/extension-text-style'
@@ -32,7 +32,8 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const editor = ref<Editor | null>(null)
+// shallowRef: the editor manages its own reactive state; deep proxies are wasted work.
+const editor = shallowRef<Editor | null>(null)
 const isPreviewing = ref(false)
 const lastSavedAt = ref<Date | null>(null)
 const hasInitialised = ref(false)
@@ -82,14 +83,14 @@ const fetchMentionSuggestions = async (query: string): Promise<MentionSuggestion
     const items = Array.isArray(payload.data) ? payload.data : []
 
     const mapped = items
-      .map((item) => ({
+      .map((item): MentionSuggestionItem => ({
         id: item.id as number | string,
         nickname: (item.nickname as string) ?? '',
         label: (item.nickname as string) ?? '',
         profileUrl: (item.profile_url as string | null | undefined) ?? null,
         avatarUrl: (item.avatar_url as string | null | undefined) ?? null,
       }))
-      .filter((item): item is MentionSuggestionItem => item.id !== undefined && item.id !== null && item.nickname !== '')
+      .filter((item) => item.id !== undefined && item.id !== null && item.nickname !== '')
 
     mentionCache.set(trimmed, mapped)
     return mapped
@@ -191,12 +192,13 @@ const createMentionExtension = () =>
   MentionExtension.configure({
     suggestion: {
       char: '@',
-      allow: ({ query }) => (query?.length ?? 0) <= 50,
       items: async ({ query }) => fetchMentionSuggestions(query ?? ''),
       render: () => {
         let component: VueRenderer | null = null
         let popup: TippyInstance | null = null
         let currentProps: SuggestionProps | null = null
+
+        const referenceRect = (suggestion: SuggestionProps) => () => suggestion.clientRect?.() ?? new DOMRect()
 
         const getComponentProps = (props: SuggestionProps) => ({
           items: (props.items ?? []) as MentionSuggestionItem[],
@@ -220,9 +222,9 @@ const createMentionExtension = () =>
             })
 
             popup = tippy(document.body, {
-              getReferenceClientRect: props.clientRect ?? undefined,
+              getReferenceClientRect: referenceRect(props),
               appendTo: () => document.body,
-              content: component.element,
+              content: component.element ?? undefined,
               showOnCreate: true,
               interactive: true,
               trigger: 'manual',
@@ -251,7 +253,7 @@ const createMentionExtension = () =>
 
             if (clientRect) {
               popup.setProps({
-                getReferenceClientRect: props.clientRect ?? undefined,
+                getReferenceClientRect: referenceRect(props),
               })
             }
           },
@@ -513,7 +515,7 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="bg-background">
-        <EditorContent v-if="!isPreviewing" :editor="editor" />
+        <EditorContent v-if="!isPreviewing" :editor="editor ?? undefined" />
         <div v-else class="prose prose-sm dark:prose-invert max-w-none px-3 py-2 min-h-64">
           <div
             v-if="

@@ -19,7 +19,8 @@ import { ListChecks, MoveDown, MoveUp, Pencil, PlusCircle, Trash2 } from '@lucid
 
 interface AssignmentRuleRelation {
     id: number;
-    name: string;
+    name?: string;
+    nickname?: string;
     email?: string;
 }
 
@@ -660,7 +661,7 @@ watch(
             :confirm-loading="deletingRuleId !== null"
             @confirm="confirmDeleteRule"
             @cancel="cancelDeleteRule"
-            @update:open="(open) => (deleteDialogOpen.value = open)"
+            @update:open="(open) => (deleteDialogOpen = open)"
         >
             This rule will be removed from the auto-assignment rotation. Tickets will fall through to later rules or remain
             unassigned.

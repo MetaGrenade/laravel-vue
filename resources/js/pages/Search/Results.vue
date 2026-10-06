@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { QueryParams } from '@/types';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Button from '@/components/ui/button/Button.vue';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { useGlobalSearchQuery } from '@/composables/useGlobalSearchQuery';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 
 const MIN_QUERY_LENGTH_FALLBACK = 2;
 
@@ -127,7 +128,7 @@ const pageParamMap: Record<SearchGroupKey, keyof QueryParamOverrides> = {
 };
 
 function navigate(overrides: QueryParamOverrides = {}, options: { resetPages?: boolean } = {}) {
-    const params: Record<string, unknown> = {};
+    const params: QueryParams = {};
     const trimmed = trimmedQuery.value;
 
     if (trimmed.length > 0) {
@@ -220,32 +221,40 @@ function onPerPageChange(event: Event) {
     navigate({ per_page: sanitized }, { resetPages: true });
 }
 
+// reactive() unwraps each composable's refs so the template can bind v-model to `group.pagination.page`.
 const pagination = {
-    blogs: useInertiaPagination({
+    blogs: reactive(
+        useInertiaPagination({
         meta: computed(() => props.results?.blogs?.meta ?? null),
         itemsLength: computed(() => props.results?.blogs?.items.length ?? 0),
         defaultPerPage: computed(() => perPage.value),
         itemLabel: 'blog post',
         itemLabelPlural: 'blog posts',
         onNavigate: (page) => goToPage('blogs', page),
-    }),
-    forum_threads: useInertiaPagination({
+        }),
+    ),
+    forum_threads: reactive(
+        useInertiaPagination({
         meta: computed(() => props.results?.forum_threads?.meta ?? null),
         itemsLength: computed(() => props.results?.forum_threads?.items.length ?? 0),
         defaultPerPage: computed(() => perPage.value),
         itemLabel: 'thread',
         itemLabelPlural: 'threads',
         onNavigate: (page) => goToPage('forum_threads', page),
-    }),
-    faqs: useInertiaPagination({
+        }),
+    ),
+    faqs: reactive(
+        useInertiaPagination({
         meta: computed(() => props.results?.faqs?.meta ?? null),
         itemsLength: computed(() => props.results?.faqs?.items.length ?? 0),
         defaultPerPage: computed(() => perPage.value),
         itemLabel: 'FAQ',
         itemLabelPlural: 'FAQs',
         onNavigate: (page) => goToPage('faqs', page),
-    }),
-} satisfies Record<SearchGroupKey, ReturnType<typeof useInertiaPagination>>;
+        }),
+    ),
+};
+
 
 const buildMeta = (meta: PaginationMeta | null | undefined): PaginationMeta => ({
     current_page: meta?.current_page ?? 1,
@@ -263,7 +272,7 @@ const groups = computed(() => {
             title: string;
             items: SearchResultItem[];
             meta: PaginationMeta;
-            pagination: ReturnType<typeof useInertiaPagination>;
+            pagination: (typeof pagination)[SearchGroupKey];
         }>;
     }
 

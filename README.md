@@ -1,15 +1,16 @@
 # Laravel Vue Starter
 
-A batteries-included starter kit for building modern Laravel + Vue single-page applications. The project ships with a production-ready forum, blog, support center, and admin tooling so teams can focus on features rather than scaffolding. Inertia.js keeps the frontend and backend in sync, Tailwind CSS powers the design system, and first-class TypeScript support ensures maintainable UI code.
+A batteries-included boilerplate for building SaaS products and large community websites with Laravel and Vue. The project ships with a production-ready forum, blog, support center, and admin tooling so teams can focus on features rather than scaffolding. Inertia.js keeps the frontend and backend in sync, Tailwind CSS powers the design system, and first-class TypeScript support ensures maintainable UI code.
 
 ![Forum Page Example](https://i.imgur.com/gYNFkFl.png)
 
 ## Stack Highlights
-- **Backend – Laravel 12** with Sanctum for API tokens, Spatie Permissions for RBAC, queue/listener scaffolding, and opinionated seeders for fast iteration.
-- **Frontend – Vue 3 + Inertia.js + TypeScript** with Ziggy-powered routing, SSR entry points, and theme initialization in a single SPA shell.
-- **UI & Editor Toolkit – Tailwind CSS, shadcn-inspired components, Radix Vue primitives, Vue Sonner toasts, and Tiptap rich text editing for forum and blog content workflows.
-- **Data Visualization – Unovis (VisX for Vue) for charts and dashboards inside the admin area.
-- **Developer Experience – Vite 6, ESLint + Prettier, Pint, and convenience scripts for running Laravel, queues, SSR, and Vite together.
+- **Backend – Laravel 13 (PHP 8.4+)** with Sanctum for API tokens, Spatie Permissions for RBAC, Laravel Cashier (Stripe) for billing, queue/listener scaffolding, and opinionated seeders for fast iteration.
+- **Frontend – Vue 3 + Inertia.js 3 + TypeScript** with Ziggy-powered routing, optional server-side rendering, and theme initialization in a single SPA shell.
+- **UI & Editor Toolkit** – Tailwind CSS 4, shadcn-vue components on Reka UI, Lucide icons, Vue Sonner toasts, and Tiptap 3 rich text editing for forum and blog content.
+- **Data Visualization** – Unovis charts for dashboards inside the admin area.
+- **Developer Experience** – Vite 8 (Rolldown), ESLint 10 + Prettier, Pint, PHPUnit 12, and convenience scripts for running Laravel, queues, SSR, and Vite together.
+- **Secure & search-friendly by default** – HTML sanitisation for user content, rate limiting, security headers with a nonce-based CSP, per-page SEO metadata, structured data, an XML sitemap and a dynamic `robots.txt`.
 
 ## Application Modules
 - **Forum System**: Boards, threads, post moderation, publishing workflows, and tracking read state with dedicated controllers and routes.
@@ -18,7 +19,7 @@ A batteries-included starter kit for building modern Laravel + Vue single-page a
   assignment rules so tickets auto-route to the right agents or support teams without touching the database.
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
 - **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, support assignment rules, team membership, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
-- **Authentication & Authorization**: Laravel Breeze for authentication plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
+- **Authentication & Authorization**: Starter-kit authentication (registration, login, password reset, email verification, TOTP two-factor and social login) plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
 - **Appearance Management**: System/light/dark modes synced between SSR and the client through a reusable composable.
 
 ### Website Sections & Feature Toggles
@@ -42,11 +43,13 @@ resources/
 ```
 
 ## Prerequisites
-- PHP 8.2+ with Composer.
-- Node.js 20+ (LTS recommended) with npm or pnpm for frontend tooling.
-- A database supported by Laravel (MySQL/MariaDB or PostgreSQL work out of the box). Configure credentials in `.env`.
+- PHP 8.4+ with Composer 2.
+- Node.js 22.13+ (24 LTS recommended, see `.nvmrc`) with npm.
+- A database supported by Laravel: SQLite (default), MySQL/MariaDB, PostgreSQL or SQL Server. Configure credentials in `.env`.
 
 ## Quick Start
+> **Shortcut:** after cloning, `composer setup` installs PHP and Node dependencies, creates `.env`, generates the app key, runs migrations and builds the frontend.
+
 1. **Clone & Install**
    ```bash
    git clone https://github.com/MetaGrenade/laravel-vue.git
@@ -118,14 +121,45 @@ dispatch but nothing will be pushed to clients. To enable realtime notifications
    VITE_PUSHER_FORCE_TLS="${PUSHER_FORCE_TLS}"
    ```
 
-   ⚠️ **Do not set host/port to blank strings.** Laravel Echo reads the variables directly and will
-   attempt to connect to `ws://:0` if they are present but empty. When you want the defaults,
-   delete the lines from `.env.local` so Vite omits them from the build entirely.
+   Blank `VITE_PUSHER_HOST` / `VITE_PUSHER_PORT` values fall back to the Pusher cluster host and the
+   default port for the scheme. Echo and the Pusher client are only downloaded for signed-in users when a
+   key is configured.
 
 4. **Restart local tooling**
    After editing `.env` and `.env.local`, restart `php artisan serve` and Vite so both processes pick up
    the changes. New private channel subscriptions will now authenticate through `/broadcasting/auth`
    and emit toast notifications in realtime.
+
+## Security
+- **User content is sanitised on write.** Forum threads/replies and blog bodies pass through `App\Support\Security\HtmlSanitizer` (Symfony HtmlSanitizer) via the `SanitizedHtml` Eloquent cast, so content rendered with `v-html` is safe. Forum content only keeps the markup the editor can produce; blog content allows the full set of safe elements. Run `php artisan content:sanitize` once after upgrading from an older version to clean previously stored content.
+- **Rate limiting.** Named limiters (see `AppServiceProvider::configureRateLimiting()`) protect registration, password resets, password confirmation, two-factor challenges, posting, reports, search and billing endpoints. API routes are throttled per token.
+- **Security headers & CSP.** `App\Http\Middleware\SecurityHeaders` sends `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, HSTS (over HTTPS, production by default) and a nonce-based Content Security Policy. Tune everything in `config/security.php`; set `CSP_REPORT_ONLY=true` to trial changes. When adding third-party scripts, styles or APIs, add their origins to the relevant directive.
+- **Least-privilege route exposure.** Ziggy route groups (`config/ziggy.php`) only publish admin control panel routes to staff.
+- **Production defaults.** Stricter password rules (12+ characters, mixed case, numbers, breach check), destructive database commands are blocked, and `APP_FORCE_HTTPS=true` generates HTTPS URLs behind a proxy. Remember to set `SESSION_SECURE_COOKIE=true` when serving over HTTPS.
+- **Hardened serialization.** Sessions use Laravel 13's JSON serialization and the cache only unserializes an explicit allow-list of classes (`config/cache.php`).
+
+## SEO
+- **Per-page metadata.** Controllers describe a page with the request-scoped `App\Support\Seo\Seo` service:
+  ```php
+  app(Seo::class)
+      ->title($post->title)
+      ->description($post->excerpt)
+      ->image($coverUrl)
+      ->article(publishedAt: $post->published_at, author: $post->author->name)
+      ->schema(['@type' => 'BlogPosting', 'headline' => $post->title]);
+  ```
+  Title, description, canonical URL, Open Graph, Twitter and robots tags plus JSON-LD are rendered server-side in `resources/views/app.blade.php` (so crawlers that don't run JavaScript see them) and kept up to date during client-side navigation through Inertia's `serverHead` option. A page's own `<Head title="…">` still sets the document title.
+- **Defaults** (site name, description, share image, Twitter handle) come from `config/seo.php` / `SEO_*` environment variables.
+- **Indexing** is enabled in production only (override with `SEO_INDEXING`). Account, admin, auth and other private routes are always `noindex` (`seo.noindex_routes`).
+- **Sitemap & robots.** `/sitemap.xml` lists public pages, published posts, forum boards/threads and active products for the enabled website sections (cached for an hour). `/robots.txt` blocks private areas and references the sitemap, or blocks everything when indexing is disabled.
+- **Server-side rendering** gives crawlers fully rendered HTML: run `npm run build:ssr`, start `php artisan inertia:start-ssr` (e.g. under Supervisor) and set `INERTIA_SSR_ENABLED=true`. If the SSR server is unavailable, pages fall back to client-side rendering.
+
+## Upgrade Notes (Laravel 12 → 13)
+- PHP **8.4** and Node **22.13+** are now required.
+- Sessions are serialized as JSON, so existing sessions are invalidated after deploying and users need to sign in again.
+- Run `php artisan migrate` (adds the Cashier 16 `subscription_items` meter columns) and `php artisan content:sanitize`.
+- Stripe: Cashier 16 uses Stripe API version `2025-07-30.basil`. Review the [Cashier upgrade guide](https://github.com/laravel/cashier-stripe/blob/16.x/UPGRADE.md) if you use metered billing or coupons.
+- Frontend: shadcn-vue components now use Reka UI. Checkbox and Switch bind with `v-model` / `:model-value` (not `v-model:checked`), icons are imported from `@lucide/vue`, and Tailwind is configured in `resources/css/app.css` (there is no `tailwind.config.js`).
 
 ## HTTP API & Swagger Docs
 - **Versioned endpoints** live under `/api/v1`. Public consumers can fetch published blog posts and forum threads, while
@@ -265,29 +299,30 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
   is running in development and production so invoice syncing happens promptly.
 
 ## Testing & Quality
-- **PHPUnit**: `php artisan test` or `./vendor/bin/phpunit`
+- **PHPUnit**: `composer test` (or `php artisan test`)
 - **Static Analysis & Formatting**:
-  - Lint Vue/TypeScript: `npm run lint`
-  - Check formatting: `npm run format:check`
-  - Fix PHP style: `./vendor/bin/pint`
-  - Format Vue/TS: `npm run format`
-  These commands are pre-configured via npm and Composer scripts for consistent CI enforcement.
+  - Lint Vue/TypeScript: `npm run lint` (fix) / `npm run lint:check`
+  - Type-check Vue/TypeScript: `npm run types:check`
+  - Check formatting: `npm run format:check` / format: `npm run format`
+  - PHP style: `./vendor/bin/pint` (fix) / `./vendor/bin/pint --test`
+
+  CI (`.github/workflows`) runs the test suite, dependency audits, Pint, Prettier and ESLint on every push and pull request.
 
 ## Production & SSR Builds
 - **Frontend build**: `npm run build` outputs versioned assets for Laravel's Vite integration.
-- **SSR build**: `npm run build:ssr` compiles the SPA and SSR bundle; combine with `composer dev:ssr` when testing server rendering locally.
-- **Env hardening**: Remember to configure HTTPS, queues (e.g., Redis), and mail drivers in `.env` before deploying.
+- **SSR build**: `npm run build:ssr` compiles the SPA and SSR bundle; run `php artisan inertia:start-ssr` and set `INERTIA_SSR_ENABLED=true`. Combine with `composer dev:ssr` when testing server rendering locally.
+- **Env hardening**: Configure HTTPS (`SESSION_SECURE_COOKIE=true`, `APP_FORCE_HTTPS` behind a proxy), queues (e.g., Redis), the scheduler and mail drivers in `.env` before deploying. Run `php artisan optimize` during deployment.
 
 ## Contributing
 Issues and pull requests are welcome! Please include tests or updates to this documentation when modifying setup steps, tooling, or major features.
 
 ## Useful Links
 
-- [Laravel Documentation](https://laravel.com/docs/12.x)
+- [Laravel Documentation](https://laravel.com/docs/13.x)
 - [Vue.js Documentation](https://vuejs.org/guide/quick-start.html)
-- [Inertia.js Documentation](https://inertiajs.com/)
-- [Laravel Starter Kits](https://laravel.com/docs/12.x/starter-kits#vue)
-- [TailwindCSS Documentation](https://tailwindcss.com/docs/dark-mode)
+- [Inertia.js Documentation](https://inertiajs.com/docs/v3/getting-started/index)
+- [Laravel Starter Kits](https://laravel.com/docs/13.x/starter-kits#vue)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
 - [shadcn-vue Component Library](https://www.shadcn-vue.com/)
 - [Lucide Icons](https://lucide.dev/icons/)
 - [Vue Sonner Toast Component](https://vue-sonner.vercel.app/)
@@ -295,7 +330,8 @@ Issues and pull requests are welcome! Please include tests or updates to this do
 
 ## Additional Tips
 
-- **Layout Height Utilities**: Ensure `html`, `body`, and `#app` are set to `height: 100%` (or wrap your root layout in `min-h-screen`) so flex layouts and `h-full` panels render as expected across the SPA.
+- **Layout Height Utilities**: `html`, `body`, and `#app` are set to `height: 100%` in `resources/views/app.blade.php` so flex layouts and `h-full` panels render as expected across the SPA.
+- **N+1 queries**: In the `local` environment lazy loading is detected and logged as a warning (`storage/logs`), so missing eager loads show up during development.
 - **Storage Symlink**: Run `php artisan storage:link` after provisioning to expose public asset uploads (e.g., avatars, attachments) served from `storage/app/public`.
 - **Keep Docs Current**: When introducing new tooling, scripts, or workflows, update this README so onboarding remains frictionless for future contributors.
 
