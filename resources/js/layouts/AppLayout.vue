@@ -3,23 +3,24 @@ import { Toaster } from '@/components/ui/sonner';
 import { useAppearance } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/app/AppHeaderLayout.vue';
 import type { BreadcrumbItemType } from '@/types';
-import { computed } from 'vue';
 
 interface Props {
     breadcrumbs?: BreadcrumbItemType[];
+    /** Let the page span the full viewport width (e.g. marketing pages with their own sections). */
+    fullWidth?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
+    fullWidth: false,
 });
 
-const { appearance } = useAppearance();
-const toasterTheme = computed(() => appearance.value);
+const { resolvedAppearance } = useAppearance();
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumbs" :full-width="fullWidth">
         <slot />
     </AppLayout>
-    <Toaster :theme="toasterTheme" rich-colors close-button />
+    <Toaster :theme="resolvedAppearance" rich-colors close-button />
 </template>

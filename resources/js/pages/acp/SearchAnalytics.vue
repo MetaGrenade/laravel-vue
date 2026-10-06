@@ -299,7 +299,7 @@ const canExportSearchAnalytics = computed(() => hasPermission('search.acp.view')
                             >
                                 <div class="flex flex-col items-center gap-2 sm:flex-row sm:items-center sm:gap-3">
                                     <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                    <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                         <PaginationFirst />
                                         <PaginationPrev />
 

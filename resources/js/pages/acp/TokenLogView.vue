@@ -81,61 +81,61 @@ function formatStructuredData(data: Record<string, unknown> | unknown[] | null):
                     <h2 class="mb-4 text-xl font-semibold">Log Information</h2>
                     <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">ID</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ log.id }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">ID</dt>
+                            <dd class="text-lg font-bold text-foreground/80">{{ log.id }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Token Name</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ log.token_name ?? 'Unknown token' }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">Token Name</dt>
+                            <dd class="text-lg font-bold text-foreground/80">{{ log.token_name ?? 'Unknown token' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">API Route</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ log.api_route }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">API Route</dt>
+                            <dd class="text-lg font-bold text-foreground/80">{{ log.api_route }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">HTTP Method</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ log.method }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">HTTP Method</dt>
+                            <dd class="text-lg font-bold text-foreground/80">{{ log.method }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Status</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ log.status }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">Status</dt>
+                            <dd class="text-lg font-bold text-foreground/80">{{ log.status }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">HTTP Status Code</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ log.http_status ?? '—' }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">HTTP Status Code</dt>
+                            <dd class="text-lg font-bold text-foreground/80">{{ log.http_status ?? '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Timestamp</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ log.timestamp ?? 'Unknown' }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">Timestamp</dt>
+                            <dd class="text-lg font-bold text-foreground/80">{{ log.timestamp ?? 'Unknown' }}</dd>
                             <dd v-if="log.timestamp" class="text-sm text-muted-foreground">{{ relativeTimestamp }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">IP Address</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ log.ip ?? '—' }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">IP Address</dt>
+                            <dd class="text-lg font-bold text-foreground/80">{{ log.ip ?? '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Response Time</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ log.response_time_ms ? `${log.response_time_ms} ms` : '—' }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">Response Time</dt>
+                            <dd class="text-lg font-bold text-foreground/80">{{ log.response_time_ms ? `${log.response_time_ms} ms` : '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Request Payload</dt>
+                            <dt class="text-sm font-medium text-muted-foreground">Request Payload</dt>
                             <dd class="rounded bg-muted/40 p-3 font-mono text-sm wrap-break-word whitespace-pre-wrap">
                                 {{ formattedRequestPayload }}
                             </dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Response Summary</dt>
+                            <dt class="text-sm font-medium text-muted-foreground">Response Summary</dt>
                             <dd class="rounded bg-muted/40 p-3 font-mono text-sm wrap-break-word whitespace-pre-wrap">
                                 {{ formattedResponseSummary }}
                             </dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">User Agent</dt>
-                            <dd class="text-lg font-bold text-gray-700">{{ log.user_agent ?? '—' }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">User Agent</dt>
+                            <dd class="text-lg font-bold text-foreground/80">{{ log.user_agent ?? '—' }}</dd>
                         </div>
                         <div v-if="log.error_message">
-                            <dt class="text-sm font-medium text-red-500">Error Message</dt>
-                            <dd class="text-lg font-bold text-red-500">{{ log.error_message }}</dd>
+                            <dt class="text-sm font-medium text-destructive">Error Message</dt>
+                            <dd class="text-lg font-bold text-destructive">{{ log.error_message }}</dd>
                         </div>
                     </dl>
                 </div>

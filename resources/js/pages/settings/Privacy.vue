@@ -173,10 +173,8 @@ const formatDateTime = (value?: string | null) => {
                                     <span
                                         class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium"
                                         :class="{
-                                            'border-yellow-500 text-yellow-600 dark:text-yellow-400': ['pending', 'processing'].includes(
-                                                exportItem.status,
-                                            ),
-                                            'border-green-500 text-green-600 dark:text-green-400': exportItem.status === 'completed',
+                                            'border-yellow-500 text-warning': ['pending', 'processing'].includes(exportItem.status),
+                                            'border-green-500 text-success': exportItem.status === 'completed',
                                             'border-destructive text-destructive': exportItem.status === 'failed',
                                         }"
                                     >

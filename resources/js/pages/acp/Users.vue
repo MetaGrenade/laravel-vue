@@ -456,9 +456,9 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div v-for="(stat, i) in stats" :key="i" class="relative flex items-center overflow-hidden rounded-lg border p-4">
-                        <component :is="stat.icon" class="mr-3 h-8 w-8 text-gray-600" />
+                        <component :is="stat.icon" class="mr-3 h-8 w-8 text-muted-foreground" />
                         <div>
-                            <div class="text-sm text-gray-500">{{ stat.title }}</div>
+                            <div class="text-sm text-muted-foreground">{{ stat.title }}</div>
                             <div class="text-2xl font-bold">{{ stat.value }}</div>
                         </div>
 
@@ -558,7 +558,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                 <DropdownMenuSeparator v-if="deleteUsers && (verifyUsers || banUsers)" />
                                 <DropdownMenuItem
                                     v-if="deleteUsers"
-                                    class="text-red-500"
+                                    class="text-destructive"
                                     :disabled="bulkActionForm.processing"
                                     @select="submitBulkAction('delete')"
                                 >
@@ -617,7 +617,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                         <span
                                             v-for="role in user.roles"
                                             :key="role.name"
-                                            class="mr-1 inline-block rounded bg-gray-500 px-2 py-0.5 text-xs"
+                                            class="mr-1 inline-block rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
                                         >
                                             {{ role.name }}
                                         </span>
@@ -632,13 +632,13 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                     <TableCell class="text-center">
                                         <span
                                             v-if="user.is_banned"
-                                            class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-500/20 dark:text-red-300"
+                                            class="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"
                                         >
                                             Banned
                                         </span>
                                         <span
                                             v-else
-                                            class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                                            class="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success"
                                         >
                                             Active
                                         </span>
@@ -655,18 +655,18 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuGroup>
                                                     <Link v-if="editUsers" :href="route('acp.users.edit', { user: user.id })">
-                                                        <DropdownMenuItem class="text-blue-500"> <Pencil class="mr-2" /> Edit </DropdownMenuItem>
+                                                        <DropdownMenuItem> <Pencil class="mr-2" /> Edit </DropdownMenuItem>
                                                     </Link>
                                                     <DropdownMenuItem
                                                         v-if="verifyUsers && !user.email_verified_at"
-                                                        class="text-green-500"
+                                                        class="text-success"
                                                         @click="$inertia.put(route('acp.users.verify', { user: user.id }))"
                                                     >
                                                         <MailCheck class="mr-2" /> Verify
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         v-if="banUsers && !user.is_banned"
-                                                        class="text-amber-600"
+                                                        class="text-warning"
                                                         @click="
                                                             openConfirmDialog({
                                                                 title: `Ban ${user.nickname}`,
@@ -680,7 +680,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         v-if="banUsers && user.is_banned"
-                                                        class="text-emerald-600"
+                                                        class="text-success"
                                                         @click="
                                                             openConfirmDialog({
                                                                 title: `Unban ${user.nickname}`,
@@ -696,7 +696,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                                     <DropdownMenuSeparator v-if="deleteUsers" />
                                                     <DropdownMenuItem
                                                         v-if="deleteUsers"
-                                                        class="text-red-500"
+                                                        class="text-destructive"
                                                         @click="
                                                             openConfirmDialog({
                                                                 title: `Delete ${user.nickname}`,
@@ -714,7 +714,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="userItems.length === 0">
-                                    <TableCell colspan="9" class="text-center text-gray-600 dark:text-gray-300"> No users found. </TableCell>
+                                    <TableCell colspan="9" class="text-center text-muted-foreground"> No users found. </TableCell>
                                 </TableRow>
                             </TableBody>
                         </Table>
@@ -737,7 +737,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                     >
                         <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                             <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                            <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                 <PaginationFirst />
                                 <PaginationPrev />
 

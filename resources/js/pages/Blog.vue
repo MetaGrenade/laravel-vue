@@ -333,7 +333,7 @@ const {
                             class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition"
                             :class="[
                                 activeTag === tag.slug
-                                    ? 'border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-200'
+                                    ? 'border-amber-500/60 bg-warning/10 text-warning'
                                     : 'border-muted-foreground/30 text-muted-foreground hover:border-amber-400/70 hover:text-amber-600 dark:hover:text-amber-300',
                             ]"
                             @click="toggleTag(tag.slug)"
@@ -370,7 +370,7 @@ const {
                 >
                     <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                         <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                             <PaginationFirst />
                             <PaginationPrev />
 
@@ -400,7 +400,7 @@ const {
                             </div>
                             <h3 class="mt-3 line-clamp-2 text-lg font-semibold">{{ blog.title }}</h3>
                         </Link>
-                        <p v-if="blog.excerpt" class="line-clamp-3 text-sm text-neutral-600 dark:text-neutral-400">
+                        <p v-if="blog.excerpt" class="line-clamp-3 text-sm text-muted-foreground">
                             {{ blog.excerpt }}
                         </p>
                         <p class="text-xs text-muted-foreground">
@@ -445,7 +445,7 @@ const {
                 >
                     <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                         <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                             <PaginationFirst />
                             <PaginationPrev />
 

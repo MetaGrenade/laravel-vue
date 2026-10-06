@@ -567,7 +567,7 @@ const markBoardAsRead = () => {
         <div class="space-y-6 p-4">
             <!-- Forum Header -->
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-                <h1 class="text-2xl font-bold text-green-500">{{ props.board.title }}</h1>
+                <h1 class="text-2xl font-bold text-success">{{ props.board.title }}</h1>
                 <div class="flex w-full flex-col gap-2 md:max-w-2xl md:flex-row md:items-center md:justify-end">
                     <div class="flex w-full items-center gap-2">
                         <Input v-model="searchQuery" class="flex-1" :placeholder="`Search ${props.board.title}...`" />
@@ -610,7 +610,7 @@ const markBoardAsRead = () => {
                 >
                     <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                         <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                             <PaginationFirst />
                             <PaginationPrev />
 
@@ -643,25 +643,25 @@ const markBoardAsRead = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow v-for="thread in props.threads.data" :key="thread.id" class="hover:bg-gray-50 dark:hover:bg-muted/50">
+                        <TableRow v-for="thread in props.threads.data" :key="thread.id" class="hover:bg-muted/50">
                             <TableCell>
                                 <Link
                                     :href="route('forum.threads.show', { board: props.board.slug, thread: thread.slug })"
                                     :class="[
                                         thread.has_unread ? 'font-semibold' : 'font-normal',
-                                        thread.is_pinned ? 'text-green-500' : '',
+                                        thread.is_pinned ? 'text-success' : '',
                                         'hover:underline',
                                     ]"
                                 >
                                     {{ thread.title }}
-                                    <Pin v-if="thread.is_pinned" class="ml-1 inline-block h-4 w-4 text-green-500" />
+                                    <Pin v-if="thread.is_pinned" class="ml-1 inline-block h-4 w-4 text-success" />
                                     <Lock v-if="thread.is_locked" class="ml-1 inline-block h-4 w-4 text-muted-foreground" />
                                 </Link>
-                                <div class="flex items-center gap-2 text-xs text-gray-500">
+                                <div class="flex items-center gap-2 text-xs text-muted-foreground">
                                     <span>By {{ thread.author ?? 'Unknown' }}</span>
                                     <span
                                         v-if="!thread.is_published"
-                                        class="rounded bg-amber-200 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-900 uppercase"
+                                        class="rounded bg-warning/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-warning uppercase"
                                     >
                                         Unpublished
                                     </span>
@@ -671,7 +671,7 @@ const markBoardAsRead = () => {
                             <TableCell class="text-center">{{ thread.views }}</TableCell>
                             <TableCell>
                                 <div class="text-sm">{{ thread.last_reply_author ?? '—' }}</div>
-                                <div class="text-xs text-gray-500">{{ thread.last_reply_at ?? '—' }}</div>
+                                <div class="text-xs text-muted-foreground">{{ thread.last_reply_at ?? '—' }}</div>
                             </TableCell>
                             <TableCell v-if="showActionColumn" class="text-center">
                                 <template v-if="thread.permissions.canReport || props.permissions.canModerate">
@@ -686,7 +686,7 @@ const markBoardAsRead = () => {
                                             <DropdownMenuSeparator />
                                             <DropdownMenuGroup v-if="thread.permissions.canMarkRead">
                                                 <DropdownMenuItem
-                                                    class="text-green-600"
+                                                    class="text-success"
                                                     :disabled="activeActionThreadId === thread.id"
                                                     @select="markThreadAsRead(thread)"
                                                 >
@@ -706,7 +706,7 @@ const markBoardAsRead = () => {
                                             </DropdownMenuGroup>
                                             <DropdownMenuGroup v-if="props.permissions.canModerate">
                                                 <DropdownMenuItem
-                                                    class="text-blue-500"
+                                                    class="text-info"
                                                     :disabled="activeActionThreadId === thread.id"
                                                     @select="openThreadEditDialog(thread)"
                                                 >
@@ -754,7 +754,7 @@ const markBoardAsRead = () => {
                                                 </DropdownMenuGroup>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
-                                                    class="text-red-500"
+                                                    class="text-destructive"
                                                     :disabled="activeActionThreadId === thread.id"
                                                     @select="deleteThread(thread)"
                                                 >
@@ -769,7 +769,7 @@ const markBoardAsRead = () => {
                             </TableCell>
                         </TableRow>
                         <TableRow v-if="props.threads.data.length === 0">
-                            <TableCell :colspan="showActionColumn ? 5 : 4" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                            <TableCell :colspan="showActionColumn ? 5 : 4" class="text-center text-sm text-muted-foreground">
                                 No threads found.
                             </TableCell>
                         </TableRow>
@@ -792,7 +792,7 @@ const markBoardAsRead = () => {
                 >
                     <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                         <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                             <PaginationFirst />
                             <PaginationPrev />
 

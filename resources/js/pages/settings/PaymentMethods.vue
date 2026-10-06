@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { stripeAppearance } from '@/lib/stripeAppearance';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -120,6 +121,7 @@ const mountPaymentElement = async (secret: string) => {
 
     elements.value = stripeInstance.elements({
         clientSecret: secret,
+        appearance: stripeAppearance(),
     });
 
     paymentElement.value = elements.value.create('payment');
@@ -363,7 +365,7 @@ onBeforeUnmount(() => {
                 </div>
 
                 <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
-                <p v-if="successMessage" class="text-sm text-emerald-600">{{ successMessage }}</p>
+                <p v-if="successMessage" class="text-sm text-success">{{ successMessage }}</p>
             </section>
 
             <section class="space-y-4">

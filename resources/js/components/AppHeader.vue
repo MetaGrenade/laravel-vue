@@ -1,18 +1,11 @@
 <script setup lang="ts">
 import AppLogo from '@/components/AppLogo.vue';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import CommandPalette from '@/components/CommandPalette.vue';
+import ThemeToggle from '@/components/ThemeToggle.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import {
-    NavigationMenu,
-    NavigationMenuItem,
-    NavigationMenuLink,
-    NavigationMenuList,
-    navigationMenuTriggerStyle,
-} from '@/components/ui/navigation-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -20,17 +13,18 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
 import { useRoles } from '@/composables/useRoles';
 import { currentEcho, loadEcho } from '@/lib/echo';
+import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, CartSummary, NavItem, NotificationItem, SharedData, User } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     Home,
     Layers,
     BookOpen,
-    Folder,
+    FolderGit2,
     LayoutGrid,
     Menu,
     Search,
-    Megaphone,
+    MessagesSquare,
     Shield,
     LifeBuoy,
     Bell,
@@ -94,11 +88,18 @@ const notificationsHasMore = computed(() => notificationsState.hasMore);
 const notificationProcessingIds = ref<Set<string>>(new Set());
 const markAllProcessing = ref(false);
 
-const isCurrentRoute = computed(() => (url: string) => page.url === url);
+const currentPath = computed(() => page.url.split(/[?#]/)[0]);
 
-const activeItemStyles = computed(
-    () => (url: string) => (isCurrentRoute.value(url) ? 'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100' : ''),
-);
+/** A section link is active on its own page and on any page nested below it. */
+const isActive = (href: string) => {
+    if (href === '/') {
+        return currentPath.value === '/';
+    }
+
+    return currentPath.value === href || currentPath.value.startsWith(`${href}/`);
+};
+
+const canRegister = computed(() => route().has('register'));
 
 const isCommandPaletteOpen = ref(false);
 
@@ -267,7 +268,7 @@ const baseMainNavItems: SectionAwareNavItem[] = [
     { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag, section: 'commerce' },
     { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid, requiresAuth: true },
     { title: 'Blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
-    { title: 'Forum', href: '/forum', target: '_self', icon: Megaphone, section: 'forum' },
+    { title: 'Forum', href: '/forum', target: '_self', icon: MessagesSquare, section: 'forum' },
 ];
 
 const baseRightNavItems: SectionAwareNavItem[] = [
@@ -276,7 +277,6 @@ const baseRightNavItems: SectionAwareNavItem[] = [
         href: '/acp',
         target: '_self',
         icon: Shield,
-        color: 'rgb(197,102,34)', // orange
         roles: 'admin|editor|moderator',
     },
     {
@@ -284,17 +284,17 @@ const baseRightNavItems: SectionAwareNavItem[] = [
         href: '/support',
         target: '_self',
         icon: LifeBuoy,
-        color: 'rgb(197,34,34)', // red,
         section: 'support',
     },
     {
         title: 'Repository',
         href: 'https://github.com/MetaGrenade/laravel-vue',
         target: '_blank',
-        icon: Folder,
-        color: 'rgb(34, 197, 94)', // green,
+        icon: FolderGit2,
     },
 ];
+
+const isExternal = (item: NavItem) => item.target === '_blank';
 
 const mainNavItems = computed<NavItem[]>(() => baseMainNavItems.filter(isNavItemVisible));
 
@@ -408,316 +408,314 @@ const viewNotification = (notification: NotificationItem) => {
 </script>
 
 <template>
-    <div>
-        <CommandPalette v-model:open="isCommandPaletteOpen" />
+    <CommandPalette v-model:open="isCommandPaletteOpen" />
 
-        <!-- Fixed header -->
-        <div class="fixed inset-x-0 top-0 z-50 border-b border-sidebar-border/80 bg-white dark:bg-neutral-900">
-            <div class="mx-auto flex h-16 items-center px-4">
-                <!-- Mobile Menu -->
-                <div class="lg:hidden">
-                    <Sheet>
-                        <SheetTrigger :as-child="true">
-                            <Button variant="ghost" size="icon" class="mr-2 h-9 w-9">
-                                <Menu class="h-5 w-5" />
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="left" class="w-[300px] p-6">
-                            <SheetTitle class="sr-only">Navigation Menu</SheetTitle>
-                            <SheetHeader class="flex justify-start text-left">
-                                <AppLogoIcon class="size-6 fill-current text-black dark:text-white" />
-                            </SheetHeader>
-                            <div class="flex h-full flex-1 flex-col justify-between space-y-4 py-6">
-                                <nav class="-mx-3 space-y-1">
-                                    <Link
-                                        v-for="item in mainNavItems"
-                                        :key="item.title"
-                                        :href="item.href"
-                                        :target="item.target"
-                                        class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
-                                        :class="activeItemStyles(item.href)"
-                                    >
-                                        <component v-if="item.icon" :is="item.icon" class="h-5 w-5" />
-                                        {{ item.title }}
-                                    </Link>
-                                </nav>
-                                <div class="flex flex-col space-y-4">
-                                    <a
-                                        v-for="item in rightNavItems"
-                                        :key="item.title"
-                                        :href="item.href"
-                                        :target="item.target"
-                                        rel="noopener noreferrer"
-                                        class="flex items-center space-x-2 text-sm font-medium"
-                                    >
-                                        <component v-if="item.icon" :is="item.icon" class="h-5 w-5" :style="{ color: item.color }" />
-                                        <span>{{ item.title }}</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </SheetContent>
-                    </Sheet>
-                </div>
-
-                <!-- Logo -->
-                <Link :href="route('dashboard')" class="flex items-center gap-x-2">
-                    <AppLogo />
-                </Link>
-
-                <!-- Desktop Menu -->
-                <div class="hidden h-full lg:flex lg:flex-1">
-                    <NavigationMenu class="ml-10 flex h-full items-stretch">
-                        <NavigationMenuList class="flex h-full items-stretch space-x-2">
-                            <NavigationMenuItem v-for="(item, index) in mainNavItems" :key="index" class="relative flex h-full items-center">
-                                <Link :href="item.href" :target="item.target">
-                                    <NavigationMenuLink
-                                        :class="[navigationMenuTriggerStyle(), activeItemStyles(item.href), 'h-9 cursor-pointer px-3']"
-                                    >
-                                        <component v-if="item.icon" :is="item.icon" class="mr-2 h-4 w-4" />
-                                        {{ item.title }}
-                                    </NavigationMenuLink>
-                                </Link>
-                                <div
-                                    v-if="isCurrentRoute(item.href)"
-                                    class="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"
-                                />
-                            </NavigationMenuItem>
-                        </NavigationMenuList>
-                    </NavigationMenu>
-                </div>
-
-                <!-- Right side -->
-                <div class="ml-auto flex items-center space-x-2">
-                    <div class="relative flex items-center space-x-1">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            class="group h-9 w-9 cursor-pointer"
-                            :title="'Search (Ctrl+K)'"
-                            @click="openCommandPalette"
+    <header class="sticky top-0 z-40 w-full border-b bg-background">
+        <div class="container-app flex h-16 items-center gap-2">
+            <!-- Mobile menu -->
+            <Sheet>
+                <SheetTrigger as-child>
+                    <Button variant="ghost" size="icon" class="-ml-2 lg:hidden" aria-label="Open navigation menu">
+                        <Menu class="size-5" />
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" class="flex w-[300px] flex-col gap-0 p-0">
+                    <SheetHeader class="border-b px-5 py-4 text-left">
+                        <SheetTitle class="sr-only">Navigation menu</SheetTitle>
+                        <AppLogo />
+                    </SheetHeader>
+                    <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Main">
+                        <Link
+                            v-for="item in mainNavItems"
+                            :key="item.title"
+                            :href="item.href"
+                            :class="
+                                cn(
+                                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                                    isActive(item.href) && 'bg-accent text-foreground',
+                                )
+                            "
                         >
-                            <span class="sr-only">Open search (Ctrl+K)</span>
-                            <Search class="size-5 opacity-80 group-hover:opacity-100" />
-                        </Button>
-
-                        <div class="hidden space-x-1 lg:flex">
-                            <template v-for="item in rightNavItems" :key="item.title">
-                                <TooltipProvider :delay-duration="0">
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Button variant="ghost" size="icon" as-child class="group h-9 w-9 cursor-pointer">
-                                                <a :href="item.href" :target="item.target" rel="noopener noreferrer">
-                                                    <span class="sr-only">{{ item.title }}</span>
-                                                    <component
-                                                        :is="item.icon"
-                                                        class="size-5 opacity-80 group-hover:opacity-100"
-                                                        :style="{ color: item.color }"
-                                                    />
-                                                </a>
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>{{ item.title }}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </template>
-                        </div>
+                            <component v-if="item.icon" :is="item.icon" class="size-4" />
+                            {{ item.title }}
+                        </Link>
+                        <Separator class="my-3" />
+                        <component
+                            :is="isExternal(item) ? 'a' : Link"
+                            v-for="item in rightNavItems"
+                            :key="item.title"
+                            :href="item.href"
+                            :target="isExternal(item) ? '_blank' : undefined"
+                            :rel="isExternal(item) ? 'noopener noreferrer' : undefined"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        >
+                            <component v-if="item.icon" :is="item.icon" class="size-4" />
+                            {{ item.title }}
+                        </component>
+                    </nav>
+                    <div class="flex items-center justify-between border-t px-5 py-3 text-sm text-muted-foreground">
+                        Theme
+                        <ThemeToggle />
                     </div>
+                    <div v-if="!user" class="grid gap-2 border-t p-4">
+                        <Button variant="outline" as-child>
+                            <Link :href="route('login')">Log in</Link>
+                        </Button>
+                        <Button v-if="canRegister" as-child>
+                            <Link :href="route('register')">Get started</Link>
+                        </Button>
+                    </div>
+                </SheetContent>
+            </Sheet>
 
-                    <Sheet v-if="commerceEnabled">
-                        <SheetTrigger :as-child="true">
-                            <Button variant="ghost" size="icon" class="group relative h-9 w-9 cursor-pointer" aria-label="Open cart">
-                                <ShoppingCart class="size-5 opacity-80 group-hover:opacity-100" />
-                                <span
-                                    v-if="cartItemCount > 0"
-                                    class="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
-                                >
-                                    {{ cartItemCount > 9 ? '9+' : cartItemCount }}
-                                </span>
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="right" class="flex w-full max-w-md flex-col p-0">
-                            <SheetHeader class="space-y-1 px-6 py-4 text-left">
-                                <SheetTitle>Your cart</SheetTitle>
-                                <p class="text-sm text-muted-foreground">Manage your items before checkout.</p>
-                            </SheetHeader>
-                            <Separator />
-                            <div class="flex-1 space-y-4 overflow-y-auto px-6 py-4">
-                                <p v-if="!cartItems.length" class="text-sm text-muted-foreground">Your cart is empty.</p>
-                                <div v-else class="space-y-3">
-                                    <div
-                                        v-for="item in cartItems"
-                                        :key="item.id"
-                                        class="flex items-start justify-between gap-4 rounded-lg border p-3"
+            <!-- Logo -->
+            <Link :href="route('home')" class="mr-4 flex shrink-0 items-center rounded-md" aria-label="Home">
+                <AppLogo />
+            </Link>
+
+            <!-- Desktop navigation -->
+            <nav class="hidden items-center gap-1 lg:flex" aria-label="Main">
+                <Link
+                    v-for="item in mainNavItems"
+                    :key="item.title"
+                    :href="item.href"
+                    :aria-current="isActive(item.href) ? 'page' : undefined"
+                    :class="
+                        cn(
+                            'rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                            isActive(item.href) && 'bg-accent text-foreground',
+                        )
+                    "
+                >
+                    {{ item.title }}
+                </Link>
+            </nav>
+
+            <!-- Right side -->
+            <div class="ml-auto flex items-center gap-1">
+                <button
+                    type="button"
+                    class="hidden h-9 w-56 items-center gap-2 rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:flex xl:w-64"
+                    @click="openCommandPalette"
+                >
+                    <Search class="size-4" />
+                    <span>Search…</span>
+                    <kbd class="ml-auto rounded border bg-background px-1.5 font-mono text-[0.7rem] font-medium">Ctrl K</kbd>
+                </button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    class="text-muted-foreground hover:text-foreground md:hidden"
+                    aria-label="Search"
+                    @click="openCommandPalette"
+                >
+                    <Search class="size-[1.15rem]" />
+                </Button>
+
+                <TooltipProvider :delay-duration="300">
+                    <div class="hidden items-center lg:flex">
+                        <Tooltip v-for="item in rightNavItems" :key="item.title">
+                            <TooltipTrigger as-child>
+                                <Button variant="ghost" size="icon" class="text-muted-foreground hover:text-foreground" as-child>
+                                    <component
+                                        :is="isExternal(item) ? 'a' : Link"
+                                        :href="item.href"
+                                        :target="isExternal(item) ? '_blank' : undefined"
+                                        :rel="isExternal(item) ? 'noopener noreferrer' : undefined"
+                                        :aria-label="item.title"
+                                        :class="isActive(item.href) && 'bg-accent text-foreground'"
                                     >
-                                        <div class="space-y-2">
-                                            <p class="text-sm font-semibold text-foreground">{{ item.name }}</p>
-                                            <p class="text-xs text-muted-foreground">{{ item.variant || 'Base product' }}</p>
-                                            <p class="text-xs font-medium text-foreground">Qty: {{ item.quantity }}</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-sm font-semibold">{{ formatCurrency(Number(item.total)) }}</p>
-                                            <p class="text-xs text-muted-foreground">{{ formatCurrency(Number(item.unit_price)) }} each</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <Separator />
-                            <div class="space-y-3 px-6 py-4">
-                                <div class="flex items-center justify-between text-sm">
-                                    <span class="text-muted-foreground">Subtotal</span>
-                                    <span class="font-medium">{{ formatCurrency(cartTotals.subtotal) }}</span>
-                                </div>
-                                <div class="flex items-center justify-between text-sm">
-                                    <span class="text-muted-foreground">Estimated tax</span>
-                                    <span class="font-medium">{{ formatCurrency(cartTotals.tax) }}</span>
-                                </div>
-                                <div class="flex items-center justify-between text-sm">
-                                    <span class="text-muted-foreground">Shipping</span>
-                                    <span class="font-medium">{{ cartTotals.shipping ? formatCurrency(cartTotals.shipping) : 'Free' }}</span>
-                                </div>
-                                <Separator />
-                                <div class="flex items-center justify-between text-base font-semibold">
-                                    <span>Total</span>
-                                    <span>{{ formatCurrency(cartTotals.total) }}</span>
-                                </div>
-                                <div class="flex gap-2">
-                                    <Button class="flex-1" :disabled="!cartItems.length">Continue to checkout</Button>
-                                    <Button variant="secondary" class="flex-1" as-child>
-                                        <Link :href="route('shop.index')">Continue shopping</Link>
-                                    </Button>
-                                </div>
-                            </div>
-                        </SheetContent>
-                    </Sheet>
+                                        <component :is="item.icon" class="size-[1.15rem]" />
+                                    </component>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{{ item.title }}</TooltipContent>
+                        </Tooltip>
+                    </div>
+                </TooltipProvider>
 
-                    <DropdownMenu v-if="user">
-                        <DropdownMenuTrigger :as-child="true">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="group relative h-9 w-9 cursor-pointer"
-                                :aria-label="unreadNotificationCount > 0 ? `${unreadNotificationCount} unread notifications` : 'Notifications'"
+                <!-- On phones the toggle lives in the menu sheet and the footer to keep the bar uncluttered. -->
+                <div class="hidden sm:block">
+                    <ThemeToggle />
+                </div>
+
+                <Sheet v-if="commerceEnabled">
+                    <SheetTrigger as-child>
+                        <Button variant="ghost" size="icon" class="relative text-muted-foreground hover:text-foreground" aria-label="Open cart">
+                            <ShoppingCart class="size-[1.15rem]" />
+                            <span
+                                v-if="cartItemCount > 0"
+                                class="absolute top-0.5 right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.65rem] font-semibold text-primary-foreground"
                             >
-                                <Bell class="size-5 opacity-80 group-hover:opacity-100" />
-                                <span
-                                    v-if="unreadNotificationCount > 0"
-                                    class="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
-                                >
-                                    {{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}
-                                </span>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" class="w-80 p-0">
-                            <div class="flex items-center justify-between px-4 py-2">
-                                <p class="text-sm font-semibold text-foreground">Notifications</p>
-                                <Button
-                                    v-if="unreadNotificationCount > 0"
-                                    variant="ghost"
-                                    size="sm"
-                                    class="h-7 px-2 text-xs"
-                                    :disabled="markAllProcessing"
-                                    @click.prevent="markAllNotificationsAsRead"
-                                >
-                                    <Check class="mr-1 h-3.5 w-3.5" />
-                                    Mark all as read
+                                {{ cartItemCount > 9 ? '9+' : cartItemCount }}
+                            </span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right" class="flex w-full max-w-md flex-col gap-0 p-0">
+                        <SheetHeader class="space-y-1 border-b px-6 py-4 text-left">
+                            <SheetTitle>Your cart</SheetTitle>
+                            <p class="text-sm text-muted-foreground">Review your items before checkout.</p>
+                        </SheetHeader>
+                        <div class="flex-1 space-y-3 overflow-y-auto px-6 py-4">
+                            <div v-if="!cartItems.length" class="flex flex-col items-center gap-2 py-12 text-center">
+                                <ShoppingCart class="size-8 text-muted-foreground/60" />
+                                <p class="text-sm text-muted-foreground">Your cart is empty.</p>
+                            </div>
+                            <div v-for="item in cartItems" :key="item.id" class="flex items-start justify-between gap-4 rounded-lg border p-3">
+                                <div class="min-w-0 space-y-1">
+                                    <p class="truncate text-sm font-medium">{{ item.name }}</p>
+                                    <p class="text-xs text-muted-foreground">{{ item.variant || 'Base product' }} · Qty {{ item.quantity }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-semibold tabular-nums">{{ formatCurrency(Number(item.total)) }}</p>
+                                    <p class="text-xs text-muted-foreground tabular-nums">{{ formatCurrency(Number(item.unit_price)) }} each</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-3 border-t px-6 py-4">
+                            <dl class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <dt class="text-muted-foreground">Subtotal</dt>
+                                    <dd class="font-medium tabular-nums">{{ formatCurrency(cartTotals.subtotal) }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-muted-foreground">Estimated tax</dt>
+                                    <dd class="font-medium tabular-nums">{{ formatCurrency(cartTotals.tax) }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-muted-foreground">Shipping</dt>
+                                    <dd class="font-medium tabular-nums">{{ cartTotals.shipping ? formatCurrency(cartTotals.shipping) : 'Free' }}</dd>
+                                </div>
+                                <div class="flex justify-between border-t pt-2 text-base font-semibold">
+                                    <dt>Total</dt>
+                                    <dd class="tabular-nums">{{ formatCurrency(cartTotals.total) }}</dd>
+                                </div>
+                            </dl>
+                            <div class="flex gap-2">
+                                <Button class="flex-1" :disabled="!cartItems.length">Checkout</Button>
+                                <Button variant="outline" class="flex-1" as-child>
+                                    <Link :href="route('shop.index')">Keep shopping</Link>
                                 </Button>
                             </div>
-                            <DropdownMenuSeparator />
-                            <div v-if="notifications.length === 0" class="px-4 py-6 text-center text-sm text-muted-foreground">
-                                You're all caught up!
-                            </div>
-                            <div v-else class="max-h-80 overflow-y-auto">
-                                <div
-                                    v-for="notification in notifications"
-                                    :key="notification.id"
-                                    class="flex items-start gap-3 border-b border-border/40 px-4 py-3 last:border-b-0"
-                                >
-                                    <div class="flex-1">
-                                        <p class="text-sm font-medium text-foreground">
-                                            {{ notification.title }}
-                                        </p>
-                                        <p v-if="notification.excerpt" class="mt-1 text-sm text-muted-foreground">
-                                            {{ notification.excerpt }}
-                                        </p>
-                                        <p
-                                            v-if="notification.created_at_for_humans"
-                                            class="mt-1 text-xs tracking-wide text-muted-foreground uppercase"
-                                        >
-                                            {{ notification.created_at_for_humans }}
-                                        </p>
-                                    </div>
-                                    <div class="flex flex-col items-end gap-1">
-                                        <Button
-                                            v-if="notification.url"
-                                            variant="ghost"
-                                            size="sm"
-                                            class="h-7 px-2 text-xs"
-                                            :disabled="isNotificationProcessing(notification.id)"
-                                            @click.prevent="viewNotification(notification)"
-                                        >
-                                            View
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            class="h-7 px-2 text-xs"
+                        </div>
+                    </SheetContent>
+                </Sheet>
+
+                <DropdownMenu v-if="user">
+                    <DropdownMenuTrigger as-child>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="relative text-muted-foreground hover:text-foreground"
+                            :aria-label="unreadNotificationCount > 0 ? `${unreadNotificationCount} unread notifications` : 'Notifications'"
+                        >
+                            <Bell class="size-[1.15rem]" />
+                            <span
+                                v-if="unreadNotificationCount > 0"
+                                class="absolute top-0.5 right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.65rem] font-semibold text-primary-foreground"
+                            >
+                                {{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}
+                            </span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" class="w-[22rem] p-0">
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <p class="text-sm font-semibold">Notifications</p>
+                            <Button
+                                v-if="unreadNotificationCount > 0"
+                                variant="ghost"
+                                size="xs"
+                                class="text-muted-foreground"
+                                :disabled="markAllProcessing"
+                                @click.prevent="markAllNotificationsAsRead"
+                            >
+                                <Check />
+                                Mark all read
+                            </Button>
+                        </div>
+                        <DropdownMenuSeparator class="m-0" />
+                        <div v-if="notifications.length === 0" class="flex flex-col items-center gap-2 px-4 py-10 text-center">
+                            <Bell class="size-6 text-muted-foreground/60" />
+                            <p class="text-sm text-muted-foreground">You're all caught up.</p>
+                        </div>
+                        <ul v-else class="max-h-96 divide-y overflow-y-auto">
+                            <li v-for="notification in notifications" :key="notification.id" class="group flex gap-3 px-4 py-3 hover:bg-muted/50">
+                                <span class="mt-1.5 size-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                                <div class="min-w-0 flex-1">
+                                    <button
+                                        type="button"
+                                        class="text-left text-sm font-medium hover:underline disabled:opacity-60"
+                                        :disabled="isNotificationProcessing(notification.id)"
+                                        @click.prevent="viewNotification(notification)"
+                                    >
+                                        {{ notification.title }}
+                                    </button>
+                                    <p v-if="notification.excerpt" class="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
+                                        {{ notification.excerpt }}
+                                    </p>
+                                    <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
+                                        <span v-if="notification.created_at_for_humans">{{ notification.created_at_for_humans }}</span>
+                                        <button
+                                            type="button"
+                                            class="hover:text-foreground disabled:opacity-60"
                                             :disabled="isNotificationProcessing(notification.id)"
                                             @click.prevent="markNotificationAsRead(notification.id)"
                                         >
-                                            <Check class="mr-1 h-3 w-3" />
                                             Mark read
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            class="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="inline-flex items-center gap-1 hover:text-destructive disabled:opacity-60"
                                             :disabled="isNotificationProcessing(notification.id)"
                                             @click.prevent="deleteNotification(notification.id)"
                                         >
-                                            <Trash2 class="mr-1 h-3 w-3" />
+                                            <Trash2 class="size-3" />
                                             Dismiss
-                                        </Button>
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
-                            <DropdownMenuSeparator v-if="notificationsHasMore" />
-                            <div v-if="notificationsHasMore" class="px-4 py-2 text-xs text-muted-foreground">
-                                Showing latest {{ notifications.length }} of {{ unreadNotificationCount }} unread notifications.
-                            </div>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                            </li>
+                        </ul>
+                        <template v-if="notificationsHasMore">
+                            <DropdownMenuSeparator class="m-0" />
+                            <p class="px-4 py-2 text-xs text-muted-foreground">
+                                Showing the latest {{ notifications.length }} of {{ unreadNotificationCount }} unread notifications.
+                            </p>
+                        </template>
+                    </DropdownMenuContent>
+                </DropdownMenu>
 
-                    <DropdownMenu v-if="user">
-                        <DropdownMenuTrigger :as-child="true">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="relative size-10 w-auto rounded-full p-1 focus-within:ring-2 focus-within:ring-primary"
-                            >
-                                <Avatar class="size-8 overflow-hidden rounded-full">
-                                    <AvatarImage v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.nickname ?? ''" />
-                                    <AvatarFallback class="rounded-lg bg-neutral-200 font-semibold text-black dark:bg-neutral-700 dark:text-white">
-                                        {{ getInitials(user?.nickname ?? '') }}
-                                    </AvatarFallback>
-                                </Avatar>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" class="w-56">
-                            <UserMenuContent :user="user" />
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
+                <DropdownMenu v-if="user">
+                    <DropdownMenuTrigger as-child>
+                        <Button variant="ghost" size="icon" class="ml-1 rounded-full" aria-label="Account menu">
+                            <Avatar class="size-8">
+                                <AvatarImage v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.nickname ?? ''" />
+                                <AvatarFallback class="bg-primary/10 text-xs font-semibold text-primary">
+                                    {{ getInitials(user?.nickname ?? '') }}
+                                </AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" class="w-60">
+                        <UserMenuContent :user="user" />
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <template v-else>
+                    <Button variant="ghost" size="sm" class="ml-1 hidden sm:inline-flex" as-child>
+                        <Link :href="route('login')">Log in</Link>
+                    </Button>
+                    <Button v-if="canRegister" size="sm" class="hidden sm:inline-flex" as-child>
+                        <Link :href="route('register')">Get started</Link>
+                    </Button>
+                </template>
             </div>
         </div>
+    </header>
 
-        <!-- Breadcrumbs, pushed below fixed header -->
-        <div v-if="props.breadcrumbs.length > 1" class="flex w-full border-b border-sidebar-border/70">
-            <div class="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500">
-                <Breadcrumbs :breadcrumbs="breadcrumbs" />
-            </div>
+    <div v-if="props.breadcrumbs.length > 1" class="border-b bg-background">
+        <div class="container-app flex h-11 items-center">
+            <Breadcrumbs :breadcrumbs="breadcrumbs" />
         </div>
     </div>
 </template>

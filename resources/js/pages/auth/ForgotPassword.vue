@@ -25,7 +25,7 @@ const submit = () => {
     <AuthLayout title="Forgot password" description="Enter your email to receive a password reset link">
         <Head title="Forgot password" />
 
-        <div v-if="status" class="mb-4 text-center text-sm font-medium text-green-600">
+        <div v-if="status" class="mb-4 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-center text-sm font-medium text-success">
             {{ status }}
         </div>
 

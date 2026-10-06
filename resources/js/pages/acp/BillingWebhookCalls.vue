@@ -275,7 +275,7 @@ const formatDateTime = (value: string | null) => {
                                 <TableCell class="text-sm">{{ formatDateTime(call.created_at) }}</TableCell>
                                 <TableCell class="text-sm">
                                     <span v-if="call.processed_at">{{ formatDateTime(call.processed_at) }}</span>
-                                    <span v-else class="text-xs font-medium tracking-wide text-amber-600 uppercase">Pending</span>
+                                    <span v-else class="text-xs font-medium tracking-wide text-warning uppercase">Pending</span>
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <Button variant="outline" size="sm" as-child>
@@ -298,7 +298,7 @@ const formatDateTime = (value: string | null) => {
                         :sibling-count="1"
                         show-edges
                     >
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                             <PaginationFirst />
                             <PaginationPrev />
 

@@ -1,18 +1,13 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue';
+import { cn } from '@/lib/utils';
 import { Anvil } from '@lucide/vue';
+import type { HTMLAttributes } from 'vue';
 
-defineOptions({
-    inheritAttrs: false,
-});
-
-interface Props {
-    className?: HTMLAttributes['class'];
-}
-
-defineProps<Props>();
+const props = defineProps<{
+    class?: HTMLAttributes['class'];
+}>();
 </script>
 
 <template>
-    <Anvil class="h-5 w-5 text-[#8b5a00] dark:text-[#f3d29e]" />
+    <Anvil :class="cn('size-5', props.class)" aria-hidden="true" />
 </template>

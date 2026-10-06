@@ -163,9 +163,7 @@ const confirmDeletePlan = () => {
                                             <span
                                                 :class="[
                                                     'mt-2 inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                                                    plan.is_active
-                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200'
-                                                        : 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-200',
+                                                    plan.is_active ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive',
                                                 ]"
                                             >
                                                 {{ plan.is_active ? 'Active' : 'Inactive' }}

@@ -346,9 +346,7 @@ const cancelDeleteTemplate = () => {
                                                 <span
                                                     :class="[
                                                         'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
-                                                        template.is_active
-                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                                                            : 'bg-gray-200 text-gray-700 dark:bg-gray-800/60 dark:text-gray-300',
+                                                        template.is_active ? 'bg-success/10 text-success' : 'bg-muted text-foreground/80',
                                                     ]"
                                                 >
                                                     {{ template.is_active ? 'Active' : 'Hidden' }}

@@ -394,7 +394,7 @@ const hasAnyResults = computed(() => groups.value.some((group) => group.items.le
                                 <span class="text-sm text-muted-foreground">
                                     Page {{ group.pagination.page }} of {{ Math.max(group.pagination.pageCount, 1) }}
                                 </span>
-                                <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                     <PaginationFirst />
                                     <PaginationPrev />
 

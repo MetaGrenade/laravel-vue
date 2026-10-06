@@ -1486,7 +1486,7 @@ const submitReply = () => {
         <div class="space-y-8 p-4">
             <!-- Forum Header -->
             <header class="flex flex-col items-center justify-between gap-4 lg:flex-row">
-                <h1 id="thread_title" class="text-2xl font-bold text-green-500">
+                <h1 id="thread_title" class="text-2xl font-semibold tracking-tight">
                     <Pin v-if="props.thread.is_pinned" class="mr-2 inline-block h-8 w-8" />
                     {{ props.thread.title }}
                     <Lock v-if="props.thread.is_locked" class="ml-2 inline-block h-8 w-8 text-muted-foreground" />
@@ -1518,7 +1518,7 @@ const submitReply = () => {
                             </span>
                         </div>
                     </div>
-                    <Button v-if="props.thread.is_locked" variant="secondary" class="cursor-pointer text-yellow-500" disabled>
+                    <Button v-if="props.thread.is_locked" variant="secondary" class="cursor-pointer text-warning" disabled>
                         <Lock class="h-8 w-8" />
                         Locked
                     </Button>
@@ -1558,7 +1558,7 @@ const submitReply = () => {
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                             <DropdownMenuGroup v-if="threadPermissions.canEdit">
-                                <DropdownMenuItem class="text-blue-500" :disabled="threadActionLoading" @select="renameThread">
+                                <DropdownMenuItem :disabled="threadActionLoading" @select="renameThread">
                                     <Pencil class="h-8 w-8" />
                                     <span>Edit Title</span>
                                 </DropdownMenuItem>
@@ -1597,7 +1597,7 @@ const submitReply = () => {
                             <DropdownMenuSeparator v-if="threadPermissions.canModerate" />
                             <DropdownMenuItem
                                 v-if="threadPermissions.canModerate"
-                                class="text-red-500"
+                                class="text-destructive"
                                 :disabled="threadActionLoading"
                                 @select="deleteThread"
                             >
@@ -1635,7 +1635,7 @@ const submitReply = () => {
                 >
                     <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                         <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                             <PaginationFirst />
                             <PaginationPrev />
 
@@ -1674,14 +1674,14 @@ const submitReply = () => {
                             </AvatarFallback>
                         </Avatar>
                         <div class="text-lg font-bold">{{ post.author.nickname ?? 'Unknown' }}</div>
-                        <div class="text-sm text-gray-500">{{ post.author.primary_role ?? 'Member' }}</div>
-                        <div class="mt-2 text-xs text-gray-600">
+                        <div class="text-sm text-muted-foreground">{{ post.author.primary_role ?? 'Member' }}</div>
+                        <div class="mt-2 text-xs text-muted-foreground">
                             Joined: <span class="font-medium">{{ post.author.joined_at ?? '—' }}</span>
                         </div>
-                        <div class="mt-1 text-xs text-gray-600">
+                        <div class="mt-1 text-xs text-muted-foreground">
                             Posts: <span class="font-medium">{{ post.author.forum_posts_count }}</span>
                         </div>
-                        <div class="mt-1 text-xs text-gray-600">
+                        <div class="mt-1 text-xs text-muted-foreground">
                             Reputation: <span class="font-medium">{{ post.author.reputation_points }}</span>
                         </div>
                         <div v-if="post.author.badges.length > 0" class="mt-3 flex flex-wrap gap-2">
@@ -1699,9 +1699,9 @@ const submitReply = () => {
                     <!-- Right Side: Post Content -->
                     <div class="flex-1">
                         <div class="mb-4 flex items-center justify-between border-b pb-2">
-                            <div class="text-sm text-gray-500">{{ post.created_at }}</div>
+                            <div class="text-sm text-muted-foreground">{{ post.created_at }}</div>
                             <div class="flex items-center gap-2">
-                                <div class="text-sm font-medium text-gray-500">#{{ post.number }}</div>
+                                <div class="text-sm font-medium text-muted-foreground">#{{ post.number }}</div>
                                 <DropdownMenu
                                     v-if="
                                         threadPermissions.canReply ||
@@ -1719,11 +1719,7 @@ const submitReply = () => {
                                         <DropdownMenuLabel>Post Actions</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuGroup v-if="threadPermissions.canReply">
-                                            <DropdownMenuItem
-                                                class="text-green-500"
-                                                :disabled="!threadPermissions.canReply"
-                                                @select="quotePost(post)"
-                                            >
+                                            <DropdownMenuItem class="text-success" :disabled="!threadPermissions.canReply" @select="quotePost(post)">
                                                 <Quote class="h-4 w-4" />
                                                 <span>Quote</span>
                                             </DropdownMenuItem>
@@ -1745,11 +1741,7 @@ const submitReply = () => {
                                             </DropdownMenuItem>
                                         </DropdownMenuGroup>
                                         <DropdownMenuGroup v-if="post.permissions.canEdit">
-                                            <DropdownMenuItem
-                                                class="text-blue-500"
-                                                :disabled="activePostActionId === post.id"
-                                                @select="editPost(post)"
-                                            >
+                                            <DropdownMenuItem class="text-info" :disabled="activePostActionId === post.id" @select="editPost(post)">
                                                 <Pencil class="h-4 w-4" />
                                                 <span>Edit</span>
                                             </DropdownMenuItem>
@@ -1759,7 +1751,7 @@ const submitReply = () => {
                                         />
                                         <DropdownMenuItem
                                             v-if="post.permissions.canDelete"
-                                            class="text-red-500"
+                                            class="text-destructive"
                                             :disabled="activePostActionId === post.id"
                                             @select="deletePost(post)"
                                         >
@@ -1786,7 +1778,7 @@ const submitReply = () => {
                         <!-- Post Body -->
                         <div class="tiptap ProseMirror prose prose-sm dark:prose-invert max-w-none" v-html="renderPostBody(post)"></div>
                         <!-- Forum Signature -->
-                        <div v-if="post.author.forum_signature" class="mt-4 border-t pt-2 text-xs whitespace-pre-line text-gray-500">
+                        <div v-if="post.author.forum_signature" class="mt-4 border-t pt-2 text-xs whitespace-pre-line text-muted-foreground">
                             {{ post.author.forum_signature }}
                         </div>
                     </div>
@@ -1807,7 +1799,7 @@ const submitReply = () => {
                 >
                     <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                         <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                             <PaginationFirst />
                             <PaginationPrev />
 

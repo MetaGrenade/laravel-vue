@@ -206,7 +206,7 @@ const toggleTag = (tagId: number) => {
 
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div>
-                <h1 class="text-3xl font-bold tracking-tight text-[#8b5a00] dark:text-[#f3d29e]">Shop</h1>
+                <h1 class="text-3xl font-semibold tracking-tight">Shop</h1>
                 <p class="text-muted-foreground">Starter catalog page teams can extend into a full storefront.</p>
             </div>
 

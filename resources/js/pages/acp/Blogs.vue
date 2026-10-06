@@ -538,10 +538,10 @@ const confirmDeletePost = (post: BlogRow) => {
                         class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
                     >
                         <div class="mr-4">
-                            <component :is="stat.icon" class="h-8 w-8 text-gray-600" />
+                            <component :is="stat.icon" class="h-8 w-8 text-muted-foreground" />
                         </div>
                         <div>
-                            <div class="text-sm text-gray-500">{{ stat.title }}</div>
+                            <div class="text-sm text-muted-foreground">{{ stat.title }}</div>
                             <div class="text-xl font-bold">{{ formatNumber(stat.value) }}</div>
                         </div>
 
@@ -604,7 +604,7 @@ const confirmDeletePost = (post: BlogRow) => {
                                     <Button variant="outline" class="text-sm"> Manage Tags </Button>
                                 </Link>
                                 <Link v-if="createBlogs" :href="route('acp.blogs.create')">
-                                    <Button variant="secondary" class="bg-green-500 text-sm text-white hover:bg-green-600"> Create New Post </Button>
+                                    <Button class="text-sm"> Create New Post </Button>
                                 </Link>
                             </div>
                         </div>
@@ -717,10 +717,10 @@ const confirmDeletePost = (post: BlogRow) => {
                                     <TableCell
                                         class="text-center"
                                         :class="{
-                                            'text-green-500': post.status === 'published',
-                                            'text-red-500': post.status === 'archived',
-                                            'text-blue-500': post.status === 'draft',
-                                            'text-amber-500': post.status === 'scheduled',
+                                            'text-success': post.status === 'published',
+                                            'text-destructive': post.status === 'archived',
+                                            'text-info': post.status === 'draft',
+                                            'text-warning': post.status === 'scheduled',
                                         }"
                                     >
                                         {{ post.status }}</TableCell
@@ -773,14 +773,14 @@ const confirmDeletePost = (post: BlogRow) => {
                                                 <DropdownMenuSeparator v-if="editBlogs" />
                                                 <DropdownMenuGroup v-if="editBlogs">
                                                     <Link :href="route('acp.blogs.edit', { blog: post.id })">
-                                                        <DropdownMenuItem class="text-blue-500">
+                                                        <DropdownMenuItem>
                                                             <Pencil class="mr-2" />
                                                             <span>Edit</span>
                                                         </DropdownMenuItem>
                                                     </Link>
                                                 </DropdownMenuGroup>
                                                 <DropdownMenuSeparator v-if="deleteBlogs" />
-                                                <DropdownMenuItem v-if="deleteBlogs" class="text-red-500" @click="confirmDeletePost(post)">
+                                                <DropdownMenuItem v-if="deleteBlogs" class="text-destructive" @click="confirmDeletePost(post)">
                                                     <Trash2 class="mr-2" />
                                                     <span>Delete</span>
                                                 </DropdownMenuItem>
@@ -789,9 +789,7 @@ const confirmDeletePost = (post: BlogRow) => {
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="blogRows.length === 0">
-                                    <TableCell colspan="9" class="text-center text-sm text-gray-600 dark:text-gray-300">
-                                        No blog posts found.
-                                    </TableCell>
+                                    <TableCell colspan="9" class="text-center text-sm text-muted-foreground"> No blog posts found. </TableCell>
                                 </TableRow>
                             </TableBody>
                         </Table>
@@ -814,7 +812,7 @@ const confirmDeletePost = (post: BlogRow) => {
                     >
                         <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                             <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                            <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                 <PaginationFirst />
                                 <PaginationPrev />
 

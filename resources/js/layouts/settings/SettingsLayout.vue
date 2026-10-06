@@ -1,88 +1,90 @@
 <script setup lang="ts">
-import Heading from '@/components/Heading.vue';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { type NavItem } from '@/types';
+import { cn } from '@/lib/utils';
 import { Link, usePage } from '@inertiajs/vue3';
+import { Bell, CreditCard, KeyRound, Lock, Palette, Receipt, ShieldCheck, User, Wallet } from '@lucide/vue';
+import { computed, type Component } from 'vue';
 
-const sidebarNavItems: NavItem[] = [
+interface SettingsNavItem {
+    title: string;
+    href: string;
+    icon: Component;
+}
+
+const navGroups: { title: string; items: SettingsNavItem[] }[] = [
     {
-        title: 'Profile',
-        href: '/settings/profile',
-        target: '_self',
-    },
-    {
-        title: 'Password',
-        href: '/settings/password',
-        target: '_self',
-    },
-    {
-        title: 'Security',
-        href: '/settings/security',
-        target: '_self',
-    },
-    {
-        title: 'Notifications',
-        href: '/settings/notifications',
-        target: '_self',
-    },
-    {
-        title: 'Privacy',
-        href: '/settings/privacy',
-        target: '_self',
-    },
-    {
-        title: 'Appearance',
-        href: '/settings/appearance',
-        target: '_self',
+        title: 'Account',
+        items: [
+            { title: 'Profile', href: '/settings/profile', icon: User },
+            { title: 'Password', href: '/settings/password', icon: KeyRound },
+            { title: 'Security', href: '/settings/security', icon: ShieldCheck },
+            { title: 'Notifications', href: '/settings/notifications', icon: Bell },
+            { title: 'Privacy', href: '/settings/privacy', icon: Lock },
+            { title: 'Appearance', href: '/settings/appearance', icon: Palette },
+        ],
     },
     {
         title: 'Billing',
-        href: '/settings/billing',
-        target: '_self',
-    },
-    {
-        title: 'Payment methods',
-        href: '/settings/billing/payment-methods',
-        target: '_self',
-    },
-    {
-        title: 'Invoices',
-        href: '/settings/billing/invoices',
-        target: '_self',
+        items: [
+            { title: 'Subscription', href: '/settings/billing', icon: CreditCard },
+            { title: 'Payment methods', href: '/settings/billing/payment-methods', icon: Wallet },
+            { title: 'Invoices', href: '/settings/billing/invoices', icon: Receipt },
+        ],
     },
 ];
 
 const page = usePage();
+const currentPath = computed(() => page.url.split(/[?#]/)[0]);
 
-const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.location).pathname : '';
+const isActive = (href: string) => currentPath.value === href;
+
+const linkClass = (href: string) =>
+    cn(
+        'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+        isActive(href) && 'bg-accent font-medium text-foreground',
+    );
 </script>
 
 <template>
     <div class="px-4 py-6">
-        <Heading title="Settings" description="Manage your profile and account settings" class="text-red-500" />
+        <div class="mb-6">
+            <h1 class="text-xl font-semibold tracking-tight">Settings</h1>
+            <p class="text-sm text-muted-foreground">Manage your profile, security and billing.</p>
+        </div>
 
-        <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12">
-            <aside class="w-full max-w-xl lg:w-48">
-                <nav class="flex flex-col space-y-1 space-x-0">
-                    <Button
-                        v-for="item in sidebarNavItems"
-                        :key="item.href"
-                        variant="ghost"
-                        :class="['w-full justify-start', { 'bg-muted': currentPath === item.href }]"
-                        as-child
-                    >
-                        <Link :href="item.href" :target="item.target">
+        <!-- Mobile / tablet: horizontally scrolling tabs -->
+        <nav class="-mx-4 mb-6 scrollbar-thin overflow-x-auto border-b px-4 lg:hidden" aria-label="Settings sections">
+            <ul class="flex w-max gap-1 pb-2">
+                <template v-for="group in navGroups" :key="group.title">
+                    <li v-for="item in group.items" :key="item.href">
+                        <Link :href="item.href" :class="linkClass(item.href)" :aria-current="isActive(item.href) ? 'page' : undefined">
+                            <component :is="item.icon" class="size-4" />
                             {{ item.title }}
                         </Link>
-                    </Button>
+                    </li>
+                </template>
+            </ul>
+        </nav>
+
+        <div class="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)]">
+            <aside class="hidden lg:block">
+                <nav class="sticky top-20 space-y-5" aria-label="Settings sections">
+                    <div v-for="group in navGroups" :key="group.title">
+                        <p class="mb-1.5 px-2.5 text-xs font-medium text-muted-foreground/80">{{ group.title }}</p>
+                        <ul class="space-y-0.5">
+                            <li v-for="item in group.items" :key="item.href">
+                                <Link :href="item.href" :class="linkClass(item.href)" :aria-current="isActive(item.href) ? 'page' : undefined">
+                                    <component :is="item.icon" :class="cn('size-4', isActive(item.href) && 'text-primary')" />
+                                    {{ item.title }}
+                                </Link>
+                            </li>
+                        </ul>
+                    </div>
                 </nav>
             </aside>
 
-            <Separator class="my-6 md:hidden" />
-
-            <div class="min-w-0 flex-1">
-                <section class="space-y-12">
+            <div class="min-w-0">
+                <!-- Settings forms read best at a comfortable measure. Several pages use their own cards, so no wrapper card here. -->
+                <section class="max-w-3xl space-y-10">
                     <slot />
                 </section>
             </div>

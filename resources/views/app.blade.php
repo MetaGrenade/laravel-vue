@@ -11,7 +11,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="color-scheme" content="light dark">
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-        <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+        <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
 
         {{-- Apply the system dark mode preference before first paint to avoid a flash --}}
         <script @if ($nonce) nonce="{{ $nonce }}" @endif>
@@ -26,7 +26,7 @@
         <style @if ($nonce) nonce="{{ $nonce }}" @endif>
             html, body, #app { height: 100%; }
             html { background-color: #ffffff; }
-            html.dark { background-color: #0a0a0a; }
+            html.dark { background-color: #09090b; color-scheme: dark; }
         </style>
 
         <link rel="icon" href="/favicon.ico" sizes="any">

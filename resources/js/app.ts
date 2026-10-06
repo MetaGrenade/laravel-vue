@@ -19,7 +19,7 @@ void createInertiaApp({
         initializeZiggyRouteSync(page.props.ziggy?.group);
     },
     progress: {
-        color: '#4B5563',
+        color: '#6366f1',
         delay: 150,
     },
 }).then(() => initializeFlashToast(initialFlash));
