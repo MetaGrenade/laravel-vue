@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - main
+      - chore/m0-foundations # TEMPORARY: remove before merging M0
   pull_request:
     branches:
       - develop
