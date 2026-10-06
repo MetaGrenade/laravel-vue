@@ -132,23 +132,34 @@ class HandleInertiaRequests extends Middleware
     /**
      * Ziggy data for the page.
      *
-     * The route map is only needed when the initial HTML response is rendered
-     * by the SSR server; the browser receives it once via the @routes Blade
-     * directive. Subsequent Inertia visits only need the current location.
+     * The browser receives the route map for its group once, via the @routes
+     * Blade directive, and reports that group on every Inertia request (the
+     * X-Ziggy-Group header, see resources/js/lib/ziggy.ts). The map is only
+     * sent again when it is needed:
+     *
+     * - on Inertia visits where the user's group has changed, e.g. a staff
+     *   member signing in from the guest login page, or signing out;
+     * - on initial page loads rendered by the SSR server.
      *
      * @return array<string, mixed>
      */
     protected function ziggy(Request $request): array
     {
-        $location = ['location' => $request->fullUrl()];
+        $group = ZiggyRouteGroup::for($request->user());
 
-        if ($request->inertia() || ! config('inertia.ssr.enabled')) {
-            return $location;
+        $data = [
+            'location' => $request->fullUrl(),
+            'group' => $group,
+        ];
+
+        $needsRoutes = $request->inertia()
+            ? $request->header(ZiggyRouteGroup::HEADER) !== $group
+            : (bool) config('inertia.ssr.enabled');
+
+        if (! $needsRoutes) {
+            return $data;
         }
 
-        return [
-            ...(new Ziggy(ZiggyRouteGroup::for($request->user())))->toArray(),
-            ...$location,
-        ];
+        return [...(new Ziggy($group))->toArray(), ...$data];
     }
 }

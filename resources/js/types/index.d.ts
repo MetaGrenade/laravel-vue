@@ -89,7 +89,8 @@ export interface SharedData extends PageProps {
     quote: { message: string; author: string };
     auth: Auth;
     notifications: NotificationBag;
-    ziggy: Partial<Config> & { location: string };
+    /** `routes` is only present when the route map must be (re)loaded; see HandleInertiaRequests::ziggy(). */
+    ziggy: Partial<Config> & { location: string; group: 'public' | 'staff' };
     seoHead: string[];
     flash: {
         success?: string | null;

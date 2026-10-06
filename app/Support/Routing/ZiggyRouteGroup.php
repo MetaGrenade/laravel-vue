@@ -13,6 +13,11 @@ class ZiggyRouteGroup
     public const STAFF_ROLES = ['admin', 'editor', 'moderator'];
 
     /**
+     * Request header the frontend uses to report which group's route map it holds.
+     */
+    public const HEADER = 'X-Ziggy-Group';
+
+    /**
      * Resolve the Ziggy route group the given user is allowed to see.
      */
     public static function for(?Authenticatable $user): string
