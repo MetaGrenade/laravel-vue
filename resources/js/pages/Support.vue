@@ -720,10 +720,15 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Support Center" />
         <div class="container mx-auto space-y-8 p-4">
-            <h1 class="mb-4 text-3xl font-bold">
-                <LifeBuoy class="inline-block h-8 w-8 text-success" />
-                Support Center
-            </h1>
+            <header class="flex items-center gap-4 rounded-xl border bg-card p-5 shadow-xs">
+                <span class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <LifeBuoy class="size-5" />
+                </span>
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight">Support center</h1>
+                    <p class="text-sm text-muted-foreground">Track your tickets or browse answers to common questions.</p>
+                </div>
+            </header>
 
             <Tabs default-value="tickets" class="w-full">
                 <TabsList class="mb-4">
@@ -734,8 +739,8 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                 <!-- My Tickets Tab -->
                 <TabsContent value="tickets" class="space-y-6">
                     <!-- Search and New Ticket Button -->
-                    <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                        <h3 class="text-2xl font-semibold">My Tickets</h3>
+                    <div class="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-xs xl:flex-row xl:items-center xl:justify-between">
+                        <h3 class="text-xl font-semibold tracking-tight">My Tickets</h3>
                         <div class="flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:items-center xl:w-auto xl:justify-end">
                             <Input
                                 v-model="ticketSearchQuery"
@@ -818,7 +823,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                     </div>
 
                     <template v-if="props.canSubmitTicket">
-                        <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                        <div class="flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row">
                             <div class="text-center text-sm text-muted-foreground md:text-left">
                                 {{ ticketsRangeLabel }}
                             </div>
@@ -853,7 +858,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             </Pagination>
                         </div>
                         <!-- Tickets Table -->
-                        <div class="overflow-x-auto rounded-xl border p-4 shadow-xs">
+                        <div class="overflow-x-auto rounded-xl border bg-card p-4 shadow-xs">
                             <Table>
                                 <TableHeader class="bg-muted/50">
                                     <TableRow>
@@ -958,7 +963,10 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             </Table>
                         </div>
 
-                        <div v-if="showTicketPagination" class="flex flex-col items-center justify-between gap-4 md:flex-row">
+                        <div
+                            v-if="showTicketPagination"
+                            class="flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row"
+                        >
                             <div class="text-center text-sm text-muted-foreground md:text-left">
                                 {{ ticketsRangeLabel }}
                             </div>
@@ -993,7 +1001,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                         </div>
 
                         <!-- New Ticket Submission Form -->
-                        <div class="rounded-xl border p-6 shadow-sm">
+                        <div class="rounded-xl border bg-card p-6 shadow-sm">
                             <h2 class="mb-4 text-xl font-bold" id="create_ticket">Create New Ticket</h2>
                             <form class="flex flex-col gap-4" @submit.prevent="submitTicket">
                                 <div class="space-y-2">
@@ -1079,7 +1087,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                         </div>
                     </template>
                     <template v-else>
-                        <div class="space-y-4 rounded-xl border p-6 text-center shadow-sm">
+                        <div class="space-y-4 rounded-xl border bg-card p-6 text-center shadow-sm">
                             <p class="text-lg font-semibold">Need personalised help?</p>
                             <p class="text-sm text-muted-foreground">Sign in to create support requests and review your ticket history.</p>
                             <div class="flex justify-center">
@@ -1126,7 +1134,9 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             {{ activeFaqCategory.description }}
                         </div>
 
-                        <div class="flex flex-col gap-2 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+                        <div
+                            class="flex flex-col gap-2 rounded-lg border bg-card px-4 py-2.5 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between"
+                        >
                             <span>
                                 Showing {{ faqMatchCount }} {{ faqMatchCount === 1 ? 'answer' : 'answers' }}
                                 <template v-if="faqSearchQuery"> matching “{{ faqSearchQuery }}” </template>
@@ -1136,9 +1146,11 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
 
                         <div v-if="faqGroups.length" class="space-y-8">
                             <section v-for="group in faqGroups" :key="group.category?.id ?? 'uncategorized'" class="space-y-4">
-                                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                <div
+                                    class="flex flex-col gap-2 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row md:items-center md:justify-between"
+                                >
                                     <div>
-                                        <h4 class="text-xl font-semibold">
+                                        <h4 class="text-lg font-semibold tracking-tight">
                                             {{ group.category?.name ?? 'FAQs' }}
                                         </h4>
                                         <p v-if="group.category?.description" class="text-sm text-muted-foreground">
@@ -1153,7 +1165,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                 <div class="space-y-3">
                                     <Collapsible v-for="(faq, index) in group.faqs" :key="faq.id" :default-open="index === 0">
                                         <template #default="{ open }">
-                                            <div class="overflow-hidden rounded-lg border bg-background shadow-xs">
+                                            <div class="overflow-hidden rounded-lg border bg-card shadow-xs">
                                                 <CollapsibleTrigger as-child>
                                                     <button
                                                         type="button"
@@ -1244,7 +1256,10 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             </section>
                         </div>
 
-                        <div v-else class="rounded-xl border border-dashed border-muted-foreground/40 p-8 text-center text-sm text-muted-foreground">
+                        <div
+                            v-else
+                            class="rounded-xl border border-dashed border-muted-foreground/40 bg-card p-8 text-center text-sm text-muted-foreground"
+                        >
                             No FAQs match your filters. Try adjusting the search or choosing a different category.
                         </div>
                     </div>

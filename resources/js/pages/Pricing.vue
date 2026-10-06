@@ -302,7 +302,7 @@ onBeforeUnmount(() => {
         <Head title="Pricing" />
 
         <div class="flex flex-col gap-10 px-4 py-10">
-            <section class="mx-auto max-w-2xl text-center">
+            <section class="mx-auto w-full max-w-3xl rounded-xl border bg-card px-6 py-8 text-center shadow-xs">
                 <p class="eyebrow">Pricing</p>
                 <h1 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Simple plans that scale with you</h1>
                 <p class="mt-4 text-muted-foreground">

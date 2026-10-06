@@ -218,32 +218,37 @@ const {
                 <Link
                     :href="route('blogs.view', { slug: featuredBlog.slug })"
                     :aria-label="`Read featured blog: ${featuredBlog.title}`"
-                    class="group relative block h-64 overflow-hidden rounded-xl border border-sidebar-border/70 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-sidebar-border"
+                    class="group relative block h-64 overflow-hidden rounded-xl border bg-card shadow-sm focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-72"
                 >
                     <img
                         :src="featuredBlog.cover_image || '/images/default-cover.jpg'"
                         alt="Featured blog cover"
+                        fetchpriority="high"
+                        decoding="async"
                         class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     />
-                    <div class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent p-4">
-                        <div class="flex flex-wrap gap-2 text-xs">
+                    <div class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/50 to-transparent p-5 pt-16">
+                        <div class="mb-2 flex flex-wrap gap-2 text-xs">
+                            <span class="inline-flex items-center rounded-full bg-highlight px-3 py-1 font-semibold text-highlight-foreground">
+                                Featured
+                            </span>
                             <span
                                 v-for="category in featuredBlog.categories"
                                 :key="`featured-category-${category.id}`"
-                                class="inline-flex items-center rounded-full bg-primary/80 px-3 py-1 font-medium text-white"
+                                class="inline-flex items-center rounded-full bg-primary px-3 py-1 font-medium text-primary-foreground"
                             >
                                 {{ category.name }}
                             </span>
                             <span
                                 v-for="tag in featuredBlog.tags"
                                 :key="`featured-tag-${tag.id}`"
-                                class="inline-flex items-center rounded-full bg-black/50 px-3 py-1 font-medium text-white"
+                                class="inline-flex items-center rounded-full bg-black/60 px-3 py-1 font-medium text-white"
                             >
                                 #{{ tag.name }}
                             </span>
                         </div>
-                        <h2 class="text-xl font-bold text-white">{{ featuredBlog.title }}</h2>
-                        <p v-if="featuredBlog.excerpt" class="mt-1 line-clamp-2 text-sm text-white">
+                        <h2 class="text-xl font-semibold tracking-tight text-white sm:text-2xl">{{ featuredBlog.title }}</h2>
+                        <p v-if="featuredBlog.excerpt" class="mt-1 line-clamp-2 max-w-3xl text-sm text-white/90">
                             {{ featuredBlog.excerpt }}
                         </p>
                         <p class="mt-2 text-xs text-white/80">
@@ -258,11 +263,11 @@ const {
             </section>
 
             <!-- Filters -->
-            <section class="space-y-4 rounded-xl border border-sidebar-border/70 bg-background/60 p-4 shadow-xs dark:border-sidebar-border">
-                <div class="flex items-center justify-between gap-4">
+            <section class="space-y-4 rounded-xl border bg-card p-4 shadow-xs sm:p-5">
+                <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                     <div>
-                        <h2 class="text-base font-semibold">Browse the library</h2>
-                        <p class="text-sm text-muted-foreground">Focus on categories and tags to surface relevant posts.</p>
+                        <h1 class="text-lg font-semibold tracking-tight">Blog</h1>
+                        <p class="text-sm text-muted-foreground">Guides, announcements and release notes. Filter by category or tag.</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <a
@@ -311,11 +316,11 @@ const {
                             v-for="category in props.categories"
                             :key="`category-filter-${category.id}`"
                             type="button"
-                            class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition"
+                            class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors"
                             :class="[
                                 activeCategory === category.slug
                                     ? 'border-primary bg-primary/10 text-primary'
-                                    : 'border-muted-foreground/30 text-muted-foreground hover:border-primary/50 hover:text-primary',
+                                    : 'bg-card text-muted-foreground hover:border-primary/50 hover:text-primary',
                             ]"
                             @click="toggleCategory(category.slug)"
                         >
@@ -330,11 +335,11 @@ const {
                             v-for="tag in props.tags"
                             :key="`tag-filter-${tag.id}`"
                             type="button"
-                            class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition"
+                            class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors"
                             :class="[
                                 activeTag === tag.slug
-                                    ? 'border-amber-500/60 bg-warning/10 text-warning'
-                                    : 'border-muted-foreground/30 text-muted-foreground hover:border-amber-400/70 hover:text-amber-600 dark:hover:text-amber-300',
+                                    ? 'border-highlight bg-highlight/20 text-foreground'
+                                    : 'bg-card text-muted-foreground hover:border-highlight hover:text-foreground',
                             ]"
                             @click="toggleTag(tag.slug)"
                         >
@@ -355,7 +360,7 @@ const {
             </section>
 
             <!-- Pagination -->
-            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <div class="flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row">
                 <div class="text-center text-sm text-muted-foreground md:text-left">
                     {{ blogsRangeLabel }}
                 </div>
@@ -392,45 +397,61 @@ const {
 
             <!-- Blog Posts Grid -->
             <section v-if="hasBlogs">
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-                    <div v-for="blog in props.blogs.data" :key="blog.id" class="flex flex-col space-y-2">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <article
+                        v-for="blog in props.blogs.data"
+                        :key="blog.id"
+                        class="group flex flex-col overflow-hidden rounded-xl border bg-card shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                    >
                         <Link :href="route('blogs.view', { slug: blog.slug })" class="block">
-                            <div class="relative h-40 overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                                <img :src="blog.cover_image || '/images/default-cover.jpg'" alt="Blog cover" class="h-full w-full object-cover" />
+                            <div class="relative aspect-[16/7] overflow-hidden border-b bg-muted">
+                                <img
+                                    :src="blog.cover_image || '/images/default-cover.jpg'"
+                                    alt="Blog cover"
+                                    loading="lazy"
+                                    decoding="async"
+                                    class="h-full w-full object-cover"
+                                />
                             </div>
-                            <h3 class="mt-3 line-clamp-2 text-lg font-semibold">{{ blog.title }}</h3>
                         </Link>
-                        <p v-if="blog.excerpt" class="line-clamp-3 text-sm text-muted-foreground">
-                            {{ blog.excerpt }}
-                        </p>
-                        <p class="text-xs text-muted-foreground">
-                            {{ formatNumber(blog.views) }} views
-                            <span v-if="formatLastViewed(blog.last_viewed_at)"> • Last read {{ formatLastViewed(blog.last_viewed_at) }} </span>
-                        </p>
-                        <div v-if="blog.categories.length || blog.tags.length" class="flex flex-wrap gap-2 text-xs">
-                            <span
-                                v-for="category in blog.categories"
-                                :key="`list-category-${blog.id}-${category.id}`"
-                                class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 font-medium text-primary"
-                            >
-                                {{ category.name }}
-                            </span>
-                            <span
-                                v-for="tag in blog.tags"
-                                :key="`list-tag-${blog.id}-${tag.id}`"
-                                class="inline-flex items-center rounded-full bg-muted px-2.5 py-1 font-medium text-muted-foreground"
-                            >
-                                #{{ tag.name }}
-                            </span>
+                        <div class="flex flex-1 flex-col gap-2 p-4">
+                            <Link :href="route('blogs.view', { slug: blog.slug })" class="block">
+                                <h3 class="line-clamp-2 text-lg leading-snug font-semibold group-hover:text-primary">{{ blog.title }}</h3>
+                            </Link>
+                            <p v-if="blog.excerpt" class="line-clamp-3 flex-1 text-sm text-muted-foreground">
+                                {{ blog.excerpt }}
+                            </p>
+                            <div v-if="blog.categories.length || blog.tags.length" class="flex flex-wrap gap-2 pt-1 text-xs">
+                                <span
+                                    v-for="category in blog.categories"
+                                    :key="`list-category-${blog.id}-${category.id}`"
+                                    class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 font-medium text-primary"
+                                >
+                                    {{ category.name }}
+                                </span>
+                                <span
+                                    v-for="tag in blog.tags"
+                                    :key="`list-tag-${blog.id}-${tag.id}`"
+                                    class="inline-flex items-center rounded-full bg-muted px-2.5 py-1 font-medium text-muted-foreground"
+                                >
+                                    #{{ tag.name }}
+                                </span>
+                            </div>
+                            <p class="border-t pt-3 text-xs text-muted-foreground">
+                                {{ formatNumber(blog.views) }} views
+                                <span v-if="formatLastViewed(blog.last_viewed_at)"> • Last read {{ formatLastViewed(blog.last_viewed_at) }} </span>
+                            </p>
                         </div>
-                    </div>
+                    </article>
                 </div>
             </section>
 
-            <section v-else class="text-center text-muted-foreground">No blog posts to display yet. Check back soon!</section>
+            <section v-else class="rounded-xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">
+                No blog posts to display yet. Check back soon!
+            </section>
 
             <!-- Pagination -->
-            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <div class="flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row">
                 <div class="text-center text-sm text-muted-foreground md:text-left">
                     {{ blogsRangeLabel }}
                 </div>

@@ -13,7 +13,6 @@ import {
     PaginationNext,
     PaginationPrev,
 } from '@/components/ui/pagination';
-import { Separator } from '@/components/ui/separator';
 import { useGlobalSearchQuery } from '@/composables/useGlobalSearchQuery';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -290,68 +289,62 @@ const hasAnyResults = computed(() => groups.value.some((group) => group.items.le
     <AppLayout>
         <Head title="Search" />
 
-        <div class="mx-auto w-full max-w-7xl space-y-8 py-10">
-            <div class="space-y-2">
-                <h1 class="text-3xl font-semibold tracking-tight">Search</h1>
-                <p class="text-muted-foreground">Find content across blog posts, forum threads, and FAQs.</p>
-            </div>
-
-            <form class="flex flex-col gap-3 sm:flex-row" @submit.prevent="submitSearch">
-                <div class="flex-1">
-                    <label class="sr-only" for="global-search-input">Search term</label>
-                    <Input
-                        id="global-search-input"
-                        v-model="searchInput"
-                        type="search"
-                        placeholder="Search blogs, forum threads, and FAQs"
-                        autocomplete="off"
-                        class="w-full"
-                    />
+        <div class="mx-auto w-full max-w-7xl space-y-8 px-4 py-10">
+            <section class="space-y-5 rounded-xl border bg-card p-5 shadow-xs sm:p-6">
+                <div class="space-y-2">
+                    <h1 class="text-3xl font-semibold tracking-tight">Search</h1>
+                    <p class="text-muted-foreground">Find content across blog posts, forum threads, and FAQs.</p>
                 </div>
-                <Button type="submit" class="sm:w-auto">Search</Button>
-            </form>
 
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="text-sm font-medium text-muted-foreground">Filter by</span>
-                <Button
-                    v-for="type in typeOptions"
-                    :key="type.key"
-                    variant="outline"
-                    size="sm"
-                    :class="selectedTypeSet.has(type.key) ? 'border-primary text-primary' : ''"
-                    type="button"
-                    @click="toggleType(type.key)"
-                >
-                    {{ type.label }}
-                </Button>
-            </div>
+                <form class="flex flex-col gap-3 sm:flex-row" @submit.prevent="submitSearch">
+                    <div class="flex-1">
+                        <label class="sr-only" for="global-search-input">Search term</label>
+                        <Input
+                            id="global-search-input"
+                            v-model="searchInput"
+                            type="search"
+                            placeholder="Search blogs, forum threads, and FAQs"
+                            autocomplete="off"
+                            class="w-full"
+                        />
+                    </div>
+                    <Button type="submit" class="sm:w-auto">Search</Button>
+                </form>
 
-            <div class="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                <label class="font-medium" for="search-per-page">Results per page</label>
-                <select
-                    id="search-per-page"
-                    class="h-9 rounded-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-hidden"
-                    :value="perPage"
-                    @change="onPerPageChange"
-                >
-                    <option v-for="option in perPageOptions" :key="option" :value="option">
-                        {{ option }}
-                    </option>
-                </select>
-            </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-sm font-medium text-muted-foreground">Filter by</span>
+                    <Button
+                        v-for="type in typeOptions"
+                        :key="type.key"
+                        variant="outline"
+                        size="sm"
+                        :class="selectedTypeSet.has(type.key) ? 'border-primary text-primary' : ''"
+                        type="button"
+                        @click="toggleType(type.key)"
+                    >
+                        {{ type.label }}
+                    </Button>
+                </div>
 
-            <Separator />
+                <div class="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                    <label class="font-medium" for="search-per-page">Results per page</label>
+                    <select
+                        id="search-per-page"
+                        class="h-9 rounded-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-hidden"
+                        :value="perPage"
+                        @change="onPerPageChange"
+                    >
+                        <option v-for="option in perPageOptions" :key="option" :value="option">
+                            {{ option }}
+                        </option>
+                    </select>
+                </div>
+            </section>
 
-            <div
-                v-if="trimmedQuery.length === 0"
-                class="rounded-md border border-dashed border-muted-foreground/40 bg-muted/40 p-6 text-sm text-muted-foreground"
-            >
+            <div v-if="trimmedQuery.length === 0" class="rounded-xl border border-dashed bg-card p-6 text-sm text-muted-foreground">
                 Start typing to search the knowledge base.
             </div>
-            <div
-                v-else-if="isQueryTooShort"
-                class="rounded-md border border-dashed border-muted-foreground/40 bg-muted/40 p-6 text-sm text-muted-foreground"
-            >
+            <div v-else-if="isQueryTooShort" class="rounded-xl border border-dashed bg-card p-6 text-sm text-muted-foreground">
                 Type at least {{ minQueryLength }} characters to search.
             </div>
             <template v-else>
@@ -414,7 +407,7 @@ const hasAnyResults = computed(() => groups.value.some((group) => group.items.le
                         </Pagination>
                     </section>
                 </div>
-                <div v-else class="rounded-md border border-dashed border-muted-foreground/40 bg-muted/40 p-6 text-sm text-muted-foreground">
+                <div v-else class="rounded-xl border border-dashed bg-card p-6 text-sm text-muted-foreground">
                     No results for “{{ trimmedQuery }}”. Try adjusting your filters or search term.
                 </div>
             </template>

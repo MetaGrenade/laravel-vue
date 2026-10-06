@@ -566,9 +566,14 @@ const markBoardAsRead = () => {
         </Dialog>
         <div class="space-y-6 p-4">
             <!-- Forum Header -->
-            <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-                <h1 class="text-2xl font-bold text-success">{{ props.board.title }}</h1>
-                <div class="flex w-full flex-col gap-2 md:max-w-2xl md:flex-row md:items-center md:justify-end">
+            <header class="flex flex-col justify-between gap-4 rounded-xl border bg-card p-5 shadow-xs lg:flex-row lg:items-center">
+                <div class="min-w-0">
+                    <h1 class="text-2xl font-semibold tracking-tight">{{ props.board.title }}</h1>
+                    <p class="text-sm text-muted-foreground">
+                        {{ threadsMeta.total }} {{ threadsMeta.total === 1 ? 'thread' : 'threads' }} in this board
+                    </p>
+                </div>
+                <div class="flex w-full flex-col gap-2 md:flex-row md:items-center lg:max-w-2xl lg:justify-end">
                     <div class="flex w-full items-center gap-2">
                         <Input v-model="searchQuery" class="flex-1" :placeholder="`Search ${props.board.title}...`" />
                         <template v-if="canStartThread">
@@ -596,7 +601,7 @@ const markBoardAsRead = () => {
                 </div>
             </header>
             <!-- Top Pagination and Search -->
-            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <div class="flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row">
                 <div class="text-center text-sm text-muted-foreground md:text-left">
                     {{ threadsRangeLabel }}
                 </div>
@@ -631,7 +636,7 @@ const markBoardAsRead = () => {
             </div>
 
             <!-- Threads Table -->
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto rounded-xl border bg-card shadow-xs">
                 <Table>
                     <TableHeader>
                         <TableRow class="bg-muted/50">
@@ -649,12 +654,12 @@ const markBoardAsRead = () => {
                                     :href="route('forum.threads.show', { board: props.board.slug, thread: thread.slug })"
                                     :class="[
                                         thread.has_unread ? 'font-semibold' : 'font-normal',
-                                        thread.is_pinned ? 'text-success' : '',
+                                        thread.is_pinned ? 'text-primary' : '',
                                         'hover:underline',
                                     ]"
                                 >
                                     {{ thread.title }}
-                                    <Pin v-if="thread.is_pinned" class="ml-1 inline-block h-4 w-4 text-success" />
+                                    <Pin v-if="thread.is_pinned" class="ml-1 inline-block h-4 w-4 text-primary" />
                                     <Lock v-if="thread.is_locked" class="ml-1 inline-block h-4 w-4 text-muted-foreground" />
                                 </Link>
                                 <div class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -778,7 +783,7 @@ const markBoardAsRead = () => {
             </div>
 
             <!-- Bottom Pagination -->
-            <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <div class="flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row">
                 <div class="text-center text-sm text-muted-foreground md:text-left">
                     {{ threadsRangeLabel }}
                 </div>
