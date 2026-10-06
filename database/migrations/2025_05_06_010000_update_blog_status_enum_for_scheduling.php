@@ -20,14 +20,6 @@ return new class extends Migration
             return;
         }
 
-        if ($driver === 'pgsql') {
-            // Laravel's enum() is a varchar with an inline CHECK constraint on PostgreSQL.
-            DB::statement('ALTER TABLE blogs DROP CONSTRAINT IF EXISTS blogs_status_check');
-            DB::statement("ALTER TABLE blogs ADD CONSTRAINT blogs_status_check CHECK (status IN ('draft','scheduled','published','archived'))");
-
-            return;
-        }
-
         if ($driver === 'sqlite') {
             Schema::table('blogs', function (Blueprint $table) {
                 $table->string('status_temp')->default('draft');
@@ -59,20 +51,14 @@ return new class extends Migration
         $driver = Schema::getConnection()->getDriverName();
 
         // The older status set has no 'scheduled' value. Posts that were waiting
-        // to be published go back to drafts first; otherwise restoring the
-        // constraint (PostgreSQL, SQLite) or the enum (MySQL strict mode) fails
-        // as soon as any post has used the status.
+        // to be published go back to drafts first; otherwise restoring the enum
+        // (MySQL strict mode) or the column (SQLite) fails as soon as any post
+        // has used the status. PostgreSQL is handled by
+        // 2026_10_08_000100_allow_scheduled_blog_status_on_postgresql.
         DB::table('blogs')->where('status', 'scheduled')->update(['status' => 'draft']);
 
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE blogs MODIFY status ENUM('draft','published','archived') DEFAULT 'draft'");
-
-            return;
-        }
-
-        if ($driver === 'pgsql') {
-            DB::statement('ALTER TABLE blogs DROP CONSTRAINT IF EXISTS blogs_status_check');
-            DB::statement("ALTER TABLE blogs ADD CONSTRAINT blogs_status_check CHECK (status IN ('draft','published','archived'))");
 
             return;
         }
