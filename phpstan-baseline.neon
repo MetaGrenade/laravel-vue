@@ -1,0 +1,2359 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$avatar_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Events/ForumPostCreated.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Events/ForumPostCreated.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Events/ForumPostCreated.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Events/ForumPostCreated.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>slug" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Events/ForumPostCreated.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/AdminController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/AdminController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between float and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/Admin/AdminController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BillingController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/BillingController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BillingController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BillingController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/BillingWebhookCallController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/BillingWebhookCallController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/BillingWebhookCallController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Pagination\\AbstractPaginator\<int,App\\Models\\BillingWebhookCall\>\:\:through\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/BillingWebhookCallController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BlogComment\:\:\$pending_reports_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$evidence_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_banned\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reason\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reason_category\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reporter\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reviewer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\BlogComment\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: \(Illuminate\\Database\\Eloquent\\Model\|null\), Closure\(App\\Models\\BlogCommentReport\)\: \(Illuminate\\Database\\Eloquent\\Model\|null\) given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Call to function is_array\(\) with string will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, slug\: string\}, Closure\(App\\Models\\BlogCategory\)\: array\{id\: int\<0, max\>, name\: string, slug\: string\} given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, slug\: string\}, Closure\(App\\Models\\BlogTag\)\: array\{id\: int\<0, max\>, name\: string, slug\: string\} given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, excerpt\: string\|null, body\: string\|null, cover_image\: string\|null, cover_image_url\: string\|null, status\: ''archived''\|''draft''\|''published''\|''scheduled'', published_at\: string\|null, scheduled_for\: string\|null, edited_at\: string\|null, created_at\: string\|null, category_ids\: array, tag_ids\: array, categories\: array\<int, array\{id\: int, name\: string, slug\: string\}\>, tags\: array\<int, array\{id\: int, name\: string, slug\: string\}\>, metadata\: array, editor\: array\{id\: mixed, nickname\: mixed\}\|null\}, Closure\(App\\Models\\BlogRevision\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, excerpt\: string\|null, body\: string\|null, cover_image\: string\|null, cover_image_url\: string\|null, status\: ''archived''\|''draft''\|''published''\|''scheduled'', published_at\: string\|null, scheduled_for\: string\|null, edited_at\: string\|null, created_at\: string\|null, category_ids\: array, tag_ids\: array, categories\: array\<int, array\{id\: int, name\: string, slug\: string\}\>, tags\: array\<int, array\{id\: int, name\: string, slug\: string\}\>, metadata\: array, editor\: array\{id\: mixed, nickname\: mixed\}\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:flatMap\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: \(array\|Illuminate\\Support\\Collection\<int\|string, mixed\>\), Closure\(App\\Models\\BlogRevision\)\: array given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
+			identifier: larastan.relationExistence
+			count: 5
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/Http/Controllers/Admin/BlogController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$position\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/ForumBoardController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$author\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$lastPostAuthor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$last_posted_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$position\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\ForumCategory\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, position\: int\<0, max\>, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_post\: array\{title\: mixed, author\: array\{id\: mixed, nickname\: mixed\}\|null, posted_at\: string\|null\}\|null\}, Closure\(App\\Models\\ForumBoard\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, position\: int\<0, max\>, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_post\: array\{title\: mixed, author\: array\{id\: mixed, nickname\: mixed\}\|null, posted_at\: string\|null\}\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>lastPostAuthor" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>last_posted_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Admin/ForumCategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$author\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$board\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$body\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 6
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_locked\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_published\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$thread\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\ForumPostReport\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\ForumThreadReport\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Parameter \#1 \$items of method Illuminate\\Support\\Collection\<\(int\|string\),mixed\>\:\:merge\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 2
+			path: app/Http/Controllers/Admin/ForumReportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, label\: string, votes_count\: int\<0, max\>\}, Closure\(App\\Models\\PollOption\)\: array\{id\: int\<0, max\>, label\: string, votes_count\: int\<0, max\>\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/PollController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>total_count" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Admin/SearchAnalyticsController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>total_results" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Admin/SearchAnalyticsController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>zero_result_count" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Admin/SearchAnalyticsController.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Http/Controllers/Admin/SubscriptionPlanController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/SupportAssignmentRuleController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Admin/SupportAssignmentRuleController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/SupportAssignmentRuleController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/SupportAssignmentRuleController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\SupportAssignmentRule\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/SupportAssignmentRuleController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between int\<0, max\> and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/Admin/SupportAssignmentRuleController.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Models\\User\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Http/Controllers/Admin/SupportAssignmentRuleController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\SupportTicket\:\:\$avg_rating\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\SupportTicket\:\:\$rating_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 9
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 16
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 6
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 9
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Called ''avg'' on Laravel collection, but could have been retrieved as a query\.$#'
+			identifier: larastan.noUnnecessaryCollectionCall
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Admin\\SupportController\:\:resolveAuditUser\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Offset ''rating_count'' on array\{avg_rating\: float\|int\|null, rating_count\: int\<0, max\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\SupportResponseTemplate\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 2
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\SupportTicket\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array, Closure\(App\\Models\\SupportTicketAudit\)\: array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array, Closure\(App\\Models\\SupportTicketMessage\)\: array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}, Closure\(App\\Models\\SupportTicketMessageAttachment\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string\}, Closure\(App\\Models\\SupportTeam\)\: array\{id\: int\<0, max\>, name\: string\} given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, nickname\: string, email\: string\}, Closure\(App\\Models\\User\)\: array\{id\: int\<0, max\>, nickname\: string, email\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:flatMap\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: \(array\<0\|1, int\>\|Illuminate\\Support\\Collection\<0\|1, int\>\), Closure\(App\\Models\\SupportTicketAudit\)\: \(array\{\}\|array\{0\: int, 1\?\: int\}\) given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Parameter \#1 \$message of method App\\Support\\SupportAttachmentStorage\:\:attach\(\) expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Parameter \#2 \$message of class App\\Notifications\\TicketReplied constructor expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Models\\User\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 10
+			path: app/Http/Controllers/Admin/SupportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/TokenController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/TokenController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/TokenController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\PersonalAccessToken\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/TokenController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/TrustSafetyController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/TrustSafetyController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/TrustSafetyController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Pagination\\AbstractPaginator\<int,App\\Models\\DataErasureRequest\>\:\:through\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/TrustSafetyController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Pagination\\AbstractPaginator\<int,App\\Models\\DataExport\>\:\:through\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/TrustSafetyController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/UserSocialAccountController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:user\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/UserSocialAccountController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/UsersController.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: mixed$#'
+			identifier: match.unhandled
+			count: 2
+			path: app/Http/Controllers/Admin/UsersController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\User\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/UsersController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Admin/UsersController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, provider\: string, provider_id\: string, name\: string\|null, nickname\: string\|null, email\: string\|null, avatar\: string\|null, created_at\: string\|null, updated_at\: string\|null\}, Closure\(App\\Models\\SocialAccount\)\: array\{id\: int\<0, max\>, provider\: string, provider_id\: string, name\: string\|null, nickname\: string\|null, email\: string\|null, avatar\: string\|null, created_at\: string\|null, updated_at\: string\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/UsersController.php
+
+		-
+			message: '#^Parameter \#1 \$date of method App\\Support\\Localization\\DateFormatter\:\:iso\(\) expects Carbon\\CarbonInterface\|null, string\|null given\.$#'
+			identifier: argument.type
+			count: 5
+			path: app/Http/Controllers/Admin/UsersController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/AuthTokenController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\V1\\AuthTokenController\:\:destroy\(\) should return Illuminate\\Http\\JsonResponse but returns Illuminate\\Http\\Response\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/AuthTokenController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/BlogCommentController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:each\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: mixed, Closure\(App\\Models\\User\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/BlogCommentController.php
+
+		-
+			message: '#^Parameter \#2 \$comment of class App\\Notifications\\BlogCommentPosted constructor expects App\\Models\\BlogComment, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/BlogCommentController.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Api/V1/BlogCommentController.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Api/V1/BlogController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\V1\\ForumPostCommandController\:\:extractMentionNicknames\(\) should return Illuminate\\Support\\Collection\<int, string\> but returns Illuminate\\Support\\Collection\<int, non\-empty\-string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/ForumPostCommandController.php
+
+		-
+			message: '#^Offset 1 on array\{list\<string\>, list\<non\-falsy\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/V1/ForumPostCommandController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:each\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: mixed, Closure\(App\\Models\\User\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/ForumPostCommandController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/PollController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$label\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/PollController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/V1/PollController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, label\: string, votes_count\: int\<0, max\>, vote_percent\: 0\|float\}, Closure\(App\\Models\\PollOption\)\: array\{id\: int\<0, max\>, label\: string, votes_count\: int\<0, max\>, vote_percent\: 0\|float\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/PollVoteController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array, Closure\(App\\Models\\SupportTicketMessage\)\: array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}, Closure\(App\\Models\\SupportTicketMessageAttachment\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
+
+		-
+			message: '#^Parameter \#1 \$message of method App\\Support\\SupportAttachmentStorage\:\:attach\(\) expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
+
+		-
+			message: '#^Parameter \#2 \$message of class App\\Notifications\\TicketOpened constructor expects App\\Models\\SupportTicketMessage\|null, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}, Closure\(App\\Models\\SupportTicketMessageAttachment\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
+
+		-
+			message: '#^Parameter \#1 \$message of method App\\Http\\Controllers\\Api\\V1\\Support\\SupportTicketMessageController\:\:transformMessage\(\) expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
+
+		-
+			message: '#^Parameter \#1 \$message of method App\\Support\\SupportAttachmentStorage\:\:attach\(\) expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
+
+		-
+			message: '#^Parameter \#2 \$message of class App\\Notifications\\TicketReplied constructor expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Auth/SocialLoginController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$two_factor_confirmed_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Auth/SocialLoginController.php
+
+		-
+			message: '#^Parameter \#1 \$user of static method Illuminate\\Support\\Facades\\Auth\:\:login\(\) expects Illuminate\\Contracts\\Auth\\Authenticatable, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Auth/SocialLoginController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$avatar_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$profile_bio\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 2
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array, Closure\(App\\Models\\BlogComment\)\: array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:each\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: mixed, Closure\(App\\Models\\User\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Parameter \#1 \$comment of method App\\Http\\Controllers\\BlogCommentController\:\:transformComment\(\) expects App\\Models\\BlogComment, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Parameter \#2 \$comment of class App\\Notifications\\BlogCommentPosted constructor expects App\\Models\\BlogComment, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/BlogCommentController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BlogCategory\:\:\$published_blogs_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BlogTag\:\:\$published_blogs_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$avatar_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$profile_bio\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Call to function is_array\(\) with string will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\BlogCategory\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\BlogTag\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, body\: string, created_at\: string\|null, updated_at\: string\|null, permissions\: array\{can_update\: bool, can_delete\: bool, can_report\: bool\}, reactions\: array\{likes\: int\<0, max\>, dislikes\: int\<0, max\>, user_reaction\: mixed\}, user\: array\{id\: mixed, nickname\: mixed, avatar_url\: non\-empty\-string\|null, profile_bio\: non\-empty\-string\|null\}\|null\}, Closure\(App\\Models\\BlogComment\)\: array\{id\: int\<0, max\>, body\: string, created_at\: string\|null, updated_at\: string\|null, permissions\: array\{can_update\: bool, can_delete\: bool, can_report\: bool\}, reactions\: array\{likes\: int\<0, max\>, dislikes\: int\<0, max\>, user_reaction\: mixed\}, user\: array\{id\: mixed, nickname\: mixed, avatar_url\: non\-empty\-string\|null, profile_bio\: non\-empty\-string\|null\}\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, slug\: string\}, Closure\(App\\Models\\BlogCategory\)\: array\{id\: int\<0, max\>, name\: string, slug\: string\} given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, slug\: string\}, Closure\(App\\Models\\BlogTag\)\: array\{id\: int\<0, max\>, name\: string, slug\: string\} given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
+			identifier: larastan.relationExistence
+			count: 3
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/Http/Controllers/BlogController.php
+
+		-
+			message: '#^Instanceof between object and Laravel\\Cashier\\Payment will always evaluate to false\.$#'
+			identifier: instanceof.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/Concerns/InteractsWithStripe.php
+
+		-
+			message: '#^Property Laravel\\Cashier\\Exceptions\\IncompletePayment\:\:\$payment \(Laravel\\Cashier\\Payment\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: app/Http/Controllers/Concerns/InteractsWithStripe.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$board\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: lowercase\-string&non\-falsy\-string, summary\: non\-falsy\-string, context\: ''Forum reply'', time\: string\|null, url\: non\-falsy\-string\|null, timestamp\: Carbon\\Carbon\|null\}, Closure\(App\\Models\\ForumPost\)\: array\{id\: lowercase\-string&non\-falsy\-string, summary\: non\-falsy\-string, context\: ''Forum reply'', time\: string\|null, url\: non\-falsy\-string\|null, timestamp\: Carbon\\Carbon\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: lowercase\-string&non\-falsy\-string, summary\: non\-falsy\-string, context\: ''Forum thread'', time\: string\|null, url\: string\|null, timestamp\: Carbon\\Carbon\|null\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: lowercase\-string&non\-falsy\-string, summary\: non\-falsy\-string, context\: ''Forum thread'', time\: string\|null, url\: string\|null, timestamp\: Carbon\\Carbon\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\ForumPost\>\:\:filter\(\) expects \(callable\(App\\Models\\ForumPost, int\)\: bool\)\|null, Closure\(App\\Models\\ForumPost\)\: \(Carbon\\Carbon\|null\) given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\SupportTicket\>\:\:filter\(\) expects \(callable\(App\\Models\\SupportTicket, int\)\: bool\)\|null, Closure\(App\\Models\\SupportTicket\)\: \(Carbon\\Carbon\|null\) given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ecommerce/ProductCatalogController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Badge\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ForumThread\:\:\$last_read_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$author\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$avatar_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$badges\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$board\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$body\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$category\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$forum_posts_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$forum_signature\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$latestPost\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 6
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reputation_points\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 6
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 6
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getRoleNames\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 3
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: mixed, thread_slug\: mixed, board_slug\: mixed, board_title\: mixed, author\: mixed, created_at\: string\|null, thread_id\: mixed\}, Closure\(App\\Models\\ForumPost\)\: array\{id\: int\<0, max\>, title\: mixed, thread_slug\: mixed, board_slug\: mixed, board_title\: mixed, author\: mixed, created_at\: string\|null, thread_id\: mixed\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, board\: array\{slug\: mixed, title\: mixed, category_title\: mixed\}, author\: mixed, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, board\: array\{slug\: mixed, title\: mixed, category_title\: mixed\}, author\: mixed, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, boards\: Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}\>\}, Closure\(App\\Models\\ForumCategory\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, boards\: Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}\>\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 3
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, body\: string\|null, body_raw\: string\|null, quote_html\: string, created_at\: string\|null, edited_at\: string\|null, number\: int, author\: array\{id\: mixed, nickname\: mixed, joined_at\: string\|null, forum_posts_count\: mixed, primary_role\: mixed, avatar_url\: mixed, forum_signature\: mixed, reputation_points\: mixed, badges\: mixed\}, permissions\: array\{canReport\: bool, canEdit\: bool, canDelete\: bool, canModerate\: bool\}, mentions\: Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, nickname\: string, profile_url\: string\|null\}\>\}, Closure\(App\\Models\\ForumPost, int\)\: array\{id\: int\<0, max\>, body\: string\|null, body_raw\: string\|null, quote_html\: string, created_at\: string\|null, edited_at\: string\|null, number\: int, author\: array\{id\: mixed, nickname\: mixed, joined_at\: string\|null, forum_posts_count\: mixed, primary_role\: mixed, avatar_url\: mixed, forum_signature\: mixed, reputation_points\: mixed, badges\: mixed\}, permissions\: array\{canReport\: bool, canEdit\: bool, canDelete\: bool, canModerate\: bool\}, mentions\: Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, nickname\: string, profile_url\: string\|null\}\>\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, nickname\: string, profile_url\: string\|null\}, Closure\(App\\Models\\User\)\: array\{id\: int\<0, max\>, nickname\: string, profile_url\: string\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, author\: mixed, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, author\: mixed, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}, Closure\(App\\Models\\ForumBoard\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>badges" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>forum_posts_count" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>reputation_points" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/ForumController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ForumPostController\:\:extractMentionNicknames\(\) should return Illuminate\\Support\\Collection\<int, string\> but returns Illuminate\\Support\\Collection\<int, non\-empty\-string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/ForumPostController.php
+
+		-
+			message: '#^Offset 1 on array\{list\<string\>, list\<non\-falsy\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/ForumPostController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:each\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: mixed, Closure\(App\\Models\\User\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/ForumPostController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumPostRevisionController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ForumPostRevisionController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, body\: string\|null, edited_at\: string\|null, created_at\: string\|null, editor\: array\{id\: null, nickname\: null\}\|null\}, Closure\(App\\Models\\ForumPostRevision\)\: array\{id\: int\<0, max\>, body\: string\|null, edited_at\: string\|null, created_at\: string\|null, editor\: array\{id\: null, nickname\: null\}\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/ForumPostRevisionController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/ForumThreadActionController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/ForumThreadActionController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/ForumThreadActionController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{forum_thread_id\: int\<0, max\>, user_id\: int\<0, max\>, last_read_post_id\: mixed, last_read_at\: mixed\}, Closure\(App\\Models\\ForumThread\)\: array\{forum_thread_id\: int\<0, max\>, user_id\: int\<0, max\>, last_read_post_id\: mixed, last_read_at\: mixed\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/ForumThreadActionController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Controllers/ForumThreadActionController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/PricingController.php
+
+		-
+			message: '#^Offset ''items'' on array\{items\: array\<int, array\<string, mixed\>\>, meta\: array\<string, mixed\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/SearchController.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Http/Controllers/SearchResultsController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/SearchResultsController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/DataExportController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:isChannelEnabled\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/NotificationSettingsController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:isOptionEnabled\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/NotificationSettingsController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<\(int\|string\),mixed\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 3
+			path: app/Http/Controllers/Settings/NotificationSettingsController.php
+
+		-
+			message: '#^Variable \$channelConfig on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 2
+			path: app/Http/Controllers/Settings/NotificationSettingsController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/PrivacyController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/PrivacyController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$processed_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/PrivacyController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/PrivacyController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, status\: string, format\: string, failure_reason\: string\|null, created_at\: string\|null, completed_at\: string\|null, download_expires_at\: string\|null, download_url\: string\|null\}, Closure\(App\\Models\\DataExport\)\: array\{id\: int\<0, max\>, status\: string, format\: string, failure_reason\: string\|null, created_at\: string\|null, completed_at\: string\|null, download_expires_at\: string\|null, download_url\: string\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Settings/PrivacyController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$avatar\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SecurityController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SecurityController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SecurityController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SecurityController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SecurityController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SecurityController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SecurityController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SecurityController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$updated_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SecurityController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Settings/SecurityController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Cashier\\Invoice\:\:\$currency\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SubscriptionController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Cashier\\Invoice\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SubscriptionController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Cashier\\PaymentMethod\:\:\$card\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/Settings/SubscriptionController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Cashier\\PaymentMethod\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Settings/SubscriptionController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Cashier\\PaymentMethod\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Settings/SubscriptionController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Cashier\\Subscription\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Settings/SubscriptionController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Laravel\\Cashier\\Invoice\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Settings/SubscriptionController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Laravel\\Cashier\\PaymentMethod\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Settings/SubscriptionController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\FaqCategory\:\:\$published_faqs_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 10
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\SupportTicket\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, body\: string, created_at\: string\|null, author\: array\{id\: mixed, nickname\: mixed, email\: mixed\}\|null, is_from_support\: bool, attachments\: array\<int, array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}\>\}, Closure\(App\\Models\\SupportTicketMessage\)\: array\{id\: int\<0, max\>, body\: string, created_at\: string\|null, author\: array\{id\: mixed, nickname\: mixed, email\: mixed\}\|null, is_from_support\: bool, attachments\: array\<int, array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}\>\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}, Closure\(App\\Models\\SupportTicketMessageAttachment\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Parameter \#1 \$message of method App\\Support\\SupportAttachmentStorage\:\:attach\(\) expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Parameter \#2 \$message of class App\\Notifications\\TicketOpened constructor expects App\\Models\\SupportTicketMessage\|null, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Parameter \#2 \$message of class App\\Notifications\\TicketReplied constructor expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/SupportCenterController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Webhooks\\StripeWebhookController\:\:__invoke\(\) should return Illuminate\\Http\\Response but returns Symfony\\Component\\HttpFoundation\\Response\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Webhooks/StripeWebhookController.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Models\\User\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Middleware/LogTokenActivity.php
+
+		-
+			message: '#^Call to function method_exists\(\) with App\\Models\\User and ''currentAccessToken'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Http/Middleware/PreventBannedUser.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: app/Http/Middleware/PreventBannedUser.php
+
+		-
+			message: '#^Call to function method_exists\(\) with App\\Models\\User and ''currentAccessToken'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Http/Middleware/ThrottleTokenUsage.php
+
+		-
+			message: '#^Cannot call method lt\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Middleware/UpdateLastActivity.php
+
+		-
+			message: '#^Left side of \|\| is always false\.$#'
+			identifier: booleanOr.leftAlwaysFalse
+			count: 1
+			path: app/Http/Requests/Admin/BadgeRequest.php
+
+		-
+			message: '#^Call to function is_numeric\(\) with mixed will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Http/Requests/Admin/SubscriptionPlanRequest.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/BlogResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/BlogResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/BlogResource.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 2
+			path: app/Http/Resources/Api/V1/BlogResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$author\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/ForumThreadResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$body\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/ForumThreadResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/ForumThreadResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/ForumThreadResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/ForumThreadResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/ForumThreadResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\UserSummaryResource\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/UserSummaryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\SearchQuery\:\:\$last_ran_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/AggregateSearchQueryStats.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\SearchQuery\:\:\$total_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/AggregateSearchQueryStats.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\SearchQuery\:\:\$total_results\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/AggregateSearchQueryStats.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\SearchQuery\:\:\$zero_result_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/AggregateSearchQueryStats.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$blog_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$body\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$forum_thread_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$priority\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subject\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$updated_at\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:preferredNotificationChannelsFor\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 3
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Parameter \#1 \$user of method App\\Jobs\\GenerateUserDataExport\:\:buildPayload\(\) expects App\\Models\\User, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Jobs/GenerateUserDataExport.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: app/Jobs/MonitorSupportTicketSlas.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: app/Jobs/MonitorSupportTicketSlas.php
+
+		-
+			message: '#^Method App\\Models\\DataExport\:\:downloadExpiresAt\(\) should return Illuminate\\Support\\Carbon\|null but returns Carbon\\Carbon\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/DataExport.php
+
+		-
+			message: '#^Generic type Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\FaqFeedback\> in PHPDoc tag @return does not specify all template types of class Illuminate\\Database\\Eloquent\\Relations\\HasMany\: TRelatedModel, TDeclaringModel$#'
+			identifier: generics.lessTypes
+			count: 3
+			path: app/Models/Faq.php
+
+		-
+			message: '#^Method App\\Models\\Faq\:\:category\(\) should return Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\FaqCategory, App\\Models\\Faq\> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\FaqCategory, \$this\(App\\Models\\Faq\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Faq.php
+
+		-
+			message: '#^Method App\\Models\\Faq\:\:feedback\(\) should return Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\FaqFeedback\> but returns Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\FaqFeedback, \$this\(App\\Models\\Faq\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Faq.php
+
+		-
+			message: '#^Generic type Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\Faq\> in PHPDoc tag @return does not specify all template types of class Illuminate\\Database\\Eloquent\\Relations\\HasMany\: TRelatedModel, TDeclaringModel$#'
+			identifier: generics.lessTypes
+			count: 1
+			path: app/Models/FaqCategory.php
+
+		-
+			message: '#^Method App\\Models\\FaqCategory\:\:faqs\(\) should return Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\Faq\> but returns Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\Faq, \$this\(App\\Models\\FaqCategory\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/FaqCategory.php
+
+		-
+			message: '#^Method App\\Models\\FaqFeedback\:\:faq\(\) should return Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\Faq, App\\Models\\FaqFeedback\> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\Faq, \$this\(App\\Models\\FaqFeedback\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/FaqFeedback.php
+
+		-
+			message: '#^Method App\\Models\\FaqFeedback\:\:user\(\) should return Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\User, App\\Models\\FaqFeedback\> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\User, \$this\(App\\Models\\FaqFeedback\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/FaqFeedback.php
+
+		-
+			message: '#^Method App\\Models\\Product\:\:optionValues\(\) should return Illuminate\\Database\\Eloquent\\Relations\\HasMany but returns Illuminate\\Database\\Eloquent\\Relations\\HasManyThrough\<App\\Models\\ProductOptionValue, App\\Models\\ProductOption, \$this\(App\\Models\\Product\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Product.php
+
+		-
+			message: '#^Unsafe access to private constant App\\Models\\SupportAssignmentRule\:\:CACHE_KEY through static\:\:\.$#'
+			identifier: staticClassAccess.privateConstant
+			count: 2
+			path: app/Models/SupportAssignmentRule.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/SystemSetting.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:isChannelEnabled\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:isOptionEnabled\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Notifications/BlogCommentPosted.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Notifications/BlogCommentPosted.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/BlogCommentPosted.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nickname" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/BlogCommentPosted.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Notifications/ForumPostMentioned.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>slug" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Notifications/ForumPostMentioned.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Notifications/ForumThreadUpdated.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>slug" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Notifications/ForumThreadUpdated.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Notifications/TicketOpened.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Notifications/TicketOpened.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>body" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/TicketOpened.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/TicketOpened.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>email" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/TicketOpened.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nickname" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/TicketOpened.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Notifications/TicketReplied.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Notifications/TicketReplied.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Notifications/TicketReplied.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>email" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/TicketReplied.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/TicketReplied.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nickname" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/TicketReplied.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$ticket\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/SupportTicketMessageAttachmentPolicy.php
+
+		-
+			message: '#^Class App\\Providers\\SupportTicketMessageAttachment not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Class App\\Providers\\SupportTicketMessageAttachmentPolicy not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between DateInterval and false will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Rules/ValidDateInterval.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Support/Billing/BillingWebhookProcessor.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>user_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Support/Billing/BillingWebhookProcessor.php
+
+		-
+			message: '#^Call to an undefined static method Laravel\\Cashier\\Exceptions\\IncompletePayment\:\:invalidPaymentMethod\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: app/Support/Billing/SubscriptionManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Support/Commerce/CartManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantity\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Commerce/CartManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$snapshot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Commerce/CartManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Commerce/CartManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_price\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Commerce/CartManager.php
+
+		-
+			message: '#^Method App\\Support\\Commerce\\CartManager\:\:addItem\(\) should return App\\Models\\CartItem but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/Commerce/CartManager.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Support/Commerce/CartManager.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: mixed, variant\: mixed, quantity\: int\<0, max\>, unit_price\: numeric\-string, total\: numeric\-string\}, Closure\(App\\Models\\CartItem\)\: array\{id\: int\<0, max\>, name\: mixed, variant\: mixed, quantity\: int\<0, max\>, unit_price\: numeric\-string, total\: numeric\-string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/Commerce/CartManager.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Support/Commerce/CartManager.php
+
+		-
+			message: '#^Parameter \#2 \$syntax of method Carbon\\CarbonInterface\:\:diffForHumans\(\) expects array\|int\|null, bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/Localization/DateFormatter.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed~\(0\|0\.0\|''''\|''0''\|array\{\}\|false\|null\) and ''0'' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/OAuth/Providers/DiscordProvider.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Search/GlobalSearchService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Search/GlobalSearchService.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Support/Search/GlobalSearchService.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Support/Search/GlobalSearchService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/Search/GlobalSearchService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nickname" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Support/Search/GlobalSearchService.php
+
+		-
+			message: '#^Variable \$code on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: app/Support/Security/TwoFactorAuthenticator.php
+
+		-
+			message: '#^Call to function is_resource\(\) with resource will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Support/SupportAttachmentStorage.php
+
+		-
+			message: '#^Method App\\Support\\SupportTicketAuditor\:\:log\(\) should return App\\Models\\SupportTicketAudit but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/SupportTicketAuditor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$members\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/SupportTicketNotificationDispatcher.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$supportTeams\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/SupportTicketNotificationDispatcher.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between array\<int, string\> and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/SupportTicketNotificationDispatcher.php
+
+		-
+			message: '#^Offset ''body'' on array\{slug\: ''demo\-archived…'', title\: ''Archived\: Roadmap…'', status\: ''archived'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-community…'', title\: ''Community…'', status\: ''draft'', published_at\: null, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-monthly…'', title\: ''Monthly Product…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-support…'', title\: ''Support Efficiency…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-welcome\-to\-the…'', title\: ''Welcome to the Live…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon, author\: App\\Models\\User\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: database/seeders/AcpDashboardDemoSeeder.php
+
+		-
+			message: '#^Offset ''excerpt'' on array\{slug\: ''demo\-archived…'', title\: ''Archived\: Roadmap…'', status\: ''archived'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-community…'', title\: ''Community…'', status\: ''draft'', published_at\: null, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-monthly…'', title\: ''Monthly Product…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-support…'', title\: ''Support Efficiency…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-welcome\-to\-the…'', title\: ''Welcome to the Live…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon, author\: App\\Models\\User\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: database/seeders/AcpDashboardDemoSeeder.php
+
+		-
+			message: '#^Offset ''preview_token'' on array\{slug\: ''demo\-archived…'', title\: ''Archived\: Roadmap…'', status\: ''archived'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-community…'', title\: ''Community…'', status\: ''draft'', published_at\: null, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-monthly…'', title\: ''Monthly Product…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-support…'', title\: ''Support Efficiency…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-welcome\-to\-the…'', title\: ''Welcome to the Live…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon, author\: App\\Models\\User\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: database/seeders/AcpDashboardDemoSeeder.php
+
+		-
+			message: '#^Offset ''scheduled_for'' on array\{slug\: ''demo\-archived…'', title\: ''Archived\: Roadmap…'', status\: ''archived'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-community…'', title\: ''Community…'', status\: ''draft'', published_at\: null, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-monthly…'', title\: ''Monthly Product…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-support…'', title\: ''Support Efficiency…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-welcome\-to\-the…'', title\: ''Welcome to the Live…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon, author\: App\\Models\\User\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: database/seeders/AcpDashboardDemoSeeder.php
+
+		-
+			message: '#^Offset ''updated_at'' on array\{slug\: ''demo\-archived…'', title\: ''Archived\: Roadmap…'', status\: ''archived'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-community…'', title\: ''Community…'', status\: ''draft'', published_at\: null, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-monthly…'', title\: ''Monthly Product…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-support…'', title\: ''Support Efficiency…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon\}\|array\{slug\: ''demo\-welcome\-to\-the…'', title\: ''Welcome to the Live…'', status\: ''published'', published_at\: Illuminate\\Support\\Carbon, created_at\: Illuminate\\Support\\Carbon, author\: App\\Models\\User\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: database/seeders/AcpDashboardDemoSeeder.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between ''open''\|''pending'' and ''closed'' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 3
+			path: database/seeders/AcpDashboardDemoSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/AcpDashboardDemoSeeder.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/seeders/CommerceDemoSeeder.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/seeders/CommerceDemoSeeder.php
+
+		-
+			message: '#^Offset ''categories'' on array\{name\: string, slug\: string, description\: string, metadata\: array\{hero_image\: string\}, brand\: string, categories\: array\{0\: string, 1\?\: string\}, tags\: array\{string\}, options\: array\{\}\|array\{array\{name\: string, display_name\: string, values\: array\{0\: string, 1\: string, 2\: string, 3\?\: string\}\}\}, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: database/seeders/CommerceDemoSeeder.php
+
+		-
+			message: '#^Offset ''tags'' on array\{name\: string, slug\: string, description\: string, metadata\: array\{hero_image\: string\}, brand\: string, categories\: array\{0\: string, 1\?\: string\}, tags\: array\{string\}, options\: array\{\}\|array\{array\{name\: string, display_name\: string, values\: array\{0\: string, 1\: string, 2\: string, 3\?\: string\}\}\}, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: database/seeders/CommerceDemoSeeder.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>amount" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/CommerceDemoSeeder.php
+
+		-
+			message: '#^Variable \$brands on left side of \?\? is never defined\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: database/seeders/CommerceDemoSeeder.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 1
+			path: database/seeders/ForumDemoSeeder.php
+
+		-
+			message: '#^Offset ''last_used_at'' on array\{key\: string, user\: App\\Models\\User, name\: string, abilities\: array\{string, string\}, created_at\: Illuminate\\Support\\Carbon, last_used_at\: Illuminate\\Support\\Carbon\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: database/seeders/TokenLogDemoSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/TokenLogDemoSeeder.php

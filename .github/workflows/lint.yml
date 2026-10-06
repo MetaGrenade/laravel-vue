@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - main
+      - chore/m0-foundations # TEMPORARY: remove before merging M0
   pull_request:
     branches:
       - develop
@@ -53,3 +54,6 @@ jobs:
 
       - name: Type-check frontend (vue-tsc)
         run: npm run types:check
+
+      - name: Static analysis (Larastan)
+        run: vendor/bin/phpstan analyse --memory-limit=2G --no-progress
