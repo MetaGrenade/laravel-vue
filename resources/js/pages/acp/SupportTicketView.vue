@@ -103,26 +103,26 @@ const priorityLabel = computed(() => props.ticket.priority.replace(/^[a-z]/, (s)
 const statusClasses = computed(() => {
     switch (props.ticket.status) {
         case 'open':
-            return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300';
+            return 'bg-success/10 text-success';
         case 'pending':
-            return 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
+            return 'bg-info/10 text-info';
         case 'closed':
-            return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+            return 'bg-destructive/10 text-destructive';
         default:
-            return 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300';
+            return 'bg-muted text-foreground/80';
     }
 });
 
 const priorityClasses = computed(() => {
     switch (props.ticket.priority) {
         case 'high':
-            return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+            return 'bg-destructive/10 text-destructive';
         case 'medium':
-            return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300';
+            return 'bg-warning/15 text-warning';
         case 'low':
-            return 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
+            return 'bg-info/10 text-info';
         default:
-            return 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300';
+            return 'bg-muted text-foreground/80';
     }
 });
 

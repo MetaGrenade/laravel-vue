@@ -40,7 +40,7 @@ const submit = () => {
     <AuthBase title="Log in to your account" description="Enter your email and password below to log in">
         <Head title="Log in" />
 
-        <div v-if="status" class="mb-4 text-center text-sm font-medium text-green-600">
+        <div v-if="status" class="mb-4 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-center text-sm font-medium text-success">
             {{ status }}
         </div>
 

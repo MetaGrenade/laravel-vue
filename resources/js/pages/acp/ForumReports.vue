@@ -636,8 +636,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                                             <span v-if="report.thread.board">{{ report.thread.board.title }}</span>
                                                             <span v-else>Board unavailable</span>
                                                             ·
-                                                            <span v-if="!report.thread.is_published" class="text-amber-600">Unpublished</span>
-                                                            <span v-else-if="report.thread.is_locked" class="text-amber-600">Locked</span>
+                                                            <span v-if="!report.thread.is_published" class="text-warning">Unpublished</span>
+                                                            <span v-else-if="report.thread.is_locked" class="text-warning">Locked</span>
                                                         </div>
                                                     </div>
                                                     <div v-else class="text-sm text-muted-foreground">Thread no longer available</div>
@@ -726,7 +726,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                     show-edges
                                     class="w-full justify-end md:w-auto"
                                 >
-                                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                    <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                         <PaginationFirst />
                                         <PaginationPrev />
                                         <template v-for="(item, index) in items" :key="index">

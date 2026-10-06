@@ -1,256 +1,185 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import Heading from '@/components/Heading.vue';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { type NavItem, type SharedData } from '@/types';
+import { usePermissions } from '@/composables/usePermissions';
+import { useRoles } from '@/composables/useRoles';
+import { cn } from '@/lib/utils';
+import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
-    LayoutGrid,
-    User,
-    Shield,
-    BookOpen,
-    MessageSquare,
-    LifeBuoy,
-    Settings,
-    Key,
-    ShieldAlert,
     Award,
+    BookOpen,
     CreditCard,
+    Key,
     Layers,
-    ShieldCheck,
-    Webhook,
+    LayoutGrid,
+    LifeBuoy,
     MessageCircle,
+    MessageSquare,
     Search,
+    Settings,
+    Shield,
+    ShieldAlert,
+    ShieldCheck,
     ShoppingBag,
+    User,
     Vote,
+    Webhook,
 } from '@lucide/vue';
+import { computed, type Component } from 'vue';
 
-import { useRoles } from '@/composables/useRoles';
-import { usePermissions } from '@/composables/usePermissions';
+interface AdminNavItem {
+    title: string;
+    href: string;
+    icon: Component;
+    visible: boolean;
+}
+
+interface AdminNavGroup {
+    title: string;
+    items: AdminNavItem[];
+}
 
 const { hasRole } = useRoles();
 const { hasPermission } = usePermissions();
 
-const isAdmin = computed(() => hasRole('admin|moderator|editor'));
-const manageUsers = computed(() => hasPermission('users.acp.view'));
-const manageACL = computed(() => hasPermission('acl.acp.view'));
-const manageBlogs = computed(() => hasPermission('blogs.acp.view'));
-const manageForums = computed(() => hasPermission('forums.acp.view'));
-const manageSupport = computed(() => hasPermission('support.acp.view'));
-const managePolls = computed(() => hasPermission('polls.acp.view'));
-const manageTokens = computed(() => hasPermission('tokens.acp.view'));
-const manageBilling = computed(() => hasPermission('billing.acp.view'));
-const manageCommerce = computed(() => hasPermission('commerce.acp.view'));
-const manageSystem = computed(() => hasPermission('system.acp.view'));
-const manageReputation = computed(() => hasPermission('reputation.acp.view'));
-const manageTrustSafety = computed(() => hasPermission('trust_safety.acp.view'));
-const manageSearchAnalytics = computed(() => isAdmin.value || hasPermission('search.acp.view'));
-
-const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: '/acp/dashboard',
-        target: '_self',
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Search Analytics',
-        href: '/acp/search-analytics',
-        target: '_self',
-        icon: Search,
-    },
-    {
-        title: 'Users',
-        href: '/acp/users',
-        target: '_self',
-        icon: User,
-    },
-    {
-        title: 'Access Control',
-        href: '/acp/acl',
-        target: '_self',
-        icon: Shield,
-    },
-    {
-        title: 'Blogs',
-        href: '/acp/blogs',
-        target: '_self',
-        icon: BookOpen,
-    },
-    {
-        title: 'Blog Comments',
-        href: '/acp/blog-comments',
-        target: '_self',
-        icon: MessageCircle,
-    },
-    {
-        title: 'Forums',
-        href: '/acp/forums',
-        target: '_self',
-        icon: MessageSquare,
-    },
-    {
-        title: 'Forum Reports',
-        href: '/acp/forums/reports',
-        target: '_self',
-        icon: ShieldAlert,
-    },
-    {
-        title: 'Badges',
-        href: '/acp/reputation/badges',
-        target: '_self',
-        icon: Award,
-    },
-    {
-        title: 'Support',
-        href: '/acp/support',
-        target: '_self',
-        icon: LifeBuoy,
-    },
-    {
-        title: 'Polls',
-        href: '/acp/polls',
-        target: '_self',
-        icon: Vote,
-    },
-    {
-        title: 'Commerce',
-        href: '/acp/commerce',
-        target: '_self',
-        icon: ShoppingBag,
-    },
-    {
-        title: 'Trust & Safety',
-        href: '/acp/trust-safety',
-        target: '_self',
-        icon: ShieldCheck,
-    },
-    {
-        title: 'Billing Invoices',
-        href: '/acp/billing/invoices',
-        target: '_self',
-        icon: CreditCard,
-    },
-    {
-        title: 'Billing Webhooks',
-        href: '/acp/billing/webhooks',
-        target: '_self',
-        icon: Webhook,
-    },
-    {
-        title: 'Subscription Plans',
-        href: '/acp/billing/plans',
-        target: '_self',
-        icon: Layers,
-    },
-    {
-        title: 'Access Tokens',
-        href: '/acp/tokens',
-        target: '_self',
-        icon: Key,
-    },
-    {
-        title: 'System Settings',
-        href: '/acp/system',
-        target: '_self',
-        icon: Settings,
-    },
-];
-
 const page = usePage<SharedData>();
-const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.location).pathname : '';
 
-const websiteSections = computed(() => {
-    const defaults = { blog: true, forum: true, support: true, commerce: true } as const;
-    const settings = page.props.settings?.website_sections ?? defaults;
+const sections = computed(() => {
+    const settings = page.props.settings?.website_sections;
 
     return {
-        blog: settings.blog ?? defaults.blog,
-        forum: settings.forum ?? defaults.forum,
-        support: settings.support ?? defaults.support,
-        commerce: settings.commerce ?? defaults.commerce,
+        blog: settings?.blog ?? true,
+        forum: settings?.forum ?? true,
+        support: settings?.support ?? true,
+        commerce: settings?.commerce ?? true,
     };
 });
 
-// Create a computed property to filter nav items based on the user's permissions/roles
-const filteredNavItems = computed(() => {
-    return sidebarNavItems.filter((item) => {
-        switch (item.title) {
-            case 'Dashboard':
-                return isAdmin.value;
-            case 'Search Analytics':
-                return manageSearchAnalytics.value;
-            case 'Users':
-                return manageUsers.value;
-            case 'Access Control':
-                return manageACL.value;
-            case 'Blogs':
-                return manageBlogs.value && websiteSections.value.blog;
-            case 'Blog Comments':
-                return manageBlogs.value && websiteSections.value.blog;
-            case 'Forums':
-                return manageForums.value && websiteSections.value.forum;
-            case 'Forum Reports':
-                return manageForums.value && websiteSections.value.forum;
-            case 'Badges':
-                return manageReputation.value || isAdmin.value;
-            case 'Support':
-                return manageSupport.value && websiteSections.value.support;
-            case 'Polls':
-                return managePolls.value;
-            case 'Commerce':
-                return manageCommerce.value && websiteSections.value.commerce;
-            case 'Trust & Safety':
-                return manageTrustSafety.value;
-            case 'Billing Invoices':
-                return manageBilling.value;
-            case 'Billing Webhooks':
-                return manageBilling.value;
-            case 'Subscription Plans':
-                return manageBilling.value;
-            case 'Access Tokens':
-                return manageTokens.value;
-            case 'System Settings':
-                return manageSystem.value;
-            default:
-                return false;
-        }
-    });
+const navGroups = computed<AdminNavGroup[]>(() => {
+    const isStaff = hasRole('admin|moderator|editor');
+    const can = (permission: string) => hasPermission(permission);
+
+    const groups: AdminNavGroup[] = [
+        {
+            title: 'Overview',
+            items: [
+                { title: 'Dashboard', href: '/acp/dashboard', icon: LayoutGrid, visible: isStaff },
+                { title: 'Search analytics', href: '/acp/search-analytics', icon: Search, visible: isStaff || can('search.acp.view') },
+            ],
+        },
+        {
+            title: 'People',
+            items: [
+                { title: 'Users', href: '/acp/users', icon: User, visible: can('users.acp.view') },
+                { title: 'Access control', href: '/acp/acl', icon: Shield, visible: can('acl.acp.view') },
+                { title: 'Badges', href: '/acp/reputation/badges', icon: Award, visible: isStaff || can('reputation.acp.view') },
+                { title: 'Trust & safety', href: '/acp/trust-safety', icon: ShieldCheck, visible: can('trust_safety.acp.view') },
+            ],
+        },
+        {
+            title: 'Content',
+            items: [
+                { title: 'Blogs', href: '/acp/blogs', icon: BookOpen, visible: can('blogs.acp.view') && sections.value.blog },
+                { title: 'Blog comments', href: '/acp/blog-comments', icon: MessageCircle, visible: can('blogs.acp.view') && sections.value.blog },
+                { title: 'Forums', href: '/acp/forums', icon: MessageSquare, visible: can('forums.acp.view') && sections.value.forum },
+                { title: 'Forum reports', href: '/acp/forums/reports', icon: ShieldAlert, visible: can('forums.acp.view') && sections.value.forum },
+                { title: 'Polls', href: '/acp/polls', icon: Vote, visible: can('polls.acp.view') },
+            ],
+        },
+        {
+            title: 'Support',
+            items: [{ title: 'Support desk', href: '/acp/support', icon: LifeBuoy, visible: can('support.acp.view') && sections.value.support }],
+        },
+        {
+            title: 'Commerce & billing',
+            items: [
+                { title: 'Commerce', href: '/acp/commerce', icon: ShoppingBag, visible: can('commerce.acp.view') && sections.value.commerce },
+                { title: 'Subscription plans', href: '/acp/billing/plans', icon: Layers, visible: can('billing.acp.view') },
+                { title: 'Invoices', href: '/acp/billing/invoices', icon: CreditCard, visible: can('billing.acp.view') },
+                { title: 'Webhooks', href: '/acp/billing/webhooks', icon: Webhook, visible: can('billing.acp.view') },
+            ],
+        },
+        {
+            title: 'System',
+            items: [
+                { title: 'Access tokens', href: '/acp/tokens', icon: Key, visible: can('tokens.acp.view') },
+                { title: 'System settings', href: '/acp/system', icon: Settings, visible: can('system.acp.view') },
+            ],
+        },
+    ];
+
+    return groups.map((group) => ({ ...group, items: group.items.filter((item) => item.visible) })).filter((group) => group.items.length > 0);
 });
+
+const currentPath = computed(() => page.url.split(/[?#]/)[0]);
+
+/** The most specific nav entry containing the current page (so /acp/forums/reports doesn't also light up Forums). */
+const activeHref = computed(() => {
+    const matches = navGroups.value
+        .flatMap((group) => group.items)
+        .filter((item) => currentPath.value === item.href || currentPath.value.startsWith(`${item.href}/`))
+        .sort((a, b) => b.href.length - a.href.length);
+
+    return matches[0]?.href ?? null;
+});
+
+const linkClass = (href: string) =>
+    cn(
+        'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+        activeHref.value === href && 'bg-accent font-medium text-foreground',
+    );
 </script>
 
 <template>
     <div class="px-4 py-6">
-        <Heading title="Admin Control Panel" :icon="Shield" description="Manage the system, content & users!" class="text-red-500" />
+        <div class="mb-6 flex items-center gap-3">
+            <span class="flex size-10 items-center justify-center rounded-lg border bg-card shadow-xs">
+                <Shield class="size-5 text-primary" />
+            </span>
+            <div>
+                <h1 class="text-xl font-semibold tracking-tight">Admin control panel</h1>
+                <p class="text-sm text-muted-foreground">Manage the platform, its content and its members.</p>
+            </div>
+        </div>
 
-        <div class="flex flex-1 flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12">
-            <aside class="w-full max-w-xl lg:w-48">
-                <nav class="flex flex-col space-y-1">
-                    <Button
-                        v-for="item in filteredNavItems"
-                        :key="item.href"
-                        variant="ghost"
-                        :class="['w-full justify-start', { 'bg-muted': currentPath === item.href }]"
-                        as-child
-                    >
-                        <Link :href="item.href" :target="item.target" class="flex items-center">
-                            <!-- Render the icon if available -->
-                            <component v-if="item.icon" :is="item.icon" class="mr-2 h-4 w-4" />
-                            <span>{{ item.title }}</span>
+        <!-- Mobile / tablet: horizontally scrolling tabs -->
+        <nav class="-mx-4 mb-6 scrollbar-thin overflow-x-auto border-b px-4 lg:hidden" aria-label="Admin sections">
+            <ul class="flex w-max gap-1 pb-2">
+                <template v-for="group in navGroups" :key="group.title">
+                    <li v-for="item in group.items" :key="item.href">
+                        <Link
+                            :href="item.href"
+                            :class="cn(linkClass(item.href), 'whitespace-nowrap')"
+                            :aria-current="activeHref === item.href ? 'page' : undefined"
+                        >
+                            <component :is="item.icon" class="size-4" />
+                            {{ item.title }}
                         </Link>
-                    </Button>
+                    </li>
+                </template>
+            </ul>
+        </nav>
+
+        <div class="grid gap-8 lg:grid-cols-[13.5rem_minmax(0,1fr)]">
+            <aside class="hidden lg:block">
+                <nav class="sticky top-20 max-h-[calc(100svh-6rem)] scrollbar-thin space-y-5 overflow-y-auto pr-1 pb-4" aria-label="Admin sections">
+                    <div v-for="group in navGroups" :key="group.title">
+                        <p class="mb-1.5 px-2.5 text-xs font-medium text-muted-foreground/80">{{ group.title }}</p>
+                        <ul class="space-y-0.5">
+                            <li v-for="item in group.items" :key="item.href">
+                                <Link :href="item.href" :class="linkClass(item.href)" :aria-current="activeHref === item.href ? 'page' : undefined">
+                                    <component :is="item.icon" :class="cn('size-4', activeHref === item.href && 'text-primary')" />
+                                    {{ item.title }}
+                                </Link>
+                            </li>
+                        </ul>
+                    </div>
                 </nav>
             </aside>
 
-            <Separator class="my-6 md:hidden" />
-
             <!-- min-w-0 + a minmax(0,1fr) column let wide tables scroll within their own container instead of stretching the page -->
-            <div class="flex min-w-0 flex-1 flex-col">
-                <section class="grid h-full min-w-0 flex-1 grid-cols-[minmax(0,1fr)] content-start">
-                    <slot />
-                </section>
-            </div>
+            <section class="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start">
+                <slot />
+            </section>
         </div>
     </div>
 </template>

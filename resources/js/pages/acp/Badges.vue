@@ -136,7 +136,7 @@ const confirmDeleteBadge = () => {
                                             <span>{{ badge.name }}</span>
                                             <span
                                                 v-if="!badge.is_active"
-                                                class="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-yellow-800 uppercase"
+                                                class="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-warning uppercase"
                                             >
                                                 Inactive
                                             </span>

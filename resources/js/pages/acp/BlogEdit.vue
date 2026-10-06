@@ -597,7 +597,7 @@ const handleSubmit = () => {
                                             No categories available yet. Add some options to improve navigation.
                                         </p>
                                     </div>
-                                    <p v-if="refreshCategoriesError" class="text-xs text-red-500">
+                                    <p v-if="refreshCategoriesError" class="text-xs text-destructive">
                                         {{ refreshCategoriesError }}
                                     </p>
                                     <InputError :message="form.errors.category_ids" />
@@ -639,7 +639,7 @@ const handleSubmit = () => {
                                             No tags configured yet. Seed some to support editorial organization.
                                         </p>
                                     </div>
-                                    <p v-if="refreshTagsError" class="text-xs text-red-500">{{ refreshTagsError }}</p>
+                                    <p v-if="refreshTagsError" class="text-xs text-destructive">{{ refreshTagsError }}</p>
                                     <InputError :message="form.errors.tag_ids" />
                                 </div>
                             </div>

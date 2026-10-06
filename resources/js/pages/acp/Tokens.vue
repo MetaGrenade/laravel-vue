@@ -384,14 +384,14 @@ const usageBarClass = (usage: number | undefined, quota?: number | null): string
     const ratio = usageRatio(usage, quota);
 
     if (ratio >= 1) {
-        return 'bg-red-500';
+        return 'bg-destructive';
     }
 
     if (ratio >= QUOTA_WARNING_THRESHOLD) {
-        return 'bg-amber-500';
+        return 'bg-warning';
     }
 
-    return 'bg-emerald-500';
+    return 'bg-success';
 };
 
 const formatNumber = (value?: number | null): string => numberFormatter.format(value ?? 0);
@@ -580,20 +580,20 @@ const resolveTokenStatus = (token: Token) => {
     if (token.revoked_at) {
         return {
             label: 'Revoked',
-            classes: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-200',
+            classes: 'bg-destructive/10 text-destructive',
         };
     }
 
     if (token.expires_at && dayjs(token.expires_at).isBefore(dayjs())) {
         return {
             label: 'Expired',
-            classes: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200',
+            classes: 'bg-warning/15 text-warning',
         };
     }
 
     return {
         label: 'Active',
-        classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200',
+        classes: 'bg-success/10 text-success',
     };
 };
 
@@ -643,40 +643,40 @@ const lastUsedDisplay = (value?: string | null) => {
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-1 lg:grid-cols-4">
                     <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <div class="mr-4">
-                            <component :is="Coins" class="h-8 w-8 text-gray-600" />
+                            <component :is="Coins" class="h-8 w-8 text-muted-foreground" />
                         </div>
                         <div>
-                            <div class="text-sm text-gray-500">Total Tokens</div>
+                            <div class="text-sm text-muted-foreground">Total Tokens</div>
                             <div class="text-xl font-bold">{{ totalTokens }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
                     <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <div class="mr-4">
-                            <component :is="ShieldCheck" class="h-8 w-8 text-gray-600" />
+                            <component :is="ShieldCheck" class="h-8 w-8 text-muted-foreground" />
                         </div>
                         <div>
-                            <div class="text-sm text-gray-500">Active Tokens</div>
+                            <div class="text-sm text-muted-foreground">Active Tokens</div>
                             <div class="text-xl font-bold">{{ activeTokens }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
                     <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <div class="mr-4">
-                            <component :is="ShieldAlert" class="h-8 w-8 text-gray-600" />
+                            <component :is="ShieldAlert" class="h-8 w-8 text-muted-foreground" />
                         </div>
                         <div>
-                            <div class="text-sm text-gray-500">Expired Tokens</div>
+                            <div class="text-sm text-muted-foreground">Expired Tokens</div>
                             <div class="text-xl font-bold">{{ expiredTokens }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
                     <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <div class="mr-4">
-                            <component :is="ShieldOff" class="h-8 w-8 text-gray-600" />
+                            <component :is="ShieldOff" class="h-8 w-8 text-muted-foreground" />
                         </div>
                         <div>
-                            <div class="text-sm text-gray-500">Revoked Tokens</div>
+                            <div class="text-sm text-muted-foreground">Revoked Tokens</div>
                             <div class="text-xl font-bold">{{ revokedTokens }}</div>
                         </div>
                         <PlaceholderPattern />
@@ -708,10 +708,8 @@ const lastUsedDisplay = (value?: string | null) => {
                                                 {{ tokenSecretCopied ? 'Copied!' : 'Copy token' }}
                                             </Button>
                                         </div>
-                                        <p v-if="tokenSecretCopied" class="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                                            Token copied to clipboard.
-                                        </p>
-                                        <p v-else-if="tokenSecretCopyError" class="text-xs text-red-600 dark:text-red-400">
+                                        <p v-if="tokenSecretCopied" class="text-xs font-medium text-success">Token copied to clipboard.</p>
+                                        <p v-else-if="tokenSecretCopyError" class="text-xs text-destructive">
                                             {{ tokenSecretCopyError }}
                                         </p>
                                         <p class="text-xs text-muted-foreground">
@@ -728,9 +726,7 @@ const lastUsedDisplay = (value?: string | null) => {
                             </Dialog>
                             <Dialog v-if="createTokens" v-model:open="createDialogOpen">
                                 <DialogTrigger as-child>
-                                    <Button variant="secondary" class="bg-green-500 text-sm text-white hover:bg-green-600 md:ml-10">
-                                        Create Token
-                                    </Button>
+                                    <Button class="text-sm md:ml-10"> Create Token </Button>
                                 </DialogTrigger>
                                 <DialogContent class="sm:max-w-lg">
                                     <form class="space-y-6" @submit.prevent="submitCreateToken">
@@ -758,7 +754,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                 <select
                                                     id="token-user"
                                                     v-model="createTokenForm.user_id"
-                                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
+                                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
                                                     required
                                                 >
                                                     <option disabled value="">Select a user</option>
@@ -920,11 +916,7 @@ const lastUsedDisplay = (value?: string | null) => {
 
                     <!-- Token List Tab -->
                     <TabsContent value="tokens" class="space-y-6">
-                        <Alert
-                            v-if="tokensApproachingQuota.length"
-                            variant="warning"
-                            class="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
-                        >
+                        <Alert v-if="tokensApproachingQuota.length" variant="warning" class="border-warning/30 bg-warning/15 text-warning">
                             <AlertTitle class="text-sm font-semibold">Usage approaching configured quotas</AlertTitle>
                             <AlertDescription>
                                 <ul class="mt-2 space-y-1">
@@ -976,12 +968,12 @@ const lastUsedDisplay = (value?: string | null) => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow v-for="token in filteredTokens" :key="token.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                        <TableRow v-for="token in filteredTokens" :key="token.id" class="hover:bg-muted/50">
                                             <TableCell>{{ token.id }}</TableCell>
                                             <TableCell>{{ token.name }}</TableCell>
                                             <TableCell>
                                                 {{ token.user?.nickname ?? '—' }}<br />
-                                                <span class="text-xs text-gray-500">{{ token.user?.email ?? '—' }}</span>
+                                                <span class="text-xs text-muted-foreground">{{ token.user?.email ?? '—' }}</span>
                                             </TableCell>
                                             <TableCell class="text-center">{{ token.created_at ? fromNow(token.created_at) : '—' }}</TableCell>
                                             <TableCell class="text-center">{{ lastUsedDisplay(token.last_used_at) }}</TableCell>
@@ -1044,11 +1036,11 @@ const lastUsedDisplay = (value?: string | null) => {
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuSeparator v-if="editTokens" />
                                                         <DropdownMenuGroup v-if="editTokens">
-                                                            <DropdownMenuItem class="text-blue-500" @click.prevent="openEditDialog(token)">
+                                                            <DropdownMenuItem @click.prevent="openEditDialog(token)">
                                                                 <Pencil class="mr-2" /> Edit
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
-                                                                class="text-red-500"
+                                                                class="text-destructive"
                                                                 :disabled="revokeForm.processing || !!token.revoked_at"
                                                                 @click.prevent="requestTokenRevocation(token)"
                                                             >
@@ -1058,7 +1050,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                         <DropdownMenuSeparator v-if="deleteTokens" />
                                                         <DropdownMenuItem
                                                             v-if="deleteTokens"
-                                                            class="text-red-500"
+                                                            class="text-destructive"
                                                             @click.prevent="requestTokenDeletion(token)"
                                                         >
                                                             <Trash2 class="mr-2" /> Delete
@@ -1068,9 +1060,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="!filteredTokens.length">
-                                            <TableCell colspan="7" class="text-center text-sm text-gray-600 dark:text-gray-300">
-                                                No tokens found.
-                                            </TableCell>
+                                            <TableCell colspan="7" class="text-center text-sm text-muted-foreground"> No tokens found. </TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
@@ -1090,7 +1080,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                 >
                                     <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                                         <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                             <PaginationFirst />
                                             <PaginationPrev />
 
@@ -1183,7 +1173,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow v-for="log in tokenLogsItems" :key="log.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                        <TableRow v-for="log in tokenLogsItems" :key="log.id" class="hover:bg-muted/50">
                                             <TableCell>{{ log.id }}</TableCell>
                                             <TableCell>{{ log.token_name ?? 'Unknown token' }}</TableCell>
                                             <TableCell>{{ log.api_route }}</TableCell>
@@ -1191,8 +1181,8 @@ const lastUsedDisplay = (value?: string | null) => {
                                             <TableCell class="text-center">
                                                 <span
                                                     :class="{
-                                                        'text-green-500': log.status === 'success',
-                                                        'text-red-500': log.status === 'failed',
+                                                        'text-success': log.status === 'success',
+                                                        'text-destructive': log.status === 'failed',
                                                     }"
                                                     class="font-medium"
                                                 >
@@ -1201,12 +1191,12 @@ const lastUsedDisplay = (value?: string | null) => {
                                             </TableCell>
                                             <TableCell class="text-center">
                                                 <Link :href="route('acp.tokens.logs.show', { tokenLog: log.id })">
-                                                    <Button variant="ghost" class="text-sm text-blue-500">View</Button>
+                                                    <Button variant="ghost" class="text-sm text-info">View</Button>
                                                 </Link>
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="tokenLogsItems.length === 0">
-                                            <TableCell colspan="6" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                            <TableCell colspan="6" class="text-center text-sm text-muted-foreground">
                                                 No token activity found.
                                             </TableCell>
                                         </TableRow>
@@ -1241,7 +1231,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                     >
                                         <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                                             <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                                            <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                            <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                                 <PaginationFirst />
                                                 <PaginationPrev />
 

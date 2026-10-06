@@ -217,7 +217,7 @@ const formatCurrency = (amount: number, currency: string) => {
                         :sibling-count="1"
                         show-edges
                     >
-                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                             <PaginationFirst />
                             <PaginationPrev />
 

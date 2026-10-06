@@ -958,33 +958,33 @@ const unpublishFaq = (faq: FaqItem) => {
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
                     <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <MessageSquare class="mr-3 h-8 w-8 text-gray-600" />
+                        <MessageSquare class="mr-3 h-8 w-8 text-muted-foreground" />
                         <div>
-                            <div class="text-sm text-gray-500">Total Tickets</div>
+                            <div class="text-sm text-muted-foreground">Total Tickets</div>
                             <div class="text-xl font-bold">{{ props.supportStats.total }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
                     <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <XCircle class="mr-3 h-8 w-8 text-gray-600" />
+                        <XCircle class="mr-3 h-8 w-8 text-muted-foreground" />
                         <div>
-                            <div class="text-sm text-gray-500">Open Tickets</div>
+                            <div class="text-sm text-muted-foreground">Open Tickets</div>
                             <div class="text-xl font-bold">{{ props.supportStats.open }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
                     <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <CheckCircle class="mr-3 h-8 w-8 text-gray-600" />
+                        <CheckCircle class="mr-3 h-8 w-8 text-muted-foreground" />
                         <div>
-                            <div class="text-sm text-gray-500">Closed Tickets</div>
+                            <div class="text-sm text-muted-foreground">Closed Tickets</div>
                             <div class="text-xl font-bold">{{ props.supportStats.closed }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
                     <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <Star class="mr-3 h-8 w-8 text-amber-500" />
+                        <Star class="mr-3 h-8 w-8 text-warning" />
                         <div>
-                            <div class="text-sm text-gray-500">Avg. CSAT</div>
+                            <div class="text-sm text-muted-foreground">Avg. CSAT</div>
                             <div class="text-xl font-bold">
                                 {{ satisfactionStats.average !== null ? `${satisfactionStats.average}/5` : 'No ratings yet' }}
                             </div>
@@ -992,34 +992,34 @@ const unpublishFaq = (faq: FaqItem) => {
                         <PlaceholderPattern />
                     </div>
                     <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <Ticket class="mr-3 h-8 w-8 text-indigo-600" />
+                        <Ticket class="mr-3 h-8 w-8 text-primary" />
                         <div>
-                            <div class="text-sm text-gray-500">Rated Tickets</div>
+                            <div class="text-sm text-muted-foreground">Rated Tickets</div>
                             <div class="text-xl font-bold">{{ satisfactionStats.count }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
                     <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <HelpCircle class="mr-3 h-8 w-8 text-gray-600" />
+                        <HelpCircle class="mr-3 h-8 w-8 text-muted-foreground" />
                         <div>
-                            <div class="text-sm text-gray-500">FAQs</div>
+                            <div class="text-sm text-muted-foreground">FAQs</div>
                             <div class="text-xl font-bold">{{ props.supportStats.faqs }}</div>
-                            <div class="text-xs text-gray-500">{{ totalFaqFeedback }} total votes</div>
+                            <div class="text-xs text-muted-foreground">{{ totalFaqFeedback }} total votes</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
                     <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <ThumbsUp class="mr-3 h-8 w-8 text-green-600" />
+                        <ThumbsUp class="mr-3 h-8 w-8 text-success" />
                         <div>
-                            <div class="text-sm text-gray-500">Helpful votes</div>
+                            <div class="text-sm text-muted-foreground">Helpful votes</div>
                             <div class="text-xl font-bold">{{ props.supportStats.faq_helpful_feedback }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
                     <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <ThumbsDown class="mr-3 h-8 w-8 text-red-600" />
+                        <ThumbsDown class="mr-3 h-8 w-8 text-destructive" />
                         <div>
-                            <div class="text-sm text-gray-500">Not helpful votes</div>
+                            <div class="text-sm text-muted-foreground">Not helpful votes</div>
                             <div class="text-xl font-bold">{{ props.supportStats.faq_not_helpful_feedback }}</div>
                         </div>
                         <PlaceholderPattern />
@@ -1030,7 +1030,7 @@ const unpublishFaq = (faq: FaqItem) => {
                     <div class="space-y-4 rounded-xl border p-4">
                         <div class="flex items-start justify-between">
                             <div>
-                                <div class="text-sm text-gray-500">Customer satisfaction</div>
+                                <div class="text-sm text-muted-foreground">Customer satisfaction</div>
                                 <div class="text-lg font-semibold">Average rating by month</div>
                             </div>
                         </div>
@@ -1042,27 +1042,27 @@ const unpublishFaq = (faq: FaqItem) => {
                                 :show-legend="false"
                                 :y-formatter="(value: number | Date) => (typeof value === 'number' ? value.toFixed(1) : '')"
                             />
-                            <div class="text-xs text-gray-500">Includes resolved tickets with ratings.</div>
+                            <div class="text-xs text-muted-foreground">Includes resolved tickets with ratings.</div>
                         </div>
-                        <div v-else class="text-sm text-gray-500">No customer satisfaction ratings available yet.</div>
+                        <div v-else class="text-sm text-muted-foreground">No customer satisfaction ratings available yet.</div>
                     </div>
                     <div class="space-y-4 rounded-xl border p-4">
                         <div class="flex items-start justify-between">
                             <div>
-                                <div class="text-sm text-gray-500">Ratings by status</div>
+                                <div class="text-sm text-muted-foreground">Ratings by status</div>
                                 <div class="text-lg font-semibold">Snapshot</div>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" v-if="hasSatisfactionData">
                             <div v-for="[status, metrics] in satisfactionStatusEntries" :key="status" class="rounded-lg border p-3">
                                 <div class="text-sm font-medium capitalize">{{ status }}</div>
-                                <div class="text-xs text-gray-500">Rated: {{ metrics.count }}</div>
+                                <div class="text-xs text-muted-foreground">Rated: {{ metrics.count }}</div>
                                 <div class="text-lg font-semibold">
                                     {{ metrics.average !== null ? `${metrics.average}/5` : 'No ratings' }}
                                 </div>
                             </div>
                         </div>
-                        <div v-else class="text-sm text-gray-500">No ratings captured yet.</div>
+                        <div v-else class="text-sm text-muted-foreground">No ratings captured yet.</div>
                     </div>
                 </div>
 
@@ -1173,9 +1173,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                     <Link v-if="createSupport" :href="route('acp.support.tickets.create')">
-                                        <Button variant="secondary" class="w-full bg-green-500 text-sm text-white hover:bg-green-600 md:w-auto">
-                                            Create Ticket
-                                        </Button>
+                                        <Button class="w-full text-sm md:w-auto"> Create Ticket </Button>
                                     </Link>
                                 </div>
                             </div>
@@ -1246,9 +1244,9 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <TableCell class="text-center">
                                                 <span
                                                     :class="{
-                                                        'text-blue-500': t.status === 'pending',
-                                                        'text-green-500': t.status === 'open',
-                                                        'text-red-500': t.status === 'closed',
+                                                        'text-info': t.status === 'pending',
+                                                        'text-success': t.status === 'open',
+                                                        'text-destructive': t.status === 'closed',
                                                     }"
                                                 >
                                                     {{ t.status }}
@@ -1257,9 +1255,9 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <TableCell class="text-center">
                                                 <span
                                                     :class="{
-                                                        'text-blue-500': t.priority === 'low',
-                                                        'text-yellow-500': t.priority === 'medium',
-                                                        'text-red-500': t.priority === 'high',
+                                                        'text-info': t.priority === 'low',
+                                                        'text-warning': t.priority === 'medium',
+                                                        'text-destructive': t.priority === 'high',
                                                     }"
                                                 >
                                                     {{ t.priority }}
@@ -1324,21 +1322,21 @@ const unpublishFaq = (faq: FaqItem) => {
                                                         <DropdownMenuGroup v-if="statusSupport">
                                                             <DropdownMenuItem
                                                                 v-if="t.status !== 'open'"
-                                                                class="text-green-500"
+                                                                class="text-success"
                                                                 @select="openStatusDialog(t, 'open')"
                                                             >
                                                                 <Ticket class="mr-2" /> Open Ticket
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 v-if="t.status !== 'pending'"
-                                                                class="text-blue-500"
+                                                                class="text-info"
                                                                 @select="openStatusDialog(t, 'pending')"
                                                             >
                                                                 <HelpCircle class="mr-2" /> Mark as pending
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 v-if="t.status === 'open'"
-                                                                class="text-red-500"
+                                                                class="text-destructive"
                                                                 @select="openStatusDialog(t, 'closed')"
                                                             >
                                                                 <TicketX class="mr-2" /> Close Ticket
@@ -1355,7 +1353,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="!ticketItems.length">
-                                            <TableCell colspan="13" class="text-center text-gray-500"> No tickets found. </TableCell>
+                                            <TableCell colspan="13" class="text-center text-muted-foreground"> No tickets found. </TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
@@ -1375,7 +1373,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                 >
                                     <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                                         <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                             <PaginationFirst />
                                             <PaginationPrev />
 
@@ -1410,9 +1408,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <Button variant="outline" class="w-full md:w-auto"> Manage categories </Button>
                                         </Link>
                                         <Link v-if="createSupport" :href="route('acp.support.faqs.create')">
-                                            <Button variant="secondary" class="w-full bg-green-500 text-sm text-white hover:bg-green-600 md:w-auto">
-                                                Create FAQ
-                                            </Button>
+                                            <Button class="w-full text-sm md:w-auto"> Create FAQ </Button>
                                         </Link>
                                     </div>
                                 </div>
@@ -1435,7 +1431,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow v-for="f in faqItems" :key="f.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                        <TableRow v-for="f in faqItems" :key="f.id" class="hover:bg-muted/50">
                                             <TableCell>{{ f.id }}</TableCell>
                                             <TableCell>{{ f.question }}</TableCell>
                                             <TableCell>{{ f.answer }}</TableCell>
@@ -1484,7 +1480,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="!faqItems.length">
-                                            <TableCell colspan="9" class="text-center text-gray-500"> No FAQs found. </TableCell>
+                                            <TableCell colspan="9" class="text-center text-muted-foreground"> No FAQs found. </TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
@@ -1504,7 +1500,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                 >
                                     <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                                         <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                             <PaginationFirst />
                                             <PaginationPrev />
 

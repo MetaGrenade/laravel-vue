@@ -478,11 +478,7 @@ watch(
                                             <TableCell>
                                                 <span
                                                     class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
-                                                    :class="
-                                                        rule.active
-                                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
-                                                            : 'bg-muted text-muted-foreground'
-                                                    "
+                                                    :class="rule.active ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'"
                                                 >
                                                     {{ rule.active ? 'Active' : 'Inactive' }}
                                                 </span>

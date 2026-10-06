@@ -521,8 +521,8 @@ const removeSocialLink = (index: number) => {
                                 <div class="grid grid-cols-3 gap-2">
                                     <span class="text-muted-foreground">Email</span>
                                     <span class="col-span-2 font-medium">
-                                        <span v-if="props.user.email_verified_at" class="text-green-600 dark:text-green-500">Verified</span>
-                                        <span v-else class="text-amber-600 dark:text-amber-500">Unverified</span>
+                                        <span v-if="props.user.email_verified_at" class="text-success">Verified</span>
+                                        <span v-else class="text-warning">Unverified</span>
                                     </span>
                                 </div>
                             </CardContent>

@@ -177,10 +177,10 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                         class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4"
                     >
                         <div class="mr-4">
-                            <component :is="stat.icon" class="h-8 w-8 text-gray-600" />
+                            <component :is="stat.icon" class="h-8 w-8 text-muted-foreground" />
                         </div>
                         <div>
-                            <div class="text-sm text-gray-500">{{ stat.title }}</div>
+                            <div class="text-sm text-muted-foreground">{{ stat.title }}</div>
                             <div class="text-xl font-bold">{{ stat.value }}</div>
                         </div>
                         <PlaceholderPattern />
@@ -195,7 +195,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                 Create, arrange, and update the categories and boards that power the community forums.
                             </p>
                         </div>
-                        <Button v-if="createForums" variant="success" class="bg-green-500 text-sm text-white hover:bg-green-600" as-child>
+                        <Button v-if="createForums" class="text-sm" as-child>
                             <Link :href="route('acp.forums.categories.create')" preserve-scroll>
                                 <PlusCircle class="mr-2 h-4 w-4" />
                                 Create Category
@@ -216,7 +216,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                         :key="category.id"
                         class="mb-6 rounded-lg border border-sidebar-border/70 shadow-sm transition hover:shadow-lg"
                     >
-                        <div class="flex items-start justify-between rounded-t-lg bg-gray-100 p-4 dark:bg-neutral-900">
+                        <div class="flex items-start justify-between rounded-t-lg bg-muted p-4">
                             <div>
                                 <h3 class="text-xl font-bold">{{ category.title }}</h3>
                                 <p v-if="category.description" class="mt-1 text-sm text-muted-foreground">
@@ -251,7 +251,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
                                     <DropdownMenuGroup v-if="editForums">
-                                        <DropdownMenuItem class="text-blue-500" @select="goToCategoryEdit(category.id)">
+                                        <DropdownMenuItem @select="goToCategoryEdit(category.id)">
                                             <Pencil class="h-4 w-4" />
                                             <span>Edit Category</span>
                                         </DropdownMenuItem>
@@ -276,7 +276,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
                                     <DropdownMenuSeparator v-if="deleteForums" />
-                                    <DropdownMenuItem v-if="deleteForums" class="text-red-500" @select="requestDeleteCategory(category)">
+                                    <DropdownMenuItem v-if="deleteForums" class="text-destructive" @select="requestDeleteCategory(category)">
                                         <Trash2 class="h-4 w-4" />
                                         <span>Delete Category</span>
                                     </DropdownMenuItem>
@@ -288,10 +288,10 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                             <div
                                 v-for="(board, boardIndex) in category.boards"
                                 :key="board.id"
-                                class="flex flex-col gap-3 p-4 transition hover:bg-gray-50 md:flex-row md:items-center dark:hover:bg-neutral-800"
+                                class="flex flex-col gap-3 p-4 transition hover:bg-muted/50 md:flex-row md:items-center"
                             >
                                 <div class="mr-4 flex items-center md:items-start">
-                                    <Folder class="h-8 w-8 text-gray-600" />
+                                    <Folder class="h-8 w-8 text-muted-foreground" />
                                 </div>
                                 <div class="flex-1">
                                     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -356,13 +356,13 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
                                             <DropdownMenuGroup v-if="editForums">
-                                                <DropdownMenuItem class="text-blue-500" @select="goToBoardEdit(board.id)">
+                                                <DropdownMenuItem @select="goToBoardEdit(board.id)">
                                                     <Pencil class="h-4 w-4" />
                                                     <span>Edit Board</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
                                             <DropdownMenuSeparator v-if="deleteForums" />
-                                            <DropdownMenuItem v-if="deleteForums" class="text-red-500" @select="requestDeleteBoard(board)">
+                                            <DropdownMenuItem v-if="deleteForums" class="text-destructive" @select="requestDeleteBoard(board)">
                                                 <Trash2 class="h-4 w-4" />
                                                 <span>Delete Board</span>
                                             </DropdownMenuItem>

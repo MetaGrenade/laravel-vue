@@ -263,10 +263,10 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                         class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
                     >
                         <div class="mr-4">
-                            <component :is="stat.icon" class="h-8 w-8 text-gray-600" />
+                            <component :is="stat.icon" class="h-8 w-8 text-muted-foreground" />
                         </div>
                         <div>
-                            <div class="text-sm text-gray-500">{{ stat.title }}</div>
+                            <div class="text-sm text-muted-foreground">{{ stat.title }}</div>
                             <div class="text-xl font-bold">{{ formatNumber(stat.value) }}</div>
                         </div>
                         <PlaceholderPattern />
@@ -377,7 +377,7 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                                             <span class="font-medium text-foreground">{{ entry.term }}</span>
                                             <span class="text-muted-foreground">{{ formatNumber(entry.total_count) }} searches</span>
                                         </div>
-                                        <p v-if="entry.zero_result_count > 0" class="text-xs font-medium text-amber-600">
+                                        <p v-if="entry.zero_result_count > 0" class="text-xs font-medium text-warning">
                                             {{ formatNumber(entry.zero_result_count) }} searches returned no results
                                         </p>
                                     </li>
@@ -409,10 +409,10 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                 <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                     <h2 class="mb-2 text-lg font-semibold">Recent Activity</h2>
                     <ul v-if="recentActivities.length">
-                        <li v-for="activity in recentActivities" :key="activity.id" class="border-b border-gray-200 py-2 last:border-b-0">
+                        <li v-for="activity in recentActivities" :key="activity.id" class="border-b border-border py-2 last:border-b-0">
                             <div class="flex justify-between">
                                 <span>{{ activity.activity }}</span>
-                                <span class="text-xs text-gray-500">{{ activity.time ?? '—' }}</span>
+                                <span class="text-xs text-muted-foreground">{{ activity.time ?? '—' }}</span>
                             </div>
                         </li>
                     </ul>

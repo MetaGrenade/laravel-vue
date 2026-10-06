@@ -101,30 +101,30 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                                         v-for="board in category.boards"
                                         :key="board.id"
                                         :href="route('forum.boards.show', { board: board.slug })"
-                                        class="flex items-center p-4 transition even:bg-gray-50 hover:bg-gray-100 dark:bg-neutral-950/60 dark:even:bg-neutral-800/60 dark:hover:bg-neutral-700/60"
+                                        class="group flex items-center gap-4 p-4 transition-colors even:bg-muted/40 hover:bg-muted"
                                     >
                                         <!-- Subcategory Icon -->
-                                        <div class="mr-4">
+                                        <div class="shrink-0">
                                             <div class="relative h-8 w-8 overflow-hidden rounded-full">
                                                 <PlaceholderPattern />
                                             </div>
                                         </div>
                                         <!-- Subcategory Title -->
-                                        <div class="flex-1">
-                                            <h3 class="font-semibold text-green-400 hover:underline dark:hover:text-green-400">{{ board.title }}</h3>
+                                        <div class="min-w-0 flex-1">
+                                            <h3 class="truncate font-semibold group-hover:text-primary">{{ board.title }}</h3>
                                         </div>
                                         <!-- Thread Count -->
-                                        <div class="w-20 text-center">
+                                        <div class="hidden w-20 shrink-0 text-center sm:block">
                                             <div class="font-bold">{{ board.thread_count }}</div>
-                                            <div class="text-xs text-gray-500">Threads</div>
+                                            <div class="text-xs text-muted-foreground">Threads</div>
                                         </div>
                                         <!-- Post Count -->
-                                        <div class="w-20 text-center">
+                                        <div class="hidden w-20 shrink-0 text-center sm:block">
                                             <div class="font-bold">{{ board.post_count }}</div>
-                                            <div class="text-xs text-gray-500">Posts</div>
+                                            <div class="text-xs text-muted-foreground">Posts</div>
                                         </div>
                                         <!-- Latest Post Information -->
-                                        <div class="w-60 text-right">
+                                        <div class="hidden w-60 shrink-0 text-right md:block">
                                             <template v-if="board.latest_thread">
                                                 <Link
                                                     :href="route('forum.threads.show', { board: board.slug, thread: board.latest_thread.slug })"
@@ -132,24 +132,24 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                                                 >
                                                     {{ board.latest_thread.title }}
                                                 </Link>
-                                                <div class="mr-1 inline-block text-xs text-gray-400">
+                                                <div class="mr-1 inline-block text-xs text-muted-foreground">
                                                     by {{ board.latest_thread.last_reply_author ?? board.latest_thread.author ?? '—' }}
                                                 </div>
-                                                <div class="inline-block text-xs text-gray-500">
+                                                <div class="inline-block text-xs text-muted-foreground">
                                                     • {{ board.latest_thread.last_reply_at ?? 'No replies yet' }}
                                                 </div>
                                             </template>
                                             <template v-else>
-                                                <div class="text-xs text-gray-400">No threads yet</div>
+                                                <div class="text-xs text-muted-foreground">No threads yet</div>
                                             </template>
                                         </div>
                                     </Link>
                                 </template>
-                                <p v-else class="p-4 text-sm text-gray-500">No boards have been created for this category yet.</p>
+                                <p v-else class="p-4 text-sm text-muted-foreground">No boards have been created for this category yet.</p>
                             </div>
                         </div>
                     </template>
-                    <div v-else class="rounded-lg border border-dashed border-sidebar-border/70 p-8 text-center text-sm text-gray-500">
+                    <div v-else class="rounded-lg border border-dashed border-sidebar-border/70 p-8 text-center text-sm text-muted-foreground">
                         No forum categories are available yet. Run the forum demo seeder or create categories in the admin panel to get started.
                     </div>
                 </main>
@@ -163,22 +163,22 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                             <div
                                 v-for="thread in props.trendingThreads"
                                 :key="thread.id"
-                                class="border-b border-sidebar-border/70 py-2 transition hover:bg-gray-100 dark:border-sidebar-border/70 dark:hover:bg-neutral-700/60"
+                                class="border-b border-sidebar-border/70 py-2 transition hover:bg-muted dark:border-sidebar-border/70"
                             >
                                 <Link :href="route('forum.threads.show', { board: thread.board.slug, thread: thread.slug })" class="block px-2">
                                     <h4 class="text-sm font-semibold">{{ thread.title }}</h4>
-                                    <p class="text-xs text-gray-500">
+                                    <p class="text-xs text-muted-foreground">
                                         by {{ thread.author ?? 'Unknown' }}
                                         <span v-if="thread.last_reply_at">• {{ thread.last_reply_at }}</span>
                                         • {{ thread.replies }} replies
                                     </p>
-                                    <div class="text-xs text-green-400">
+                                    <div class="text-xs text-primary">
                                         {{ thread.board.category_title ?? thread.board.title }}
                                     </div>
                                 </Link>
                             </div>
                         </template>
-                        <p v-else class="text-sm text-gray-500">No trending threads yet.</p>
+                        <p v-else class="text-sm text-muted-foreground">No trending threads yet.</p>
                     </div>
                     <!-- Latest Posts -->
                     <div class="rounded-lg border border-sidebar-border/70 p-4">
@@ -187,16 +187,16 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                             <div
                                 v-for="post in props.latestPosts"
                                 :key="post.id"
-                                class="border-b border-sidebar-border/70 py-2 transition hover:bg-gray-100 dark:border-sidebar-border/70 dark:hover:bg-neutral-700/60"
+                                class="border-b border-sidebar-border/70 py-2 transition hover:bg-muted dark:border-sidebar-border/70"
                             >
                                 <Link :href="route('forum.threads.show', { board: post.board_slug, thread: post.thread_slug })" class="block px-2">
                                     <h4 class="text-sm font-semibold">{{ post.title }}</h4>
-                                    <p class="text-xs text-gray-500">by {{ post.author ?? 'Unknown' }} • {{ post.created_at }}</p>
-                                    <div class="text-xs text-green-400">{{ post.board_title }}</div>
+                                    <p class="text-xs text-muted-foreground">by {{ post.author ?? 'Unknown' }} • {{ post.created_at }}</p>
+                                    <div class="text-xs text-primary">{{ post.board_title }}</div>
                                 </Link>
                             </div>
                         </template>
-                        <p v-else class="text-sm text-gray-500">No posts have been made yet.</p>
+                        <p v-else class="text-sm text-muted-foreground">No posts have been made yet.</p>
                     </div>
                 </aside>
             </div>

@@ -300,7 +300,7 @@ const filteredPermissions = computed(() => {
                                 <div class="relative flex justify-end space-x-2">
                                     <Input v-model="roleSearchQuery" type="text" placeholder="Search Roles..." class="w-full max-w-sm pr-10" />
                                     <Link v-if="canCreate" :href="route('acp.acl.roles.create')">
-                                        <Button variant="secondary" class="bg-green-500 text-sm text-white hover:bg-green-600"> Create Role </Button>
+                                        <Button class="text-sm"> Create Role </Button>
                                     </Link>
                                 </div>
                             </div>
@@ -336,14 +336,14 @@ const filteredPermissions = computed(() => {
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                             <DropdownMenuSeparator v-if="canEdit" />
                                                             <DropdownMenuGroup v-if="canEdit">
-                                                                <DropdownMenuItem class="text-blue-500" @click="openRoleDialog(role)">
+                                                                <DropdownMenuItem @click="openRoleDialog(role)">
                                                                     <Pencil class="mr-2" /> Edit
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuGroup>
                                                             <DropdownMenuSeparator v-if="canDelete" />
                                                             <DropdownMenuItem
                                                                 v-if="canDelete"
-                                                                class="text-red-500"
+                                                                class="text-destructive"
                                                                 @click="confirmRoleDeletion(role)"
                                                             >
                                                                 <Trash2 class="mr-2" /> Delete
@@ -355,9 +355,7 @@ const filteredPermissions = computed(() => {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="filteredRoles.length === 0">
-                                            <TableCell colspan="5" class="text-center text-sm text-gray-600 dark:text-gray-300">
-                                                No roles found.
-                                            </TableCell>
+                                            <TableCell colspan="5" class="text-center text-sm text-muted-foreground"> No roles found. </TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
@@ -380,7 +378,7 @@ const filteredPermissions = computed(() => {
                             >
                                 <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                                     <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                    <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                         <PaginationFirst />
                                         <PaginationPrev />
 
@@ -409,9 +407,7 @@ const filteredPermissions = computed(() => {
                                 <div class="relative flex justify-end space-x-2">
                                     <Input v-model="permissionSearchQuery" placeholder="Search Permissions..." class="w-full max-w-sm rounded-md" />
                                     <Link v-if="canCreate" :href="route('acp.acl.permissions.create')">
-                                        <Button variant="secondary" class="bg-green-500 text-sm text-white hover:bg-green-600">
-                                            Create Permission
-                                        </Button>
+                                        <Button class="text-sm"> Create Permission </Button>
                                     </Link>
                                 </div>
                             </div>
@@ -447,14 +443,14 @@ const filteredPermissions = computed(() => {
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                             <DropdownMenuSeparator v-if="canEdit" />
                                                             <DropdownMenuGroup v-if="canEdit">
-                                                                <DropdownMenuItem class="text-blue-500" @click="openPermissionDialog(permission)">
+                                                                <DropdownMenuItem @click="openPermissionDialog(permission)">
                                                                     <Pencil class="mr-2" /> Edit
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuGroup>
                                                             <DropdownMenuSeparator v-if="canDelete" />
                                                             <DropdownMenuItem
                                                                 v-if="canDelete"
-                                                                class="text-red-500"
+                                                                class="text-destructive"
                                                                 @click="confirmPermissionDeletion(permission)"
                                                             >
                                                                 <Trash2 class="mr-2" /> Delete
@@ -466,7 +462,7 @@ const filteredPermissions = computed(() => {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="filteredPermissions.length === 0">
-                                            <TableCell colspan="5" class="text-center text-sm text-gray-600 dark:text-gray-300">
+                                            <TableCell colspan="5" class="text-center text-sm text-muted-foreground">
                                                 No permissions found.
                                             </TableCell>
                                         </TableRow>
@@ -491,7 +487,7 @@ const filteredPermissions = computed(() => {
                             >
                                 <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                                     <span class="text-sm text-muted-foreground">Page {{ page }} of {{ pageCount }}</span>
-                                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                    <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                         <PaginationFirst />
                                         <PaginationPrev />
 

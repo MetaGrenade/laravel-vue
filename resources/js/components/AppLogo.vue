@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+
+withDefaults(
+    defineProps<{
+        /** Hide the wordmark and show only the brand mark. */
+        iconOnly?: boolean;
+    }>(),
+    { iconOnly: false },
+);
 </script>
 
 <template>
-    <div class="flex aspect-square size-8 items-center justify-center rounded-md bg-[#f9f3e6] dark:bg-[#261f14]">
-        <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
-    </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-none font-semibold">MetaForge</span>
-    </div>
+    <span class="flex items-center gap-2.5">
+        <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
+            <AppLogoIcon class="size-[1.1rem]" />
+        </span>
+        <span v-if="!iconOnly" class="truncate text-[0.95rem] font-semibold tracking-tight">MetaForge</span>
+    </span>
 </template>

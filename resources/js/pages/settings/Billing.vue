@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { stripeAppearance, useStripeAppearanceSync } from '@/lib/stripeAppearance';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -63,6 +64,8 @@ const confirmingPayment = ref(false);
 
 const stripe = shallowRef<StripeInstance | null>(null);
 const elements = shallowRef<StripeElementsInstance | null>(null);
+
+useStripeAppearanceSync(elements);
 const paymentElement = shallowRef<StripePaymentElementInstance | null>(null);
 const paymentElementReady = ref(false);
 const lastStripeKey = ref<string | null>(null);
@@ -176,6 +179,7 @@ const mountPaymentElement = async (secret: string) => {
 
     elements.value = stripeInstance.elements({
         clientSecret: secret,
+        appearance: stripeAppearance(),
     });
 
     paymentElement.value = elements.value.create('payment');
@@ -409,7 +413,7 @@ onBeforeUnmount(() => {
                             <Button :variant="plan.id === selectedPlanId ? 'default' : 'outline'" class="w-full" @click="selectedPlanId = plan.id">
                                 {{ plan.id === selectedPlanId ? 'Selected' : 'Select this plan' }}
                             </Button>
-                            <p v-if="currentPlan && currentPlan.id === plan.id" class="text-center text-xs text-emerald-600">You are on this plan</p>
+                            <p v-if="currentPlan && currentPlan.id === plan.id" class="text-center text-xs text-success">You are on this plan</p>
                         </CardFooter>
                     </Card>
                 </div>
@@ -451,7 +455,7 @@ onBeforeUnmount(() => {
                             <p v-if="paymentError" class="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                                 {{ paymentError }}
                             </p>
-                            <p v-if="successMessage" class="rounded border border-emerald-400/40 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                            <p v-if="successMessage" class="rounded border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
                                 {{ successMessage }}
                             </p>
                         </template>
@@ -467,10 +471,10 @@ onBeforeUnmount(() => {
                                 class="ml-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
                                 :class="[
                                     props.subscription?.stripe_status === 'active'
-                                        ? 'bg-emerald-100 text-emerald-700'
+                                        ? 'bg-success/10 text-success'
                                         : props.subscription?.cancelled
-                                          ? 'bg-amber-100 text-amber-700'
-                                          : 'bg-slate-100 text-slate-600',
+                                          ? 'bg-warning/15 text-warning'
+                                          : 'bg-muted text-muted-foreground',
                                 ]"
                             >
                                 {{ props.subscription?.stripe_status ?? 'inactive' }}

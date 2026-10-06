@@ -663,9 +663,9 @@ const closeTicket = (ticket: Ticket) => {
 
 const statusClass = (status: Ticket['status']) => {
     const classes: Record<Ticket['status'], string> = {
-        pending: 'text-blue-500',
-        open: 'text-green-500',
-        closed: 'text-red-500',
+        pending: 'text-info',
+        open: 'text-success',
+        closed: 'text-destructive',
     };
 
     return classes[status] ?? '';
@@ -673,9 +673,9 @@ const statusClass = (status: Ticket['status']) => {
 
 const priorityClass = (priority: Ticket['priority']) => {
     const classes: Record<Ticket['priority'], string> = {
-        low: 'text-blue-500',
-        medium: 'text-yellow-500',
-        high: 'text-red-500',
+        low: 'text-info',
+        medium: 'text-warning',
+        high: 'text-destructive',
     };
 
     return classes[priority] ?? '';
@@ -721,7 +721,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
         <Head title="Support Center" />
         <div class="container mx-auto space-y-8 p-4">
             <h1 class="mb-4 text-3xl font-bold">
-                <LifeBuoy class="inline-block h-8 w-8 text-green-600" />
+                <LifeBuoy class="inline-block h-8 w-8 text-success" />
                 Support Center
             </h1>
 
@@ -833,7 +833,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             >
                                 <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                                     <span class="text-sm text-muted-foreground"> Page {{ page }} of {{ pageCount }} </span>
-                                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                    <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                         <PaginationFirst />
                                         <PaginationPrev />
 
@@ -855,7 +855,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                         <!-- Tickets Table -->
                         <div class="overflow-x-auto rounded-xl border p-4 shadow-xs">
                             <Table>
-                                <TableHeader class="bg-neutral-900">
+                                <TableHeader class="bg-muted/50">
                                     <TableRow>
                                         <TableHead>ID</TableHead>
                                         <TableHead>Subject</TableHead>
@@ -872,7 +872,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <TableRow
                                         v-for="ticket in ticketItems"
                                         :key="ticket.id"
-                                        class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900"
+                                        class="cursor-pointer hover:bg-muted/50"
                                         @click="goToTicket(ticket.id)"
                                     >
                                         <TableCell>
@@ -931,7 +931,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                             <span>View Ticket</span>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
-                                                            class="text-red-500"
+                                                            class="text-destructive"
                                                             :disabled="ticket.status === 'closed' || closingTicketId === ticket.id"
                                                             @select="closeTicket(ticket)"
                                                         >
@@ -952,9 +952,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                         </TableCell>
                                     </TableRow>
                                     <TableRow v-if="ticketItems.length === 0">
-                                        <TableCell colspan="9" class="text-center text-sm text-gray-600 dark:text-gray-300">
-                                            No tickets found.
-                                        </TableCell>
+                                        <TableCell colspan="9" class="text-center text-sm text-muted-foreground"> No tickets found. </TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>
@@ -974,7 +972,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             >
                                 <div class="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-3">
                                     <span class="text-sm text-muted-foreground"> Page {{ page }} of {{ pageCount }} </span>
-                                    <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                                    <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
                                         <PaginationFirst />
                                         <PaginationPrev />
 
@@ -1030,7 +1028,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <select
                                         id="ticket-priority"
                                         v-model="form.priority"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
                                         :disabled="form.processing"
                                         required
                                     >

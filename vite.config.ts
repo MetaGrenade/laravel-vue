@@ -15,8 +15,8 @@ export default defineConfig({
             // Fonts are downloaded at build time and served from the app's own
             // origin, avoiding a render-blocking third-party stylesheet.
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
+                bunny('Inter', {
+                    weights: [400, 500, 600, 700],
                 }),
             ],
         }),

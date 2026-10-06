@@ -80,7 +80,7 @@ const saveSettings = () => {
                     <!-- Maintenance Mode -->
                     <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <h3 class="mb-2 text-lg font-semibold">Maintenance Mode</h3>
-                        <p class="mb-4 text-sm text-gray-500">Toggle maintenance mode to temporarily disable access for users.</p>
+                        <p class="mb-4 text-sm text-muted-foreground">Toggle maintenance mode to temporarily disable access for users.</p>
                         <div class="flex items-center">
                             <Switch v-model="form.maintenance_mode" :disabled="!canEditSystemSettings" />
                             <span class="ml-2 text-sm">
@@ -92,7 +92,7 @@ const saveSettings = () => {
                     <!-- Email Verification -->
                     <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <h3 class="mb-2 text-lg font-semibold">Email Verification</h3>
-                        <p class="mb-4 text-sm text-gray-500">Require users to verify their email address upon registration.</p>
+                        <p class="mb-4 text-sm text-muted-foreground">Require users to verify their email address upon registration.</p>
                         <div class="flex items-center">
                             <Switch v-model="form.email_verification_required" :disabled="!canEditSystemSettings" />
                             <span class="ml-2 text-sm">
@@ -104,12 +104,12 @@ const saveSettings = () => {
                     <!-- Website Sections -->
                     <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <h3 class="mb-2 text-lg font-semibold">Website Sections</h3>
-                        <p class="mb-4 text-sm text-gray-500">Enable or disable different sections of the website.</p>
+                        <p class="mb-4 text-sm text-muted-foreground">Enable or disable different sections of the website.</p>
                         <div class="space-y-3">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium">Blog</p>
-                                    <p class="text-xs text-gray-500">Control access to public blog content.</p>
+                                    <p class="text-xs text-muted-foreground">Control access to public blog content.</p>
                                 </div>
                                 <div class="flex items-center">
                                     <Switch v-model="form.website_sections.blog" :disabled="!canEditSystemSettings" />
@@ -121,7 +121,7 @@ const saveSettings = () => {
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium">Forum</p>
-                                    <p class="text-xs text-gray-500">Toggle the community forum for discussions.</p>
+                                    <p class="text-xs text-muted-foreground">Toggle the community forum for discussions.</p>
                                 </div>
                                 <div class="flex items-center">
                                     <Switch v-model="form.website_sections.forum" :disabled="!canEditSystemSettings" />
@@ -133,7 +133,7 @@ const saveSettings = () => {
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium">Support</p>
-                                    <p class="text-xs text-gray-500">Expose FAQs and ticket submission tools.</p>
+                                    <p class="text-xs text-muted-foreground">Expose FAQs and ticket submission tools.</p>
                                 </div>
                                 <div class="flex items-center">
                                     <Switch v-model="form.website_sections.support" :disabled="!canEditSystemSettings" />
@@ -145,7 +145,7 @@ const saveSettings = () => {
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium">Commerce</p>
-                                    <p class="text-xs text-gray-500">Control access to the shop, cart, and orders.</p>
+                                    <p class="text-xs text-muted-foreground">Control access to the shop, cart, and orders.</p>
                                 </div>
                                 <div class="flex items-center">
                                     <Switch v-model="form.website_sections.commerce" :disabled="!canEditSystemSettings" />
@@ -160,14 +160,14 @@ const saveSettings = () => {
                     <!-- OAuth Providers -->
                     <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <h3 class="mb-2 text-lg font-semibold">OAuth Providers</h3>
-                        <p class="mb-4 text-sm text-gray-500">
+                        <p class="mb-4 text-sm text-muted-foreground">
                             Control which social authentication providers are available for login and account linking.
                         </p>
                         <div v-if="oauthProviderOptions.length" class="space-y-3">
                             <div v-for="provider in oauthProviderOptions" :key="provider.key" class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium">{{ provider.label }}</p>
-                                    <p v-if="provider.description" class="text-xs text-gray-500">
+                                    <p v-if="provider.description" class="text-xs text-muted-foreground">
                                         {{ provider.description }}
                                     </p>
                                 </div>
@@ -179,7 +179,7 @@ const saveSettings = () => {
                                 </div>
                             </div>
                         </div>
-                        <div v-else class="rounded border border-dashed border-sidebar-border/70 p-4 text-sm text-gray-500">
+                        <div v-else class="rounded border border-dashed border-sidebar-border/70 p-4 text-sm text-muted-foreground">
                             No OAuth providers are registered. Configure provider credentials and refresh the page.
                         </div>
                     </div>
@@ -190,48 +190,48 @@ const saveSettings = () => {
                     <h3 class="mb-2 text-lg font-semibold">System Information</h3>
                     <ul class="space-y-2 text-sm">
                         <li>
-                            <span class="font-medium text-gray-500">PHP Version: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.php_version }}</span>
+                            <span class="font-medium text-muted-foreground">PHP Version: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.php_version }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Laravel Version: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.laravel_version }}</span>
+                            <span class="font-medium text-muted-foreground">Laravel Version: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.laravel_version }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Server Environment: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.server_environment }}</span>
+                            <span class="font-medium text-muted-foreground">Server Environment: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.server_environment }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Server Time: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.server_time }}</span>
+                            <span class="font-medium text-muted-foreground">Server Time: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.server_time }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Server Timezone: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.server_timezone }}</span>
+                            <span class="font-medium text-muted-foreground">Server Timezone: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.server_timezone }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Application URL: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.app_url ?? 'Not configured' }}</span>
+                            <span class="font-medium text-muted-foreground">Application URL: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.app_url ?? 'Not configured' }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Queue Connection: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.queue_connection }}</span>
+                            <span class="font-medium text-muted-foreground">Queue Connection: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.queue_connection }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Cache Driver: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.cache_driver }}</span>
+                            <span class="font-medium text-muted-foreground">Cache Driver: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.cache_driver }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Session Driver: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.session_driver }}</span>
+                            <span class="font-medium text-muted-foreground">Session Driver: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.session_driver }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Memory Usage: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.memory_usage }}</span>
+                            <span class="font-medium text-muted-foreground">Memory Usage: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.memory_usage }}</span>
                         </li>
                         <li>
-                            <span class="font-medium text-gray-500">Peak Memory Usage: </span>
-                            <span class="font-medium text-gray-600">{{ diagnostics.memory_peak }}</span>
+                            <span class="font-medium text-muted-foreground">Peak Memory Usage: </span>
+                            <span class="font-medium text-muted-foreground">{{ diagnostics.memory_peak }}</span>
                         </li>
                     </ul>
                 </div>
@@ -241,7 +241,7 @@ const saveSettings = () => {
                     <Button
                         @click="saveSettings"
                         :disabled="form.processing"
-                        class="rounded bg-blue-500 px-6 py-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
+                        class="inline-flex h-9 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                         Save Changes
                     </Button>

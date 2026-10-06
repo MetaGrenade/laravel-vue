@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
                             <dt class="text-sm font-medium text-muted-foreground">Processed at</dt>
                             <dd class="text-sm">
                                 <span v-if="props.call.processed_at">{{ formatDateTime(props.call.processed_at) }}</span>
-                                <span v-else class="text-xs font-medium tracking-wide text-amber-600 uppercase">Pending</span>
+                                <span v-else class="text-xs font-medium tracking-wide text-warning uppercase">Pending</span>
                             </dd>
                         </div>
                         <div class="space-y-1">

@@ -100,7 +100,7 @@ const submit = () => {
                     description="Choose how you would like to hear from us across each area of the community."
                 />
 
-                <div v-if="props.status" class="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                <div v-if="props.status" class="rounded-md border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
                     {{ props.status }}
                 </div>
 

@@ -238,7 +238,7 @@ const removeSocialLink = (index: number) => {
                             </Link>
                         </p>
 
-                        <div v-if="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-green-600">
+                        <div v-if="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-success">
                             We've sent a verification email to your new address. Please check your inbox.
                         </div>
                     </div>
@@ -252,7 +252,7 @@ const removeSocialLink = (index: number) => {
                             leave-active-class="transition ease-in-out"
                             leave-to-class="opacity-0"
                         >
-                            <p v-show="form.recentlySuccessful" class="text-sm text-neutral-600">Saved.</p>
+                            <p v-show="form.recentlySuccessful" class="text-sm text-muted-foreground">Saved.</p>
                         </Transition>
                     </div>
                 </form>
