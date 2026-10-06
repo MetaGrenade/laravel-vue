@@ -31,15 +31,14 @@ use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
+use App\Support\SupportAttachmentStorage;
 use App\Support\SupportSlaConfiguration;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -1052,31 +1051,9 @@ class SupportController extends Controller
 
             $message->setRelation('author', $request->user());
 
-            $attachments = $request->file('attachments', []);
+            $attachments = $request->file('attachments');
 
-            if ($attachments instanceof UploadedFile) {
-                $attachments = [$attachments];
-            } elseif (! is_array($attachments)) {
-                $attachments = [];
-            }
-
-            $disk = 'public';
-
-            foreach ($attachments as $file) {
-                if (! $file) {
-                    continue;
-                }
-
-                $path = $file->store("support-attachments/{$ticket->id}", $disk);
-
-                $message->attachments()->create([
-                    'disk' => $disk,
-                    'path' => $path,
-                    'name' => $file->getClientOriginalName() ?: $file->hashName(),
-                    'mime_type' => $file->getClientMimeType(),
-                    'size' => $file->getSize() ?: 0,
-                ]);
-            }
+            app(SupportAttachmentStorage::class)->attach($message, $ticket, $attachments);
 
             $ticket->touch();
             $message->touch();
@@ -1129,7 +1106,7 @@ class SupportController extends Controller
                         'id' => $attachment->id,
                         'name' => $attachment->name,
                         'size' => $attachment->size,
-                        'download_url' => Storage::disk($attachment->disk)->url($attachment->path),
+                        'download_url' => app(SupportAttachmentStorage::class)->downloadUrl($attachment),
                     ];
                 })
                 ->values()

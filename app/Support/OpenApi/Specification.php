@@ -1077,6 +1077,30 @@ class Specification
                     ],
                 ],
             ],
+            '/v1/support/attachments/{attachment}' => [
+                'get' => [
+                    'summary' => 'Download a support ticket attachment',
+                    'description' => 'Streams the file as an attachment. Only the ticket owner and support staff may download it; the `download_url` fields on ticket messages point here.',
+                    'tags' => ['Support'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'attachment', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'integer']],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'The attachment file',
+                            'content' => [
+                                'application/octet-stream' => [
+                                    'schema' => ['type' => 'string', 'format' => 'binary'],
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                    ],
+                ],
+            ],
             '/v1/support/tickets/{ticket}/rating' => [
                 'post' => [
                     'summary' => 'Submit a CSAT rating',
@@ -1293,7 +1317,7 @@ class Specification
                     'id' => ['type' => 'integer'],
                     'name' => ['type' => 'string'],
                     'size' => ['type' => 'integer'],
-                    'download_url' => ['type' => 'string', 'format' => 'uri'],
+                    'download_url' => ['type' => 'string', 'format' => 'uri', 'description' => 'Authenticated download link (requires the same token).'],
                 ],
                 'required' => ['id', 'name', 'size', 'download_url'],
             ],

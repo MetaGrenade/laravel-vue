@@ -26,7 +26,7 @@ class SupportApiTest extends TestCase
 
     public function test_user_can_create_and_view_ticket_with_attachments(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $user = User::factory()->create();
         $headers = $this->tokenHeaders($user);
@@ -52,7 +52,8 @@ class SupportApiTest extends TestCase
 
         $attachment = SupportTicketMessageAttachment::first();
         $this->assertNotNull($attachment);
-        Storage::disk('public')->assertExists($attachment->path);
+        $this->assertSame('local', $attachment->disk);
+        Storage::disk('local')->assertExists($attachment->path);
 
         $this->withHeaders($headers)
             ->getJson('/api/v1/support/tickets/'.$ticket->id)
@@ -62,7 +63,7 @@ class SupportApiTest extends TestCase
 
     public function test_user_can_reply_to_ticket_with_attachment(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $user = User::factory()->create();
         $ticket = SupportTicket::factory()->create([
@@ -87,7 +88,8 @@ class SupportApiTest extends TestCase
 
         $attachment = SupportTicketMessageAttachment::latest('id')->first();
         $this->assertNotNull($attachment);
-        Storage::disk('public')->assertExists($attachment->path);
+        $this->assertSame('local', $attachment->disk);
+        Storage::disk('local')->assertExists($attachment->path);
     }
 
     public function test_user_can_close_reopen_and_rate_ticket(): void

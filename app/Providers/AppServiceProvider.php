@@ -58,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(ForumPost::class, ForumPostPolicy::class);
         Gate::policy(Blog::class, BlogPolicy::class);
         Gate::policy(BlogComment::class, BlogCommentPolicy::class);
+        Gate::policy(SupportTicketMessageAttachment::class, SupportTicketMessageAttachmentPolicy::class);
 
         Gate::before(function ($user) {
             return $user->hasRole('admin') ? true : null;

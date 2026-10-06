@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Support\SupportTicketMessageController;
 use App\Http\Controllers\Api\V1\Support\SupportTicketRatingController;
 use App\Http\Controllers\Api\V1\Support\SupportTicketStatusController;
 use App\Http\Controllers\Api\V1\UserProfileController;
+use App\Http\Controllers\SupportAttachmentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -157,6 +158,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/tickets/{ticket}/rating', [SupportTicketRatingController::class, 'store'])
                 ->middleware($ticketRatingThrottle)
                 ->name('tickets.rating.store');
+            Route::get('/attachments/{attachment}', [SupportAttachmentController::class, 'download'])
+                ->middleware($ticketReadThrottle)
+                ->name('attachments.download');
         });
 });
 
