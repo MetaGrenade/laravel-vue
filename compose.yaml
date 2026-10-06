@@ -1,0 +1,83 @@
+# Backing services for local development.
+#
+# The application itself runs on your machine (`composer dev`, Laravel Herd or
+# `php artisan serve`); this file only provides the services it can use.
+#
+#   docker compose up -d mysql redis mailpit
+#   docker compose --profile pgsql up -d pgsql
+#   docker compose --profile search up -d meilisearch
+#
+# Ports are configurable through the FORWARD_* variables so they never clash
+# with services already running on your machine.
+
+name: metaforge
+
+services:
+  mysql:
+    image: mysql:8.0
+    ports:
+      - '${FORWARD_DB_PORT:-3306}:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-password}'
+      MYSQL_DATABASE: '${DB_DATABASE:-metaforge}'
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uroot', '-p${DB_PASSWORD:-password}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  pgsql:
+    image: postgres:16
+    profiles: [pgsql]
+    ports:
+      - '${FORWARD_PGSQL_PORT:-5432}:5432'
+    environment:
+      POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
+      POSTGRES_DB: '${DB_DATABASE:-metaforge}'
+    volumes:
+      - pgsql-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '${FORWARD_REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Catches outgoing mail: SMTP on 1025, web inbox on http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '${FORWARD_MAILPIT_SMTP_PORT:-1025}:1025'
+      - '${FORWARD_MAILPIT_PORT:-8025}:8025'
+
+  # Used by the Meilisearch search driver (planned for 1.0). Not needed today.
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    profiles: [search]
+    ports:
+      - '${FORWARD_MEILISEARCH_PORT:-7700}:7700'
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: '${MEILISEARCH_KEY:-masterKey-change-me-in-production}'
+      MEILI_NO_ANALYTICS: 'true'
+    volumes:
+      - meilisearch-data:/meili_data
+
+volumes:
+  mysql-data:
+  pgsql-data:
+  redis-data:
+  meilisearch-data:
