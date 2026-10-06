@@ -482,8 +482,9 @@ const viewNotification = (notification: NotificationItem) => {
                     :aria-current="isActive(item.href) ? 'page' : undefined"
                     :class="
                         cn(
-                            'rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
-                            isActive(item.href) && 'bg-accent text-foreground',
+                            'relative rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                            isActive(item.href) &&
+                                'bg-accent text-foreground after:absolute after:inset-x-3 after:-bottom-4 after:h-0.5 after:rounded-full after:bg-highlight',
                         )
                     "
                 >
@@ -545,7 +546,7 @@ const viewNotification = (notification: NotificationItem) => {
                             <ShoppingCart class="size-[1.15rem]" />
                             <span
                                 v-if="cartItemCount > 0"
-                                class="absolute top-0.5 right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.65rem] font-semibold text-primary-foreground"
+                                class="absolute top-0.5 right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-highlight px-1 text-[0.65rem] font-semibold text-highlight-foreground"
                             >
                                 {{ cartItemCount > 9 ? '9+' : cartItemCount }}
                             </span>
@@ -612,7 +613,7 @@ const viewNotification = (notification: NotificationItem) => {
                             <Bell class="size-[1.15rem]" />
                             <span
                                 v-if="unreadNotificationCount > 0"
-                                class="absolute top-0.5 right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.65rem] font-semibold text-primary-foreground"
+                                class="absolute top-0.5 right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-highlight px-1 text-[0.65rem] font-semibold text-highlight-foreground"
                             >
                                 {{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}
                             </span>
@@ -640,7 +641,7 @@ const viewNotification = (notification: NotificationItem) => {
                         </div>
                         <ul v-else class="max-h-96 divide-y overflow-y-auto">
                             <li v-for="notification in notifications" :key="notification.id" class="group flex gap-3 px-4 py-3 hover:bg-muted/50">
-                                <span class="mt-1.5 size-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                                <span class="mt-1.5 size-2 shrink-0 rounded-full bg-highlight" aria-hidden="true" />
                                 <div class="min-w-0 flex-1">
                                     <button
                                         type="button"

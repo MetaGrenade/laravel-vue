@@ -210,29 +210,41 @@ const faqs = [
 
         <!-- Hero -->
         <section class="relative overflow-hidden border-b bg-background">
-            <div class="pointer-events-none absolute inset-0 bg-dots [mask-image:linear-gradient(to_bottom,black,transparent_75%)]" />
+            <!-- Backdrop: fading grid plus two slowly drifting colour glows (plain gradients, no blur). -->
+            <div class="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_50%_0%,black,transparent_72%)]" />
+            <div
+                class="pointer-events-none absolute -top-40 -left-32 size-[34rem] animate-drift rounded-full bg-[radial-gradient(closest-side,hsl(var(--primary)/0.16),transparent)]"
+            />
+            <div
+                class="pointer-events-none absolute -top-24 right-[-10rem] size-[30rem] animate-drift rounded-full bg-[radial-gradient(closest-side,hsl(var(--highlight)/0.2),transparent)] [animation-delay:-9s]"
+            />
+
             <div class="relative container-app grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:py-24">
                 <div>
                     <a
                         href="https://github.com/MetaGrenade/laravel-vue"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-xs transition-colors hover:text-foreground"
+                        class="inline-flex animate-rise items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-xs transition-colors hover:text-foreground"
                     >
-                        <span class="size-1.5 rounded-full bg-success" />
+                        <span class="size-1.5 rounded-full bg-highlight" />
                         Open source · Laravel 13 + Vue 3
                         <ArrowRight class="size-3" />
                     </a>
 
-                    <h1 class="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.08]">
-                        The production-ready starter kit for <span class="text-primary">SaaS and communities</span>
+                    <h1
+                        class="mt-6 animate-rise text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.08]"
+                        style="--delay: 80ms"
+                    >
+                        The production-ready starter kit for
+                        <span class="bg-[linear-gradient(transparent_78%,hsl(var(--highlight)/0.55)_78%)] text-primary">SaaS and communities</span>
                     </h1>
-                    <p class="mt-5 max-w-xl text-lg text-muted-foreground">
+                    <p class="mt-5 max-w-xl animate-rise text-lg text-muted-foreground" style="--delay: 160ms">
                         Launch faster with authentication, billing, an admin panel, content and community features already wired together with
                         Laravel, Inertia, Vue and Tailwind.
                     </p>
 
-                    <div class="mt-8 flex flex-wrap gap-3">
+                    <div class="mt-8 flex animate-rise flex-wrap gap-3" style="--delay: 240ms">
                         <Button v-if="canRegister" size="lg" as-child>
                             <Link :href="route('register')">
                                 Create a demo account
@@ -244,7 +256,7 @@ const faqs = [
                         </Button>
                     </div>
 
-                    <ul class="mt-8 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+                    <ul class="mt-8 grid animate-rise gap-2 text-sm text-muted-foreground sm:grid-cols-2" style="--delay: 320ms">
                         <li v-for="item in highlights" :key="item" class="flex items-center gap-2">
                             <Check class="size-4 text-success" />
                             {{ item }}
@@ -253,48 +265,66 @@ const faqs = [
                 </div>
 
                 <!-- Product preview: plain markup, no images -->
-                <div class="relative" aria-hidden="true">
-                    <div class="overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/40">
-                        <div class="flex items-center gap-1.5 border-b bg-muted/50 px-4 py-3">
-                            <span class="size-2.5 rounded-full bg-foreground/15" />
-                            <span class="size-2.5 rounded-full bg-foreground/15" />
-                            <span class="size-2.5 rounded-full bg-foreground/15" />
-                            <span class="ml-3 h-5 flex-1 rounded-md bg-background" />
-                        </div>
-                        <div class="grid grid-cols-[7.5rem_1fr]">
-                            <div class="space-y-2 border-r p-4">
-                                <div class="h-2 w-14 rounded-full bg-primary/70" />
-                                <div v-for="n in 6" :key="n" class="h-2 rounded-full bg-muted" :class="n % 2 ? 'w-16' : 'w-12'" />
+                <div class="relative animate-appear" style="--delay: 200ms" aria-hidden="true">
+                    <div class="relative animate-float">
+                        <!-- Offset tile behind the card for depth -->
+                        <div class="absolute inset-0 translate-x-3 translate-y-3 rounded-xl border bg-stripes" />
+                        <div class="relative overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/40">
+                            <div class="flex items-center gap-1.5 border-b bg-muted/50 px-4 py-3">
+                                <span class="size-2.5 rounded-full bg-foreground/15" />
+                                <span class="size-2.5 rounded-full bg-foreground/15" />
+                                <span class="size-2.5 rounded-full bg-foreground/15" />
+                                <span class="ml-3 h-5 flex-1 rounded-md bg-background" />
                             </div>
-                            <div class="space-y-4 p-5">
-                                <div class="grid grid-cols-3 gap-3">
-                                    <div v-for="(stat, i) in ['$48.2k', '2,315', '98.4%']" :key="stat" class="rounded-lg border p-3">
-                                        <div class="h-1.5 w-10 rounded-full bg-muted" />
-                                        <p class="mt-2 text-sm font-semibold tabular-nums">{{ stat }}</p>
-                                        <p class="mt-1 text-[0.65rem] font-medium" :class="i === 2 ? 'text-muted-foreground' : 'text-success'">
-                                            {{ i === 2 ? 'uptime' : '+12.5%' }}
-                                        </p>
+                            <div class="grid grid-cols-[7.5rem_1fr]">
+                                <div class="space-y-2 border-r p-4">
+                                    <div class="h-2 w-14 rounded-full bg-primary/70" />
+                                    <div v-for="n in 6" :key="n" class="h-2 rounded-full bg-muted" :class="n % 2 ? 'w-16' : 'w-12'" />
+                                </div>
+                                <div class="space-y-4 p-5">
+                                    <div class="grid grid-cols-3 gap-3">
+                                        <div v-for="(stat, i) in ['$48.2k', '2,315', '98.4%']" :key="stat" class="rounded-lg border p-3">
+                                            <div class="h-1.5 w-10 rounded-full bg-muted" />
+                                            <p class="mt-2 text-sm font-semibold tabular-nums">{{ stat }}</p>
+                                            <p class="mt-1 text-[0.65rem] font-medium" :class="i === 2 ? 'text-muted-foreground' : 'text-success'">
+                                                {{ i === 2 ? 'uptime' : '+12.5%' }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-lg border p-4">
+                                        <div class="h-1.5 w-20 rounded-full bg-muted" />
+                                        <div class="mt-4 flex h-28 items-end gap-2">
+                                            <div
+                                                v-for="(h, i) in [35, 52, 44, 63, 58, 72, 66, 84, 78, 92]"
+                                                :key="i"
+                                                class="flex-1 animate-grow rounded-t-sm"
+                                                :class="i === 9 ? 'bg-highlight' : 'bg-primary/30'"
+                                                :style="{ height: `${h}%`, '--delay': `${450 + i * 70}ms` }"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div v-for="n in 3" :key="n" class="flex items-center gap-3">
+                                            <span class="size-6 rounded-full bg-muted" />
+                                            <span class="h-2 flex-1 rounded-full bg-muted" />
+                                            <span class="h-4 w-12 rounded-full" :class="n === 1 ? 'bg-success/20' : 'bg-muted'" />
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="rounded-lg border p-4">
-                                    <div class="h-1.5 w-20 rounded-full bg-muted" />
-                                    <div class="mt-4 flex h-28 items-end gap-2">
-                                        <div
-                                            v-for="(h, i) in [35, 52, 44, 63, 58, 72, 66, 84, 78, 92]"
-                                            :key="i"
-                                            class="flex-1 rounded-t-sm"
-                                            :class="i === 9 ? 'bg-primary' : 'bg-primary/25'"
-                                            :style="{ height: `${h}%` }"
-                                        />
-                                    </div>
-                                </div>
-                                <div class="space-y-2">
-                                    <div v-for="n in 3" :key="n" class="flex items-center gap-3">
-                                        <span class="size-6 rounded-full bg-muted" />
-                                        <span class="h-2 flex-1 rounded-full bg-muted" />
-                                        <span class="h-4 w-12 rounded-full" :class="n === 1 ? 'bg-success/20' : 'bg-muted'" />
-                                    </div>
-                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Floating notification chip -->
+                        <div
+                            class="absolute -bottom-5 -left-4 hidden animate-rise items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-lg shadow-black/5 sm:flex dark:shadow-black/40"
+                            style="--delay: 1100ms"
+                        >
+                            <span class="flex size-8 items-center justify-center rounded-full bg-highlight text-highlight-foreground">
+                                <CreditCard class="size-4" />
+                            </span>
+                            <div>
+                                <p class="text-xs font-semibold">New subscription</p>
+                                <p class="text-[0.7rem] text-muted-foreground">Pro plan · just now</p>
                             </div>
                         </div>
                     </div>
@@ -303,8 +333,11 @@ const faqs = [
         </section>
 
         <!-- Stack strip -->
-        <section class="border-b bg-surface" aria-labelledby="stack-heading">
-            <div class="container-app py-10">
+        <section class="relative border-b bg-surface" aria-labelledby="stack-heading">
+            <div
+                class="pointer-events-none absolute inset-0 bg-stripes [mask-image:linear-gradient(to_right,transparent,black_30%,black_70%,transparent)]"
+            />
+            <div class="relative container-app py-10">
                 <h2 id="stack-heading" class="text-center text-sm font-medium text-muted-foreground">Built on a modern, well-supported stack</h2>
                 <ul class="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
                     <li
@@ -321,9 +354,10 @@ const faqs = [
         </section>
 
         <!-- Features -->
-        <section class="bg-background" aria-labelledby="features-heading">
-            <div class="container-app py-20 lg:py-24">
-                <div class="mx-auto max-w-2xl text-center">
+        <section class="relative overflow-hidden bg-background bg-wash-primary" aria-labelledby="features-heading">
+            <div class="pointer-events-none absolute inset-0 bg-dots [mask-image:linear-gradient(to_bottom,black,transparent_55%)]" />
+            <div class="relative container-app py-20 lg:py-24">
+                <div class="reveal mx-auto max-w-2xl text-center">
                     <p class="eyebrow">Everything included</p>
                     <h2 id="features-heading" class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Skip the plumbing, ship the product</h2>
                     <p class="mt-4 text-muted-foreground">
@@ -331,9 +365,12 @@ const faqs = [
                     </p>
                 </div>
 
-                <div class="mt-14 grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-2 lg:grid-cols-3">
-                    <div v-for="feature in features" :key="feature.title" class="bg-card p-6">
-                        <span class="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <div class="reveal mt-14 grid gap-px overflow-hidden rounded-xl border bg-border shadow-xs sm:grid-cols-2 lg:grid-cols-3">
+                    <div v-for="(feature, index) in features" :key="feature.title" class="group bg-card p-6 transition-colors hover:bg-muted/40">
+                        <span
+                            class="flex size-9 items-center justify-center rounded-lg transition-transform group-hover:-translate-y-0.5"
+                            :class="index % 3 === 1 ? 'bg-highlight/25 text-foreground' : 'bg-primary/10 text-primary'"
+                        >
                             <component :is="feature.icon" class="size-[1.1rem]" />
                         </span>
                         <h3 class="mt-4 font-semibold">{{ feature.title }}</h3>
@@ -344,15 +381,16 @@ const faqs = [
         </section>
 
         <!-- Live modules -->
-        <section v-if="modules.length" class="border-y bg-surface" aria-labelledby="modules-heading">
-            <div class="container-app py-20 lg:py-24">
-                <div class="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <section v-if="modules.length" class="relative overflow-hidden border-y bg-surface bg-wash-highlight" aria-labelledby="modules-heading">
+            <div class="pointer-events-none absolute inset-0 bg-grid [mask-image:linear-gradient(to_bottom,transparent,black_40%,transparent)]" />
+            <div class="relative container-app py-20 lg:py-24">
+                <div class="reveal flex flex-col justify-between gap-4 md:flex-row md:items-end">
                     <div class="max-w-2xl">
                         <p class="eyebrow">Live demo</p>
                         <h2 id="modules-heading" class="mt-3 text-3xl font-semibold tracking-tight">See every module in action</h2>
                         <p class="mt-4 text-muted-foreground">These are the real pages your users get, not mock-ups. Click through and try them.</p>
                     </div>
-                    <Button variant="outline" as-child>
+                    <Button variant="outline" class="bg-card" as-child>
                         <Link :href="route('dashboard')">
                             Open the dashboard
                             <ArrowRight />
@@ -365,9 +403,11 @@ const faqs = [
                         v-for="module in modules"
                         :key="module.key"
                         :href="module.href"
-                        class="group flex flex-col rounded-xl border bg-card p-6 shadow-xs transition-colors hover:border-primary/40"
+                        class="group reveal flex flex-col rounded-xl border bg-card p-6 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                     >
-                        <component :is="module.icon" class="size-5 text-primary" />
+                        <span class="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <component :is="module.icon" class="size-5" />
+                        </span>
                         <h3 class="mt-4 font-semibold">{{ module.title }}</h3>
                         <p class="mt-1.5 flex-1 text-sm text-muted-foreground">{{ module.description }}</p>
                         <span class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary">
@@ -382,15 +422,18 @@ const faqs = [
         <!-- Getting started -->
         <section class="bg-background" aria-labelledby="steps-heading">
             <div class="container-app py-20 lg:py-24">
-                <div class="max-w-2xl">
+                <div class="reveal max-w-2xl">
                     <p class="eyebrow">Getting started</p>
                     <h2 id="steps-heading" class="mt-3 text-3xl font-semibold tracking-tight">From clone to launch in four steps</h2>
                 </div>
                 <ol class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                    <li v-for="(step, index) in steps" :key="step.title" class="relative border-t pt-6">
-                        <span class="absolute -top-px left-0 h-px w-12 bg-primary" />
-                        <span class="text-sm font-semibold text-primary tabular-nums">0{{ index + 1 }}</span>
-                        <h3 class="mt-2 font-semibold">{{ step.title }}</h3>
+                    <li v-for="(step, index) in steps" :key="step.title" class="reveal relative rounded-xl border bg-card p-5 shadow-xs">
+                        <span
+                            class="flex size-7 items-center justify-center rounded-full bg-highlight text-sm font-semibold text-highlight-foreground tabular-nums"
+                        >
+                            {{ index + 1 }}
+                        </span>
+                        <h3 class="mt-4 font-semibold">{{ step.title }}</h3>
                         <p class="mt-1.5 text-sm text-muted-foreground">{{ step.description }}</p>
                     </li>
                 </ol>
@@ -398,9 +441,10 @@ const faqs = [
         </section>
 
         <!-- Stack details -->
-        <section class="border-y bg-surface" aria-labelledby="tech-heading">
-            <div class="container-app grid gap-12 py-20 lg:grid-cols-[1fr_2fr] lg:py-24">
-                <div>
+        <section class="relative overflow-hidden border-y bg-surface" aria-labelledby="tech-heading">
+            <div class="pointer-events-none absolute inset-0 bg-stripes [mask-image:linear-gradient(to_bottom_right,black,transparent_60%)]" />
+            <div class="relative container-app grid gap-12 py-20 lg:grid-cols-[1fr_2fr] lg:py-24">
+                <div class="reveal">
                     <p class="eyebrow">Tech stack</p>
                     <h2 id="tech-heading" class="mt-3 text-3xl font-semibold tracking-tight">Modern tooling, no surprises</h2>
                     <p class="mt-4 text-muted-foreground">
@@ -421,7 +465,7 @@ const faqs = [
                     </ul>
                 </div>
                 <div class="grid gap-4 sm:grid-cols-3">
-                    <div v-for="group in stack" :key="group.title" class="rounded-xl border bg-card p-6 shadow-xs">
+                    <div v-for="group in stack" :key="group.title" class="reveal rounded-xl border bg-card p-6 shadow-xs">
                         <h3 class="font-semibold">{{ group.title }}</h3>
                         <ul class="mt-4 space-y-2.5">
                             <li v-for="item in group.items" :key="item" class="flex gap-2 text-sm text-muted-foreground">
@@ -437,11 +481,11 @@ const faqs = [
         <!-- FAQ -->
         <section class="bg-background" aria-labelledby="faq-heading">
             <div class="container-app grid gap-12 py-20 lg:grid-cols-[1fr_2fr] lg:py-24">
-                <div>
+                <div class="reveal">
                     <p class="eyebrow">FAQ</p>
                     <h2 id="faq-heading" class="mt-3 text-3xl font-semibold tracking-tight">Frequently asked questions</h2>
                 </div>
-                <div class="divide-y border-y">
+                <div class="reveal divide-y border-y">
                     <details v-for="faq in faqs" :key="faq.question" class="group py-5">
                         <summary
                             class="flex cursor-pointer list-none items-center justify-between gap-4 font-medium [&::-webkit-details-marker]:hidden"
@@ -459,33 +503,35 @@ const faqs = [
         <section class="bg-background pb-20 lg:pb-24">
             <div class="container-app">
                 <div
-                    class="rounded-2xl bg-primary px-6 py-14 text-center text-primary-foreground sm:px-12 dark:border dark:border-primary/25 dark:bg-primary/10 dark:text-foreground"
+                    class="reveal relative overflow-hidden rounded-2xl bg-brand-gradient px-6 py-14 text-center text-primary-foreground sm:px-12 dark:border dark:border-primary/25 dark:bg-primary/10 dark:bg-none dark:text-foreground"
                 >
-                    <h2 class="text-3xl font-semibold tracking-tight">Start building your product today</h2>
-                    <p class="mx-auto mt-4 max-w-xl text-primary-foreground/80 dark:text-muted-foreground">
-                        Everything you need to launch, with the freedom to change anything. Free and open source.
-                    </p>
-                    <div class="mt-8 flex flex-wrap justify-center gap-3">
-                        <Button
-                            v-if="canRegister"
-                            size="lg"
-                            variant="secondary"
-                            class="dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
-                            as-child
-                        >
-                            <Link :href="route('register')">Get started free</Link>
-                        </Button>
-                        <Button
-                            size="lg"
-                            variant="ghost"
-                            class="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground dark:text-foreground dark:hover:bg-accent dark:hover:text-foreground"
-                            as-child
-                        >
-                            <a href="https://github.com/MetaGrenade/laravel-vue" target="_blank" rel="noopener noreferrer">
-                                View on GitHub
-                                <ArrowUpRight />
-                            </a>
-                        </Button>
+                    <div
+                        class="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)] opacity-60 dark:opacity-100"
+                    />
+                    <div
+                        class="pointer-events-none absolute -top-24 -right-16 size-72 rounded-full bg-[radial-gradient(closest-side,hsl(var(--highlight)/0.5),transparent)]"
+                    />
+                    <div class="relative">
+                        <h2 class="text-3xl font-semibold tracking-tight">Start building your product today</h2>
+                        <p class="mx-auto mt-4 max-w-xl text-primary-foreground/80 dark:text-muted-foreground">
+                            Everything you need to launch, with the freedom to change anything. Free and open source.
+                        </p>
+                        <div class="mt-8 flex flex-wrap justify-center gap-3">
+                            <Button v-if="canRegister" size="lg" variant="highlight" as-child>
+                                <Link :href="route('register')">Get started free</Link>
+                            </Button>
+                            <Button
+                                size="lg"
+                                variant="ghost"
+                                class="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground dark:text-foreground dark:hover:bg-accent dark:hover:text-foreground"
+                                as-child
+                            >
+                                <a href="https://github.com/MetaGrenade/laravel-vue" target="_blank" rel="noopener noreferrer">
+                                    View on GitHub
+                                    <ArrowUpRight />
+                                </a>
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
