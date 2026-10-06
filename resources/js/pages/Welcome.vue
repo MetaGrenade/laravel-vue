@@ -210,14 +210,9 @@ const faqs = [
 
         <!-- Hero -->
         <section class="relative overflow-hidden border-b bg-background">
-            <!-- Backdrop: fading grid plus two slowly drifting colour glows (plain gradients, no blur). -->
+            <!-- Backdrop: a fading grid under soft indigo and amber washes. Sized in percentages so they stretch with the screen instead of reading as circles. -->
             <div class="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_50%_0%,black,transparent_72%)]" />
-            <div
-                class="pointer-events-none absolute -top-40 -left-32 size-[34rem] animate-drift rounded-full bg-[radial-gradient(closest-side,hsl(var(--primary)/0.16),transparent)]"
-            />
-            <div
-                class="pointer-events-none absolute -top-24 right-[-10rem] size-[30rem] animate-drift rounded-full bg-[radial-gradient(closest-side,hsl(var(--highlight)/0.2),transparent)] [animation-delay:-9s]"
-            />
+            <div class="pointer-events-none absolute inset-0 bg-hero-wash" aria-hidden="true" />
 
             <div class="relative container-app grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:py-24">
                 <div>

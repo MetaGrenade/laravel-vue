@@ -288,8 +288,22 @@
         height: min(30rem, 100%);
         pointer-events: none;
         background-image:
-            radial-gradient(52rem 24rem at 10% 3rem, hsl(var(--primary) / var(--glow-primary)), transparent 70%),
-            radial-gradient(44rem 20rem at 94% 5rem, hsl(var(--highlight) / var(--glow-highlight)), transparent 70%),
+            radial-gradient(
+                50% 120% at 0% 0%,
+                hsl(var(--primary) / calc(var(--glow-primary))),
+                hsl(var(--primary) / calc((var(--glow-primary)) * 0.62)) 22%,
+                hsl(var(--primary) / calc((var(--glow-primary)) * 0.3)) 44%,
+                hsl(var(--primary) / calc((var(--glow-primary)) * 0.1)) 66%,
+                transparent 88%
+            ),
+            radial-gradient(
+                45% 110% at 100% 0%,
+                hsl(var(--highlight) / calc(var(--glow-highlight))),
+                hsl(var(--highlight) / calc((var(--glow-highlight)) * 0.62)) 22%,
+                hsl(var(--highlight) / calc((var(--glow-highlight)) * 0.3)) 44%,
+                hsl(var(--highlight) / calc((var(--glow-highlight)) * 0.1)) 66%,
+                transparent 88%
+            ),
             linear-gradient(hsl(var(--foreground) / var(--grid-alpha)) 1px, transparent 1px),
             linear-gradient(90deg, hsl(var(--foreground) / var(--grid-alpha)) 1px, transparent 1px);
         background-size:
@@ -310,6 +324,31 @@
 @utility cv-auto {
     content-visibility: auto;
     contain-intrinsic-size: auto 640px;
+}
+
+/*
+ * Hero wash: indigo from the top-left and amber from the top-right, anchored
+ * to the screen edges so they bleed off-screen instead of reading as shapes,
+ * with an eased falloff so there is no visible rim at any width.
+ */
+@utility bg-hero-wash {
+    background-image:
+        radial-gradient(
+            55% 130% at 0% 0%,
+            hsl(var(--primary) / calc(var(--glow-primary) * 1.7)),
+            hsl(var(--primary) / calc((var(--glow-primary) * 1.7) * 0.62)) 22%,
+            hsl(var(--primary) / calc((var(--glow-primary) * 1.7) * 0.3)) 44%,
+            hsl(var(--primary) / calc((var(--glow-primary) * 1.7) * 0.1)) 66%,
+            transparent 88%
+        ),
+        radial-gradient(
+            48% 120% at 100% 0%,
+            hsl(var(--highlight) / calc(var(--glow-highlight) * 2)),
+            hsl(var(--highlight) / calc((var(--glow-highlight) * 2) * 0.62)) 22%,
+            hsl(var(--highlight) / calc((var(--glow-highlight) * 2) * 0.3)) 44%,
+            hsl(var(--highlight) / calc((var(--glow-highlight) * 2) * 0.1)) 66%,
+            transparent 88%
+        );
 }
 
 /* Grid lines that fade out toward the bottom of their container. */
@@ -391,16 +430,6 @@
     }
 }
 
-@keyframes drift {
-    0%,
-    100% {
-        transform: translate3d(0, 0, 0);
-    }
-    50% {
-        transform: translate3d(2.5rem, 1rem, 0);
-    }
-}
-
 /* Staggered entrance: set --delay (e.g. style="--delay: 120ms") per element. */
 @utility animate-rise {
     animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -420,10 +449,6 @@
 
 @utility animate-float {
     animation: float-y 7s ease-in-out 3;
-}
-
-@utility animate-drift {
-    animation: drift 18s ease-in-out 2;
 }
 
 /*
