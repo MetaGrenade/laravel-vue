@@ -102,7 +102,7 @@ const removeSocialLink = (index: number) => {
                         <select
                             id="timezone"
                             v-model="form.timezone"
-                            class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                             autocomplete="off"
                         >
                             <option
@@ -121,7 +121,7 @@ const removeSocialLink = (index: number) => {
                         <select
                             id="locale"
                             v-model="form.locale"
-                            class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                             autocomplete="off"
                         >
                             <option
@@ -242,7 +242,7 @@ const removeSocialLink = (index: number) => {
                                 :href="route('verification.send')"
                                 method="post"
                                 as="button"
-                                class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:!decoration-current dark:decoration-neutral-500"
+                                class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
                             >
                                 Click here to resend the verification email.
                             </Link>

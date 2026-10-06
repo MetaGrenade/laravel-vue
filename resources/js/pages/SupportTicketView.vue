@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import Input from '@/components/ui/input/Input.vue';
-import { Paperclip } from 'lucide-vue-next';
+import { Paperclip } from '@lucide/vue';
 import {
     Dialog,
     DialogContent,
@@ -310,7 +310,7 @@ const formatFileSize = (bytes: number) => {
                 </div>
             </div>
 
-            <div class="grid gap-6 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                 <Card class="flex flex-col">
                     <CardHeader>
                         <CardTitle>Conversation</CardTitle>
@@ -324,7 +324,7 @@ const formatFileSize = (bytes: number) => {
                                 class="flex flex-col gap-1"
                                 :class="message.is_from_support ? 'items-start' : 'items-end'">
                                 <div
-                                    class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-sm"
+                                    class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-xs"
                                     :class="message.is_from_support
                                         ? 'bg-background border'
                                         : 'bg-primary text-primary-foreground'
@@ -404,7 +404,7 @@ const formatFileSize = (bytes: number) => {
                                         class="flex items-center gap-2 rounded-md border border-dashed border-muted bg-muted/40 px-2 py-1"
                                     >
                                         <Paperclip class="h-3 w-3" />
-                                        <span class="max-w-[10rem] truncate">{{ file.name }}</span>
+                                        <span class="max-w-40 truncate">{{ file.name }}</span>
                                         <span class="text-muted-foreground">{{ formatFileSize(file.size) }}</span>
                                     </li>
                                 </ul>
@@ -564,7 +564,7 @@ const formatFileSize = (bytes: number) => {
         </div>
 
         <Dialog :open="reopenDialogOpen" @update:open="handleReopenDialogChange">
-            <DialogContent class="sm:max-w-[28rem]">
+            <DialogContent class="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Reopen this ticket?</DialogTitle>
                     <DialogDescription>

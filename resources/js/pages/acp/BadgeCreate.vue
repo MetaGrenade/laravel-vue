@@ -116,7 +116,7 @@ const handleSubmit = () => {
                                     Toggle off to hide the badge while you refine the requirements.
                                 </p>
                             </div>
-                            <Switch v-model:checked="form.is_active" />
+                            <Switch v-model="form.is_active" />
                         </div>
                         <InputError :message="form.errors.is_active" />
                     </CardContent>

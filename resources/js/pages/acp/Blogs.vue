@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import type { CheckboxRootProps } from 'radix-vue';
+import type { CheckboxRootProps } from 'reka-ui';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -46,7 +46,7 @@ import {
     TrendingUp,
     MessageSquare,
     MessageSquareOff,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
@@ -295,7 +295,7 @@ type BlogRow = {
 
 const blogRows = computed<BlogRow[]>(() => props.blogs.data ?? []);
 
-type CheckboxState = CheckboxRootProps['checked'];
+type CheckboxState = CheckboxRootProps['modelValue'];
 
 const selectedBlogIds = ref<number[]>([]);
 
@@ -639,7 +639,7 @@ const confirmDeletePost = (post: BlogRow) => {
                                 <span class="sr-only">Sort blog posts</span>
                                 <select
                                     v-model="sortOption"
-                                    class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                    class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                 >
                                     <option value="created_desc">Newest first</option>
                                     <option value="created_asc">Oldest first</option>
@@ -719,10 +719,10 @@ const confirmDeletePost = (post: BlogRow) => {
                                 <TableRow>
                                     <TableHead class="w-12">
                                         <Checkbox
-                                            :checked="blogHeaderCheckboxState"
+                                            :model-value="blogHeaderCheckboxState"
                                             :disabled="!publishBlogs || blogRows.length === 0"
                                             aria-label="Select all blog posts"
-                                            @update:checked="toggleAllBlogs"
+                                            @update:model-value="toggleAllBlogs"
                                         />
                                     </TableHead>
                                     <TableHead>ID</TableHead>
@@ -739,10 +739,10 @@ const confirmDeletePost = (post: BlogRow) => {
                                 <TableRow v-for="(post) in blogRows" :key="post.id">
                                     <TableCell class="align-middle">
                                         <Checkbox
-                                            :checked="selectedBlogIds.includes(post.id)"
+                                            :model-value="selectedBlogIds.includes(post.id)"
                                             :disabled="!publishBlogs"
                                             aria-label="Select blog post"
-                                            @update:checked="(checked) => updateBlogSelection(post.id, checked)"
+                                            @update:model-value="(checked) => updateBlogSelection(post.id, checked)"
                                         />
                                     </TableCell>
                                     <TableCell>{{ post.id }}</TableCell>

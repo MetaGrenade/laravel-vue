@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, type ComponentPublicInstance } from 'vue';
-import { useId } from 'radix-vue';
+import { useId } from 'vue';
 
 import { Button, type ButtonVariants } from '@/components/ui/button';
 import {

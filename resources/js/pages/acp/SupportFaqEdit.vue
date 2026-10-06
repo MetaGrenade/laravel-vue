@@ -81,7 +81,7 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <Card>
                         <CardHeader class="relative overflow-hidden">
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />
@@ -119,7 +119,7 @@ const handleSubmit = () => {
                                     <select
                                         id="faq_category_id"
                                         v-model.number="form.faq_category_id"
-                                        class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                         :disabled="!props.categories.length"
                                         required
                                     >
@@ -141,7 +141,7 @@ const handleSubmit = () => {
                                 </div>
 
                                 <div class="flex items-center space-x-2">
-                                    <Checkbox id="published" v-model:checked="form.published" />
+                                    <Checkbox id="published" v-model="form.published" />
                                     <Label for="published">Published</Label>
                                 </div>
                                 <InputError :message="form.errors.published" />

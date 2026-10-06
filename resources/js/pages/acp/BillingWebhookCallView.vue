@@ -157,7 +157,7 @@ onBeforeUnmount(() => {
                     </Button>
                 </div>
 
-                <div class="rounded-lg border border-border bg-card p-6 shadow-sm">
+                <div class="rounded-lg border border-border bg-card p-6 shadow-xs">
                     <dl class="grid gap-4 md:grid-cols-2">
                         <div class="space-y-1">
                             <dt class="text-sm font-medium text-muted-foreground">Stripe event ID</dt>
@@ -199,7 +199,7 @@ onBeforeUnmount(() => {
                     </dl>
                 </div>
 
-                <div class="rounded-lg border border-border bg-card p-6 shadow-sm">
+                <div class="rounded-lg border border-border bg-card p-6 shadow-xs">
                     <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Payload</h2>
                     <pre class="max-h-[600px] overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed">{{ payloadPreview }}</pre>
                 </div>

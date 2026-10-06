@@ -12,7 +12,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Activity, CheckCircle2, FileText, LifeBuoy, MessageSquare } from 'lucide-vue-next';
+import { Activity, CheckCircle2, FileText, LifeBuoy, MessageSquare } from '@lucide/vue';
 
 type SupportMetrics = {
     total: number;
@@ -218,7 +218,7 @@ const alertState = computed(() => {
                 </CardContent>
             </Card>
 
-            <div class="grid gap-4 lg:grid-cols-[2fr,1fr]">
+            <div class="grid gap-4 lg:grid-cols-[2fr_1fr]">
                 <Card>
                     <CardHeader>
                         <CardTitle>Recent activity</CardTitle>

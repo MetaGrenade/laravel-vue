@@ -204,7 +204,7 @@ const formatDateTime = (value: string | null) => {
                 />
 
                 <form
-                    class="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-sm md:grid-cols-4 md:items-end"
+                    class="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-xs md:grid-cols-4 md:items-end"
                     @submit.prevent="applyFilters"
                 >
                     <div class="flex flex-col gap-2">
@@ -222,7 +222,7 @@ const formatDateTime = (value: string | null) => {
                         <select
                             id="type"
                             v-model="filterState.type"
-                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"
                         >
                             <option value="">All types</option>
                             <option v-for="type in typeOptions" :key="type" :value="type">{{ type }}</option>
@@ -234,7 +234,7 @@ const formatDateTime = (value: string | null) => {
                         <select
                             id="processed"
                             v-model="filterState.processed"
-                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"
                         >
                             <option value="">All</option>
                             <option value="processed">Processed</option>
@@ -247,7 +247,7 @@ const formatDateTime = (value: string | null) => {
                         <select
                             id="per_page"
                             v-model.number="filterState.per_page"
-                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"
                         >
                             <option v-for="option in PER_PAGE_OPTIONS" :key="option" :value="option">{{ option }}</option>
                         </select>
@@ -261,7 +261,7 @@ const formatDateTime = (value: string | null) => {
                     </div>
                 </form>
 
-                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -318,7 +318,7 @@ const formatDateTime = (value: string | null) => {
                                 <PaginationEllipsis />
                             </PaginationListItem>
                             <PaginationListItem>
-                                <Button variant="outline" class="h-8 min-w-[2rem] px-3" disabled>{{ page }}</Button>
+                                <Button variant="outline" class="h-8 min-w-8 px-3" disabled>{{ page }}</Button>
                             </PaginationListItem>
                             <PaginationListItem v-if="page < pageCount - 1">
                                 <PaginationEllipsis />

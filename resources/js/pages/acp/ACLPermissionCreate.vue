@@ -50,7 +50,7 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <Card>
                         <CardHeader class="relative overflow-hidden">
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />

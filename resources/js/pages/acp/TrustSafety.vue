@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -10,10 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import InputError from '@/components/InputError.vue';
 import { Textarea } from '@/components/ui/textarea';
-import { Toaster, toast } from 'vue-sonner';
+import { toast } from 'vue-sonner';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { useDebounceFn } from '@vueuse/core';
-import { ShieldCheck, FileDown } from 'lucide-vue-next';
+import { ShieldCheck, FileDown } from '@lucide/vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -110,21 +110,26 @@ const normalizedErasureCounts = computed(() => {
     return counts;
 });
 
-const exportPagination = useInertiaPagination({
-    meta: computed(() => props.exports.meta ?? null),
-    defaultPerPage: perPage,
-    onNavigate: (pageNumber) => {
-        applyFilters({ export_page: pageNumber });
-    },
-});
+// reactive() so the nested refs unwrap when used as `exportPagination.meta.*` in the template.
+const exportPagination = reactive(
+    useInertiaPagination({
+        meta: computed(() => props.exports.meta ?? null),
+        defaultPerPage: perPage.value,
+        onNavigate: (pageNumber) => {
+            applyFilters({ export_page: pageNumber });
+        },
+    }),
+);
 
-const erasurePagination = useInertiaPagination({
-    meta: computed(() => props.erasureRequests.meta ?? null),
-    defaultPerPage: perPage,
-    onNavigate: (pageNumber) => {
-        applyFilters({ erasure_page: pageNumber });
-    },
-});
+const erasurePagination = reactive(
+    useInertiaPagination({
+        meta: computed(() => props.erasureRequests.meta ?? null),
+        defaultPerPage: perPage.value,
+        onNavigate: (pageNumber) => {
+            applyFilters({ erasure_page: pageNumber });
+        },
+    }),
+);
 
 const exportDialogOpen = ref(false);
 const erasureDialogOpen = ref(false);
@@ -233,8 +238,8 @@ const applyFilters = (overrides: Partial<{ export_page: number; erasure_page: nu
 
     query.per_page = perPage.value;
 
-    const exportPageCurrent = overrides.export_page ?? exportPagination.meta.value.current_page ?? 1;
-    const erasurePageCurrent = overrides.erasure_page ?? erasurePagination.meta.value.current_page ?? 1;
+    const exportPageCurrent = overrides.export_page ?? exportPagination.meta.current_page ?? 1;
+    const erasurePageCurrent = overrides.erasure_page ?? erasurePagination.meta.current_page ?? 1;
 
     if (exportPageCurrent > 1) {
         query.export_page = exportPageCurrent;
@@ -388,7 +393,6 @@ const submitExportForm = () => {
         .patch(route('acp.trust-safety.exports.update', { export: target.id }), {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Data export updated successfully.');
                 resetExportDialog();
             },
             onError: () => {
@@ -412,7 +416,6 @@ const submitErasureForm = () => {
         .patch(route('acp.trust-safety.erasure.update', { erasureRequest: target.id }), {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Data erasure request updated successfully.');
                 resetErasureDialog();
             },
             onError: () => {
@@ -429,7 +432,7 @@ const submitErasureForm = () => {
         <AdminLayout>
             <div class="flex w-full flex-1 flex-col gap-6 pb-6">
                 <div class="grid gap-4 md:grid-cols-2">
-                    <div class="rounded-lg border bg-card p-4 shadow-sm">
+                    <div class="rounded-lg border bg-card p-4 shadow-xs">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Data export queue</p>
@@ -461,7 +464,7 @@ const submitErasureForm = () => {
                         </dl>
                     </div>
 
-                    <div class="rounded-lg border bg-card p-4 shadow-sm">
+                    <div class="rounded-lg border bg-card p-4 shadow-xs">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Erasure requests</p>
@@ -494,7 +497,7 @@ const submitErasureForm = () => {
                     </div>
                 </div>
 
-                <div class="rounded-lg border bg-card p-4 shadow-sm">
+                <div class="rounded-lg border bg-card p-4 shadow-xs">
                     <div class="grid gap-4 md:grid-cols-[2fr_1fr_1fr_1fr] md:items-end">
                         <div>
                             <label for="trust-safety-search" class="text-sm font-medium text-muted-foreground">Search</label>
@@ -509,7 +512,7 @@ const submitErasureForm = () => {
 
                         <div>
                             <label for="export-status" class="text-sm font-medium text-muted-foreground">Export status</label>
-                            <select id="export-status" :value="exportStatus" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onExportStatusChange">
+                            <select id="export-status" :value="exportStatus" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onExportStatusChange">
                                 <option value="pending">Pending</option>
                                 <option value="processing">Processing</option>
                                 <option value="completed">Completed</option>
@@ -520,7 +523,7 @@ const submitErasureForm = () => {
 
                         <div>
                             <label for="erasure-status" class="text-sm font-medium text-muted-foreground">Erasure status</label>
-                            <select id="erasure-status" :value="erasureStatus" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onErasureStatusChange">
+                            <select id="erasure-status" :value="erasureStatus" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onErasureStatusChange">
                                 <option value="pending">Pending</option>
                                 <option value="processing">Processing</option>
                                 <option value="completed">Completed</option>
@@ -531,7 +534,7 @@ const submitErasureForm = () => {
 
                         <div>
                             <label for="per-page" class="text-sm font-medium text-muted-foreground">Rows per page</label>
-                            <select id="per-page" :value="perPage" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onPerPageChange">
+                            <select id="per-page" :value="perPage" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onPerPageChange">
                                 <option v-for="option in perPageOptions" :key="option" :value="option">
                                     {{ option }} per page
                                 </option>
@@ -541,7 +544,7 @@ const submitErasureForm = () => {
                 </div>
 
                 <div class="space-y-6">
-                    <section class="rounded-lg border bg-card shadow-sm">
+                    <section class="rounded-lg border bg-card shadow-xs">
                         <header class="flex flex-col gap-2 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-lg font-semibold text-foreground">Erasure requests</h2>
@@ -640,7 +643,7 @@ const submitErasureForm = () => {
                         </footer>
                     </section>
 
-                    <section class="rounded-lg border bg-card shadow-sm">
+                    <section class="rounded-lg border bg-card shadow-xs">
                         <header class="flex flex-col gap-2 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-lg font-semibold text-foreground">Data export requests</h2>
@@ -868,6 +871,5 @@ const submitErasureForm = () => {
             </DialogContent>
         </Dialog>
 
-        <Toaster position="bottom-right" richColors />
     </AppLayout>
 </template>

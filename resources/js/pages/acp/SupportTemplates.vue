@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useUserTimezone } from '@/composables/useUserTimezone';
-import { FileText, Pencil, PlusCircle, Trash2 } from 'lucide-vue-next';
+import { FileText, Pencil, PlusCircle, Trash2 } from '@lucide/vue';
 
 interface TemplateTeamOrCategory {
     id: number;
@@ -265,7 +265,7 @@ const cancelDeleteTemplate = () => {
                                         id="template_category"
                                         v-model="createForm.support_ticket_category_id"
                                         :disabled="createForm.processing"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                     >
                                         <option :value="null">All categories</option>
                                         <option v-for="category in props.categories" :key="category.id" :value="category.id">
@@ -282,7 +282,7 @@ const cancelDeleteTemplate = () => {
                                         v-model="createForm.support_team_ids"
                                         :disabled="createForm.processing"
                                         multiple
-                                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                     >
                                         <option v-for="team in props.teams" :key="team.id" :value="team.id">
                                             {{ team.name }}
@@ -302,7 +302,7 @@ const cancelDeleteTemplate = () => {
                                         Toggle off to hide this template from agent reply pickers without deleting it.
                                     </p>
                                 </div>
-                                <Switch v-model:checked="createForm.is_active" :disabled="createForm.processing" />
+                                <Switch v-model="createForm.is_active" :disabled="createForm.processing" />
                             </div>
 
                             <CardFooter class="justify-end px-0 pb-0">
@@ -442,7 +442,7 @@ const cancelDeleteTemplate = () => {
                                         id="edit_category"
                                         v-model="editForm.support_ticket_category_id"
                                         :disabled="editForm.processing"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                     >
                                         <option :value="null">All categories</option>
                                         <option v-for="category in props.categories" :key="category.id" :value="category.id">
@@ -458,7 +458,7 @@ const cancelDeleteTemplate = () => {
                                         v-model="editForm.support_team_ids"
                                         :disabled="editForm.processing"
                                         multiple
-                                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                     >
                                         <option v-for="team in props.teams" :key="team.id" :value="team.id">
                                             {{ team.name }}
@@ -477,7 +477,7 @@ const cancelDeleteTemplate = () => {
                                         Hidden templates remain saved but disappear from the reply picker.
                                     </p>
                                 </div>
-                                <Switch v-model:checked="editForm.is_active" :disabled="editForm.processing" />
+                                <Switch v-model="editForm.is_active" :disabled="editForm.processing" />
                             </div>
                             <CardFooter class="justify-end gap-2 px-0 pb-0">
                                 <Button type="button" variant="outline" :disabled="editForm.processing" @click="closeEditDialog">

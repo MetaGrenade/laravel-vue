@@ -1,4 +1,4 @@
-import { computed, ref, unref, watch, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue';
+import { computed, ref, toValue, watch, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue';
 
 export interface PaginationMeta {
     current_page: number;
@@ -47,10 +47,10 @@ export function useInertiaPagination(options: UseInertiaPaginationOptions): UseI
         onNavigate,
     } = options;
 
-    const itemsCount = computed(() => Math.max(0, normalizeNumber(unref(itemsLength), 0)));
+    const itemsCount = computed(() => Math.max(0, normalizeNumber(toValue(itemsLength), 0)));
 
     const meta = computed<PaginationMeta>(() => {
-        const raw = unref(metaSource) ?? {};
+        const raw = toValue(metaSource) ?? {};
 
         const total = normalizeNumber(raw.total, itemsCount.value);
         const perPageDefault = itemsCount.value > 0 ? itemsCount.value : defaultPerPage;

@@ -18,7 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
-import { getEcho } from '@/lib/echo';
+import { currentEcho, loadEcho } from '@/lib/echo';
 import type { BreadcrumbItem, CartSummary, NavItem, NotificationItem, SharedData, User } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
@@ -37,7 +37,7 @@ import {
     Trash2,
     ShoppingBag,
     ShoppingCart,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
 interface BroadcastNotificationPayload {
@@ -163,25 +163,29 @@ const leaveNotificationChannel = () => {
         return;
     }
 
-    const echo = getEcho();
-
-    if (echo) {
-        echo.leave(notificationChannelName);
-    }
+    currentEcho()?.leave(notificationChannelName);
 
     notificationChannelName = null;
 };
 
-const subscribeToNotificationChannel = () => {
-    const echo = getEcho();
+const subscribeToNotificationChannel = async () => {
     const currentUser = user.value;
 
-    if (!echo || !currentUser) {
+    if (!currentUser) {
         leaveNotificationChannel();
         return;
     }
 
-    const channelName = `private-App.Models.User.${currentUser.id}`;
+    const echo = await loadEcho();
+
+    // The user may have changed (e.g. logged out) while Echo was loading.
+    if (!echo || user.value?.id !== currentUser.id) {
+        leaveNotificationChannel();
+        return;
+    }
+
+    // Echo adds the `private-` prefix itself; this must match routes/channels.php.
+    const channelName = `App.Models.User.${currentUser.id}`;
 
     if (notificationChannelName === channelName) {
         return;
@@ -207,13 +211,13 @@ watch(
 watch(
     () => user.value?.id,
     () => {
-        subscribeToNotificationChannel();
+        void subscribeToNotificationChannel();
     },
 );
 
 onMounted(() => {
     window.addEventListener('keydown', handleSearchShortcut);
-    subscribeToNotificationChannel();
+    void subscribeToNotificationChannel();
 });
 
 onBeforeUnmount(() => {

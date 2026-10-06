@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { PlusCircle, Trash2 } from 'lucide-vue-next';
+import { PlusCircle, Trash2 } from '@lucide/vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Polls ACP', href: route('acp.polls.index') },
@@ -119,7 +119,7 @@ const handleSubmit = () => {
                             <select
                                 id="status"
                                 v-model="form.status"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
                             >
                                 <option value="draft">Draft</option>
                                 <option value="published">Published</option>
@@ -135,7 +135,7 @@ const handleSubmit = () => {
                                     Enable voters to select more than one option.
                                 </p>
                             </div>
-                            <Switch v-model:checked="form.allow_multiple" />
+                            <Switch v-model="form.allow_multiple" />
                         </div>
 
                         <div class="grid gap-4 sm:grid-cols-2">

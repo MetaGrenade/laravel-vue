@@ -3,7 +3,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Link, usePage } from '@inertiajs/vue3';
 import { useDebounceFn, useVModel } from '@vueuse/core';
-import { Loader2, Search as SearchIcon } from 'lucide-vue-next';
+import { Loader2, Search as SearchIcon } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useGlobalSearchQuery } from '@/composables/useGlobalSearchQuery';
 import type { SharedData } from '@/types';
@@ -290,7 +290,7 @@ onBeforeUnmount(() => {
                                 <li v-for="item in group.items" :key="`${group.key}-${item.id}`">
                                     <Link
                                         :href="item.url"
-                                        class="flex flex-col gap-1 px-4 py-3 text-left transition hover:bg-muted focus:bg-muted focus:outline-none"
+                                        class="flex flex-col gap-1 px-4 py-3 text-left transition hover:bg-muted focus:bg-muted focus:outline-hidden"
                                         @click="closePalette"
                                     >
                                         <span class="text-sm font-medium text-foreground">{{ item.title }}</span>

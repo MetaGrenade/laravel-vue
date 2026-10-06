@@ -228,14 +228,14 @@ const {
                 <Link
                     :href="route('blogs.view', { slug: featuredBlog.slug })"
                     :aria-label="`Read featured blog: ${featuredBlog.title}`"
-                    class="group relative block h-64 overflow-hidden rounded-xl border border-sidebar-border/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-sidebar-border"
+                    class="group relative block h-64 overflow-hidden rounded-xl border border-sidebar-border/70 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-sidebar-border"
                 >
                     <img
                         :src="featuredBlog.cover_image || '/images/default-cover.jpg'"
                         alt="Featured blog cover"
                         class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     />
-                    <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
+                    <div class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent p-4">
                         <div class="flex flex-wrap gap-2 text-xs">
                             <span
                                 v-for="category in featuredBlog.categories"
@@ -268,7 +268,7 @@ const {
             </section>
 
             <!-- Filters -->
-            <section class="space-y-4 rounded-xl border border-sidebar-border/70 bg-background/60 p-4 shadow-sm dark:border-sidebar-border">
+            <section class="space-y-4 rounded-xl border border-sidebar-border/70 bg-background/60 p-4 shadow-xs dark:border-sidebar-border">
                 <div class="flex items-center justify-between gap-4">
                     <div>
                         <h2 class="text-base font-semibold">Browse the library</h2>
@@ -304,7 +304,7 @@ const {
                                 type="search"
                                 name="search"
                                 placeholder="Search blog posts"
-                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                             />
                         </label>
                         <label class="md:w-48 text-sm">
@@ -312,7 +312,7 @@ const {
                             <select
                                 v-model="sortOrder"
                                 name="sort"
-                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                 @change="updateSort"
                             >
                                 <option value="latest">Newest first</option>

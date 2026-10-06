@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useUserTimezone } from '@/composables/useUserTimezone';
-import { ListChecks, MoveDown, MoveUp, Pencil, PlusCircle, Trash2 } from 'lucide-vue-next';
+import { ListChecks, MoveDown, MoveUp, Pencil, PlusCircle, Trash2 } from '@lucide/vue';
 
 interface AssignmentRuleRelation {
     id: number;
@@ -317,7 +317,7 @@ watch(
                                     <select
                                         id="create-category"
                                         v-model="createForm.support_ticket_category_id"
-                                        class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                        class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary"
                                         :disabled="createForm.processing"
                                     >
                                         <option :value="null">All categories</option>
@@ -337,7 +337,7 @@ watch(
                                     <select
                                         id="create-priority"
                                         v-model="createForm.priority"
-                                        class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                        class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary"
                                         :disabled="createForm.processing"
                                     >
                                         <option :value="null">All priorities</option>
@@ -354,7 +354,7 @@ watch(
                                         <select
                                             id="create-assignee-type"
                                             v-model="createForm.assignee_type"
-                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary"
                                             :disabled="createForm.processing"
                                         >
                                             <option v-for="option in assigneeTypeOptions" :key="option.value" :value="option.value">
@@ -369,7 +369,7 @@ watch(
                                             id="create-assigned-to"
                                             v-model="createForm.assigned_to"
                                             required
-                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary"
                                             :disabled="createForm.processing"
                                         >
                                             <option :value="null" disabled>Select an agent</option>
@@ -386,7 +386,7 @@ watch(
                                             id="create-support-team"
                                             v-model="createForm.support_team_id"
                                             required
-                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary"
                                             :disabled="createForm.processing || props.teams.length === 0"
                                         >
                                             <option v-if="props.teams.length === 0" :value="null" disabled>
@@ -406,7 +406,7 @@ watch(
                                         <Label>Active</Label>
                                         <p class="text-sm text-muted-foreground">Inactive rules are skipped during auto-assignment.</p>
                                     </div>
-                                    <Switch v-model:checked="createForm.active" :disabled="createForm.processing" />
+                                    <Switch v-model="createForm.active" :disabled="createForm.processing" />
                                 </div>
 
                                 <div class="flex justify-end">
@@ -557,7 +557,7 @@ watch(
                         <select
                             id="edit-category"
                             v-model="editForm.support_ticket_category_id"
-                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary"
                             :disabled="editForm.processing"
                         >
                             <option :value="null">All categories</option>
@@ -573,7 +573,7 @@ watch(
                         <select
                             id="edit-priority"
                             v-model="editForm.priority"
-                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary"
                             :disabled="editForm.processing"
                         >
                             <option :value="null">All priorities</option>
@@ -589,7 +589,7 @@ watch(
                         <select
                             id="edit-assignee-type"
                             v-model="editForm.assignee_type"
-                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary"
                             :disabled="editForm.processing"
                         >
                             <option v-for="option in assigneeTypeOptions" :key="option.value" :value="option.value">
@@ -602,7 +602,7 @@ watch(
                                 id="edit-assigned-to"
                                 v-model="editForm.assigned_to"
                                 required
-                                class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary"
                                 :disabled="editForm.processing"
                             >
                                 <option :value="null" disabled>Select an agent</option>
@@ -618,7 +618,7 @@ watch(
                                 id="edit-support-team"
                                 v-model="editForm.support_team_id"
                                 required
-                                class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary"
                                 :disabled="editForm.processing || props.teams.length === 0"
                             >
                                 <option v-if="props.teams.length === 0" :value="null" disabled>
@@ -638,7 +638,7 @@ watch(
                             <Label>Active</Label>
                             <p class="text-sm text-muted-foreground">Inactive rules are skipped during auto-assignment.</p>
                         </div>
-                        <Switch v-model:checked="editForm.active" :disabled="editForm.processing" />
+                        <Switch v-model="editForm.active" :disabled="editForm.processing" />
                     </div>
 
                     <div class="flex justify-end gap-2">

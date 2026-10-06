@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import dayjs from 'dayjs';
+import dayjs from '@/lib/dayjs';
 import { ref, computed, watch, onBeforeUnmount, reactive } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
@@ -20,7 +20,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff, Ban } from 'lucide-vue-next';
+import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff, Ban } from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import InputError from '@/components/InputError.vue';
@@ -809,7 +809,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                 <select
                                                     id="token-user"
                                                     v-model="createTokenForm.user_id"
-                                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
+                                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
                                                     required
                                                 >
                                                     <option disabled value="">Select a user</option>
@@ -976,7 +976,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                             >
                                                 <Checkbox
                                                     id="restore-token"
-                                                    v-model:checked="editTokenForm.clear_revocation"
+                                                    v-model="editTokenForm.clear_revocation"
                                                 />
                                                 <Label for="restore-token" class="text-sm leading-tight">
                                                     Restore this token (clear revoked status)
@@ -1238,7 +1238,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                             <select
                                                 id="log-status-filter"
                                                 v-model="logFiltersState.status"
-                                                class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                             >
                                                 <option value="">All statuses</option>
                                                 <option
@@ -1332,7 +1332,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                     <label class="flex items-center gap-2 text-sm text-muted-foreground">
                                         <span>Per page</span>
                                         <select
-                                            class="h-9 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                            class="h-9 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                             :value="logsPerPage"
                                             @change="onLogsPerPageChange(Number(($event.target as HTMLSelectElement).value))"
                                         >

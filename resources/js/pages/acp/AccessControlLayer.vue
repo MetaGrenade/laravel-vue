@@ -20,7 +20,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Ellipsis, Trash2, Pencil } from 'lucide-vue-next';
+import { Ellipsis, Trash2, Pencil } from '@lucide/vue';
 import {
     Dialog,
     DialogContent,
@@ -40,13 +40,11 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { usePermissions } from '@/composables/usePermissions';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import dayjs from '@/lib/dayjs';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
-dayjs.extend(relativeTime);
 
 type RolePermission = {
     id: number;
@@ -601,8 +599,8 @@ const filteredPermissions = computed(() => {
                                     >
                                         <Checkbox
                                             :id="`dialog-permission-${permission.id}`"
-                                            :checked="roleForm.permissions.includes(permission.name)"
-                                            @update:checked="value => toggleRolePermission(permission.name, value)"
+                                            :model-value="roleForm.permissions.includes(permission.name)"
+                                            @update:model-value="value => toggleRolePermission(permission.name, value)"
                                         />
                                         <div class="grid gap-1">
                                             <Label :for="`dialog-permission-${permission.id}`" class="font-medium leading-none">

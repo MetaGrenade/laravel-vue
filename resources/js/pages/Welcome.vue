@@ -2,7 +2,7 @@
 import type { SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { Anvil } from 'lucide-vue-next';
+import { Anvil } from '@lucide/vue';
 import { Card, CardContent } from '@/components/ui/card'
 import Autoplay from 'embla-carousel-autoplay'
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
@@ -25,7 +25,7 @@ const websiteSections = computed(() => {
  * Load raw SVG strings (inline) from resources/images/tech-icons
  * We use 'raw' so we can insert SVG markup into the page and recolor it with currentColor.
  */
-const rawIconModules = import.meta.glob('../../images/tech-icons/*.svg', { as: 'raw', eager: true }) as Record<string, string>;
+const rawIconModules = import.meta.glob<string>('../../images/tech-icons/*.svg', { query: '?raw', import: 'default', eager: true });
 
 function sanitizeAndPrepareSvg(rawSvg: string) {
     if (!rawSvg) return '';
@@ -77,14 +77,6 @@ const techIconsInline = Object.keys(rawIconModules)
     .sort((a, b) => a.name.localeCompare(b.name));
 
 /* ---------- Small helper dataset for seo, resource links, etc ---------- */
-const seo = {
-    title: 'Laravel Vue Starter Kit — Production-ready Laravel + Vue Boilerplate for SaaS',
-    description:
-        'Launch faster with a production-ready Laravel + Vue 3 starter kit — built-in auth, billing, forum, blog, Inertia routing, and a polished admin control panel. Ship your SaaS with confidence.',
-    url: 'https://github.com/MetaGrenade/laravel-vue',
-    keywords: 'laravel vue starter kit, laravel vue boilerplate, saas starter, inertia vue, laravel 12, vite tailwind',
-};
-
 const productFeatures = [
     {
         title: 'Ship Faster',
@@ -104,16 +96,8 @@ const productFeatures = [
 <template>
     <AppLayout>
         <!-- SEO + Social meta -->
-        <Head>
-            <title>{{ seo.title }}</title>
-            <meta name="description" :content="seo.description" />
-            <meta name="keywords" :content="seo.keywords" />
-            <meta property="og:type" content="website" />
-            <meta property="og:title" :content="seo.title" />
-            <meta property="og:description" :content="seo.description" />
-            <meta property="og:url" :content="seo.url" />
-            <meta name="twitter:card" content="summary_large_image" />
-        </Head>
+        <!-- Description, canonical and social tags are set server-side (HomeController). -->
+        <Head title="Laravel Vue Starter Kit — Production-ready Boilerplate for SaaS" />
 
         <div class="flex min-h-screen flex-col bg-[#FDFDFC] text-[#1b1b18] dark:bg-[#0a0a0a]">
             <main class="flex flex-1 justify-center p-6">
@@ -128,7 +112,7 @@ const productFeatures = [
                                 </h1>
                                 <!-- Subhead that hits benefits -->
                                 <p class="mt-4 max-w-2xl text-base text-[#706f6c] dark:text-[#A1A09A]">
-                                    Launch your SaaS app faster with ready-to-ship modules, opinionated flows for auth, billing, admin, content, and community—fully wired with Laravel 12, Inertia + Vue 3, Vite, and Tailwind.
+                                    Launch your SaaS app faster with ready-to-ship modules, opinionated flows for auth, billing, admin, content, and community—fully wired with Laravel 13, Inertia + Vue 3, Vite, and Tailwind.
                                 </p>
                             </div>
 
@@ -170,7 +154,7 @@ const productFeatures = [
                             </div>
                         </div>
                         <div class="mt-10 flex flex-1 justify-center lg:mt-0">
-                            <div class="w-full max-w-md rounded-lg bg-gradient-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] p-6 text-[#1b1b18] shadow-[0px_10px_40px_rgba(0,0,0,0.08)] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]">
+                            <div class="w-full max-w-md rounded-lg bg-linear-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] p-6 text-[#1b1b18] shadow-[0px_10px_40px_rgba(0,0,0,0.08)] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]">
                                 <div class="space-y-4">
                                     <div>
                                         <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Starter Layout</p>
@@ -243,12 +227,12 @@ const productFeatures = [
                             </div>
                             <div class="mt-4 space-y-2">
                                 <a
-                                    href="https://laravel.com/docs/12.x"
+                                    href="https://laravel.com/docs/13.x"
                                     class="inline-flex w-full items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-2 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                     target="_blank"
                                     rel="noreferrer"
                                 >
-                                    Laravel 12.x Documentation
+                                    Laravel 13.x Documentation
                                     <span aria-hidden="true">↗</span>
                                 </a>
                                 <a
@@ -261,12 +245,12 @@ const productFeatures = [
                                     <span aria-hidden="true">↗</span>
                                 </a>
                                 <a
-                                    href="https://inertiajs.com/docs/v2/getting-started/index"
+                                    href="https://inertiajs.com/docs/v3/getting-started/index"
                                     class="inline-flex w-full items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-2 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                     target="_blank"
                                     rel="noreferrer"
                                 >
-                                    Inertia 2.x Documentation
+                                    Inertia 3.x Documentation
                                     <span aria-hidden="true">↗</span>
                                 </a>
                                 <a
@@ -336,7 +320,7 @@ const productFeatures = [
                                             class="pl-1 md:basis-1/4 lg:basis-1/5"
                                         >
                                             <div class="p-1">
-                                                <Card class="bg-gradient-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] text-[#1b1b18] dark:text-[#EDEDEC]">
+                                                <Card class="bg-linear-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] text-[#1b1b18] dark:text-[#EDEDEC]">
                                                     <CardContent class="flex aspect-square items-center justify-center p-4">
                                                         <!-- wrapper sets the color; svg markup is injected and inherits currentColor -->
                                                         <div
@@ -539,7 +523,7 @@ const productFeatures = [
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
-                                        :href="route('acp.dashboard')"
+                                        href="/acp/dashboard"
                                         class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                     >
                                         Visit Admin Dashboard
@@ -555,7 +539,7 @@ const productFeatures = [
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <Link
-                                        :href="route('acp.system')"
+                                        href="/acp/system"
                                         class="inline-flex items-center rounded-sm border border-[#19140035] px-4 py-2 text-xs font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                     >
                                         View System Settings
@@ -678,13 +662,13 @@ const productFeatures = [
                         </div>
                     </section>
 
-                    <section class="rounded-xl bg-[#11110f] px-6 py-10 text-white bg-gradient-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]">
+                    <section class="rounded-xl bg-[#11110f] px-6 py-10 text-white bg-linear-to-br from-[#fff7e6] via-[#f4f0e8] to-[#e8e5dc] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] dark:from-[#1d1c19] dark:via-[#171612] dark:to-[#11100d] dark:text-[#EDEDEC]">
                         <div class="flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:justify-between">
                             <div class="max-w-4xl space-y-3">
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#f3d29e]">Launch Faster</p>
                                 <h3 class="text-2xl font-semibold leading-tight text-[#1b1b18] dark:text-[#EDEDEC]">Plug into <Anvil class="inline text-[#8b5a00] dark:text-[#f3d29e]" /> <span class="text-[#8b5a00] dark:text-[#f3d29e]">MetaForge</span> and ship your product story</h3>
                                 <p class="text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                    Launch faster with opinionated flows for auth, billing, admin, content, and community—fully wired with Laravel 12, Inertia + Vue 3, Vite, and Tailwind.
+                                    Launch faster with opinionated flows for auth, billing, admin, content, and community—fully wired with Laravel 13, Inertia + Vue 3, Vite, and Tailwind.
                                     Every module uses the same typography, spacing, and components so founders, agencies, and OSS contributors can focus on content, customization, and onboarding instead of wiring basics together.
                                 </p>
                             </div>
@@ -720,7 +704,7 @@ const productFeatures = [
                                     <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
                                         <li>Vue 3 with TypeScript and Inertia.js for SPA routing.</li>
                                         <li>Tailwind CSS + shadcn-inspired components for UI.</li>
-                                        <li>Vite 6 for dev server and bundling.</li>
+                                        <li>Vite 8 for dev server and bundling.</li>
                                         <li>SSR entry point in <code>resources/js/ssr.ts</code>.</li>
                                     </ul>
                                 </div>
@@ -728,7 +712,7 @@ const productFeatures = [
                                     <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#9ebff3]">Backend</p>
                                     <h4 class="mt-2 text-lg font-semibold">Laravel Core</h4>
                                     <ul class="mt-3 space-y-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
-                                        <li>Laravel 12 with Sanctum tokens and Spatie Permissions.</li>
+                                        <li>Laravel 13 with Sanctum tokens and Spatie Permissions.</li>
                                         <li>Stripe billing via Cashier plus webhook visibility.</li>
                                         <li>Queues, events, and broadcasting scaffolding built in.</li>
                                         <li>Inertia controllers deliver shared props to the SPA.</li>
@@ -776,12 +760,12 @@ const productFeatures = [
                                     <span aria-hidden="true">↗</span>
                                 </a>
                                 <a
-                                    href="https://laravel.com/docs/12.x"
+                                    href="https://laravel.com/docs/13.x"
                                     class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                     target="_blank"
                                     rel="noreferrer"
                                 >
-                                    Laravel 12.x Documentation
+                                    Laravel 13.x Documentation
                                     <span aria-hidden="true">↗</span>
                                 </a>
                                 <a
@@ -794,12 +778,12 @@ const productFeatures = [
                                     <span aria-hidden="true">↗</span>
                                 </a>
                                 <a
-                                    href="https://inertiajs.com/docs/v2/getting-started/index"
+                                    href="https://inertiajs.com/docs/v3/getting-started/index"
                                     class="inline-flex items-center justify-between rounded-lg border border-[#19140035] bg-white px-4 py-3 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f7f7f3] dark:border-[#3E3E3A] dark:bg-[#161615] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-[#1e1e1b]"
                                     target="_blank"
                                     rel="noreferrer"
                                 >
-                                    Inertia 2.x Documentation
+                                    Inertia 3.x Documentation
                                     <span aria-hidden="true">↗</span>
                                 </a>
                                 <a
@@ -859,7 +843,7 @@ const productFeatures = [
                                         class="pl-1 md:basis-1/4 lg:basis-1/5"
                                     >
                                         <div class="p-1">
-                                            <Card class="bg-gradient-to-br from-[#e6eeff] via-[#e8ecf4] to-[#e8e5dc] dark:from-[#191a1d] dark:via-[#121317] dark:to-[#0d0e11] text-[#1b1b18] dark:text-[#EDEDEC]">
+                                            <Card class="bg-linear-to-br from-[#e6eeff] via-[#e8ecf4] to-[#e8e5dc] dark:from-[#191a1d] dark:via-[#121317] dark:to-[#0d0e11] text-[#1b1b18] dark:text-[#EDEDEC]">
                                                 <CardContent class="flex aspect-square items-center justify-center p-4">
                                                     <!-- wrapper sets the color; svg markup is injected and inherits currentColor -->
                                                     <div
@@ -880,7 +864,7 @@ const productFeatures = [
                     </section>
 
                     <!-- PRICING SUMMARY / MONETIZATION CALL-TO-ACTION -->
-                    <section class="rounded-xl bg-gradient-to-br from-[#e6ffef] via-[#f4f0e8] to-[#dce8e1] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] p-8 dark:from-[#191d1b] dark:via-[#121714] dark:to-[#0d110f]">
+                    <section class="rounded-xl bg-linear-to-br from-[#e6ffef] via-[#f4f0e8] to-[#dce8e1] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.06)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] p-8 dark:from-[#191d1b] dark:via-[#121714] dark:to-[#0d110f]">
                         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <p class="text-xs uppercase tracking-[0.14em] text-[#8b5a00] dark:text-[#9ef3b6]">Monetize faster</p>

@@ -5,7 +5,7 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import Button from '@/components/ui/button/Button.vue';
-import { ArrowLeft, RotateCcw } from 'lucide-vue-next';
+import { ArrowLeft, RotateCcw } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useConfirmDialog } from '@/composables/useConfirmDialog';
@@ -168,7 +168,7 @@ const requestRestore = (revisionId: number) => {
                 </div>
 
                 <div class="grid gap-6">
-                    <div class="rounded-xl border p-6 shadow-sm">
+                    <div class="rounded-xl border p-6 shadow-xs">
                         <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                             <div>
                                 <h2 class="text-xl font-semibold">Current Version</h2>
@@ -187,7 +187,7 @@ const requestRestore = (revisionId: number) => {
                         <div class="prose prose-sm mt-4 max-w-none" v-html="post.body" />
                     </div>
 
-                    <div class="rounded-xl border p-6 shadow-sm">
+                    <div class="rounded-xl border p-6 shadow-xs">
                         <div class="flex items-center justify-between gap-4">
                             <h2 class="text-xl font-semibold">Revision History</h2>
                             <span class="text-sm text-muted-foreground">
@@ -203,7 +203,7 @@ const requestRestore = (revisionId: number) => {
                             <div
                                 v-for="revision in revisions"
                                 :key="revision.id"
-                                class="rounded-lg border p-4 shadow-sm"
+                                class="rounded-lg border p-4 shadow-xs"
                             >
                                 <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                     <div>

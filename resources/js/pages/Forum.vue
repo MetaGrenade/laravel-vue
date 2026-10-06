@@ -91,7 +91,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <div
                             v-for="category in props.categories"
                             :key="category.id"
-                            class="rounded-lg border border-sidebar-border/70 shadow hover:shadow-lg transition"
+                            class="rounded-lg border border-sidebar-border/70 shadow-sm hover:shadow-lg transition"
                         >
                             <!-- Card Header -->
                             <div class="relative overflow-hidden p-4 rounded-t-lg">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { csrfHeaders } from '@/lib/http';
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -11,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { toast } from 'vue-sonner';
-import { ThumbsDown, ThumbsUp } from 'lucide-vue-next';
+import { ThumbsDown, ThumbsUp } from '@lucide/vue';
 
 type CommentUser = {
     id: number;
@@ -345,7 +346,6 @@ watch(reportDialogOpen, (open) => {
     }
 });
 
-const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 
 const { formatDate, fromNow } = useUserTimezone();
 
@@ -458,7 +458,7 @@ const reactToComment = async (comment: BlogComment, reaction: 'like' | 'dislike'
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
+                ...csrfHeaders(),
             },
             body: JSON.stringify({ reaction: desiredReaction }),
         });
@@ -550,7 +550,7 @@ const submitComment = async () => {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
+                ...csrfHeaders(),
             },
             body: JSON.stringify({ body, captcha_token: commentCaptchaToken.value, honeypot: honeypot.value }),
         });
@@ -626,7 +626,7 @@ const updateComment = async (commentId: number) => {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
+                ...csrfHeaders(),
             },
             body: JSON.stringify({ body }),
         });
@@ -703,7 +703,7 @@ const confirmDeleteComment = async () => {
             method: 'DELETE',
             headers: {
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
+                ...csrfHeaders(),
             },
         });
 
@@ -772,7 +772,7 @@ const submitReport = async () => {
                 headers: {
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
+                    ...csrfHeaders(),
                 },
                 body: JSON.stringify({
                     reason_category: reportForm.reason_category || defaultReportReason.value,
@@ -812,7 +812,7 @@ const submitReport = async () => {
 </script>
 
 <template>
-    <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
+    <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow-sm">
         <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-2xl font-bold">Comments</h2>
             <div class="flex items-center gap-2 text-sm">
@@ -820,7 +820,7 @@ const submitReport = async () => {
                 <select
                     id="commentSort"
                     v-model="sortMode"
-                    class="flex h-9 items-center rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    class="flex h-9 items-center rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                     :disabled="isReloading || isLoadingMore"
                     @change="reloadComments"
                 >
@@ -1025,7 +1025,7 @@ const submitReport = async () => {
                     <select
                         id="reportReason"
                         v-model="reportForm.reason_category"
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
                         :disabled="reportForm.processing || !hasReportReasons"
                     >
                         <option v-for="reason in reportReasons" :key="reason.value" :value="reason.value">

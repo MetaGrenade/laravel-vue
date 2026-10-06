@@ -90,7 +90,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="min-w-[14rem] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg">
+  <div class="min-w-56 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg">
     <div v-if="loading" class="px-3 py-2 text-sm text-muted-foreground">Searching members…</div>
     <div v-else-if="isQueryEmpty" class="px-3 py-2 text-sm text-muted-foreground">Start typing to mention someone.</div>
     <div v-else-if="!hasItems" class="px-3 py-2 text-sm text-muted-foreground">No members found</div>

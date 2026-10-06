@@ -71,7 +71,7 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <Card>
                         <CardHeader class="relative overflow-hidden">
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />
@@ -137,7 +137,7 @@ const handleSubmit = () => {
                                 <select
                                     id="priority"
                                     v-model="form.priority"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
                                         {{ option.label }}
@@ -151,7 +151,7 @@ const handleSubmit = () => {
                                 <select
                                     id="category"
                                     v-model="form.support_ticket_category_id"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option :value="null">Uncategorised</option>
                                     <option

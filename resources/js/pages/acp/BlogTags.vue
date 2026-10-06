@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
-import { Pencil, PlusCircle, Tag as TagIcon, Trash2 } from 'lucide-vue-next';
+import { Pencil, PlusCircle, Tag as TagIcon, Trash2 } from '@lucide/vue';
 
 type ManagedTag = {
     id: number;

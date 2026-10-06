@@ -81,7 +81,7 @@ const handleSubmit = () => {
                             <select
                                 id="forum_category_id"
                                 v-model="form.forum_category_id"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 :disabled="!hasCategories"
                                 required
                             >

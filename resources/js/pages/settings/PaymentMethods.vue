@@ -315,7 +315,7 @@ onBeforeUnmount(() => {
                     description="Manage the cards connected to your subscription and purchases."
                 />
 
-                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -399,7 +399,7 @@ onBeforeUnmount(() => {
                                 <label class="text-sm font-medium" for="payment-element">Payment method</label>
                                 <div
                                     id="payment-element"
-                                    class="rounded-lg border border-border bg-card p-4 shadow-sm"
+                                    class="rounded-lg border border-border bg-card p-4 shadow-xs"
                                 />
                                 <p v-if="!paymentElementReady" class="text-sm text-muted-foreground">
                                     Loading the secure payment form…

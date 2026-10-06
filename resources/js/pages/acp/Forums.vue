@@ -11,7 +11,7 @@ import {
     Folder, MessageSquare, CheckCircle, Ellipsis, EyeOff, Shield,
     Trash2, MoveUp, MoveDown, Pencil, MessageSquareShare, Layers,
     PlusCircle, ExternalLink
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import Button from '@/components/ui/button/Button.vue';
 import {
     DropdownMenu,
@@ -222,7 +222,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                         v-for="(category, catIndex) in categories"
                         v-else
                         :key="category.id"
-                        class="mb-6 rounded-lg border border-sidebar-border/70 shadow transition hover:shadow-lg"
+                        class="mb-6 rounded-lg border border-sidebar-border/70 shadow-sm transition hover:shadow-lg"
                     >
                         <div class="flex items-start justify-between rounded-t-lg bg-gray-100 p-4 dark:bg-neutral-900">
                             <div>

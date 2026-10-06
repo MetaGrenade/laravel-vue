@@ -124,7 +124,7 @@ const handleSubmit = () => {
                                     Inactive badges remain hidden but keep existing award history intact.
                                 </p>
                             </div>
-                            <Switch v-model:checked="form.is_active" />
+                            <Switch v-model="form.is_active" />
                         </div>
                         <InputError :message="form.errors.is_active" />
                     </CardContent>

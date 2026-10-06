@@ -1,10 +1,9 @@
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
+import type Echo from 'laravel-echo';
+import { jsonHeaders } from './http';
 
 declare global {
     interface Window {
-        Echo?: Echo;
-        Pusher?: typeof Pusher;
+        Echo?: Echo<'pusher'>;
     }
 }
 
@@ -20,141 +19,80 @@ const booleanEnv = (value: string | boolean | undefined): boolean => {
     return false;
 };
 
-const getCsrfToken = (): string | undefined => {
-    if (typeof document === 'undefined') {
-        return undefined;
-    }
+/**
+ * Whether real-time broadcasting is configured for this build.
+ */
+export const isBroadcastingEnabled = (): boolean =>
+    (import.meta.env.VITE_BROADCAST_DRIVER || 'pusher') === 'pusher' && Boolean(import.meta.env.VITE_PUSHER_APP_KEY);
 
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? undefined;
-};
-
-const getCookieValue = (name: string): string | undefined => {
-    if (typeof document === 'undefined') {
-        return undefined;
-    }
-
-    return document.cookie
-        .split('; ')
-        .map((cookie) => cookie.split('='))
-        .find(([key]) => key === name)?.[1];
-};
-
-const getXsrfToken = (): string | undefined => {
-    const token = getCookieValue('XSRF-TOKEN');
-
-    if (!token) {
-        return undefined;
-    }
-
-    try {
-        return decodeURIComponent(token);
-    } catch (error) {
-        console.warn('Unable to decode XSRF token cookie', error);
-        return token;
-    }
-};
-
-const createEchoInstance = (): Echo | null => {
-    if (typeof window === 'undefined') {
+const createEchoInstance = async (): Promise<Echo<'pusher'> | null> => {
+    if (typeof window === 'undefined' || !isBroadcastingEnabled()) {
         return null;
     }
 
-    const broadcaster = import.meta.env.VITE_BROADCAST_DRIVER ?? 'pusher';
+    // Loaded on demand so guests and pages without real-time features don't
+    // download the WebSocket client.
+    const [{ default: EchoClient }, { default: Pusher }] = await Promise.all([import('laravel-echo'), import('pusher-js')]);
 
-    if (String(broadcaster) !== 'pusher') {
-        return null;
-    }
-
-    const key = import.meta.env.VITE_PUSHER_APP_KEY as string | undefined;
-
-    if (!key) {
-        return null;
-    }
-
-    window.Pusher = Pusher;
-
-    const cluster = (import.meta.env.VITE_PUSHER_APP_CLUSTER as string | undefined) ?? 'mt1';
-    const host = (import.meta.env.VITE_PUSHER_HOST as string | undefined) ?? `ws-${cluster}.pusher.com`;
-    const scheme = (import.meta.env.VITE_PUSHER_SCHEME as string | undefined) ?? 'https';
-    const portValue = import.meta.env.VITE_PUSHER_PORT as string | undefined;
-    const port = Number(portValue ?? (scheme === 'https' ? 443 : 80));
+    const cluster = import.meta.env.VITE_PUSHER_APP_CLUSTER || 'mt1';
+    const host = import.meta.env.VITE_PUSHER_HOST || `ws-${cluster}.pusher.com`;
+    const scheme = import.meta.env.VITE_PUSHER_SCHEME || 'https';
+    const port = Number(import.meta.env.VITE_PUSHER_PORT || (scheme === 'https' ? 443 : 80));
     const forceTlsEnv = import.meta.env.VITE_PUSHER_FORCE_TLS;
-    const forceTls = forceTlsEnv === undefined
-        ? scheme === 'https'
-        : booleanEnv(forceTlsEnv);
-    const csrfToken = getCsrfToken();
-    const xsrfToken = getXsrfToken();
+    const forceTls = forceTlsEnv === undefined || forceTlsEnv === '' ? scheme === 'https' : booleanEnv(forceTlsEnv);
 
-    return new Echo({
+    return new EchoClient({
         broadcaster: 'pusher',
-        key,
+        Pusher,
+        key: import.meta.env.VITE_PUSHER_APP_KEY as string,
         cluster,
         wsHost: host,
         wsPort: port,
         wssPort: port,
         forceTLS: forceTls,
-        encrypted: forceTls,
         disableStats: true,
         enabledTransports: ['ws', 'wss'],
-        withCredentials: true,
-        authEndpoint: '/broadcasting/auth',
-        auth: {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-                ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
-            },
+        // headersProvider runs for every auth request, so the CSRF token is
+        // always current (it changes when the session is regenerated).
+        channelAuthorization: {
+            endpoint: '/broadcasting/auth',
+            transport: 'ajax',
+            headersProvider: () => jsonHeaders(),
         },
-        authorizer: (channel, options) => ({
-            authorize(socketId: string, callback: (error: Error | null, data?: unknown) => void) {
-                fetch(options.authEndpoint ?? '/broadcasting/auth', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        ...(options.auth?.headers ?? {}),
-                    },
-                    body: JSON.stringify({
-                        socket_id: socketId,
-                        channel_name: channel.name,
-                    }),
-                })
-                    .then(async (response) => {
-                        if (!response.ok) {
-                            callback(new Error(`Broadcast auth failed with status ${response.status}`));
-                            return;
-                        }
-
-                        const data = await response.json();
-                        callback(null, data);
-                    })
-                    .catch((error) => {
-                        callback(error instanceof Error ? error : new Error('Broadcast auth failed'));
-                    });
-            },
-        }),
     });
 };
 
-export const getEcho = (): Echo | null => {
+let echoPromise: Promise<Echo<'pusher'> | null> | null = null;
+
+/**
+ * Lazily create (once) and return the shared Echo instance, or null when
+ * broadcasting is not configured.
+ */
+export const loadEcho = (): Promise<Echo<'pusher'> | null> => {
     if (typeof window === 'undefined') {
-        return null;
+        return Promise.resolve(null);
     }
 
-    if (!window.Echo) {
-        window.Echo = createEchoInstance() ?? undefined;
-    }
+    echoPromise ??= createEchoInstance()
+        .then((echo) => {
+            window.Echo = echo ?? undefined;
 
-    return window.Echo ?? null;
+            return echo;
+        })
+        .catch((error) => {
+            console.warn('Unable to initialise real-time updates', error);
+
+            return null;
+        });
+
+    return echoPromise;
 };
 
+/**
+ * The Echo instance if it has already been loaded.
+ */
+export const currentEcho = (): Echo<'pusher'> | null => (typeof window === 'undefined' ? null : (window.Echo ?? null));
+
 export const leaveEchoChannel = (channel: string): void => {
-    const echo = getEcho();
-
-    if (!echo) {
-        return;
-    }
-
-    echo.leave(channel);
+    currentEcho()?.leave(channel);
 };

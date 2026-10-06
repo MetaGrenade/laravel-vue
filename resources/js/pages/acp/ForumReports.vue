@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import type { CheckboxRootProps } from 'radix-vue';
+import type { CheckboxRootProps } from 'reka-ui';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
@@ -30,7 +30,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Ellipsis, RotateCcw, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-vue-next';
+import { Ellipsis, RotateCcw, ShieldAlert, ShieldCheck, ShieldX } from '@lucide/vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
 const props = defineProps<{
@@ -149,7 +149,7 @@ type ReportStatus = 'pending' | 'reviewed' | 'dismissed';
 const reportItems = computed(() => props.reports.data ?? []);
 const reportKey = (report: Report) => `${report.type}:${report.id}`;
 
-type CheckboxState = CheckboxRootProps['checked'];
+type CheckboxState = CheckboxRootProps['modelValue'];
 
 const selectedReportKeys = ref<string[]>([]);
 
@@ -454,7 +454,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
 
         <AdminLayout>
             <div class="flex w-full flex-1 flex-col gap-6 pb-6">
-                <section class="rounded-xl border bg-background p-6 shadow-sm">
+                <section class="rounded-xl border bg-background p-6 shadow-xs">
                     <h1 class="text-2xl font-semibold">Forum moderation queue</h1>
                     <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
                         Review reported threads and posts. Apply moderation actions as needed and mark reports once addressed.
@@ -485,7 +485,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                     </div>
                 </section>
 
-                <section class="rounded-xl border bg-background p-6 shadow-sm">
+                <section class="rounded-xl border bg-background p-6 shadow-xs">
                     <div class="flex flex-col gap-6">
                         <form class="grid gap-4 md:grid-cols-5" @submit.prevent="applyFilters">
                             <div class="grid gap-2">
@@ -493,7 +493,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="filter-type"
                                     v-model="filterState.type"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option v-for="option in typeOptions" :key="option.value" :value="option.value">
                                         {{ option.label }}
@@ -506,7 +506,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="filter-status"
                                     v-model="filterState.status"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                                         {{ option.label }}
@@ -519,7 +519,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="filter-reason"
                                     v-model="filterState.reason_category"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option value="">All reasons</option>
                                     <option v-for="reason in props.reportReasons" :key="reason.value" :value="reason.value">
@@ -533,7 +533,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="filter-board"
                                     v-model="filterState.board_id"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option value="">All boards</option>
                                     <option v-for="board in props.boards" :key="board.id" :value="String(board.id)">
@@ -562,7 +562,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                         id="filter-per-page"
                                         v-model="filterState.per_page"
                                         @change="applyFilters({ per_page: Number.parseInt(filterState.per_page, 10) || 25 })"
-                                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                     >
                                         <option value="15">15</option>
                                         <option value="25">25</option>
@@ -617,10 +617,10 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                         <TableRow>
                                             <TableHead class="w-12">
                                                 <Checkbox
-                                                    :checked="reportHeaderCheckboxState"
+                                                    :model-value="reportHeaderCheckboxState"
                                                     :disabled="reportItems.length === 0"
                                                     aria-label="Select all forum reports"
-                                                    @update:checked="toggleAllReports"
+                                                    @update:model-value="toggleAllReports"
                                                 />
                                             </TableHead>
                                             <TableHead class="w-40">Type & reason</TableHead>
@@ -637,9 +637,9 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                         >
                                             <TableCell class="align-middle">
                                                 <Checkbox
-                                                    :checked="selectedReportKeys.includes(reportKey(report))"
+                                                    :model-value="selectedReportKeys.includes(reportKey(report))"
                                                     aria-label="Select forum report"
-                                                    @update:checked="(checked) => updateReportSelection(report, checked)"
+                                                    @update:model-value="(checked) => updateReportSelection(report, checked)"
                                                 />
                                             </TableCell>
                                             <TableCell>
@@ -823,7 +823,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                     <select
                         id="moderation-action"
                         v-model="moderationAction"
-                        class="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        class="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     >
                         <option v-for="option in moderationOptions" :key="option.value" :value="option.value">
                             {{ option.label }}

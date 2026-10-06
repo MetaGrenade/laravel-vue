@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { ShieldCheck } from 'lucide-vue-next';
+import { ShieldCheck } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 interface Plan {
@@ -315,13 +315,13 @@ onBeforeUnmount(() => {
                         </div>
                     </section>
 
-                    <section class="grid gap-6 lg:grid-cols-[2fr,1fr]">
+                    <section class="grid gap-6 lg:grid-cols-[2fr_1fr]">
                         <div class="space-y-4">
                             <div class="grid gap-4 md:grid-cols-2">
                                 <Card
                                     v-for="plan in props.plans"
                                     :key="plan.id"
-                                    class="relative border-[#19140015] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-[#3E3E3A] dark:bg-[#161615]"
+                                    class="relative border-[#19140015] bg-white shadow-xs transition hover:-translate-y-0.5 hover:shadow-lg dark:border-[#3E3E3A] dark:bg-[#161615]"
                                 >
                                     <CardHeader>
                                         <CardTitle class="flex items-center justify-between text-[#1b1b18] dark:text-[#EDEDEC]">
@@ -387,7 +387,7 @@ onBeforeUnmount(() => {
                                         <div v-if="!isStripeConfigured" class="rounded-lg border border-dashed border-[#19140035] p-3 text-sm text-[#706f6c] dark:border-[#3E3E3A] dark:text-[#A1A09A]">
                                             Add your Stripe publishable key to enable the payment form.
                                         </div>
-                                        <div v-else id="pricing-payment-element" class="rounded-lg border border-[#19140035] bg-white p-4 shadow-sm dark:border-[#3E3E3A] dark:bg-[#0f0f0d]" />
+                                        <div v-else id="pricing-payment-element" class="rounded-lg border border-[#19140035] bg-white p-4 shadow-xs dark:border-[#3E3E3A] dark:bg-[#0f0f0d]" />
                                         <p v-if="isStripeConfigured && !paymentElementReady" class="text-sm text-[#706f6c] dark:text-[#A1A09A]">Load the payment form to continue.</p>
                                     </div>
                                     <div class="flex flex-col gap-3">

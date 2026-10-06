@@ -1,5 +1,5 @@
 import type { PageProps } from '@inertiajs/core';
-import type { LucideIcon } from 'lucide-vue-next';
+import type { LucideIcon } from '@lucide/vue';
 import type { Config } from 'ziggy-js';
 
 export interface Auth {
@@ -88,7 +88,16 @@ export interface SharedData extends PageProps {
     quote: { message: string; author: string };
     auth: Auth;
     notifications: NotificationBag;
-    ziggy: Config & { location: string };
+    ziggy: Partial<Config> & { location: string };
+    seoHead: string[];
+    flash: {
+        success?: string | null;
+        error?: string | null;
+        warning?: string | null;
+        info?: string | null;
+        plain_text_token?: string | null;
+    };
+    billing: { stripeKey: string | null };
     settings: {
         website_sections: Record<'blog' | 'forum' | 'support' | 'commerce', boolean>;
         oauth_providers: Record<string, boolean>;

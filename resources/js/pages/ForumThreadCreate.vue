@@ -93,7 +93,7 @@ const submit = () => {
                 </div>
             </div>
 
-            <div class="space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm">
+            <div class="space-y-6 rounded-lg border border-border bg-card p-6 shadow-xs">
                 <div class="grid gap-2">
                     <Label for="thread_title">Thread title</Label>
                     <Input

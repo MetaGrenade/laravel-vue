@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import dayjs from 'dayjs';
+import dayjs from '@/lib/dayjs';
 import { computed, reactive } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';

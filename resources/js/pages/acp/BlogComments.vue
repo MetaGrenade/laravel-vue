@@ -22,7 +22,7 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { useDebounceFn } from '@vueuse/core';
-import { Filter, ShieldCheck, ShieldAlert, CheckCircle, XCircle, Trash2, Pencil, Flag } from 'lucide-vue-next';
+import { Filter, ShieldCheck, ShieldAlert, CheckCircle, XCircle, Trash2, Pencil, Flag } from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 
 interface ReportComment {
@@ -303,7 +303,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                     </Badge>
                 </div>
 
-                <div class="rounded-lg border bg-card p-4 shadow-sm">
+                <div class="rounded-lg border bg-card p-4 shadow-xs">
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
                         <div class="md:col-span-2">
                             <label class="mb-1 block text-sm font-medium text-foreground" for="search">Search body</label>
@@ -320,7 +320,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="status"
                                 v-model="filterState.status"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
                                 @change="visitWithFilters"
                             >
                                 <option value="all">All</option>
@@ -335,7 +335,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="reason"
                                 v-model="filterState.reasonCategory"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
                                 @change="visitWithFilters"
                             >
                                 <option value="all">All</option>
@@ -350,7 +350,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="perPage"
                                 v-model="filterState.perPage"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
                                 @change="visitWithFilters"
                             >
                                 <option value="10">10</option>
@@ -365,7 +365,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="sortBy"
                                 v-model="filterState.sort"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
                                 @change="visitWithFilters"
                             >
                                 <option value="newest">Newest reports</option>
@@ -430,18 +430,18 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                     </Button>
                 </div>
 
-                <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+                <div class="overflow-hidden rounded-lg border bg-card shadow-xs">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead class="w-12 text-center">
                                     <Checkbox
-                                        :checked="selectedCommentIds.length === props.reports.data.length && props.reports.data.length > 0"
+                                        :model-value="selectedCommentIds.length === props.reports.data.length && props.reports.data.length > 0"
                                         :indeterminate="
                                             selectedCommentIds.length > 0 &&
                                             selectedCommentIds.length < props.reports.data.length
                                         "
-                                        @update:checked="toggleAllReports"
+                                        @update:model-value="toggleAllReports"
                                     />
                                 </TableHead>
                                 <TableHead>Comment</TableHead>
@@ -455,8 +455,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <TableRow v-for="report in props.reports.data" :key="report.id">
                                 <TableCell class="text-center">
                                     <Checkbox
-                                        :checked="selectedCommentIds.includes(report.id)"
-                                        @update:checked="(checked) => toggleReportSelection(report.id, checked)"
+                                        :model-value="selectedCommentIds.includes(report.id)"
+                                        @update:model-value="(checked) => toggleReportSelection(report.id, checked)"
                                     />
                                 </TableCell>
                                 <TableCell>
@@ -642,7 +642,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                     </div>
                 </div>
 
-                <div v-if="editingComment" class="rounded-lg border bg-card p-4 shadow-sm">
+                <div v-if="editingComment" class="rounded-lg border bg-card p-4 shadow-xs">
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <h2 class="text-xl font-semibold">Editing comment #{{ editingComment.id }}</h2>
@@ -664,7 +664,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="editStatus"
                                     v-model="editForm.status"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
                                 >
                                     <option
                                         v-for="statusOption in props.commentStatuses"
@@ -678,7 +678,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             </div>
 
                             <div class="flex items-center gap-2 pt-6">
-                                <Checkbox id="flagged" v-model:checked="editForm.is_flagged" />
+                                <Checkbox id="flagged" v-model="editForm.is_flagged" />
                                 <label for="flagged" class="text-sm font-medium">Mark as flagged</label>
                             </div>
                         </div>

@@ -1,30 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type HTMLAttributes } from 'vue'
 import { Editor, EditorContent, VueRenderer } from '@tiptap/vue-3'
-import Blockquote from '@tiptap/extension-blockquote'
-import Bold from '@tiptap/extension-bold'
-import BulletList from '@tiptap/extension-bullet-list'
-import Code from '@tiptap/extension-code'
-import CodeBlock from '@tiptap/extension-code-block'
-import Document from '@tiptap/extension-document'
-import Dropcursor from '@tiptap/extension-dropcursor'
-import Gapcursor from '@tiptap/extension-gapcursor'
-import HardBreak from '@tiptap/extension-hard-break'
-import History from '@tiptap/extension-history'
-import HorizontalRule from '@tiptap/extension-horizontal-rule'
-import Italic from '@tiptap/extension-italic'
-import ListItem from '@tiptap/extension-list-item'
-import OrderedList from '@tiptap/extension-ordered-list'
-import Paragraph from '@tiptap/extension-paragraph'
-import Placeholder from '@tiptap/extension-placeholder'
-import Strike from '@tiptap/extension-strike'
-import Text from '@tiptap/extension-text'
-import TextStyle from '@tiptap/extension-text-style'
+import StarterKit from '@tiptap/starter-kit'
+import { TextStyle } from '@tiptap/extension-text-style'
+import { Placeholder } from '@tiptap/extensions'
 import MentionSuggestionList, { type MentionSuggestionItem } from '@/components/editor/MentionSuggestionList.vue'
 import MentionExtension, { type MentionAttributes } from './extensions/mention'
 import { cn } from '@/lib/utils'
 import { useDebounceFn } from '@vueuse/core'
-import { Bold as BoldIcon, Code as CodeIcon, Eye, EyeOff, Italic as ItalicIcon, List, ListOrdered, MessageSquareCode, Quote, Redo, Strikethrough, Undo } from 'lucide-vue-next'
+import { Bold as BoldIcon, Code as CodeIcon, Eye, EyeOff, Italic as ItalicIcon, List, ListOrdered, MessageSquareCode, Quote, Redo, Strikethrough, Undo } from '@lucide/vue'
 import tippy, { type Instance as TippyInstance } from 'tippy.js'
 import type { SuggestionProps } from '@tiptap/suggestion'
 
@@ -304,26 +288,17 @@ const createEditor = (initialContent: string) => {
     content: initialContent,
     autofocus: props.autofocus,
     extensions: [
-      Document,
-      Paragraph,
-      Text,
-      TextStyle,
-      Bold,
-      Italic,
-      Strike,
-      Code,
-      CodeBlock,
-      Blockquote,
-      BulletList,
-      OrderedList,
-      ListItem,
-      HorizontalRule,
-      HardBreak,
-      History,
-      Dropcursor.configure({
-        color: '#6366f1',
+      // Headings, links and underline are not offered in the toolbar, and the
+      // server-side sanitiser strips them from community content.
+      StarterKit.configure({
+        heading: false,
+        link: false,
+        underline: false,
+        dropcursor: {
+          color: '#6366f1',
+        },
       }),
-      Gapcursor,
+      TextStyle,
       createMentionExtension(),
       Placeholder.configure({
         placeholder: props.placeholder,
@@ -331,7 +306,7 @@ const createEditor = (initialContent: string) => {
     ],
     editorProps: {
       attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none px-3 py-2 min-h-[16rem]',
+        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-hidden px-3 py-2 min-h-64',
       },
     },
     onUpdate: ({ editor: current }) => {
@@ -424,7 +399,7 @@ const redo = () => editor.value?.chain().focus().redo().run()
 
 const toolbarButtonClass = (active: boolean) =>
   cn(
-    'inline-flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
+    'inline-flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors hover:bg-muted focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
     active ? 'bg-muted text-foreground shadow-inner' : 'text-muted-foreground',
   )
 
@@ -438,7 +413,7 @@ watch(
     const current = editor.value.getHTML()
 
     if (value !== current && !(value === '' && current === '<p></p>')) {
-      editor.value.commands.setContent(value || '<p></p>', false)
+      editor.value.commands.setContent(value || '<p></p>', { emitUpdate: false })
     }
   },
 )
@@ -539,7 +514,7 @@ onBeforeUnmount(() => {
 
       <div class="bg-background">
         <EditorContent v-if="!isPreviewing" :editor="editor" />
-        <div v-else class="prose prose-sm dark:prose-invert max-w-none px-3 py-2 min-h-[16rem]">
+        <div v-else class="prose prose-sm dark:prose-invert max-w-none px-3 py-2 min-h-64">
           <div
             v-if="
               (editor && editor.getText().trim() !== '')
@@ -573,7 +548,7 @@ onBeforeUnmount(() => {
 }
 
 :deep(.ProseMirror p.is-editor-empty:first-child::before) {
-  color: theme('colors.muted.DEFAULT');
+  color: var(--color-muted-foreground);
   content: attr(data-placeholder);
   float: left;
   height: 0;

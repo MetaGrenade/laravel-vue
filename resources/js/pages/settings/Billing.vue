@@ -391,7 +391,7 @@ onBeforeUnmount(() => {
                         :key="plan.id"
                         :class="[
                             'border transition',
-                            plan.id === selectedPlanId ? 'border-primary shadow' : 'border-border'
+                            plan.id === selectedPlanId ? 'border-primary shadow-sm' : 'border-border'
                         ]"
                     >
                         <CardHeader>
@@ -431,7 +431,7 @@ onBeforeUnmount(() => {
 
             <Separator />
 
-            <section class="grid gap-6 md:grid-cols-[2fr,1fr]">
+            <section class="grid gap-6 md:grid-cols-[2fr_1fr]">
                 <div class="space-y-4">
                     <HeadingSmall
                         title="Payment details"
@@ -449,7 +449,7 @@ onBeforeUnmount(() => {
                                 <label class="text-sm font-medium" for="payment-element">Payment method</label>
                                 <div
                                     id="payment-element"
-                                    class="rounded-lg border border-border bg-card p-4 shadow-sm"
+                                    class="rounded-lg border border-border bg-card p-4 shadow-xs"
                                 />
                                 <p v-if="!paymentElementReady" class="text-sm text-muted-foreground">
                                     Loading the secure payment form…
@@ -503,7 +503,7 @@ onBeforeUnmount(() => {
                         title="Current status"
                         description="Manage the lifecycle of your subscription."
                     />
-                    <div class="rounded-lg border border-border bg-card p-4 shadow-sm">
+                    <div class="rounded-lg border border-border bg-card p-4 shadow-xs">
                         <p class="text-sm">
                             Status:
                             <span

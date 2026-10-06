@@ -23,7 +23,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Ellipsis, TicketX, LifeBuoy, Eye, Paperclip, ChevronDown, Check } from 'lucide-vue-next';
+import { Ellipsis, TicketX, LifeBuoy, Eye, Paperclip, ChevronDown, Check } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import {
     Pagination,
@@ -147,40 +147,7 @@ type FlashMessages = {
 
 const page = usePage<SharedData & { flash?: FlashMessages }>();
 
-const flashSuccess = computed(() => page.props.flash?.success ?? '');
-const flashError = computed(() => page.props.flash?.error ?? '');
-const flashInfo = computed(() => page.props.flash?.info ?? '');
 const isAuthenticated = computed(() => Boolean(page.props.auth?.user));
-
-watch(
-    flashSuccess,
-    (message) => {
-        if (message) {
-            toast.success(message);
-        }
-    },
-    { immediate: true },
-);
-
-watch(
-    flashError,
-    (message) => {
-        if (message) {
-            toast.error(message);
-        }
-    },
-    { immediate: true },
-);
-
-watch(
-    flashInfo,
-    (message) => {
-        if (message) {
-            toast.info(message);
-        }
-    },
-    { immediate: true },
-);
 
 const readSearchParam = (location: string, key: string): string => {
     try {
@@ -804,7 +771,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             />
                             <select
                                 v-model="ticketCategoryFilter"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:w-60"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:w-60"
                                 :disabled="!props.canSubmitTicket"
                             >
                                 <option
@@ -819,7 +786,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                 <DropdownMenuTrigger as-child>
                                     <Button
                                         variant="outline"
-                                        class="w-full justify-between gap-2 md:w-auto md:min-w-[11rem]"
+                                        class="w-full justify-between gap-2 md:w-auto md:min-w-44"
                                         :disabled="!props.canSubmitTicket"
                                     >
                                         <span>Status: {{ ticketStatusLabel }}</span>
@@ -850,7 +817,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                 <DropdownMenuTrigger as-child>
                                     <Button
                                         variant="outline"
-                                        class="w-full justify-between gap-2 md:w-auto md:min-w-[11rem]"
+                                        class="w-full justify-between gap-2 md:w-auto md:min-w-44"
                                         :disabled="!props.canSubmitTicket"
                                     >
                                         <span>Priority: {{ ticketPriorityLabel }}</span>
@@ -941,7 +908,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                             </Pagination>
                         </div>
                         <!-- Tickets Table -->
-                        <div class="overflow-x-auto rounded-xl border p-4 shadow-sm">
+                        <div class="overflow-x-auto rounded-xl border p-4 shadow-xs">
                             <Table>
                                 <TableHeader class="bg-neutral-900">
                                     <TableRow>
@@ -1100,7 +1067,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                         </div>
 
                         <!-- New Ticket Submission Form -->
-                        <div class="rounded-xl border p-6 shadow">
+                        <div class="rounded-xl border p-6 shadow-sm">
                             <h2 class="mb-4 text-xl font-bold" id="create_ticket">Create New Ticket</h2>
                             <form class="flex flex-col gap-4" @submit.prevent="submitTicket">
                                 <div class="space-y-2">
@@ -1120,7 +1087,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <select
                                         id="ticket-category"
                                         v-model="form.support_ticket_category_id"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                         :disabled="form.processing"
                                     >
                                         <option :value="null">Uncategorised</option>
@@ -1139,7 +1106,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <select
                                         id="ticket-priority"
                                         v-model="form.priority"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
                                         :disabled="form.processing"
                                         required
                                     >
@@ -1182,7 +1149,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                             class="flex items-center gap-2 rounded-md border border-dashed border-muted bg-muted/40 px-2 py-1"
                                         >
                                             <Paperclip class="h-3 w-3" />
-                                            <span class="max-w-[10rem] truncate">{{ file.name }}</span>
+                                            <span class="max-w-40 truncate">{{ file.name }}</span>
                                             <span class="text-muted-foreground">{{ formatFileSize(file.size) }}</span>
                                         </li>
                                     </ul>
@@ -1201,7 +1168,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                         </div>
                     </template>
                     <template v-else>
-                        <div class="rounded-xl border p-6 shadow space-y-4 text-center">
+                        <div class="rounded-xl border p-6 shadow-sm space-y-4 text-center">
                             <p class="text-lg font-semibold">Need personalised help?</p>
                             <p class="text-sm text-muted-foreground">
                                 Sign in to create support requests and review your ticket history.
@@ -1298,7 +1265,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                         :default-open="index === 0"
                                     >
                                         <template #default="{ open }">
-                                            <div class="overflow-hidden rounded-lg border bg-background shadow-sm">
+                                            <div class="overflow-hidden rounded-lg border bg-background shadow-xs">
                                                 <CollapsibleTrigger as-child>
                                                     <button
                                                         type="button"
@@ -1306,7 +1273,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                     >
                                                         <span>{{ faq.question }}</span>
                                                         <ChevronDown
-                                                            class="h-4 w-4 flex-shrink-0 transition-transform duration-200"
+                                                            class="h-4 w-4 shrink-0 transition-transform duration-200"
                                                             :class="open ? 'rotate-180' : ''"
                                                         />
                                                     </button>

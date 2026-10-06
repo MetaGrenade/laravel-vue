@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useUserTimezone } from '@/composables/useUserTimezone';
-import { Pencil, PlusCircle, Trash2, Users } from 'lucide-vue-next';
+import { Pencil, PlusCircle, Trash2, Users } from '@lucide/vue';
 
 interface SupportTeamMember {
     id: number;
@@ -296,7 +296,7 @@ const submitMembership = () => {
                                     v-model="createForm.member_ids"
                                     :disabled="createForm.processing"
                                     multiple
-                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
                                         {{ agent.nickname }} ({{ agent.email }})
@@ -482,7 +482,7 @@ const submitMembership = () => {
                                     v-model="editForm.member_ids"
                                     :disabled="editForm.processing"
                                     multiple
-                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
                                         {{ agent.nickname }} ({{ agent.email }})
@@ -523,7 +523,7 @@ const submitMembership = () => {
                                     v-model="membershipForm.team_ids"
                                     multiple
                                     :disabled="membershipForm.processing"
-                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option v-for="team in props.teams" :key="team.id" :value="team.id">
                                         {{ team.name }}

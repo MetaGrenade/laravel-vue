@@ -5,7 +5,7 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import Button from '@/components/ui/button/Button.vue';
-import { ArrowLeft } from 'lucide-vue-next';
+import { ArrowLeft } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
 interface TokenLogDetail {
@@ -77,7 +77,7 @@ function formatStructuredData(data: Record<string, unknown> | unknown[] | null):
                 </div>
 
                 <!-- Log Detail Card -->
-                <div class="rounded-xl border p-6 shadow-sm">
+                <div class="rounded-xl border p-6 shadow-xs">
                     <h2 class="mb-4 text-xl font-semibold">Log Information</h2>
                     <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
@@ -119,11 +119,11 @@ function formatStructuredData(data: Record<string, unknown> | unknown[] | null):
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Request Payload</dt>
-                            <dd class="text-sm font-mono whitespace-pre-wrap break-words bg-muted/40 p-3 rounded">{{ formattedRequestPayload }}</dd>
+                            <dd class="text-sm font-mono whitespace-pre-wrap wrap-break-word bg-muted/40 p-3 rounded">{{ formattedRequestPayload }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Response Summary</dt>
-                            <dd class="text-sm font-mono whitespace-pre-wrap break-words bg-muted/40 p-3 rounded">{{ formattedResponseSummary }}</dd>
+                            <dd class="text-sm font-mono whitespace-pre-wrap wrap-break-word bg-muted/40 p-3 rounded">{{ formattedResponseSummary }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">User Agent</dt>

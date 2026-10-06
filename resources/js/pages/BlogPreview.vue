@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CalendarClock } from 'lucide-vue-next';
+import { CalendarClock } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
 interface BlogPreviewPayload {
@@ -69,7 +69,7 @@ const tags = computed(() => blog.value.tags ?? []);
                 </AlertDescription>
             </Alert>
 
-            <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
+            <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow-sm">
                 <div v-if="coverImage" class="mb-6 overflow-hidden rounded-lg">
                     <img :src="coverImage" alt="Blog cover" class="h-64 w-full object-cover" />
                 </div>

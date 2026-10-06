@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useUserTimezone } from '@/composables/useUserTimezone';
-import { LifeBuoy, Pencil, PlusCircle, Trash2 } from 'lucide-vue-next';
+import { LifeBuoy, Pencil, PlusCircle, Trash2 } from '@lucide/vue';
 
 const props = defineProps<{
     categories: Array<{

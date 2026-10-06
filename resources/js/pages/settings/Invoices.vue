@@ -43,7 +43,7 @@ const formatCurrency = (amount: number, currency: string) => {
                     description="Download PDF receipts for your subscription and billing history."
                 />
 
-                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
                     <Table>
                         <TableHeader>
                             <TableRow>

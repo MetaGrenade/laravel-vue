@@ -1,14 +1,7 @@
 // resources/js/composables/useUserTimezone.ts
 import { ref, watch } from 'vue'
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
-import timezone from 'dayjs/plugin/timezone'
-import relativeTime from 'dayjs/plugin/relativeTime'
+import dayjs from '@/lib/dayjs';
 
-// Extend dayjs with the plugins
-dayjs.extend(utc)
-dayjs.extend(timezone)
-dayjs.extend(relativeTime)
 
 export function useUserTimezone(fallbackZone?: string) {
     // Guess from browser; if that returns empty, fall back:

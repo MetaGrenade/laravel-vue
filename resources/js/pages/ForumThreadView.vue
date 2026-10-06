@@ -49,10 +49,10 @@ import {
     BellOff,
     Quote,
     RotateCcw,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
-import { getEcho, leaveEchoChannel } from '@/lib/echo';
+import { loadEcho, leaveEchoChannel } from '@/lib/echo';
 import type { PresenceChannel } from 'laravel-echo';
 
 interface BoardSummary {
@@ -251,15 +251,19 @@ const leaveThreadPresence = (channelName: string | null | undefined = activePres
     }
 };
 
-const joinThreadPresence = () => {
-    const echo = getEcho();
+const joinThreadPresence = async () => {
+    if (!authUser.value) {
+        leaveThreadPresence();
+        return;
+    }
+
+    const echo = await loadEcho();
+    const channelName = threadPresenceChannelName.value;
 
     if (!echo || !authUser.value) {
         leaveThreadPresence();
         return;
     }
-
-    const channelName = threadPresenceChannelName.value;
 
     if (presenceChannel && activePresenceChannelName === channelName) {
         return;
@@ -331,7 +335,7 @@ watch(
     () => authUser.value?.id,
     () => {
         leaveThreadPresence();
-        joinThreadPresence();
+        void joinThreadPresence();
     },
     { immediate: true },
 );
@@ -350,12 +354,12 @@ watch(
             typeof previousThreadId === 'number' ? `forum.threads.${previousThreadId}` : activePresenceChannelName;
 
         leaveThreadPresence(previousChannelName);
-        joinThreadPresence();
+        void joinThreadPresence();
     },
 );
 
 onMounted(() => {
-    joinThreadPresence();
+    void joinThreadPresence();
 });
 
 onBeforeUnmount(() => {
@@ -757,9 +761,9 @@ const unsubscribeFromThread = () => {
     router.delete(
         route('forum.threads.unsubscribe', { board: props.board.slug, thread: props.thread.slug }),
         {
-            page: postsMeta.value.current_page,
-        },
-        {
+            data: {
+                page: postsMeta.value.current_page,
+            },
             preserveScroll: true,
             preserveState: false,
             replace: true,
@@ -920,7 +924,7 @@ const confirmDeleteThread = () => {
 
     const url = route('forum.threads.destroy', { board: props.board.slug, thread: props.thread.slug });
 
-    router.delete(url, {}, {
+    router.delete(url, {
         preserveScroll: false,
         preserveState: false,
         onFinish: () => {
@@ -957,7 +961,7 @@ const performPostAction = (
     } as const;
 
     if (method === 'delete') {
-        router.delete(url, data, options);
+        router.delete(url, { ...options, data });
     } else if (method === 'put') {
         router.put(url, data, options);
     } else {
@@ -1375,7 +1379,7 @@ const submitReply = () => {
                         <select
                             id="thread_report_reason"
                             v-model="threadReportForm.reason_category"
-                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-sm focus:outline-none focus:ring-2"
+                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-xs focus:outline-hidden focus:ring-2"
                             :class="threadReportForm.errors.reason_category
                                 ? 'border-destructive focus:ring-destructive/40'
                                 : 'focus:ring-primary/40'"
@@ -1472,7 +1476,7 @@ const submitReply = () => {
                         <select
                             id="post_report_reason"
                             v-model="postReportForm.reason_category"
-                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-sm focus:outline-none focus:ring-2"
+                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-xs focus:outline-hidden focus:ring-2"
                             :class="postReportForm.errors.reason_category
                                 ? 'border-destructive focus:ring-destructive/40'
                                 : 'focus:ring-primary/40'"
@@ -1800,10 +1804,10 @@ const submitReply = () => {
                     v-for="post in props.posts.data"
                     :key="post.id"
                     :id="`post-${post.id}`"
-                    class="flex flex-col md:flex-row gap-4 rounded-xl border p-4 shadow-sm"
+                    class="flex flex-col md:flex-row gap-4 rounded-xl border p-4 shadow-xs"
                 >
                     <!-- Left Side: User Info -->
-                    <div class="flex-shrink-0 w-full md:w-1/5 border-r pr-4">
+                    <div class="shrink-0 w-full md:w-1/5 border-r pr-4">
                         <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
                             <AvatarImage
                                 v-if="post.author.avatar_url"
@@ -2008,7 +2012,7 @@ const submitReply = () => {
             </Alert>
 
             <!-- Reply Input Section -->
-            <div v-if="showReplyForm" class="mt-8 rounded-xl border p-6 shadow">
+            <div v-if="showReplyForm" class="mt-8 rounded-xl border p-6 shadow-sm">
                 <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
                 <form class="flex flex-col gap-4" @submit.prevent="submitReply">
                     <RichTextEditor

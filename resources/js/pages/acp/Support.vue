@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import type { CheckboxRootProps } from 'radix-vue';
+import type { CheckboxRootProps } from 'reka-ui';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -42,7 +42,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import {
     XCircle, HelpCircle, Ticket, TicketX, MessageSquare, CheckCircle, Ellipsis, UserPlus, SquareChevronUp,
     Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff, X, ThumbsUp, ThumbsDown, Star,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
@@ -449,13 +449,13 @@ const assigneeOptions = computed(() => {
 });
 
 const selectFilterClass =
-    'h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
+    'h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
 
 const ticketsMetaSource = computed(() => props.tickets.meta ?? null);
 const faqsMetaSource = computed(() => props.faqs.meta ?? null);
 const ticketItems = computed(() => props.tickets.data ?? []);
 
-type CheckboxState = CheckboxRootProps['checked'];
+type CheckboxState = CheckboxRootProps['modelValue'];
 
 const selectedTicketIds = ref<number[]>([]);
 
@@ -909,10 +909,6 @@ const reorderFaq = (faq: FaqItem, direction: 'up' | 'down') => {
         { direction },
         {
             ...quickActionVisitOptions,
-            onSuccess: () => {
-                const action = direction === 'up' ? 'up' : 'down';
-                toast.success(`FAQ order moved ${action}.`);
-            },
             onError: (errors) => {
                 const message =
                     typeof errors.direction === 'string'
@@ -931,9 +927,6 @@ const publishFaq = (faq: FaqItem) => {
         {},
         {
             ...quickActionVisitOptions,
-            onSuccess: () => {
-                toast.success('FAQ published.');
-            },
             onError: (errors) => {
                 const message =
                     typeof errors.published === 'string'
@@ -952,9 +945,6 @@ const unpublishFaq = (faq: FaqItem) => {
         {},
         {
             ...quickActionVisitOptions,
-            onSuccess: () => {
-                toast.success('FAQ unpublished.');
-            },
             onError: (errors) => {
                 const message =
                     typeof errors.published === 'string'
@@ -1326,10 +1316,10 @@ const unpublishFaq = (faq: FaqItem) => {
                                         <TableRow>
                                             <TableHead class="w-12">
                                                 <Checkbox
-                                                    :checked="ticketHeaderCheckboxState"
+                                                    :model-value="ticketHeaderCheckboxState"
                                                     :disabled="ticketItems.length === 0"
                                                     aria-label="Select all support tickets"
-                                                    @update:checked="toggleAllTickets"
+                                                    @update:model-value="toggleAllTickets"
                                                 />
                                             </TableHead>
                                             <TableHead>ID</TableHead>
@@ -1353,9 +1343,9 @@ const unpublishFaq = (faq: FaqItem) => {
                                         >
                                             <TableCell class="align-middle">
                                                 <Checkbox
-                                                    :checked="selectedTicketIds.includes(t.id)"
+                                                    :model-value="selectedTicketIds.includes(t.id)"
                                                     aria-label="Select support ticket"
-                                                    @update:checked="(checked) => updateTicketSelection(t.id, checked)"
+                                                    @update:model-value="(checked) => updateTicketSelection(t.id, checked)"
                                                 />
                                             </TableCell>
                                             <TableCell>{{ t.id }}</TableCell>
@@ -1732,7 +1722,7 @@ const unpublishFaq = (faq: FaqItem) => {
                             <select
                                 id="assign-ticket-agent"
                                 v-model="assignForm.assigned_to"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                             >
                                 <option :value="null">Unassigned</option>
                                 <option v-for="agent in props.assignableAgents" :key="agent.id" :value="agent.id">
@@ -1777,7 +1767,7 @@ const unpublishFaq = (faq: FaqItem) => {
                     <select
                         id="priority-dialog-select"
                         v-model="priorityDialogNextPriority"
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     >
                         <option v-for="priority in priorityLevels" :key="priority" :value="priority">
                             {{ formatPriority(priority) }}

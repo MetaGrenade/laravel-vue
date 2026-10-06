@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 
 const useRecovery = ref(false);
 

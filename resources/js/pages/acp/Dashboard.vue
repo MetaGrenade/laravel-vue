@@ -5,7 +5,7 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { Users, UserPlus, BookOpen, LifeBuoy } from 'lucide-vue-next';
+import { Users, UserPlus, BookOpen, LifeBuoy } from '@lucide/vue';
 import { LineChart } from '@/components/ui/chart-line';
 
 type MetricGroup = {

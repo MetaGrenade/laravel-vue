@@ -10,7 +10,7 @@ import Button from '@/components/ui/button/Button.vue';
 import Label from '@/components/ui/label/Label.vue';
 import { useDebounceFn } from '@vueuse/core';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import type { CheckboxRootProps } from 'radix-vue';
+import type { CheckboxRootProps } from 'reka-ui';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -42,7 +42,7 @@ import {
     Pencil,
     Trash2,
     MailCheck,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
@@ -372,7 +372,7 @@ const stats = [
 
 const userItems = computed(() => props.users.data ?? []);
 
-type CheckboxState = CheckboxRootProps['checked'];
+type CheckboxState = CheckboxRootProps['modelValue'];
 type BulkAction = 'verify' | 'ban' | 'unban' | 'delete';
 
 const selectedUserIds = ref<number[]>([]);
@@ -504,7 +504,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                 <select
                                     id="filter-role"
                                     v-model="roleFilter"
-                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 min-w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option value="all">All roles</option>
                                     <option v-for="role in props.availableRoles" :key="role" :value="role">
@@ -518,7 +518,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                 <select
                                     id="filter-verification"
                                     v-model="verificationFilter"
-                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 min-w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option value="all">All users</option>
                                     <option value="verified">Verified</option>
@@ -531,7 +531,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                 <select
                                     id="filter-ban"
                                     v-model="bannedFilter"
-                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 min-w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option value="all">All users</option>
                                     <option value="banned">Banned</option>
@@ -544,7 +544,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                 <select
                                     id="filter-activity"
                                     v-model="activityFilter"
-                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 min-w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 >
                                     <option value="all">Any time</option>
                                     <option value="5">Active in last 5 minutes</option>
@@ -616,10 +616,10 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                 <TableRow>
                                     <TableHead class="w-12">
                                         <Checkbox
-                                            :checked="userHeaderCheckboxState"
+                                            :model-value="userHeaderCheckboxState"
                                             :disabled="userItems.length === 0"
                                             aria-label="Select all users"
-                                            @update:checked="toggleAllUsers"
+                                            @update:model-value="toggleAllUsers"
                                         />
                                     </TableHead>
                                     <TableHead>ID</TableHead>
@@ -639,9 +639,9 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                 >
                                     <TableCell class="align-middle">
                                         <Checkbox
-                                            :checked="selectedUserIds.includes(user.id)"
+                                            :model-value="selectedUserIds.includes(user.id)"
                                             aria-label="Select user"
-                                            @update:checked="(checked) => updateUserSelection(user.id, checked)"
+                                            @update:model-value="(checked) => updateUserSelection(user.id, checked)"
                                         />
                                     </TableCell>
                                     <TableCell>{{ user.id }}</TableCell>

@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
 import BlogComments from '@/components/blog/BlogComments.vue';
-import { Share2 } from 'lucide-vue-next';
+import { Share2 } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'vue-sonner';
@@ -314,7 +314,6 @@ const recommendations = computed<RecommendedPost[]>(() => blog.value.recommendat
 const coverImage = computed(
     () => blog.value.cover_image ?? '/images/default-cover.jpg',
 );
-const metaDescription = computed(() => blog.value.excerpt ?? '');
 
 const authorName = computed(() => author.value?.nickname ?? 'Unknown author');
 
@@ -382,20 +381,8 @@ const buildAbsoluteUrl = (path: string) => {
 };
 
 const shareUrl = computed(() => buildAbsoluteUrl(route('blogs.view', { slug: blog.value.slug })));
-const canonicalUrl = computed(() => blog.value.canonical_url ?? shareUrl.value);
 const encodedShareUrl = computed(() => encodeURIComponent(shareUrl.value));
 const encodedTitle = computed(() => encodeURIComponent(blog.value.title));
-const metaImage = computed(() => {
-    const image = blog.value.cover_image;
-
-    if (!image) {
-        return null;
-    }
-
-    return buildAbsoluteUrl(image);
-});
-const twitterCardType = computed(() => (metaImage.value ? 'summary_large_image' : 'summary'));
-const metaAuthor = computed(() => authorName.value);
 
 const shareLinks = computed(() => ({
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedShareUrl.value}`,
@@ -406,24 +393,11 @@ const shareLinks = computed(() => ({
 
 <template>
     <AppLayout>
-        <Head :title="blog.title">
-            <meta v-if="metaDescription" name="description" :content="metaDescription" />
-            <link rel="canonical" :href="canonicalUrl" />
-            <meta property="og:type" content="article" />
-            <meta property="og:title" :content="blog.title" />
-            <meta v-if="metaDescription" property="og:description" :content="metaDescription" />
-            <meta property="og:url" :content="canonicalUrl" />
-            <meta v-if="metaImage" property="og:image" :content="metaImage" />
-            <meta property="article:author" :content="metaAuthor" />
-            <meta name="twitter:card" :content="twitterCardType" />
-            <meta name="twitter:title" :content="blog.title" />
-            <meta v-if="metaDescription" name="twitter:description" :content="metaDescription" />
-            <meta v-if="metaImage" name="twitter:image" :content="metaImage" />
-            <meta name="twitter:creator" :content="metaAuthor" />
-        </Head>
+        <!-- Description, canonical, social and structured data tags are set server-side (BlogController). -->
+        <Head :title="blog.title" />
         <div class="container mx-auto px-4 py-8">
             <!-- Blog Post Content -->
-            <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
+            <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow-sm">
                 <div v-if="coverImage" class="mb-6 overflow-hidden rounded-lg">
                     <img :src="coverImage" alt="Blog cover" class="w-full h-64 object-cover" />
                 </div>
@@ -460,7 +434,7 @@ const shareLinks = computed(() => ({
 
             <div
                 v-if="showAuthorCard"
-                class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow"
+                class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow-sm"
             >
                 <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
                     <Avatar class="h-20 w-20">
@@ -545,7 +519,7 @@ const shareLinks = computed(() => ({
             <!-- Recommendations Section -->
             <div
                 v-if="recommendations.length"
-                class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow"
+                class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow-sm"
             >
                 <h2 class="mb-4 text-2xl font-semibold">Recommended articles</h2>
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -584,7 +558,7 @@ const shareLinks = computed(() => ({
                 </div>
             </div>
 
-            <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
+            <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow-sm">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="space-y-1">
                         <h2 class="text-xl font-semibold text-foreground">Stay in the loop</h2>

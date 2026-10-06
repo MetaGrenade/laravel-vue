@@ -79,7 +79,7 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div class="flex flex-col gap-6">
                         <Card>
                             <CardHeader class="relative overflow-hidden">
@@ -124,8 +124,8 @@ const handleSubmit = () => {
                                     >
                                         <Checkbox
                                             :id="`permission-${permission.id}`"
-                                            :checked="form.permissions.includes(permission.name)"
-                                            @update:checked="value => togglePermission(permission.name, value)"
+                                            :model-value="form.permissions.includes(permission.name)"
+                                            @update:model-value="value => togglePermission(permission.name, value)"
                                         />
                                         <div class="grid gap-1">
                                             <Label :for="`permission-${permission.id}`" class="font-medium leading-none">

@@ -329,7 +329,7 @@ const hasAnyResults = computed(() => groups.value.some((group) => group.items.le
                 <label class="font-medium" for="search-per-page">Results per page</label>
                 <select
                     id="search-per-page"
-                    class="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    class="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-ring"
                     :value="perPage"
                     @change="onPerPageChange"
                 >
@@ -364,7 +364,7 @@ const hasAnyResults = computed(() => groups.value.some((group) => group.items.le
                             <li v-for="item in group.items" :key="`${group.key}-${item.id}`">
                                 <Link
                                     :href="item.url"
-                                    class="block px-4 py-3 transition hover:bg-muted focus:bg-muted focus:outline-none"
+                                    class="block px-4 py-3 transition hover:bg-muted focus:bg-muted focus:outline-hidden"
                                 >
                                     <h3
                                         v-if="item.highlight?.title"

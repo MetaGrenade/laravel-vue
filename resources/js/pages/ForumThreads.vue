@@ -41,7 +41,7 @@ import {
     LockOpen,
     Flag,
     CheckCircle2,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 interface BoardSummary {
     id: number;
     title: string;
@@ -310,8 +310,9 @@ const performThreadAction = (
     } as const;
 
     if (method === 'delete') {
-        router.delete(url, payload, {
+        router.delete(url, {
             ...options,
+            data: payload,
         });
     } else if (method === 'post') {
         router.post(url, payload, {
@@ -530,7 +531,7 @@ const markBoardAsRead = () => {
                         <select
                             id="board_thread_report_reason"
                             v-model="threadReportForm.reason_category"
-                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-sm focus:outline-none focus:ring-2"
+                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-xs focus:outline-hidden focus:ring-2"
                             :class="threadReportForm.errors.reason_category
                                 ? 'border-destructive focus:ring-destructive/40'
                                 : 'focus:ring-primary/40'"

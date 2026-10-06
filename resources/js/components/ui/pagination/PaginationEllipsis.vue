@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils'
-import { MoreHorizontal } from 'lucide-vue-next'
+import { MoreHorizontal } from '@lucide/vue'
 import { PaginationEllipsis, type PaginationEllipsisProps } from 'reka-ui'
 import { computed, type HTMLAttributes } from 'vue'
 

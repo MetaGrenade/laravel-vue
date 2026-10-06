@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { Layers, Pencil, PlusCircle, Trash2 } from 'lucide-vue-next';
+import { Layers, Pencil, PlusCircle, Trash2 } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
 interface PlanSummary {

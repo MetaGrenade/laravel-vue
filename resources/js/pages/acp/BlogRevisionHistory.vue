@@ -5,7 +5,7 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
 import { type BreadcrumbItem } from '@/types';
-import { ArrowLeft, RotateCcw } from 'lucide-vue-next';
+import { ArrowLeft, RotateCcw } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useConfirmDialog } from '@/composables/useConfirmDialog';
@@ -230,9 +230,9 @@ const requestRestore = (revisionId: number) => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div class="space-y-6">
-                        <div class="rounded-xl border p-6 shadow-sm">
+                        <div class="rounded-xl border p-6 shadow-xs">
                             <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                                 <div>
                                     <h2 class="text-xl font-semibold">Current version</h2>
@@ -269,7 +269,7 @@ const requestRestore = (revisionId: number) => {
                                         <li
                                             v-for="category in blog.categories"
                                             :key="category.id"
-                                            class="rounded-full bg-background px-3 py-1 shadow"
+                                            class="rounded-full bg-background px-3 py-1 shadow-sm"
                                         >
                                             {{ category.name }}
                                         </li>
@@ -282,28 +282,28 @@ const requestRestore = (revisionId: number) => {
                                         <li
                                             v-for="tag in blog.tags"
                                             :key="tag.id"
-                                            class="rounded-full bg-background px-3 py-1 shadow"
+                                            class="rounded-full bg-background px-3 py-1 shadow-sm"
                                         >
                                             {{ tag.name }}
                                         </li>
                                     </ul>
                                 </div>
 
-                                <div class="rounded-lg border bg-background p-4 shadow-sm">
+                                <div class="rounded-lg border bg-background p-4 shadow-xs">
                                     <h3 class="font-semibold">Excerpt</h3>
                                     <p class="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
                                         {{ blog.excerpt ?? '—' }}
                                     </p>
                                 </div>
 
-                                <div class="rounded-lg border bg-background p-4 shadow-sm">
+                                <div class="rounded-lg border bg-background p-4 shadow-xs">
                                     <h3 class="font-semibold">Body</h3>
                                     <div class="prose prose-sm mt-4 max-w-none" v-html="blog.body" />
                                 </div>
                             </div>
                         </div>
 
-                        <div class="rounded-xl border p-6 shadow-sm">
+                        <div class="rounded-xl border p-6 shadow-xs">
                             <div class="flex items-center justify-between gap-4">
                                 <h2 class="text-xl font-semibold">Revision history</h2>
                                 <span class="text-sm text-muted-foreground">
@@ -323,7 +323,7 @@ const requestRestore = (revisionId: number) => {
                                 <div
                                     v-for="revision in revisions"
                                     :key="revision.id"
-                                    class="rounded-lg border p-4 shadow-sm"
+                                    class="rounded-lg border p-4 shadow-xs"
                                 >
                                     <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                         <div>
@@ -390,7 +390,7 @@ const requestRestore = (revisionId: number) => {
                                                     <li
                                                         v-for="category in revision.categories"
                                                         :key="category.id"
-                                                        class="rounded-full bg-background px-3 py-1 shadow"
+                                                        class="rounded-full bg-background px-3 py-1 shadow-sm"
                                                     >
                                                         {{ category.name }}
                                                     </li>
@@ -403,7 +403,7 @@ const requestRestore = (revisionId: number) => {
                                                     <li
                                                         v-for="tag in revision.tags"
                                                         :key="tag.id"
-                                                        class="rounded-full bg-background px-3 py-1 shadow"
+                                                        class="rounded-full bg-background px-3 py-1 shadow-sm"
                                                     >
                                                         {{ tag.name }}
                                                     </li>
@@ -411,13 +411,13 @@ const requestRestore = (revisionId: number) => {
                                             </div>
                                         </div>
                                         <div class="space-y-3">
-                                            <div class="rounded-lg border bg-background p-3 shadow-sm">
+                                            <div class="rounded-lg border bg-background p-3 shadow-xs">
                                                 <h4 class="font-semibold">Excerpt</h4>
                                                 <p class="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
                                                     {{ revision.excerpt ?? '—' }}
                                                 </p>
                                             </div>
-                                            <div class="rounded-lg border bg-background p-3 shadow-sm">
+                                            <div class="rounded-lg border bg-background p-3 shadow-xs">
                                                 <h4 class="font-semibold">Body</h4>
                                                 <div class="prose prose-sm mt-3 max-w-none" v-html="revision.body" />
                                             </div>
@@ -429,7 +429,7 @@ const requestRestore = (revisionId: number) => {
                     </div>
 
                     <aside class="space-y-4">
-                        <div v-if="blog.cover_image_url" class="overflow-hidden rounded-lg border shadow-sm">
+                        <div v-if="blog.cover_image_url" class="overflow-hidden rounded-lg border shadow-xs">
                             <img :src="blog.cover_image_url" alt="Blog cover" class="h-full w-full object-cover" />
                         </div>
                         <div class="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">

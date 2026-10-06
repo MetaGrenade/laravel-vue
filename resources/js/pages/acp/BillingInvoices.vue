@@ -134,7 +134,7 @@ const formatCurrency = (amount: number, currency: string) => {
                     description="Monitor webhook-synced invoice activity across the community."
                 />
 
-                <div class="rounded-lg border border-border bg-card p-4 shadow-sm space-y-4">
+                <div class="rounded-lg border border-border bg-card p-4 shadow-xs space-y-4">
                     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <div class="space-y-2">
                             <Label for="invoice-search">Search</Label>
@@ -150,7 +150,7 @@ const formatCurrency = (amount: number, currency: string) => {
                             <select
                                 id="invoice-status"
                                 v-model="statusFilter"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                             >
                                 <option value="">All statuses</option>
                                 <option v-for="status in props.statusOptions" :key="status" :value="status">
@@ -176,7 +176,7 @@ const formatCurrency = (amount: number, currency: string) => {
                     </div>
                 </div>
 
-                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -232,7 +232,7 @@ const formatCurrency = (amount: number, currency: string) => {
                                 <PaginationEllipsis />
                             </PaginationListItem>
                             <PaginationListItem>
-                                <Button variant="outline" class="h-8 min-w-[2rem] px-3" disabled>{{ page }}</Button>
+                                <Button variant="outline" class="h-8 min-w-8 px-3" disabled>{{ page }}</Button>
                             </PaginationListItem>
                             <PaginationListItem v-if="page < pageCount - 1">
                                 <PaginationEllipsis />

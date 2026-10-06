@@ -14,7 +14,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, LoaderCircle } from 'lucide-vue-next';
+import { ChevronDown, LoaderCircle } from '@lucide/vue';
 
 interface ActiveSession {
     id: string;
@@ -526,7 +526,7 @@ watch(hasRecoveryCodes, (value) => {
                                                             v-for="code in recoveryCodes"
                                                             :key="code"
                                                             tabindex="0"
-                                                            class="group relative cursor-pointer select-text rounded border border-dashed border-muted/60 bg-muted/40 px-3 py-2 font-mono text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                                            class="group relative cursor-pointer select-text rounded border border-dashed border-muted/60 bg-muted/40 px-3 py-2 font-mono text-sm transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                                         >
                                                             <span
                                                                 class="block text-transparent transition duration-200 group-hover:text-foreground group-focus-visible:text-foreground selection:text-foreground"

@@ -231,7 +231,7 @@ const toggleTag = (tagId: number) => {
                             <select
                                 id="category"
                                 v-model="filterState.category"
-                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
                             >
                                 <option value="">All categories</option>
                                 <option v-for="category in props.categories" :key="category.id" :value="category.id">
@@ -245,7 +245,7 @@ const toggleTag = (tagId: number) => {
                             <select
                                 id="brand"
                                 v-model="filterState.brand"
-                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
                             >
                                 <option value="">All brands</option>
                                 <option v-for="brand in props.brands" :key="brand.id" :value="brand.id">
@@ -312,7 +312,7 @@ const toggleTag = (tagId: number) => {
                             <div v-if="product.variants.length" class="space-y-1">
                                 <label class="text-sm font-semibold text-foreground">Select variant</label>
                                 <select
-                                    class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none"
+                                    class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
                                     :value="getSelectedVariantId(product) ?? ''"
                                     @change="selectedVariants[product.id] = ($event.target as HTMLSelectElement).value ? Number(($event.target as HTMLSelectElement).value) : null"
                                 >

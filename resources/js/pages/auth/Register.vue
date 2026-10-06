@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { Separator } from '@/components/ui/separator';
 
 const props = defineProps<{

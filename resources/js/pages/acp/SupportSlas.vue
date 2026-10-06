@@ -154,7 +154,7 @@ const submit = () => {
                                         :id="`escalate-to-${priority.value}`"
                                         v-model="form.priority_escalations[priority.value as PriorityKey].to"
                                         :disabled="!canSubmit"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <option value="">No escalation</option>
                                         <option

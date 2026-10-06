@@ -16,7 +16,7 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { Textarea } from '@/components/ui/textarea';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { Separator } from '@/components/ui/separator';
 
 interface Role {
@@ -248,7 +248,7 @@ const removeSocialLink = (index: number) => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div class="flex flex-col gap-6">
                         <Card>
                             <CardHeader class="relative overflow-hidden">
@@ -367,8 +367,8 @@ const removeSocialLink = (index: number) => {
                                     >
                                         <Checkbox
                                             :id="`role-${role.id}`"
-                                            :checked="form.roles.includes(role.name)"
-                                            @update:checked="value => toggleRole(role.name, value)"
+                                            :model-value="form.roles.includes(role.name)"
+                                            @update:model-value="value => toggleRole(role.name, value)"
                                         />
                                         <div class="grid gap-1">
                                             <Label :for="`role-${role.id}`" class="font-medium leading-none">
@@ -442,7 +442,7 @@ const removeSocialLink = (index: number) => {
                                             <select
                                                 id="provider"
                                                 v-model="attachForm.provider"
-                                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                             >
                                                 <option v-for="provider in props.availableSocialProviders" :key="provider.key" :value="provider.key">
                                                     {{ provider.label }}

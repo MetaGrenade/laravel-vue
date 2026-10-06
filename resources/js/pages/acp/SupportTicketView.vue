@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import Input from '@/components/ui/input/Input.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Paperclip, Sparkles } from 'lucide-vue-next';
+import { Paperclip, Sparkles } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
 interface TicketParticipant {
@@ -496,7 +496,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                     </TabsList>
 
                     <TabsContent value="overview" class="space-y-6">
-                        <div class="grid gap-6 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
+                        <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                             <Card class="flex h-full flex-col">
                                 <CardHeader>
                                     <CardTitle>Conversation</CardTitle>
@@ -511,7 +511,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                                             :class="message.is_from_support ? 'items-end' : 'items-start'"
                                         >
                                             <div
-                                                class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-sm"
+                                                class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-xs"
                                                 :class="message.is_from_support
                                                     ? 'bg-primary text-primary-foreground'
                                                     : 'bg-background border'"
@@ -627,7 +627,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                                                     class="flex items-center gap-2 rounded-md border border-dashed border-muted bg-muted/40 px-2 py-1"
                                                 >
                                                     <Paperclip class="h-3 w-3" />
-                                                    <span class="max-w-[10rem] truncate">{{ file.name }}</span>
+                                                    <span class="max-w-40 truncate">{{ file.name }}</span>
                                                     <span class="text-muted-foreground">{{ formatFileSize(file.size) }}</span>
                                                 </li>
                                             </ul>
@@ -664,7 +664,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                                             <select
                                                 id="assigned_to"
                                                 v-model.number="assignmentForm.assigned_to"
-                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                                 :disabled="assignmentForm.processing"
                                             >
                                                 <option :value="null">Unassigned</option>
@@ -691,7 +691,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                                             <select
                                                 id="priority"
                                                 v-model="priorityForm.priority"
-                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                                 :disabled="priorityForm.processing"
                                             >
                                                 <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
@@ -713,7 +713,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                                             <select
                                                 id="status"
                                                 v-model="statusForm.status"
-                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                                 :disabled="statusForm.processing"
                                             >
                                                 <option v-for="option in statusOptions" :key="option.value" :value="option.value">

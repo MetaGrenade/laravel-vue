@@ -64,9 +64,6 @@ const saveSettings = () => {
 
     form.put(route('acp.system.update'), {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('System settings saved successfully');
-        },
         onError: () => {
             toast.error('Unable to save settings. Please review the form and try again.');
         },
