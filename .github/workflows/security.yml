@@ -59,7 +59,8 @@ jobs:
           cache: 'npm'
 
       - name: Audit Composer dependencies
-        run: composer audit
+        # --locked reads composer.lock, so no `composer install` is needed.
+        run: composer audit --locked
 
       - name: Audit npm dependencies
         run: |
