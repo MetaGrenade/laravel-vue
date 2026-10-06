@@ -7,6 +7,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
 use App\Http\Middleware\PreventBannedUser;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\ThrottleTokenUsage;
 use App\Http\Middleware\UpdateLastActivity;
 use App\Jobs\AggregateSearchQueryStats;
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // session-authenticated user and invalidate their session.
         $middleware->web(
             append: [
+                SecurityHeaders::class,
                 PreventBannedUser::class,
                 EnsureSiteIsAvailable::class,
                 HandleAppearance::class,

@@ -34,18 +34,22 @@ Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 
 Route::get('/', HomeController::class)->name('home');
 
-Route::get('/search', SearchController::class)->name('search');
-Route::get('/search/results', SearchResultsController::class)->name('search.results');
+Route::get('/search', SearchController::class)->middleware('throttle:search')->name('search');
+Route::get('/search/results', SearchResultsController::class)->middleware('throttle:search')->name('search.results');
 Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
-Route::post('/pricing/setup-intent', [PricingController::class, 'intent'])->name('pricing.intent');
-Route::post('/pricing/subscribe', [PricingController::class, 'subscribe'])->name('pricing.subscribe');
+Route::middleware('throttle:billing')->group(function () {
+    Route::post('/pricing/setup-intent', [PricingController::class, 'intent'])->name('pricing.intent');
+    Route::post('/pricing/subscribe', [PricingController::class, 'subscribe'])->name('pricing.subscribe');
+});
 
 Route::middleware('section.enabled:commerce')->group(function () {
     Route::prefix('shop')->group(function () {
         Route::get('/', [ProductCatalogController::class, 'index'])->name('shop.index');
         Route::get('/products/{product:slug}', [ProductCatalogController::class, 'show'])
             ->name('shop.products.show');
-        Route::post('/cart/items', [CartController::class, 'store'])->name('shop.cart.items.store');
+        Route::post('/cart/items', [CartController::class, 'store'])
+            ->middleware('throttle:interactions')
+            ->name('shop.cart.items.store');
     });
 
     Route::get('/cart', [CartController::class, 'show'])->name('shop.cart');
@@ -67,6 +71,7 @@ Route::middleware('section.enabled:blog')->group(function () {
                 ->middleware('throttle:blog-comments')
                 ->name('blogs.comments.store');
             Route::put('/{comment}', [BlogCommentController::class, 'update'])
+                ->middleware('throttle:content')
                 ->whereNumber('comment')
                 ->name('blogs.comments.update');
             Route::delete('/{comment}', [BlogCommentController::class, 'destroy'])
@@ -74,9 +79,10 @@ Route::middleware('section.enabled:blog')->group(function () {
                 ->name('blogs.comments.destroy');
             Route::post('/{comment}/report', [BlogCommentController::class, 'report'])
                 ->whereNumber('comment')
-                ->middleware('verified')
+                ->middleware(['verified', 'throttle:interactions'])
                 ->name('blogs.comments.report');
             Route::post('/{comment}/react', [BlogCommentController::class, 'react'])
+                ->middleware('throttle:interactions')
                 ->whereNumber('comment')
                 ->name('blogs.comments.react');
             Route::post('/subscriptions', [BlogCommentSubscriptionController::class, 'store'])
@@ -98,7 +104,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('section.enabled:forum')->group(function () {
     Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
-    Route::middleware('auth')->get('forum/mentions', [ForumController::class, 'mentionSuggestions'])
+    Route::middleware(['auth', 'throttle:search'])->get('forum/mentions', [ForumController::class, 'mentionSuggestions'])
         ->name('forum.mentions.index');
     Route::get('forum/{board:slug}', [ForumController::class, 'showBoard'])->name('forum.boards.show');
     Route::get('forum/{board:slug}/{thread:slug}', [ForumController::class, 'showThread'])->name('forum.threads.show');
@@ -107,8 +113,10 @@ Route::middleware('section.enabled:forum')->group(function () {
         Route::get('forum/{board:slug}/threads/create', [ForumController::class, 'createThread'])
             ->name('forum.threads.create');
         Route::post('forum/{board:slug}/threads', [ForumController::class, 'storeThread'])
+            ->middleware('throttle:content')
             ->name('forum.threads.store');
         Route::post('forum/{board:slug}/{thread:slug}/report', [ForumThreadActionController::class, 'report'])
+            ->middleware('throttle:interactions')
             ->name('forum.threads.report');
         Route::post('forum/{board:slug}/{thread:slug}/mark-read', [ForumThreadActionController::class, 'markAsRead'])
             ->name('forum.threads.mark-read');
@@ -122,12 +130,15 @@ Route::middleware('section.enabled:forum')->group(function () {
             ->name('forum.threads.update');
 
         Route::post('forum/{board:slug}/{thread:slug}/posts', [ForumPostController::class, 'store'])
+            ->middleware('throttle:content')
             ->name('forum.posts.store');
         Route::put('forum/{board:slug}/{thread:slug}/posts/{post}', [ForumPostController::class, 'update'])
+            ->middleware('throttle:content')
             ->name('forum.posts.update');
         Route::delete('forum/{board:slug}/{thread:slug}/posts/{post}', [ForumPostController::class, 'destroy'])
             ->name('forum.posts.destroy');
         Route::post('forum/{board:slug}/{thread:slug}/posts/{post}/report', [ForumPostController::class, 'report'])
+            ->middleware('throttle:interactions')
             ->name('forum.posts.report');
         Route::get('forum/{board:slug}/{thread:slug}/posts/{post}/history', [ForumPostRevisionController::class, 'index'])
             ->name('forum.posts.history');
@@ -158,15 +169,18 @@ Route::middleware('section.enabled:support')->group(function () {
 
     Route::middleware('auth')->group(function () {
         Route::post('support/tickets', [SupportCenterController::class, 'store'])
+            ->middleware('throttle:content')
             ->name('support.tickets.store');
 
         Route::get('support/tickets/{ticket}', [SupportCenterController::class, 'show'])
             ->name('support.tickets.show');
 
         Route::post('support/tickets/{ticket}/messages', [SupportCenterController::class, 'storeMessage'])
+            ->middleware('throttle:content')
             ->name('support.tickets.messages.store');
 
         Route::post('support/tickets/{ticket}/rating', [SupportCenterController::class, 'storeRating'])
+            ->middleware('throttle:interactions')
             ->name('support.tickets.rating.store');
 
         Route::patch('support/tickets/{ticket}/status', [SupportCenterController::class, 'updateStatus'])
@@ -176,6 +190,7 @@ Route::middleware('section.enabled:support')->group(function () {
             ->name('support.tickets.reopen');
 
         Route::post('support/faqs/{faq}/feedback', [SupportCenterController::class, 'storeFaqFeedback'])
+            ->middleware('throttle:interactions')
             ->whereNumber('faq')
             ->name('support.faqs.feedback.store');
     });

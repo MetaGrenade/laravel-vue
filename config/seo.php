@@ -12,15 +12,13 @@ return [
     |
     */
 
-    'site_name' => env('SEO_SITE_NAME', env('APP_NAME', 'Laravel')),
+    'site_name' => env('SEO_SITE_NAME') ?: env('APP_NAME', 'Laravel'),
 
-    'description' => env(
-        'SEO_DESCRIPTION',
-        'A modern platform with community forums, a blog, a support center and subscription billing.'
-    ),
+    'description' => env('SEO_DESCRIPTION')
+        ?: 'A modern platform with community forums, a blog, a support center and subscription billing.',
 
     // Absolute URL or path (relative to APP_URL) of the default social share image (1200x630).
-    'image' => env('SEO_IMAGE'),
+    'image' => env('SEO_IMAGE') ?: null,
 
     'twitter_handle' => env('SEO_TWITTER_HANDLE'),
 

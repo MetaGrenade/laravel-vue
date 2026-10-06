@@ -17,10 +17,17 @@ use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
 use Illuminate\Cache\RateLimiting\Limit;
 use App\Observers\ForumIndexCacheObserver;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Vite;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
@@ -58,6 +65,9 @@ class AppServiceProvider extends ServiceProvider
 
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 
+        $this->configureDefaults();
+        $this->configureRateLimiting();
+
         RateLimiter::for('blog-comments', function ($request) {
             $attempts = (int) config('rate-limits.blog_comments_per_minute', 5);
 
@@ -71,5 +81,66 @@ class AppServiceProvider extends ServiceProvider
         ForumThread::observe($cacheObserver);
         ForumPost::observe($cacheObserver);
 
+    }
+    /**
+     * Safer defaults: stricter passwords and no destructive commands in
+     * production, N+1 query warnings during local development, and asset
+     * prefetching for faster client-side navigation.
+     */
+    protected function configureDefaults(): void
+    {
+        $production = $this->app->isProduction();
+
+        DB::prohibitDestructiveCommands($production);
+
+        Password::defaults(fn () => $production
+            ? Password::min(12)->letters()->mixedCase()->numbers()->uncompromised()
+            : Password::min(8));
+
+        Model::preventLazyLoading($this->app->isLocal());
+        Model::handleLazyLoadingViolationUsing(function ($model, string $relation) {
+            Log::warning(sprintf('N+1 query: lazy loading [%s] on model [%s].', $relation, $model::class));
+        });
+
+        if (config('app.force_https')) {
+            URL::forceHttps();
+        }
+
+        Vite::prefetch(concurrency: 3);
+    }
+
+    /**
+     * Named rate limiters for web endpoints (API routes are throttled per token).
+     */
+    protected function configureRateLimiting(): void
+    {
+        $byUserOrIp = fn (Request $request) => $request->user()?->getAuthIdentifier() ?? $request->ip();
+
+        // Account creation and password reset emails.
+        RateLimiter::for('auth', fn (Request $request) => [
+            Limit::perMinute(5)->by('auth:'.$request->ip().'|'.Str::lower((string) $request->input('email'))),
+            Limit::perMinute(20)->by('auth-ip:'.$request->ip()),
+        ]);
+
+        // One-time codes must not be brute-forceable.
+        RateLimiter::for('two-factor', fn (Request $request) => [
+            Limit::perMinute(5)->by('2fa:'.$request->session()->get('two_factor:id', $request->ip())),
+            Limit::perMinute(10)->by('2fa-ip:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('confirm-password', fn (Request $request) => Limit::perMinute(5)->by('confirm:'.$byUserOrIp($request)));
+
+        // Posting community content (threads, replies, tickets, messages).
+        RateLimiter::for('content', fn (Request $request) => [
+            Limit::perMinute(10)->by('content:'.$byUserOrIp($request)),
+            Limit::perHour(120)->by('content-hourly:'.$byUserOrIp($request)),
+        ]);
+
+        // Reports, reactions, subscriptions and other lightweight interactions.
+        RateLimiter::for('interactions', fn (Request $request) => Limit::perMinute(30)->by('interact:'.$byUserOrIp($request)));
+
+        RateLimiter::for('search', fn (Request $request) => Limit::perMinute(60)->by('search:'.$byUserOrIp($request)));
+
+        RateLimiter::for('billing', fn (Request $request) => Limit::perMinute(10)->by('billing:'.$byUserOrIp($request)));
     }
 }
