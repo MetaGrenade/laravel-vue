@@ -15,6 +15,8 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 - CI jobs that run the test suite on MySQL 8 and PostgreSQL 16 in addition to SQLite, with a guard test that fails if a job runs on the wrong database.
 - `SECURITY.md`, `CONTRIBUTING.md`, `.well-known/security.txt`, issue and pull-request templates, `CODEOWNERS` and Dependabot configuration.
 - `compose.yaml` with the backing services for local development (MySQL, PostgreSQL, Redis, Meilisearch and Mailpit).
+- Internationalisation infrastructure (English only for now): `config/i18n.php`, the `SetLocale` middleware, `useI18n()`, shared translations as Inertia props and `php artisan lang:check` (see `docs/i18n.md`).
+- Static analysis with Larastan (level 5, with a baseline), a gitleaks secrets scan, a weekly dependency-advisory audit and a scheduled workflow that repeats the test suite in random order.
 - Web manifest generated from configuration; home page SEO copy configurable through `seo.home.*` (`SEO_HOME_TITLE`, `SEO_HOME_DESCRIPTION`).
 
 ### Changed

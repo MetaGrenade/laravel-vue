@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Support\Commerce\CartManager;
 use App\Support\Localization\DateFormatter;
+use App\Support\Localization\FrontendTranslations;
 use App\Support\OAuth\OAuthProviders;
 use App\Support\Routing\ZiggyRouteGroup;
 use App\Support\Seo\Seo;
@@ -50,6 +51,9 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'locale' => app()->getLocale(),
+            'locales' => array_values((array) config('i18n.supported', ['en'])),
+            'translations' => fn () => FrontendTranslations::forGroups((array) config('i18n.shared_groups', ['ui'])),
             'quote' => function () {
                 [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 

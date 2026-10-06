@@ -57,3 +57,6 @@ jobs:
 
       - name: Static analysis (Larastan)
         run: vendor/bin/phpstan analyse --memory-limit=2G --no-progress
+
+      - name: Check translation files
+        run: php artisan lang:check

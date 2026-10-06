@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppLogo from '@/components/AppLogo.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
+import { useI18n } from '@/composables/useI18n';
 import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -12,31 +13,32 @@ interface FooterLink {
 }
 
 const page = usePage<SharedData>();
+const { t } = useI18n();
 const sections = computed(() => page.props.settings?.website_sections ?? { blog: true, forum: true, support: true, commerce: true });
 const year = new Date().getFullYear();
 
 const columns = computed<{ title: string; links: FooterLink[] }[]>(() => [
     {
-        title: 'Product',
+        title: t('ui.footer.product'),
         links: [
-            { title: 'Pricing', href: route('pricing') },
-            ...(sections.value.commerce ? [{ title: 'Shop', href: route('shop.index') }] : []),
-            { title: 'Dashboard', href: route('dashboard') },
+            { title: t('ui.nav.pricing'), href: route('pricing') },
+            ...(sections.value.commerce ? [{ title: t('ui.nav.shop'), href: route('shop.index') }] : []),
+            { title: t('ui.nav.dashboard'), href: route('dashboard') },
         ],
     },
     {
-        title: 'Community',
+        title: t('ui.footer.community'),
         links: [
-            ...(sections.value.blog ? [{ title: 'Blog', href: route('blogs.index') }] : []),
-            ...(sections.value.forum ? [{ title: 'Forum', href: route('forum.index') }] : []),
-            ...(sections.value.support ? [{ title: 'Support', href: route('support') }] : []),
+            ...(sections.value.blog ? [{ title: t('ui.nav.blog'), href: route('blogs.index') }] : []),
+            ...(sections.value.forum ? [{ title: t('ui.nav.forum'), href: route('forum.index') }] : []),
+            ...(sections.value.support ? [{ title: t('ui.nav.support'), href: route('support') }] : []),
         ],
     },
     {
-        title: 'Developers',
+        title: t('ui.footer.developers'),
         links: [
-            { title: 'API docs', href: route('api.docs'), external: true },
-            { title: 'GitHub', href: 'https://github.com/MetaGrenade/laravel-vue', external: true },
+            { title: t('ui.footer.api_docs'), href: route('api.docs'), external: true },
+            { title: t('ui.footer.github'), href: 'https://github.com/MetaGrenade/laravel-vue', external: true },
         ],
     },
 ]);
@@ -50,13 +52,13 @@ const columns = computed<{ title: string; links: FooterLink[] }[]>(() => [
                     <AppLogo />
                 </Link>
                 <p class="max-w-xs text-sm text-muted-foreground">
-                    A production-ready Laravel and Vue foundation for SaaS products and online communities.
+                    {{ t('ui.footer.tagline') }}
                 </p>
             </div>
             <nav v-for="column in columns.filter((c) => c.links.length)" :key="column.title" :aria-label="column.title">
                 <h2 class="text-sm font-semibold">{{ column.title }}</h2>
                 <ul class="mt-3 space-y-2">
-                    <li v-for="link in column.links" :key="link.title">
+                    <li v-for="link in column.links" :key="link.href">
                         <a
                             v-if="link.external"
                             :href="link.href"
@@ -75,7 +77,7 @@ const columns = computed<{ title: string; links: FooterLink[] }[]>(() => [
         </div>
         <div class="border-t">
             <div class="container-app flex flex-col items-center justify-between gap-3 py-5 text-sm text-muted-foreground sm:flex-row">
-                <p>&copy; {{ year }} {{ page.props.name }}. All rights reserved.</p>
+                <p>{{ t('ui.footer.rights', { year, name: page.props.name }) }}</p>
                 <ThemeToggle />
             </div>
         </div>
