@@ -10,15 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import Input from '@/components/ui/input/Input.vue';
-import { Paperclip } from 'lucide-vue-next';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Paperclip } from '@lucide/vue';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface TicketAssignee {
     id: number;
@@ -138,9 +131,7 @@ const handleAttachmentsChange = (event: Event) => {
 };
 
 const attachmentErrors = computed(() => {
-    const errorEntries = Object.entries(replyForm.errors).filter(([key]) =>
-        key === 'attachments' || key.startsWith('attachments.'),
-    );
+    const errorEntries = Object.entries(replyForm.errors).filter(([key]) => key === 'attachments' || key.startsWith('attachments.'));
 
     return errorEntries.length > 0 ? errorEntries[0][1] : '';
 });
@@ -158,8 +149,8 @@ const submitReply = () => {
 
     replyForm.transform((data) => {
         if (!data.attachments || data.attachments.length === 0) {
-            const payload = { ...data };
-            delete payload.attachments;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { attachments, ...payload } = data;
 
             return payload;
         }
@@ -298,19 +289,15 @@ const formatFileSize = (bytes: number) => {
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
-                    <span class="rounded-full px-3 py-1 text-xs font-medium" :class="statusClasses">
-                        Status: {{ statusLabel }}
-                    </span>
-                    <span class="rounded-full px-3 py-1 text-xs font-medium" :class="priorityClasses">
-                        Priority: {{ priorityLabel }}
-                    </span>
+                    <span class="rounded-full px-3 py-1 text-xs font-medium" :class="statusClasses"> Status: {{ statusLabel }} </span>
+                    <span class="rounded-full px-3 py-1 text-xs font-medium" :class="priorityClasses"> Priority: {{ priorityLabel }} </span>
                     <Button variant="outline" as-child>
                         <Link :href="route('support')">Back to Support</Link>
                     </Button>
                 </div>
             </div>
 
-            <div class="grid gap-6 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                 <Card class="flex flex-col">
                     <CardHeader>
                         <CardTitle>Conversation</CardTitle>
@@ -322,19 +309,15 @@ const formatFileSize = (bytes: number) => {
                                 v-for="message in sortedMessages"
                                 :key="message.id"
                                 class="flex flex-col gap-1"
-                                :class="message.is_from_support ? 'items-start' : 'items-end'">
+                                :class="message.is_from_support ? 'items-start' : 'items-end'"
+                            >
                                 <div
-                                    class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-sm"
-                                    :class="message.is_from_support
-                                        ? 'bg-background border'
-                                        : 'bg-primary text-primary-foreground'
-                                    "
+                                    class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-xs"
+                                    :class="message.is_from_support ? 'border bg-background' : 'bg-primary text-primary-foreground'"
                                 >
                                     <p class="mb-2 whitespace-pre-line">{{ message.body }}</p>
                                     <div v-if="message.attachments.length" class="mt-3 flex flex-col gap-2">
-                                        <div
-                                            class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide opacity-80"
-                                        >
+                                        <div class="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase opacity-80">
                                             <Paperclip class="h-3 w-3" />
                                             <span>Attachments</span>
                                         </div>
@@ -345,16 +328,16 @@ const formatFileSize = (bytes: number) => {
                                                     target="_blank"
                                                     rel="noopener"
                                                     class="flex items-center gap-2 underline underline-offset-4"
-                                                    :class="message.is_from_support
-                                                        ? 'text-primary hover:text-primary/80'
-                                                        : 'text-primary-foreground hover:text-primary-foreground/80'"
+                                                    :class="
+                                                        message.is_from_support
+                                                            ? 'text-primary hover:text-primary/80'
+                                                            : 'text-primary-foreground hover:text-primary-foreground/80'
+                                                    "
                                                 >
                                                     <span class="truncate">{{ attachment.name }}</span>
                                                     <span
-                                                        class="whitespace-nowrap text-[0.7rem]"
-                                                        :class="message.is_from_support
-                                                            ? 'text-muted-foreground'
-                                                            : 'text-primary-foreground/80'"
+                                                        class="text-[0.7rem] whitespace-nowrap"
+                                                        :class="message.is_from_support ? 'text-muted-foreground' : 'text-primary-foreground/80'"
                                                     >
                                                         {{ formatFileSize(attachment.size) }}
                                                     </span>
@@ -368,9 +351,7 @@ const formatFileSize = (bytes: number) => {
                                 </div>
                             </div>
 
-                            <p v-if="sortedMessages.length === 0" class="text-sm text-muted-foreground">
-                                There are no messages on this ticket yet.
-                            </p>
+                            <p v-if="sortedMessages.length === 0" class="text-sm text-muted-foreground">There are no messages on this ticket yet.</p>
                         </div>
 
                         <form v-if="props.canReply" class="mt-4 flex flex-col gap-3" @submit.prevent="submitReply">
@@ -404,16 +385,14 @@ const formatFileSize = (bytes: number) => {
                                         class="flex items-center gap-2 rounded-md border border-dashed border-muted bg-muted/40 px-2 py-1"
                                     >
                                         <Paperclip class="h-3 w-3" />
-                                        <span class="max-w-[10rem] truncate">{{ file.name }}</span>
+                                        <span class="max-w-40 truncate">{{ file.name }}</span>
                                         <span class="text-muted-foreground">{{ formatFileSize(file.size) }}</span>
                                     </li>
                                 </ul>
                                 <InputError :message="attachmentErrors" />
                             </div>
                             <div class="flex justify-end">
-                                <Button type="submit" :disabled="replyForm.processing">
-                                    Send message
-                                </Button>
+                                <Button type="submit" :disabled="replyForm.processing"> Send message </Button>
                             </div>
                         </form>
                     </CardContent>
@@ -427,7 +406,7 @@ const formatFileSize = (bytes: number) => {
                         </CardHeader>
                         <CardContent class="space-y-4 text-sm">
                             <div>
-                                <p class="text-xs uppercase text-muted-foreground">Opened by</p>
+                                <p class="text-xs text-muted-foreground uppercase">Opened by</p>
                                 <p class="font-medium text-foreground">
                                     {{ props.ticket.user?.nickname ?? 'You' }}
                                 </p>
@@ -436,7 +415,7 @@ const formatFileSize = (bytes: number) => {
                                 </p>
                             </div>
                             <div>
-                                <p class="text-xs uppercase text-muted-foreground">Assigned agent</p>
+                                <p class="text-xs text-muted-foreground uppercase">Assigned agent</p>
                                 <p class="font-medium text-foreground">
                                     {{ props.ticket.assignee?.nickname ?? 'Unassigned' }}
                                 </p>
@@ -445,13 +424,13 @@ const formatFileSize = (bytes: number) => {
                                 </p>
                             </div>
                             <div>
-                                <p class="text-xs uppercase text-muted-foreground">Assigned team</p>
+                                <p class="text-xs text-muted-foreground uppercase">Assigned team</p>
                                 <p class="font-medium text-foreground">
                                     {{ props.ticket.team?.name ?? '—' }}
                                 </p>
                             </div>
                             <div>
-                                <p class="text-xs uppercase text-muted-foreground">Customer satisfaction</p>
+                                <p class="text-xs text-muted-foreground uppercase">Customer satisfaction</p>
                                 <p class="font-medium text-foreground">
                                     {{
                                         typeof props.ticket.customer_satisfaction_rating === 'number'
@@ -463,21 +442,17 @@ const formatFileSize = (bytes: number) => {
                                     <span v-if="typeof props.ticket.customer_satisfaction_rating === 'number'">
                                         Thanks for letting us know how we did.
                                     </span>
-                                    <span v-else-if="isClosed">
-                                        Share your experience using the feedback card below.
-                                    </span>
-                                    <span v-else>
-                                        We'll ask for feedback once this ticket is closed.
-                                    </span>
+                                    <span v-else-if="isClosed"> Share your experience using the feedback card below. </span>
+                                    <span v-else> We'll ask for feedback once this ticket is closed. </span>
                                 </p>
                             </div>
                             <div>
-                                <p class="text-xs uppercase text-muted-foreground">Created</p>
+                                <p class="text-xs text-muted-foreground uppercase">Created</p>
                                 <p class="font-medium text-foreground">{{ formattedCreatedAt }}</p>
                                 <p class="text-muted-foreground">{{ fromNow(props.ticket.created_at) }}</p>
                             </div>
                             <div>
-                                <p class="text-xs uppercase text-muted-foreground">Last updated</p>
+                                <p class="text-xs text-muted-foreground uppercase">Last updated</p>
                                 <p class="font-medium text-foreground">{{ formattedUpdatedAt }}</p>
                                 <p class="text-muted-foreground">{{ fromNow(props.ticket.updated_at) }}</p>
                             </div>
@@ -487,18 +462,12 @@ const formatFileSize = (bytes: number) => {
                     <Card>
                         <CardHeader>
                             <CardTitle>Rate your experience</CardTitle>
-                            <CardDescription>
-                                Let us know how satisfied you are with the resolution of this ticket.
-                            </CardDescription>
+                            <CardDescription> Let us know how satisfied you are with the resolution of this ticket. </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4 text-sm">
                             <div v-if="typeof props.ticket.customer_satisfaction_rating === 'number'" class="space-y-2">
-                                <p class="text-lg font-semibold">
-                                    {{ props.ticket.customer_satisfaction_rating }} / 5
-                                </p>
-                                <p class="text-muted-foreground">
-                                    We appreciate your feedback and will use it to keep improving our support.
-                                </p>
+                                <p class="text-lg font-semibold">{{ props.ticket.customer_satisfaction_rating }} / 5</p>
+                                <p class="text-muted-foreground">We appreciate your feedback and will use it to keep improving our support.</p>
                             </div>
                             <div v-else-if="canRateTicket" class="space-y-4">
                                 <form class="space-y-4" @submit.prevent="submitRating">
@@ -518,24 +487,18 @@ const formatFileSize = (bytes: number) => {
                                     </div>
                                     <InputError :message="ratingForm.errors.rating" />
                                     <div class="flex justify-end">
-                                        <Button type="submit" :disabled="ratingForm.processing">
-                                            Submit rating
-                                        </Button>
+                                        <Button type="submit" :disabled="ratingForm.processing"> Submit rating </Button>
                                     </div>
                                 </form>
                             </div>
-                            <p v-else class="text-muted-foreground">
-                                We'll invite you to rate your experience once our team resolves this ticket.
-                            </p>
+                            <p v-else class="text-muted-foreground">We'll invite you to rate your experience once our team resolves this ticket.</p>
                         </CardContent>
                     </Card>
 
                     <Card v-if="isClosed">
                         <CardHeader>
                             <CardTitle>Need more help?</CardTitle>
-                            <CardDescription>
-                                Reopen this ticket to continue the conversation with our support team.
-                            </CardDescription>
+                            <CardDescription> Reopen this ticket to continue the conversation with our support team. </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4 text-sm">
                             <p class="text-muted-foreground">
@@ -554,7 +517,7 @@ const formatFileSize = (bytes: number) => {
                             <CardDescription>The initial details you provided.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p class="whitespace-pre-line text-sm leading-relaxed text-foreground">
+                            <p class="text-sm leading-relaxed whitespace-pre-line text-foreground">
                                 {{ props.ticket.body }}
                             </p>
                         </CardContent>
@@ -564,25 +527,19 @@ const formatFileSize = (bytes: number) => {
         </div>
 
         <Dialog :open="reopenDialogOpen" @update:open="handleReopenDialogChange">
-            <DialogContent class="sm:max-w-[28rem]">
+            <DialogContent class="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Reopen this ticket?</DialogTitle>
                     <DialogDescription>
-                        Let our support team know you still need assistance. We will notify them right away so they can
-                        follow up.
+                        Let our support team know you still need assistance. We will notify them right away so they can follow up.
                     </DialogDescription>
                 </DialogHeader>
                 <p class="text-sm text-muted-foreground">
-                    Reopening the ticket clears the previous resolution details and puts it back in the support queue.
-                    You can always close it again once everything is resolved.
+                    Reopening the ticket clears the previous resolution details and puts it back in the support queue. You can always close it again
+                    once everything is resolved.
                 </p>
                 <DialogFooter class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        :disabled="reopenForm.processing"
-                        @click="handleReopenDialogChange(false)"
-                    >
+                    <Button type="button" variant="outline" :disabled="reopenForm.processing" @click="handleReopenDialogChange(false)">
                         Cancel
                     </Button>
                     <Button type="button" :disabled="reopenForm.processing" @click="submitReopenTicket">

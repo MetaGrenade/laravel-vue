@@ -81,6 +81,6 @@ class ForumIndexCache
 
     private function key(string $suffix): string
     {
-        return self::CACHE_KEY_PREFIX . $suffix;
+        return self::CACHE_KEY_PREFIX.$suffix;
     }
 }

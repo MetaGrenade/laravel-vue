@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use App\Models\User;
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RolePermissionSeeder extends Seeder
 {
@@ -85,7 +85,7 @@ class RolePermissionSeeder extends Seeder
 
         // Assign the admin role to the user with ID 1, if the user exists
         $user = User::find(1);
-        if ($user && !$user->hasRole($adminRole)) {
+        if ($user && ! $user->hasRole($adminRole)) {
             $user->assignRole($adminRole);
         }
     }

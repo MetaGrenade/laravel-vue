@@ -131,7 +131,7 @@ class GlobalSearchService
                     'description' => $this->firstHighlight([
                         $excerpt,
                         $body,
-                        $author ? 'By ' . $author : null,
+                        $author ? 'By '.$author : null,
                     ], $term),
                 ];
 
@@ -211,12 +211,12 @@ class GlobalSearchService
 
                 $excerpt = is_string($thread->excerpt) ? trim($thread->excerpt) : '';
                 $author = $thread->author?->nickname ?? null;
-                $description = $excerpt !== '' ? $excerpt : ($author ? 'Started by ' . $author : null);
+                $description = $excerpt !== '' ? $excerpt : ($author ? 'Started by '.$author : null);
                 $highlights = [
                     'title' => $this->highlightText($thread->title, $term),
                     'description' => $this->firstHighlight([
                         $excerpt,
-                        $author ? 'Started by ' . $author : null,
+                        $author ? 'Started by '.$author : null,
                     ], $term),
                 ];
 
@@ -430,7 +430,7 @@ class GlobalSearchService
 
         $expression = implode(' + ', $clauses);
 
-        return [$expression . ' as relevance', $bindings];
+        return [$expression.' as relevance', $bindings];
     }
 
     private function highlightText(?string $text, string $term, ?int $limit = null): ?string
@@ -485,11 +485,11 @@ class GlobalSearchService
         $snippet = mb_substr($text, $start, $limit);
 
         if ($start > 0) {
-            $snippet = '…' . ltrim($snippet);
+            $snippet = '…'.ltrim($snippet);
         }
 
         if ($start + mb_strlen($snippet) < mb_strlen($text)) {
-            $snippet = rtrim($snippet) . '…';
+            $snippet = rtrim($snippet).'…';
         }
 
         return $snippet;
@@ -498,14 +498,14 @@ class GlobalSearchService
     private function applyHighlight(string $text, string $term): string
     {
         $escaped = e($text);
-        $pattern = '/' . preg_quote($term, '/') . '/i';
+        $pattern = '/'.preg_quote($term, '/').'/i';
 
         return (string) preg_replace($pattern, '<mark>$0</mark>', $escaped);
     }
 
     private function likeTerm(string $term): string
     {
-        return '%' . Str::lower($term) . '%';
+        return '%'.Str::lower($term).'%';
     }
 
     private function supportsFullText(): bool
@@ -517,7 +517,7 @@ class GlobalSearchService
     {
         $keywords = Collection::make(preg_split('/\s+/', trim($term)))
             ->filter()
-            ->map(fn ($value) => '+' . $value . '*')
+            ->map(fn ($value) => '+'.$value.'*')
             ->implode(' ');
 
         return $keywords !== '' ? $keywords : $term;

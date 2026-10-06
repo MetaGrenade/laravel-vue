@@ -10,8 +10,7 @@ class SupportTicketAutoAssigner
 {
     public function __construct(
         private readonly SupportTicketAuditor $auditor
-    ) {
-    }
+    ) {}
 
     public function assign(SupportTicket $ticket, array $options = []): ?SupportTicketAssignment
     {

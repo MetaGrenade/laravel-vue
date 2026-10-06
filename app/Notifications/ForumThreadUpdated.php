@@ -18,7 +18,7 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
     use SendsBroadcastsSynchronously;
 
     /**
-     * @param array<int, string> $channels
+     * @param  array<int, string>  $channels
      */
     public function __construct(
         protected ForumThread $thread,
@@ -53,10 +53,10 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
             'page' => null,
         ]);
 
-        return (new MailMessage())
-            ->subject('New reply in "' . $this->thread->title . '"')
-            ->greeting('Hi ' . ($notifiable->nickname ?? $notifiable->name ?? 'there') . '!')
-            ->line('There is a new reply in a thread you follow: "' . $this->thread->title . '".')
+        return (new MailMessage)
+            ->subject('New reply in "'.$this->thread->title.'"')
+            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
+            ->line('There is a new reply in a thread you follow: "'.$this->thread->title.'".')
             ->line(Str::limit(strip_tags($this->post->body), 200))
             ->action('View reply', $url)
             ->line('You are receiving this email because you opted to follow this thread.');
@@ -75,7 +75,7 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
     /**
      * Limit the notification delivery channels.
      *
-     * @param array<int, string> $channels
+     * @param  array<int, string>  $channels
      */
     public function withChannels(array $channels): self
     {
@@ -91,7 +91,7 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
     protected function payload(): array
     {
         $excerpt = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($this->post->body)) ?? ''), 140);
-        $title = 'New reply in "' . $this->thread->title . '"';
+        $title = 'New reply in "'.$this->thread->title.'"';
 
         return [
             'thread_id' => $this->thread->id,
@@ -102,7 +102,7 @@ class ForumThreadUpdated extends Notification implements ShouldQueue
             'url' => route('forum.threads.show', [
                 'board' => $this->thread->board?->slug ?? $this->thread->board->slug,
                 'thread' => $this->thread->slug,
-            ]) . '#post-' . $this->post->id,
+            ]).'#post-'.$this->post->id,
             'created_at' => optional($this->post->created_at)->toIso8601String(),
         ];
     }

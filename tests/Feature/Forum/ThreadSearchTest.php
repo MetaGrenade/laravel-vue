@@ -9,7 +9,7 @@ use App\Models\ForumThread;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
-use Inertia\Testing\AssertableInertia as AssertableInertia;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class ThreadSearchTest extends TestCase

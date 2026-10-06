@@ -28,14 +28,14 @@ class CartManager
             ->latest()
             ->first();
 
-        if (!$cart && $create) {
+        if (! $cart && $create) {
             $cart = Cart::create([
                 'user_id' => $userId,
                 'session_id' => $sessionId,
             ]);
         }
 
-        if ($cart && $userId && !$cart->user_id) {
+        if ($cart && $userId && ! $cart->user_id) {
             $cart->user_id = $userId;
             $cart->save();
         }
@@ -92,7 +92,7 @@ class CartManager
 
     public static function summary(?Cart $cart): ?array
     {
-        if (!$cart) {
+        if (! $cart) {
             return null;
         }
 

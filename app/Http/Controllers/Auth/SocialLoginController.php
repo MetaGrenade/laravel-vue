@@ -21,9 +21,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SocialLoginController extends Controller
 {
-    public function __construct(protected OAuthManager $manager)
-    {
-    }
+    public function __construct(protected OAuthManager $manager) {}
 
     /**
      * Redirect the user to the OAuth provider.

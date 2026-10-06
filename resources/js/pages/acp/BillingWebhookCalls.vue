@@ -18,7 +18,7 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, QueryParams } from '@/types';
 
 interface WebhookUser {
     id: number;
@@ -61,9 +61,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Billing webhooks', href: route('acp.billing.webhooks.index') },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Billing webhooks', href: route('acp.billing.webhooks.index') }];
 
 const calls = computed(() => props.calls.data ?? []);
 const PER_PAGE_OPTIONS = [10, 25, 50, 100];
@@ -72,7 +70,7 @@ const filterState = reactive({
     search: props.filters?.search ?? '',
     type: props.filters?.type ?? '',
     processed: props.filters?.processed ?? '',
-    per_page: props.filters?.per_page ?? (props.calls.meta?.per_page ?? 25),
+    per_page: props.filters?.per_page ?? props.calls.meta?.per_page ?? 25,
 });
 
 watch(
@@ -108,26 +106,22 @@ const typeOptions = computed(() => {
     return Array.from(types).sort((a, b) => a.localeCompare(b));
 });
 
-const { page, setPage, pageCount, rangeLabel } = useInertiaPagination({
+const { meta, page, setPage, pageCount, rangeLabel } = useInertiaPagination({
     meta: computed(() => props.calls.meta ?? null),
     itemsLength: computed(() => calls.value.length),
     defaultPerPage: filterState.per_page || 25,
     itemLabel: 'webhook call',
     itemLabelPlural: 'webhook calls',
     onNavigate: (newPage) => {
-        router.get(
-            route('acp.billing.webhooks.index'),
-            buildQuery({ page: newPage }),
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
+        router.get(route('acp.billing.webhooks.index'), buildQuery({ page: newPage }), {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
     },
 });
 
-function cleanQuery(query: Record<string, unknown>) {
+function cleanQuery(query: QueryParams) {
     return Object.fromEntries(
         Object.entries(query).filter(([, value]) => {
             if (value === null || value === undefined) {
@@ -143,7 +137,7 @@ function cleanQuery(query: Record<string, unknown>) {
     );
 }
 
-function buildQuery(overrides: Record<string, unknown> = {}) {
+function buildQuery(overrides: QueryParams = {}) {
     return cleanQuery({
         page: page.value,
         per_page: filterState.per_page,
@@ -157,15 +151,11 @@ function buildQuery(overrides: Record<string, unknown> = {}) {
 const applyFilters = () => {
     setPage(1, { emitNavigate: false });
 
-    router.get(
-        route('acp.billing.webhooks.index'),
-        buildQuery({ page: 1 }),
-        {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        },
-    );
+    router.get(route('acp.billing.webhooks.index'), buildQuery({ page: 1 }), {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
 };
 
 const resetFilters = () => {
@@ -178,7 +168,7 @@ const resetFilters = () => {
 };
 
 const formatDateTime = (value: string | null) => {
-    if (! value) {
+    if (!value) {
         return '—';
     }
 
@@ -204,17 +194,12 @@ const formatDateTime = (value: string | null) => {
                 />
 
                 <form
-                    class="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-sm md:grid-cols-4 md:items-end"
-                    @submit.prevent="applyFilters"
+                    class="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-xs md:grid-cols-4 md:items-end"
+                    @submit.prevent="applyFilters()"
                 >
                     <div class="flex flex-col gap-2">
                         <label for="search" class="text-sm font-medium text-foreground">Search</label>
-                        <Input
-                            id="search"
-                            v-model="filterState.search"
-                            type="search"
-                            placeholder="Search by Stripe ID or type"
-                        />
+                        <Input id="search" v-model="filterState.search" type="search" placeholder="Search by Stripe ID or type" />
                     </div>
 
                     <div class="flex flex-col gap-2">
@@ -222,7 +207,7 @@ const formatDateTime = (value: string | null) => {
                         <select
                             id="type"
                             v-model="filterState.type"
-                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:outline-hidden"
                         >
                             <option value="">All types</option>
                             <option v-for="type in typeOptions" :key="type" :value="type">{{ type }}</option>
@@ -234,7 +219,7 @@ const formatDateTime = (value: string | null) => {
                         <select
                             id="processed"
                             v-model="filterState.processed"
-                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:outline-hidden"
                         >
                             <option value="">All</option>
                             <option value="processed">Processed</option>
@@ -247,7 +232,7 @@ const formatDateTime = (value: string | null) => {
                         <select
                             id="per_page"
                             v-model.number="filterState.per_page"
-                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:outline-hidden"
                         >
                             <option v-for="option in PER_PAGE_OPTIONS" :key="option" :value="option">{{ option }}</option>
                         </select>
@@ -261,7 +246,7 @@ const formatDateTime = (value: string | null) => {
                     </div>
                 </form>
 
-                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -275,9 +260,7 @@ const formatDateTime = (value: string | null) => {
                         </TableHeader>
                         <TableBody>
                             <TableRow v-if="calls.length === 0">
-                                <TableCell colspan="6" class="text-center text-sm text-muted-foreground">
-                                    No webhook calls archived yet.
-                                </TableCell>
+                                <TableCell colspan="6" class="text-center text-sm text-muted-foreground"> No webhook calls archived yet. </TableCell>
                             </TableRow>
                             <TableRow v-for="call in calls" :key="call.id">
                                 <TableCell class="font-mono text-xs">{{ call.stripe_id ?? '—' }}</TableCell>
@@ -292,7 +275,7 @@ const formatDateTime = (value: string | null) => {
                                 <TableCell class="text-sm">{{ formatDateTime(call.created_at) }}</TableCell>
                                 <TableCell class="text-sm">
                                     <span v-if="call.processed_at">{{ formatDateTime(call.processed_at) }}</span>
-                                    <span v-else class="text-xs font-medium uppercase tracking-wide text-amber-600">Pending</span>
+                                    <span v-else class="text-xs font-medium tracking-wide text-amber-600 uppercase">Pending</span>
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <Button variant="outline" size="sm" as-child>
@@ -306,29 +289,30 @@ const formatDateTime = (value: string | null) => {
 
                 <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <p class="text-sm text-muted-foreground">{{ rangeLabel }}</p>
-                    <Pagination v-if="pageCount > 1">
-                        <PaginationList>
-                            <PaginationListItem>
-                                <PaginationFirst :disabled="page <= 1" @click="setPage(1)" />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <PaginationPrev :disabled="page <= 1" @click="setPage(page - 1)" />
-                            </PaginationListItem>
-                            <PaginationListItem v-if="page > 2">
-                                <PaginationEllipsis />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <Button variant="outline" class="h-8 min-w-[2rem] px-3" disabled>{{ page }}</Button>
-                            </PaginationListItem>
-                            <PaginationListItem v-if="page < pageCount - 1">
-                                <PaginationEllipsis />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <PaginationNext :disabled="page >= pageCount" @click="setPage(page + 1)" />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <PaginationLast :disabled="page >= pageCount" @click="setPage(pageCount)" />
-                            </PaginationListItem>
+                    <Pagination
+                        v-if="pageCount > 1"
+                        v-slot="{ page: currentPage }"
+                        v-model:page="page"
+                        :items-per-page="Math.max(meta.per_page, 1)"
+                        :total="meta.total"
+                        :sibling-count="1"
+                        show-edges
+                    >
+                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationFirst />
+                            <PaginationPrev />
+
+                            <template v-for="(item, index) in items" :key="index">
+                                <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                    <Button class="h-9 w-9 p-0" :variant="item.value === currentPage ? 'default' : 'outline'">
+                                        {{ item.value }}
+                                    </Button>
+                                </PaginationListItem>
+                                <PaginationEllipsis v-else :index="index" />
+                            </template>
+
+                            <PaginationNext />
+                            <PaginationLast />
                         </PaginationList>
                     </Pagination>
                 </div>

@@ -38,12 +38,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const pageTitle = computed(() => props.call.stripe_id ? `Webhook ${props.call.stripe_id}` : `Webhook #${props.call.id}`);
+const pageTitle = computed(() => (props.call.stripe_id ? `Webhook ${props.call.stripe_id}` : `Webhook #${props.call.id}`));
 
 const replaying = ref(false);
 
 const formatDateTime = (value: string | null) => {
-    if (! value) {
+    if (!value) {
         return '—';
     }
 
@@ -57,7 +57,7 @@ const formatDateTime = (value: string | null) => {
 };
 
 const payloadPreview = computed(() => {
-    if (! props.call.payload) {
+    if (!props.call.payload) {
         return 'No payload captured for this webhook call.';
     }
 
@@ -91,7 +91,7 @@ const copyStatus = ref<'idle' | 'copied' | 'failed'>('idle');
 let copyResetHandle: ReturnType<typeof setTimeout> | null = null;
 
 const copyPayload = async () => {
-    if (! props.call.payload) {
+    if (!props.call.payload) {
         return;
     }
 
@@ -100,7 +100,7 @@ const copyPayload = async () => {
         copyResetHandle = null;
     }
 
-    if (typeof navigator === 'undefined' || ! ('clipboard' in navigator)) {
+    if (typeof navigator === 'undefined' || !('clipboard' in navigator)) {
         copyStatus.value = 'failed';
         return;
     }
@@ -132,10 +132,7 @@ onBeforeUnmount(() => {
 
         <AdminLayout>
             <section class="flex w-full flex-col space-y-6">
-                <HeadingSmall
-                    :title="pageTitle"
-                    description="Inspect the raw Stripe payload and metadata persisted when the webhook was received."
-                />
+                <HeadingSmall :title="pageTitle" description="Inspect the raw Stripe payload and metadata persisted when the webhook was received." />
 
                 <div class="flex flex-wrap gap-2">
                     <Button variant="outline" as-child>
@@ -145,19 +142,14 @@ onBeforeUnmount(() => {
                         <span v-if="replaying">Replaying…</span>
                         <span v-else>Replay webhook</span>
                     </Button>
-                    <Button
-                        v-if="props.call.payload"
-                        type="button"
-                        variant="ghost"
-                        @click="copyPayload"
-                    >
+                    <Button v-if="props.call.payload" type="button" variant="ghost" @click="copyPayload">
                         <span v-if="copyStatus === 'copied'">Copied!</span>
                         <span v-else-if="copyStatus === 'failed'">Copy failed</span>
                         <span v-else>Copy payload</span>
                     </Button>
                 </div>
 
-                <div class="rounded-lg border border-border bg-card p-6 shadow-sm">
+                <div class="rounded-lg border border-border bg-card p-6 shadow-xs">
                     <dl class="grid gap-4 md:grid-cols-2">
                         <div class="space-y-1">
                             <dt class="text-sm font-medium text-muted-foreground">Stripe event ID</dt>
@@ -189,7 +181,7 @@ onBeforeUnmount(() => {
                             <dt class="text-sm font-medium text-muted-foreground">Processed at</dt>
                             <dd class="text-sm">
                                 <span v-if="props.call.processed_at">{{ formatDateTime(props.call.processed_at) }}</span>
-                                <span v-else class="text-xs font-medium uppercase tracking-wide text-amber-600">Pending</span>
+                                <span v-else class="text-xs font-medium tracking-wide text-amber-600 uppercase">Pending</span>
                             </dd>
                         </div>
                         <div class="space-y-1">
@@ -199,8 +191,8 @@ onBeforeUnmount(() => {
                     </dl>
                 </div>
 
-                <div class="rounded-lg border border-border bg-card p-6 shadow-sm">
-                    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Payload</h2>
+                <div class="rounded-lg border border-border bg-card p-6 shadow-xs">
+                    <h2 class="mb-4 text-sm font-semibold tracking-wide text-muted-foreground uppercase">Payload</h2>
                     <pre class="max-h-[600px] overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed">{{ payloadPreview }}</pre>
                 </div>
             </section>

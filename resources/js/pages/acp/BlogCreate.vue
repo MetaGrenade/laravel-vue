@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CalendarClock, Eye } from 'lucide-vue-next';
+import { CalendarClock, Eye } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
 type BlogTaxonomyOption = {
@@ -89,6 +89,12 @@ const form = useForm<BlogForm>({
             })) ?? [],
     },
 });
+
+// Errors for nested fields (e.g. `social_links.0.url`) are keyed by dot notation.
+// Kept in script: vue-tsc mis-parses '//' inside v-for templates.
+const socialLinkUrlPlaceholder = 'https://example.com/about';
+
+const fieldError = (key: string): string | undefined => (form.errors as Record<string, string | undefined>)[key];
 
 const coverImagePreview = ref<string | null>(null);
 const previewOpen = ref(false);
@@ -316,9 +322,7 @@ watch(
 
 const previewCoverImage = computed(() => coverImagePreview.value ?? null);
 const previewCover = computed(() => previewCoverImage.value ?? '/images/default-cover.jpg');
-const selectedCategories = computed(() =>
-    categoryOptions.value.filter((category) => form.category_ids.includes(category.id)),
-);
+const selectedCategories = computed(() => categoryOptions.value.filter((category) => form.category_ids.includes(category.id)));
 const selectedTags = computed(() => tagOptions.value.filter((tag) => form.tag_ids.includes(tag.id)));
 const previewScheduledMessage = computed(() => {
     if (form.status === 'scheduled' && form.scheduled_for) {
@@ -388,21 +392,14 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Create blog post</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Compose a new article for the community blog and choose when it should go live.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Compose a new article for the community blog and choose when it should go live.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.blogs.index')">Cancel</Link>
                         </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            class="flex items-center gap-2"
-                            @click="previewOpen = true"
-                        >
+                        <Button type="button" variant="secondary" class="flex items-center gap-2" @click="previewOpen = true">
                             <Eye class="h-4 w-4" />
                             Preview
                         </Button>
@@ -410,7 +407,7 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <Card>
                         <CardHeader class="relative overflow-hidden">
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />
@@ -441,22 +438,15 @@ const handleSubmit = () => {
 
                             <div class="grid gap-2">
                                 <Label for="cover_image">Cover image</Label>
-                                <Input
-                                    id="cover_image"
-                                    type="file"
-                                    accept="image/*"
-                                    @change="handleCoverImageChange"
-                                />
-                                <p class="text-xs text-muted-foreground">
-                                    Upload an optional banner image to highlight this post across the site.
-                                </p>
+                                <Input id="cover_image" type="file" accept="image/*" @change="handleCoverImageChange" />
+                                <p class="text-xs text-muted-foreground">Upload an optional banner image to highlight this post across the site.</p>
                                 <InputError :message="form.errors.cover_image" />
 
                                 <div v-if="coverImagePreview" class="mt-2">
                                     <img
                                         :src="coverImagePreview"
                                         alt="Selected cover preview"
-                                        class="h-32 w-full rounded-md object-cover border border-dashed border-muted"
+                                        class="h-32 w-full rounded-md border border-dashed border-muted object-cover"
                                     />
                                 </div>
                             </div>
@@ -498,7 +488,7 @@ const handleSubmit = () => {
                                         <label
                                             v-for="category in categoryOptions"
                                             :key="category.id"
-                                            class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                                            class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs"
                                         >
                                             <input
                                                 type="checkbox"
@@ -508,10 +498,7 @@ const handleSubmit = () => {
                                             />
                                             <span>{{ category.name }}</span>
                                         </label>
-                                        <p
-                                            v-if="categoryOptions.length === 0"
-                                            class="text-sm text-muted-foreground sm:col-span-2"
-                                        >
+                                        <p v-if="categoryOptions.length === 0" class="text-sm text-muted-foreground sm:col-span-2">
                                             No categories available yet. Add some in the database seeder or admin tools.
                                         </p>
                                     </div>
@@ -525,9 +512,7 @@ const handleSubmit = () => {
                                     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                         <div>
                                             <Label>Tags</Label>
-                                            <p class="text-sm text-muted-foreground">
-                                                Add optional tags to highlight key topics or campaigns.
-                                            </p>
+                                            <p class="text-sm text-muted-foreground">Add optional tags to highlight key topics or campaigns.</p>
                                         </div>
                                         <Button
                                             type="button"
@@ -545,7 +530,7 @@ const handleSubmit = () => {
                                         <label
                                             v-for="tag in tagOptions"
                                             :key="tag.id"
-                                            class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                                            class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs"
                                         >
                                             <input
                                                 type="checkbox"
@@ -577,10 +562,7 @@ const handleSubmit = () => {
                                 <select
                                     id="status"
                                     v-model="form.status"
-                                    class="
-                                        flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm
-                                        shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
-                                    "
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                                         {{ option.label }}
@@ -591,22 +573,14 @@ const handleSubmit = () => {
 
                             <div v-if="form.status === 'scheduled'" class="grid gap-2">
                                 <Label for="scheduled_for">Schedule for</Label>
-                                <Input
-                                    id="scheduled_for"
-                                    v-model="form.scheduled_for"
-                                    type="datetime-local"
-                                    :min="minScheduleValue"
-                                    required
-                                />
-                                <p class="text-xs text-muted-foreground">
-                                    We'll automatically publish the post at this date and time.
-                                </p>
+                                <Input id="scheduled_for" v-model="form.scheduled_for" type="datetime-local" :min="minScheduleValue" required />
+                                <p class="text-xs text-muted-foreground">We'll automatically publish the post at this date and time.</p>
                                 <InputError :message="form.errors.scheduled_for" />
                             </div>
 
                             <p class="text-sm text-muted-foreground">
-                                Draft posts remain private until they are published. Scheduled posts will go live
-                                automatically, while archived entries stay hidden from readers.
+                                Draft posts remain private until they are published. Scheduled posts will go live automatically, while archived
+                                entries stay hidden from readers.
                             </p>
                         </CardContent>
                         <CardFooter class="justify-end">
@@ -617,9 +591,7 @@ const handleSubmit = () => {
                     <Card>
                         <CardHeader>
                             <CardTitle>Author profile</CardTitle>
-                            <CardDescription>
-                                Curate how {{ props.author?.nickname ?? 'the author' }} is presented to readers.
-                            </CardDescription>
+                            <CardDescription> Curate how {{ props.author?.nickname ?? 'the author' }} is presented to readers. </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
                             <div class="grid gap-2">
@@ -647,13 +619,9 @@ const handleSubmit = () => {
                             <div class="space-y-3">
                                 <div class="flex flex-wrap items-center justify-between gap-2">
                                     <Label class="text-sm font-medium">Social links</Label>
-                                    <Button type="button" variant="outline" size="sm" @click="addAuthorSocialLink">
-                                        Add link
-                                    </Button>
+                                    <Button type="button" variant="outline" size="sm" @click="addAuthorSocialLink"> Add link </Button>
                                 </div>
-                                <p class="text-xs text-muted-foreground">
-                                    Help readers discover more from this author by linking to key platforms.
-                                </p>
+                                <p class="text-xs text-muted-foreground">Help readers discover more from this author by linking to key platforms.</p>
 
                                 <div v-if="form.author.social_links.length" class="space-y-3">
                                     <div
@@ -670,7 +638,7 @@ const handleSubmit = () => {
                                                     type="text"
                                                     placeholder="Website"
                                                 />
-                                                <InputError :message="form.errors[`author.social_links.${index}.label`]" />
+                                                <InputError :message="fieldError('author.social_links.' + index + '.label')" />
                                             </div>
                                             <div class="grid gap-2">
                                                 <Label :for="`create-author-social-link-url-${index}`">URL</Label>
@@ -678,26 +646,17 @@ const handleSubmit = () => {
                                                     :id="`create-author-social-link-url-${index}`"
                                                     v-model="form.author.social_links[index].url"
                                                     type="url"
-                                                    placeholder="https://example.com/about"
+                                                    :placeholder="socialLinkUrlPlaceholder"
                                                 />
-                                                <InputError :message="form.errors[`author.social_links.${index}.url`]" />
+                                                <InputError :message="fieldError('author.social_links.' + index + '.url')" />
                                             </div>
                                         </div>
                                         <div class="flex justify-end">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                @click="removeAuthorSocialLink(index)"
-                                            >
-                                                Remove
-                                            </Button>
+                                            <Button type="button" variant="ghost" size="sm" @click="removeAuthorSocialLink(index)"> Remove </Button>
                                         </div>
                                     </div>
                                 </div>
-                                <div v-else class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                                    No social links added yet.
-                                </div>
+                                <div v-else class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No social links added yet.</div>
                                 <InputError :message="form.errors['author.social_links']" />
                             </div>
                         </CardContent>
@@ -709,9 +668,7 @@ const handleSubmit = () => {
                 <DialogContent class="sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle>Preview blog post</DialogTitle>
-                        <DialogDescription>
-                            Review how your article will appear before saving or scheduling it.
-                        </DialogDescription>
+                        <DialogDescription> Review how your article will appear before saving or scheduling it. </DialogDescription>
                     </DialogHeader>
 
                     <div class="space-y-6">
@@ -728,7 +685,7 @@ const handleSubmit = () => {
 
                             <div class="space-y-4">
                                 <div>
-                                    <p class="text-xs uppercase tracking-wide text-muted-foreground">Title</p>
+                                    <p class="text-xs tracking-wide text-muted-foreground uppercase">Title</p>
                                     <h2 class="text-2xl font-semibold">{{ form.title || 'Untitled post' }}</h2>
                                 </div>
                                 <div v-if="form.excerpt" class="text-sm text-muted-foreground">
@@ -738,7 +695,7 @@ const handleSubmit = () => {
                             </div>
 
                             <div v-if="selectedCategories.length || selectedTags.length" class="space-y-3">
-                                <p class="text-xs uppercase tracking-wide text-muted-foreground">Metadata</p>
+                                <p class="text-xs tracking-wide text-muted-foreground uppercase">Metadata</p>
                                 <div class="flex flex-wrap gap-2 text-xs">
                                     <span
                                         v-for="category in selectedCategories"

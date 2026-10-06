@@ -8,10 +8,11 @@ use App\Models\User;
 use App\Support\Billing\SubscriptionManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
-use Mockery;
-use Tests\TestCase;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 use Laravel\Cashier\Payment;
+use Mockery;
+use Stripe\PaymentIntent;
+use Tests\TestCase;
 
 class BillingSettingsTest extends TestCase
 {
@@ -103,8 +104,8 @@ class BillingSettingsTest extends TestCase
         $user = User::factory()->create();
         $plan = SubscriptionPlan::factory()->create();
 
-        $paymentIntent = class_exists(\Stripe\PaymentIntent::class)
-            ? \Stripe\PaymentIntent::constructFrom([
+        $paymentIntent = class_exists(PaymentIntent::class)
+            ? PaymentIntent::constructFrom([
                 'id' => 'pi_test_123',
                 'client_secret' => 'pi_secret_123',
             ])

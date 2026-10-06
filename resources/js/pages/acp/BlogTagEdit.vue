@@ -52,7 +52,8 @@ const handleSubmit = () => {
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Edit blog tag</h1>
                         <p class="text-sm text-muted-foreground">
-                            Update the tag name or slug. {{ props.tag.blogs_count }} blog post{{ props.tag.blogs_count === 1 ? '' : 's' }} currently use this tag.
+                            Update the tag name or slug. {{ props.tag.blogs_count }} blog post{{ props.tag.blogs_count === 1 ? '' : 's' }} currently
+                            use this tag.
                         </p>
                     </div>
 

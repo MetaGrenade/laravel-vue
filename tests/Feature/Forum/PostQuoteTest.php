@@ -62,7 +62,7 @@ class PostQuoteTest extends TestCase
         $quoteHtml = $page['props']['posts']['data'][0]['quote_html'] ?? '';
         $this->assertNotSame('', $quoteHtml);
 
-        $replyBody = $quoteHtml . '<p>Thanks for the insight.</p>';
+        $replyBody = $quoteHtml.'<p>Thanks for the insight.</p>';
 
         $response = $this->actingAs($replier)->post(route('forum.posts.store', [$board, $thread]), [
             'body' => $replyBody,

@@ -13,16 +13,14 @@ use Illuminate\Support\Carbon;
 
 class ReputationManager
 {
-    public function __construct(private readonly DatabaseManager $db)
-    {
-    }
+    public function __construct(private readonly DatabaseManager $db) {}
 
     public function record(string $eventKey, User $user, ?Model $source = null, array $metadata = []): ?ReputationEvent
     {
         $config = config('reputation.events', []);
         $eventConfig = Arr::get($config, $eventKey);
 
-        if (!$eventConfig) {
+        if (! $eventConfig) {
             return null;
         }
 
@@ -75,7 +73,7 @@ class ReputationManager
                 ],
             ])->all();
 
-        if (!empty($toAttach)) {
+        if (! empty($toAttach)) {
             $user->badges()->attach($toAttach);
         }
     }

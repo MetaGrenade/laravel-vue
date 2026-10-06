@@ -14,7 +14,7 @@ class LogTokenActivity
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -60,7 +60,7 @@ class LogTokenActivity
         TokenLog::create([
             'personal_access_token_id' => $token->id,
             'token_name' => $token->name,
-            'route' => '/' . ltrim($request->path(), '/'),
+            'route' => '/'.ltrim($request->path(), '/'),
             'method' => $request->method(),
             'status' => $status,
             'http_status' => $responseStatus,

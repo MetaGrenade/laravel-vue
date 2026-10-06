@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
-import { FolderTree, Pencil, PlusCircle, Trash2 } from 'lucide-vue-next';
+import { FolderTree, Pencil, PlusCircle, Trash2 } from '@lucide/vue';
 
 type ManagedCategory = {
     id: number;
@@ -96,9 +96,7 @@ const confirmDeleteCategory = () => {
                                 <FolderTree class="h-5 w-5" />
                                 Blog categories
                             </CardTitle>
-                            <CardDescription>
-                                Organize the categories authors can assign to their stories and announcements.
-                            </CardDescription>
+                            <CardDescription> Organize the categories authors can assign to their stories and announcements. </CardDescription>
                         </div>
                         <Button variant="secondary" as-child>
                             <Link :href="route('acp.blog-categories.create')">
@@ -132,13 +130,11 @@ const confirmDeleteCategory = () => {
                                 <TableRow v-for="category in props.categories" :key="category.id">
                                     <TableCell class="font-medium">{{ category.name }}</TableCell>
                                     <TableCell>
-                                        <span class="rounded bg-muted px-2 py-1 text-xs font-mono">{{ category.slug }}</span>
+                                        <span class="rounded bg-muted px-2 py-1 font-mono text-xs">{{ category.slug }}</span>
                                     </TableCell>
                                     <TableCell class="text-center">
                                         <span class="font-semibold">{{ category.blogs_count }}</span>
-                                        <span class="ml-1 text-xs text-muted-foreground">
-                                            post{{ category.blogs_count === 1 ? '' : 's' }}
-                                        </span>
+                                        <span class="ml-1 text-xs text-muted-foreground"> post{{ category.blogs_count === 1 ? '' : 's' }} </span>
                                     </TableCell>
                                     <TableCell class="text-center">
                                         {{ category.created_at ? formatDate(category.created_at, 'MMM D, YYYY h:mm A') : '—' }}

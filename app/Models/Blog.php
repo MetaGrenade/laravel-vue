@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\SanitizedHtml;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -29,6 +30,7 @@ class Blog extends Model
     ];
 
     protected $casts = [
+        'body' => SanitizedHtml::class.':article',
         'published_at' => 'datetime',
         'scheduled_for' => 'datetime',
         'last_viewed_at' => 'datetime',

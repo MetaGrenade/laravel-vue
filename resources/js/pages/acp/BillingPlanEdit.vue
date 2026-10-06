@@ -61,7 +61,12 @@ const form = useForm({
     is_active: props.plan.is_active,
 });
 
-const featuresError = computed(() => form.errors.features ?? form.errors['features.0'] ?? null);
+const featuresError = computed(() => {
+    // Array validation errors are keyed by dot notation (features.0) as well as the field name.
+    const errors = form.errors as Record<string, string | undefined>;
+
+    return errors.features ?? errors['features.0'] ?? null;
+});
 const { formatDate } = useUserTimezone();
 
 const parsePrice = (value: string | number): number => {
@@ -88,11 +93,11 @@ const parsePrice = (value: string | number): number => {
 };
 
 const handleSubmit = () => {
-    form.transform(data => {
+    form.transform((data) => {
         const features = data.features_text
             .split(/\r?\n/)
-            .map(entry => entry.trim())
-            .filter(entry => entry.length > 0);
+            .map((entry) => entry.trim())
+            .filter((entry) => entry.length > 0);
 
         return {
             name: data.name,
@@ -110,7 +115,7 @@ const handleSubmit = () => {
     form.put(route('acp.billing.plans.update', { plan: props.plan.id }), {
         preserveScroll: true,
         onFinish: () => {
-            form.transform(data => ({ ...data }));
+            form.transform((data) => ({ ...data }));
         },
     });
 };
@@ -125,18 +130,14 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Edit subscription plan</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Update plan metadata and availability without touching Stripe settings.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Update plan metadata and availability without touching Stripe settings.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.billing.plans.index')">Back</Link>
                         </Button>
-                        <Button type="submit" :disabled="form.processing">
-                            Update plan
-                        </Button>
+                        <Button type="submit" :disabled="form.processing"> Update plan </Button>
                     </div>
                 </div>
 
@@ -145,9 +146,7 @@ const handleSubmit = () => {
                         <PlaceholderPattern class="absolute inset-0 opacity-10" />
                         <div class="relative space-y-1">
                             <CardTitle>Plan details</CardTitle>
-                            <CardDescription>
-                                Keep the plan aligned with Stripe pricing and communicate updates to members.
-                            </CardDescription>
+                            <CardDescription> Keep the plan aligned with Stripe pricing and communicate updates to members. </CardDescription>
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-6">
@@ -159,40 +158,20 @@ const handleSubmit = () => {
 
                         <div class="grid gap-2">
                             <Label for="slug">Slug</Label>
-                            <Input
-                                id="slug"
-                                v-model="form.slug"
-                                type="text"
-                                autocomplete="off"
-                                placeholder="Optional custom slug"
-                            />
+                            <Input id="slug" v-model="form.slug" type="text" autocomplete="off" placeholder="Optional custom slug" />
                             <InputError :message="form.errors.slug" />
                         </div>
 
                         <div class="grid gap-2">
                             <Label for="stripe_price_id">Stripe price ID</Label>
-                            <Input
-                                id="stripe_price_id"
-                                v-model="form.stripe_price_id"
-                                type="text"
-                                autocomplete="off"
-                                required
-                            />
+                            <Input id="stripe_price_id" v-model="form.stripe_price_id" type="text" autocomplete="off" required />
                             <InputError :message="form.errors.stripe_price_id" />
                         </div>
 
                         <div class="grid gap-2 md:grid-cols-2 md:gap-6">
                             <div class="grid gap-2">
                                 <Label for="price">Price</Label>
-                                <Input
-                                    id="price"
-                                    v-model="form.price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    inputmode="decimal"
-                                    required
-                                />
+                                <Input id="price" v-model="form.price" type="number" min="0" step="0.01" inputmode="decimal" required />
                                 <p class="text-xs text-muted-foreground">
                                     Enter the amount in your billing currency. We'll store the value in cents.
                                 </p>
@@ -201,11 +180,7 @@ const handleSubmit = () => {
 
                             <div class="grid gap-2">
                                 <Label for="interval">Billing interval</Label>
-                                <select
-                                    id="interval"
-                                    v-model="form.interval"
-                                    class="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                >
+                                <select id="interval" v-model="form.interval" class="h-10 rounded-md border border-input bg-background px-3 text-sm">
                                     <option v-for="interval in props.intervals" :key="interval" :value="interval">
                                         {{ interval }}
                                     </option>
@@ -244,12 +219,7 @@ const handleSubmit = () => {
 
                         <div class="grid gap-2">
                             <Label for="features">Plan features</Label>
-                            <Textarea
-                                id="features"
-                                v-model="form.features_text"
-                                placeholder="List each benefit on a new line"
-                                class="min-h-32"
-                            />
+                            <Textarea id="features" v-model="form.features_text" placeholder="List each benefit on a new line" class="min-h-32" />
                             <InputError :message="featuresError" />
                         </div>
 
@@ -271,9 +241,7 @@ const handleSubmit = () => {
                         <div class="flex items-center justify-between rounded-lg border p-4">
                             <div>
                                 <div class="font-medium">Active plan</div>
-                                <p class="text-sm text-muted-foreground">
-                                    Toggle off to hide the plan from member-facing billing screens.
-                                </p>
+                                <p class="text-sm text-muted-foreground">Toggle off to hide the plan from member-facing billing screens.</p>
                             </div>
                             <Switch v-model="form.is_active" />
                         </div>
@@ -283,9 +251,7 @@ const handleSubmit = () => {
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.billing.plans.index')">Back</Link>
                         </Button>
-                        <Button type="submit" :disabled="form.processing">
-                            Update plan
-                        </Button>
+                        <Button type="submit" :disabled="form.processing"> Update plan </Button>
                     </CardFooter>
                 </Card>
             </form>

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Http\Controllers\Controller;
 use App\Models\BillingInvoice;
 use App\Models\SubscriptionPlan;
-use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Support\Billing\SubscriptionManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,9 +21,7 @@ class SubscriptionController extends Controller
 {
     use InteractsWithStripe;
 
-    public function __construct(protected SubscriptionManager $subscriptions)
-    {
-    }
+    public function __construct(protected SubscriptionManager $subscriptions) {}
 
     public function index(Request $request): InertiaResponse
     {

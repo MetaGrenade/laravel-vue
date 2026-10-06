@@ -3,7 +3,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Link, usePage } from '@inertiajs/vue3';
 import { useDebounceFn, useVModel } from '@vueuse/core';
-import { Loader2, Search as SearchIcon } from 'lucide-vue-next';
+import { Loader2, Search as SearchIcon } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useGlobalSearchQuery } from '@/composables/useGlobalSearchQuery';
 import type { SharedData } from '@/types';
@@ -77,10 +77,11 @@ let activeController: AbortController | null = null;
 
 const trimmedQuery = computed(() => query.value.trim());
 
-const hasAnyResults = computed(() =>
-    (isGroupEnabled('blogs') && results.value.blogs.items.length > 0) ||
-    (isGroupEnabled('forum_threads') && results.value.forum_threads.items.length > 0) ||
-    (isGroupEnabled('faqs') && results.value.faqs.items.length > 0),
+const hasAnyResults = computed(
+    () =>
+        (isGroupEnabled('blogs') && results.value.blogs.items.length > 0) ||
+        (isGroupEnabled('forum_threads') && results.value.forum_threads.items.length > 0) ||
+        (isGroupEnabled('faqs') && results.value.faqs.items.length > 0),
 );
 
 const groups = computed(() =>
@@ -258,7 +259,7 @@ onBeforeUnmount(() => {
                         @keydown.esc.prevent="closePalette"
                     />
                     <kbd
-                        class="ml-auto mr-5 hidden items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground md:inline-flex"
+                        class="mr-5 ml-auto hidden items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground md:inline-flex"
                     >
                         <span>{{ isMac ? '⌘' : 'Ctrl' }}</span>
                         <span>K</span>
@@ -270,10 +271,7 @@ onBeforeUnmount(() => {
                 <div v-if="fetchError" class="px-4 py-6 text-sm text-destructive">
                     {{ fetchError }}
                 </div>
-                <div
-                    v-else-if="trimmedQuery.length < MIN_QUERY_LENGTH"
-                    class="px-4 py-6 text-sm text-muted-foreground"
-                >
+                <div v-else-if="trimmedQuery.length < MIN_QUERY_LENGTH" class="px-4 py-6 text-sm text-muted-foreground">
                     Type at least {{ MIN_QUERY_LENGTH }} characters to search.
                 </div>
                 <div v-else-if="isLoading" class="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
@@ -283,14 +281,14 @@ onBeforeUnmount(() => {
                 <template v-else>
                     <div v-if="hasAnyResults" class="divide-y divide-border/60">
                         <section v-for="group in groups" :key="group.key" class="bg-background">
-                            <div class="px-4 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <div class="px-4 pt-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                 {{ group.title }}
                             </div>
                             <ul>
                                 <li v-for="item in group.items" :key="`${group.key}-${item.id}`">
                                     <Link
                                         :href="item.url"
-                                        class="flex flex-col gap-1 px-4 py-3 text-left transition hover:bg-muted focus:bg-muted focus:outline-none"
+                                        class="flex flex-col gap-1 px-4 py-3 text-left transition hover:bg-muted focus:bg-muted focus:outline-hidden"
                                         @click="closePalette"
                                     >
                                         <span class="text-sm font-medium text-foreground">{{ item.title }}</span>
@@ -312,9 +310,7 @@ onBeforeUnmount(() => {
                             </div>
                         </section>
                     </div>
-                    <div v-else class="px-4 py-6 text-sm text-muted-foreground">
-                        No results for “{{ trimmedQuery }}”.
-                    </div>
+                    <div v-else class="px-4 py-6 text-sm text-muted-foreground">No results for “{{ trimmedQuery }}”.</div>
                 </template>
             </div>
         </DialogContent>

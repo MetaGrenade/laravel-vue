@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 
 const useRecovery = ref(false);
 
@@ -20,7 +20,7 @@ const title = computed(() => (useRecovery.value ? 'Use a recovery code' : 'Enter
 const description = computed(() =>
     useRecovery.value
         ? 'Enter one of the recovery codes you saved when enabling multi-factor authentication.'
-        : 'Open your authenticator app (Authy, Google Authenticator, etc.) and enter the 6-digit verification code.'
+        : 'Open your authenticator app (Authy, Google Authenticator, etc.) and enter the 6-digit verification code.',
 );
 
 const submit = () => {

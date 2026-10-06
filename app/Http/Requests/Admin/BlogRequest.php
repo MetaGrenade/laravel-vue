@@ -57,10 +57,10 @@ class BlogRequest extends FormRequest
     public function rules()
     {
         return [
-            'title'    => 'required|string|max:255',
-            'excerpt'  => 'nullable|string',
-            'body'  => 'required|string',
-            'status'   => 'required|in:draft,scheduled,published,archived',
+            'title' => 'required|string|max:255',
+            'excerpt' => 'nullable|string',
+            'body' => 'required|string',
+            'status' => 'required|in:draft,scheduled,published,archived',
             'scheduled_for' => 'nullable|date|after:now|required_if:status,scheduled',
             'cover_image' => 'nullable|image|max:5120',
             'category_ids' => 'array',

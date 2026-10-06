@@ -15,8 +15,7 @@ class BillingWebhookCallController extends Controller
 {
     public function __construct(
         private readonly BillingWebhookProcessor $processor,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {

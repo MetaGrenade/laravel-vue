@@ -59,9 +59,7 @@ const handleSubmit = () => {
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.forums.index')">Cancel</Link>
                         </Button>
-                        <Button type="submit" :disabled="form.processing || !hasCategories">
-                            Save board
-                        </Button>
+                        <Button type="submit" :disabled="form.processing || !hasCategories"> Save board </Button>
                     </div>
                 </div>
 
@@ -70,9 +68,7 @@ const handleSubmit = () => {
                         <PlaceholderPattern class="absolute inset-0 opacity-10" />
                         <div class="relative space-y-1">
                             <CardTitle>Board details</CardTitle>
-                            <CardDescription>
-                                Choose which category this board belongs to and describe its purpose for members.
-                            </CardDescription>
+                            <CardDescription> Choose which category this board belongs to and describe its purpose for members. </CardDescription>
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-6">
@@ -81,7 +77,7 @@ const handleSubmit = () => {
                             <select
                                 id="forum_category_id"
                                 v-model="form.forum_category_id"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 :disabled="!hasCategories"
                                 required
                             >

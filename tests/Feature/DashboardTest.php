@@ -81,8 +81,8 @@ class DashboardTest extends TestCase
             ->where('recommendedArticles', function ($articles) use ($viewedBlog, $alreadyRead) {
                 $ids = collect($articles)->pluck('id');
 
-                return !$ids->contains($viewedBlog->id)
-                    && !$ids->contains($alreadyRead->id);
+                return ! $ids->contains($viewedBlog->id)
+                    && ! $ids->contains($alreadyRead->id);
             }));
     }
 

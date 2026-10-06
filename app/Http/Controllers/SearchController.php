@@ -10,9 +10,7 @@ use Illuminate\Support\Str;
 
 class SearchController extends Controller
 {
-    public function __construct(private readonly GlobalSearchService $searchService)
-    {
-    }
+    public function __construct(private readonly GlobalSearchService $searchService) {}
 
     /**
      * Handle the aggregated search across blogs, forum threads, and FAQs.

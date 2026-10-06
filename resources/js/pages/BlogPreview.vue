@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CalendarClock } from 'lucide-vue-next';
+import { CalendarClock } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
 interface BlogPreviewPayload {
@@ -69,13 +69,15 @@ const tags = computed(() => blog.value.tags ?? []);
                 </AlertDescription>
             </Alert>
 
-            <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
+            <div class="mb-8 rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
                 <div v-if="coverImage" class="mb-6 overflow-hidden rounded-lg">
                     <img :src="coverImage" alt="Blog cover" class="h-64 w-full object-cover" />
                 </div>
                 <h1 class="mb-3 text-3xl font-bold">{{ blog.title }}</h1>
                 <div class="mb-4 text-sm text-gray-500 dark:text-gray-400">
-                    <span>By <span class="font-medium text-foreground">{{ authorName }}</span></span>
+                    <span
+                        >By <span class="font-medium text-foreground">{{ authorName }}</span></span
+                    >
                 </div>
                 <p v-if="blog.excerpt" class="mb-6 text-base text-gray-600 dark:text-gray-300">
                     {{ blog.excerpt }}
@@ -83,7 +85,7 @@ const tags = computed(() => blog.value.tags ?? []);
                 <div class="prose max-w-none" v-html="blog.body"></div>
             </div>
 
-            <div v-if="categories.length || tags.length" class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+            <div v-if="categories.length || tags.length" class="mb-8 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                 <h2 class="mb-3 text-lg font-semibold">Metadata</h2>
                 <div class="flex flex-wrap gap-2 text-xs">
                     <span

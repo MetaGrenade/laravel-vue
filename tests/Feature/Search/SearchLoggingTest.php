@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Search;
 
-use App\Models\SearchQuery;
 use App\Support\Search\GlobalSearchService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -13,7 +12,7 @@ class SearchLoggingTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
         parent::tearDown();
 

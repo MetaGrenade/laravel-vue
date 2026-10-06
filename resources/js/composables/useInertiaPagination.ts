@@ -1,4 +1,4 @@
-import { computed, ref, unref, watch, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue';
+import { computed, ref, toValue, watch, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue';
 
 export interface PaginationMeta {
     current_page: number;
@@ -12,7 +12,7 @@ export interface PaginationMeta {
 export interface UseInertiaPaginationOptions {
     meta: MaybeRefOrGetter<Partial<PaginationMeta> | null | undefined>;
     itemsLength?: MaybeRefOrGetter<number | null | undefined>;
-    defaultPerPage?: number;
+    defaultPerPage?: MaybeRefOrGetter<number>;
     itemLabel?: string;
     itemLabelPlural?: string;
     emptyLabel?: string;
@@ -37,23 +37,15 @@ function normalizeNumber(value: unknown, fallback: number): number {
 }
 
 export function useInertiaPagination(options: UseInertiaPaginationOptions): UseInertiaPaginationResult {
-    const {
-        meta: metaSource,
-        itemsLength = 0,
-        defaultPerPage = 15,
-        itemLabel = 'item',
-        itemLabelPlural,
-        emptyLabel,
-        onNavigate,
-    } = options;
+    const { meta: metaSource, itemsLength = 0, defaultPerPage = 15, itemLabel = 'item', itemLabelPlural, emptyLabel, onNavigate } = options;
 
-    const itemsCount = computed(() => Math.max(0, normalizeNumber(unref(itemsLength), 0)));
+    const itemsCount = computed(() => Math.max(0, normalizeNumber(toValue(itemsLength), 0)));
 
     const meta = computed<PaginationMeta>(() => {
-        const raw = unref(metaSource) ?? {};
+        const raw = toValue(metaSource) ?? {};
 
         const total = normalizeNumber(raw.total, itemsCount.value);
-        const perPageDefault = itemsCount.value > 0 ? itemsCount.value : defaultPerPage;
+        const perPageDefault = itemsCount.value > 0 ? itemsCount.value : toValue(defaultPerPage);
         const perPage = Math.max(1, normalizeNumber(raw.per_page, perPageDefault) || perPageDefault);
         const currentPage = Math.max(1, normalizeNumber(raw.current_page, 1));
         const derivedLastPage = Math.max(Math.ceil(total / Math.max(perPage, 1)), 1);
@@ -106,29 +98,26 @@ export function useInertiaPagination(options: UseInertiaPaginationOptions): UseI
 
     let skipNextNavigate = false;
 
-    watch(
-        page,
-        (newPage) => {
-            const safePage = Math.min(Math.max(newPage, 1), pageCount.value);
+    watch(page, (newPage) => {
+        const safePage = Math.min(Math.max(newPage, 1), pageCount.value);
 
-            if (safePage !== newPage) {
-                page.value = safePage;
-                skipNextNavigate = false;
-                return;
-            }
+        if (safePage !== newPage) {
+            page.value = safePage;
+            skipNextNavigate = false;
+            return;
+        }
 
-            if (skipNextNavigate) {
-                skipNextNavigate = false;
-                return;
-            }
+        if (skipNextNavigate) {
+            skipNextNavigate = false;
+            return;
+        }
 
-            if (safePage === meta.value.current_page) {
-                return;
-            }
+        if (safePage === meta.value.current_page) {
+            return;
+        }
 
-            onNavigate?.(safePage);
-        },
-    );
+        onNavigate?.(safePage);
+    });
 
     const setPage = (value: number, options: SetPageOptions = {}) => {
         skipNextNavigate = options.emitNavigate === false;

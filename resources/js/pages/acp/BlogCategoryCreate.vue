@@ -38,9 +38,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Create blog category</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Define a category writers can select to group similar blog posts together.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Define a category writers can select to group similar blog posts together.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">

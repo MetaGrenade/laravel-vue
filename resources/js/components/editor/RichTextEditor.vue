@@ -1,582 +1,569 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type HTMLAttributes } from 'vue'
-import { Editor, EditorContent, VueRenderer } from '@tiptap/vue-3'
-import Blockquote from '@tiptap/extension-blockquote'
-import Bold from '@tiptap/extension-bold'
-import BulletList from '@tiptap/extension-bullet-list'
-import Code from '@tiptap/extension-code'
-import CodeBlock from '@tiptap/extension-code-block'
-import Document from '@tiptap/extension-document'
-import Dropcursor from '@tiptap/extension-dropcursor'
-import Gapcursor from '@tiptap/extension-gapcursor'
-import HardBreak from '@tiptap/extension-hard-break'
-import History from '@tiptap/extension-history'
-import HorizontalRule from '@tiptap/extension-horizontal-rule'
-import Italic from '@tiptap/extension-italic'
-import ListItem from '@tiptap/extension-list-item'
-import OrderedList from '@tiptap/extension-ordered-list'
-import Paragraph from '@tiptap/extension-paragraph'
-import Placeholder from '@tiptap/extension-placeholder'
-import Strike from '@tiptap/extension-strike'
-import Text from '@tiptap/extension-text'
-import TextStyle from '@tiptap/extension-text-style'
-import MentionSuggestionList, { type MentionSuggestionItem } from '@/components/editor/MentionSuggestionList.vue'
-import MentionExtension, { type MentionAttributes } from './extensions/mention'
-import { cn } from '@/lib/utils'
-import { useDebounceFn } from '@vueuse/core'
-import { Bold as BoldIcon, Code as CodeIcon, Eye, EyeOff, Italic as ItalicIcon, List, ListOrdered, MessageSquareCode, Quote, Redo, Strikethrough, Undo } from 'lucide-vue-next'
-import tippy, { type Instance as TippyInstance } from 'tippy.js'
-import type { SuggestionProps } from '@tiptap/suggestion'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch, type HTMLAttributes } from 'vue';
+import { Editor, EditorContent, VueRenderer } from '@tiptap/vue-3';
+import StarterKit from '@tiptap/starter-kit';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Placeholder } from '@tiptap/extensions';
+import MentionSuggestionList, { type MentionSuggestionItem } from '@/components/editor/MentionSuggestionList.vue';
+import MentionExtension, { type MentionAttributes } from './extensions/mention';
+import { cn } from '@/lib/utils';
+import { useDebounceFn } from '@vueuse/core';
+import {
+    Bold as BoldIcon,
+    Code as CodeIcon,
+    Eye,
+    EyeOff,
+    Italic as ItalicIcon,
+    List,
+    ListOrdered,
+    MessageSquareCode,
+    Quote,
+    Redo,
+    Strikethrough,
+    Undo,
+} from '@lucide/vue';
+import tippy, { type Instance as TippyInstance } from 'tippy.js';
+import type { SuggestionProps } from '@tiptap/suggestion';
 
 const props = withDefaults(
-  defineProps<{
-    id?: string
-    modelValue: string
-    placeholder?: string
-    class?: HTMLAttributes['class']
-    storageKey?: string | null
-    autofocus?: boolean
-  }>(),
-  {
-    placeholder: '',
-    storageKey: null,
-    autofocus: false,
-  },
-)
+    defineProps<{
+        id?: string;
+        modelValue: string;
+        placeholder?: string;
+        class?: HTMLAttributes['class'];
+        storageKey?: string | null;
+        autofocus?: boolean;
+    }>(),
+    {
+        placeholder: '',
+        storageKey: null,
+        autofocus: false,
+    },
+);
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string]
-}>()
+    'update:modelValue': [value: string];
+}>();
 
-const editor = ref<Editor | null>(null)
-const isPreviewing = ref(false)
-const lastSavedAt = ref<Date | null>(null)
-const hasInitialised = ref(false)
+// shallowRef: the editor manages its own reactive state; deep proxies are wasted work.
+const editor = shallowRef<Editor | null>(null);
+const isPreviewing = ref(false);
+const lastSavedAt = ref<Date | null>(null);
+const hasInitialised = ref(false);
 
-const mentionCache = new Map<string, MentionSuggestionItem[]>()
-let mentionAbortController: AbortController | null = null
-let mentionLoading = false
-let updateMentionLoading: ((loading: boolean) => void) | null = null
-let removeEditorKeydownListener: (() => void) | null = null
+const mentionCache = new Map<string, MentionSuggestionItem[]>();
+let mentionAbortController: AbortController | null = null;
+let mentionLoading = false;
+let updateMentionLoading: ((loading: boolean) => void) | null = null;
+let removeEditorKeydownListener: (() => void) | null = null;
 
 const fetchMentionSuggestions = async (query: string): Promise<MentionSuggestionItem[]> => {
-  const trimmed = query.trim()
+    const trimmed = query.trim();
 
-  if (trimmed === '' || trimmed.length > 50) {
-    return []
-  }
-
-  if (mentionCache.has(trimmed)) {
-    return mentionCache.get(trimmed) ?? []
-  }
-
-  if (mentionAbortController) {
-    mentionAbortController.abort()
-  }
-
-  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
-  mentionAbortController = controller
-  mentionLoading = true
-  updateMentionLoading?.(true)
-
-  try {
-    const url = route('forum.mentions.index', { q: trimmed })
-    const response = await fetch(url, {
-      signal: controller?.signal,
-      headers: {
-        Accept: 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      credentials: 'same-origin',
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to load mention suggestions')
+    if (trimmed === '' || trimmed.length > 50) {
+        return [];
     }
 
-    const payload = (await response.json()) as { data?: Array<Record<string, unknown>> }
-    const items = Array.isArray(payload.data) ? payload.data : []
-
-    const mapped = items
-      .map((item) => ({
-        id: item.id as number | string,
-        nickname: (item.nickname as string) ?? '',
-        label: (item.nickname as string) ?? '',
-        profileUrl: (item.profile_url as string | null | undefined) ?? null,
-        avatarUrl: (item.avatar_url as string | null | undefined) ?? null,
-      }))
-      .filter((item): item is MentionSuggestionItem => item.id !== undefined && item.id !== null && item.nickname !== '')
-
-    mentionCache.set(trimmed, mapped)
-    return mapped
-  } catch (error) {
-    if ((error as DOMException)?.name === 'AbortError') {
-      return []
+    if (mentionCache.has(trimmed)) {
+        return mentionCache.get(trimmed) ?? [];
     }
 
-    return []
-  } finally {
-    if (mentionAbortController === controller) {
-      mentionAbortController = null
+    if (mentionAbortController) {
+        mentionAbortController.abort();
     }
 
-    mentionLoading = false
-    updateMentionLoading?.(false)
-  }
-}
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    mentionAbortController = controller;
+    mentionLoading = true;
+    updateMentionLoading?.(true);
 
-const storageKey = computed(() => props.storageKey ?? null)
+    try {
+        const url = route('forum.mentions.index', { q: trimmed });
+        const response = await fetch(url, {
+            signal: controller?.signal,
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load mention suggestions');
+        }
+
+        const payload = (await response.json()) as { data?: Array<Record<string, unknown>> };
+        const items = Array.isArray(payload.data) ? payload.data : [];
+
+        const mapped = items
+            .map((item): MentionSuggestionItem => ({
+                id: item.id as number | string,
+                nickname: (item.nickname as string) ?? '',
+                label: (item.nickname as string) ?? '',
+                profileUrl: (item.profile_url as string | null | undefined) ?? null,
+                avatarUrl: (item.avatar_url as string | null | undefined) ?? null,
+            }))
+            .filter((item) => item.id !== undefined && item.id !== null && item.nickname !== '');
+
+        mentionCache.set(trimmed, mapped);
+        return mapped;
+    } catch (error) {
+        if ((error as DOMException)?.name === 'AbortError') {
+            return [];
+        }
+
+        return [];
+    } finally {
+        if (mentionAbortController === controller) {
+            mentionAbortController = null;
+        }
+
+        mentionLoading = false;
+        updateMentionLoading?.(false);
+    }
+};
+
+const storageKey = computed(() => props.storageKey ?? null);
 
 const queueAutosave = useDebounceFn((content: string) => {
-  if (!storageKey.value || typeof window === 'undefined') {
-    return
-  }
+    if (!storageKey.value || typeof window === 'undefined') {
+        return;
+    }
 
-  const trimmed = content.replace(/<[^>]*>/g, '').trim()
+    const trimmed = content.replace(/<[^>]*>/g, '').trim();
 
-  if (trimmed === '') {
-    window.localStorage.removeItem(storageKey.value)
-    lastSavedAt.value = null
-    return
-  }
+    if (trimmed === '') {
+        window.localStorage.removeItem(storageKey.value);
+        lastSavedAt.value = null;
+        return;
+    }
 
-  window.localStorage.setItem(storageKey.value, content)
-  lastSavedAt.value = new Date()
-}, 1200)
+    window.localStorage.setItem(storageKey.value, content);
+    lastSavedAt.value = new Date();
+}, 1200);
 
 const autosaveMessage = computed(() => {
-  if (!storageKey.value) {
-    return 'Formatting and autosave keep drafts safe as you write.'
-  }
+    if (!storageKey.value) {
+        return 'Formatting and autosave keep drafts safe as you write.';
+    }
 
-  if (!lastSavedAt.value) {
-    return 'Draft autosaves will appear once you start typing.'
-  }
+    if (!lastSavedAt.value) {
+        return 'Draft autosaves will appear once you start typing.';
+    }
 
-  const diff = Date.now() - lastSavedAt.value.getTime()
+    const diff = Date.now() - lastSavedAt.value.getTime();
 
-  if (diff < 5000) {
-    return 'Draft autosaved just now.'
-  }
+    if (diff < 5000) {
+        return 'Draft autosaved just now.';
+    }
 
-  const minute = 60 * 1000
+    const minute = 60 * 1000;
 
-  if (diff < minute) {
-    const seconds = Math.round(diff / 1000)
-    return `Draft autosaved ${seconds} second${seconds === 1 ? '' : 's'} ago.`
-  }
+    if (diff < minute) {
+        const seconds = Math.round(diff / 1000);
+        return `Draft autosaved ${seconds} second${seconds === 1 ? '' : 's'} ago.`;
+    }
 
-  const minutes = Math.round(diff / minute)
+    const minutes = Math.round(diff / minute);
 
-  if (minutes < 60) {
-    return `Draft autosaved ${minutes} minute${minutes === 1 ? '' : 's'} ago.`
-  }
+    if (minutes < 60) {
+        return `Draft autosaved ${minutes} minute${minutes === 1 ? '' : 's'} ago.`;
+    }
 
-  const hours = Math.round(minutes / 60)
-  return `Draft autosaved ${hours} hour${hours === 1 ? '' : 's'} ago.`
-})
+    const hours = Math.round(minutes / 60);
+    return `Draft autosaved ${hours} hour${hours === 1 ? '' : 's'} ago.`;
+});
 
 const clearDraft = () => {
-  if (!storageKey.value || typeof window === 'undefined') {
-    return
-  }
+    if (!storageKey.value || typeof window === 'undefined') {
+        return;
+    }
 
-  window.localStorage.removeItem(storageKey.value)
-  lastSavedAt.value = null
-}
+    window.localStorage.removeItem(storageKey.value);
+    lastSavedAt.value = null;
+};
 
 const loadInitialContent = () => {
-  if (typeof window === 'undefined') {
-    return props.modelValue
-  }
-
-  if (storageKey.value) {
-    const stored = window.localStorage.getItem(storageKey.value)
-
-    if (stored && stored.trim() !== '') {
-      emit('update:modelValue', stored)
-      lastSavedAt.value = new Date()
-      return stored
+    if (typeof window === 'undefined') {
+        return props.modelValue;
     }
-  }
 
-  return props.modelValue
-}
+    if (storageKey.value) {
+        const stored = window.localStorage.getItem(storageKey.value);
+
+        if (stored && stored.trim() !== '') {
+            emit('update:modelValue', stored);
+            lastSavedAt.value = new Date();
+            return stored;
+        }
+    }
+
+    return props.modelValue;
+};
 
 const createMentionExtension = () =>
-  MentionExtension.configure({
-    suggestion: {
-      char: '@',
-      allow: ({ query }) => (query?.length ?? 0) <= 50,
-      items: async ({ query }) => fetchMentionSuggestions(query ?? ''),
-      render: () => {
-        let component: VueRenderer | null = null
-        let popup: TippyInstance | null = null
-        let currentProps: SuggestionProps | null = null
+    MentionExtension.configure({
+        suggestion: {
+            char: '@',
+            items: async ({ query }) => fetchMentionSuggestions(query ?? ''),
+            render: () => {
+                let component: VueRenderer | null = null;
+                let popup: TippyInstance | null = null;
+                let currentProps: SuggestionProps | null = null;
 
-        const getComponentProps = (props: SuggestionProps) => ({
-          items: (props.items ?? []) as MentionSuggestionItem[],
-          command: (item: MentionSuggestionItem) => {
-            props.command({
-              id: item.id,
-              nickname: item.nickname,
-              label: item.label ?? item.nickname,
-              profileUrl: item.profileUrl ?? null,
-            } as MentionAttributes)
-          },
-          query: props.query,
-          loading: mentionLoading,
-        })
+                const referenceRect = (suggestion: SuggestionProps) => () => suggestion.clientRect?.() ?? new DOMRect();
 
-        return {
-          onStart: (props) => {
-            component = new VueRenderer(MentionSuggestionList, {
-              props: getComponentProps(props),
-              editor: props.editor,
-            })
+                const getComponentProps = (props: SuggestionProps) => ({
+                    items: (props.items ?? []) as MentionSuggestionItem[],
+                    command: (item: MentionSuggestionItem) => {
+                        props.command({
+                            id: item.id,
+                            nickname: item.nickname,
+                            label: item.label ?? item.nickname,
+                            profileUrl: item.profileUrl ?? null,
+                        } as MentionAttributes);
+                    },
+                    query: props.query,
+                    loading: mentionLoading,
+                });
 
-            popup = tippy(document.body, {
-              getReferenceClientRect: props.clientRect ?? undefined,
-              appendTo: () => document.body,
-              content: component.element,
-              showOnCreate: true,
-              interactive: true,
-              trigger: 'manual',
-              placement: 'bottom-start',
-            })
+                return {
+                    onStart: (props) => {
+                        component = new VueRenderer(MentionSuggestionList, {
+                            props: getComponentProps(props),
+                            editor: props.editor,
+                        });
 
-            currentProps = props
+                        popup = tippy(document.body, {
+                            getReferenceClientRect: referenceRect(props),
+                            appendTo: () => document.body,
+                            content: component.element ?? undefined,
+                            showOnCreate: true,
+                            interactive: true,
+                            trigger: 'manual',
+                            placement: 'bottom-start',
+                        });
 
-            updateMentionLoading = (loading: boolean) => {
-              mentionLoading = loading
+                        currentProps = props;
 
-              if (component && currentProps) {
-                component.updateProps(getComponentProps(currentProps))
-              }
-            }
-          },
-          onUpdate: (props) => {
-            if (!component || !popup) {
-              return
-            }
+                        updateMentionLoading = (loading: boolean) => {
+                            mentionLoading = loading;
 
-            currentProps = props
-            component.updateProps(getComponentProps(props))
+                            if (component && currentProps) {
+                                component.updateProps(getComponentProps(currentProps));
+                            }
+                        };
+                    },
+                    onUpdate: (props) => {
+                        if (!component || !popup) {
+                            return;
+                        }
 
-            const clientRect = props.clientRect?.()
+                        currentProps = props;
+                        component.updateProps(getComponentProps(props));
 
-            if (clientRect) {
-              popup.setProps({
-                getReferenceClientRect: props.clientRect ?? undefined,
-              })
-            }
-          },
-          onKeyDown: (props) => {
-            if (component?.ref?.onKeyDown(props)) {
-              return true
-            }
+                        const clientRect = props.clientRect?.();
 
-            return false
-          },
-          onExit: () => {
-            popup?.destroy()
-            popup = null
+                        if (clientRect) {
+                            popup.setProps({
+                                getReferenceClientRect: referenceRect(props),
+                            });
+                        }
+                    },
+                    onKeyDown: (props) => {
+                        if (component?.ref?.onKeyDown(props)) {
+                            return true;
+                        }
 
-            component?.destroy()
-            component = null
+                        return false;
+                    },
+                    onExit: () => {
+                        popup?.destroy();
+                        popup = null;
 
-            currentProps = null
-            updateMentionLoading = null
-            mentionLoading = false
+                        component?.destroy();
+                        component = null;
 
-            if (mentionAbortController) {
-              mentionAbortController.abort()
-              mentionAbortController = null
-            }
-          },
-        }
-      },
-    },
-  })
+                        currentProps = null;
+                        updateMentionLoading = null;
+                        mentionLoading = false;
+
+                        if (mentionAbortController) {
+                            mentionAbortController.abort();
+                            mentionAbortController = null;
+                        }
+                    },
+                };
+            },
+        },
+    });
 
 const createEditor = (initialContent: string) => {
-  editor.value = new Editor({
-    content: initialContent,
-    autofocus: props.autofocus,
-    extensions: [
-      Document,
-      Paragraph,
-      Text,
-      TextStyle,
-      Bold,
-      Italic,
-      Strike,
-      Code,
-      CodeBlock,
-      Blockquote,
-      BulletList,
-      OrderedList,
-      ListItem,
-      HorizontalRule,
-      HardBreak,
-      History,
-      Dropcursor.configure({
-        color: '#6366f1',
-      }),
-      Gapcursor,
-      createMentionExtension(),
-      Placeholder.configure({
-        placeholder: props.placeholder,
-      }),
-    ],
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none px-3 py-2 min-h-[16rem]',
-      },
-    },
-    onUpdate: ({ editor: current }) => {
-      const html = current.getHTML()
-      emit('update:modelValue', html)
-      queueAutosave(html)
-    },
-  })
-}
+    editor.value = new Editor({
+        content: initialContent,
+        autofocus: props.autofocus,
+        extensions: [
+            // Headings, links and underline are not offered in the toolbar, and the
+            // server-side sanitiser strips them from community content.
+            StarterKit.configure({
+                heading: false,
+                link: false,
+                underline: false,
+                dropcursor: {
+                    color: '#6366f1',
+                },
+            }),
+            TextStyle,
+            createMentionExtension(),
+            Placeholder.configure({
+                placeholder: props.placeholder,
+            }),
+        ],
+        editorProps: {
+            attributes: {
+                class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-hidden px-3 py-2 min-h-64',
+            },
+        },
+        onUpdate: ({ editor: current }) => {
+            const html = current.getHTML();
+            emit('update:modelValue', html);
+            queueAutosave(html);
+        },
+    });
+};
 
 const formattingGroups = computed(() => {
-  if (!editor.value) {
-    return []
-  }
+    if (!editor.value) {
+        return [];
+    }
 
-  return [
-    [
-      {
-        icon: BoldIcon,
-        label: 'Bold',
-        isActive: () => editor.value?.isActive('bold') ?? false,
-        action: () => editor.value?.chain().focus().toggleBold().run(),
-      },
-      {
-        icon: ItalicIcon,
-        label: 'Italic',
-        isActive: () => editor.value?.isActive('italic') ?? false,
-        action: () => editor.value?.chain().focus().toggleItalic().run(),
-      },
-      {
-        icon: Strikethrough,
-        label: 'Strikethrough',
-        isActive: () => editor.value?.isActive('strike') ?? false,
-        action: () => editor.value?.chain().focus().toggleStrike().run(),
-      },
-      {
-        icon: CodeIcon,
-        label: 'Inline code',
-        isActive: () => editor.value?.isActive('code') ?? false,
-        action: () => editor.value?.chain().focus().toggleCode().run(),
-      },
-    ],
-    [
-      {
-        icon: List,
-        label: 'Bullet list',
-        isActive: () => editor.value?.isActive('bulletList') ?? false,
-        action: () => editor.value?.chain().focus().toggleBulletList().run(),
-      },
-      {
-        icon: ListOrdered,
-        label: 'Numbered list',
-        isActive: () => editor.value?.isActive('orderedList') ?? false,
-        action: () => editor.value?.chain().focus().toggleOrderedList().run(),
-      },
-      {
-        icon: Quote,
-        label: 'Quote',
-        isActive: () => editor.value?.isActive('blockquote') ?? false,
-        action: () => editor.value?.chain().focus().toggleBlockquote().run(),
-      },
-      {
-        icon: MessageSquareCode,
-        label: 'Code block',
-        isActive: () => editor.value?.isActive('codeBlock') ?? false,
-        action: () => editor.value?.chain().focus().toggleCodeBlock().run(),
-      },
-    ],
-  ]
-})
+    return [
+        [
+            {
+                icon: BoldIcon,
+                label: 'Bold',
+                isActive: () => editor.value?.isActive('bold') ?? false,
+                action: () => editor.value?.chain().focus().toggleBold().run(),
+            },
+            {
+                icon: ItalicIcon,
+                label: 'Italic',
+                isActive: () => editor.value?.isActive('italic') ?? false,
+                action: () => editor.value?.chain().focus().toggleItalic().run(),
+            },
+            {
+                icon: Strikethrough,
+                label: 'Strikethrough',
+                isActive: () => editor.value?.isActive('strike') ?? false,
+                action: () => editor.value?.chain().focus().toggleStrike().run(),
+            },
+            {
+                icon: CodeIcon,
+                label: 'Inline code',
+                isActive: () => editor.value?.isActive('code') ?? false,
+                action: () => editor.value?.chain().focus().toggleCode().run(),
+            },
+        ],
+        [
+            {
+                icon: List,
+                label: 'Bullet list',
+                isActive: () => editor.value?.isActive('bulletList') ?? false,
+                action: () => editor.value?.chain().focus().toggleBulletList().run(),
+            },
+            {
+                icon: ListOrdered,
+                label: 'Numbered list',
+                isActive: () => editor.value?.isActive('orderedList') ?? false,
+                action: () => editor.value?.chain().focus().toggleOrderedList().run(),
+            },
+            {
+                icon: Quote,
+                label: 'Quote',
+                isActive: () => editor.value?.isActive('blockquote') ?? false,
+                action: () => editor.value?.chain().focus().toggleBlockquote().run(),
+            },
+            {
+                icon: MessageSquareCode,
+                label: 'Code block',
+                isActive: () => editor.value?.isActive('codeBlock') ?? false,
+                action: () => editor.value?.chain().focus().toggleCodeBlock().run(),
+            },
+        ],
+    ];
+});
 
 const togglePreview = () => {
-  if (!editor.value) {
-    return
-  }
+    if (!editor.value) {
+        return;
+    }
 
-  if (isPreviewing.value) {
-    isPreviewing.value = false
-    void nextTick(() => {
-      editor.value?.commands.focus('end')
-    })
-    return
-  }
+    if (isPreviewing.value) {
+        isPreviewing.value = false;
+        void nextTick(() => {
+            editor.value?.commands.focus('end');
+        });
+        return;
+    }
 
-  isPreviewing.value = true
-}
+    isPreviewing.value = true;
+};
 
-const undo = () => editor.value?.chain().focus().undo().run()
-const redo = () => editor.value?.chain().focus().redo().run()
+const undo = () => editor.value?.chain().focus().undo().run();
+const redo = () => editor.value?.chain().focus().redo().run();
 
 const toolbarButtonClass = (active: boolean) =>
-  cn(
-    'inline-flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
-    active ? 'bg-muted text-foreground shadow-inner' : 'text-muted-foreground',
-  )
+    cn(
+        'inline-flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors hover:bg-muted focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background focus:outline-hidden',
+        active ? 'bg-muted text-foreground shadow-inner' : 'text-muted-foreground',
+    );
 
 watch(
-  () => props.modelValue,
-  (value) => {
-    if (!editor.value) {
-      return
-    }
+    () => props.modelValue,
+    (value) => {
+        if (!editor.value) {
+            return;
+        }
 
-    const current = editor.value.getHTML()
+        const current = editor.value.getHTML();
 
-    if (value !== current && !(value === '' && current === '<p></p>')) {
-      editor.value.commands.setContent(value || '<p></p>', false)
-    }
-  },
-)
+        if (value !== current && !(value === '' && current === '<p></p>')) {
+            editor.value.commands.setContent(value || '<p></p>', { emitUpdate: false });
+        }
+    },
+);
 
 onMounted(() => {
-  const initialContent = loadInitialContent()
-  createEditor(initialContent)
+    const initialContent = loadInitialContent();
+    createEditor(initialContent);
 
-  const instance = editor.value
+    const instance = editor.value;
 
-  if (instance) {
-    const dom = instance.view.dom
-    const handleKeydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isPreviewing.value) {
-        event.preventDefault()
-        togglePreview()
-      }
+    if (instance) {
+        const dom = instance.view.dom;
+        const handleKeydown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && isPreviewing.value) {
+                event.preventDefault();
+                togglePreview();
+            }
+        };
+
+        dom.addEventListener('keydown', handleKeydown);
+        removeEditorKeydownListener = () => {
+            dom.removeEventListener('keydown', handleKeydown);
+        };
     }
 
-    dom.addEventListener('keydown', handleKeydown)
-    removeEditorKeydownListener = () => {
-      dom.removeEventListener('keydown', handleKeydown)
-    }
-  }
-
-  hasInitialised.value = true
-})
+    hasInitialised.value = true;
+});
 
 onBeforeUnmount(() => {
-  if (removeEditorKeydownListener) {
-    removeEditorKeydownListener()
-    removeEditorKeydownListener = null
-  }
+    if (removeEditorKeydownListener) {
+        removeEditorKeydownListener();
+        removeEditorKeydownListener = null;
+    }
 
-  if (editor.value) {
-    editor.value.destroy()
-    editor.value = null
-  }
-})
+    if (editor.value) {
+        editor.value.destroy();
+        editor.value = null;
+    }
+});
 </script>
 
 <template>
-  <div :id="id" :class="cn('flex flex-col gap-2', props.class)">
-    <div class="overflow-hidden rounded-lg border border-border bg-card">
-      <div class="flex flex-wrap items-center gap-1 border-b border-border bg-muted/40 px-2 py-1">
-        <div class="flex flex-wrap items-center gap-1">
-          <template v-for="group in formattingGroups" :key="group[0]?.label ?? ''">
-            <div class="flex items-center gap-1">
-              <button
-                v-for="item in group"
-                :key="item.label"
-                type="button"
-                class="shrink-0"
-                :class="toolbarButtonClass(item.isActive())"
-                :aria-label="item.label"
-                @mousedown.prevent
-                @click.prevent="item.action()"
-              >
-                <component :is="item.icon" class="h-4 w-4" />
-              </button>
+    <div :id="id" :class="cn('flex flex-col gap-2', props.class)">
+        <div class="overflow-hidden rounded-lg border border-border bg-card">
+            <div class="flex flex-wrap items-center gap-1 border-b border-border bg-muted/40 px-2 py-1">
+                <div class="flex flex-wrap items-center gap-1">
+                    <template v-for="group in formattingGroups" :key="group[0]?.label ?? ''">
+                        <div class="flex items-center gap-1">
+                            <button
+                                v-for="item in group"
+                                :key="item.label"
+                                type="button"
+                                class="shrink-0"
+                                :class="toolbarButtonClass(item.isActive())"
+                                :aria-label="item.label"
+                                @mousedown.prevent
+                                @click.prevent="item.action()"
+                            >
+                                <component :is="item.icon" class="h-4 w-4" />
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="ml-auto flex items-center gap-1">
+                    <button
+                        type="button"
+                        class="shrink-0"
+                        :class="toolbarButtonClass(false)"
+                        aria-label="Undo"
+                        @mousedown.prevent
+                        @click.prevent="undo"
+                    >
+                        <Undo class="h-4 w-4" />
+                    </button>
+                    <button
+                        type="button"
+                        class="shrink-0"
+                        :class="toolbarButtonClass(false)"
+                        aria-label="Redo"
+                        @mousedown.prevent
+                        @click.prevent="redo"
+                    >
+                        <Redo class="h-4 w-4" />
+                    </button>
+                    <button
+                        type="button"
+                        class="shrink-0"
+                        :class="toolbarButtonClass(isPreviewing)"
+                        :aria-pressed="isPreviewing"
+                        @mousedown.prevent
+                        @click.prevent="togglePreview"
+                    >
+                        <component :is="isPreviewing ? EyeOff : Eye" class="h-4 w-4" />
+                    </button>
+                </div>
             </div>
-          </template>
+
+            <div class="bg-background">
+                <EditorContent v-if="!isPreviewing" :editor="editor ?? undefined" />
+                <div v-else class="prose prose-sm dark:prose-invert min-h-64 max-w-none px-3 py-2">
+                    <div
+                        v-if="(editor && editor.getText().trim() !== '') || (props.modelValue && props.modelValue.trim() !== '')"
+                        v-html="editor?.getHTML() ?? props.modelValue"
+                    ></div>
+                    <p v-else class="text-sm text-muted-foreground">Nothing to preview yet.</p>
+                </div>
+            </div>
         </div>
 
-        <div class="ml-auto flex items-center gap-1">
-          <button
-            type="button"
-            class="shrink-0"
-            :class="toolbarButtonClass(false)"
-            aria-label="Undo"
-            @mousedown.prevent
-            @click.prevent="undo"
-          >
-            <Undo class="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            class="shrink-0"
-            :class="toolbarButtonClass(false)"
-            aria-label="Redo"
-            @mousedown.prevent
-            @click.prevent="redo"
-          >
-            <Redo class="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            class="shrink-0"
-            :class="toolbarButtonClass(isPreviewing)"
-            :aria-pressed="isPreviewing"
-            @mousedown.prevent
-            @click.prevent="togglePreview"
-          >
-            <component :is="isPreviewing ? EyeOff : Eye" class="h-4 w-4" />
-          </button>
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>{{ autosaveMessage }}</span>
+            <button
+                v-if="storageKey && hasInitialised"
+                type="button"
+                class="font-medium text-muted-foreground transition-colors hover:text-foreground"
+                @click.prevent="clearDraft"
+            >
+                Discard draft
+            </button>
         </div>
-      </div>
-
-      <div class="bg-background">
-        <EditorContent v-if="!isPreviewing" :editor="editor" />
-        <div v-else class="prose prose-sm dark:prose-invert max-w-none px-3 py-2 min-h-[16rem]">
-          <div
-            v-if="
-              (editor && editor.getText().trim() !== '')
-              || (props.modelValue && props.modelValue.trim() !== '')
-            "
-            v-html="editor?.getHTML() ?? props.modelValue"
-          ></div>
-          <p v-else class="text-sm text-muted-foreground">Nothing to preview yet.</p>
-        </div>
-      </div>
     </div>
-
-    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-      <span>{{ autosaveMessage }}</span>
-      <button
-        v-if="storageKey && hasInitialised"
-        type="button"
-        class="font-medium text-muted-foreground transition-colors hover:text-foreground"
-        @click.prevent="clearDraft"
-      >
-        Discard draft
-      </button>
-    </div>
-  </div>
 </template>
 
 <style scoped>
 :deep(.ProseMirror) {
-  min-height: 16rem;
-  cursor: text;
+    min-height: 16rem;
+    cursor: text;
 }
 
 :deep(.ProseMirror p.is-editor-empty:first-child::before) {
-  color: theme('colors.muted.DEFAULT');
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
+    color: var(--color-muted-foreground);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
 }
 </style>

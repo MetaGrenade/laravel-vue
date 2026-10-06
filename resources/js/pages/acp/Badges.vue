@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useUserTimezone } from '@/composables/useUserTimezone';
-import { Award, Pencil, PlusCircle, Trash2 } from 'lucide-vue-next';
+import { Award, Pencil, PlusCircle, Trash2 } from '@lucide/vue';
 
 interface BadgeSummary {
     id: number;
@@ -98,9 +98,7 @@ const confirmDeleteBadge = () => {
                                 <Award class="h-5 w-5" />
                                 Reputation badges
                             </CardTitle>
-                            <CardDescription>
-                                Celebrate contributors by defining milestones that award badges automatically.
-                            </CardDescription>
+                            <CardDescription> Celebrate contributors by defining milestones that award badges automatically. </CardDescription>
                         </div>
                         <Button variant="secondary" as-child>
                             <Link :href="route('acp.reputation.badges.create')">
@@ -138,7 +136,7 @@ const confirmDeleteBadge = () => {
                                             <span>{{ badge.name }}</span>
                                             <span
                                                 v-if="!badge.is_active"
-                                                class="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-800"
+                                                class="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-yellow-800 uppercase"
                                             >
                                                 Inactive
                                             </span>
@@ -164,12 +162,7 @@ const confirmDeleteBadge = () => {
                                                 Edit
                                             </Link>
                                         </Button>
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            :disabled="deletingBadgeId === badge.id"
-                                            @click="deleteBadge(badge)"
-                                        >
+                                        <Button variant="destructive" size="sm" :disabled="deletingBadgeId === badge.id" @click="deleteBadge(badge)">
                                             <Trash2 class="h-4 w-4" />
                                             Delete
                                         </Button>

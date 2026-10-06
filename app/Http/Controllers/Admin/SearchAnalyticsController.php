@@ -47,7 +47,7 @@ class SearchAnalyticsController extends Controller
 
     public function exportAggregates(): StreamedResponse
     {
-        $filename = 'search-aggregates-' . now()->format('Ymd-His') . '.csv';
+        $filename = 'search-aggregates-'.now()->format('Ymd-His').'.csv';
 
         $aggregates = SearchQueryAggregate::query()
             ->orderByDesc('total_count')
@@ -91,7 +91,7 @@ class SearchAnalyticsController extends Controller
             ->orderByDesc('created_at')
             ->get(['term', 'result_count', 'created_at']);
 
-        $filename = 'search-queries-' . now()->format('Ymd-His') . '.csv';
+        $filename = 'search-queries-'.now()->format('Ymd-His').'.csv';
 
         return response()->streamDownload(function () use ($searches) {
             $handle = fopen('php://output', 'w');
@@ -191,7 +191,7 @@ class SearchAnalyticsController extends Controller
         $query = SearchQuery::query();
 
         if ($term = $filters['term'] ?? null) {
-            $query->where('term', 'like', '%' . $term . '%');
+            $query->where('term', 'like', '%'.$term.'%');
         }
 
         if (! empty($filters['date_from'])) {

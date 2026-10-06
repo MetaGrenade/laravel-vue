@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { PlusCircle, Trash2 } from 'lucide-vue-next';
+import { PlusCircle, Trash2 } from '@lucide/vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Polls ACP', href: route('acp.polls.index') },
@@ -27,10 +27,7 @@ const form = useForm({
     allow_multiple: false,
     starts_at: '',
     ends_at: '',
-    options: [
-        { label: '' },
-        { label: '' },
-    ],
+    options: [{ label: '' }, { label: '' }],
 });
 
 const addOption = () => {
@@ -61,9 +58,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Create poll</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Launch a poll or survey to capture quick feedback from your community.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Launch a poll or survey to capture quick feedback from your community.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -79,9 +74,7 @@ const handleSubmit = () => {
                         <PlaceholderPattern class="absolute inset-0 opacity-10" />
                         <div class="relative space-y-1">
                             <CardTitle>Poll details</CardTitle>
-                            <CardDescription>
-                                Provide the question, visibility settings, and schedule for the poll.
-                            </CardDescription>
+                            <CardDescription> Provide the question, visibility settings, and schedule for the poll. </CardDescription>
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-6">
@@ -93,13 +86,7 @@ const handleSubmit = () => {
 
                         <div class="grid gap-2">
                             <Label for="slug">Slug</Label>
-                            <Input
-                                id="slug"
-                                v-model="form.slug"
-                                type="text"
-                                autocomplete="off"
-                                placeholder="Leave blank to auto-generate"
-                            />
+                            <Input id="slug" v-model="form.slug" type="text" autocomplete="off" placeholder="Leave blank to auto-generate" />
                             <InputError :message="form.errors.slug" />
                         </div>
 
@@ -119,7 +106,7 @@ const handleSubmit = () => {
                             <select
                                 id="status"
                                 v-model="form.status"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
                             >
                                 <option value="draft">Draft</option>
                                 <option value="published">Published</option>
@@ -131,11 +118,9 @@ const handleSubmit = () => {
                         <div class="flex items-center justify-between rounded-lg border border-dashed border-muted-foreground/30 p-4">
                             <div>
                                 <p class="text-sm font-medium">Allow multiple selections</p>
-                                <p class="text-xs text-muted-foreground">
-                                    Enable voters to select more than one option.
-                                </p>
+                                <p class="text-xs text-muted-foreground">Enable voters to select more than one option.</p>
                             </div>
-                            <Switch v-model:checked="form.allow_multiple" />
+                            <Switch v-model="form.allow_multiple" />
                         </div>
 
                         <div class="grid gap-4 sm:grid-cols-2">
@@ -162,21 +147,9 @@ const handleSubmit = () => {
                         <div v-for="(option, index) in form.options" :key="index" class="flex flex-col gap-2 sm:flex-row sm:items-center">
                             <div class="flex-1">
                                 <Label :for="`option-${index}`" class="sr-only">Option {{ index + 1 }}</Label>
-                                <Input
-                                    :id="`option-${index}`"
-                                    v-model="option.label"
-                                    type="text"
-                                    autocomplete="off"
-                                    placeholder="Option label"
-                                />
+                                <Input :id="`option-${index}`" v-model="option.label" type="text" autocomplete="off" placeholder="Option label" />
                             </div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                :disabled="form.options.length <= 2"
-                                @click="removeOption(index)"
-                            >
+                            <Button type="button" variant="outline" size="sm" :disabled="form.options.length <= 2" @click="removeOption(index)">
                                 <Trash2 class="h-4 w-4" />
                                 Remove
                             </Button>

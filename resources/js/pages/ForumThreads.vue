@@ -2,7 +2,7 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type QueryParams } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -25,23 +25,12 @@ import {
     PaginationListItem,
     PaginationNext,
     PaginationPrev,
-} from '@/components/ui/pagination'
-import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+} from '@/components/ui/pagination';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
-import {
-    Pin,
-    Ellipsis,
-    Eye,
-    EyeOff,
-    Pencil,
-    Trash2,
-    Lock,
-    LockOpen,
-    Flag,
-    CheckCircle2,
-} from 'lucide-vue-next';
+import { Pin, Ellipsis, Eye, EyeOff, Pencil, Trash2, Lock, LockOpen, Flag, CheckCircle2 } from '@lucide/vue';
 interface BoardSummary {
     id: number;
     title: string;
@@ -181,15 +170,10 @@ const deleteThreadDialogTitle = computed(() => {
     return `Delete “${target.title}”?`;
 });
 
-const selectedThreadReason = computed(() =>
-    reportReasons.value.find((option) => option.value === threadReportForm.reason_category) ?? null,
-);
+const selectedThreadReason = computed(() => reportReasons.value.find((option) => option.value === threadReportForm.reason_category) ?? null);
 
-const showActionColumn = computed(() =>
-    props.permissions.canModerate ||
-    props.threads.data.some((thread) =>
-        thread.permissions.canReport || thread.permissions.canMarkRead,
-    ),
+const showActionColumn = computed(
+    () => props.permissions.canModerate || props.threads.data.some((thread) => thread.permissions.canReport || thread.permissions.canMarkRead),
 );
 
 watch(
@@ -207,20 +191,24 @@ watch(threadDeleteDialogOpen, (open) => {
 
 let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
-  watch(searchQuery, () => {
+watch(searchQuery, () => {
     if (searchTimeout) {
         clearTimeout(searchTimeout);
     }
     searchTimeout = setTimeout(() => {
         setThreadsPage(1, { emitNavigate: false });
         threadReportForm.page = 1;
-        router.get(route('forum.boards.show', { board: props.board.slug }), {
-            ...activeFilters.value,
-        }, {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        });
+        router.get(
+            route('forum.boards.show', { board: props.board.slug }),
+            {
+                ...activeFilters.value,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
     }, 300);
 });
 
@@ -291,12 +279,7 @@ const submitThreadReport = () => {
     });
 };
 
-const performThreadAction = (
-    thread: ThreadSummary,
-    method: 'put' | 'delete' | 'post',
-    routeName: string,
-    payload: Record<string, unknown> = {},
-) => {
+const performThreadAction = (thread: ThreadSummary, method: 'put' | 'delete' | 'post', routeName: string, payload: QueryParams = {}) => {
     activeActionThreadId.value = thread.id;
 
     const url = route(routeName, { board: props.board.slug, thread: thread.slug });
@@ -310,8 +293,9 @@ const performThreadAction = (
     } as const;
 
     if (method === 'delete') {
-        router.delete(url, payload, {
+        router.delete(url, {
             ...options,
+            data: payload,
         });
     } else if (method === 'post') {
         router.post(url, payload, {
@@ -375,7 +359,7 @@ const submitThreadEdit = () => {
 
     threadEditForm
         .transform(() => {
-            const payload: Record<string, unknown> = {
+            const payload: QueryParams = {
                 title: trimmed,
                 page: threadsMeta.value.current_page,
             };
@@ -449,7 +433,7 @@ const markBoardAsRead = () => {
 
     boardMarking.value = true;
 
-    const payload: Record<string, unknown> = {
+    const payload: QueryParams = {
         page: threadsMeta.value.current_page,
     };
 
@@ -477,9 +461,7 @@ const markBoardAsRead = () => {
             <DialogContent class="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Edit thread title</DialogTitle>
-                    <DialogDescription>
-                        Update the discussion title before it appears to other readers.
-                    </DialogDescription>
+                    <DialogDescription> Update the discussion title before it appears to other readers. </DialogDescription>
                 </DialogHeader>
                 <form class="space-y-5" @submit.prevent="submitThreadEdit">
                     <div class="space-y-2">
@@ -496,17 +478,10 @@ const markBoardAsRead = () => {
                         </p>
                     </div>
                     <DialogFooter class="gap-2 sm:gap-3">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            :disabled="threadEditForm.processing"
-                            @click="threadEditDialogOpen = false"
-                        >
+                        <Button type="button" variant="outline" :disabled="threadEditForm.processing" @click="threadEditDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button type="submit" :disabled="threadEditForm.processing">
-                            Save changes
-                        </Button>
+                        <Button type="submit" :disabled="threadEditForm.processing"> Save changes </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -517,9 +492,7 @@ const markBoardAsRead = () => {
                     <DialogTitle>Report thread</DialogTitle>
                     <DialogDescription>
                         Let the moderation team know why
-                        <span v-if="threadReportTarget" class="font-semibold">
-                            &ldquo;{{ threadReportTarget.title }}&rdquo;
-                        </span>
+                        <span v-if="threadReportTarget" class="font-semibold"> &ldquo;{{ threadReportTarget.title }}&rdquo; </span>
                         <span v-else>this discussion</span>
                         needs attention. Provide as much context as you can so we can review it quickly.
                     </DialogDescription>
@@ -530,10 +503,10 @@ const markBoardAsRead = () => {
                         <select
                             id="board_thread_report_reason"
                             v-model="threadReportForm.reason_category"
-                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-sm focus:outline-none focus:ring-2"
-                            :class="threadReportForm.errors.reason_category
-                                ? 'border-destructive focus:ring-destructive/40'
-                                : 'focus:ring-primary/40'"
+                            class="w-full rounded-md border border-input bg-background p-2 text-sm shadow-xs focus:ring-2 focus:outline-hidden"
+                            :class="
+                                threadReportForm.errors.reason_category ? 'border-destructive focus:ring-destructive/40' : 'focus:ring-primary/40'
+                            "
                             :disabled="!hasReportReasons"
                             required
                         >
@@ -561,9 +534,7 @@ const markBoardAsRead = () => {
                             class="min-h-[120px]"
                             :disabled="threadReportForm.processing"
                         />
-                        <p class="text-xs text-muted-foreground">
-                            Optional, but detailed reports help moderators resolve issues faster.
-                        </p>
+                        <p class="text-xs text-muted-foreground">Optional, but detailed reports help moderators resolve issues faster.</p>
                         <p v-if="threadReportForm.errors.reason" class="text-sm text-destructive">
                             {{ threadReportForm.errors.reason }}
                         </p>
@@ -577,60 +548,37 @@ const markBoardAsRead = () => {
                             placeholder="https://example.com/screenshot-or-proof"
                             :disabled="threadReportForm.processing"
                         />
-                        <p class="text-xs text-muted-foreground">
-                            Share a link to screenshots, logs, or other evidence that supports your report.
-                        </p>
+                        <p class="text-xs text-muted-foreground">Share a link to screenshots, logs, or other evidence that supports your report.</p>
                         <p v-if="threadReportForm.errors.evidence_url" class="text-sm text-destructive">
                             {{ threadReportForm.errors.evidence_url }}
                         </p>
                     </div>
                     <DialogFooter class="gap-2 sm:gap-3">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            :disabled="threadReportForm.processing"
-                            @click="threadReportDialogOpen = false"
-                        >
+                        <Button type="button" variant="secondary" :disabled="threadReportForm.processing" @click="threadReportDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button
-                            type="submit"
-                            class="bg-orange-500 hover:bg-orange-600"
-                            :disabled="threadReportForm.processing || !hasReportReasons"
-                        >
+                        <Button type="submit" class="bg-orange-500 hover:bg-orange-600" :disabled="threadReportForm.processing || !hasReportReasons">
                             Submit report
                         </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
         </Dialog>
-        <div class="p-4 space-y-6">
+        <div class="space-y-6 p-4">
             <!-- Forum Header -->
             <header class="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
                 <h1 class="text-2xl font-bold text-green-500">{{ props.board.title }}</h1>
                 <div class="flex w-full flex-col gap-2 md:max-w-2xl md:flex-row md:items-center md:justify-end">
                     <div class="flex w-full items-center gap-2">
-                        <Input
-                            v-model="searchQuery"
-                            class="flex-1"
-                            :placeholder="`Search ${props.board.title}...`"
-                        />
+                        <Input v-model="searchQuery" class="flex-1" :placeholder="`Search ${props.board.title}...`" />
                         <template v-if="canStartThread">
-                            <Button
-                                variant="secondary"
-                                class="w-full cursor-pointer md:w-auto"
-                                as-child
-                            >
-                                <Link :href="route('forum.threads.create', { board: props.board.slug })">
-                                    New Thread
-                                </Link>
+                            <Button variant="secondary" class="shrink-0 cursor-pointer" as-child>
+                                <Link :href="route('forum.threads.create', { board: props.board.slug })"> New Thread </Link>
                             </Button>
                         </template>
                         <template v-else>
-                            <Button variant="secondary" class="w-full cursor-pointer md:w-auto" as-child>
-                                <Link :href="route('login')">
-                                    New Thread
-                                </Link>
+                            <Button variant="secondary" class="shrink-0 cursor-pointer" as-child>
+                                <Link :href="route('login')"> New Thread </Link>
                             </Button>
                         </template>
                     </div>
@@ -649,7 +597,7 @@ const markBoardAsRead = () => {
             </header>
             <!-- Top Pagination and Search -->
             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                <div class="text-sm text-muted-foreground text-center md:text-left">
+                <div class="text-center text-sm text-muted-foreground md:text-left">
                     {{ threadsRangeLabel }}
                 </div>
                 <Pagination
@@ -668,7 +616,7 @@ const markBoardAsRead = () => {
 
                             <template v-for="(item, index) in items">
                                 <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
-                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                    <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                         {{ item.value }}
                                     </Button>
                                 </PaginationListItem>
@@ -695,11 +643,7 @@ const markBoardAsRead = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow
-                            v-for="thread in props.threads.data"
-                            :key="thread.id"
-                            class="hover:bg-gray-50 dark:hover:bg-muted/50"
-                        >
+                        <TableRow v-for="thread in props.threads.data" :key="thread.id" class="hover:bg-gray-50 dark:hover:bg-muted/50">
                             <TableCell>
                                 <Link
                                     :href="route('forum.threads.show', { board: props.board.slug, thread: thread.slug })"
@@ -710,17 +654,14 @@ const markBoardAsRead = () => {
                                     ]"
                                 >
                                     {{ thread.title }}
-                                    <Pin v-if="thread.is_pinned" class="h-4 w-4 text-green-500 inline-block ml-1" />
-                                    <Lock
-                                        v-if="thread.is_locked"
-                                        class="h-4 w-4 text-muted-foreground inline-block ml-1"
-                                    />
+                                    <Pin v-if="thread.is_pinned" class="ml-1 inline-block h-4 w-4 text-green-500" />
+                                    <Lock v-if="thread.is_locked" class="ml-1 inline-block h-4 w-4 text-muted-foreground" />
                                 </Link>
                                 <div class="flex items-center gap-2 text-xs text-gray-500">
                                     <span>By {{ thread.author ?? 'Unknown' }}</span>
                                     <span
                                         v-if="!thread.is_published"
-                                        class="rounded bg-amber-200 px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase text-amber-900"
+                                        class="rounded bg-amber-200 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-900 uppercase"
                                     >
                                         Unpublished
                                     </span>
@@ -774,9 +715,7 @@ const markBoardAsRead = () => {
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
                                             <template v-if="props.permissions.canModerate">
-                                                <DropdownMenuSeparator
-                                                    v-if="thread.permissions.canReport || thread.permissions.canMarkRead"
-                                                />
+                                                <DropdownMenuSeparator v-if="thread.permissions.canReport || thread.permissions.canMarkRead" />
                                                 <DropdownMenuLabel>Mod Actions</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuGroup>
@@ -830,10 +769,7 @@ const markBoardAsRead = () => {
                             </TableCell>
                         </TableRow>
                         <TableRow v-if="props.threads.data.length === 0">
-                            <TableCell
-                                :colspan="showActionColumn ? 5 : 4"
-                                class="text-center text-sm text-gray-600 dark:text-gray-300"
-                            >
+                            <TableCell :colspan="showActionColumn ? 5 : 4" class="text-center text-sm text-gray-600 dark:text-gray-300">
                                 No threads found.
                             </TableCell>
                         </TableRow>
@@ -843,7 +779,7 @@ const markBoardAsRead = () => {
 
             <!-- Bottom Pagination -->
             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                <div class="text-sm text-muted-foreground text-center md:text-left">
+                <div class="text-center text-sm text-muted-foreground md:text-left">
                     {{ threadsRangeLabel }}
                 </div>
                 <Pagination
@@ -862,7 +798,7 @@ const markBoardAsRead = () => {
 
                             <template v-for="(item, index) in items">
                                 <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
-                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                    <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                         {{ item.value }}
                                     </Button>
                                 </PaginationListItem>

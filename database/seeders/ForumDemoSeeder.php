@@ -79,7 +79,7 @@ class ForumDemoSeeder extends Seeder
                 $board = ForumBoard::create([
                     'forum_category_id' => $category->id,
                     'title' => $boardDefinition['title'],
-                    'slug' => Str::slug($boardDefinition['title']) . '-' . Str::random(5),
+                    'slug' => Str::slug($boardDefinition['title']).'-'.Str::random(5),
                     'description' => $boardDefinition['description'],
                     'position' => $boardIndex,
                 ]);
@@ -94,7 +94,7 @@ class ForumDemoSeeder extends Seeder
                     $author = $users->random();
                     $primaryBody = $threadSeedBodies[array_rand($threadSeedBodies)];
                     $title = $threadIndex === 0 && ($boardDefinition['pinned_count'] ?? 0) > 0
-                        ? 'Read First: ' . $board->title . ' Guidelines'
+                        ? 'Read First: '.$board->title.' Guidelines'
                         : Str::headline(Str::words($primaryBody, 6, ''));
 
                     $threadStartedAt = $now->copy()->subDays(random_int(0, 10));
@@ -104,7 +104,7 @@ class ForumDemoSeeder extends Seeder
                         'forum_board_id' => $board->id,
                         'user_id' => $author->id,
                         'title' => $title,
-                        'slug' => Str::slug($title) . '-' . Str::random(6),
+                        'slug' => Str::slug($title).'-'.Str::random(6),
                         'excerpt' => Str::limit($primaryBody, 160),
                         'is_locked' => false,
                         'is_pinned' => $threadIndex === 0 && ($boardDefinition['pinned_count'] ?? 0) > 0,

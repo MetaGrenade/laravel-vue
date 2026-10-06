@@ -7,8 +7,8 @@ use App\Models\SupportAssignmentRule;
 use App\Models\SupportTicket;
 use App\Models\SystemSetting;
 use App\Models\User;
-use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketAuditor;
+use App\Support\SupportTicketAutoAssigner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -31,7 +31,7 @@ class MonitorSupportTicketSlasTest extends TestCase
             'created_at' => Carbon::now()->subHours(72),
         ]);
 
-        (new MonitorSupportTicketSlas())->handle(
+        (new MonitorSupportTicketSlas)->handle(
             app(SupportTicketAutoAssigner::class),
             app(SupportTicketAuditor::class)
         );
@@ -72,7 +72,7 @@ class MonitorSupportTicketSlasTest extends TestCase
             'updated_at' => Carbon::now()->subHours(48),
         ])->saveQuietly();
 
-        (new MonitorSupportTicketSlas())->handle($assigner, app(SupportTicketAuditor::class));
+        (new MonitorSupportTicketSlas)->handle($assigner, app(SupportTicketAuditor::class));
 
         $this->assertEquals($backup->id, $ticket->fresh()->assigned_to);
         $this->assertDatabaseHas('support_ticket_audits', [
@@ -123,7 +123,7 @@ class MonitorSupportTicketSlasTest extends TestCase
             'updated_at' => Carbon::now()->subHours(2),
         ])->saveQuietly();
 
-        (new MonitorSupportTicketSlas())->handle($assigner, app(SupportTicketAuditor::class));
+        (new MonitorSupportTicketSlas)->handle($assigner, app(SupportTicketAuditor::class));
 
         $fresh = $ticket->fresh();
 

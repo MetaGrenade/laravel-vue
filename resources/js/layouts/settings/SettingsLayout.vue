@@ -9,47 +9,47 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Profile',
         href: '/settings/profile',
-        target: '_self'
+        target: '_self',
     },
     {
         title: 'Password',
         href: '/settings/password',
-        target: '_self'
+        target: '_self',
     },
     {
         title: 'Security',
         href: '/settings/security',
-        target: '_self'
+        target: '_self',
     },
     {
         title: 'Notifications',
         href: '/settings/notifications',
-        target: '_self'
+        target: '_self',
     },
     {
         title: 'Privacy',
         href: '/settings/privacy',
-        target: '_self'
+        target: '_self',
     },
     {
         title: 'Appearance',
         href: '/settings/appearance',
-        target: '_self'
+        target: '_self',
     },
     {
         title: 'Billing',
         href: '/settings/billing',
-        target: '_self'
+        target: '_self',
     },
     {
         title: 'Payment methods',
         href: '/settings/billing/payment-methods',
-        target: '_self'
+        target: '_self',
     },
     {
         title: 'Invoices',
         href: '/settings/billing/invoices',
-        target: '_self'
+        target: '_self',
     },
 ];
 
@@ -60,11 +60,11 @@ const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.locati
 
 <template>
     <div class="px-4 py-6">
-        <Heading title="Settings" description="Manage your profile and account settings" class="text-red-500"/>
+        <Heading title="Settings" description="Manage your profile and account settings" class="text-red-500" />
 
-        <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-x-12 lg:space-y-0">
+        <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
-                <nav class="flex flex-col space-x-0 space-y-1">
+                <nav class="flex flex-col space-y-1 space-x-0">
                     <Button
                         v-for="item in sidebarNavItems"
                         :key="item.href"
@@ -81,7 +81,7 @@ const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.locati
 
             <Separator class="my-6 md:hidden" />
 
-            <div class="flex-1">
+            <div class="min-w-0 flex-1">
                 <section class="space-y-12">
                     <slot />
                 </section>

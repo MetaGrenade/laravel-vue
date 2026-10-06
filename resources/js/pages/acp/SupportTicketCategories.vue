@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useUserTimezone } from '@/composables/useUserTimezone';
-import { FolderKanban, Pencil, PlusCircle, Trash2 } from 'lucide-vue-next';
+import { FolderKanban, Pencil, PlusCircle, Trash2 } from '@lucide/vue';
 
 const props = defineProps<{
     categories: Array<{
@@ -93,9 +93,7 @@ const confirmDeleteCategory = () => {
                                 <FolderKanban class="h-5 w-5" />
                                 Ticket categories
                             </CardTitle>
-                            <CardDescription>
-                                Group incoming tickets by theme so the team can triage requests faster.
-                            </CardDescription>
+                            <CardDescription> Group incoming tickets by theme so the team can triage requests faster. </CardDescription>
                         </div>
                         <Button variant="secondary" as-child>
                             <Link :href="route('acp.support.ticket-categories.create')">

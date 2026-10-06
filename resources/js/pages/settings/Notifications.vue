@@ -100,10 +100,7 @@ const submit = () => {
                     description="Choose how you would like to hear from us across each area of the community."
                 />
 
-                <div
-                    v-if="props.status"
-                    class="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
-                >
+                <div v-if="props.status" class="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                     {{ props.status }}
                 </div>
 
@@ -135,9 +132,7 @@ const submit = () => {
                                 </div>
 
                                 <template v-if="category.options && category.options.length">
-                                    <div class="pt-2 text-sm font-medium text-muted-foreground">
-                                        Additional preferences
-                                    </div>
+                                    <div class="pt-2 text-sm font-medium text-muted-foreground">Additional preferences</div>
 
                                     <div
                                         v-for="option in category.options"
@@ -161,9 +156,7 @@ const submit = () => {
                     </div>
 
                     <div class="flex justify-end">
-                        <Button type="submit" :disabled="form.processing">
-                            Save changes
-                        </Button>
+                        <Button type="submit" :disabled="form.processing"> Save changes </Button>
                     </div>
                 </form>
             </div>

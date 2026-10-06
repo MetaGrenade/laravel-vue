@@ -89,7 +89,7 @@ class TokenController extends Controller
             'revoked' => (clone $tokenQuery)->whereNotNull('revoked_at')->count(),
         ];
 
-        $userList = User::select('id','nickname','email')->get();
+        $userList = User::select('id', 'nickname', 'email')->get();
 
         $tokenLogQuery = TokenLog::query()
             ->with('token:id,name')
@@ -244,8 +244,9 @@ class TokenController extends Controller
     public function destroy(PersonalAccessToken $token)
     {
         $token->delete();
+
         return redirect()->route('acp.tokens.index')
-            ->with('success','Token revoked.');
+            ->with('success', 'Token revoked.');
     }
 
     public function showLog(TokenLog $tokenLog): Response

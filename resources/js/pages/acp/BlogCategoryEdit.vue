@@ -54,7 +54,8 @@ const handleSubmit = () => {
                         <p class="text-sm text-muted-foreground">
                             Update the category name or slug. {{ props.category.blogs_count }} blog post{{
                                 props.category.blogs_count === 1 ? '' : 's'
-                            }} currently use this category.
+                            }}
+                            currently use this category.
                         </p>
                     </div>
 

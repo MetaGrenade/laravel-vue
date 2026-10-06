@@ -34,8 +34,8 @@ const form = useForm({
 });
 
 const { formatDate } = useUserTimezone();
-const createdAt = computed(() => props.category.created_at ? formatDate(props.category.created_at, 'MMM D, YYYY h:mm A') : '—');
-const updatedAt = computed(() => props.category.updated_at ? formatDate(props.category.updated_at, 'MMM D, YYYY h:mm A') : '—');
+const createdAt = computed(() => (props.category.created_at ? formatDate(props.category.created_at, 'MMM D, YYYY h:mm A') : '—'));
+const updatedAt = computed(() => (props.category.updated_at ? formatDate(props.category.updated_at, 'MMM D, YYYY h:mm A') : '—'));
 
 const handleSubmit = () => {
     form.put(route('acp.support.ticket-categories.update', { category: props.category.id }), {
@@ -53,9 +53,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Edit ticket category</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Update the name to make it easier for the support team to file new tickets.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Update the name to make it easier for the support team to file new tickets.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -66,27 +64,19 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <Card>
                         <CardHeader class="relative overflow-hidden">
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />
                             <div class="relative space-y-1">
                                 <CardTitle>Category details</CardTitle>
-                                <CardDescription>
-                                    Keep category names short and action-oriented so they’re easy to scan.
-                                </CardDescription>
+                                <CardDescription> Keep category names short and action-oriented so they’re easy to scan. </CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-6">
                             <div class="grid gap-2">
                                 <Label for="name">Name</Label>
-                                <Input
-                                    id="name"
-                                    v-model="form.name"
-                                    type="text"
-                                    autocomplete="off"
-                                    required
-                                />
+                                <Input id="name" v-model="form.name" type="text" autocomplete="off" required />
                                 <InputError :message="form.errors.name" />
                             </div>
                         </CardContent>

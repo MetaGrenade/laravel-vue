@@ -4,13 +4,13 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type QueryParams } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import Label from '@/components/ui/label/Label.vue';
 import { useDebounceFn } from '@vueuse/core';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import type { CheckboxRootProps } from 'radix-vue';
+import type { CheckboxRootProps } from 'reka-ui';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -32,17 +32,7 @@ import {
     PaginationNext,
     PaginationPrev,
 } from '@/components/ui/pagination';
-import {
-    Users as UsersIcon,
-    UserPlus,
-    UserX,
-    UserCheck,
-    Activity,
-    Ellipsis,
-    Pencil,
-    Trash2,
-    MailCheck,
-} from 'lucide-vue-next';
+import { Users as UsersIcon, UserPlus, UserX, UserCheck, Activity, Ellipsis, Pencil, Trash2, MailCheck } from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
@@ -120,8 +110,8 @@ const quickVisitOptions = {
     replace: true,
 } as const;
 
-const buildQuery = (overrides: Record<string, unknown> = {}) => {
-    const query: Record<string, unknown> = {};
+const buildQuery = (overrides: QueryParams = {}) => {
+    const query: QueryParams = {};
 
     const trimmedSearch = searchQuery.value.trim();
     if (trimmedSearch !== '') {
@@ -151,7 +141,7 @@ const buildQuery = (overrides: Record<string, unknown> = {}) => {
     return { ...query, ...overrides };
 };
 
-const applyFilters = (overrides: Record<string, unknown> = {}) => {
+const applyFilters = (overrides: QueryParams = {}) => {
     router.get(route('acp.users.index'), buildQuery(overrides), quickVisitOptions);
 };
 
@@ -172,9 +162,7 @@ const {
 });
 
 // Breadcrumbs
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Users ACP', href: '/acp/users' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Users ACP', href: '/acp/users' }];
 
 // Search filtering
 const debouncedSearch = useDebounceFn(() => {
@@ -364,15 +352,15 @@ const handleConfirmDialogCancel = () => {
 
 // Stats cards array
 const stats = [
-    { title: 'Total Users',      value: props.userStats.total,      icon: UsersIcon },
+    { title: 'Total Users', value: props.userStats.total, icon: UsersIcon },
     { title: 'Unverified Users', value: props.userStats.unverified, icon: UserPlus },
-    { title: 'Banned Users',     value: props.userStats.banned,     icon: UserX },
-    { title: 'Online Users',     value: props.userStats.online,     icon: Activity },
+    { title: 'Banned Users', value: props.userStats.banned, icon: UserX },
+    { title: 'Online Users', value: props.userStats.online, icon: Activity },
 ];
 
 const userItems = computed(() => props.users.data ?? []);
 
-type CheckboxState = CheckboxRootProps['checked'];
+type CheckboxState = CheckboxRootProps['modelValue'];
 type BulkAction = 'verify' | 'ban' | 'unban' | 'delete';
 
 const selectedUserIds = ref<number[]>([]);
@@ -387,9 +375,7 @@ watch(
 );
 
 const hasUserSelection = computed(() => selectedUserIds.value.length > 0);
-const allUsersSelected = computed(
-    () => userItems.value.length > 0 && selectedUserIds.value.length === userItems.value.length,
-);
+const allUsersSelected = computed(() => userItems.value.length > 0 && selectedUserIds.value.length === userItems.value.length);
 
 const userHeaderCheckboxState = computed<CheckboxState>(() => {
     if (allUsersSelected.value) {
@@ -418,8 +404,8 @@ const bulkActionForm = useForm<{ ids: number[]; action: BulkAction }>({
     action: 'verify',
 });
 
-const updateUserSelection = (userId: number, checked: boolean) => {
-    if (checked) {
+const updateUserSelection = (userId: number, checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         if (!selectedUserIds.value.includes(userId)) {
             selectedUserIds.value = [...selectedUserIds.value, userId];
         }
@@ -430,8 +416,8 @@ const updateUserSelection = (userId: number, checked: boolean) => {
     selectedUserIds.value = selectedUserIds.value.filter((id) => id !== userId);
 };
 
-const toggleAllUsers = (checked: boolean) => {
-    if (checked) {
+const toggleAllUsers = (checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         selectedUserIds.value = userItems.value.map((item) => item.id);
 
         return;
@@ -468,13 +454,9 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
         <AdminLayout>
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div
-                        v-for="(stat, i) in stats"
-                        :key="i"
-                        class="relative overflow-hidden rounded-lg border p-4 flex items-center"
-                    >
-                        <component :is="stat.icon" class="h-8 w-8 mr-3 text-gray-600"/>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div v-for="(stat, i) in stats" :key="i" class="relative flex items-center overflow-hidden rounded-lg border p-4">
+                        <component :is="stat.icon" class="mr-3 h-8 w-8 text-gray-600" />
                         <div>
                             <div class="text-sm text-gray-500">{{ stat.title }}</div>
                             <div class="text-2xl font-bold">{{ stat.value }}</div>
@@ -485,26 +467,21 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                 </div>
 
                 <!-- Users Management Section -->
-                <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                     <!-- Search Bar using Input Component -->
                     <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div class="flex w-full flex-col gap-2 md:max-w-sm">
                             <h2 class="text-lg font-semibold">User Management</h2>
-                            <Input
-                                v-model="searchQuery"
-                                type="text"
-                                placeholder="Search users by nickname, email or role..."
-                                class="w-full pr-10"
-                            />
+                            <Input v-model="searchQuery" type="text" placeholder="Search users by nickname, email or role..." class="w-full pr-10" />
                         </div>
 
                         <div class="flex flex-wrap items-end gap-3">
                             <div class="flex flex-col gap-1">
-                                <Label for="filter-role" class="text-xs uppercase tracking-wide text-muted-foreground">Role</Label>
+                                <Label for="filter-role" class="text-xs tracking-wide text-muted-foreground uppercase">Role</Label>
                                 <select
                                     id="filter-role"
                                     v-model="roleFilter"
-                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 min-w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option value="all">All roles</option>
                                     <option v-for="role in props.availableRoles" :key="role" :value="role">
@@ -514,11 +491,11 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                             </div>
 
                             <div class="flex flex-col gap-1">
-                                <Label for="filter-verification" class="text-xs uppercase tracking-wide text-muted-foreground">Verification</Label>
+                                <Label for="filter-verification" class="text-xs tracking-wide text-muted-foreground uppercase">Verification</Label>
                                 <select
                                     id="filter-verification"
                                     v-model="verificationFilter"
-                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 min-w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option value="all">All users</option>
                                     <option value="verified">Verified</option>
@@ -527,11 +504,11 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                             </div>
 
                             <div class="flex flex-col gap-1">
-                                <Label for="filter-ban" class="text-xs uppercase tracking-wide text-muted-foreground">Ban status</Label>
+                                <Label for="filter-ban" class="text-xs tracking-wide text-muted-foreground uppercase">Ban status</Label>
                                 <select
                                     id="filter-ban"
                                     v-model="bannedFilter"
-                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 min-w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option value="all">All users</option>
                                     <option value="banned">Banned</option>
@@ -540,11 +517,11 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                             </div>
 
                             <div class="flex flex-col gap-1">
-                                <Label for="filter-activity" class="text-xs uppercase tracking-wide text-muted-foreground">Activity</Label>
+                                <Label for="filter-activity" class="text-xs tracking-wide text-muted-foreground uppercase">Activity</Label>
                                 <select
                                     id="filter-activity"
                                     v-model="activityFilter"
-                                    class="flex h-10 min-w-[10rem] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 min-w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option value="all">Any time</option>
                                     <option value="5">Active in last 5 minutes</option>
@@ -561,37 +538,20 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
 
                         <DropdownMenu v-if="hasBulkActions">
                             <DropdownMenuTrigger as-child>
-                                <Button
-                                    variant="outline"
-                                    :disabled="!hasUserSelection || bulkActionForm.processing"
-                                >
-                                    Bulk actions
-                                </Button>
+                                <Button variant="outline" :disabled="!hasUserSelection || bulkActionForm.processing"> Bulk actions </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" class="w-52">
                                 <DropdownMenuLabel>Apply to selected</DropdownMenuLabel>
-                                <DropdownMenuItem
-                                    v-if="verifyUsers"
-                                    :disabled="bulkActionForm.processing"
-                                    @select="submitBulkAction('verify')"
-                                >
+                                <DropdownMenuItem v-if="verifyUsers" :disabled="bulkActionForm.processing" @select="submitBulkAction('verify')">
                                     <MailCheck class="mr-2 h-4 w-4" />
                                     <span>Verify email</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator v-if="verifyUsers && (banUsers || deleteUsers)" />
-                                <DropdownMenuItem
-                                    v-if="banUsers"
-                                    :disabled="bulkActionForm.processing"
-                                    @select="submitBulkAction('ban')"
-                                >
+                                <DropdownMenuItem v-if="banUsers" :disabled="bulkActionForm.processing" @select="submitBulkAction('ban')">
                                     <UserX class="mr-2 h-4 w-4" />
                                     <span>Ban users</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    v-if="banUsers"
-                                    :disabled="bulkActionForm.processing"
-                                    @select="submitBulkAction('unban')"
-                                >
+                                <DropdownMenuItem v-if="banUsers" :disabled="bulkActionForm.processing" @select="submitBulkAction('unban')">
                                     <UserCheck class="mr-2 h-4 w-4" />
                                     <span>Unban users</span>
                                 </DropdownMenuItem>
@@ -616,10 +576,10 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                 <TableRow>
                                     <TableHead class="w-12">
                                         <Checkbox
-                                            :checked="userHeaderCheckboxState"
+                                            :model-value="userHeaderCheckboxState"
                                             :disabled="userItems.length === 0"
                                             aria-label="Select all users"
-                                            @update:checked="toggleAllUsers"
+                                            @update:model-value="toggleAllUsers"
                                         />
                                     </TableHead>
                                     <TableHead>ID</TableHead>
@@ -633,15 +593,12 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow
-                                    v-for="user in userItems"
-                                    :key="user.id"
-                                >
+                                <TableRow v-for="user in userItems" :key="user.id">
                                     <TableCell class="align-middle">
                                         <Checkbox
-                                            :checked="selectedUserIds.includes(user.id)"
+                                            :model-value="selectedUserIds.includes(user.id)"
                                             aria-label="Select user"
-                                            @update:checked="(checked) => updateUserSelection(user.id, checked)"
+                                            @update:model-value="(checked) => updateUserSelection(user.id, checked)"
                                         />
                                     </TableCell>
                                     <TableCell>{{ user.id }}</TableCell>
@@ -657,13 +614,13 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                     </TableCell>
                                     <TableCell>{{ user.email }}</TableCell>
                                     <TableCell class="text-center">
-                      <span
-                          v-for="role in user.roles"
-                          :key="role.name"
-                          class="inline-block rounded bg-gray-500 px-2 py-0.5 text-xs mr-1"
-                      >
-                        {{ role.name }}
-                      </span>
+                                        <span
+                                            v-for="role in user.roles"
+                                            :key="role.name"
+                                            class="mr-1 inline-block rounded bg-gray-500 px-2 py-0.5 text-xs"
+                                        >
+                                            {{ role.name }}
+                                        </span>
                                     </TableCell>
                                     <TableCell class="text-center">
                                         <span v-if="user.last_activity_at" :title="user.last_activity_at">
@@ -697,12 +654,12 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuGroup>
-                                                    <Link v-if="editUsers" :href="route('acp.users.edit',   { user: user.id })">
-                                                        <DropdownMenuItem class="text-blue-500">
-                                                            <Pencil class="mr-2"/> Edit
-                                                        </DropdownMenuItem>
+                                                    <Link v-if="editUsers" :href="route('acp.users.edit', { user: user.id })">
+                                                        <DropdownMenuItem class="text-blue-500"> <Pencil class="mr-2" /> Edit </DropdownMenuItem>
                                                     </Link>
-                                                    <DropdownMenuItem v-if="verifyUsers && !user.email_verified_at" class="text-green-500"
+                                                    <DropdownMenuItem
+                                                        v-if="verifyUsers && !user.email_verified_at"
+                                                        class="text-green-500"
                                                         @click="$inertia.put(route('acp.users.verify', { user: user.id }))"
                                                     >
                                                         <MailCheck class="mr-2" /> Verify
@@ -749,7 +706,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                                             })
                                                         "
                                                     >
-                                                        <Trash2 class="mr-2"/> Delete
+                                                        <Trash2 class="mr-2" /> Delete
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
                                             </DropdownMenuContent>
@@ -757,9 +714,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="userItems.length === 0">
-                                    <TableCell colspan="9" class="text-center text-gray-600 dark:text-gray-300">
-                                        No users found.
-                                    </TableCell>
+                                    <TableCell colspan="9" class="text-center text-gray-600 dark:text-gray-300"> No users found. </TableCell>
                                 </TableRow>
                             </TableBody>
                         </Table>
@@ -768,7 +723,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
 
                 <!-- Bottom Pagination -->
                 <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                    <div class="text-sm text-muted-foreground text-center md:text-left">
+                    <div class="text-center text-sm text-muted-foreground md:text-left">
                         {{ usersRangeLabel }}
                     </div>
                     <Pagination
@@ -787,19 +742,12 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                 <PaginationPrev />
 
                                 <template v-for="(item, index) in items" :key="index">
-                                    <PaginationListItem
-                                        v-if="item.type === 'page'"
-                                        :value="item.value"
-                                        as-child
-                                    >
-                                        <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                    <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                        <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                             {{ item.value }}
                                         </Button>
                                     </PaginationListItem>
-                                    <PaginationEllipsis
-                                        v-else
-                                        :index="index"
-                                    />
+                                    <PaginationEllipsis v-else :index="index" />
                                 </template>
 
                                 <PaginationNext />

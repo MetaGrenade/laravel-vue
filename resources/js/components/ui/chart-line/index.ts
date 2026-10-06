@@ -12,7 +12,7 @@ export interface BaseChartProps<T extends Record<string, any>> {
   /**
    * Select the categories from your data. Used to populate the legend and toolip.
    */
-  categories: KeyOf<T>[]
+  categories: readonly KeyOf<T>[]
   /**
    * Sets the key to map the data to the axis.
    */

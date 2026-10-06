@@ -200,8 +200,9 @@ class UsersController extends Controller
     {
         $user = User::create($request->validated());
         $user->syncRoles($request->roles ?? []);
+
         return redirect()->route('acp.users.index')
-            ->with('success','User created.');
+            ->with('success', 'User created.');
     }
 
     /**
@@ -211,8 +212,9 @@ class UsersController extends Controller
     {
         $user->update($request->validated());
         $user->syncRoles($request->roles ?? []);
+
         return redirect()->route('acp.users.index')
-            ->with('success','User updated.');
+            ->with('success', 'User updated.');
     }
 
     /**
@@ -221,8 +223,9 @@ class UsersController extends Controller
     public function destroy(User $user)
     {
         $user->delete();
+
         return redirect()->route('acp.users.index')
-            ->with('success','User deleted.');
+            ->with('success', 'User deleted.');
     }
 
     /**
@@ -231,8 +234,9 @@ class UsersController extends Controller
     public function verify(User $user)
     {
         $user->update(['email_verified_at' => now()]);
+
         return redirect()->route('acp.users.index')
-            ->with('success','User verified.');
+            ->with('success', 'User verified.');
     }
 
     public function ban(Request $request, User $user): RedirectResponse

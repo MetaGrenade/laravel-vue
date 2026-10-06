@@ -159,7 +159,7 @@ class PostRevisionTest extends TestCase
             'forum_board_id' => $board->id,
             'user_id' => $author->id,
             'title' => 'Thread Title',
-            'slug' => Str::slug('Thread Title-' . Str::random(5)),
+            'slug' => Str::slug('Thread Title-'.Str::random(5)),
             'excerpt' => 'Summary',
             'is_locked' => false,
             'is_pinned' => false,

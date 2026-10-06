@@ -16,7 +16,7 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { Textarea } from '@/components/ui/textarea';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { Separator } from '@/components/ui/separator';
 
 interface Role {
@@ -96,7 +96,7 @@ const canVerifyUsers = computed(() => hasPermission('users.acp.verify'));
 const form = useForm<UserForm>({
     nickname: props.user.nickname,
     email: props.user.email,
-    roles: props.user.roles.map(role => role.name),
+    roles: props.user.roles.map((role) => role.name),
     avatar_url: props.user.avatar_url ?? '',
     profile_bio: props.user.profile_bio ?? '',
     social_links:
@@ -105,6 +105,12 @@ const form = useForm<UserForm>({
             url: typeof link?.url === 'string' ? link.url : '',
         })) ?? [],
 });
+
+// Errors for nested fields (e.g. `social_links.0.url`) are keyed by dot notation.
+// Kept in script: vue-tsc mis-parses '//' inside v-for templates.
+const socialLinkUrlPlaceholder = 'https://social.example/@username';
+
+const fieldError = (key: string): string | undefined => (form.errors as Record<string, string | undefined>)[key];
 
 const verifyForm = useForm({});
 const deleteForm = useForm({});
@@ -131,11 +137,11 @@ watch(
             return;
         }
 
-        if (!providers.find(provider => provider.key === attachForm.provider)) {
+        if (!providers.find((provider) => provider.key === attachForm.provider)) {
             attachForm.provider = providers[0].key;
         }
     },
-    { immediate: true }
+    { immediate: true },
 );
 
 const providerLookup = computed(() => {
@@ -162,15 +168,18 @@ const attachAccount = () => {
 const detachAccount = (accountId: number) => {
     removingAccountId.value = accountId;
 
-    detachForm.delete(route('acp.users.social-accounts.destroy', {
-        user: props.user.id,
-        socialAccount: accountId,
-    }), {
-        preserveScroll: true,
-        onFinish: () => {
-            removingAccountId.value = null;
+    detachForm.delete(
+        route('acp.users.social-accounts.destroy', {
+            user: props.user.id,
+            socialAccount: accountId,
+        }),
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                removingAccountId.value = null;
+            },
         },
-    });
+    );
 };
 
 const { formatDate, fromNow } = useUserTimezone();
@@ -189,7 +198,7 @@ const toggleRole = (roleName: string, checked: boolean | string) => {
             form.roles.push(roleName);
         }
     } else {
-        form.roles = form.roles.filter(name => name !== roleName);
+        form.roles = form.roles.filter((name) => name !== roleName);
     }
 };
 
@@ -233,7 +242,7 @@ const removeSocialLink = (index: number) => {
         <Head :title="`Edit ${props.user.nickname}`" />
 
         <AdminLayout>
-            <form class="flex flex-1 flex-col gap-6 w-full" @submit.prevent="handleSubmit">
+            <form class="flex w-full flex-1 flex-col gap-6" @submit.prevent="handleSubmit">
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Edit user</h1>
@@ -248,7 +257,7 @@ const removeSocialLink = (index: number) => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div class="flex flex-col gap-6">
                         <Card>
                             <CardHeader class="relative overflow-hidden">
@@ -273,12 +282,7 @@ const removeSocialLink = (index: number) => {
 
                                 <div class="grid gap-2">
                                     <Label for="avatar_url">Avatar URL</Label>
-                                    <Input
-                                        id="avatar_url"
-                                        v-model="form.avatar_url"
-                                        type="url"
-                                        placeholder="https://example.com/avatar.png"
-                                    />
+                                    <Input id="avatar_url" v-model="form.avatar_url" type="url" placeholder="https://example.com/avatar.png" />
                                     <p class="text-xs text-muted-foreground">
                                         Provide a direct link to an image that will represent the author across the blog.
                                     </p>
@@ -299,9 +303,7 @@ const removeSocialLink = (index: number) => {
                                 <div class="space-y-3">
                                     <div class="flex flex-wrap items-center justify-between gap-2">
                                         <Label class="text-sm font-medium">Social links</Label>
-                                        <Button type="button" variant="outline" size="sm" @click="addSocialLink">
-                                            Add social link
-                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" @click="addSocialLink"> Add social link </Button>
                                     </div>
                                     <p class="text-xs text-muted-foreground">
                                         Highlight key destinations where readers can continue following this author.
@@ -322,7 +324,7 @@ const removeSocialLink = (index: number) => {
                                                         type="text"
                                                         placeholder="Twitter"
                                                     />
-                                                    <InputError :message="form.errors[`social_links.${index}.label`]" />
+                                                    <InputError :message="fieldError('social_links.' + index + '.label')" />
                                                 </div>
                                                 <div class="grid gap-2">
                                                     <Label :for="`social-link-url-${index}`">URL</Label>
@@ -330,15 +332,13 @@ const removeSocialLink = (index: number) => {
                                                         :id="`social-link-url-${index}`"
                                                         v-model="form.social_links[index].url"
                                                         type="url"
-                                                        placeholder="https://social.example/@username"
+                                                        :placeholder="socialLinkUrlPlaceholder"
                                                     />
-                                                    <InputError :message="form.errors[`social_links.${index}.url`]" />
+                                                    <InputError :message="fieldError('social_links.' + index + '.url')" />
                                                 </div>
                                             </div>
                                             <div class="flex justify-end">
-                                                <Button type="button" variant="ghost" size="sm" @click="removeSocialLink(index)">
-                                                    Remove
-                                                </Button>
+                                                <Button type="button" variant="ghost" size="sm" @click="removeSocialLink(index)"> Remove </Button>
                                             </div>
                                         </div>
                                     </div>
@@ -360,18 +360,14 @@ const removeSocialLink = (index: number) => {
                                     No roles are currently defined. Create roles first in the Access Control panel.
                                 </div>
                                 <div v-else class="grid gap-3">
-                                    <div
-                                        v-for="role in props.allRoles"
-                                        :key="role.id"
-                                        class="flex items-start gap-3 rounded-md border p-3"
-                                    >
+                                    <div v-for="role in props.allRoles" :key="role.id" class="flex items-start gap-3 rounded-md border p-3">
                                         <Checkbox
                                             :id="`role-${role.id}`"
-                                            :checked="form.roles.includes(role.name)"
-                                            @update:checked="value => toggleRole(role.name, value)"
+                                            :model-value="form.roles.includes(role.name)"
+                                            @update:model-value="(value) => toggleRole(role.name, value)"
                                         />
                                         <div class="grid gap-1">
-                                            <Label :for="`role-${role.id}`" class="font-medium leading-none">
+                                            <Label :for="`role-${role.id}`" class="leading-none font-medium">
                                                 {{ role.name }}
                                             </Label>
                                             <p v-if="role.description" class="text-sm text-muted-foreground">
@@ -400,10 +396,8 @@ const removeSocialLink = (index: number) => {
                                         class="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between"
                                     >
                                         <div class="space-y-1">
-                                            <p class="font-medium leading-tight">{{ providerLabel(account.provider) }}</p>
-                                            <p class="text-xs text-muted-foreground">
-                                                Provider ID: {{ account.provider_id }}
-                                            </p>
+                                            <p class="leading-tight font-medium">{{ providerLabel(account.provider) }}</p>
+                                            <p class="text-xs text-muted-foreground">Provider ID: {{ account.provider_id }}</p>
                                             <p v-if="account.nickname || account.name" class="text-sm text-muted-foreground">
                                                 {{ account.nickname ?? account.name }}
                                             </p>
@@ -442,7 +436,7 @@ const removeSocialLink = (index: number) => {
                                             <select
                                                 id="provider"
                                                 v-model="attachForm.provider"
-                                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
                                             >
                                                 <option v-for="provider in props.availableSocialProviders" :key="provider.key" :value="provider.key">
                                                     {{ provider.label }}
@@ -533,12 +527,7 @@ const removeSocialLink = (index: number) => {
                                 </div>
                             </CardContent>
                             <CardFooter v-if="!props.user.email_verified_at && canVerifyUsers" class="justify-end">
-                                <Button
-                                    variant="secondary"
-                                    type="button"
-                                    :disabled="verifyForm.processing"
-                                    @click="verifyUser"
-                                >
+                                <Button variant="secondary" type="button" :disabled="verifyForm.processing" @click="verifyUser">
                                     Mark as verified
                                 </Button>
                             </CardFooter>
@@ -555,19 +544,14 @@ const removeSocialLink = (index: number) => {
                                 </p>
                             </CardContent>
                             <CardFooter>
-                                <Button
-                                    variant="destructive"
-                                    type="button"
-                                    :disabled="deleteForm.processing"
-                                    @click="destroyUser"
-                                >
+                                <Button variant="destructive" type="button" :disabled="deleteForm.processing" @click="destroyUser">
                                     Delete user
                                 </Button>
                             </CardFooter>
                         </Card>
-            </div>
-        </div>
-    </form>
+                    </div>
+                </div>
+            </form>
             <ConfirmDialog
                 v-model:open="deleteDialogOpen"
                 :title="deleteDialogTitle"

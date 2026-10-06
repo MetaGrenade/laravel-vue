@@ -12,9 +12,11 @@ use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
 use App\Support\Database\Transaction;
+use App\Support\Forum\ForumIndexCache;
 use App\Support\Localization\DateFormatter;
 use App\Support\Reputation\ReputationManager;
-use App\Support\Forum\ForumIndexCache;
+use App\Support\Security\HtmlSanitizer;
+use App\Support\Seo\Seo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,9 +35,7 @@ class ForumController extends Controller
     public function __construct(
         private readonly ReputationManager $reputation,
         private readonly ForumIndexCache $forumIndexCache
-    )
-    {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -44,6 +44,10 @@ class ForumController extends Controller
         $categories = $this->forumIndexCache->categories();
         $trendingThreads = $this->forumIndexCache->trendingThreads();
         $latestPosts = $this->forumIndexCache->latestPosts();
+
+        app(Seo::class)
+            ->title('Community Forum')
+            ->description('Join the conversation: ask questions, share ideas and get help from the community.');
 
         return Inertia::render('Forum', [
             'categories' => $categories->map(function (ForumCategory $category) use ($formatter) {
@@ -132,10 +136,10 @@ class ForumController extends Controller
             ->whereNotNull('nickname')
             ->where('id', '!=', $user->id)
             ->where(function ($builder) use ($escaped) {
-                $builder->where('nickname', 'like', $escaped . '%')
-                    ->orWhere('nickname', 'like', '%' . $escaped . '%');
+                $builder->where('nickname', 'like', $escaped.'%')
+                    ->orWhere('nickname', 'like', '%'.$escaped.'%');
             })
-            ->orderByRaw('nickname like ? desc', [$escaped . '%'])
+            ->orderByRaw('nickname like ? desc', [$escaped.'%'])
             ->orderBy('nickname')
             ->limit(8)
             ->get()
@@ -171,7 +175,7 @@ class ForumController extends Controller
         $threadsQuery = $board->threads()
             ->select('forum_threads.*')
             ->leftJoin('users as thread_authors', 'thread_authors.id', '=', 'forum_threads.user_id')
-            ->when(!$isModerator, function ($query) {
+            ->when(! $isModerator, function ($query) {
                 $query->where('forum_threads.is_published', true);
             })
             ->when($includeReads, function ($query) use ($user) {
@@ -255,6 +259,11 @@ class ForumController extends Controller
             })
             ->values();
 
+        app(Seo::class)
+            ->title($board->title.' - Forum')
+            ->description($board->description ?: "Discussions in {$board->title}.")
+            ->canonical($this->paginatedCanonical(route('forum.boards.show', $board), $request));
+
         return Inertia::render('ForumThreads', [
             'board' => [
                 'id' => $board->id,
@@ -289,7 +298,7 @@ class ForumController extends Controller
 
         $formatter = DateFormatter::for($user);
 
-        if (!$thread->is_published && !$isModerator) {
+        if (! $thread->is_published && ! $isModerator) {
             abort(404);
         }
 
@@ -342,7 +351,7 @@ class ForumController extends Controller
             $canModerate = (bool) $isModerator;
             $canEdit = $canModerate;
 
-            if (!$canEdit && $user !== null && $user->id === $post->user_id && $thread->is_published && !$thread->is_locked) {
+            if (! $canEdit && $user !== null && $user->id === $post->user_id && $thread->is_published && ! $thread->is_locked) {
                 $canEdit = true;
             }
 
@@ -439,9 +448,32 @@ class ForumController extends Controller
             $canModerateThread || (
                 $user->id === $thread->user_id &&
                 $thread->is_published &&
-                !$thread->is_locked
+                ! $thread->is_locked
             )
         );
+
+        $opener = $thread->posts()->oldest()->first(['id', 'body', 'created_at']);
+        $threadUrl = route('forum.threads.show', [$board, $thread]);
+
+        app(Seo::class)
+            ->title($thread->title)
+            ->description($thread->excerpt ?: $opener?->body)
+            ->canonical($this->paginatedCanonical($threadUrl, $request))
+            ->type('article')
+            ->schema(array_filter([
+                '@type' => 'DiscussionForumPosting',
+                'headline' => $thread->title,
+                'url' => $threadUrl,
+                'datePublished' => $thread->created_at?->toAtomString(),
+                'dateModified' => ($thread->last_posted_at ?? $thread->updated_at)?->toAtomString(),
+                'author' => $thread->author ? ['@type' => 'Person', 'name' => $thread->author->nickname] : null,
+                'text' => $opener ? Str::limit(trim(strip_tags($opener->body)), 500) : null,
+                'interactionStatistic' => [
+                    '@type' => 'InteractionCounter',
+                    'interactionType' => 'https://schema.org/CommentAction',
+                    'userInteractionCount' => max(0, $posts->total() - 1),
+                ],
+            ]));
 
         return Inertia::render('ForumThreadView', [
             'board' => [
@@ -468,7 +500,7 @@ class ForumController extends Controller
                     'canModerate' => $canModerateThread,
                     'canEdit' => $canEditThread,
                     'canReport' => $user !== null && $user->id !== $thread->user_id,
-                    'canReply' => $user !== null && $thread->is_published && !$thread->is_locked,
+                    'canReply' => $user !== null && $thread->is_published && ! $thread->is_locked,
                 ],
             ],
             'posts' => array_merge([
@@ -502,10 +534,20 @@ class ForumController extends Controller
             $escaped = str_replace(["\r\n", "\r"], "\n", $escaped);
             $escaped = nl2br($escaped, false);
 
-            return '<p>' . $escaped . '</p>';
+            return '<p>'.$escaped.'</p>';
         })->implode('');
 
-        return '<blockquote>' . $quoteBody . '</blockquote><p></p>';
+        return '<blockquote>'.$quoteBody.'</blockquote><p></p>';
+    }
+
+    /**
+     * Canonical URL for a paginated listing: keeps the page number, drops filters.
+     */
+    private function paginatedCanonical(string $url, Request $request): string
+    {
+        $page = (int) $request->query('page', 1);
+
+        return $page > 1 ? $url.'?'.http_build_query(['page' => $page]) : $url;
     }
 
     public function createThread(Request $request, ForumBoard $board): Response
@@ -542,7 +584,7 @@ class ForumController extends Controller
         ]);
 
         $title = trim((string) $validated['title']);
-        $body = trim((string) $validated['body']);
+        $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
         if ($bodyText === '') {
@@ -559,7 +601,7 @@ class ForumController extends Controller
         $baseSlug = Str::limit($baseSlug, 240, '');
 
         do {
-            $slug = $baseSlug . '-' . Str::random(6);
+            $slug = $baseSlug.'-'.Str::random(6);
         } while (ForumThread::where('slug', $slug)->exists());
 
         $thread = null;

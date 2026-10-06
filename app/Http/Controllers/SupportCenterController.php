@@ -14,11 +14,11 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketCategory;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
-use App\Models\User;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
+use App\Support\Seo\Seo;
 use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
@@ -36,8 +36,7 @@ class SupportCenterController extends Controller
     public function __construct(
         private SupportTicketNotificationDispatcher $ticketNotifier,
         private SupportTicketAutoAssigner $ticketAssigner,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -244,6 +243,10 @@ class SupportCenterController extends Controller
             })
             ->values()
             ->all();
+
+        app(Seo::class)
+            ->title('Help & Support')
+            ->description('Answers to common questions, plus a ticket system for anything else.');
 
         return Inertia::render('Support', [
             'tickets' => $ticketsPayload,

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { QueryParams } from '@/types';
 import { computed, reactive, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
@@ -22,7 +23,7 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { useDebounceFn } from '@vueuse/core';
-import { Filter, ShieldCheck, ShieldAlert, CheckCircle, XCircle, Trash2, Pencil, Flag } from 'lucide-vue-next';
+import { Filter, ShieldCheck, ShieldAlert, CheckCircle, XCircle, Trash2, Pencil, Flag } from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 
 interface ReportComment {
@@ -103,7 +104,7 @@ const filterState = reactive({
 });
 
 const buildFilters = (overrides: Partial<typeof filterState & { page: number }> = {}) => {
-    const params: Record<string, unknown> = {};
+    const params: QueryParams = {};
 
     const searchValue = overrides.search ?? filterState.search;
     if (searchValue && searchValue.trim() !== '') {
@@ -149,7 +150,11 @@ const visitWithFilters = (overrides: Partial<typeof filterState & { page: number
 const debouncedSearch = useDebounceFn(() => visitWithFilters(), 300);
 watch(() => filterState.search, debouncedSearch);
 
-const { meta: paginationMeta, page: paginationPage, rangeLabel } = useInertiaPagination({
+const {
+    meta: paginationMeta,
+    page: paginationPage,
+    rangeLabel,
+} = useInertiaPagination({
     meta: computed(() => props.reports.meta ?? null),
     itemsLength: computed(() => props.reports.data?.length ?? 0),
     defaultPerPage: props.filters.per_page ?? 25,
@@ -174,8 +179,8 @@ const reportIdsForSelection = (ids: number[]) => {
     return Array.from(uniqueIds.values());
 };
 
-const toggleReportSelection = (id: number, checked: boolean) => {
-    if (checked) {
+const toggleReportSelection = (id: number, checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         if (!selectedCommentIds.value.includes(id)) {
             selectedCommentIds.value = [...selectedCommentIds.value, id];
         }
@@ -184,8 +189,8 @@ const toggleReportSelection = (id: number, checked: boolean) => {
     }
 };
 
-const toggleAllReports = (checked: boolean) => {
-    if (checked) {
+const toggleAllReports = (checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         selectedCommentIds.value = props.reports.data.map((report) => report.id);
     } else {
         selectedCommentIds.value = [];
@@ -268,8 +273,7 @@ const blockUser = (comment: ReportComment | null | undefined) => {
     router.put(route('acp.users.ban', comment.user.id), {}, { preserveScroll: true });
 };
 
-const reportReasonLabel = (value: string) =>
-    props.reportReasons.find((reason) => reason.value === value)?.label ?? value;
+const reportReasonLabel = (value: string) => props.reportReasons.find((reason) => reason.value === value)?.label ?? value;
 
 const statusBadges: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     pending: 'secondary',
@@ -298,21 +302,14 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                         <h1 class="text-3xl font-bold">Blog Comment Reports</h1>
                     </div>
 
-                    <Badge variant="outline" class="h-10 items-center justify-center">
-                        {{ props.reports.meta?.total ?? 0 }} total
-                    </Badge>
+                    <Badge variant="outline" class="h-10 items-center justify-center"> {{ props.reports.meta?.total ?? 0 }} total </Badge>
                 </div>
 
-                <div class="rounded-lg border bg-card p-4 shadow-sm">
+                <div class="rounded-lg border bg-card p-4 shadow-xs">
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
                         <div class="md:col-span-2">
                             <label class="mb-1 block text-sm font-medium text-foreground" for="search">Search body</label>
-                            <Input
-                                id="search"
-                                v-model="filterState.search"
-                                type="text"
-                                placeholder="Find keywords in comments"
-                            />
+                            <Input id="search" v-model="filterState.search" type="text" placeholder="Find keywords in comments" />
                         </div>
 
                         <div>
@@ -320,8 +317,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="status"
                                 v-model="filterState.status"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                @change="visitWithFilters"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
+                                @change="visitWithFilters()"
                             >
                                 <option value="all">All</option>
                                 <option v-for="statusOption in props.statuses" :key="statusOption" :value="statusOption">
@@ -335,8 +332,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="reason"
                                 v-model="filterState.reasonCategory"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                @change="visitWithFilters"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
+                                @change="visitWithFilters()"
                             >
                                 <option value="all">All</option>
                                 <option v-for="reason in props.reportReasons" :key="reason.value" :value="reason.value">
@@ -350,8 +347,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="perPage"
                                 v-model="filterState.perPage"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                @change="visitWithFilters"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
+                                @change="visitWithFilters()"
                             >
                                 <option value="10">10</option>
                                 <option value="25">25</option>
@@ -365,8 +362,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <select
                                 id="sortBy"
                                 v-model="filterState.sort"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                @change="visitWithFilters"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
+                                @change="visitWithFilters()"
                             >
                                 <option value="newest">Newest reports</option>
                                 <option value="oldest">Oldest reports</option>
@@ -376,7 +373,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-2">
-                        <Button variant="secondary" size="sm" class="gap-2" @click="visitWithFilters">
+                        <Button variant="secondary" size="sm" class="gap-2" @click="visitWithFilters()">
                             <Filter class="h-4 w-4" />
                             Apply filters
                         </Button>
@@ -401,47 +398,26 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
 
                 <div class="flex flex-wrap items-center gap-2" v-if="hasSelection">
                     <span class="text-sm text-muted-foreground">Bulk actions:</span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        :disabled="bulkForm.processing"
-                        class="gap-1"
-                        @click="submitBulkStatus('reviewed')"
-                    >
+                    <Button variant="outline" size="sm" :disabled="bulkForm.processing" class="gap-1" @click="submitBulkStatus('reviewed')">
                         <CheckCircle class="h-4 w-4" /> Review
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        :disabled="bulkForm.processing"
-                        class="gap-1"
-                        @click="submitBulkStatus('dismissed')"
-                    >
+                    <Button variant="outline" size="sm" :disabled="bulkForm.processing" class="gap-1" @click="submitBulkStatus('dismissed')">
                         <XCircle class="h-4 w-4" /> Dismiss
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        :disabled="bulkForm.processing"
-                        class="gap-1"
-                        @click="submitBulkStatus('pending')"
-                    >
+                    <Button variant="outline" size="sm" :disabled="bulkForm.processing" class="gap-1" @click="submitBulkStatus('pending')">
                         <ShieldAlert class="h-4 w-4" /> Mark pending
                     </Button>
                 </div>
 
-                <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+                <div class="overflow-hidden rounded-lg border bg-card shadow-xs">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead class="w-12 text-center">
                                     <Checkbox
-                                        :checked="selectedCommentIds.length === props.reports.data.length && props.reports.data.length > 0"
-                                        :indeterminate="
-                                            selectedCommentIds.length > 0 &&
-                                            selectedCommentIds.length < props.reports.data.length
-                                        "
-                                        @update:checked="toggleAllReports"
+                                        :model-value="selectedCommentIds.length === props.reports.data.length && props.reports.data.length > 0"
+                                        :indeterminate="selectedCommentIds.length > 0 && selectedCommentIds.length < props.reports.data.length"
+                                        @update:model-value="toggleAllReports"
                                     />
                                 </TableHead>
                                 <TableHead>Comment</TableHead>
@@ -455,8 +431,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <TableRow v-for="report in props.reports.data" :key="report.id">
                                 <TableCell class="text-center">
                                     <Checkbox
-                                        :checked="selectedCommentIds.includes(report.id)"
-                                        @update:checked="(checked) => toggleReportSelection(report.id, checked)"
+                                        :model-value="selectedCommentIds.includes(report.id)"
+                                        @update:model-value="(checked) => toggleReportSelection(report.id, checked)"
                                     />
                                 </TableCell>
                                 <TableCell>
@@ -464,10 +440,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                         <div class="flex items-center gap-2 text-xs text-muted-foreground">
                                             <Badge variant="secondary">#{{ report.id }}</Badge>
                                             <span v-if="report.blog">Blog: {{ report.blog.title }}</span>
-                                            <span
-                                                v-if="report.comment?.is_flagged"
-                                                class="flex items-center gap-1 text-destructive"
-                                            >
+                                            <span v-if="report.comment?.is_flagged" class="flex items-center gap-1 text-destructive">
                                                 <Flag class="h-3 w-3" /> Flagged
                                             </span>
                                         </div>
@@ -482,10 +455,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                         <div v-if="report.latest_report" class="space-y-1 text-xs text-muted-foreground">
                                             <div class="flex items-center gap-2">
                                                 <Badge :variant="statusBadges[report.latest_report.status] ?? 'secondary'" class="gap-1">
-                                                    <component
-                                                        :is="statusIcons[report.latest_report.status] ?? ShieldAlert"
-                                                        class="h-3.5 w-3.5"
-                                                    />
+                                                    <component :is="statusIcons[report.latest_report.status] ?? ShieldAlert" class="h-3.5 w-3.5" />
                                                     {{ report.latest_report.status }}
                                                 </Badge>
                                                 <span>{{ reportReasonLabel(report.latest_report.reason_category) }}</span>
@@ -573,7 +543,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                             variant="ghost"
                                             size="sm"
                                             class="gap-1"
-                                            @click="openEditor(report.comment)">
+                                            @click="openEditor(report.comment)"
+                                        >
                                             <Pencil class="h-4 w-4" />
                                             Edit comment
                                         </Button>
@@ -592,7 +563,8 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                             variant="ghost"
                                             size="sm"
                                             class="gap-1 text-destructive"
-                                            @click="blockUser(report.comment)">
+                                            @click="blockUser(report.comment)"
+                                        >
                                             <ShieldAlert class="h-4 w-4" />
                                             Block user
                                         </Button>
@@ -624,10 +596,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
 
                                     <template v-for="(item, index) in items" :key="index">
                                         <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
-                                            <Button
-                                                class="h-9 w-9 p-0"
-                                                :variant="item.value === page ? 'default' : 'outline'"
-                                            >
+                                            <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                 {{ item.value }}
                                             </Button>
                                         </PaginationListItem>
@@ -642,7 +611,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                     </div>
                 </div>
 
-                <div v-if="editingComment" class="rounded-lg border bg-card p-4 shadow-sm">
+                <div v-if="editingComment" class="rounded-lg border bg-card p-4 shadow-xs">
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <h2 class="text-xl font-semibold">Editing comment #{{ editingComment.id }}</h2>
@@ -664,13 +633,9 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                 <select
                                     id="editStatus"
                                     v-model="editForm.status"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
                                 >
-                                    <option
-                                        v-for="statusOption in props.commentStatuses"
-                                        :key="statusOption"
-                                        :value="statusOption"
-                                    >
+                                    <option v-for="statusOption in props.commentStatuses" :key="statusOption" :value="statusOption">
                                         {{ statusOption.charAt(0).toUpperCase() + statusOption.slice(1) }}
                                     </option>
                                 </select>
@@ -678,7 +643,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             </div>
 
                             <div class="flex items-center gap-2 pt-6">
-                                <Checkbox id="flagged" v-model:checked="editForm.is_flagged" />
+                                <Checkbox id="flagged" v-model="editForm.is_flagged" />
                                 <label for="flagged" class="text-sm font-medium">Mark as flagged</label>
                             </div>
                         </div>

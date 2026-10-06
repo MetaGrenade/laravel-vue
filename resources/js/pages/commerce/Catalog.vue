@@ -71,7 +71,10 @@ const props = defineProps<Props>();
 const selectedVariants = reactive<Record<number, number | null>>({});
 const quantities = reactive<Record<number, number>>({});
 const submittingProductId = ref<number | null>(null);
-const filterState = reactive({
+// Selects bind '' for "any", or the selected id.
+const breadcrumbs = [{ title: 'Shop', href: route('shop.index') }];
+
+const filterState = reactive<{ search: string; category: number | ''; tags: number[]; brand: number | '' }>({
     search: props.filters.search ?? '',
     category: props.filters.category?.[0] ?? '',
     tags: [...(props.filters.tags ?? [])],
@@ -129,10 +132,7 @@ const formatCurrency = (amount: number, currency: string) => {
 };
 
 const getPriceRangeLabel = (product: Product) => {
-    const allPrices = [
-        ...product.prices,
-        ...product.variants.flatMap((variant) => variant.prices || []),
-    ];
+    const allPrices = [...product.prices, ...product.variants.flatMap((variant) => variant.prices || [])];
 
     if (!allPrices.length) {
         return 'Add pricing to this item';
@@ -218,12 +218,7 @@ const toggleTag = (tagId: number) => {
                     <div class="grid gap-4 md:grid-cols-4">
                         <div class="space-y-2">
                             <label class="text-sm font-semibold text-foreground" for="search">Search</label>
-                            <Input
-                                id="search"
-                                v-model="filterState.search"
-                                placeholder="Search by name or description"
-                                @keyup.enter="applyFilters"
-                            />
+                            <Input id="search" v-model="filterState.search" placeholder="Search by name or description" @keyup.enter="applyFilters" />
                         </div>
 
                         <div class="space-y-2">
@@ -231,7 +226,7 @@ const toggleTag = (tagId: number) => {
                             <select
                                 id="category"
                                 v-model="filterState.category"
-                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
                             >
                                 <option value="">All categories</option>
                                 <option v-for="category in props.categories" :key="category.id" :value="category.id">
@@ -245,7 +240,7 @@ const toggleTag = (tagId: number) => {
                             <select
                                 id="brand"
                                 v-model="filterState.brand"
-                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
                             >
                                 <option value="">All brands</option>
                                 <option v-for="brand in props.brands" :key="brand.id" :value="brand.id">
@@ -263,7 +258,8 @@ const toggleTag = (tagId: number) => {
                                     size="sm"
                                     variant="outline"
                                     :class="filterState.tags.includes(tag.id) ? 'border-primary text-primary' : ''"
-                                    @click="toggleTag(tag.id)">
+                                    @click="toggleTag(tag.id)"
+                                >
                                     {{ tag.name }}
                                 </Button>
                             </div>
@@ -284,7 +280,7 @@ const toggleTag = (tagId: number) => {
                         <div v-if="product.brand" class="flex items-center gap-2 text-sm text-muted-foreground">
                             <Badge variant="outline">{{ product.brand.name }}</Badge>
                         </div>
-                        <p class="text-sm text-muted-foreground line-clamp-2">{{ product.description || 'No description yet.' }}</p>
+                        <p class="line-clamp-2 text-sm text-muted-foreground">{{ product.description || 'No description yet.' }}</p>
                     </CardHeader>
                     <CardContent class="flex flex-1 flex-col justify-between space-y-4">
                         <div class="space-y-3">
@@ -312,9 +308,13 @@ const toggleTag = (tagId: number) => {
                             <div v-if="product.variants.length" class="space-y-1">
                                 <label class="text-sm font-semibold text-foreground">Select variant</label>
                                 <select
-                                    class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none"
+                                    class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
                                     :value="getSelectedVariantId(product) ?? ''"
-                                    @change="selectedVariants[product.id] = ($event.target as HTMLSelectElement).value ? Number(($event.target as HTMLSelectElement).value) : null"
+                                    @change="
+                                        selectedVariants[product.id] = ($event.target as HTMLSelectElement).value
+                                            ? Number(($event.target as HTMLSelectElement).value)
+                                            : null
+                                    "
                                 >
                                     <option v-for="variant in product.variants" :key="variant.id" :value="variant.id">
                                         {{ variant.name }}

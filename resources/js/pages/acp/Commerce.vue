@@ -83,9 +83,7 @@ const props = defineProps<{
     orderStatusBreakdown: Record<string, number>;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Commerce', href: '/acp/commerce' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Commerce', href: '/acp/commerce' }];
 
 const productForm = useForm({
     brand_id: props.brands[0]?.id ?? null,
@@ -126,7 +124,7 @@ const variantOptionsText = ref('');
 
 const priceForm = useForm({
     priceable_type: 'App\\Models\\Product',
-    priceable_id: props.products[0]?.id ?? null,
+    priceable_id: (props.products[0]?.id ?? null) as number | null,
     currency: 'USD',
     amount: 0,
     compare_at_amount: null as number | null,
@@ -143,13 +141,13 @@ const inventoryForm = useForm({
 });
 
 const priceableTargets = computed(() => {
-    const productTargets = props.products.map(product => ({
+    const productTargets = props.products.map((product) => ({
         id: product.id,
         label: `Product • ${product.name}`,
         type: 'App\\Models\\Product',
     }));
 
-    const variantTargets = props.variants.map(variant => ({
+    const variantTargets = props.variants.map((variant) => ({
         id: variant.id,
         label: `Variant • ${variant.name}`,
         type: 'App\\Models\\ProductVariant',
@@ -182,7 +180,7 @@ const resolvePriceOwner = (price: Price) => {
 
 watch(
     priceableTargets,
-    targets => {
+    (targets) => {
         if (!priceTargetSelection.value && targets[0]) {
             priceTargetSelection.value = `${targets[0].type}:${targets[0].id}`;
         }
@@ -192,7 +190,7 @@ watch(
 
 watch(
     priceTargetSelection,
-    value => {
+    (value) => {
         const [type, id] = value.split(':');
         priceForm.priceable_type = type ?? 'App\\Models\\Product';
         priceForm.priceable_id = id ? Number.parseInt(id, 10) : null;
@@ -210,7 +208,7 @@ const submitBrand = () => {
 const updateVariantOptions = () => {
     variantForm.option_values = variantOptionsText.value
         .split(',')
-        .map(value => value.trim())
+        .map((value) => value.trim())
         .filter(Boolean);
 };
 
@@ -280,7 +278,7 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
 
     <AppLayout :breadcrumbs="breadcrumbs" title="Commerce" description="Manage products, pricing, and orders." sticky>
         <AdminLayout>
-            <div class="space-y-6 w-full">
+            <div class="w-full space-y-6">
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <Card>
                         <CardHeader>
@@ -288,7 +286,10 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                             <CardTitle class="text-3xl">{{ metrics.products.total }}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p class="text-sm text-muted-foreground">{{ metrics.products.active }} active • {{ metrics.products.options }} options • {{ metrics.products.variants }} variants</p>
+                            <p class="text-sm text-muted-foreground">
+                                {{ metrics.products.active }} active • {{ metrics.products.options }} options •
+                                {{ metrics.products.variants }} variants
+                            </p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -306,7 +307,9 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                             <CardTitle class="text-3xl">{{ metrics.inventory.items }}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p class="text-sm text-muted-foreground">{{ metrics.inventory.on_hand }} units on hand • {{ metrics.inventory.backorderable }} backorderable</p>
+                            <p class="text-sm text-muted-foreground">
+                                {{ metrics.inventory.on_hand }} units on hand • {{ metrics.inventory.backorderable }} backorderable
+                            </p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -315,7 +318,10 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                             <CardTitle class="text-3xl">{{ metrics.orders.total }}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p class="text-sm text-muted-foreground">{{ metrics.orders.processing }} processing • {{ metrics.orders.completed }} completed • {{ formatCurrency(metrics.orders.revenue) }} revenue</p>
+                            <p class="text-sm text-muted-foreground">
+                                {{ metrics.orders.processing }} processing • {{ metrics.orders.completed }} completed •
+                                {{ formatCurrency(metrics.orders.revenue) }} revenue
+                            </p>
                         </CardContent>
                     </Card>
                 </div>
@@ -329,14 +335,14 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                         <CardContent>
                             <Table>
                                 <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Brand</TableHead>
-                                    <TableHead>Slug</TableHead>
-                                    <TableHead>Variants</TableHead>
-                                    <TableHead>Prices</TableHead>
-                                    <TableHead>Inventory</TableHead>
-                                </TableRow>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Brand</TableHead>
+                                        <TableHead>Slug</TableHead>
+                                        <TableHead>Variants</TableHead>
+                                        <TableHead>Prices</TableHead>
+                                        <TableHead>Inventory</TableHead>
+                                    </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     <TableRow v-for="product in products" :key="product.id">
@@ -374,9 +380,7 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                                 <input v-model="productForm.is_active" type="checkbox" />
                                 <span>Active</span>
                             </label>
-                            <Button class="w-full" :disabled="productForm.processing" @click="submitProduct">
-                                Save product
-                            </Button>
+                            <Button class="w-full" :disabled="productForm.processing" @click="submitProduct"> Save product </Button>
                         </CardContent>
                     </Card>
 
@@ -395,9 +399,7 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                             <Input v-model="brandForm.name" placeholder="Brand name" />
                             <Input v-model="brandForm.slug" placeholder="Slug" />
                             <Input v-model="brandForm.description" placeholder="Description" />
-                            <Button class="w-full" :disabled="brandForm.processing" @click="submitBrand">
-                                Save brand
-                            </Button>
+                            <Button class="w-full" :disabled="brandForm.processing" @click="submitBrand"> Save brand </Button>
                         </CardContent>
                     </Card>
                 </div>
@@ -461,7 +463,11 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                         </CardHeader>
                         <CardContent class="space-y-3">
                             <select v-model="priceTargetSelection" class="w-full rounded-md border bg-background px-3 py-2">
-                                <option v-for="target in priceableTargets" :key="`${target.type}-${target.id}`" :value="`${target.type}:${target.id}`">
+                                <option
+                                    v-for="target in priceableTargets"
+                                    :key="`${target.type}-${target.id}`"
+                                    :value="`${target.type}:${target.id}`"
+                                >
                                     {{ target.label }}
                                 </option>
                             </select>
@@ -523,7 +529,9 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                                         <TableCell>{{ formatCurrency(price.amount) }}</TableCell>
                                         <TableCell>{{ price.compare_at_amount ? formatCurrency(price.compare_at_amount) : '—' }}</TableCell>
                                         <TableCell>
-                                            <Badge :variant="price.is_active ? 'outline' : 'secondary'">{{ price.is_active ? 'Active' : 'Inactive' }}</Badge>
+                                            <Badge :variant="price.is_active ? 'outline' : 'secondary'">{{
+                                                price.is_active ? 'Active' : 'Inactive'
+                                            }}</Badge>
                                         </TableCell>
                                     </TableRow>
                                 </TableBody>
@@ -552,7 +560,9 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                                         <TableCell>{{ item.variant?.name ?? '—' }}</TableCell>
                                         <TableCell>{{ item.quantity }}</TableCell>
                                         <TableCell>
-                                            <Badge :variant="item.allow_backorder ? 'outline' : 'secondary'">{{ item.allow_backorder ? 'Allowed' : 'No' }}</Badge>
+                                            <Badge :variant="item.allow_backorder ? 'outline' : 'secondary'">{{
+                                                item.allow_backorder ? 'Allowed' : 'No'
+                                            }}</Badge>
                                         </TableCell>
                                     </TableRow>
                                 </TableBody>
@@ -580,7 +590,9 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                                 <TableBody>
                                     <TableRow v-for="order in orders" :key="order.id">
                                         <TableCell>#{{ order.id }}</TableCell>
-                                        <TableCell><Badge variant="outline">{{ formatStatus(order.status) }}</Badge></TableCell>
+                                        <TableCell
+                                            ><Badge variant="outline">{{ formatStatus(order.status) }}</Badge></TableCell
+                                        >
                                         <TableCell>{{ order.user?.nickname ?? 'Guest' }}</TableCell>
                                         <TableCell>{{ formatCurrency(order.grand_total) }}</TableCell>
                                     </TableRow>

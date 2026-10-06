@@ -90,8 +90,8 @@ class BlogCommentNotificationsTest extends TestCase
             function (BlogCommentPosted $notification) use ($blog, $comment, $commentAuthor, $subscriber) {
                 $data = $notification->toArray($subscriber);
 
-                $expectedTitle = 'New reply on "' . $blog->title . '"';
-                $expectedExcerptPrefix = $commentAuthor->nickname . ' replied:';
+                $expectedTitle = 'New reply on "'.$blog->title.'"';
+                $expectedExcerptPrefix = $commentAuthor->nickname.' replied:';
 
                 return $data['blog_id'] === $blog->id
                     && $data['comment_id'] === $comment->id
@@ -100,7 +100,7 @@ class BlogCommentNotificationsTest extends TestCase
                     && $data['title'] === $expectedTitle
                     && $data['thread_title'] === $expectedTitle
                     && str_starts_with($data['excerpt'], $expectedExcerptPrefix)
-                    && $data['url'] === route('blogs.view', ['slug' => $blog->slug]) . '#comment-' . $comment->id;
+                    && $data['url'] === route('blogs.view', ['slug' => $blog->slug]).'#comment-'.$comment->id;
             }
         );
 
@@ -110,8 +110,8 @@ class BlogCommentNotificationsTest extends TestCase
             function (BlogCommentPosted $notification) use ($blog, $comment, $commentAuthor, $anotherSubscriber) {
                 $data = $notification->toArray($anotherSubscriber);
 
-                $expectedTitle = 'New reply on "' . $blog->title . '"';
-                $expectedExcerptPrefix = $commentAuthor->nickname . ' replied:';
+                $expectedTitle = 'New reply on "'.$blog->title.'"';
+                $expectedExcerptPrefix = $commentAuthor->nickname.' replied:';
 
                 return $data['blog_id'] === $blog->id
                     && $data['comment_id'] === $comment->id
@@ -120,7 +120,7 @@ class BlogCommentNotificationsTest extends TestCase
                     && $data['title'] === $expectedTitle
                     && $data['thread_title'] === $expectedTitle
                     && str_starts_with($data['excerpt'], $expectedExcerptPrefix)
-                    && $data['url'] === route('blogs.view', ['slug' => $blog->slug]) . '#comment-' . $comment->id;
+                    && $data['url'] === route('blogs.view', ['slug' => $blog->slug]).'#comment-'.$comment->id;
             }
         );
 

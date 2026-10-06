@@ -64,7 +64,7 @@ class TrustSafetyController extends Controller
                         ->where('email', 'like', "%{$search}%")
                         ->orWhere('nickname', 'like', "%{$search}%");
                 })
-                ->orWhere('id', $search);
+                    ->orWhere('id', $search);
             });
         }
 
@@ -110,7 +110,7 @@ class TrustSafetyController extends Controller
                         ->where('email', 'like', "%{$search}%")
                         ->orWhere('nickname', 'like', "%{$search}%");
                 })
-                ->orWhere('id', $search);
+                    ->orWhere('id', $search);
             });
         }
 

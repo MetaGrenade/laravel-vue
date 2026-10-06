@@ -1,5 +1,13 @@
 <?php
 
+use App\Models\ForumBoard;
+use App\Models\ForumCategory;
+use App\Models\ForumPost;
+use App\Models\ForumThread;
+use App\Models\SupportAssignmentRule;
+use App\Models\SupportTeam;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
 return [
@@ -27,7 +35,8 @@ return [
     | same cache driver to group types of items stored in your caches.
     |
     | Supported drivers: "array", "database", "file", "memcached",
-    |                    "redis", "dynamodb", "octane", "null"
+    |                    "redis", "dynamodb", "storage", "octane",
+    |                    "session", "failover", "null"
     |
     */
 
@@ -49,7 +58,13 @@ return [
         'file' => [
             'driver' => 'file',
             'path' => storage_path('framework/cache/data'),
-            'lock_path' => storage_path('framework/cache/data'),
+            'lock_path' => storage_path('framework/cache/locks'),
+        ],
+
+        'storage' => [
+            'driver' => 'storage',
+            'disk' => env('CACHE_STORAGE_DISK'),
+            'path' => env('CACHE_STORAGE_PATH', 'framework/cache/data'),
         ],
 
         'memcached' => [
@@ -90,6 +105,14 @@ return [
             'driver' => 'octane',
         ],
 
+        'failover' => [
+            'driver' => 'failover',
+            'stores' => [
+                'database',
+                'array',
+            ],
+        ],
+
     ],
 
     /*
@@ -103,6 +126,32 @@ return [
     |
     */
 
-    'prefix' => env('CACHE_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_cache_'),
+    'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Serializable Classes
+    |--------------------------------------------------------------------------
+    |
+    | This value determines the classes that can be unserialized from cache
+    | storage. By default, no PHP classes will be unserialized from your
+    | cache to prevent gadget chain attacks if your APP_KEY is leaked.
+    |
+    | The application caches a handful of Eloquent result sets (forum index
+    | widgets and support assignment rules), so only those classes are
+    | allowed. Add to this list when caching additional model types.
+    |
+    */
+
+    'serializable_classes' => [
+        Collection::class,
+        ForumBoard::class,
+        ForumCategory::class,
+        ForumPost::class,
+        ForumThread::class,
+        SupportAssignmentRule::class,
+        SupportTeam::class,
+        User::class,
+    ],
 
 ];

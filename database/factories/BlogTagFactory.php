@@ -19,7 +19,7 @@ class BlogTagFactory extends Factory
 
         return [
             'name' => Str::title($name),
-            'slug' => Str::slug($name) . '-' . Str::random(5),
+            'slug' => Str::slug($name).'-'.Str::random(5),
         ];
     }
 }

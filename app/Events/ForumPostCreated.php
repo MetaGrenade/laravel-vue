@@ -28,7 +28,7 @@ class ForumPostCreated implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new PresenceChannel('forum.threads.' . $this->thread->id),
+            new PresenceChannel('forum.threads.'.$this->thread->id),
         ];
     }
 
@@ -56,7 +56,7 @@ class ForumPostCreated implements ShouldBroadcastNow
                 'url' => route('forum.threads.show', [
                     'board' => $boardSlug,
                     'thread' => $this->thread->slug,
-                ]) . '#post-' . $this->post->id,
+                ]).'#post-'.$this->post->id,
             ],
         ];
     }

@@ -29,7 +29,7 @@ class PostMentionTest extends TestCase
         $mentionedUser = User::factory()->create(['nickname' => 'MentionTarget']);
         $unrelatedUser = User::factory()->create();
 
-        $body = '<p>Hello @' . $mentionedUser->nickname . ' and @ghost-user</p>';
+        $body = '<p>Hello @'.$mentionedUser->nickname.' and @ghost-user</p>';
 
         $response = $this->actingAs($replier)->post(route('forum.posts.store', [$board, $thread]), [
             'body' => $body,
@@ -74,12 +74,12 @@ class PostMentionTest extends TestCase
         $post = ForumPost::create([
             'forum_thread_id' => $thread->id,
             'user_id' => $author->id,
-            'body' => '<p>Initial content @' . $existingMention->nickname . '</p>',
+            'body' => '<p>Initial content @'.$existingMention->nickname.'</p>',
         ]);
 
         $post->mentions()->attach($existingMention->id);
 
-        $updatedBody = '<p>Update for @' . $existingMention->nickname . ' and welcome @' . $newMention->nickname . ' plus @unknown</p>';
+        $updatedBody = '<p>Update for @'.$existingMention->nickname.' and welcome @'.$newMention->nickname.' plus @unknown</p>';
 
         $response = $this->actingAs($author)->put(route('forum.posts.update', [$board, $thread, $post]), [
             'body' => $updatedBody,
@@ -122,7 +122,7 @@ class PostMentionTest extends TestCase
         $mentionedUser = User::factory()->create(['nickname' => 'MentionTarget']);
 
         $response = $this->actingAs($replier)->post(route('forum.posts.store', [$board, $thread]), [
-            'body' => '<p>Hello @' . $mentionedUser->nickname . '</p>',
+            'body' => '<p>Hello @'.$mentionedUser->nickname.'</p>',
         ]);
 
         $response->assertRedirect();
@@ -140,26 +140,26 @@ class PostMentionTest extends TestCase
         });
     }
 
-//    public function test_mention_suggestions_returns_matching_users(): void
-//    {
-//        $requester = User::factory()->create();
-//        $match = User::factory()->create(['nickname' => 'TargetUser']);
-//        $other = User::factory()->create(['nickname' => 'AnotherMember']);
-//
-//        $response = $this->actingAs($requester)
-//            ->getJson(route('forum.mentions.index', ['q' => 'Target']));
-//
-//        $response->assertOk();
-//        $response->assertJson(fn ($json) => $json
-//            ->has('data', 1)
-//            ->first(fn ($jsonItem) => $jsonItem
-//                ->where('id', $match->id)
-//                ->where('nickname', $match->nickname)
-//                ->etc(), 'data'));
-//
-//        $response->assertJsonMissing(['id' => $requester->id]);
-//        $response->assertJsonMissing(['id' => $other->id]);
-//    }
+    //    public function test_mention_suggestions_returns_matching_users(): void
+    //    {
+    //        $requester = User::factory()->create();
+    //        $match = User::factory()->create(['nickname' => 'TargetUser']);
+    //        $other = User::factory()->create(['nickname' => 'AnotherMember']);
+    //
+    //        $response = $this->actingAs($requester)
+    //            ->getJson(route('forum.mentions.index', ['q' => 'Target']));
+    //
+    //        $response->assertOk();
+    //        $response->assertJson(fn ($json) => $json
+    //            ->has('data', 1)
+    //            ->first(fn ($jsonItem) => $jsonItem
+    //                ->where('id', $match->id)
+    //                ->where('nickname', $match->nickname)
+    //                ->etc(), 'data'));
+    //
+    //        $response->assertJsonMissing(['id' => $requester->id]);
+    //        $response->assertJsonMissing(['id' => $other->id]);
+    //    }
 
     public function test_mention_suggestions_require_authentication(): void
     {

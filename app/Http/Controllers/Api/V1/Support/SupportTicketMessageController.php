@@ -13,15 +13,12 @@ use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 class SupportTicketMessageController extends Controller
 {
-    public function __construct(private readonly SupportTicketNotificationDispatcher $ticketNotifier)
-    {
-    }
+    public function __construct(private readonly SupportTicketNotificationDispatcher $ticketNotifier) {}
 
     public function store(StorePublicSupportTicketMessageRequest $request, SupportTicket $ticket): JsonResponse
     {

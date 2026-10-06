@@ -11,7 +11,9 @@ class ForumThreadReport extends Model
     use HasFactory;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_REVIEWED = 'reviewed';
+
     public const STATUS_DISMISSED = 'dismissed';
 
     public const STATUSES = [

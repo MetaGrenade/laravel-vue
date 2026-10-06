@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import Input from '@/components/ui/input/Input.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Paperclip, Sparkles } from 'lucide-vue-next';
+import { Paperclip, Sparkles } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
 interface TicketParticipant {
@@ -208,9 +208,7 @@ const templateGroups = computed(() => {
     });
 });
 
-const hasTemplateOptions = computed(() =>
-    templateGroups.value.some((group) => group.items.length > 0),
-);
+const hasTemplateOptions = computed(() => templateGroups.value.some((group) => group.items.length > 0));
 
 const applyTemplate = (template: SupportTemplateMeta) => {
     const currentBody = replyForm.body ?? '';
@@ -237,9 +235,7 @@ const handleAttachmentsChange = (event: Event) => {
 };
 
 const attachmentErrors = computed(() => {
-    const errorEntries = Object.entries(replyForm.errors).filter(([key]) =>
-        key === 'attachments' || key.startsWith('attachments.'),
-    );
+    const errorEntries = Object.entries(replyForm.errors).filter(([key]) => key === 'attachments' || key.startsWith('attachments.'));
 
     return errorEntries.length > 0 ? errorEntries[0][1] : '';
 });
@@ -335,8 +331,8 @@ const submitReply = () => {
 
     replyForm.transform((data) => {
         if (!data.attachments || data.attachments.length === 0) {
-            const payload = { ...data };
-            delete payload.attachments;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { attachments, ...payload } = data;
 
             return payload;
         }
@@ -385,9 +381,7 @@ const hasAudits = computed(() => sortedAudits.value.length > 0);
 
 const resolveAuthorLabel = (message: TicketMessage) => {
     if (!message.author) {
-        return message.is_from_support
-            ? 'Support Team'
-            : props.ticket.user?.nickname ?? props.ticket.user?.email ?? 'Requester';
+        return message.is_from_support ? 'Support Team' : (props.ticket.user?.nickname ?? props.ticket.user?.email ?? 'Requester');
     }
 
     if (message.is_from_support) {
@@ -477,12 +471,8 @@ const auditContextEntries = (audit: TicketAudit) => {
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-3">
-                        <span class="rounded-full px-3 py-1 text-xs font-medium" :class="statusClasses">
-                            Status: {{ statusLabel }}
-                        </span>
-                        <span class="rounded-full px-3 py-1 text-xs font-medium" :class="priorityClasses">
-                            Priority: {{ priorityLabel }}
-                        </span>
+                        <span class="rounded-full px-3 py-1 text-xs font-medium" :class="statusClasses"> Status: {{ statusLabel }} </span>
+                        <span class="rounded-full px-3 py-1 text-xs font-medium" :class="priorityClasses"> Priority: {{ priorityLabel }} </span>
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.support.index')">Back to Support</Link>
                         </Button>
@@ -496,7 +486,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                     </TabsList>
 
                     <TabsContent value="overview" class="space-y-6">
-                        <div class="grid gap-6 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
+                        <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                             <Card class="flex h-full flex-col">
                                 <CardHeader>
                                     <CardTitle>Conversation</CardTitle>
@@ -511,18 +501,16 @@ const auditContextEntries = (audit: TicketAudit) => {
                                             :class="message.is_from_support ? 'items-end' : 'items-start'"
                                         >
                                             <div
-                                                class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-sm"
-                                                :class="message.is_from_support
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : 'bg-background border'"
+                                                class="max-w-xl rounded-lg px-4 py-3 text-sm leading-relaxed shadow-xs"
+                                                :class="message.is_from_support ? 'bg-primary text-primary-foreground' : 'border bg-background'"
                                             >
-                                                <div class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide">
+                                                <div class="mb-2 flex items-center justify-between text-xs font-semibold tracking-wide uppercase">
                                                     <span>{{ resolveAuthorLabel(message) }}</span>
                                                     <span class="opacity-75">{{ messageTimestamp(message.created_at) }}</span>
                                                 </div>
                                                 <p class="whitespace-pre-line">{{ message.body }}</p>
                                                 <div v-if="message.attachments.length" class="mt-3 flex flex-col gap-2">
-                                                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide opacity-80">
+                                                    <div class="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase opacity-80">
                                                         <Paperclip class="h-3 w-3" />
                                                         <span>Attachments</span>
                                                     </div>
@@ -533,12 +521,14 @@ const auditContextEntries = (audit: TicketAudit) => {
                                                                 target="_blank"
                                                                 rel="noopener"
                                                                 class="flex items-center gap-2 underline underline-offset-4"
-                                                                :class="message.is_from_support
-                                                                    ? 'text-primary-foreground hover:text-primary-foreground/80'
-                                                                    : 'text-primary hover:text-primary/80'"
+                                                                :class="
+                                                                    message.is_from_support
+                                                                        ? 'text-primary-foreground hover:text-primary-foreground/80'
+                                                                        : 'text-primary hover:text-primary/80'
+                                                                "
                                                             >
                                                                 <span class="truncate">{{ attachment.name }}</span>
-                                                                <span class="whitespace-nowrap text-[0.7rem] opacity-80">
+                                                                <span class="text-[0.7rem] whitespace-nowrap opacity-80">
                                                                     {{ formatFileSize(attachment.size) }}
                                                                 </span>
                                                             </a>
@@ -548,14 +538,9 @@ const auditContextEntries = (audit: TicketAudit) => {
                                             </div>
                                         </div>
                                     </div>
-                                    <p v-else class="text-sm text-muted-foreground">
-                                        There are no messages on this ticket yet.
-                                    </p>
+                                    <p v-else class="text-sm text-muted-foreground">There are no messages on this ticket yet.</p>
                                 </CardContent>
-                                <CardFooter
-                                    v-if="props.canReply"
-                                    class="items-stretch border-t border-border/50"
-                                >
+                                <CardFooter v-if="props.canReply" class="items-stretch border-t border-border/50">
                                     <form class="flex w-full flex-col gap-3" @submit.prevent="submitReply">
                                         <div class="flex flex-wrap items-center justify-between gap-2">
                                             <label for="message" class="text-sm font-medium">Post a staff reply</label>
@@ -572,15 +557,15 @@ const auditContextEntries = (audit: TicketAudit) => {
                                                         Insert template
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" class="w-80 max-h-80 overflow-y-auto">
+                                                <DropdownMenuContent align="end" class="max-h-80 w-80 overflow-y-auto">
                                                     <template v-for="(group, index) in templateGroups" :key="group.name">
-                                                        <DropdownMenuLabel class="text-xs uppercase text-muted-foreground">
+                                                        <DropdownMenuLabel class="text-xs text-muted-foreground uppercase">
                                                             {{ group.name === 'General' ? 'All teams' : group.name }}
                                                         </DropdownMenuLabel>
                                                         <DropdownMenuItem
                                                             v-for="template in group.items"
                                                             :key="template.id"
-                                                            class="whitespace-normal py-2"
+                                                            class="py-2 whitespace-normal"
                                                             :title="template.body"
                                                             @select="applyTemplate(template)"
                                                         >
@@ -627,23 +612,18 @@ const auditContextEntries = (audit: TicketAudit) => {
                                                     class="flex items-center gap-2 rounded-md border border-dashed border-muted bg-muted/40 px-2 py-1"
                                                 >
                                                     <Paperclip class="h-3 w-3" />
-                                                    <span class="max-w-[10rem] truncate">{{ file.name }}</span>
+                                                    <span class="max-w-40 truncate">{{ file.name }}</span>
                                                     <span class="text-muted-foreground">{{ formatFileSize(file.size) }}</span>
                                                 </li>
                                             </ul>
                                             <InputError :message="attachmentErrors" />
                                         </div>
                                         <div class="flex justify-end">
-                                            <Button type="submit" :disabled="replyForm.processing">
-                                                Send reply
-                                            </Button>
+                                            <Button type="submit" :disabled="replyForm.processing"> Send reply </Button>
                                         </div>
                                     </form>
                                 </CardFooter>
-                                <CardFooter
-                                    v-else
-                                    class="items-start border-t border-border/50"
-                                >
+                                <CardFooter v-else class="items-start border-t border-border/50">
                                     <p class="text-sm text-muted-foreground">
                                         Replies are disabled either because the ticket is closed or you lack reply permissions.
                                     </p>
@@ -658,40 +638,32 @@ const auditContextEntries = (audit: TicketAudit) => {
                                     </CardHeader>
                                     <CardContent class="space-y-4 text-sm">
                                         <form class="grid gap-2" @submit.prevent="updateAssignment">
-                                            <label for="assigned_to" class="text-xs font-semibold uppercase text-muted-foreground">
+                                            <label for="assigned_to" class="text-xs font-semibold text-muted-foreground uppercase">
                                                 Assigned agent
                                             </label>
                                             <select
                                                 id="assigned_to"
                                                 v-model.number="assignmentForm.assigned_to"
-                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                                 :disabled="assignmentForm.processing"
                                             >
                                                 <option :value="null">Unassigned</option>
-                                                <option
-                                                    v-for="agent in props.assignableAgents"
-                                                    :key="agent.id"
-                                                    :value="agent.id"
-                                                >
+                                                <option v-for="agent in props.assignableAgents" :key="agent.id" :value="agent.id">
                                                     {{ agent.nickname || agent.email }}
                                                 </option>
                                             </select>
                                             <InputError :message="assignmentForm.errors.assigned_to" />
                                             <div class="flex justify-end">
-                                                <Button type="submit" size="sm" :disabled="assignmentForm.processing">
-                                                    Update assignment
-                                                </Button>
+                                                <Button type="submit" size="sm" :disabled="assignmentForm.processing"> Update assignment </Button>
                                             </div>
                                         </form>
 
                                         <form class="grid gap-2" @submit.prevent="updatePriority">
-                                            <label for="priority" class="text-xs font-semibold uppercase text-muted-foreground">
-                                                Priority
-                                            </label>
+                                            <label for="priority" class="text-xs font-semibold text-muted-foreground uppercase"> Priority </label>
                                             <select
                                                 id="priority"
                                                 v-model="priorityForm.priority"
-                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                                 :disabled="priorityForm.processing"
                                             >
                                                 <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
@@ -700,20 +672,16 @@ const auditContextEntries = (audit: TicketAudit) => {
                                             </select>
                                             <InputError :message="priorityForm.errors.priority" />
                                             <div class="flex justify-end">
-                                                <Button type="submit" size="sm" :disabled="priorityForm.processing">
-                                                    Update priority
-                                                </Button>
+                                                <Button type="submit" size="sm" :disabled="priorityForm.processing"> Update priority </Button>
                                             </div>
                                         </form>
 
                                         <form class="grid gap-2" @submit.prevent="updateStatus">
-                                            <label for="status" class="text-xs font-semibold uppercase text-muted-foreground">
-                                                Status
-                                            </label>
+                                            <label for="status" class="text-xs font-semibold text-muted-foreground uppercase"> Status </label>
                                             <select
                                                 id="status"
                                                 v-model="statusForm.status"
-                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                                 :disabled="statusForm.processing"
                                             >
                                                 <option v-for="option in statusOptions" :key="option.value" :value="option.value">
@@ -722,9 +690,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                                             </select>
                                             <InputError :message="statusForm.errors.status" />
                                             <div class="flex justify-end">
-                                                <Button type="submit" size="sm" :disabled="statusForm.processing">
-                                                    Update status
-                                                </Button>
+                                                <Button type="submit" size="sm" :disabled="statusForm.processing"> Update status </Button>
                                             </div>
                                         </form>
                                     </CardContent>
@@ -737,37 +703,37 @@ const auditContextEntries = (audit: TicketAudit) => {
                                     </CardHeader>
                                     <CardContent class="space-y-4 text-sm">
                                         <div>
-                                            <p class="text-xs uppercase text-muted-foreground">Requester</p>
+                                            <p class="text-xs text-muted-foreground uppercase">Requester</p>
                                             <p class="font-medium text-foreground">
                                                 {{ props.ticket.user?.nickname ?? props.ticket.user?.email ?? 'Unknown user' }}
                                             </p>
                                             <p class="text-muted-foreground">{{ props.ticket.user?.email ?? '—' }}</p>
                                         </div>
                                         <div>
-                                            <p class="text-xs uppercase text-muted-foreground">Assigned agent</p>
+                                            <p class="text-xs text-muted-foreground uppercase">Assigned agent</p>
                                             <p class="font-medium text-foreground">
                                                 {{ props.ticket.assignee?.nickname ?? 'Unassigned' }}
                                             </p>
                                             <p class="text-muted-foreground">{{ props.ticket.assignee?.email ?? '—' }}</p>
                                         </div>
                                         <div>
-                                            <p class="text-xs uppercase text-muted-foreground">Assigned team</p>
+                                            <p class="text-xs text-muted-foreground uppercase">Assigned team</p>
                                             <p class="font-medium text-foreground">
                                                 {{ props.ticket.team?.name ?? '—' }}
                                             </p>
                                         </div>
                                         <div>
-                                            <p class="text-xs uppercase text-muted-foreground">Created</p>
+                                            <p class="text-xs text-muted-foreground uppercase">Created</p>
                                             <p class="font-medium text-foreground">{{ formattedCreatedAt }}</p>
                                             <p class="text-muted-foreground">{{ fromNow(props.ticket.created_at) }}</p>
                                         </div>
                                         <div>
-                                            <p class="text-xs uppercase text-muted-foreground">Last updated</p>
+                                            <p class="text-xs text-muted-foreground uppercase">Last updated</p>
                                             <p class="font-medium text-foreground">{{ formattedUpdatedAt }}</p>
                                             <p class="text-muted-foreground">{{ fromNow(props.ticket.updated_at) }}</p>
                                         </div>
                                         <div>
-                                            <p class="text-xs uppercase text-muted-foreground">Resolved</p>
+                                            <p class="text-xs text-muted-foreground uppercase">Resolved</p>
                                             <p class="font-medium text-foreground">
                                                 {{ props.ticket.resolved_at ? formattedResolvedAt : 'Not resolved' }}
                                             </p>
@@ -784,7 +750,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                                         <CardDescription>The initial details provided by the requester.</CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <p class="whitespace-pre-line text-sm leading-relaxed text-foreground">
+                                        <p class="text-sm leading-relaxed whitespace-pre-line text-foreground">
                                             {{ props.ticket.body }}
                                         </p>
                                     </CardContent>
@@ -803,20 +769,15 @@ const auditContextEntries = (audit: TicketAudit) => {
                                 <div v-if="hasAudits" class="flex flex-col gap-4">
                                     <div v-for="audit in sortedAudits" :key="audit.id" class="space-y-2">
                                         <div class="flex items-start justify-between gap-4">
-                                            <p class="text-sm font-medium leading-6">
+                                            <p class="text-sm leading-6 font-medium">
                                                 {{ audit.description || humanizeAuditAction(audit.action) }}
                                             </p>
-                                            <p class="whitespace-nowrap text-xs text-muted-foreground">
+                                            <p class="text-xs whitespace-nowrap text-muted-foreground">
                                                 {{ messageTimestamp(audit.created_at) }}
                                             </p>
                                         </div>
-                                        <p class="text-xs text-muted-foreground">
-                                            Logged by {{ resolveAuditActorLabel(audit) }}
-                                        </p>
-                                        <div
-                                            v-if="auditContextEntries(audit).length"
-                                            class="text-xs text-muted-foreground"
-                                        >
+                                        <p class="text-xs text-muted-foreground">Logged by {{ resolveAuditActorLabel(audit) }}</p>
+                                        <div v-if="auditContextEntries(audit).length" class="text-xs text-muted-foreground">
                                             <dl class="flex flex-wrap gap-x-4 gap-y-1">
                                                 <template v-for="[key, value] in auditContextEntries(audit)" :key="`${audit.id}-${key}`">
                                                     <dt class="font-medium">{{ humanizeAuditKey(key) }}</dt>
@@ -826,9 +787,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                                         </div>
                                     </div>
                                 </div>
-                                <p v-else class="text-sm text-muted-foreground">
-                                    No audit activity recorded for this ticket yet.
-                                </p>
+                                <p v-else class="text-sm text-muted-foreground">No audit activity recorded for this ticket yet.</p>
                             </CardContent>
                         </Card>
                     </TabsContent>

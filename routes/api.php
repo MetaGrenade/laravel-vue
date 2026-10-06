@@ -1,12 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthTokenController;
-use App\Http\Controllers\Api\V1\BlogController;
 use App\Http\Controllers\Api\V1\BlogCommentController as ApiBlogCommentController;
 use App\Http\Controllers\Api\V1\BlogCommentSubscriptionController as ApiBlogCommentSubscriptionController;
+use App\Http\Controllers\Api\V1\BlogController;
 use App\Http\Controllers\Api\V1\ForumPostCommandController;
-use App\Http\Controllers\Api\V1\ForumThreadController;
 use App\Http\Controllers\Api\V1\ForumThreadCommandController;
+use App\Http\Controllers\Api\V1\ForumThreadController;
 use App\Http\Controllers\Api\V1\ForumThreadModerationController as ApiForumThreadModerationController;
 use App\Http\Controllers\Api\V1\ForumThreadSubscriptionController;
 use App\Http\Controllers\Api\V1\PollController;

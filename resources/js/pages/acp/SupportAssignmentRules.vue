@@ -15,11 +15,12 @@ import { Switch } from '@/components/ui/switch';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useUserTimezone } from '@/composables/useUserTimezone';
-import { ListChecks, MoveDown, MoveUp, Pencil, PlusCircle, Trash2 } from 'lucide-vue-next';
+import { ListChecks, MoveDown, MoveUp, Pencil, PlusCircle, Trash2 } from '@lucide/vue';
 
 interface AssignmentRuleRelation {
     id: number;
-    name: string;
+    name?: string;
+    nickname?: string;
     email?: string;
 }
 
@@ -300,13 +301,9 @@ watch(
                                     <ListChecks class="h-5 w-5" />
                                     Assignment rules
                                 </CardTitle>
-                                <CardDescription>
-                                    Configure how tickets are routed automatically based on category and priority.
-                                </CardDescription>
+                                <CardDescription> Configure how tickets are routed automatically based on category and priority. </CardDescription>
                             </div>
-                            <div class="text-sm text-muted-foreground">
-                                Rules run from top to bottom until a match is found.
-                            </div>
+                            <div class="text-sm text-muted-foreground">Rules run from top to bottom until a match is found.</div>
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-6">
@@ -317,15 +314,11 @@ watch(
                                     <select
                                         id="create-category"
                                         v-model="createForm.support_ticket_category_id"
-                                        class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                        class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                                         :disabled="createForm.processing"
                                     >
                                         <option :value="null">All categories</option>
-                                        <option
-                                            v-for="category in props.categories"
-                                            :key="category.id"
-                                            :value="category.id"
-                                        >
+                                        <option v-for="category in props.categories" :key="category.id" :value="category.id">
                                             {{ category.name }}
                                         </option>
                                     </select>
@@ -337,7 +330,7 @@ watch(
                                     <select
                                         id="create-priority"
                                         v-model="createForm.priority"
-                                        class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                        class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                                         :disabled="createForm.processing"
                                     >
                                         <option :value="null">All priorities</option>
@@ -354,7 +347,7 @@ watch(
                                         <select
                                             id="create-assignee-type"
                                             v-model="createForm.assignee_type"
-                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                                             :disabled="createForm.processing"
                                         >
                                             <option v-for="option in assigneeTypeOptions" :key="option.value" :value="option.value">
@@ -369,7 +362,7 @@ watch(
                                             id="create-assigned-to"
                                             v-model="createForm.assigned_to"
                                             required
-                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                                             :disabled="createForm.processing"
                                         >
                                             <option :value="null" disabled>Select an agent</option>
@@ -386,12 +379,10 @@ watch(
                                             id="create-support-team"
                                             v-model="createForm.support_team_id"
                                             required
-                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                                             :disabled="createForm.processing || props.teams.length === 0"
                                         >
-                                            <option v-if="props.teams.length === 0" :value="null" disabled>
-                                                No teams available
-                                            </option>
+                                            <option v-if="props.teams.length === 0" :value="null" disabled>No teams available</option>
                                             <option :value="null" disabled>Select a team</option>
                                             <option v-for="team in props.teams" :key="team.id" :value="team.id">
                                                 {{ team.name }}
@@ -406,7 +397,7 @@ watch(
                                         <Label>Active</Label>
                                         <p class="text-sm text-muted-foreground">Inactive rules are skipped during auto-assignment.</p>
                                     </div>
-                                    <Switch v-model:checked="createForm.active" :disabled="createForm.processing" />
+                                    <Switch v-model="createForm.active" :disabled="createForm.processing" />
                                 </div>
 
                                 <div class="flex justify-end">
@@ -426,12 +417,10 @@ watch(
 
                             <div class="hidden flex-col gap-2 rounded-md border border-dashed border-muted p-6 text-sm text-muted-foreground lg:flex">
                                 <p>
-                                    Rules are processed in order. Place more specific filters higher than broader catch-all rules to
-                                    ensure the right agent receives each ticket.
+                                    Rules are processed in order. Place more specific filters higher than broader catch-all rules to ensure the right
+                                    agent receives each ticket.
                                 </p>
-                                <p>
-                                    Use the arrows to reorder rules as your team or categories evolve.
-                                </p>
+                                <p>Use the arrows to reorder rules as your team or categories evolve.</p>
                             </div>
                         </div>
 
@@ -451,9 +440,7 @@ watch(
                                             <TableHead>Assignee</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead>Last updated</TableHead>
-                                            <TableHead v-if="hasRuleActions" class="w-[1%] whitespace-nowrap text-right">
-                                                Actions
-                                            </TableHead>
+                                            <TableHead v-if="hasRuleActions" class="w-[1%] text-right whitespace-nowrap"> Actions </TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -491,7 +478,11 @@ watch(
                                             <TableCell>
                                                 <span
                                                     class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
-                                                    :class="rule.active ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' : 'bg-muted text-muted-foreground'"
+                                                    :class="
+                                                        rule.active
+                                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+                                                            : 'bg-muted text-muted-foreground'
+                                                    "
                                                 >
                                                     {{ rule.active ? 'Active' : 'Inactive' }}
                                                 </span>
@@ -533,10 +524,7 @@ watch(
                         </div>
                     </CardContent>
                     <CardFooter class="flex flex-col items-start gap-2 text-sm text-muted-foreground">
-                        <p>
-                            When no rule applies the ticket remains unassigned. Agents can still pick up tickets manually from the
-                            queue.
-                        </p>
+                        <p>When no rule applies the ticket remains unassigned. Agents can still pick up tickets manually from the queue.</p>
                     </CardFooter>
                 </Card>
             </div>
@@ -546,9 +534,7 @@ watch(
             <DialogContent class="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>Edit assignment rule</DialogTitle>
-                    <DialogDescription>
-                        Adjust the matching filters or change who receives tickets when this rule applies.
-                    </DialogDescription>
+                    <DialogDescription> Adjust the matching filters or change who receives tickets when this rule applies. </DialogDescription>
                 </DialogHeader>
 
                 <form class="space-y-4" @submit.prevent="submitEdit">
@@ -557,7 +543,7 @@ watch(
                         <select
                             id="edit-category"
                             v-model="editForm.support_ticket_category_id"
-                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                             :disabled="editForm.processing"
                         >
                             <option :value="null">All categories</option>
@@ -573,7 +559,7 @@ watch(
                         <select
                             id="edit-priority"
                             v-model="editForm.priority"
-                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                             :disabled="editForm.processing"
                         >
                             <option :value="null">All priorities</option>
@@ -589,7 +575,7 @@ watch(
                         <select
                             id="edit-assignee-type"
                             v-model="editForm.assignee_type"
-                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                             :disabled="editForm.processing"
                         >
                             <option v-for="option in assigneeTypeOptions" :key="option.value" :value="option.value">
@@ -602,7 +588,7 @@ watch(
                                 id="edit-assigned-to"
                                 v-model="editForm.assigned_to"
                                 required
-                                class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                                 :disabled="editForm.processing"
                             >
                                 <option :value="null" disabled>Select an agent</option>
@@ -618,12 +604,10 @@ watch(
                                 id="edit-support-team"
                                 v-model="editForm.support_team_id"
                                 required
-                                class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                                 :disabled="editForm.processing || props.teams.length === 0"
                             >
-                                <option v-if="props.teams.length === 0" :value="null" disabled>
-                                    No teams available
-                                </option>
+                                <option v-if="props.teams.length === 0" :value="null" disabled>No teams available</option>
                                 <option :value="null" disabled>Select a team</option>
                                 <option v-for="team in props.teams" :key="team.id" :value="team.id">
                                     {{ team.name }}
@@ -638,7 +622,7 @@ watch(
                             <Label>Active</Label>
                             <p class="text-sm text-muted-foreground">Inactive rules are skipped during auto-assignment.</p>
                         </div>
-                        <Switch v-model:checked="editForm.active" :disabled="editForm.processing" />
+                        <Switch v-model="editForm.active" :disabled="editForm.processing" />
                     </div>
 
                     <div class="flex justify-end gap-2">
@@ -660,10 +644,9 @@ watch(
             :confirm-loading="deletingRuleId !== null"
             @confirm="confirmDeleteRule"
             @cancel="cancelDeleteRule"
-            @update:open="(open) => (deleteDialogOpen.value = open)"
+            @update:open="(open) => (deleteDialogOpen = open)"
         >
-            This rule will be removed from the auto-assignment rotation. Tickets will fall through to later rules or remain
-            unassigned.
+            This rule will be removed from the auto-assignment rotation. Tickets will fall through to later rules or remain unassigned.
         </ConfirmDialog>
     </AppLayout>
 </template>

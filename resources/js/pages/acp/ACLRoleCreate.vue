@@ -28,7 +28,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const guardNames = computed(() => {
     const guards = new Set(['web']);
-    props.permissions.forEach(permission => guards.add(permission.guard_name));
+    props.permissions.forEach((permission) => guards.add(permission.guard_name));
     return Array.from(guards);
 });
 
@@ -46,7 +46,7 @@ const togglePermission = (permissionName: string, checked: boolean | string) => 
             form.permissions.push(permissionName);
         }
     } else {
-        form.permissions = form.permissions.filter(name => name !== permissionName);
+        form.permissions = form.permissions.filter((name) => name !== permissionName);
     }
 };
 
@@ -62,13 +62,11 @@ const handleSubmit = () => {
         <Head title="Create role" />
 
         <AdminLayout>
-            <form class="flex flex-1 flex-col gap-6 w-full" @submit.prevent="handleSubmit">
+            <form class="flex w-full flex-1 flex-col gap-6" @submit.prevent="handleSubmit">
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Create role</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Define a new role and assign permissions that control what it can access.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Define a new role and assign permissions that control what it can access.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -79,7 +77,7 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div class="flex flex-col gap-6">
                         <Card>
                             <CardHeader class="relative overflow-hidden">
@@ -124,11 +122,11 @@ const handleSubmit = () => {
                                     >
                                         <Checkbox
                                             :id="`permission-${permission.id}`"
-                                            :checked="form.permissions.includes(permission.name)"
-                                            @update:checked="value => togglePermission(permission.name, value)"
+                                            :model-value="form.permissions.includes(permission.name)"
+                                            @update:model-value="(value) => togglePermission(permission.name, value)"
                                         />
                                         <div class="grid gap-1">
-                                            <Label :for="`permission-${permission.id}`" class="font-medium leading-none">
+                                            <Label :for="`permission-${permission.id}`" class="leading-none font-medium">
                                                 {{ permission.name }}
                                             </Label>
                                             <p class="text-xs text-muted-foreground">Guard: {{ permission.guard_name }}</p>
@@ -147,9 +145,7 @@ const handleSubmit = () => {
                         </CardHeader>
                         <CardContent class="space-y-4 text-sm text-muted-foreground">
                             <p>Use guards to separate access between application contexts (such as web or api).</p>
-                            <p>
-                                Combine roles with user assignments in the Users ACP to grant access to individuals or teams.
-                            </p>
+                            <p>Combine roles with user assignments in the Users ACP to grant access to individuals or teams.</p>
                         </CardContent>
                         <CardFooter class="justify-end">
                             <Button type="submit" :disabled="form.processing">Create role</Button>

@@ -4,8 +4,8 @@ namespace App\Jobs;
 
 use App\Models\SupportTicket;
 use App\Support\SupportSlaConfiguration;
-use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketAuditor;
+use App\Support\SupportTicketAutoAssigner;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -68,8 +68,7 @@ class MonitorSupportTicketSlas implements ShouldQueue
         SupportTicket $ticket,
         SupportTicketAutoAssigner $assigner,
         Collection $thresholds
-    ): void
-    {
+    ): void {
         if (! $ticket->assigned_to) {
             return;
         }

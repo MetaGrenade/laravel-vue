@@ -73,9 +73,7 @@ const { fromNow, formatDate } = useUserTimezone();
 
 const lastUpdated = computed(() => formatDate(props.ticket.updated_at));
 const createdAt = computed(() => formatDate(props.ticket.created_at));
-const resolvedAt = computed(() =>
-    props.ticket.resolved_at ? formatDate(props.ticket.resolved_at) : null,
-);
+const resolvedAt = computed(() => (props.ticket.resolved_at ? formatDate(props.ticket.resolved_at) : null));
 
 const page = usePage<SharedData>();
 const currentUser = computed(() => page.props.auth.user);
@@ -101,9 +99,7 @@ const handleRequesterChange = (user: TicketUser | null) => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Update ticket #{{ props.ticket.id }}</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Fine tune the ticket details, update its status or hand it to a different agent.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Fine tune the ticket details, update its status or hand it to a different agent.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -114,7 +110,7 @@ const handleRequesterChange = (user: TicketUser | null) => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <Card>
                         <CardHeader class="relative overflow-hidden">
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />
@@ -139,32 +135,19 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                     <template v-if="currentUser">
                                         Leave blank to reassign the ticket to yourself ({{ currentUser.nickname }}).
                                     </template>
-                                    <template v-else>
-                                        Leave blank to reassign the ticket to yourself.
-                                    </template>
+                                    <template v-else> Leave blank to reassign the ticket to yourself. </template>
                                 </p>
                             </div>
 
                             <div class="grid gap-2">
                                 <Label for="subject">Subject</Label>
-                                <Input
-                                    id="subject"
-                                    v-model="form.subject"
-                                    type="text"
-                                    autocomplete="off"
-                                    required
-                                />
+                                <Input id="subject" v-model="form.subject" type="text" autocomplete="off" required />
                                 <InputError :message="form.errors.subject" />
                             </div>
 
                             <div class="grid gap-2">
                                 <Label for="body">Description</Label>
-                                <Textarea
-                                    id="body"
-                                    v-model="form.body"
-                                    class="min-h-48"
-                                    required
-                                />
+                                <Textarea id="body" v-model="form.body" class="min-h-48" required />
                                 <InputError :message="form.errors.body" />
                             </div>
                         </CardContent>
@@ -182,7 +165,7 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                     <select
                                         id="status"
                                         v-model="form.status"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                                             {{ option.label }}
@@ -196,7 +179,7 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                     <select
                                         id="priority"
                                         v-model="form.priority"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
                                             {{ option.label }}
@@ -210,14 +193,10 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                     <select
                                         id="support_ticket_category_id"
                                         v-model="form.support_ticket_category_id"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         <option :value="null">Uncategorised</option>
-                                        <option
-                                            v-for="category in categoryOptions"
-                                            :key="category.id"
-                                            :value="category.id"
-                                        >
+                                        <option v-for="category in categoryOptions" :key="category.id" :value="category.id">
                                             {{ category.name }}
                                         </option>
                                     </select>
@@ -229,7 +208,7 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                     <select
                                         id="assigned_to"
                                         v-model="form.assigned_to"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         <option :value="null">Unassigned</option>
                                         <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
@@ -260,9 +239,7 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                 </div>
                                 <div v-if="props.ticket.resolved_at" class="space-y-1">
                                     <span class="font-medium text-foreground">Resolved</span>
-                                    <p>
-                                        {{ resolvedAt }} ({{ fromNow(props.ticket.resolved_at) }})
-                                    </p>
+                                    <p>{{ resolvedAt }} ({{ fromNow(props.ticket.resolved_at) }})</p>
                                     <p v-if="props.ticket.resolver" class="text-xs">
                                         by {{ props.ticket.resolver.nickname }}
                                         <span class="text-muted-foreground">({{ props.ticket.resolver.email }})</span>
@@ -289,7 +266,9 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                 </div>
                                 <div class="space-y-1">
                                     <span class="font-medium text-foreground">Current status</span>
-                                    <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+                                    <span
+                                        class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground"
+                                    >
                                         {{ form.status }}
                                     </span>
                                 </div>

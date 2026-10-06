@@ -71,27 +71,19 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_320px]">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <Card>
                         <CardHeader class="relative overflow-hidden">
                             <PlaceholderPattern class="absolute inset-0 opacity-10" />
                             <div class="relative space-y-1">
                                 <CardTitle>Ticket details</CardTitle>
-                                <CardDescription>
-                                    Provide a clear subject and description so agents can act quickly.
-                                </CardDescription>
+                                <CardDescription> Provide a clear subject and description so agents can act quickly. </CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-6">
                             <div class="grid gap-2">
                                 <Label for="subject">Subject</Label>
-                                <Input
-                                    id="subject"
-                                    v-model="form.subject"
-                                    type="text"
-                                    autocomplete="off"
-                                    required
-                                />
+                                <Input id="subject" v-model="form.subject" type="text" autocomplete="off" required />
                                 <InputError :message="form.errors.subject" />
                             </div>
 
@@ -117,18 +109,13 @@ const handleSubmit = () => {
                         <CardContent class="space-y-4">
                             <div class="grid gap-2">
                                 <Label for="requester">Requester</Label>
-                                <SupportTicketUserSelect
-                                    input-id="requester"
-                                    v-model="form.user_id"
-                                />
+                                <SupportTicketUserSelect input-id="requester" v-model="form.user_id" />
                                 <InputError :message="form.errors.user_id" />
                                 <p class="text-xs text-muted-foreground">
                                     <template v-if="currentUser">
                                         Leave blank to file the ticket under yourself ({{ currentUser.nickname }}).
                                     </template>
-                                    <template v-else>
-                                        Leave blank to file the ticket under yourself.
-                                    </template>
+                                    <template v-else> Leave blank to file the ticket under yourself. </template>
                                 </p>
                             </div>
 
@@ -137,7 +124,7 @@ const handleSubmit = () => {
                                 <select
                                     id="priority"
                                     v-model="form.priority"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
                                         {{ option.label }}
@@ -151,14 +138,10 @@ const handleSubmit = () => {
                                 <select
                                     id="category"
                                     v-model="form.support_ticket_category_id"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                                 >
                                     <option :value="null">Uncategorised</option>
-                                    <option
-                                        v-for="category in categoryOptions"
-                                        :key="category.id"
-                                        :value="category.id"
-                                    >
+                                    <option v-for="category in categoryOptions" :key="category.id" :value="category.id">
                                         {{ category.name }}
                                     </option>
                                 </select>

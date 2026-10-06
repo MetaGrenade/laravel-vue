@@ -41,7 +41,7 @@ class SearchQueryAggregationTest extends TestCase
             'created_at' => now()->subDays(45),
         ]);
 
-        (new AggregateSearchQueryStats())->handle();
+        (new AggregateSearchQueryStats)->handle();
 
         $this->assertDatabaseHas('search_query_aggregates', [
             'term' => 'laravel',
@@ -72,7 +72,7 @@ class SearchQueryAggregationTest extends TestCase
             'created_at' => now()->subDays(45),
         ]);
 
-        (new PruneSearchQueryLogs())->handle();
+        (new PruneSearchQueryLogs)->handle();
 
         $this->assertDatabaseHas('search_queries', ['id' => $recent->id]);
         $this->assertDatabaseMissing('search_queries', ['id' => $stale->id]);
@@ -88,7 +88,7 @@ class SearchQueryAggregationTest extends TestCase
             'last_ran_at' => now()->subDay(),
         ]);
 
-        (new AggregateSearchQueryStats())->handle();
+        (new AggregateSearchQueryStats)->handle();
 
         $this->assertDatabaseCount('search_query_aggregates', 0);
     }

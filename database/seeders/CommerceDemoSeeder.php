@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Price;
-use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductOption;
@@ -180,7 +180,7 @@ class CommerceDemoSeeder extends Seeder
 
             return $combinations->values()->map(function (array $combination, int $index) use ($product, $productData) {
                 $name = $productData['options']
-                    ? $product->name . ' ' . implode(' / ', $combination)
+                    ? $product->name.' '.implode(' / ', $combination)
                     : $product->name;
 
                 $skuParts = [Str::upper(Str::slug($product->slug))];

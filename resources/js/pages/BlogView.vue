@@ -2,9 +2,10 @@
 import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
+import { csrfHeaders } from '@/lib/http';
 import Button from '@/components/ui/button/Button.vue';
 import BlogComments from '@/components/blog/BlogComments.vue';
-import { Share2 } from 'lucide-vue-next';
+import { Share2 } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'vue-sonner';
@@ -102,6 +103,8 @@ type BlogPayload = {
     user?: BlogAuthor | null;
     comments?: PaginatedComments;
     comments_enabled?: boolean;
+    views?: number;
+    last_viewed_at?: string | null;
     comment_report_reasons?: ReportReasonOption[];
     cover_image?: string | null;
     categories?: BlogTaxonomyItem[];
@@ -132,9 +135,7 @@ const blog = computed(() => props.blog);
 const { formatDate, fromNow } = useUserTimezone();
 const numberFormatter = new Intl.NumberFormat();
 const formatNumber = (value: number | null | undefined) => numberFormatter.format(value ?? 0);
-const lastViewedAgo = computed(() =>
-    blog.value.last_viewed_at ? fromNow(blog.value.last_viewed_at) : null,
-);
+const lastViewedAgo = computed(() => (blog.value.last_viewed_at ? fromNow(blog.value.last_viewed_at) : null));
 
 const page = usePage<PageProps>();
 const authUser = computed(() => page.props.auth?.user ?? null);
@@ -159,8 +160,6 @@ watch(
         subscribersCount.value = value?.subscribers_count ?? 0;
     },
 );
-
-const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 
 const extractSubscriptionError = async (response: Response): Promise<string> => {
     try {
@@ -209,7 +208,7 @@ const subscribeToComments = async () => {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
+                ...csrfHeaders(),
             },
         });
 
@@ -249,7 +248,7 @@ const unsubscribeFromComments = async () => {
             method: 'DELETE',
             headers: {
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
+                ...csrfHeaders(),
             },
         });
 
@@ -301,20 +300,13 @@ const comments = computed<PaginatedComments>(() => {
         },
     };
 });
-const commentsEnabled = computed(
-    () => props.commentsEnabled ?? blog.value.comments_enabled ?? true,
-);
-const commentReportReasons = computed(
-    () => props.commentReportReasons ?? blog.value.comment_report_reasons ?? [],
-);
+const commentsEnabled = computed(() => props.commentsEnabled ?? blog.value.comments_enabled ?? true);
+const commentReportReasons = computed(() => props.commentReportReasons ?? blog.value.comment_report_reasons ?? []);
 const categories = computed(() => blog.value.categories ?? []);
 const tags = computed(() => blog.value.tags ?? []);
 const recommendations = computed<RecommendedPost[]>(() => blog.value.recommendations ?? []);
 
-const coverImage = computed(
-    () => blog.value.cover_image ?? '/images/default-cover.jpg',
-);
-const metaDescription = computed(() => blog.value.excerpt ?? '');
+const coverImage = computed(() => blog.value.cover_image ?? '/images/default-cover.jpg');
 
 const authorName = computed(() => author.value?.nickname ?? 'Unknown author');
 
@@ -382,20 +374,8 @@ const buildAbsoluteUrl = (path: string) => {
 };
 
 const shareUrl = computed(() => buildAbsoluteUrl(route('blogs.view', { slug: blog.value.slug })));
-const canonicalUrl = computed(() => blog.value.canonical_url ?? shareUrl.value);
 const encodedShareUrl = computed(() => encodeURIComponent(shareUrl.value));
 const encodedTitle = computed(() => encodeURIComponent(blog.value.title));
-const metaImage = computed(() => {
-    const image = blog.value.cover_image;
-
-    if (!image) {
-        return null;
-    }
-
-    return buildAbsoluteUrl(image);
-});
-const twitterCardType = computed(() => (metaImage.value ? 'summary_large_image' : 'summary'));
-const metaAuthor = computed(() => authorName.value);
 
 const shareLinks = computed(() => ({
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedShareUrl.value}`,
@@ -406,30 +386,19 @@ const shareLinks = computed(() => ({
 
 <template>
     <AppLayout>
-        <Head :title="blog.title">
-            <meta v-if="metaDescription" name="description" :content="metaDescription" />
-            <link rel="canonical" :href="canonicalUrl" />
-            <meta property="og:type" content="article" />
-            <meta property="og:title" :content="blog.title" />
-            <meta v-if="metaDescription" property="og:description" :content="metaDescription" />
-            <meta property="og:url" :content="canonicalUrl" />
-            <meta v-if="metaImage" property="og:image" :content="metaImage" />
-            <meta property="article:author" :content="metaAuthor" />
-            <meta name="twitter:card" :content="twitterCardType" />
-            <meta name="twitter:title" :content="blog.title" />
-            <meta v-if="metaDescription" name="twitter:description" :content="metaDescription" />
-            <meta v-if="metaImage" name="twitter:image" :content="metaImage" />
-            <meta name="twitter:creator" :content="metaAuthor" />
-        </Head>
+        <!-- Description, canonical, social and structured data tags are set server-side (BlogController). -->
+        <Head :title="blog.title" />
         <div class="container mx-auto px-4 py-8">
             <!-- Blog Post Content -->
-            <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
+            <div class="mb-8 rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
                 <div v-if="coverImage" class="mb-6 overflow-hidden rounded-lg">
-                    <img :src="coverImage" alt="Blog cover" class="w-full h-64 object-cover" />
+                    <img :src="coverImage" alt="Blog cover" class="h-64 w-full object-cover" />
                 </div>
                 <h1 class="mb-3 text-3xl font-bold">{{ blog.title }}</h1>
                 <div class="mb-4 text-sm text-gray-500 dark:text-gray-400">
-                    <span>By <span class="font-medium text-foreground">{{ authorName }}</span></span>
+                    <span
+                        >By <span class="font-medium text-foreground">{{ authorName }}</span></span
+                    >
                     <span v-if="publishedAt"> | Published on {{ publishedAt }}</span>
                     <span v-if="typeof blog.views === 'number'"> | {{ formatNumber(blog.views) }} views</span>
                     <span v-if="lastViewedAgo"> | Last read {{ lastViewedAgo }}</span>
@@ -458,10 +427,7 @@ const shareLinks = computed(() => ({
                 <div class="prose max-w-none" v-html="blog.body"></div>
             </div>
 
-            <div
-                v-if="showAuthorCard"
-                class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow"
-            >
+            <div v-if="showAuthorCard" class="mb-8 rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
                 <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
                     <Avatar class="h-20 w-20">
                         <AvatarImage v-if="authorAvatarUrl" :src="authorAvatarUrl" :alt="authorName" />
@@ -470,20 +436,12 @@ const shareLinks = computed(() => ({
                     <div class="flex-1 space-y-4 text-center sm:text-left">
                         <div class="space-y-1">
                             <h2 class="text-xl font-semibold text-foreground">About {{ authorName }}</h2>
-                            <p class="text-sm text-muted-foreground">
-                                Insights from one of our community storytellers.
-                            </p>
+                            <p class="text-sm text-muted-foreground">Insights from one of our community storytellers.</p>
                         </div>
-                        <p
-                            v-if="hasAuthorBio"
-                            class="text-sm leading-relaxed text-muted-foreground whitespace-pre-line"
-                        >
+                        <p v-if="hasAuthorBio" class="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
                             {{ authorBio }}
                         </p>
-                        <div
-                            v-if="hasAuthorSocialLinks"
-                            class="flex flex-wrap justify-center gap-2 sm:justify-start"
-                        >
+                        <div v-if="hasAuthorSocialLinks" class="flex flex-wrap justify-center gap-2 sm:justify-start">
                             <a
                                 v-for="link in authorSocialLinks"
                                 :key="`${link.label}-${link.url}`"
@@ -500,41 +458,22 @@ const shareLinks = computed(() => ({
             </div>
 
             <!-- Share Section -->
-            <div class="mb-8 flex items-center justify-between rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+            <div
+                class="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+            >
                 <span class="text-lg font-semibold">Share this post:</span>
-                <div class="flex space-x-2">
-                    <Button
-                        as="a"
-                        :href="shareLinks.facebook"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        variant="ghost"
-                        class="flex items-center"
-                    >
+                <div class="flex flex-wrap gap-2">
+                    <Button as="a" :href="shareLinks.facebook" target="_blank" rel="noopener noreferrer" variant="ghost" class="flex items-center">
                         <Share2 class="mr-1 h-4 w-4" aria-hidden="true" />
                         <span class="sr-only">Share on Facebook</span>
                         <span aria-hidden="true">Facebook</span>
                     </Button>
-                    <Button
-                        as="a"
-                        :href="shareLinks.twitter"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        variant="ghost"
-                        class="flex items-center"
-                    >
+                    <Button as="a" :href="shareLinks.twitter" target="_blank" rel="noopener noreferrer" variant="ghost" class="flex items-center">
                         <Share2 class="mr-1 h-4 w-4" aria-hidden="true" />
                         <span class="sr-only">Share on Twitter</span>
                         <span aria-hidden="true">Twitter</span>
                     </Button>
-                    <Button
-                        as="a"
-                        :href="shareLinks.linkedin"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        variant="ghost"
-                        class="flex items-center"
-                    >
+                    <Button as="a" :href="shareLinks.linkedin" target="_blank" rel="noopener noreferrer" variant="ghost" class="flex items-center">
                         <Share2 class="mr-1 h-4 w-4" aria-hidden="true" />
                         <span class="sr-only">Share on LinkedIn</span>
                         <span aria-hidden="true">LinkedIn</span>
@@ -543,10 +482,7 @@ const shareLinks = computed(() => ({
             </div>
 
             <!-- Recommendations Section -->
-            <div
-                v-if="recommendations.length"
-                class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow"
-            >
+            <div v-if="recommendations.length" class="mb-8 rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
                 <h2 class="mb-4 text-2xl font-semibold">Recommended articles</h2>
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <Link
@@ -562,9 +498,7 @@ const shareLinks = computed(() => ({
                                 :alt="`Cover image for ${post.title}`"
                                 class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                             />
-                            <div v-else class="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-                                No cover image
-                            </div>
+                            <div v-else class="flex h-full w-full items-center justify-center text-sm text-muted-foreground">No cover image</div>
                         </div>
                         <div class="flex flex-1 flex-col p-4">
                             <h3 class="mb-2 text-lg font-semibold text-foreground group-hover:text-primary">
@@ -573,10 +507,7 @@ const shareLinks = computed(() => ({
                             <p v-if="post.excerpt" class="mb-3 line-clamp-3 text-sm text-muted-foreground">
                                 {{ post.excerpt }}
                             </p>
-                            <span
-                                v-if="post.published_at"
-                                class="mt-auto text-xs uppercase tracking-wide text-muted-foreground"
-                            >
+                            <span v-if="post.published_at" class="mt-auto text-xs tracking-wide text-muted-foreground uppercase">
                                 {{ formatDate(post.published_at, 'MMMM D, YYYY') }}
                             </span>
                         </div>
@@ -584,17 +515,13 @@ const shareLinks = computed(() => ({
                 </div>
             </div>
 
-            <div class="mb-8 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 shadow">
+            <div class="mb-8 rounded-xl border border-sidebar-border/70 p-6 shadow-sm dark:border-sidebar-border">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="space-y-1">
                         <h2 class="text-xl font-semibold text-foreground">Stay in the loop</h2>
                         <p class="text-sm text-muted-foreground">
-                            <template v-if="authUser">
-                                We'll send you a quick alert whenever someone replies here.
-                            </template>
-                            <template v-else>
-                                Sign in to receive alerts when the conversation continues.
-                            </template>
+                            <template v-if="authUser"> We'll send you a quick alert whenever someone replies here. </template>
+                            <template v-else> Sign in to receive alerts when the conversation continues. </template>
                         </p>
                     </div>
                     <div class="flex flex-col items-start gap-2 sm:items-end">
@@ -615,9 +542,7 @@ const shareLinks = computed(() => ({
                                 {{ isSubscribedToComments ? 'Following replies' : 'Notify me about replies' }}
                             </span>
                         </Button>
-                        <Button v-else as="a" :href="route('login')" variant="outline">
-                            Sign in to subscribe
-                        </Button>
+                        <Button v-else as="a" :href="route('login')" variant="outline"> Sign in to subscribe </Button>
                     </div>
                 </div>
             </div>

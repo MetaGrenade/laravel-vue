@@ -50,12 +50,12 @@ class SupportTicketAgentReply extends Notification implements ShouldQueue
     {
         $subject = $this->ticket->subject ?? 'Support Ticket Update';
 
-        return (new MailMessage())
-            ->subject('Support ticket reply: ' . $subject)
-            ->greeting('Hello ' . ($notifiable->nickname ?? $notifiable->name ?? 'there'))
+        return (new MailMessage)
+            ->subject('Support ticket reply: '.$subject)
+            ->greeting('Hello '.($notifiable->nickname ?? $notifiable->name ?? 'there'))
             ->line('An agent has responded to your support ticket.')
-            ->line('Subject: ' . $subject)
-            ->line('Reply preview: ' . Str::limit((string) $this->message->body, 120))
+            ->line('Subject: '.$subject)
+            ->line('Reply preview: '.Str::limit((string) $this->message->body, 120))
             ->action('View ticket', $this->conversationUrlFor($notifiable))
             ->line('Thank you for your patience.');
     }
@@ -86,7 +86,7 @@ class SupportTicketAgentReply extends Notification implements ShouldQueue
      */
     protected function payload(object $notifiable): array
     {
-        $title = 'Support ticket reply: ' . $this->ticket->subject;
+        $title = 'Support ticket reply: '.$this->ticket->subject;
         $excerpt = Str::limit((string) $this->message->body, 120);
 
         return [
@@ -108,6 +108,6 @@ class SupportTicketAgentReply extends Notification implements ShouldQueue
             ? route('acp.support.tickets.show', ['ticket' => $this->ticket->id])
             : route('support.tickets.show', $this->ticket);
 
-        return $route . '#message-' . $this->message->id;
+        return $route.'#message-'.$this->message->id;
     }
 }

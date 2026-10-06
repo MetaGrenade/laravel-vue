@@ -1,11 +1,58 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
-body,
-html {
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design tokens are stored as raw HSL channels (e.g. `0 0% 9%`) so they can be
+ * composed with an alpha value: `hsl(var(--primary) / 0.5)`. Tailwind colour
+ * utilities are mapped onto them here.
+ */
+@theme inline {
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --color-card: hsl(var(--card));
+    --color-card-foreground: hsl(var(--card-foreground));
+    --color-popover: hsl(var(--popover));
+    --color-popover-foreground: hsl(var(--popover-foreground));
+    --color-primary: hsl(var(--primary));
+    --color-primary-foreground: hsl(var(--primary-foreground));
+    --color-secondary: hsl(var(--secondary));
+    --color-secondary-foreground: hsl(var(--secondary-foreground));
+    --color-muted: hsl(var(--muted));
+    --color-muted-foreground: hsl(var(--muted-foreground));
+    --color-accent: hsl(var(--accent));
+    --color-accent-foreground: hsl(var(--accent-foreground));
+    --color-destructive: hsl(var(--destructive));
+    --color-destructive-foreground: hsl(var(--destructive-foreground));
+    --color-border: hsl(var(--border));
+    --color-input: hsl(var(--input));
+    --color-ring: hsl(var(--ring));
+
+    --color-chart-1: hsl(var(--chart-1));
+    --color-chart-2: hsl(var(--chart-2));
+    --color-chart-3: hsl(var(--chart-3));
+    --color-chart-4: hsl(var(--chart-4));
+    --color-chart-5: hsl(var(--chart-5));
+
+    --color-sidebar: hsl(var(--sidebar-background));
+    --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+    --color-sidebar-primary: hsl(var(--sidebar-primary));
+    --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+    --color-sidebar-accent: hsl(var(--sidebar-accent));
+    --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+    --color-sidebar-border: hsl(var(--sidebar-border));
+    --color-sidebar-ring: hsl(var(--sidebar-ring));
 }
 
 @layer base {
@@ -43,16 +90,15 @@ html {
         --sidebar-accent-foreground: 0 0% 30%;
         --sidebar-border: 0 0% 91%;
         --sidebar-ring: 217.2 91.2% 59.8%;
-        /* CHARTS & TOOLTIPS */
+
+        /* Charts & tooltips (Unovis) */
         --vis-tooltip-background-color: none !important;
         --vis-tooltip-border-color: none !important;
         --vis-tooltip-text-color: none !important;
         --vis-tooltip-shadow-color: none !important;
         --vis-tooltip-backdrop-filter: none !important;
         --vis-tooltip-padding: none !important;
-
         --vis-primary-color: var(--primary);
-        /* change to any hsl value you want */
         --vis-secondary-color: 160 81% 40%;
         --vis-text-color: var(--muted-foreground);
     }
@@ -84,18 +130,20 @@ html {
         --chart-5: 340 75% 55%;
         --sidebar-background: 0 0% 7%;
         --sidebar-foreground: 0 0% 95.9%;
-        --sidebar-primary: 360, 100%, 100%;
-        --sidebar-primary-foreground: 0 0% 100%;
+        --sidebar-primary: 0 0% 100%;
+        --sidebar-primary-foreground: 0 0% 9%;
         --sidebar-accent: 0 0% 15.9%;
         --sidebar-accent-foreground: 240 4.8% 95.9%;
         --sidebar-border: 0 0% 15.9%;
         --sidebar-ring: 217.2 91.2% 59.8%;
     }
-}
 
-@layer base {
-    * {
-        @apply border-border;
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        @apply border-border outline-ring/50;
     }
 
     body {
@@ -103,21 +151,39 @@ html {
         padding-top: 4rem;
     }
 
-    /* TipTap / ProseMirror content defaults */
-    .tiptap :first-child {
-        margin-top: 0;
+    /* Buttons were `cursor: pointer` by default in Tailwind v3. */
+    button:not(:disabled),
+    [role='button']:not(:disabled) {
+        cursor: pointer;
     }
 
-    .tiptap mark {
-        background-color: #faf594;
-        border-radius: 0.375rem;
-        box-decoration-break: clone;
-        padding: 0.125rem 0.313rem;
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        ::before,
+        ::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+            transition-duration: 0.01ms !important;
+        }
     }
+}
 
+/* Rich text: the TipTap editor and rendered user content. */
+@layer components {
     .tiptap,
     .ProseMirror {
         @apply leading-relaxed;
+        overflow-wrap: anywhere;
+    }
+
+    .tiptap.ProseMirror {
+        height: 100%;
+    }
+
+    .tiptap :first-child,
+    .ProseMirror :first-child {
+        margin-top: 0;
     }
 
     .tiptap p,
@@ -127,7 +193,7 @@ html {
 
     .tiptap p.is-editor-empty:first-child::before,
     .ProseMirror p.is-editor-empty:first-child::before {
-        /*@apply text-white/40;*/
+        @apply text-muted-foreground;
         content: attr(data-placeholder);
         float: left;
         height: 0;
@@ -136,79 +202,86 @@ html {
 
     .tiptap h1,
     .ProseMirror h1 {
-        @apply font-semibold mt-6 mb-3;
+        @apply mt-6 mb-3 font-semibold;
     }
 
     .tiptap h2,
     .ProseMirror h2 {
-        @apply font-semibold mt-5 mb-3;
+        @apply mt-5 mb-3 font-semibold;
     }
 
     .tiptap h3,
     .ProseMirror h3 {
-        @apply font-semibold mt-4 mb-2;
+        @apply mt-4 mb-2 font-semibold;
     }
 
-    /* Lists */
+    .tiptap mark,
+    .ProseMirror mark {
+        background-color: #faf594;
+        border-radius: 0.375rem;
+        box-decoration-break: clone;
+        padding: 0.125rem 0.313rem;
+    }
+
     .tiptap ul,
     .ProseMirror ul {
-        @apply my-3 pl-6 list-disc;
+        @apply my-3 list-disc pl-6;
     }
 
     .tiptap ol,
     .ProseMirror ol {
-        @apply my-3 pl-6 list-decimal;
+        @apply my-3 list-decimal pl-6;
     }
 
     .tiptap li > p,
     .ProseMirror li > p {
-        /* avoid extra spacing inside list items */
         @apply my-1;
     }
 
-    /* Blockquote */
     .tiptap blockquote,
     .ProseMirror blockquote {
         @apply my-4 pl-4 italic;
         border-left: 0.313rem solid hsl(var(--muted));
-        /*color: oklch(0.8 0 0 / 0.85);*/
     }
 
-    /* Code */
     .tiptap code,
     .ProseMirror code {
-        @apply px-1 py-0.5 rounded;
+        @apply rounded px-1 py-0.5;
         background: hsl(var(--muted));
         border: 0.063rem solid hsl(var(--border));
-        font-size: 0.95rem;
+        font-size: 0.95em;
     }
 
     .tiptap pre,
     .ProseMirror pre {
-        @apply p-3 my-3 rounded-md overflow-x-auto;
+        @apply my-3 overflow-x-auto rounded-md p-3;
         background: hsl(var(--muted));
         border: 0.063rem solid hsl(var(--border));
+        overflow-wrap: normal;
     }
 
     .tiptap pre code,
     .ProseMirror pre code {
-        @apply p-0 border-0 bg-transparent;
+        @apply border-0 bg-transparent p-0;
     }
 
-    /* Horizontal rule */
     .tiptap hr,
     .ProseMirror hr {
-        margin: 2rem 0 2rem 0;
+        margin: 2rem 0;
         border: none;
         border-top: 0.125rem solid hsl(var(--border));
     }
 
-    /* Links */
     .tiptap a,
     .ProseMirror a {
-        /*color: hsl(var(--primary));*/
         text-decoration: underline;
         text-underline-offset: 0.125rem;
+    }
+
+    /* Mentions (class attributes are stripped from user content) */
+    .tiptap [data-type='mention'],
+    .ProseMirror [data-type='mention'] {
+        @apply font-medium text-primary no-underline hover:underline;
     }
 
     .tiptap a:hover,
@@ -216,116 +289,83 @@ html {
         text-decoration-thickness: 0.125rem;
     }
 
-    /* Images / figures */
     .tiptap img,
     .ProseMirror img {
-        @apply max-w-full h-auto rounded-md my-3;
+        @apply my-3 h-auto max-w-full rounded-md;
     }
 
-    /* Task list (if using TipTap TaskList) */
-    .tiptap .taskList,
-    .ProseMirror .taskList {
-        @apply list-none pl-0 my-3;
+    /* Task lists */
+    .tiptap ul[data-type='taskList'],
+    .ProseMirror ul[data-type='taskList'] {
+        @apply my-3 list-none pl-0;
     }
 
-    .tiptap .taskList li,
-    .ProseMirror .taskList li {
-        @apply flex items-start gap-2 my-2;
+    .tiptap ul[data-type='taskList'] li,
+    .ProseMirror ul[data-type='taskList'] li {
+        @apply my-2 flex items-start gap-2;
     }
 
-    .tiptap .taskList li > label,
-    .ProseMirror .taskList li > label {
-        @apply mt-1;
+    .tiptap ul[data-type='taskList'] li > label,
+    .ProseMirror ul[data-type='taskList'] li > label {
+        @apply mt-1 flex-none select-none;
     }
 
-    /* Tables (TipTap table extension) */
+    .tiptap ul[data-type='taskList'] li > div,
+    .ProseMirror ul[data-type='taskList'] li > div {
+        flex: 1 1 auto;
+    }
+
+    /* Tables */
+    .tiptap .tableWrapper,
+    .ProseMirror .tableWrapper {
+        margin: 1.5rem 0;
+        overflow-x: auto;
+    }
+
     .tiptap table,
     .ProseMirror table {
-        @apply w-full my-4 border-collapse;
-        border: 0.063rem solid hsl(var(--border));
+        @apply my-4 w-full border-collapse;
+        table-layout: fixed;
     }
 
     .tiptap th,
     .tiptap td,
     .ProseMirror th,
     .ProseMirror td {
-        @apply border border-white/10 px-3 py-2 align-middle;
+        @apply border border-border px-3 py-2 align-top;
+        min-width: 1em;
+        position: relative;
     }
 
     .tiptap th,
     .ProseMirror th {
-        @apply bg-white/5 font-medium text-white;
+        @apply bg-muted text-left font-medium;
     }
 
-    .tiptap tbody tr:nth-child(odd),
-    .ProseMirror tbody tr:nth-child(odd) {
-        @apply bg-white/5;
-    }
-
-    /* Task List */
-    .tiptap ul, .tiptap ol {
-        padding: 0 1rem;
-        margin: 1.25rem 1rem 1.25rem 0.4rem;
-    }
-    .tiptap ul li p, .tiptap ol li p {
-        margin-top: 0.25em;
-        margin-bottom: 0.25em;
-    }
-    .tiptap ul[data-type="taskList"] {
-        list-style: none;
-        margin-left: 0;
-        padding: 0;
-    }
-    .tiptap ul[data-type="taskList"] li {
-        align-items: flex-start;
-        display: flex;
-    }
-    .tiptap ul[data-type="taskList"] li > label {
-        flex: 0 0 auto;
-        margin-right: 0.5rem;
-        user-select: none;
-    }
-    .tiptap ul[data-type="taskList"] li > div {
-        flex: 1 1 auto;
-    }
-    .tiptap ul[data-type="taskList"] input[type="checkbox"] {
-        cursor: pointer;
-    }
-    .tiptap ul[data-type="taskList"] ul[data-type="taskList"] {
-        margin: 0;
-    }
-
-    .tiptap p.is-editor-empty:first-child::before {
-        /*color: hsl(var(--muted-foreground));*/
-        content: attr(data-placeholder);
-        float: left;
+    .tiptap table .selectedCell::after {
+        background: hsl(var(--muted));
+        content: '';
+        inset: 0;
         pointer-events: none;
-        height: 0;
-    }
-
-    .tiptap .y-cursor {
-        position: relative;
-        margin-left: -0.063rem;
-        margin-right: -0.063rem;
-        border-left: 0.063rem solid;
-        border-right: 0.063rem solid;
-        pointer-events: none;
-    }
-
-    .tiptap .y-cursor > div {
         position: absolute;
-        top: -1.4em;
-        left: -0.063rem;
-        font-size: 0.75rem;
-        padding: 0.1em 0.3em;
-        border-radius: 0.188rem;
-        color: #0d0d0d;
-        background-color: inherit;
-        pointer-events: none;
-        white-space: nowrap;
+        z-index: 2;
     }
 
-    /* Details (AKA: Dropdown Content) */
+    .tiptap table .column-resize-handle {
+        background-color: hsl(var(--primary));
+        bottom: -0.125rem;
+        pointer-events: none;
+        position: absolute;
+        right: -0.125rem;
+        top: 0;
+        width: 0.25rem;
+    }
+
+    .tiptap.resize-cursor {
+        cursor: col-resize;
+    }
+
+    /* Details blocks */
     .tiptap .details {
         display: flex;
         gap: 0.25rem;
@@ -334,73 +374,63 @@ html {
         border-radius: 0.5rem;
         padding: 0.5rem;
     }
+
     .tiptap .details summary {
         font-weight: 700;
     }
+
     .tiptap .details summary::marker {
-        content: "";               /* Modern browsers */
+        content: '';
         font-size: 0;
-        color: transparent;
     }
+
     .tiptap .details summary::-webkit-details-marker {
-        display: none;             /* Chrome/Safari */
+        display: none;
     }
+
     .tiptap .details > button {
         align-items: center;
         background: transparent;
         border-radius: 4px;
         display: flex;
         font-size: 0.95rem;
-        width: 1.25rem;
         height: 1.25rem;
         justify-content: center;
         line-height: 1;
         margin-top: 0.1rem;
         padding: 0;
+        width: 1.25rem;
     }
+
     .tiptap .details > button:hover {
         background-color: hsl(var(--muted));
     }
+
     .tiptap .details > button::before {
-        font-size: 0.95rem;
-        /*color: hsl(var(--muted));*/
         content: '\25B6';
+        font-size: 0.95rem;
     }
+
     .tiptap .details.is-open > button::before {
         transform: rotate(90deg);
     }
+
     .tiptap .details > div {
         display: flex;
         flex-direction: column;
         gap: 1rem;
         width: 100%;
     }
-    .tiptap .details > div > [data-type="detailsContent"] > :last-child {
+
+    .tiptap .details > div > [data-type='detailsContent'] > :last-child {
         margin-bottom: 0.5rem;
     }
+
     .tiptap .details .details {
         margin: 0.5rem 0;
     }
 
-    /* Basic editor styles */
-    .tiptap {
-        /* Placeholder (at the top) */
-        /* Give a remote user a caret */
-        /* Render the username above the caret */
-    }
-    .tiptap :first-child {
-        margin-top: 0;
-    }
-    .tiptap p.is-editor-empty:first-child::before {
-        /*color: hsl(var(--muted));*/
-        content: attr(data-placeholder);
-        float: left;
-        height: 0;
-        pointer-events: none;
-    }
-    .tiptap p {
-        word-break: break-all;
-    }
+    /* Collaboration cursors */
     .tiptap .collaboration-cursor__caret {
         border-left: 0.063rem solid #0d0d0d;
         border-right: 0.063rem solid #0d0d0d;
@@ -410,6 +440,7 @@ html {
         position: relative;
         word-break: normal;
     }
+
     .tiptap .collaboration-cursor__label {
         border-radius: 0.188rem 0.188rem 0.188rem 0;
         color: #0d0d0d;
@@ -423,61 +454,5 @@ html {
         top: -1.4em;
         user-select: none;
         white-space: nowrap;
-    }
-
-    .tiptap.ProseMirror {
-        height: 100%;
-    }
-
-    .tiptap table {
-        border-collapse: collapse;
-        margin: 0;
-        overflow: hidden;
-        table-layout: fixed;
-        width: 100%;
-    }
-    .tiptap table td, .tiptap table th {
-        border: 0.063rem solid hsl(var(--border));
-        box-sizing: border-box;
-        min-width: 1em;
-        padding: 0.375rem 0.5rem;
-        position: relative;
-        vertical-align: top;
-    }
-    .tiptap table td > *, .tiptap table th > * {
-        margin-bottom: 0;
-    }
-    .tiptap table th {
-        background-color: hsl(var(--muted));
-        font-weight: bold;
-        text-align: left;
-    }
-    .tiptap table .selectedCell:after {
-        background: hsl(var(--muted));
-        content: "";
-        left: 0;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        pointer-events: none;
-        position: absolute;
-        z-index: 2;
-    }
-    .tiptap table .column-resize-handle {
-        background-color: hsl(var(--primary));
-        bottom: -0.125rem;
-        pointer-events: none;
-        position: absolute;
-        right: -0.125rem;
-        top: 0;
-        width: 0.25rem;
-    }
-    .tiptap .tableWrapper {
-        margin: 1.5rem 0;
-        overflow-x: auto;
-    }
-    .tiptap.resize-cursor {
-        cursor: ew-resize;
-        cursor: col-resize;
     }
 }

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
 use App\Support\Reputation\ReputationManager;
+use App\Support\Security\HtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -22,9 +23,7 @@ use Illuminate\Validation\ValidationException;
 
 class ForumPostCommandController extends Controller
 {
-    public function __construct(private readonly ReputationManager $reputation)
-    {
-    }
+    public function __construct(private readonly ReputationManager $reputation) {}
 
     public function store(StoreForumPostRequest $request, ForumBoard $board, ForumThread $thread): JsonResponse
     {
@@ -37,7 +36,7 @@ class ForumPostCommandController extends Controller
 
         $validated = $request->validated();
 
-        $body = trim($validated['body']);
+        $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
         if ($bodyText === '') {
@@ -115,7 +114,7 @@ class ForumPostCommandController extends Controller
 
         $validated = $request->validated();
 
-        $body = trim($validated['body']);
+        $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
         if ($bodyText === '') {
@@ -203,7 +202,7 @@ class ForumPostCommandController extends Controller
     }
 
     /**
-     * @param Collection<int, User> $mentionedUsers
+     * @param  Collection<int, User>  $mentionedUsers
      */
     private function notifyMentionedUsers(Collection $mentionedUsers, ForumThread $thread, ForumPost $post): void
     {

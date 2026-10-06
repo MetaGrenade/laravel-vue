@@ -70,9 +70,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Billing invoices', href: route('acp.billing.invoices.index') },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Billing invoices', href: route('acp.billing.invoices.index') }];
 
 const invoices = computed(() => props.invoices.data ?? []);
 const searchQuery = ref(props.filters.search ?? '');
@@ -106,7 +104,7 @@ const resetFilters = () => {
     applyFilters({ page: 1 });
 };
 
-const { page, setPage, pageCount, rangeLabel } = useInertiaPagination({
+const { meta, page, pageCount, rangeLabel } = useInertiaPagination({
     meta: computed(() => props.invoices.meta ?? null),
     itemsLength: computed(() => props.invoices.data?.length ?? 0),
     itemLabel: 'invoice',
@@ -128,29 +126,21 @@ const formatCurrency = (amount: number, currency: string) => {
         <Head title="Billing invoices" />
 
         <AdminLayout>
-            <section class="flex flex-col w-full space-y-6">
-                <HeadingSmall
-                    title="Stripe invoices"
-                    description="Monitor webhook-synced invoice activity across the community."
-                />
+            <section class="flex w-full flex-col space-y-6">
+                <HeadingSmall title="Stripe invoices" description="Monitor webhook-synced invoice activity across the community." />
 
-                <div class="rounded-lg border border-border bg-card p-4 shadow-sm space-y-4">
+                <div class="space-y-4 rounded-lg border border-border bg-card p-4 shadow-xs">
                     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <div class="space-y-2">
                             <Label for="invoice-search">Search</Label>
-                            <Input
-                                id="invoice-search"
-                                v-model="searchQuery"
-                                type="search"
-                                placeholder="Stripe ID, customer, or plan"
-                            />
+                            <Input id="invoice-search" v-model="searchQuery" type="search" placeholder="Stripe ID, customer, or plan" />
                         </div>
                         <div class="space-y-2">
                             <Label for="invoice-status">Status</Label>
                             <select
                                 id="invoice-status"
                                 v-model="statusFilter"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                             >
                                 <option value="">All statuses</option>
                                 <option v-for="status in props.statusOptions" :key="status" :value="status">
@@ -176,7 +166,7 @@ const formatCurrency = (amount: number, currency: string) => {
                     </div>
                 </div>
 
-                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+                <div class="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -191,9 +181,7 @@ const formatCurrency = (amount: number, currency: string) => {
                         </TableHeader>
                         <TableBody>
                             <TableRow v-if="invoices.length === 0">
-                                <TableCell colspan="7" class="text-center text-sm text-muted-foreground">
-                                    No invoices recorded yet.
-                                </TableCell>
+                                <TableCell colspan="7" class="text-center text-sm text-muted-foreground"> No invoices recorded yet. </TableCell>
                             </TableRow>
                             <TableRow v-for="invoice in invoices" :key="invoice.id">
                                 <TableCell class="font-mono text-xs">{{ invoice.stripe_id }}</TableCell>
@@ -220,29 +208,30 @@ const formatCurrency = (amount: number, currency: string) => {
 
                 <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <p class="text-sm text-muted-foreground">{{ rangeLabel }}</p>
-                    <Pagination v-if="pageCount > 1">
-                        <PaginationList>
-                            <PaginationListItem>
-                                <PaginationFirst :disabled="page <= 1" @click="setPage(1)" />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <PaginationPrev :disabled="page <= 1" @click="setPage(page - 1)" />
-                            </PaginationListItem>
-                            <PaginationListItem v-if="page > 2">
-                                <PaginationEllipsis />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <Button variant="outline" class="h-8 min-w-[2rem] px-3" disabled>{{ page }}</Button>
-                            </PaginationListItem>
-                            <PaginationListItem v-if="page < pageCount - 1">
-                                <PaginationEllipsis />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <PaginationNext :disabled="page >= pageCount" @click="setPage(page + 1)" />
-                            </PaginationListItem>
-                            <PaginationListItem>
-                                <PaginationLast :disabled="page >= pageCount" @click="setPage(pageCount)" />
-                            </PaginationListItem>
+                    <Pagination
+                        v-if="pageCount > 1"
+                        v-slot="{ page: currentPage }"
+                        v-model:page="page"
+                        :items-per-page="Math.max(meta.per_page, 1)"
+                        :total="meta.total"
+                        :sibling-count="1"
+                        show-edges
+                    >
+                        <PaginationList v-slot="{ items }" class="flex items-center gap-1">
+                            <PaginationFirst />
+                            <PaginationPrev />
+
+                            <template v-for="(item, index) in items" :key="index">
+                                <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                    <Button class="h-9 w-9 p-0" :variant="item.value === currentPage ? 'default' : 'outline'">
+                                        {{ item.value }}
+                                    </Button>
+                                </PaginationListItem>
+                                <PaginationEllipsis v-else :index="index" />
+                            </template>
+
+                            <PaginationNext />
+                            <PaginationLast />
                         </PaginationList>
                     </Pagination>
                 </div>

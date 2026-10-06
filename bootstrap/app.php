@@ -7,16 +7,17 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
 use App\Http\Middleware\PreventBannedUser;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\ThrottleTokenUsage;
 use App\Http\Middleware\UpdateLastActivity;
 use App\Jobs\AggregateSearchQueryStats;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneSearchQueryLogs;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
-use Illuminate\Console\Scheduling\Schedule;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -42,11 +43,12 @@ return Application::configure(basePath: dirname(__DIR__))
             ]
         );
 
+        // PreventBannedUser must run after StartSession so it can resolve the
+        // session-authenticated user and invalidate their session.
         $middleware->web(
-            prepend: [
-                PreventBannedUser::class,
-            ],
             append: [
+                SecurityHeaders::class,
+                PreventBannedUser::class,
                 EnsureSiteIsAvailable::class,
                 HandleAppearance::class,
                 HandleInertiaRequests::class,
@@ -66,9 +68,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {
-        $schedule->job(new MonitorSupportTicketSlas())->everyFifteenMinutes();
-        $schedule->job(new AggregateSearchQueryStats())->dailyAt('00:30');
-        $schedule->job(new PruneSearchQueryLogs())->dailyAt('01:00');
+        $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();
+        $schedule->job(new AggregateSearchQueryStats)->dailyAt('00:30');
+        $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

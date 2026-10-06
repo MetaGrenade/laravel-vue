@@ -42,7 +42,7 @@ class BlogRecommendationsTest extends TestCase
 
                 return $ids->contains($relatedByCategory->id)
                     && $ids->contains($relatedByTag->id)
-                    && !$ids->contains($unrelated->id);
+                    && ! $ids->contains($unrelated->id);
             }));
     }
 

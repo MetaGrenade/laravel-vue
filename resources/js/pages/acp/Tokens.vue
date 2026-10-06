@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import dayjs from 'dayjs';
+import dayjs from '@/lib/dayjs';
 import { ref, computed, watch, onBeforeUnmount, reactive } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { type BreadcrumbItem, type SharedData } from '@/types';
+import { type BreadcrumbItem, type SharedData, type QueryParams } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,7 +20,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff, Ban } from 'lucide-vue-next';
+import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff, Ban } from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import InputError from '@/components/InputError.vue';
@@ -61,9 +61,7 @@ const editTokens = computed(() => hasPermission('tokens.acp.edit'));
 const deleteTokens = computed(() => hasPermission('tokens.acp.delete'));
 
 // Dummy breadcrumbs
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Tokens', href: '/acp/tokens' }
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tokens', href: '/acp/tokens' }];
 
 interface TokenUser {
     id: number;
@@ -142,16 +140,20 @@ const tokenSecretDialogOpen = ref(false);
 const tokenSecretValue = ref('');
 const tokenSecretCopied = ref(false);
 const tokenSecretCopyError = ref<string | null>(null);
-let tokenSecretCopyTimeout: ReturnType<typeof setTimeout> | null = null;
+let tokenSecretCopyTimeout: number | null = null;
 
-watch(flashPlainTextToken, (value) => {
-    if (value) {
-        tokenSecretValue.value = value;
-        tokenSecretDialogOpen.value = true;
-        tokenSecretCopied.value = false;
-        tokenSecretCopyError.value = null;
-    }
-}, { immediate: true });
+watch(
+    flashPlainTextToken,
+    (value) => {
+        if (value) {
+            tokenSecretValue.value = value;
+            tokenSecretDialogOpen.value = true;
+            tokenSecretCopied.value = false;
+            tokenSecretCopyError.value = null;
+        }
+    },
+    { immediate: true },
+);
 
 watch(tokenSecretDialogOpen, (open) => {
     if (!open && tokenSecretCopyTimeout) {
@@ -168,11 +170,7 @@ const copyTokenSecret = async () => {
 
     tokenSecretCopyError.value = null;
 
-    if (
-        typeof navigator === 'undefined' ||
-        !navigator.clipboard ||
-        typeof navigator.clipboard.writeText !== 'function'
-    ) {
+    if (typeof navigator === 'undefined' || !navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
         tokenSecretCopyError.value = 'Copying is not supported in this browser. Please copy the token manually.';
         return;
     }
@@ -217,9 +215,7 @@ const logFiltersState = reactive({
     date_to: props.logFilters?.date_to ?? '',
 });
 
-const initialLogsPerPage = props.logFilters?.per_page
-    ?? props.tokenLogs.meta?.per_page
-    ?? LOGS_PER_PAGE_DEFAULT;
+const initialLogsPerPage = props.logFilters?.per_page ?? props.tokenLogs.meta?.per_page ?? LOGS_PER_PAGE_DEFAULT;
 
 const logsPerPage = ref(Number.isFinite(initialLogsPerPage) && initialLogsPerPage ? initialLogsPerPage : LOGS_PER_PAGE_DEFAULT);
 
@@ -278,15 +274,11 @@ const {
     itemLabel: 'token',
     itemLabelPlural: 'tokens',
     onNavigate: (page) => {
-        router.get(
-            route('acp.tokens.index'),
-            buildQueryParams({ page }),
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
+        router.get(route('acp.tokens.index'), buildQueryParams({ page }), {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
     },
 });
 
@@ -302,19 +294,15 @@ const {
     itemLabel: 'log entry',
     itemLabelPlural: 'log entries',
     onNavigate: (page) => {
-        router.get(
-            route('acp.tokens.index'),
-            buildQueryParams({ logs_page: page }),
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
+        router.get(route('acp.tokens.index'), buildQueryParams({ logs_page: page }), {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
     },
 });
 
-function cleanQuery(query: Record<string, unknown>) {
+function cleanQuery(query: QueryParams) {
     return Object.fromEntries(
         Object.entries(query).filter(([, value]) => {
             if (value === null || value === undefined) {
@@ -330,7 +318,7 @@ function cleanQuery(query: Record<string, unknown>) {
     );
 }
 
-function buildQueryParams(overrides: Record<string, unknown> = {}) {
+function buildQueryParams(overrides: QueryParams = {}) {
     return cleanQuery({
         page: tokensPage.value,
         logs_page: tokenLogsPage.value,
@@ -343,18 +331,14 @@ function buildQueryParams(overrides: Record<string, unknown> = {}) {
     });
 }
 
-const applyLogFilters = (overrides: Record<string, unknown> = {}) => {
+const applyLogFilters = (overrides: QueryParams = {}) => {
     setTokenLogsPage(1, { emitNavigate: false });
 
-    router.get(
-        route('acp.tokens.index'),
-        buildQueryParams({ logs_page: 1, ...overrides }),
-        {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        },
-    );
+    router.get(route('acp.tokens.index'), buildQueryParams({ logs_page: 1, ...overrides }), {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
 };
 
 const resetLogFilters = () => {
@@ -373,15 +357,12 @@ const onLogsPerPageChange = (value: number) => {
     applyLogFilters({ logs_per_page: nextValue });
 };
 
-const showTokenLogsPagination = computed(
-    () => tokenLogsMeta.value.total > tokenLogsMeta.value.per_page,
-);
+const showTokenLogsPagination = computed(() => tokenLogsMeta.value.total > tokenLogsMeta.value.per_page);
 
 const numberFormatter = new Intl.NumberFormat();
 const QUOTA_WARNING_THRESHOLD = 0.8;
 
-const isQuotaConfigured = (quota?: number | null): quota is number =>
-    typeof quota === 'number' && Number.isFinite(quota) && quota > 0;
+const isQuotaConfigured = (quota?: number | null): quota is number => typeof quota === 'number' && Number.isFinite(quota) && quota > 0;
 
 const usageRatio = (usage: number | undefined, quota?: number | null): number => {
     if (!isQuotaConfigured(quota)) {
@@ -470,9 +451,7 @@ watch(tokenSearchQuery, () => {
     setTokensPage(1, { emitNavigate: false });
 });
 
-const showTokenPagination = computed(
-    () => tokensMeta.value.total > tokensMeta.value.per_page,
-);
+const showTokenPagination = computed(() => tokensMeta.value.total > tokensMeta.value.per_page);
 
 // Create token dialog state & form
 const createDialogOpen = ref(false);
@@ -553,9 +532,7 @@ const openEditDialog = (token: Token) => {
     editingTokenId.value = token.id;
     editingToken.value = token;
     editTokenForm.name = token.name;
-    editTokenForm.expires_at = token.expires_at
-        ? dayjs(token.expires_at).format('YYYY-MM-DDTHH:mm')
-        : '';
+    editTokenForm.expires_at = token.expires_at ? dayjs(token.expires_at).format('YYYY-MM-DDTHH:mm') : '';
     editTokenForm.clear_revocation = false;
     editTokenForm.hourly_quota = token.hourly_quota ?? null;
     editTokenForm.daily_quota = token.daily_quota ?? null;
@@ -603,33 +580,24 @@ const resolveTokenStatus = (token: Token) => {
     if (token.revoked_at) {
         return {
             label: 'Revoked',
-            classes:
-                'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-200',
+            classes: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-200',
         };
     }
 
     if (token.expires_at && dayjs(token.expires_at).isBefore(dayjs())) {
         return {
             label: 'Expired',
-            classes:
-                'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200',
+            classes: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200',
         };
     }
 
     return {
         label: 'Active',
-        classes:
-            'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200',
+        classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200',
     };
 };
 
-const {
-    confirmDialogState,
-    confirmDialogDescription,
-    openConfirmDialog,
-    handleConfirmDialogConfirm,
-    handleConfirmDialogCancel,
-} = useConfirmDialog();
+const { confirmDialogState, confirmDialogDescription, openConfirmDialog, handleConfirmDialogConfirm, handleConfirmDialogCancel } = useConfirmDialog();
 
 const requestTokenRevocation = (token: Token) => {
     if (revokeForm.processing || token.revoked_at) {
@@ -670,10 +638,10 @@ const lastUsedDisplay = (value?: string | null) => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Tokens Management" />
         <AdminLayout>
-            <div class="container mx-auto p-4 space-y-8">
+            <div class="container mx-auto space-y-8 p-4">
                 <!-- Stats Section -->
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-1 lg:grid-cols-4">
-                    <div class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center">
+                    <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <div class="mr-4">
                             <component :is="Coins" class="h-8 w-8 text-gray-600" />
                         </div>
@@ -683,7 +651,7 @@ const lastUsedDisplay = (value?: string | null) => {
                         </div>
                         <PlaceholderPattern />
                     </div>
-                    <div class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center">
+                    <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <div class="mr-4">
                             <component :is="ShieldCheck" class="h-8 w-8 text-gray-600" />
                         </div>
@@ -693,7 +661,7 @@ const lastUsedDisplay = (value?: string | null) => {
                         </div>
                         <PlaceholderPattern />
                     </div>
-                    <div class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center">
+                    <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <div class="mr-4">
                             <component :is="ShieldAlert" class="h-8 w-8 text-gray-600" />
                         </div>
@@ -703,7 +671,7 @@ const lastUsedDisplay = (value?: string | null) => {
                         </div>
                         <PlaceholderPattern />
                     </div>
-                    <div class="relative overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex items-center">
+                    <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                         <div class="mr-4">
                             <component :is="ShieldOff" class="h-8 w-8 text-gray-600" />
                         </div>
@@ -717,77 +685,58 @@ const lastUsedDisplay = (value?: string | null) => {
 
                 <!-- Tabs for Token List and Token Logs -->
                 <Tabs default-value="tokens" class="w-full">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                    <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between">
                         <TabsList>
                             <TabsTrigger value="tokens">Token List</TabsTrigger>
                             <TabsTrigger value="logs">Token Activity</TabsTrigger>
                         </TabsList>
-                    <div class="flex space-x-2">
-                        <Dialog v-model:open="tokenSecretDialogOpen">
-                            <DialogContent class="sm:max-w-lg">
-                                <DialogHeader class="space-y-2">
-                                    <DialogTitle>Save your new token</DialogTitle>
-                                    <DialogDescription>
-                                        This is the only time the token secret will be shown. Copy and store it securely now.
-                                    </DialogDescription>
-                                </DialogHeader>
+                        <div class="flex space-x-2">
+                            <Dialog v-model:open="tokenSecretDialogOpen">
+                                <DialogContent class="sm:max-w-lg">
+                                    <DialogHeader class="space-y-2">
+                                        <DialogTitle>Save your new token</DialogTitle>
+                                        <DialogDescription>
+                                            This is the only time the token secret will be shown. Copy and store it securely now.
+                                        </DialogDescription>
+                                    </DialogHeader>
 
-                                <div class="space-y-3">
-                                    <Label for="new-token-secret">Token secret</Label>
-                                    <div class="flex flex-col gap-2 sm:flex-row">
-                                        <Textarea
-                                            id="new-token-secret"
-                                            v-model="tokenSecretValue"
-                                            rows="3"
-                                            readonly
-                                            class="font-mono text-sm"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            class="shrink-0 sm:h-auto sm:w-32"
-                                            @click="copyTokenSecret"
-                                        >
-                                            {{ tokenSecretCopied ? 'Copied!' : 'Copy token' }}
-                                        </Button>
+                                    <div class="space-y-3">
+                                        <Label for="new-token-secret">Token secret</Label>
+                                        <div class="flex flex-col gap-2 sm:flex-row">
+                                            <Textarea id="new-token-secret" v-model="tokenSecretValue" rows="3" readonly class="font-mono text-sm" />
+                                            <Button type="button" variant="secondary" class="shrink-0 sm:h-auto sm:w-32" @click="copyTokenSecret">
+                                                {{ tokenSecretCopied ? 'Copied!' : 'Copy token' }}
+                                            </Button>
+                                        </div>
+                                        <p v-if="tokenSecretCopied" class="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                            Token copied to clipboard.
+                                        </p>
+                                        <p v-else-if="tokenSecretCopyError" class="text-xs text-red-600 dark:text-red-400">
+                                            {{ tokenSecretCopyError }}
+                                        </p>
+                                        <p class="text-xs text-muted-foreground">
+                                            Make sure to store this token securely. You won't be able to see it again after closing this dialog.
+                                        </p>
                                     </div>
-                                    <p
-                                        v-if="tokenSecretCopied"
-                                        class="text-xs font-medium text-emerald-600 dark:text-emerald-400"
-                                    >
-                                        Token copied to clipboard.
-                                    </p>
-                                    <p
-                                        v-else-if="tokenSecretCopyError"
-                                        class="text-xs text-red-600 dark:text-red-400"
-                                    >
-                                        {{ tokenSecretCopyError }}
-                                    </p>
-                                    <p class="text-xs text-muted-foreground">
-                                        Make sure to store this token securely. You won't be able to see it again after closing this dialog.
-                                    </p>
-                                </div>
 
-                                <DialogFooter class="gap-2 sm:gap-4">
-                                    <DialogClose as-child>
-                                        <Button type="button" variant="outline">Close</Button>
-                                    </DialogClose>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        <Dialog v-if="createTokens" v-model:open="createDialogOpen">
-                            <DialogTrigger as-child>
-                                <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600 md:ml-10">
-                                    Create Token
+                                    <DialogFooter class="gap-2 sm:gap-4">
+                                        <DialogClose as-child>
+                                            <Button type="button" variant="outline">Close</Button>
+                                        </DialogClose>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            <Dialog v-if="createTokens" v-model:open="createDialogOpen">
+                                <DialogTrigger as-child>
+                                    <Button variant="secondary" class="bg-green-500 text-sm text-white hover:bg-green-600 md:ml-10">
+                                        Create Token
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent class="sm:max-w-lg">
                                     <form class="space-y-6" @submit.prevent="submitCreateToken">
                                         <DialogHeader class="space-y-2">
                                             <DialogTitle>Create access token</DialogTitle>
-                                            <DialogDescription>
-                                                Generate a new personal access token and assign it to a user.
-                                            </DialogDescription>
+                                            <DialogDescription> Generate a new personal access token and assign it to a user. </DialogDescription>
                                         </DialogHeader>
 
                                         <div class="space-y-4">
@@ -809,15 +758,11 @@ const lastUsedDisplay = (value?: string | null) => {
                                                 <select
                                                     id="token-user"
                                                     v-model="createTokenForm.user_id"
-                                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
+                                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700"
                                                     required
                                                 >
                                                     <option disabled value="">Select a user</option>
-                                                    <option
-                                                        v-for="user in userList"
-                                                        :key="user.id"
-                                                        :value="user.id"
-                                                    >
+                                                    <option v-for="user in userList" :key="user.id" :value="user.id">
                                                         {{ user.nickname }} ({{ user.email }})
                                                     </option>
                                                 </select>
@@ -832,19 +777,13 @@ const lastUsedDisplay = (value?: string | null) => {
                                                     rows="3"
                                                     placeholder="Comma separated abilities (leave blank for full access)"
                                                 />
-                                                <p class="text-xs text-muted-foreground">
-                                                    Leave empty to grant full access. Example: read,update
-                                                </p>
+                                                <p class="text-xs text-muted-foreground">Leave empty to grant full access. Example: read,update</p>
                                                 <InputError :message="createTokenForm.errors.abilities" />
                                             </div>
 
                                             <div class="space-y-2">
                                                 <Label for="token-expires-at">Expires at</Label>
-                                                <Input
-                                                    id="token-expires-at"
-                                                    v-model="createTokenForm.expires_at"
-                                                    type="datetime-local"
-                                                />
+                                                <Input id="token-expires-at" v-model="createTokenForm.expires_at" type="datetime-local" />
                                                 <InputError :message="createTokenForm.errors.expires_at" />
                                             </div>
 
@@ -858,9 +797,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                         min="1"
                                                         placeholder="Unlimited"
                                                     />
-                                                    <p class="text-xs text-muted-foreground">
-                                                        Leave blank for unlimited requests per hour.
-                                                    </p>
+                                                    <p class="text-xs text-muted-foreground">Leave blank for unlimited requests per hour.</p>
                                                     <InputError :message="createTokenForm.errors.hourly_quota" />
                                                 </div>
                                                 <div class="space-y-2">
@@ -872,9 +809,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                         min="1"
                                                         placeholder="Unlimited"
                                                     />
-                                                    <p class="text-xs text-muted-foreground">
-                                                        Leave blank for unlimited requests per day.
-                                                    </p>
+                                                    <p class="text-xs text-muted-foreground">Leave blank for unlimited requests per day.</p>
                                                     <InputError :message="createTokenForm.errors.daily_quota" />
                                                 </div>
                                             </div>
@@ -896,9 +831,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                     <form class="space-y-6" @submit.prevent="submitEditToken">
                                         <DialogHeader class="space-y-2">
                                             <DialogTitle>Edit access token</DialogTitle>
-                                            <DialogDescription>
-                                                Update the token name, expiry and abilities.
-                                            </DialogDescription>
+                                            <DialogDescription> Update the token name, expiry and abilities. </DialogDescription>
                                         </DialogHeader>
 
                                         <div class="space-y-4">
@@ -923,19 +856,13 @@ const lastUsedDisplay = (value?: string | null) => {
                                                     rows="3"
                                                     placeholder="Comma separated abilities (leave blank for full access)"
                                                 />
-                                                <p class="text-xs text-muted-foreground">
-                                                    Leave empty to grant full access. Example: read,update
-                                                </p>
+                                                <p class="text-xs text-muted-foreground">Leave empty to grant full access. Example: read,update</p>
                                                 <InputError :message="editTokenForm.errors.abilities" />
                                             </div>
 
                                             <div class="space-y-2">
                                                 <Label for="edit-token-expires-at">Expires at</Label>
-                                                <Input
-                                                    id="edit-token-expires-at"
-                                                    v-model="editTokenForm.expires_at"
-                                                    type="datetime-local"
-                                                />
+                                                <Input id="edit-token-expires-at" v-model="editTokenForm.expires_at" type="datetime-local" />
                                                 <InputError :message="editTokenForm.errors.expires_at" />
                                             </div>
 
@@ -949,9 +876,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                         min="1"
                                                         placeholder="Unlimited"
                                                     />
-                                                    <p class="text-xs text-muted-foreground">
-                                                        Leave blank to keep hourly requests unlimited.
-                                                    </p>
+                                                    <p class="text-xs text-muted-foreground">Leave blank to keep hourly requests unlimited.</p>
                                                     <InputError :message="editTokenForm.errors.hourly_quota" />
                                                 </div>
                                                 <div class="space-y-2">
@@ -963,9 +888,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                         min="1"
                                                         placeholder="Unlimited"
                                                     />
-                                                    <p class="text-xs text-muted-foreground">
-                                                        Leave blank to keep daily requests unlimited.
-                                                    </p>
+                                                    <p class="text-xs text-muted-foreground">Leave blank to keep daily requests unlimited.</p>
                                                     <InputError :message="editTokenForm.errors.daily_quota" />
                                                 </div>
                                             </div>
@@ -974,10 +897,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                 v-if="editingToken?.revoked_at"
                                                 class="flex items-center space-x-2 rounded-md border border-dashed border-muted p-3"
                                             >
-                                                <Checkbox
-                                                    id="restore-token"
-                                                    v-model:checked="editTokenForm.clear_revocation"
-                                                />
+                                                <Checkbox id="restore-token" v-model="editTokenForm.clear_revocation" />
                                                 <Label for="restore-token" class="text-sm leading-tight">
                                                     Restore this token (clear revoked status)
                                                 </Label>
@@ -1016,13 +936,15 @@ const lastUsedDisplay = (value?: string | null) => {
                                         <span class="font-medium">{{ token.name }}</span>
                                         <span class="text-xs text-muted-foreground">
                                             <template v-if="isQuotaConfigured(token.hourly_quota)">
-                                                Hourly: {{ quotaUsageLabel(token.hourly_usage, token.hourly_quota) }}
-                                                ({{ usagePercent(token.hourly_usage, token.hourly_quota) }}%)
+                                                Hourly: {{ quotaUsageLabel(token.hourly_usage, token.hourly_quota) }} ({{
+                                                    usagePercent(token.hourly_usage, token.hourly_quota)
+                                                }}%)
                                             </template>
                                             <template v-if="isQuotaConfigured(token.daily_quota)">
                                                 <span v-if="isQuotaConfigured(token.hourly_quota)"> · </span>
-                                                Daily: {{ quotaUsageLabel(token.daily_usage, token.daily_quota) }}
-                                                ({{ usagePercent(token.daily_usage, token.daily_quota) }}%)
+                                                Daily: {{ quotaUsageLabel(token.daily_usage, token.daily_quota) }} ({{
+                                                    usagePercent(token.daily_usage, token.daily_quota)
+                                                }}%)
                                             </template>
                                         </span>
                                     </li>
@@ -1030,16 +952,12 @@ const lastUsedDisplay = (value?: string | null) => {
                             </AlertDescription>
                         </Alert>
 
-                        <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
+                        <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
                             <!-- Search Bar -->
-                            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                                <h2 class="text-lg font-semibold mb-2 md:mb-0">Manage Access Tokens</h2>
+                            <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between">
+                                <h2 class="mb-2 text-lg font-semibold md:mb-0">Manage Access Tokens</h2>
                                 <div class="flex space-x-2">
-                                    <Input
-                                        v-model="tokenSearchQuery"
-                                        placeholder="Search tokens..."
-                                        class="w-full rounded-md"
-                                    />
+                                    <Input v-model="tokenSearchQuery" placeholder="Search tokens..." class="w-full rounded-md" />
                                 </div>
                             </div>
                             <!-- Tokens Table -->
@@ -1058,11 +976,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow
-                                            v-for="token in filteredTokens"
-                                            :key="token.id"
-                                            class="hover:bg-gray-50 dark:hover:bg-gray-900"
-                                        >
+                                        <TableRow v-for="token in filteredTokens" :key="token.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
                                             <TableCell>{{ token.id }}</TableCell>
                                             <TableCell>{{ token.name }}</TableCell>
                                             <TableCell>
@@ -1087,7 +1001,9 @@ const lastUsedDisplay = (value?: string | null) => {
                                                     class="space-y-3"
                                                 >
                                                     <div v-if="isQuotaConfigured(token.hourly_quota)" class="space-y-1">
-                                                        <div class="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                                        <div
+                                                            class="flex items-center justify-between text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                                                        >
                                                             <span>Hourly</span>
                                                             <span>{{ quotaUsageLabel(token.hourly_usage, token.hourly_quota) }}</span>
                                                         </div>
@@ -1100,7 +1016,9 @@ const lastUsedDisplay = (value?: string | null) => {
                                                         </div>
                                                     </div>
                                                     <div v-if="isQuotaConfigured(token.daily_quota)" class="space-y-1">
-                                                        <div class="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                                        <div
+                                                            class="flex items-center justify-between text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                                                        >
                                                             <span>Daily</span>
                                                             <span>{{ quotaUsageLabel(token.daily_usage, token.daily_quota) }}</span>
                                                         </div>
@@ -1113,12 +1031,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div
-                                                    v-else
-                                                    class="text-xs font-medium text-muted-foreground"
-                                                >
-                                                    Unlimited
-                                                </div>
+                                                <div v-else class="text-xs font-medium text-muted-foreground">Unlimited</div>
                                             </TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
@@ -1131,10 +1044,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuSeparator v-if="editTokens" />
                                                         <DropdownMenuGroup v-if="editTokens">
-                                                            <DropdownMenuItem
-                                                                class="text-blue-500"
-                                                                @click.prevent="openEditDialog(token)"
-                                                            >
+                                                            <DropdownMenuItem class="text-blue-500" @click.prevent="openEditDialog(token)">
                                                                 <Pencil class="mr-2" /> Edit
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
@@ -1166,7 +1076,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                 </Table>
                             </div>
                             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                                <div class="text-sm text-muted-foreground text-center md:text-left">
+                                <div class="text-center text-sm text-muted-foreground md:text-left">
                                     {{ tokensRangeLabel }}
                                 </div>
                                 <Pagination
@@ -1185,19 +1095,12 @@ const lastUsedDisplay = (value?: string | null) => {
                                             <PaginationPrev />
 
                                             <template v-for="(item, index) in items" :key="index">
-                                                <PaginationListItem
-                                                    v-if="item.type === 'page'"
-                                                    :value="item.value"
-                                                    as-child
-                                                >
-                                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                                <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                                    <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                         {{ item.value }}
                                                     </Button>
                                                 </PaginationListItem>
-                                                <PaginationEllipsis
-                                                    v-else
-                                                    :index="index"
-                                                />
+                                                <PaginationEllipsis v-else :index="index" />
                                             </template>
 
                                             <PaginationNext />
@@ -1211,19 +1114,14 @@ const lastUsedDisplay = (value?: string | null) => {
 
                     <!-- Token Logs Tab -->
                     <TabsContent value="logs" class="space-y-6">
-                        <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                            <div class="flex flex-col gap-4 mb-4">
-                                <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                        <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                            <div class="mb-4 flex flex-col gap-4">
+                                <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                                     <div>
                                         <h2 class="text-lg font-semibold">Token Activity Logs</h2>
-                                        <p class="text-sm text-muted-foreground mt-1">
-                                            Filter logs by token name, status, or a specific date range.
-                                        </p>
+                                        <p class="mt-1 text-sm text-muted-foreground">Filter logs by token name, status, or a specific date range.</p>
                                     </div>
-                                    <form
-                                        class="grid w-full gap-3 md:w-auto md:grid-cols-2 lg:grid-cols-4"
-                                        @submit.prevent="applyLogFilters()"
-                                    >
+                                    <form class="grid w-full gap-3 md:w-auto md:grid-cols-2 lg:grid-cols-4" @submit.prevent="applyLogFilters()">
                                         <div class="flex flex-col gap-1">
                                             <Label for="log-token-filter">Token</Label>
                                             <Input
@@ -1238,14 +1136,10 @@ const lastUsedDisplay = (value?: string | null) => {
                                             <select
                                                 id="log-status-filter"
                                                 v-model="logFiltersState.status"
-                                                class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
                                             >
                                                 <option value="">All statuses</option>
-                                                <option
-                                                    v-for="statusOption in availableLogStatuses"
-                                                    :key="statusOption"
-                                                    :value="statusOption"
-                                                >
+                                                <option v-for="statusOption in availableLogStatuses" :key="statusOption" :value="statusOption">
                                                     {{ statusOption }}
                                                 </option>
                                             </select>
@@ -1269,12 +1163,8 @@ const lastUsedDisplay = (value?: string | null) => {
                                             />
                                         </div>
                                         <div class="flex items-center justify-end gap-2 md:col-span-2 lg:col-span-4">
-                                            <Button type="button" variant="outline" @click="resetLogFilters">
-                                                Reset
-                                            </Button>
-                                            <Button type="submit">
-                                                Apply
-                                            </Button>
+                                            <Button type="button" variant="outline" @click="resetLogFilters"> Reset </Button>
+                                            <Button type="submit"> Apply </Button>
                                         </div>
                                     </form>
                                 </div>
@@ -1293,26 +1183,25 @@ const lastUsedDisplay = (value?: string | null) => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow
-                                            v-for="log in tokenLogsItems"
-                                            :key="log.id"
-                                            class="hover:bg-gray-50 dark:hover:bg-gray-900"
-                                        >
+                                        <TableRow v-for="log in tokenLogsItems" :key="log.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
                                             <TableCell>{{ log.id }}</TableCell>
                                             <TableCell>{{ log.token_name ?? 'Unknown token' }}</TableCell>
                                             <TableCell>{{ log.api_route }}</TableCell>
                                             <TableCell>{{ log.timestamp ? fromNow(log.timestamp) : 'Unknown' }}</TableCell>
                                             <TableCell class="text-center">
-                                                <span :class="{
-                                                  'text-green-500': log.status === 'success',
-                                                  'text-red-500': log.status === 'failed'
-                                                }" class="font-medium">
-                                                  {{ log.status }}
+                                                <span
+                                                    :class="{
+                                                        'text-green-500': log.status === 'success',
+                                                        'text-red-500': log.status === 'failed',
+                                                    }"
+                                                    class="font-medium"
+                                                >
+                                                    {{ log.status }}
                                                 </span>
                                             </TableCell>
                                             <TableCell class="text-center">
                                                 <Link :href="route('acp.tokens.logs.show', { tokenLog: log.id })">
-                                                    <Button variant="ghost" class="text-blue-500 text-sm">View</Button>
+                                                    <Button variant="ghost" class="text-sm text-blue-500">View</Button>
                                                 </Link>
                                             </TableCell>
                                         </TableRow>
@@ -1325,22 +1214,18 @@ const lastUsedDisplay = (value?: string | null) => {
                                 </Table>
                             </div>
                             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                                <div class="text-sm text-muted-foreground text-center md:text-left">
+                                <div class="text-center text-sm text-muted-foreground md:text-left">
                                     {{ tokenLogsRangeLabel }}
                                 </div>
                                 <div class="flex flex-col items-center gap-3 md:flex-row md:items-center">
                                     <label class="flex items-center gap-2 text-sm text-muted-foreground">
                                         <span>Per page</span>
                                         <select
-                                            class="h-9 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                            class="h-9 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden"
                                             :value="logsPerPage"
                                             @change="onLogsPerPageChange(Number(($event.target as HTMLSelectElement).value))"
                                         >
-                                            <option
-                                                v-for="option in LOGS_PER_PAGE_OPTIONS"
-                                                :key="option"
-                                                :value="option"
-                                            >
+                                            <option v-for="option in LOGS_PER_PAGE_OPTIONS" :key="option" :value="option">
                                                 {{ option }}
                                             </option>
                                         </select>
@@ -1361,19 +1246,12 @@ const lastUsedDisplay = (value?: string | null) => {
                                                 <PaginationPrev />
 
                                                 <template v-for="(item, index) in items" :key="index">
-                                                    <PaginationListItem
-                                                        v-if="item.type === 'page'"
-                                                        :value="item.value"
-                                                        as-child
-                                                    >
-                                                        <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                                    <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                                        <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                             {{ item.value }}
                                                         </Button>
                                                     </PaginationListItem>
-                                                    <PaginationEllipsis
-                                                        v-else
-                                                        :index="index"
-                                                    />
+                                                    <PaginationEllipsis v-else :index="index" />
                                                 </template>
 
                                                 <PaginationNext />

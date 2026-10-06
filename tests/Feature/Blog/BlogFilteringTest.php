@@ -37,7 +37,7 @@ class BlogFilteringTest extends TestCase
                 $blogIds = collect($data)->pluck('id');
 
                 return $blogIds->contains($matchingBlog->id)
-                    && !$blogIds->contains($nonMatchingBlog->id);
+                    && ! $blogIds->contains($nonMatchingBlog->id);
             }));
     }
 
@@ -64,7 +64,7 @@ class BlogFilteringTest extends TestCase
                 $blogIds = collect($data)->pluck('id');
 
                 return $blogIds->contains($matchingBlog->id)
-                    && !$blogIds->contains($nonMatchingBlog->id);
+                    && ! $blogIds->contains($nonMatchingBlog->id);
             }));
     }
 
@@ -93,8 +93,8 @@ class BlogFilteringTest extends TestCase
                 $blogIds = collect($data)->pluck('id');
 
                 return $blogIds->contains($matchingBlog->id)
-                    && !$blogIds->contains($categoryOnlyBlog->id)
-                    && !$blogIds->contains($tagOnlyBlog->id);
+                    && ! $blogIds->contains($categoryOnlyBlog->id)
+                    && ! $blogIds->contains($tagOnlyBlog->id);
             }));
     }
 
@@ -119,7 +119,7 @@ class BlogFilteringTest extends TestCase
                 $blogIds = collect($data)->pluck('id');
 
                 return $blogIds->contains($matchingBlog->id)
-                    && !$blogIds->contains($nonMatchingBlog->id);
+                    && ! $blogIds->contains($nonMatchingBlog->id);
             }));
     }
 

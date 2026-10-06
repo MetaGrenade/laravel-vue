@@ -1,16 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch, type ComponentPublicInstance } from 'vue';
-import { useId } from 'radix-vue';
+import { useId } from 'vue';
 
 import { Button, type ButtonVariants } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const props = withDefaults(
     defineProps<{
@@ -109,12 +102,7 @@ const handleConfirm = () => {
                 <Button ref="cancelButtonRef" variant="outline" @click="handleCancel">
                     {{ cancelLabel }}
                 </Button>
-                <Button
-                    ref="confirmButtonRef"
-                    :variant="confirmVariant"
-                    :disabled="confirmDisabled"
-                    @click="handleConfirm"
-                >
+                <Button ref="confirmButtonRef" :variant="confirmVariant" :disabled="confirmDisabled" @click="handleConfirm">
                     {{ confirmLabel }}
                 </Button>
             </DialogFooter>

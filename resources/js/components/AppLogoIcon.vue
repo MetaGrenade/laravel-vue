@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue';
-import { Anvil } from 'lucide-vue-next';
+import { Anvil } from '@lucide/vue';
 
 defineOptions({
     inheritAttrs: false,

@@ -57,9 +57,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Edit FAQ category</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Update the name, order, or description for this group of help articles.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Update the name, order, or description for this group of help articles.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -118,12 +116,8 @@ const handleSubmit = () => {
                     </CardContent>
                     <CardFooter class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div class="text-sm text-muted-foreground">
-                            <div v-if="props.category.created_at">
-                                Created {{ formatDate(props.category.created_at, 'MMM D, YYYY h:mm A') }}
-                            </div>
-                            <div v-if="props.category.updated_at">
-                                Updated {{ formatDate(props.category.updated_at, 'MMM D, YYYY h:mm A') }}
-                            </div>
+                            <div v-if="props.category.created_at">Created {{ formatDate(props.category.created_at, 'MMM D, YYYY h:mm A') }}</div>
+                            <div v-if="props.category.updated_at">Updated {{ formatDate(props.category.updated_at, 'MMM D, YYYY h:mm A') }}</div>
                             <div>Linked FAQs: {{ props.category.faqs_count }}</div>
                         </div>
                         <div class="flex gap-2">

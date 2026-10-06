@@ -1,5 +1,5 @@
-import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 export function usePermissions() {
     const page = usePage();
@@ -13,8 +13,8 @@ export function usePermissions() {
      * @returns true if any permission is found, false otherwise.
      */
     function hasPermission(permission: string): boolean {
-        const permissionsToCheck = permission.split('|').map(p => p.trim());
-        return permissions.value.some(p => permissionsToCheck.includes(p));
+        const permissionsToCheck = permission.split('|').map((p) => p.trim());
+        return permissions.value.some((p) => permissionsToCheck.includes(p));
     }
 
     return { hasPermission };

@@ -14,6 +14,5 @@ class OAuthUser
         public readonly ?string $accessToken = null,
         public readonly ?string $refreshToken = null,
         public readonly ?int $expiresIn = null,
-    ) {
-    }
+    ) {}
 }

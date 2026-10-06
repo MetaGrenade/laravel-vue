@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
-import { Pencil, PlusCircle, Tag as TagIcon, Trash2 } from 'lucide-vue-next';
+import { Pencil, PlusCircle, Tag as TagIcon, Trash2 } from '@lucide/vue';
 
 type ManagedTag = {
     id: number;
@@ -96,9 +96,7 @@ const confirmDeleteTag = () => {
                                 <TagIcon class="h-5 w-5" />
                                 Blog tags
                             </CardTitle>
-                            <CardDescription>
-                                Create, edit, and organize the tags available to writers when publishing blog posts.
-                            </CardDescription>
+                            <CardDescription> Create, edit, and organize the tags available to writers when publishing blog posts. </CardDescription>
                         </div>
                         <Button variant="secondary" as-child>
                             <Link :href="route('acp.blog-tags.create')">
@@ -109,7 +107,10 @@ const confirmDeleteTag = () => {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div v-if="!hasTags" class="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+                    <div
+                        v-if="!hasTags"
+                        class="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground"
+                    >
                         No tags have been created yet. Use the button above to add the first blog tag.
                     </div>
 
@@ -129,7 +130,7 @@ const confirmDeleteTag = () => {
                                 <TableRow v-for="tag in props.tags" :key="tag.id">
                                     <TableCell class="font-medium">{{ tag.name }}</TableCell>
                                     <TableCell>
-                                        <span class="rounded bg-muted px-2 py-1 text-xs font-mono">{{ tag.slug }}</span>
+                                        <span class="rounded bg-muted px-2 py-1 font-mono text-xs">{{ tag.slug }}</span>
                                     </TableCell>
                                     <TableCell class="text-center">
                                         <span class="font-semibold">{{ tag.blogs_count }}</span>

@@ -5,7 +5,7 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import Button from '@/components/ui/button/Button.vue';
-import { ArrowLeft } from 'lucide-vue-next';
+import { ArrowLeft } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
 interface TokenLogDetail {
@@ -38,7 +38,7 @@ const log = computed(() => props.log);
 
 const formattedRequestPayload = computed(() => formatStructuredData(log.value.request_payload));
 const formattedResponseSummary = computed(() => formatStructuredData(log.value.response_summary));
-const relativeTimestamp = computed(() => log.value.timestamp ? fromNow(log.value.timestamp) : 'Unknown');
+const relativeTimestamp = computed(() => (log.value.timestamp ? fromNow(log.value.timestamp) : 'Unknown'));
 
 function formatStructuredData(data: Record<string, unknown> | unknown[] | null): string {
     if (!data) {
@@ -65,7 +65,7 @@ function formatStructuredData(data: Record<string, unknown> | unknown[] | null):
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Token Log Detail" />
         <AdminLayout>
-            <div class="container mx-auto p-4 space-y-8">
+            <div class="container mx-auto space-y-8 p-4">
                 <!-- Back Button & Page Heading -->
                 <div class="flex items-center space-x-4">
                     <Link :href="route('acp.tokens.index')">
@@ -77,7 +77,7 @@ function formatStructuredData(data: Record<string, unknown> | unknown[] | null):
                 </div>
 
                 <!-- Log Detail Card -->
-                <div class="rounded-xl border p-6 shadow-sm">
+                <div class="rounded-xl border p-6 shadow-xs">
                     <h2 class="mb-4 text-xl font-semibold">Log Information</h2>
                     <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
@@ -119,11 +119,15 @@ function formatStructuredData(data: Record<string, unknown> | unknown[] | null):
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Request Payload</dt>
-                            <dd class="text-sm font-mono whitespace-pre-wrap break-words bg-muted/40 p-3 rounded">{{ formattedRequestPayload }}</dd>
+                            <dd class="rounded bg-muted/40 p-3 font-mono text-sm wrap-break-word whitespace-pre-wrap">
+                                {{ formattedRequestPayload }}
+                            </dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Response Summary</dt>
-                            <dd class="text-sm font-mono whitespace-pre-wrap break-words bg-muted/40 p-3 rounded">{{ formattedResponseSummary }}</dd>
+                            <dd class="rounded bg-muted/40 p-3 font-mono text-sm wrap-break-word whitespace-pre-wrap">
+                                {{ formattedResponseSummary }}
+                            </dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">User Agent</dt>

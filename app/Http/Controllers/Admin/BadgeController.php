@@ -7,8 +7,8 @@ use App\Http\Requests\Admin\BadgeRequest;
 use App\Models\Badge;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
-use Inertia\Response;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class BadgeController extends Controller
 {
@@ -101,7 +101,7 @@ class BadgeController extends Controller
             ->where('slug', $candidate)
             ->when($ignore, fn ($query, $model) => $query->where('id', '!=', $model->id))
             ->exists()) {
-            $candidate = Str::limit($baseSlug, 100, '') . '-' . $suffix;
+            $candidate = Str::limit($baseSlug, 100, '').'-'.$suffix;
             $suffix++;
         }
 

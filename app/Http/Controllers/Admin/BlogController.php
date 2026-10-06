@@ -7,16 +7,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BlogRequest;
 use App\Models\Blog;
 use App\Models\BlogCategory;
-use App\Models\BlogTag;
 use App\Models\BlogRevision;
+use App\Models\BlogTag;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Response;
 
@@ -94,7 +94,7 @@ class BlogController extends Controller
             });
         }
 
-        if (!empty($statusFilters)) {
+        if (! empty($statusFilters)) {
             $filteredQuery->whereIn('status', $statusFilters);
         }
 
@@ -208,7 +208,7 @@ class BlogController extends Controller
             'blogStats' => $blogStats,
             'filters' => [
                 'search' => $search !== '' ? $search : null,
-                'status' => !empty($statusFilters) ? $statusFilters : null,
+                'status' => ! empty($statusFilters) ? $statusFilters : null,
                 'sort' => $sort !== 'created_desc' ? $sort : null,
                 'min_views' => $minViews,
                 'max_views' => $maxViews,
@@ -289,13 +289,13 @@ class BlogController extends Controller
         }
 
         $blog = Blog::create([
-            'title'        => $validated['title'],
-            'slug'         => Str::slug($validated['title']),
-            'excerpt'      => $excerpt,
-            'cover_image'  => $coverImagePath,
-            'body'         => $validated['body'],
-            'user_id'      => auth()->id(),
-            'status'       => $status,
+            'title' => $validated['title'],
+            'slug' => Str::slug($validated['title']),
+            'excerpt' => $excerpt,
+            'cover_image' => $coverImagePath,
+            'body' => $validated['body'],
+            'user_id' => auth()->id(),
+            'status' => $status,
             'published_at' => $publishedAt,
             'scheduled_for' => $scheduledFor,
             'preview_token' => Str::uuid()->toString(),
@@ -323,7 +323,7 @@ class BlogController extends Controller
     {
         $blog->load(['categories:id,name,slug', 'tags:id,name,slug', 'user:id,nickname,avatar_url,profile_bio,social_links']);
 
-        if (!$blog->preview_token) {
+        if (! $blog->preview_token) {
             $blog->forceFill([
                 'preview_token' => Str::uuid()->toString(),
             ])->save();
@@ -332,41 +332,41 @@ class BlogController extends Controller
         $formatter = DateFormatter::for(request()->user());
 
         $blogPayload = array_merge($blog->only([
-                'id',
-                'title',
-                'slug',
-                'excerpt',
-                'cover_image',
-                'body',
-                'status',
-                'created_at',
-                'updated_at',
-                'published_at',
-                'scheduled_for',
-                'preview_token',
-            ]), [
-                'cover_image_url' => $blog->cover_image
-                    ? Storage::disk('public')->url($blog->cover_image)
-                    : null,
-                'preview_url' => $blog->preview_token
-                    ? route('blogs.preview', ['blog' => $blog->id, 'token' => $blog->preview_token])
-                    : null,
-                'categories' => $blog->categories
-                    ->map(fn (BlogCategory $category) => [
-                        'id' => $category->id,
-                        'name' => $category->name,
-                        'slug' => $category->slug,
-                    ])
-                    ->all(),
-                'tags' => $blog->tags
-                    ->map(fn (BlogTag $tag) => [
-                        'id' => $tag->id,
-                        'name' => $tag->name,
-                        'slug' => $tag->slug,
-                    ])
-                    ->all(),
-                'user' => $this->authorPayload($blog->user),
-            ]);
+            'id',
+            'title',
+            'slug',
+            'excerpt',
+            'cover_image',
+            'body',
+            'status',
+            'created_at',
+            'updated_at',
+            'published_at',
+            'scheduled_for',
+            'preview_token',
+        ]), [
+            'cover_image_url' => $blog->cover_image
+                ? Storage::disk('public')->url($blog->cover_image)
+                : null,
+            'preview_url' => $blog->preview_token
+                ? route('blogs.preview', ['blog' => $blog->id, 'token' => $blog->preview_token])
+                : null,
+            'categories' => $blog->categories
+                ->map(fn (BlogCategory $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                ])
+                ->all(),
+            'tags' => $blog->tags
+                ->map(fn (BlogTag $tag) => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'slug' => $tag->slug,
+                ])
+                ->all(),
+            'user' => $this->authorPayload($blog->user),
+        ]);
 
         $blogPayload['created_at'] = $formatter->iso($blog->created_at);
         $blogPayload['updated_at'] = $formatter->iso($blog->updated_at);
@@ -444,11 +444,11 @@ class BlogController extends Controller
         }
 
         $updateData = [
-            'title'        => $validated['title'],
-            'slug'         => Str::slug($validated['title']),
-            'excerpt'      => $excerpt,
-            'body'         => $validated['body'],
-            'status'       => $status,
+            'title' => $validated['title'],
+            'slug' => Str::slug($validated['title']),
+            'excerpt' => $excerpt,
+            'body' => $validated['body'],
+            'status' => $status,
             'published_at' => $publishedAt,
             'scheduled_for' => $scheduledFor,
         ];

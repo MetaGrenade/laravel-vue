@@ -97,7 +97,7 @@ class AcpDashboardDemoSeeder extends Seeder
             $user = User::updateOrCreate(
                 ['email' => $email],
                 [
-                    'nickname' => Str::title(str_replace('-', ' ', $definition['suffix'])) . ' Tester',
+                    'nickname' => Str::title(str_replace('-', ' ', $definition['suffix'])).' Tester',
                     'password' => $password,
                     'email_verified_at' => $createdAt,
                     'last_activity_at' => $createdAt->copy()->addHours(6),
@@ -247,7 +247,7 @@ class AcpDashboardDemoSeeder extends Seeder
                 'updated_at' => $updatedAt,
             ])->saveQuietly();
 
-            if (!empty($categoryIds)) {
+            if (! empty($categoryIds)) {
                 $blogCategories = array_values(array_unique([
                     $categoryIds[$index % count($categoryIds)],
                     $categoryIds[($index + 1) % count($categoryIds)],
@@ -255,7 +255,7 @@ class AcpDashboardDemoSeeder extends Seeder
                 $blog->categories()->sync($blogCategories);
             }
 
-            if (!empty($tagIds)) {
+            if (! empty($tagIds)) {
                 $blogTags = collect([
                     $tagIds[$index % count($tagIds)],
                     $tagIds[($index + 2) % count($tagIds)],
@@ -334,7 +334,7 @@ class AcpDashboardDemoSeeder extends Seeder
             if ($ticketModel->messages()->count() === 0) {
                 $initialMessage = $ticketModel->messages()->create([
                     'user_id' => $requestor->id,
-                    'body' => "Hi team, I wanted to follow up on an issue I noticed during the demo walkthrough. Could you take a look?",
+                    'body' => 'Hi team, I wanted to follow up on an issue I noticed during the demo walkthrough. Could you take a look?',
                 ]);
                 $initialMessage->forceFill([
                     'created_at' => $createdAt,
@@ -395,7 +395,7 @@ class AcpDashboardDemoSeeder extends Seeder
             if ($ticketModel->messages()->count() === 0) {
                 $initialMessage = $ticketModel->messages()->create([
                     'user_id' => $requestor->id,
-                    'body' => "Hello support, we noticed some behaviour that might need investigation. Let us know what you find!",
+                    'body' => 'Hello support, we noticed some behaviour that might need investigation. Let us know what you find!',
                 ]);
                 $initialMessage->forceFill([
                     'created_at' => $createdAt,

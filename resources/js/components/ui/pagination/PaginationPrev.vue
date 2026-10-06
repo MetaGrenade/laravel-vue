@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 import {
   Button,
 } from '@/components/ui/button'
-import { ChevronLeft } from 'lucide-vue-next'
+import { ChevronLeft } from '@lucide/vue'
 import { PaginationPrev, type PaginationPrevProps } from 'reka-ui'
 import { computed, type HTMLAttributes } from 'vue'
 

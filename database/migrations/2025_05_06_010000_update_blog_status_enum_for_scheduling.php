@@ -25,7 +25,7 @@ return new class extends Migration
                 $table->string('status_temp')->default('draft');
             });
 
-            DB::statement("UPDATE blogs SET status_temp = status");
+            DB::statement('UPDATE blogs SET status_temp = status');
 
             Schema::table('blogs', function (Blueprint $table) {
                 $table->dropColumn('status');
@@ -35,7 +35,7 @@ return new class extends Migration
                 $table->enum('status', ['draft', 'scheduled', 'published', 'archived'])->default('draft');
             });
 
-            DB::statement("UPDATE blogs SET status = status_temp");
+            DB::statement('UPDATE blogs SET status = status_temp');
 
             Schema::table('blogs', function (Blueprint $table) {
                 $table->dropColumn('status_temp');
@@ -61,7 +61,7 @@ return new class extends Migration
                 $table->string('status_temp')->default('draft');
             });
 
-            DB::statement("UPDATE blogs SET status_temp = status");
+            DB::statement('UPDATE blogs SET status_temp = status');
 
             Schema::table('blogs', function (Blueprint $table) {
                 $table->dropColumn('status');
@@ -71,7 +71,7 @@ return new class extends Migration
                 $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
             });
 
-            DB::statement("UPDATE blogs SET status = status_temp");
+            DB::statement('UPDATE blogs SET status = status_temp');
 
             Schema::table('blogs', function (Blueprint $table) {
                 $table->dropColumn('status_temp');

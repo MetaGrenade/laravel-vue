@@ -13,11 +13,7 @@ const { title, icon, description } = defineProps<Props>();
 <template>
     <div class="mb-8 space-y-0.5">
         <h2 class="text-xl font-semibold tracking-tight">
-            <component
-                v-if="icon"
-                :is="icon"
-                class="inline-block h-5 w-5 mr-2"
-            />
+            <component v-if="icon" :is="icon" class="mr-2 inline-block h-5 w-5" />
             {{ title }}
         </h2>
         <p v-if="description" class="text-sm text-muted-foreground">

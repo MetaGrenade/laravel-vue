@@ -78,9 +78,6 @@ class UpdateSupportAssignmentRuleRequest extends FormRequest
         ];
     }
 
-    /**
-     * @param  mixed  $value
-     */
     private function normalizeNullableId(mixed $value): ?int
     {
         if ($value === null || $value === '' || $value === 'null') {

@@ -151,7 +151,7 @@ class SupportTicketFiltersTest extends TestCase
                 return is_string($url)
                     && str_contains($url, 'status=pending')
                     && str_contains($url, 'priority=medium')
-                    && str_contains($url, 'assignee=' . $agent->id)
+                    && str_contains($url, 'assignee='.$agent->id)
                     && str_contains($url, 'date_from=2024-03-01');
             })
             ->where('ticketFilters.status', 'pending')

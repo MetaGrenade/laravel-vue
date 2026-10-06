@@ -18,8 +18,7 @@ abstract class AbstractProvider implements ProviderContract
         protected array $config,
         protected Session $session,
         protected UrlGenerator $url,
-    ) {
-    }
+    ) {}
 
     /**
      * {@inheritdoc}

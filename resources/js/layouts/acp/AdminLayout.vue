@@ -5,7 +5,26 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, User, Shield, BookOpen, MessageSquare, LifeBuoy, Settings, Key, ShieldAlert, Award, CreditCard, Layers, ShieldCheck, Webhook, MessageCircle, Search, ShoppingBag, Vote } from 'lucide-vue-next';
+import {
+    LayoutGrid,
+    User,
+    Shield,
+    BookOpen,
+    MessageSquare,
+    LifeBuoy,
+    Settings,
+    Key,
+    ShieldAlert,
+    Award,
+    CreditCard,
+    Layers,
+    ShieldCheck,
+    Webhook,
+    MessageCircle,
+    Search,
+    ShoppingBag,
+    Vote,
+} from '@lucide/vue';
 
 import { useRoles } from '@/composables/useRoles';
 import { usePermissions } from '@/composables/usePermissions';
@@ -156,8 +175,8 @@ const websiteSections = computed(() => {
 
 // Create a computed property to filter nav items based on the user's permissions/roles
 const filteredNavItems = computed(() => {
-    return sidebarNavItems.filter(item => {
-        switch(item.title) {
+    return sidebarNavItems.filter((item) => {
+        switch (item.title) {
             case 'Dashboard':
                 return isAdmin.value;
             case 'Search Analytics':
@@ -205,7 +224,7 @@ const filteredNavItems = computed(() => {
     <div class="px-4 py-6">
         <Heading title="Admin Control Panel" :icon="Shield" description="Manage the system, content & users!" class="text-red-500" />
 
-        <div class="flex flex-1 flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-x-12 lg:space-y-0">
+        <div class="flex flex-1 flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
                 <nav class="flex flex-col space-y-1">
                     <Button
@@ -226,9 +245,9 @@ const filteredNavItems = computed(() => {
 
             <Separator class="my-6 md:hidden" />
 
-            <div class="flex flex-1 flex-col">
-                <!-- Ensure the section fills remaining space -->
-                <section class="flex flex-1 h-full space-y-12">
+            <!-- min-w-0 + a minmax(0,1fr) column let wide tables scroll within their own container instead of stretching the page -->
+            <div class="flex min-w-0 flex-1 flex-col">
+                <section class="grid h-full min-w-0 flex-1 grid-cols-[minmax(0,1fr)] content-start">
                     <slot />
                 </section>
             </div>

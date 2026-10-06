@@ -15,11 +15,11 @@ class StoreTokenRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'       => ['required', 'string', 'max:255'],
-            'abilities'  => ['nullable', 'array'],
+            'name' => ['required', 'string', 'max:255'],
+            'abilities' => ['nullable', 'array'],
             'abilities.*' => ['string', 'max:255'],
             'expires_at' => ['nullable', 'date', 'after:now'],
-            'user_id'    => ['required', 'exists:users,id'],
+            'user_id' => ['required', 'exists:users,id'],
             'hourly_quota' => ['nullable', 'integer', 'min:1'],
             'daily_quota' => ['nullable', 'integer', 'min:1'],
         ];

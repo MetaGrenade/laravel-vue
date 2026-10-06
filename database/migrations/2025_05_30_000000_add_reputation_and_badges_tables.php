@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'reputation_points')) {
+            if (! Schema::hasColumn('users', 'reputation_points')) {
                 $table->unsignedInteger('reputation_points')->default(0)->after('forum_signature');
             }
         });

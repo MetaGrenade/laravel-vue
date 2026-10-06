@@ -29,11 +29,11 @@ class StoreSupportTicketRequest extends FormRequest
     public function rules()
     {
         return [
-            'subject'  => 'required|string|max:255',
-            'body'     => 'required|string',
+            'subject' => 'required|string|max:255',
+            'body' => 'required|string',
             'priority' => 'in:low,medium,high',
             'support_ticket_category_id' => 'nullable|exists:support_ticket_categories,id',
-            'user_id'  => 'nullable|exists:users,id',
+            'user_id' => 'nullable|exists:users,id',
             // add any other fields
         ];
     }

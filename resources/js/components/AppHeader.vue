@@ -18,7 +18,8 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
-import { getEcho } from '@/lib/echo';
+import { useRoles } from '@/composables/useRoles';
+import { currentEcho, loadEcho } from '@/lib/echo';
 import type { BreadcrumbItem, CartSummary, NavItem, NotificationItem, SharedData, User } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
@@ -37,7 +38,7 @@ import {
     Trash2,
     ShoppingBag,
     ShoppingCart,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
 interface BroadcastNotificationPayload {
@@ -163,25 +164,29 @@ const leaveNotificationChannel = () => {
         return;
     }
 
-    const echo = getEcho();
-
-    if (echo) {
-        echo.leave(notificationChannelName);
-    }
+    currentEcho()?.leave(notificationChannelName);
 
     notificationChannelName = null;
 };
 
-const subscribeToNotificationChannel = () => {
-    const echo = getEcho();
+const subscribeToNotificationChannel = async () => {
     const currentUser = user.value;
 
-    if (!echo || !currentUser) {
+    if (!currentUser) {
         leaveNotificationChannel();
         return;
     }
 
-    const channelName = `private-App.Models.User.${currentUser.id}`;
+    const echo = await loadEcho();
+
+    // The user may have changed (e.g. logged out) while Echo was loading.
+    if (!echo || user.value?.id !== currentUser.id) {
+        leaveNotificationChannel();
+        return;
+    }
+
+    // Echo adds the `private-` prefix itself; this must match routes/channels.php.
+    const channelName = `App.Models.User.${currentUser.id}`;
 
     if (notificationChannelName === channelName) {
         return;
@@ -207,13 +212,13 @@ watch(
 watch(
     () => user.value?.id,
     () => {
-        subscribeToNotificationChannel();
+        void subscribeToNotificationChannel();
     },
 );
 
 onMounted(() => {
     window.addEventListener('keydown', handleSearchShortcut);
-    subscribeToNotificationChannel();
+    void subscribeToNotificationChannel();
 });
 
 onBeforeUnmount(() => {
@@ -221,7 +226,26 @@ onBeforeUnmount(() => {
     leaveNotificationChannel();
 });
 
-type SectionAwareNavItem = NavItem & { section?: 'blog' | 'forum' | 'support' | 'commerce' };
+type SectionAwareNavItem = NavItem & {
+    section?: 'blog' | 'forum' | 'support' | 'commerce';
+    /** Only show to signed-in users, or to users with one of these roles (pipe-separated). */
+    requiresAuth?: boolean;
+    roles?: string;
+};
+
+const { hasRole } = useRoles();
+
+const isNavItemVisible = (item: SectionAwareNavItem): boolean => {
+    if (item.section && !websiteSections.value[item.section]) {
+        return false;
+    }
+
+    if ((item.requiresAuth || item.roles) && !user.value) {
+        return false;
+    }
+
+    return item.roles ? hasRole(item.roles) : true;
+};
 
 const websiteSections = computed(() => {
     const defaults = { blog: true, forum: true, support: true, commerce: true } as const;
@@ -241,7 +265,7 @@ const baseMainNavItems: SectionAwareNavItem[] = [
     { title: 'Home', href: '/', target: '_self', icon: Home },
     { title: 'Pricing', href: '/pricing', target: '_self', icon: Layers },
     { title: 'Shop', href: '/shop', target: '_self', icon: ShoppingBag, section: 'commerce' },
-    { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid },
+    { title: 'Dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid, requiresAuth: true },
     { title: 'Blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
     { title: 'Forum', href: '/forum', target: '_self', icon: Megaphone, section: 'forum' },
 ];
@@ -253,6 +277,7 @@ const baseRightNavItems: SectionAwareNavItem[] = [
         target: '_self',
         icon: Shield,
         color: 'rgb(197,102,34)', // orange
+        roles: 'admin|editor|moderator',
     },
     {
         title: 'Support',
@@ -271,25 +296,9 @@ const baseRightNavItems: SectionAwareNavItem[] = [
     },
 ];
 
-const mainNavItems = computed<NavItem[]>(() =>
-    baseMainNavItems.filter((item) => {
-        if (!item.section) {
-            return true;
-        }
+const mainNavItems = computed<NavItem[]>(() => baseMainNavItems.filter(isNavItemVisible));
 
-        return Boolean(websiteSections.value[item.section]);
-    }),
-);
-
-const rightNavItems = computed<NavItem[]>(() =>
-    baseRightNavItems.filter((item) => {
-        if (!item.section) {
-            return true;
-        }
-
-        return Boolean(websiteSections.value[item.section]);
-    }),
-);
+const rightNavItems = computed<NavItem[]>(() => baseRightNavItems.filter(isNavItemVisible));
 
 const setNotificationProcessing = (id: string, processing: boolean) => {
     if (!id) {
@@ -459,11 +468,7 @@ const viewNotification = (notification: NotificationItem) => {
                 <div class="hidden h-full lg:flex lg:flex-1">
                     <NavigationMenu class="ml-10 flex h-full items-stretch">
                         <NavigationMenuList class="flex h-full items-stretch space-x-2">
-                            <NavigationMenuItem
-                                v-for="(item, index) in mainNavItems"
-                                :key="index"
-                                class="relative flex h-full items-center"
-                            >
+                            <NavigationMenuItem v-for="(item, index) in mainNavItems" :key="index" class="relative flex h-full items-center">
                                 <Link :href="item.href" :target="item.target">
                                     <NavigationMenuLink
                                         :class="[navigationMenuTriggerStyle(), activeItemStyles(item.href), 'h-9 cursor-pointer px-3']"
@@ -523,16 +528,11 @@ const viewNotification = (notification: NotificationItem) => {
 
                     <Sheet v-if="commerceEnabled">
                         <SheetTrigger :as-child="true">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="group relative h-9 w-9 cursor-pointer"
-                                aria-label="Open cart"
-                            >
+                            <Button variant="ghost" size="icon" class="group relative h-9 w-9 cursor-pointer" aria-label="Open cart">
                                 <ShoppingCart class="size-5 opacity-80 group-hover:opacity-100" />
                                 <span
                                     v-if="cartItemCount > 0"
-                                    class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
+                                    class="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
                                 >
                                     {{ cartItemCount > 9 ? '9+' : cartItemCount }}
                                 </span>
@@ -604,7 +604,7 @@ const viewNotification = (notification: NotificationItem) => {
                                 <Bell class="size-5 opacity-80 group-hover:opacity-100" />
                                 <span
                                     v-if="unreadNotificationCount > 0"
-                                    class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
+                                    class="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
                                 >
                                     {{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}
                                 </span>
@@ -644,7 +644,7 @@ const viewNotification = (notification: NotificationItem) => {
                                         </p>
                                         <p
                                             v-if="notification.created_at_for_humans"
-                                            class="mt-1 text-xs uppercase tracking-wide text-muted-foreground"
+                                            class="mt-1 text-xs tracking-wide text-muted-foreground uppercase"
                                         >
                                             {{ notification.created_at_for_humans }}
                                         </p>
@@ -698,11 +698,7 @@ const viewNotification = (notification: NotificationItem) => {
                                 class="relative size-10 w-auto rounded-full p-1 focus-within:ring-2 focus-within:ring-primary"
                             >
                                 <Avatar class="size-8 overflow-hidden rounded-full">
-                                    <AvatarImage
-                                        v-if="user?.avatar_url"
-                                        :src="user.avatar_url"
-                                        :alt="user?.nickname ?? ''"
-                                    />
+                                    <AvatarImage v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.nickname ?? ''" />
                                     <AvatarFallback class="rounded-lg bg-neutral-200 font-semibold text-black dark:bg-neutral-700 dark:text-white">
                                         {{ getInitials(user?.nickname ?? '') }}
                                     </AvatarFallback>
@@ -718,10 +714,7 @@ const viewNotification = (notification: NotificationItem) => {
         </div>
 
         <!-- Breadcrumbs, pushed below fixed header -->
-        <div
-            v-if="props.breadcrumbs.length > 1"
-            class="flex w-full border-b border-sidebar-border/70"
-        >
+        <div v-if="props.breadcrumbs.length > 1" class="flex w-full border-b border-sidebar-border/70">
             <div class="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500">
                 <Breadcrumbs :breadcrumbs="breadcrumbs" />
             </div>

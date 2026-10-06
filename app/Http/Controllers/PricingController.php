@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Seo\Seo;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,9 +23,7 @@ class PricingController extends Controller
 {
     use InteractsWithStripe;
 
-    public function __construct(protected SubscriptionManager $subscriptions)
-    {
-    }
+    public function __construct(protected SubscriptionManager $subscriptions) {}
 
     public function index(): InertiaResponse
     {
@@ -42,6 +41,10 @@ class PricingController extends Controller
                 'features' => $plan->features ?? [],
                 'stripe_price_id' => $plan->stripe_price_id,
             ])->values();
+
+        app(Seo::class)
+            ->title('Pricing')
+            ->description('Simple, transparent pricing. Compare plans and pick the one that fits your team.');
 
         return Inertia::render('Pricing', [
             'plans' => $plans,

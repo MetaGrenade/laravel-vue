@@ -20,15 +20,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Ellipsis, Trash2, Pencil } from 'lucide-vue-next';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Ellipsis, Trash2, Pencil } from '@lucide/vue';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
     Pagination,
     PaginationEllipsis,
@@ -40,13 +33,10 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { usePermissions } from '@/composables/usePermissions';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import dayjs from '@/lib/dayjs';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useConfirmDialog } from '@/composables/useConfirmDialog';
-
-dayjs.extend(relativeTime);
 
 type RolePermission = {
     id: number;
@@ -161,13 +151,7 @@ const canDelete = computed(() => hasPermission('acl.acp.delete'));
 const roleDialogOpen = ref(false);
 const permissionDialogOpen = ref(false);
 
-const {
-    confirmDialogState,
-    confirmDialogDescription,
-    openConfirmDialog,
-    handleConfirmDialogConfirm,
-    handleConfirmDialogCancel,
-} = useConfirmDialog();
+const { confirmDialogState, confirmDialogDescription, openConfirmDialog, handleConfirmDialogConfirm, handleConfirmDialogCancel } = useConfirmDialog();
 
 const selectedRole = ref<RoleItem | null>(null);
 const selectedPermission = ref<PermissionItem | null>(null);
@@ -186,8 +170,7 @@ const permissionForm = useForm({
 const confirmRoleDeletion = (role: RoleItem) => {
     openConfirmDialog({
         title: `Delete “${role.name}”?`,
-        description:
-            'Deleting this role will remove it from all assigned users. This action cannot be undone.',
+        description: 'Deleting this role will remove it from all assigned users. This action cannot be undone.',
         confirmLabel: 'Delete role',
         onConfirm: () => {
             router.delete(route('acp.acl.roles.destroy', { role: role.id }), {
@@ -200,8 +183,7 @@ const confirmRoleDeletion = (role: RoleItem) => {
 const confirmPermissionDeletion = (permission: PermissionItem) => {
     openConfirmDialog({
         title: `Delete “${permission.name}”?`,
-        description:
-            'Deleting this permission will remove it from all roles and users. This action cannot be undone.',
+        description: 'Deleting this permission will remove it from all roles and users. This action cannot be undone.',
         confirmLabel: 'Delete permission',
         onConfirm: () => {
             router.delete(route('acp.acl.permissions.destroy', { permission: permission.id }), {
@@ -239,7 +221,7 @@ const toggleRolePermission = (permissionName: string, checked: boolean | string)
             roleForm.permissions.push(permissionName);
         }
     } else {
-        roleForm.permissions = roleForm.permissions.filter(name => name !== permissionName);
+        roleForm.permissions = roleForm.permissions.filter((name) => name !== permissionName);
     }
 };
 
@@ -248,7 +230,7 @@ const openRoleDialog = (role: RoleItem) => {
     roleForm.clearErrors();
     roleForm.name = role.name;
     roleForm.guard_name = role.guard_name;
-    roleForm.permissions = (role.permissions ?? []).map(permission => permission.name);
+    roleForm.permissions = (role.permissions ?? []).map((permission) => permission.name);
     handleRoleDialogChange(true);
 };
 
@@ -286,18 +268,14 @@ const permissionSearchQuery = ref('');
 const filteredRoles = computed(() => {
     if (!roleSearchQuery.value) return props.roles.data;
     const q = roleSearchQuery.value.toLowerCase();
-    return props.roles.data.filter(role =>
-        role.name.toLowerCase().includes(q) ||
-        role.guard_name.toLowerCase().includes(q)
-    );
+    return props.roles.data.filter((role) => role.name.toLowerCase().includes(q) || role.guard_name.toLowerCase().includes(q));
 });
 
 const filteredPermissions = computed(() => {
     if (!permissionSearchQuery.value) return props.permissions.data;
     const q = permissionSearchQuery.value.toLowerCase();
-    return props.permissions.data.filter(permission =>
-        permission.name.toLowerCase().includes(q) ||
-        permission.guard_name.toLowerCase().includes(q)
+    return props.permissions.data.filter(
+        (permission) => permission.name.toLowerCase().includes(q) || permission.guard_name.toLowerCase().includes(q),
     );
 });
 </script>
@@ -316,22 +294,14 @@ const filteredPermissions = computed(() => {
 
                     <TabsContent value="roles">
                         <!-- Roles Management Section -->
-                        <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 mb-4">
-                            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                                <h2 class="text-lg font-semibold mb-2 md:mb-0">Role Management</h2>
+                        <div class="mb-4 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                            <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between">
+                                <h2 class="mb-2 text-lg font-semibold md:mb-0">Role Management</h2>
                                 <div class="relative flex justify-end space-x-2">
-                                    <Input
-                                        v-model="roleSearchQuery"
-                                        type="text"
-                                        placeholder="Search Roles..."
-                                        class="w-full pr-10 max-w-sm"
-                                    />
+                                    <Input v-model="roleSearchQuery" type="text" placeholder="Search Roles..." class="w-full max-w-sm pr-10" />
                                     <Link v-if="canCreate" :href="route('acp.acl.roles.create')">
-                                        <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
-                                            Create Role
-                                        </Button>
+                                        <Button variant="secondary" class="bg-green-500 text-sm text-white hover:bg-green-600"> Create Role </Button>
                                     </Link>
-
                                 </div>
                             </div>
                             <!-- Roles Table using Table Components -->
@@ -367,7 +337,7 @@ const filteredPermissions = computed(() => {
                                                             <DropdownMenuSeparator v-if="canEdit" />
                                                             <DropdownMenuGroup v-if="canEdit">
                                                                 <DropdownMenuItem class="text-blue-500" @click="openRoleDialog(role)">
-                                                                    <Pencil class="mr-2"/> Edit
+                                                                    <Pencil class="mr-2" /> Edit
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuGroup>
                                                             <DropdownMenuSeparator v-if="canDelete" />
@@ -396,7 +366,7 @@ const filteredPermissions = computed(() => {
 
                         <!-- Bottom Pagination -->
                         <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                            <div class="text-sm text-muted-foreground text-center md:text-left">
+                            <div class="text-center text-sm text-muted-foreground md:text-left">
                                 {{ rolesRangeLabel }}
                             </div>
                             <Pagination
@@ -415,19 +385,12 @@ const filteredPermissions = computed(() => {
                                         <PaginationPrev />
 
                                         <template v-for="(item, index) in items" :key="index">
-                                            <PaginationListItem
-                                                v-if="item.type === 'page'"
-                                                :value="item.value"
-                                                as-child
-                                            >
-                                                <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                            <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                                <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                     {{ item.value }}
                                                 </Button>
                                             </PaginationListItem>
-                                            <PaginationEllipsis
-                                                v-else
-                                                :index="index"
-                                            />
+                                            <PaginationEllipsis v-else :index="index" />
                                         </template>
 
                                         <PaginationNext />
@@ -440,17 +403,13 @@ const filteredPermissions = computed(() => {
 
                     <TabsContent value="permissions">
                         <!-- Permissions Management Section -->
-                        <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 mb-4">
-                            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                                <h2 class="text-lg font-semibold mb-2 md:mb-0">Permission Management</h2>
+                        <div class="mb-4 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                            <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between">
+                                <h2 class="mb-2 text-lg font-semibold md:mb-0">Permission Management</h2>
                                 <div class="relative flex justify-end space-x-2">
-                                    <Input
-                                        v-model="permissionSearchQuery"
-                                        placeholder="Search Permissions..."
-                                        class="w-full rounded-md max-w-sm"
-                                    />
+                                    <Input v-model="permissionSearchQuery" placeholder="Search Permissions..." class="w-full max-w-sm rounded-md" />
                                     <Link v-if="canCreate" :href="route('acp.acl.permissions.create')">
-                                        <Button variant="secondary" class="text-sm text-white bg-green-500 hover:bg-green-600">
+                                        <Button variant="secondary" class="bg-green-500 text-sm text-white hover:bg-green-600">
                                             Create Permission
                                         </Button>
                                     </Link>
@@ -518,7 +477,7 @@ const filteredPermissions = computed(() => {
 
                         <!-- Bottom Pagination -->
                         <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                            <div class="text-sm text-muted-foreground text-center md:text-left">
+                            <div class="text-center text-sm text-muted-foreground md:text-left">
                                 {{ permissionsRangeLabel }}
                             </div>
                             <Pagination
@@ -537,19 +496,12 @@ const filteredPermissions = computed(() => {
                                         <PaginationPrev />
 
                                         <template v-for="(item, index) in items" :key="index">
-                                            <PaginationListItem
-                                                v-if="item.type === 'page'"
-                                                :value="item.value"
-                                                as-child
-                                            >
-                                                <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                            <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                                <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                     {{ item.value }}
                                                 </Button>
                                             </PaginationListItem>
-                                            <PaginationEllipsis
-                                                v-else
-                                                :index="index"
-                                            />
+                                            <PaginationEllipsis v-else :index="index" />
                                         </template>
 
                                         <PaginationNext />
@@ -568,7 +520,8 @@ const filteredPermissions = computed(() => {
                         <DialogHeader>
                             <DialogTitle>Edit role</DialogTitle>
                             <DialogDescription v-if="selectedRole">
-                                Update the details for <span class="font-medium">{{ selectedRole.name }}</span>.
+                                Update the details for <span class="font-medium">{{ selectedRole.name }}</span
+                                >.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -593,7 +546,7 @@ const filteredPermissions = computed(() => {
                                 >
                                     No permissions are currently defined. Create permissions before assigning them to roles.
                                 </div>
-                                <div v-else class="grid gap-2 max-h-60 overflow-y-auto pr-1">
+                                <div v-else class="grid max-h-60 gap-2 overflow-y-auto pr-1">
                                     <div
                                         v-for="permission in props.availablePermissions"
                                         :key="permission.id"
@@ -601,11 +554,11 @@ const filteredPermissions = computed(() => {
                                     >
                                         <Checkbox
                                             :id="`dialog-permission-${permission.id}`"
-                                            :checked="roleForm.permissions.includes(permission.name)"
-                                            @update:checked="value => toggleRolePermission(permission.name, value)"
+                                            :model-value="roleForm.permissions.includes(permission.name)"
+                                            @update:model-value="(value) => toggleRolePermission(permission.name, value)"
                                         />
                                         <div class="grid gap-1">
-                                            <Label :for="`dialog-permission-${permission.id}`" class="font-medium leading-none">
+                                            <Label :for="`dialog-permission-${permission.id}`" class="leading-none font-medium">
                                                 {{ permission.name }}
                                             </Label>
                                             <p class="text-xs text-muted-foreground">Guard: {{ permission.guard_name }}</p>
@@ -617,12 +570,8 @@ const filteredPermissions = computed(() => {
                         </div>
 
                         <DialogFooter class="gap-2">
-                            <Button type="button" variant="secondary" @click="handleRoleDialogChange(false)">
-                                Cancel
-                            </Button>
-                            <Button type="submit" :disabled="roleForm.processing">
-                                Save changes
-                            </Button>
+                            <Button type="button" variant="secondary" @click="handleRoleDialogChange(false)"> Cancel </Button>
+                            <Button type="submit" :disabled="roleForm.processing"> Save changes </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -634,7 +583,8 @@ const filteredPermissions = computed(() => {
                         <DialogHeader>
                             <DialogTitle>Edit permission</DialogTitle>
                             <DialogDescription v-if="selectedPermission">
-                                Update the details for <span class="font-medium">{{ selectedPermission.name }}</span>.
+                                Update the details for <span class="font-medium">{{ selectedPermission.name }}</span
+                                >.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -653,12 +603,8 @@ const filteredPermissions = computed(() => {
                         </div>
 
                         <DialogFooter class="gap-2">
-                            <Button type="button" variant="secondary" @click="handlePermissionDialogChange(false)">
-                                Cancel
-                            </Button>
-                            <Button type="submit" :disabled="permissionForm.processing">
-                                Save changes
-                            </Button>
+                            <Button type="button" variant="secondary" @click="handlePermissionDialogChange(false)"> Cancel </Button>
+                            <Button type="submit" :disabled="permissionForm.processing"> Save changes </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

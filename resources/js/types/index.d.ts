@@ -1,5 +1,5 @@
 import type { PageProps } from '@inertiajs/core';
-import type { LucideIcon } from 'lucide-vue-next';
+import type { LucideIcon } from '@lucide/vue';
 import type { Config } from 'ziggy-js';
 
 export interface Auth {
@@ -31,6 +31,7 @@ export interface User {
     forum_signature?: string | null;
     reputation_points?: number;
     badges?: Array<UserBadge>;
+    roles?: Array<{ id: number; name: string }>;
     timezone: string;
     locale: string;
     email_verified_at: string | null;
@@ -88,10 +89,25 @@ export interface SharedData extends PageProps {
     quote: { message: string; author: string };
     auth: Auth;
     notifications: NotificationBag;
-    ziggy: Config & { location: string };
+    /** `routes` is only present when the route map must be (re)loaded; see HandleInertiaRequests::ziggy(). */
+    ziggy: Partial<Config> & { location: string; group: 'public' | 'staff' };
+    seoHead: string[];
+    flash: {
+        success?: string | null;
+        error?: string | null;
+        warning?: string | null;
+        info?: string | null;
+        plain_text_token?: string | null;
+    };
+    billing: { stripeKey: string | null };
     settings: {
         website_sections: Record<'blog' | 'forum' | 'support' | 'commerce', boolean>;
         oauth_providers: Record<string, boolean>;
     };
     cart: CartSummary | null;
 }
+
+/**
+ * Query string / request data accepted by Inertia's router (router.get, router.post, ...).
+ */
+export type QueryParams = Record<string, import('@inertiajs/core').FormDataConvertible>;

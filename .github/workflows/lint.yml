@@ -11,35 +11,45 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
+          tools: composer:v2
+          coverage: none
 
-      - name: Install Dependencies
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
         run: |
           composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-          npm install
+          npm ci
 
-      - name: Run Pint
-        run: vendor/bin/pint
+      - name: Check PHP code style (Pint)
+        run: vendor/bin/pint --test
 
-      - name: Format Frontend
-        run: npm run format
+      - name: Check frontend formatting (Prettier)
+        run: npm run format:check
 
-      - name: Lint Frontend
-        run: npm run lint
+      - name: Lint frontend (ESLint)
+        run: npm run lint:check
 
-      # - name: Commit Changes
-      #   uses: stefanzweifel/git-auto-commit-action@v5
-      #   with:
-      #     commit_message: fix code style
-      #     commit_options: '--no-verify'
+      - name: Type-check frontend (vue-tsc)
+        run: npm run types:check

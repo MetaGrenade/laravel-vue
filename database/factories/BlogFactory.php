@@ -20,7 +20,7 @@ class BlogFactory extends Factory
 
         return [
             'title' => $title,
-            'slug' => Str::slug($title) . '-' . Str::random(5),
+            'slug' => Str::slug($title).'-'.Str::random(5),
             'excerpt' => $this->faker->paragraph(),
             'body' => $this->faker->paragraphs(3, true),
             'user_id' => User::factory(),

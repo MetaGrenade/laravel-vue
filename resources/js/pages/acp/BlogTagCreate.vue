@@ -38,9 +38,7 @@ const handleSubmit = () => {
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Create blog tag</h1>
-                        <p class="text-sm text-muted-foreground">
-                            Define a reusable tag to help writers highlight key topics across the blog.
-                        </p>
+                        <p class="text-sm text-muted-foreground">Define a reusable tag to help writers highlight key topics across the blog.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">

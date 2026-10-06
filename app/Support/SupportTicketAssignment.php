@@ -16,6 +16,5 @@ class SupportTicketAssignment
         public readonly bool $changed,
         public readonly ?int $previousAssigneeId,
         public readonly ?int $previousTeamId,
-    ) {
-    }
+    ) {}
 }

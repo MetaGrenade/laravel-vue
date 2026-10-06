@@ -161,7 +161,7 @@ class TokenLogDemoSeeder extends Seeder
                     continue;
                 }
 
-                $log = TokenLog::find($definition['id']) ?? new TokenLog();
+                $log = TokenLog::find($definition['id']) ?? new TokenLog;
 
                 $log->forceFill([
                     'id' => $definition['id'],

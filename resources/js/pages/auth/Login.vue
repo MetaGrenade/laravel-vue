@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { Separator } from '@/components/ui/separator';
 
 const props = defineProps<{
@@ -59,7 +59,7 @@ const submit = () => {
                     </Button>
                 </div>
 
-                <div class="flex items-center gap-3 text-xs uppercase tracking-wide text-muted-foreground">
+                <div class="flex items-center gap-3 text-xs tracking-wide text-muted-foreground uppercase">
                     <Separator class="flex-1" />
                     <span>Or continue with email</span>
                     <Separator class="flex-1" />
@@ -103,7 +103,7 @@ const submit = () => {
 
                 <div class="flex items-center justify-between" :tabindex="3">
                     <Label for="remember" class="flex items-center space-x-3">
-                        <Checkbox id="remember" v-model:checked="form.remember" :tabindex="4" />
+                        <Checkbox id="remember" v-model="form.remember" :tabindex="4" />
                         <span>Remember me</span>
                     </Label>
                 </div>

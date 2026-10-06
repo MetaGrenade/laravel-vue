@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type QueryParams } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -10,10 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import InputError from '@/components/InputError.vue';
 import { Textarea } from '@/components/ui/textarea';
-import { Toaster, toast } from 'vue-sonner';
+import { toast } from 'vue-sonner';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { useDebounceFn } from '@vueuse/core';
-import { ShieldCheck, FileDown } from 'lucide-vue-next';
+import { ShieldCheck, FileDown } from '@lucide/vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -110,21 +110,26 @@ const normalizedErasureCounts = computed(() => {
     return counts;
 });
 
-const exportPagination = useInertiaPagination({
-    meta: computed(() => props.exports.meta ?? null),
-    defaultPerPage: perPage,
-    onNavigate: (pageNumber) => {
-        applyFilters({ export_page: pageNumber });
-    },
-});
+// reactive() so the nested refs unwrap when used as `exportPagination.meta.*` in the template.
+const exportPagination = reactive(
+    useInertiaPagination({
+        meta: computed(() => props.exports.meta ?? null),
+        defaultPerPage: perPage.value,
+        onNavigate: (pageNumber) => {
+            applyFilters({ export_page: pageNumber });
+        },
+    }),
+);
 
-const erasurePagination = useInertiaPagination({
-    meta: computed(() => props.erasureRequests.meta ?? null),
-    defaultPerPage: perPage,
-    onNavigate: (pageNumber) => {
-        applyFilters({ erasure_page: pageNumber });
-    },
-});
+const erasurePagination = reactive(
+    useInertiaPagination({
+        meta: computed(() => props.erasureRequests.meta ?? null),
+        defaultPerPage: perPage.value,
+        onNavigate: (pageNumber) => {
+            applyFilters({ erasure_page: pageNumber });
+        },
+    }),
+);
 
 const exportDialogOpen = ref(false);
 const erasureDialogOpen = ref(false);
@@ -205,14 +210,13 @@ const toDateTimeLocal = (value: string | null) => {
 
     const pad = (input: number) => `${input}`.padStart(2, '0');
 
-    return [
-        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
-        `${pad(date.getHours())}:${pad(date.getMinutes())}`,
-    ].join('T');
+    return [`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`, `${pad(date.getHours())}:${pad(date.getMinutes())}`].join(
+        'T',
+    );
 };
 
 const applyFilters = (overrides: Partial<{ export_page: number; erasure_page: number }> = {}) => {
-    const query: Record<string, unknown> = {};
+    const query: QueryParams = {};
     const trimmedSearch = searchQuery.value.trim();
 
     if (trimmedSearch !== '') {
@@ -233,8 +237,8 @@ const applyFilters = (overrides: Partial<{ export_page: number; erasure_page: nu
 
     query.per_page = perPage.value;
 
-    const exportPageCurrent = overrides.export_page ?? exportPagination.meta.value.current_page ?? 1;
-    const erasurePageCurrent = overrides.erasure_page ?? erasurePagination.meta.value.current_page ?? 1;
+    const exportPageCurrent = overrides.export_page ?? exportPagination.meta.current_page ?? 1;
+    const erasurePageCurrent = overrides.erasure_page ?? erasurePagination.meta.current_page ?? 1;
 
     if (exportPageCurrent > 1) {
         query.export_page = exportPageCurrent;
@@ -388,7 +392,6 @@ const submitExportForm = () => {
         .patch(route('acp.trust-safety.exports.update', { export: target.id }), {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Data export updated successfully.');
                 resetExportDialog();
             },
             onError: () => {
@@ -412,7 +415,6 @@ const submitErasureForm = () => {
         .patch(route('acp.trust-safety.erasure.update', { erasureRequest: target.id }), {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Data erasure request updated successfully.');
                 resetErasureDialog();
             },
             onError: () => {
@@ -429,7 +431,7 @@ const submitErasureForm = () => {
         <AdminLayout>
             <div class="flex w-full flex-1 flex-col gap-6 pb-6">
                 <div class="grid gap-4 md:grid-cols-2">
-                    <div class="rounded-lg border bg-card p-4 shadow-sm">
+                    <div class="rounded-lg border bg-card p-4 shadow-xs">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Data export queue</p>
@@ -461,7 +463,7 @@ const submitErasureForm = () => {
                         </dl>
                     </div>
 
-                    <div class="rounded-lg border bg-card p-4 shadow-sm">
+                    <div class="rounded-lg border bg-card p-4 shadow-xs">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Erasure requests</p>
@@ -494,7 +496,7 @@ const submitErasureForm = () => {
                     </div>
                 </div>
 
-                <div class="rounded-lg border bg-card p-4 shadow-sm">
+                <div class="rounded-lg border bg-card p-4 shadow-xs">
                     <div class="grid gap-4 md:grid-cols-[2fr_1fr_1fr_1fr] md:items-end">
                         <div>
                             <label for="trust-safety-search" class="text-sm font-medium text-muted-foreground">Search</label>
@@ -509,7 +511,12 @@ const submitErasureForm = () => {
 
                         <div>
                             <label for="export-status" class="text-sm font-medium text-muted-foreground">Export status</label>
-                            <select id="export-status" :value="exportStatus" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onExportStatusChange">
+                            <select
+                                id="export-status"
+                                :value="exportStatus"
+                                class="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                @change="onExportStatusChange"
+                            >
                                 <option value="pending">Pending</option>
                                 <option value="processing">Processing</option>
                                 <option value="completed">Completed</option>
@@ -520,7 +527,12 @@ const submitErasureForm = () => {
 
                         <div>
                             <label for="erasure-status" class="text-sm font-medium text-muted-foreground">Erasure status</label>
-                            <select id="erasure-status" :value="erasureStatus" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onErasureStatusChange">
+                            <select
+                                id="erasure-status"
+                                :value="erasureStatus"
+                                class="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                @change="onErasureStatusChange"
+                            >
                                 <option value="pending">Pending</option>
                                 <option value="processing">Processing</option>
                                 <option value="completed">Completed</option>
@@ -531,23 +543,24 @@ const submitErasureForm = () => {
 
                         <div>
                             <label for="per-page" class="text-sm font-medium text-muted-foreground">Rows per page</label>
-                            <select id="per-page" :value="perPage" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1" @change="onPerPageChange">
-                                <option v-for="option in perPageOptions" :key="option" :value="option">
-                                    {{ option }} per page
-                                </option>
+                            <select
+                                id="per-page"
+                                :value="perPage"
+                                class="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                @change="onPerPageChange"
+                            >
+                                <option v-for="option in perPageOptions" :key="option" :value="option">{{ option }} per page</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-6">
-                    <section class="rounded-lg border bg-card shadow-sm">
+                    <section class="rounded-lg border bg-card shadow-xs">
                         <header class="flex flex-col gap-2 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-lg font-semibold text-foreground">Erasure requests</h2>
-                                <p class="text-sm text-muted-foreground">
-                                    Track account deletion requests and document their processing.
-                                </p>
+                                <p class="text-sm text-muted-foreground">Track account deletion requests and document their processing.</p>
                             </div>
                             <p class="text-sm text-muted-foreground">
                                 {{ erasurePagination.rangeLabel }}
@@ -592,7 +605,10 @@ const submitErasureForm = () => {
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium" :class="statusToneClass(item.status)">
+                                            <span
+                                                class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                                                :class="statusToneClass(item.status)"
+                                            >
                                                 {{ statusLabel(item.status) }}
                                             </span>
                                         </TableCell>
@@ -603,21 +619,19 @@ const submitErasureForm = () => {
                                             <span class="text-sm text-foreground">{{ formatDateTime(item.processed_at) }}</span>
                                         </TableCell>
                                         <TableCell>
-                                            <p class="text-xs text-muted-foreground">
-                                                Last updated {{ formatDateTime(item.updated_at) }}
-                                            </p>
+                                            <p class="text-xs text-muted-foreground">Last updated {{ formatDateTime(item.updated_at) }}</p>
                                         </TableCell>
                                         <TableCell class="text-right">
-                                            <Button size="sm" variant="outline" @click="openErasureDialog(item)">
-                                                Manage
-                                            </Button>
+                                            <Button size="sm" variant="outline" @click="openErasureDialog(item)"> Manage </Button>
                                         </TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>
                         </div>
 
-                        <footer class="flex flex-col items-start justify-between gap-4 border-t px-4 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center">
+                        <footer
+                            class="flex flex-col items-start justify-between gap-4 border-t px-4 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center"
+                        >
                             <span>{{ erasurePagination.rangeLabel }}</span>
                             <div class="flex items-center gap-2">
                                 <Button
@@ -640,13 +654,11 @@ const submitErasureForm = () => {
                         </footer>
                     </section>
 
-                    <section class="rounded-lg border bg-card shadow-sm">
+                    <section class="rounded-lg border bg-card shadow-xs">
                         <header class="flex flex-col gap-2 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-lg font-semibold text-foreground">Data export requests</h2>
-                                <p class="text-sm text-muted-foreground">
-                                    Review user export requests and update their fulfillment status.
-                                </p>
+                                <p class="text-sm text-muted-foreground">Review user export requests and update their fulfillment status.</p>
                             </div>
                             <p class="text-sm text-muted-foreground">
                                 {{ exportPagination.rangeLabel }}
@@ -691,7 +703,10 @@ const submitErasureForm = () => {
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium" :class="statusToneClass(item.status)">
+                                            <span
+                                                class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                                                :class="statusToneClass(item.status)"
+                                            >
                                                 {{ statusLabel(item.status) }}
                                             </span>
                                         </TableCell>
@@ -709,16 +724,16 @@ const submitErasureForm = () => {
                                             </div>
                                         </TableCell>
                                         <TableCell class="text-right">
-                                            <Button size="sm" variant="outline" @click="openExportDialog(item)">
-                                                Manage
-                                            </Button>
+                                            <Button size="sm" variant="outline" @click="openExportDialog(item)"> Manage </Button>
                                         </TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>
                         </div>
 
-                        <footer class="flex flex-col items-start justify-between gap-4 border-t px-4 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center">
+                        <footer
+                            class="flex flex-col items-start justify-between gap-4 border-t px-4 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center"
+                        >
                             <span>{{ exportPagination.rangeLabel }}</span>
                             <div class="flex items-center gap-2">
                                 <Button
@@ -748,19 +763,13 @@ const submitErasureForm = () => {
             <DialogContent class="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Update data export</DialogTitle>
-                    <DialogDescription>
-                        Adjust the status and delivery details for this export request.
-                    </DialogDescription>
+                    <DialogDescription> Adjust the status and delivery details for this export request. </DialogDescription>
                 </DialogHeader>
 
                 <div class="space-y-4">
                     <div>
                         <label for="export-status-field" class="text-sm font-medium text-muted-foreground">Status</label>
-                        <select
-                            id="export-status-field"
-                            v-model="exportForm.status"
-                            class="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                        >
+                        <select id="export-status-field" v-model="exportForm.status" class="mt-1 w-full rounded-md border px-3 py-2 text-sm">
                             <option value="pending">Pending</option>
                             <option value="processing">Processing</option>
                             <option value="completed">Completed</option>
@@ -779,19 +788,12 @@ const submitErasureForm = () => {
                             placeholder="storage/app/exports/filename.zip"
                         />
                         <InputError :message="exportForm.errors.file_path" class="mt-1" />
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            Required when marking an export as completed.
-                        </p>
+                        <p class="mt-1 text-xs text-muted-foreground">Required when marking an export as completed.</p>
                     </div>
 
                     <div>
                         <label for="export-completed-at" class="text-sm font-medium text-muted-foreground">Completed at</label>
-                        <Input
-                            id="export-completed-at"
-                            v-model="exportForm.completed_at"
-                            type="datetime-local"
-                            class="mt-1"
-                        />
+                        <Input id="export-completed-at" v-model="exportForm.completed_at" type="datetime-local" class="mt-1" />
                         <InputError :message="exportForm.errors.completed_at" class="mt-1" />
                     </div>
 
@@ -822,19 +824,13 @@ const submitErasureForm = () => {
             <DialogContent class="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Update erasure request</DialogTitle>
-                    <DialogDescription>
-                        Record the processing outcome for this account deletion request.
-                    </DialogDescription>
+                    <DialogDescription> Record the processing outcome for this account deletion request. </DialogDescription>
                 </DialogHeader>
 
                 <div class="space-y-4">
                     <div>
                         <label for="erasure-status-field" class="text-sm font-medium text-muted-foreground">Status</label>
-                        <select
-                            id="erasure-status-field"
-                            v-model="erasureForm.status"
-                            class="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                        >
+                        <select id="erasure-status-field" v-model="erasureForm.status" class="mt-1 w-full rounded-md border px-3 py-2 text-sm">
                             <option value="pending">Pending</option>
                             <option value="processing">Processing</option>
                             <option value="completed">Completed</option>
@@ -845,12 +841,7 @@ const submitErasureForm = () => {
 
                     <div>
                         <label for="erasure-processed-at" class="text-sm font-medium text-muted-foreground">Processed at</label>
-                        <Input
-                            id="erasure-processed-at"
-                            v-model="erasureForm.processed_at"
-                            type="datetime-local"
-                            class="mt-1"
-                        />
+                        <Input id="erasure-processed-at" v-model="erasureForm.processed_at" type="datetime-local" class="mt-1" />
                         <InputError :message="erasureForm.errors.processed_at" class="mt-1" />
                         <p class="mt-1 text-xs text-muted-foreground">
                             Automatically set to the current time when marking a request as completed or rejected.
@@ -867,7 +858,5 @@ const submitErasureForm = () => {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-
-        <Toaster position="bottom-right" richColors />
     </AppLayout>
 </template>

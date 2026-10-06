@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import type { CheckboxRootProps } from 'radix-vue';
+import type { CheckboxRootProps } from 'reka-ui';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -30,19 +30,30 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 import {
-    XCircle, HelpCircle, Ticket, TicketX, MessageSquare, CheckCircle, Ellipsis, UserPlus, SquareChevronUp,
-    Trash2, MoveUp, MoveDown, Pencil, Eye, EyeOff, X, ThumbsUp, ThumbsDown, Star,
-} from 'lucide-vue-next';
+    XCircle,
+    HelpCircle,
+    Ticket,
+    TicketX,
+    MessageSquare,
+    CheckCircle,
+    Ellipsis,
+    UserPlus,
+    SquareChevronUp,
+    Trash2,
+    MoveUp,
+    MoveDown,
+    Pencil,
+    Eye,
+    EyeOff,
+    X,
+    ThumbsUp,
+    ThumbsDown,
+    Star,
+} from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
@@ -189,6 +200,26 @@ const quickActionVisitOptions = {
     replace: true,
 } as const;
 
+const { confirmDialogState, confirmDialogDescription, openConfirmDialog, handleConfirmDialogConfirm, handleConfirmDialogCancel } = useConfirmDialog();
+
+const confirmDeleteTicket = (ticketId: number) => {
+    openConfirmDialog({
+        title: `Delete ticket #${ticketId}?`,
+        description: 'The ticket and its full message history will be permanently removed.',
+        confirmLabel: 'Delete ticket',
+        onConfirm: () => router.delete(route('acp.support.tickets.destroy', { ticket: ticketId }), quickActionVisitOptions),
+    });
+};
+
+const confirmDeleteFaq = (faqId: number) => {
+    openConfirmDialog({
+        title: 'Delete this FAQ?',
+        description: 'The FAQ will be removed from the help center.',
+        confirmLabel: 'Delete FAQ',
+        onConfirm: () => router.delete(route('acp.support.faqs.destroy', { faq: faqId }), quickActionVisitOptions),
+    });
+};
+
 const assignDialogOpen = ref(false);
 const assignDialogTicket = ref<Ticket | null>(null);
 const assignForm = useForm<{ assigned_to: number | null }>({
@@ -228,11 +259,9 @@ const priorityDialogOpen = ref(false);
 const priorityDialogTicket = ref<Ticket | null>(null);
 const priorityDialogNextPriority = ref<Ticket['priority'] | null>(null);
 const priorityLevels: Ticket['priority'][] = ['low', 'medium', 'high'];
-const formatPriority = (priority: Ticket['priority']) =>
-    `${priority.charAt(0).toUpperCase()}${priority.slice(1)}`;
+const formatPriority = (priority: Ticket['priority']) => `${priority.charAt(0).toUpperCase()}${priority.slice(1)}`;
 
-const formatStatus = (status: Ticket['status']) =>
-    `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
+const formatStatus = (status: Ticket['status']) => `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
 
 const handlePriorityDialogChange = (open: boolean) => {
     priorityDialogOpen.value = open;
@@ -277,10 +306,9 @@ const priorityDialogDescription = computed(() => {
     return `Select the priority for ticket #${priorityDialogTicket.value.id}. Current priority: ${formatPriority(priorityDialogTicket.value.priority)}.`;
 });
 
-const isPriorityConfirmDisabled = computed(() =>
-    !priorityDialogTicket.value ||
-    !priorityDialogNextPriority.value ||
-    priorityDialogNextPriority.value === priorityDialogTicket.value.priority,
+const isPriorityConfirmDisabled = computed(
+    () =>
+        !priorityDialogTicket.value || !priorityDialogNextPriority.value || priorityDialogNextPriority.value === priorityDialogTicket.value.priority,
 );
 
 const statusDialogOpen = ref(false);
@@ -393,33 +421,13 @@ const initialAssigneeFromQuery = readSearchParam(page.props.ziggy.location, 'ass
 const initialDateFromQuery = readSearchParam(page.props.ziggy.location, 'date_from');
 const initialDateToQuery = readSearchParam(page.props.ziggy.location, 'date_to');
 
-const statusFilter = ref(
-    initialStatusFromQuery !== ''
-        ? initialStatusFromQuery
-        : props.ticketFilters.status ?? ''
-);
-const priorityFilter = ref(
-    initialPriorityFromQuery !== ''
-        ? initialPriorityFromQuery
-        : props.ticketFilters.priority ?? ''
-);
+const statusFilter = ref(initialStatusFromQuery !== '' ? initialStatusFromQuery : (props.ticketFilters.status ?? ''));
+const priorityFilter = ref(initialPriorityFromQuery !== '' ? initialPriorityFromQuery : (props.ticketFilters.priority ?? ''));
 const assigneeFilter = ref(
-    initialAssigneeFromQuery !== ''
-        ? initialAssigneeFromQuery
-        : props.ticketFilters.assignee === null
-            ? ''
-            : String(props.ticketFilters.assignee)
+    initialAssigneeFromQuery !== '' ? initialAssigneeFromQuery : props.ticketFilters.assignee === null ? '' : String(props.ticketFilters.assignee),
 );
-const dateFromFilter = ref(
-    initialDateFromQuery !== ''
-        ? initialDateFromQuery
-        : props.ticketFilters.date_from ?? ''
-);
-const dateToFilter = ref(
-    initialDateToQuery !== ''
-        ? initialDateToQuery
-        : props.ticketFilters.date_to ?? ''
-);
+const dateFromFilter = ref(initialDateFromQuery !== '' ? initialDateFromQuery : (props.ticketFilters.date_from ?? ''));
+const dateToFilter = ref(initialDateToQuery !== '' ? initialDateToQuery : (props.ticketFilters.date_to ?? ''));
 
 const ticketStatusOptions: Array<{ value: '' | TicketStatus; label: string }> = [
     { value: '', label: 'All statuses' },
@@ -449,13 +457,13 @@ const assigneeOptions = computed(() => {
 });
 
 const selectFilterClass =
-    'h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
+    'h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
 
 const ticketsMetaSource = computed(() => props.tickets.meta ?? null);
 const faqsMetaSource = computed(() => props.faqs.meta ?? null);
 const ticketItems = computed(() => props.tickets.data ?? []);
 
-type CheckboxState = CheckboxRootProps['checked'];
+type CheckboxState = CheckboxRootProps['modelValue'];
 
 const selectedTicketIds = ref<number[]>([]);
 
@@ -469,9 +477,7 @@ watch(
 );
 
 const hasTicketSelection = computed(() => selectedTicketIds.value.length > 0);
-const allTicketsSelected = computed(
-    () => ticketItems.value.length > 0 && selectedTicketIds.value.length === ticketItems.value.length,
-);
+const allTicketsSelected = computed(() => ticketItems.value.length > 0 && selectedTicketIds.value.length === ticketItems.value.length);
 const ticketHeaderCheckboxState = computed<CheckboxState>(() => {
     if (allTicketsSelected.value) {
         return true;
@@ -499,8 +505,8 @@ const bulkStatusForm = useForm<{ ids: number[]; status: TicketStatus }>({
     status: 'open',
 });
 
-const updateTicketSelection = (ticketId: number, checked: boolean) => {
-    if (checked) {
+const updateTicketSelection = (ticketId: number, checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         if (!selectedTicketIds.value.includes(ticketId)) {
             selectedTicketIds.value = [...selectedTicketIds.value, ticketId];
         }
@@ -511,8 +517,8 @@ const updateTicketSelection = (ticketId: number, checked: boolean) => {
     selectedTicketIds.value = selectedTicketIds.value.filter((id) => id !== ticketId);
 };
 
-const toggleAllTickets = (checked: boolean) => {
-    if (checked) {
+const toggleAllTickets = (checked: boolean | 'indeterminate') => {
+    if (checked === true) {
         selectedTicketIds.value = ticketItems.value.map((item) => item.id);
 
         return;
@@ -539,19 +545,14 @@ const submitBulkTicketStatus = (status: TicketStatus) => {
     });
 };
 const faqItems = computed(() => props.faqs.data ?? []);
-const totalFaqFeedback = computed(
-    () => props.supportStats.faq_helpful_feedback + props.supportStats.faq_not_helpful_feedback,
-);
+const totalFaqFeedback = computed(() => props.supportStats.faq_helpful_feedback + props.supportStats.faq_not_helpful_feedback);
 const satisfactionStats = computed(() => props.supportStats.satisfaction);
 const satisfactionByStatus = computed(() => satisfactionStats.value.by_status);
 const satisfactionByMonth = computed(() => satisfactionStats.value.by_month);
 const hasSatisfactionData = computed(() => satisfactionStats.value.count > 0);
 const hasSatisfactionChartData = computed(() => satisfactionByMonth.value.length > 0);
 const satisfactionStatusEntries = computed(
-    () => Object.entries(satisfactionByStatus.value) as Array<[
-        TicketStatus,
-        { average: number | null; count: number },
-    ]>,
+    () => Object.entries(satisfactionByStatus.value) as Array<[TicketStatus, { average: number | null; count: number }]>,
 );
 
 const formatMonthLabel = (month: string) => formatDate(`${month}-01`, 'MMM YYYY');
@@ -909,15 +910,8 @@ const reorderFaq = (faq: FaqItem, direction: 'up' | 'down') => {
         { direction },
         {
             ...quickActionVisitOptions,
-            onSuccess: () => {
-                const action = direction === 'up' ? 'up' : 'down';
-                toast.success(`FAQ order moved ${action}.`);
-            },
             onError: (errors) => {
-                const message =
-                    typeof errors.direction === 'string'
-                        ? errors.direction
-                        : 'Unable to reorder FAQ.';
+                const message = typeof errors.direction === 'string' ? errors.direction : 'Unable to reorder FAQ.';
 
                 toast.error(message);
             },
@@ -931,14 +925,8 @@ const publishFaq = (faq: FaqItem) => {
         {},
         {
             ...quickActionVisitOptions,
-            onSuccess: () => {
-                toast.success('FAQ published.');
-            },
             onError: (errors) => {
-                const message =
-                    typeof errors.published === 'string'
-                        ? errors.published
-                        : 'Unable to publish FAQ.';
+                const message = typeof errors.published === 'string' ? errors.published : 'Unable to publish FAQ.';
 
                 toast.error(message);
             },
@@ -952,14 +940,8 @@ const unpublishFaq = (faq: FaqItem) => {
         {},
         {
             ...quickActionVisitOptions,
-            onSuccess: () => {
-                toast.success('FAQ unpublished.');
-            },
             onError: (errors) => {
-                const message =
-                    typeof errors.published === 'string'
-                        ? errors.published
-                        : 'Unable to unpublish FAQ.';
+                const message = typeof errors.published === 'string' ? errors.published : 'Unable to unpublish FAQ.';
 
                 toast.error(message);
             },
@@ -974,74 +956,68 @@ const unpublishFaq = (faq: FaqItem) => {
         <AdminLayout>
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8 gap-4">
-                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
-                        <MessageSquare class="h-8 w-8 mr-3 text-gray-600" />
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
+                        <MessageSquare class="mr-3 h-8 w-8 text-gray-600" />
                         <div>
                             <div class="text-sm text-gray-500">Total Tickets</div>
                             <div class="text-xl font-bold">{{ props.supportStats.total }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
-                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
-                        <XCircle class="h-8 w-8 mr-3 text-gray-600" />
+                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
+                        <XCircle class="mr-3 h-8 w-8 text-gray-600" />
                         <div>
                             <div class="text-sm text-gray-500">Open Tickets</div>
                             <div class="text-xl font-bold">{{ props.supportStats.open }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
-                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
-                        <CheckCircle class="h-8 w-8 mr-3 text-gray-600" />
+                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
+                        <CheckCircle class="mr-3 h-8 w-8 text-gray-600" />
                         <div>
                             <div class="text-sm text-gray-500">Closed Tickets</div>
                             <div class="text-xl font-bold">{{ props.supportStats.closed }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
-                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
-                        <Star class="h-8 w-8 mr-3 text-amber-500" />
+                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
+                        <Star class="mr-3 h-8 w-8 text-amber-500" />
                         <div>
                             <div class="text-sm text-gray-500">Avg. CSAT</div>
                             <div class="text-xl font-bold">
-                                {{
-                                    satisfactionStats.average !== null
-                                        ? `${satisfactionStats.average}/5`
-                                        : 'No ratings yet'
-                                }}
+                                {{ satisfactionStats.average !== null ? `${satisfactionStats.average}/5` : 'No ratings yet' }}
                             </div>
                         </div>
                         <PlaceholderPattern />
                     </div>
-                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
-                        <Ticket class="h-8 w-8 mr-3 text-indigo-600" />
+                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
+                        <Ticket class="mr-3 h-8 w-8 text-indigo-600" />
                         <div>
                             <div class="text-sm text-gray-500">Rated Tickets</div>
                             <div class="text-xl font-bold">{{ satisfactionStats.count }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
-                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
-                        <HelpCircle class="h-8 w-8 mr-3 text-gray-600" />
+                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
+                        <HelpCircle class="mr-3 h-8 w-8 text-gray-600" />
                         <div>
                             <div class="text-sm text-gray-500">FAQs</div>
                             <div class="text-xl font-bold">{{ props.supportStats.faqs }}</div>
-                            <div class="text-xs text-gray-500">
-                                {{ totalFaqFeedback }} total votes
-                            </div>
+                            <div class="text-xs text-gray-500">{{ totalFaqFeedback }} total votes</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
-                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
-                        <ThumbsUp class="h-8 w-8 mr-3 text-green-600" />
+                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
+                        <ThumbsUp class="mr-3 h-8 w-8 text-green-600" />
                         <div>
                             <div class="text-sm text-gray-500">Helpful votes</div>
                             <div class="text-xl font-bold">{{ props.supportStats.faq_helpful_feedback }}</div>
                         </div>
                         <PlaceholderPattern />
                     </div>
-                    <div class="relative overflow-hidden rounded-xl border p-4 flex items-center">
-                        <ThumbsDown class="h-8 w-8 mr-3 text-red-600" />
+                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
+                        <ThumbsDown class="mr-3 h-8 w-8 text-red-600" />
                         <div>
                             <div class="text-sm text-gray-500">Not helpful votes</div>
                             <div class="text-xl font-bold">{{ props.supportStats.faq_not_helpful_feedback }}</div>
@@ -1050,8 +1026,8 @@ const unpublishFaq = (faq: FaqItem) => {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    <div class="rounded-xl border p-4 space-y-4">
+                <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div class="space-y-4 rounded-xl border p-4">
                         <div class="flex items-start justify-between">
                             <div>
                                 <div class="text-sm text-gray-500">Customer satisfaction</div>
@@ -1064,27 +1040,21 @@ const unpublishFaq = (faq: FaqItem) => {
                                 :categories="['average']"
                                 index="month"
                                 :show-legend="false"
-                                :y-formatter="(value: number) => `${value.toFixed(1)}`"
+                                :y-formatter="(value: number | Date) => (typeof value === 'number' ? value.toFixed(1) : '')"
                             />
                             <div class="text-xs text-gray-500">Includes resolved tickets with ratings.</div>
                         </div>
-                        <div v-else class="text-sm text-gray-500">
-                            No customer satisfaction ratings available yet.
-                        </div>
+                        <div v-else class="text-sm text-gray-500">No customer satisfaction ratings available yet.</div>
                     </div>
-                    <div class="rounded-xl border p-4 space-y-4">
+                    <div class="space-y-4 rounded-xl border p-4">
                         <div class="flex items-start justify-between">
                             <div>
                                 <div class="text-sm text-gray-500">Ratings by status</div>
                                 <div class="text-lg font-semibold">Snapshot</div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" v-if="hasSatisfactionData">
-                            <div
-                                v-for="[status, metrics] in satisfactionStatusEntries"
-                                :key="status"
-                                class="rounded-lg border p-3"
-                            >
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" v-if="hasSatisfactionData">
+                            <div v-for="[status, metrics] in satisfactionStatusEntries" :key="status" class="rounded-lg border p-3">
                                 <div class="text-sm font-medium capitalize">{{ status }}</div>
                                 <div class="text-xs text-gray-500">Rated: {{ metrics.count }}</div>
                                 <div class="text-lg font-semibold">
@@ -1105,22 +1075,14 @@ const unpublishFaq = (faq: FaqItem) => {
 
                     <!-- Tickets Tab -->
                     <TabsContent value="tickets">
-                        <div class="rounded-xl border p-4 space-y-4">
-
+                        <div class="space-y-4 rounded-xl border p-4">
                             <!-- Header: Search & Create -->
                             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                                 <div class="flex w-full flex-col gap-3">
                                     <div class="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-2">
-                                        <Input
-                                            v-model="ticketSearchQuery"
-                                            placeholder="Search tickets..."
-                                            class="w-full md:w-60 lg:w-72"
-                                        />
+                                        <Input v-model="ticketSearchQuery" placeholder="Search tickets..." class="w-full md:w-60 lg:w-72" />
                                         <div class="flex w-full flex-wrap items-center gap-2">
-                                            <select
-                                                v-model="statusFilter"
-                                                :class="[selectFilterClass, 'md:w-40']"
-                                            >
+                                            <select v-model="statusFilter" :class="[selectFilterClass, 'md:w-40']">
                                                 <option
                                                     v-for="option in ticketStatusOptions"
                                                     :key="option.value === '' ? 'status-all' : option.value"
@@ -1129,10 +1091,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     {{ option.label }}
                                                 </option>
                                             </select>
-                                            <select
-                                                v-model="priorityFilter"
-                                                :class="[selectFilterClass, 'md:w-40']"
-                                            >
+                                            <select v-model="priorityFilter" :class="[selectFilterClass, 'md:w-40']">
                                                 <option
                                                     v-for="option in ticketPriorityOptions"
                                                     :key="option.value === '' ? 'priority-all' : option.value"
@@ -1141,10 +1100,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     {{ option.label }}
                                                 </option>
                                             </select>
-                                            <select
-                                                v-model="assigneeFilter"
-                                                :class="[selectFilterClass, 'md:w-48']"
-                                            >
+                                            <select v-model="assigneeFilter" :class="[selectFilterClass, 'md:w-48']">
                                                 <option
                                                     v-for="option in assigneeOptions"
                                                     :key="option.value === '' ? 'assignee-all' : option.value"
@@ -1153,22 +1109,11 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     {{ option.label }}
                                                 </option>
                                             </select>
-                                            <Input
-                                                v-model="dateFromFilter"
-                                                type="date"
-                                                class="w-full md:w-40"
-                                            />
-                                            <Input
-                                                v-model="dateToFilter"
-                                                type="date"
-                                                class="w-full md:w-40"
-                                            />
+                                            <Input v-model="dateFromFilter" type="date" class="w-full md:w-40" />
+                                            <Input v-model="dateToFilter" type="date" class="w-full md:w-40" />
                                         </div>
                                     </div>
-                                    <div
-                                        v-if="hasTicketFilters"
-                                        class="flex flex-wrap items-center gap-2"
-                                    >
+                                    <div v-if="hasTicketFilters" class="flex flex-wrap items-center gap-2">
                                         <Button
                                             v-for="chip in activeTicketFilterChips"
                                             :key="chip.key"
@@ -1180,12 +1125,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             {{ chip.label }}
                                             <X class="h-4 w-4" />
                                         </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            class="flex items-center gap-1"
-                                            @click="resetTicketFilters"
-                                        >
+                                        <Button variant="ghost" size="sm" class="flex items-center gap-1" @click="resetTicketFilters">
                                             Clear filters
                                             <X class="h-4 w-4" />
                                         </Button>
@@ -1203,79 +1143,37 @@ const unpublishFaq = (faq: FaqItem) => {
                                         "
                                     >
                                         <DropdownMenuTrigger as-child>
-                                            <Button variant="outline" class="w-full md:w-auto">
-                                                Manage
-                                            </Button>
+                                            <Button variant="outline" class="w-full md:w-auto"> Manage </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end" class="w-56">
                                             <DropdownMenuLabel>Manage support</DropdownMenuLabel>
-                                            <DropdownMenuItem
-                                                v-if="manageSupportTemplates"
-                                                :as-child="true"
-                                            >
-                                                <Link
-                                                    class="block w-full"
-                                                    :href="route('acp.support.templates.index')"
-                                                    as="button"
-                                                >
+                                            <DropdownMenuItem v-if="manageSupportTemplates" :as-child="true">
+                                                <Link class="block w-full" :href="route('acp.support.templates.index')" as="button">
                                                     Manage templates
                                                 </Link>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                v-if="manageSupportAssignmentRules"
-                                                :as-child="true"
-                                            >
-                                                <Link
-                                                    class="block w-full"
-                                                    :href="route('acp.support.assignment-rules.index')"
-                                                    as="button"
-                                                >
+                                            <DropdownMenuItem v-if="manageSupportAssignmentRules" :as-child="true">
+                                                <Link class="block w-full" :href="route('acp.support.assignment-rules.index')" as="button">
                                                     Manage assignment rules
                                                 </Link>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                v-if="manageSupportTeams"
-                                                :as-child="true"
-                                            >
-                                                <Link
-                                                    class="block w-full"
-                                                    :href="route('acp.support.teams.index')"
-                                                    as="button"
-                                                >
-                                                    Manage teams
-                                                </Link>
+                                            <DropdownMenuItem v-if="manageSupportTeams" :as-child="true">
+                                                <Link class="block w-full" :href="route('acp.support.teams.index')" as="button"> Manage teams </Link>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                v-if="manageSupportSlas"
-                                                :as-child="true"
-                                            >
-                                                <Link
-                                                    class="block w-full"
-                                                    :href="route('acp.support.sla.index')"
-                                                    as="button"
-                                                >
+                                            <DropdownMenuItem v-if="manageSupportSlas" :as-child="true">
+                                                <Link class="block w-full" :href="route('acp.support.sla.index')" as="button">
                                                     Manage SLA thresholds
                                                 </Link>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                v-if="editSupport || createSupport"
-                                                :as-child="true"
-                                            >
-                                                <Link
-                                                    class="block w-full"
-                                                    :href="route('acp.support.ticket-categories.index')"
-                                                    as="button"
-                                                >
+                                            <DropdownMenuItem v-if="editSupport || createSupport" :as-child="true">
+                                                <Link class="block w-full" :href="route('acp.support.ticket-categories.index')" as="button">
                                                     Manage categories
                                                 </Link>
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
-                                    <Link
-                                        v-if="createSupport"
-                                        :href="route('acp.support.tickets.create')"
-                                    >
-                                        <Button variant="secondary" class="w-full text-sm text-white md:w-auto bg-green-500 hover:bg-green-600">
+                                    <Link v-if="createSupport" :href="route('acp.support.tickets.create')">
+                                        <Button variant="secondary" class="w-full bg-green-500 text-sm text-white hover:bg-green-600 md:w-auto">
                                             Create Ticket
                                         </Button>
                                     </Link>
@@ -1287,33 +1185,19 @@ const unpublishFaq = (faq: FaqItem) => {
                                 <p class="text-sm text-muted-foreground">{{ ticketSelectionLabel }}</p>
                                 <DropdownMenu v-if="statusSupport">
                                     <DropdownMenuTrigger as-child>
-                                        <Button
-                                            variant="outline"
-                                            :disabled="!hasTicketSelection || bulkStatusForm.processing"
-                                        >
-                                            Bulk status
-                                        </Button>
+                                        <Button variant="outline" :disabled="!hasTicketSelection || bulkStatusForm.processing"> Bulk status </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" class="w-52">
                                         <DropdownMenuLabel>Set ticket status</DropdownMenuLabel>
-                                        <DropdownMenuItem
-                                            :disabled="bulkStatusForm.processing"
-                                            @select="submitBulkTicketStatus('open')"
-                                        >
+                                        <DropdownMenuItem :disabled="bulkStatusForm.processing" @select="submitBulkTicketStatus('open')">
                                             <Ticket class="mr-2 h-4 w-4" />
                                             <span>Mark open</span>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            :disabled="bulkStatusForm.processing"
-                                            @select="submitBulkTicketStatus('pending')"
-                                        >
+                                        <DropdownMenuItem :disabled="bulkStatusForm.processing" @select="submitBulkTicketStatus('pending')">
                                             <HelpCircle class="mr-2 h-4 w-4" />
                                             <span>Mark pending</span>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            :disabled="bulkStatusForm.processing"
-                                            @select="submitBulkTicketStatus('closed')"
-                                        >
+                                        <DropdownMenuItem :disabled="bulkStatusForm.processing" @select="submitBulkTicketStatus('closed')">
                                             <TicketX class="mr-2 h-4 w-4" />
                                             <span>Close tickets</span>
                                         </DropdownMenuItem>
@@ -1326,10 +1210,10 @@ const unpublishFaq = (faq: FaqItem) => {
                                         <TableRow>
                                             <TableHead class="w-12">
                                                 <Checkbox
-                                                    :checked="ticketHeaderCheckboxState"
+                                                    :model-value="ticketHeaderCheckboxState"
                                                     :disabled="ticketItems.length === 0"
                                                     aria-label="Select all support tickets"
-                                                    @update:checked="toggleAllTickets"
+                                                    @update:model-value="toggleAllTickets"
                                                 />
                                             </TableHead>
                                             <TableHead>ID</TableHead>
@@ -1347,15 +1231,12 @@ const unpublishFaq = (faq: FaqItem) => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow
-                                            v-for="t in ticketItems"
-                                            :key="t.id"
-                                        >
+                                        <TableRow v-for="t in ticketItems" :key="t.id">
                                             <TableCell class="align-middle">
                                                 <Checkbox
-                                                    :checked="selectedTicketIds.includes(t.id)"
+                                                    :model-value="selectedTicketIds.includes(t.id)"
                                                     aria-label="Select support ticket"
-                                                    @update:checked="(checked) => updateTicketSelection(t.id, checked)"
+                                                    @update:model-value="(checked) => updateTicketSelection(t.id, checked)"
                                                 />
                                             </TableCell>
                                             <TableCell>{{ t.id }}</TableCell>
@@ -1363,20 +1244,24 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <TableCell>{{ t.user?.nickname ?? '—' }}</TableCell>
                                             <TableCell>{{ t.category?.name ?? '—' }}</TableCell>
                                             <TableCell class="text-center">
-                                                <span :class="{
-                                                    'text-blue-500': t.status === 'pending',
-                                                    'text-green-500': t.status === 'open',
-                                                    'text-red-500': t.status === 'closed'
-                                                  }">
+                                                <span
+                                                    :class="{
+                                                        'text-blue-500': t.status === 'pending',
+                                                        'text-green-500': t.status === 'open',
+                                                        'text-red-500': t.status === 'closed',
+                                                    }"
+                                                >
                                                     {{ t.status }}
                                                 </span>
                                             </TableCell>
                                             <TableCell class="text-center">
-                                                <span :class="{
-                                                    'text-blue-500': t.priority === 'low',
-                                                    'text-yellow-500': t.priority === 'medium',
-                                                    'text-red-500': t.priority === 'high'
-                                                  }">
+                                                <span
+                                                    :class="{
+                                                        'text-blue-500': t.priority === 'low',
+                                                        'text-yellow-500': t.priority === 'medium',
+                                                        'text-red-500': t.priority === 'high',
+                                                    }"
+                                                >
                                                     {{ t.priority }}
                                                 </span>
                                             </TableCell>
@@ -1384,9 +1269,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                 <span v-if="t.assignee">
                                                     {{ t.assignee.nickname }}
                                                 </span>
-                                                <span v-else-if="t.team">
-                                                    Team: {{ t.team.name }}
-                                                </span>
+                                                <span v-else-if="t.team"> Team: {{ t.team.name }} </span>
                                                 <span v-else>—</span>
                                             </TableCell>
                                             <TableCell class="text-center">{{ t.created_at ? fromNow(t.created_at) : '—' }}</TableCell>
@@ -1398,11 +1281,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             </TableCell>
                                             <TableCell class="text-center">{{ t.resolver?.nickname || '—' }}</TableCell>
                                             <TableCell class="text-center">
-                                                {{
-                                                    typeof t.customer_satisfaction_rating === 'number'
-                                                        ? `${t.customer_satisfaction_rating}/5`
-                                                        : '—'
-                                                }}
+                                                {{ typeof t.customer_satisfaction_rating === 'number' ? `${t.customer_satisfaction_rating}/5` : '—' }}
                                             </TableCell>
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
@@ -1415,9 +1294,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuGroup v-if="viewSupport">
                                                             <Link :href="route('acp.support.tickets.show', { ticket: t.id })">
-                                                                <DropdownMenuItem>
-                                                                    <Eye class="mr-2" /> View conversation
-                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem> <Eye class="mr-2" /> View conversation </DropdownMenuItem>
                                                             </Link>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator
@@ -1426,29 +1303,21 @@ const unpublishFaq = (faq: FaqItem) => {
                                                                 (assignSupport || prioritySupport || editSupport || statusSupport || deleteSupport)
                                                             "
                                                         />
-                                                        <DropdownMenuSeparator v-else-if="assignSupport||prioritySupport" />
-                                                        <DropdownMenuGroup v-if="assignSupport||prioritySupport">
-                                                        <DropdownMenuItem
-                                                            v-if="assignSupport"
-                                                            @select="openAssignDialog(t)"
-                                                        >
-                                                            <UserPlus class="h-8 w-8" />
-                                                            <span>Add Users</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            v-if="prioritySupport"
-                                                            @select="openPriorityDialog(t)"
-                                                        >
-                                                            <SquareChevronUp class="h-8 w-8" />
-                                                            <span>Update Priority</span>
-                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator v-else-if="assignSupport || prioritySupport" />
+                                                        <DropdownMenuGroup v-if="assignSupport || prioritySupport">
+                                                            <DropdownMenuItem v-if="assignSupport" @select="openAssignDialog(t)">
+                                                                <UserPlus class="h-8 w-8" />
+                                                                <span>Add Users</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem v-if="prioritySupport" @select="openPriorityDialog(t)">
+                                                                <SquareChevronUp class="h-8 w-8" />
+                                                                <span>Update Priority</span>
+                                                            </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="editSupport" />
                                                         <DropdownMenuGroup v-if="editSupport">
                                                             <Link :href="route('acp.support.tickets.edit', { ticket: t.id })">
-                                                                <DropdownMenuItem>
-                                                                    <Pencil class="mr-2" /> Edit
-                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem> <Pencil class="mr-2" /> Edit </DropdownMenuItem>
                                                             </Link>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="statusSupport" />
@@ -1477,9 +1346,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="deleteSupport" />
                                                         <DropdownMenuGroup v-if="deleteSupport">
-                                                            <DropdownMenuItem
-                                                                @select="$inertia.delete(route('acp.support.tickets.destroy', { ticket: t.id }))"
-                                                            >
+                                                            <DropdownMenuItem @select="confirmDeleteTicket(t.id)">
                                                                 <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
@@ -1488,15 +1355,13 @@ const unpublishFaq = (faq: FaqItem) => {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="!ticketItems.length">
-                                            <TableCell colspan="13" class="text-center text-gray-500">
-                                                No tickets found.
-                                            </TableCell>
+                                            <TableCell colspan="13" class="text-center text-gray-500"> No tickets found. </TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
                             </div>
                             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                                <div class="text-sm text-muted-foreground text-center md:text-left">
+                                <div class="text-center text-sm text-muted-foreground md:text-left">
                                     {{ ticketsRangeLabel }}
                                 </div>
                                 <Pagination
@@ -1515,19 +1380,12 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <PaginationPrev />
 
                                             <template v-for="(item, index) in items" :key="index">
-                                                <PaginationListItem
-                                                    v-if="item.type === 'page'"
-                                                    :value="item.value"
-                                                    as-child
-                                                >
-                                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                                <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                                    <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                         {{ item.value }}
                                                     </Button>
                                                 </PaginationListItem>
-                                                <PaginationEllipsis
-                                                    v-else
-                                                    :index="index"
-                                                />
+                                                <PaginationEllipsis v-else :index="index" />
                                             </template>
 
                                             <PaginationNext />
@@ -1541,31 +1399,18 @@ const unpublishFaq = (faq: FaqItem) => {
 
                     <!-- FAQs Tab -->
                     <TabsContent value="faq">
-                        <div class="rounded-xl border p-4 space-y-4">
-
+                        <div class="space-y-4 rounded-xl border p-4">
                             <!-- Header: Search & Create -->
-                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                                 <h2 class="text-lg font-semibold">FAQ Management</h2>
                                 <div class="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-2">
-                                    <Input
-                                        v-model="faqSearchQuery"
-                                        placeholder="Search FAQs..."
-                                        class="w-full md:w-64"
-                                    />
+                                    <Input v-model="faqSearchQuery" placeholder="Search FAQs..." class="w-full md:w-64" />
                                     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-end md:gap-2">
-                                        <Link
-                                            v-if="editSupport || createSupport"
-                                            :href="route('acp.support.faq-categories.index')"
-                                        >
-                                            <Button variant="outline" class="w-full md:w-auto">
-                                                Manage categories
-                                            </Button>
+                                        <Link v-if="editSupport || createSupport" :href="route('acp.support.faq-categories.index')">
+                                            <Button variant="outline" class="w-full md:w-auto"> Manage categories </Button>
                                         </Link>
-                                        <Link
-                                            v-if="createSupport"
-                                            :href="route('acp.support.faqs.create')"
-                                        >
-                                            <Button variant="secondary" class="w-full text-sm text-white md:w-auto bg-green-500 hover:bg-green-600">
+                                        <Link v-if="createSupport" :href="route('acp.support.faqs.create')">
+                                            <Button variant="secondary" class="w-full bg-green-500 text-sm text-white hover:bg-green-600 md:w-auto">
                                                 Create FAQ
                                             </Button>
                                         </Link>
@@ -1590,11 +1435,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow
-                                            v-for="f in faqItems"
-                                            :key="f.id"
-                                            class="hover:bg-gray-50 dark:hover:bg-gray-900"
-                                        >
+                                        <TableRow v-for="f in faqItems" :key="f.id" class="hover:bg-gray-50 dark:hover:bg-gray-900">
                                             <TableCell>{{ f.id }}</TableCell>
                                             <TableCell>{{ f.question }}</TableCell>
                                             <TableCell>{{ f.answer }}</TableCell>
@@ -1612,47 +1453,29 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator v-if="moveSupport||publishSupport" />
+                                                        <DropdownMenuSeparator v-if="moveSupport || publishSupport" />
                                                         <DropdownMenuGroup v-if="moveSupport">
-                                                            <DropdownMenuItem
-                                                                @select="reorderFaq(f, 'up')"
-                                                            >
+                                                            <DropdownMenuItem @select="reorderFaq(f, 'up')">
                                                                 <MoveUp class="mr-2" /> Move Up
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                @select="reorderFaq(f, 'down')"
-                                                            >
+                                                            <DropdownMenuItem @select="reorderFaq(f, 'down')">
                                                                 <MoveDown class="mr-2" /> Move Down
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuGroup v-if="publishSupport">
-                                                            <DropdownMenuItem
-                                                                v-if="!f.published"
-                                                                @select="publishFaq(f)"
-                                                            >
+                                                            <DropdownMenuItem v-if="!f.published" @select="publishFaq(f)">
                                                                 <Eye class="mr-2" /> Publish
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                v-if="f.published"
-                                                                @select="unpublishFaq(f)"
-                                                            >
+                                                            <DropdownMenuItem v-if="f.published" @select="unpublishFaq(f)">
                                                                 <EyeOff class="mr-2" /> Unpublish
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator v-if="editSupport||deleteSupport" />
-                                                        <DropdownMenuGroup v-if="editSupport||deleteSupport">
-                                                            <Link
-                                                                v-if="editSupport"
-                                                                :href="route('acp.support.faqs.edit', { faq: f.id })"
-                                                            >
-                                                                <DropdownMenuItem>
-                                                                    <Pencil class="mr-2" /> Edit
-                                                                </DropdownMenuItem>
+                                                        <DropdownMenuSeparator v-if="editSupport || deleteSupport" />
+                                                        <DropdownMenuGroup v-if="editSupport || deleteSupport">
+                                                            <Link v-if="editSupport" :href="route('acp.support.faqs.edit', { faq: f.id })">
+                                                                <DropdownMenuItem> <Pencil class="mr-2" /> Edit </DropdownMenuItem>
                                                             </Link>
-                                                            <DropdownMenuItem
-                                                                v-if="deleteSupport"
-                                                                @select="$inertia.delete(route('acp.support.faqs.destroy', { faq: f.id }))"
-                                                            >
+                                                            <DropdownMenuItem v-if="deleteSupport" @select="confirmDeleteFaq(f.id)">
                                                                 <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
@@ -1661,15 +1484,13 @@ const unpublishFaq = (faq: FaqItem) => {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="!faqItems.length">
-                                        <TableCell colspan="9" class="text-center text-gray-500">
-                                            No FAQs found.
-                                        </TableCell>
+                                            <TableCell colspan="9" class="text-center text-gray-500"> No FAQs found. </TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
                             </div>
                             <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-                                <div class="text-sm text-muted-foreground text-center md:text-left">
+                                <div class="text-center text-sm text-muted-foreground md:text-left">
                                     {{ faqsRangeLabel }}
                                 </div>
                                 <Pagination
@@ -1688,19 +1509,12 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <PaginationPrev />
 
                                             <template v-for="(item, index) in items" :key="index">
-                                                <PaginationListItem
-                                                    v-if="item.type === 'page'"
-                                                    :value="item.value"
-                                                    as-child
-                                                >
-                                                    <Button class="w-9 h-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
+                                                <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                                    <Button class="h-9 w-9 p-0" :variant="item.value === page ? 'default' : 'outline'">
                                                         {{ item.value }}
                                                     </Button>
                                                 </PaginationListItem>
-                                                <PaginationEllipsis
-                                                    v-else
-                                                    :index="index"
-                                                />
+                                                <PaginationEllipsis v-else :index="index" />
                                             </template>
 
                                             <PaginationNext />
@@ -1732,7 +1546,7 @@ const unpublishFaq = (faq: FaqItem) => {
                             <select
                                 id="assign-ticket-agent"
                                 v-model="assignForm.assigned_to"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                             >
                                 <option :value="null">Unassigned</option>
                                 <option v-for="agent in props.assignableAgents" :key="agent.id" :value="agent.id">
@@ -1744,12 +1558,8 @@ const unpublishFaq = (faq: FaqItem) => {
                     </div>
 
                     <DialogFooter class="gap-2">
-                        <Button type="button" variant="secondary" @click="handleAssignDialogChange(false)">
-                            Cancel
-                        </Button>
-                        <Button type="submit" :disabled="assignForm.processing">
-                            Save
-                        </Button>
+                        <Button type="button" variant="secondary" @click="handleAssignDialogChange(false)"> Cancel </Button>
+                        <Button type="submit" :disabled="assignForm.processing"> Save </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -1770,14 +1580,15 @@ const unpublishFaq = (faq: FaqItem) => {
             <div v-if="priorityDialogTicket" class="grid gap-3 pt-2">
                 <p class="text-sm text-muted-foreground">
                     Ticket #{{ priorityDialogTicket.id }} is currently
-                    <span class="font-medium">{{ formatPriority(priorityDialogTicket.priority) }}</span>.
+                    <span class="font-medium">{{ formatPriority(priorityDialogTicket.priority) }}</span
+                    >.
                 </p>
                 <div class="grid gap-2">
                     <Label for="priority-dialog-select">Priority</Label>
                     <select
                         id="priority-dialog-select"
                         v-model="priorityDialogNextPriority"
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
                     >
                         <option v-for="priority in priorityLevels" :key="priority" :value="priority">
                             {{ formatPriority(priority) }}
@@ -1798,6 +1609,18 @@ const unpublishFaq = (faq: FaqItem) => {
             @update:open="handleStatusDialogChange"
             @confirm="confirmStatusUpdate"
             @cancel="handleStatusDialogChange(false)"
+        />
+
+        <ConfirmDialog
+            v-model:open="confirmDialogState.open"
+            :title="confirmDialogState.title"
+            :description="confirmDialogDescription"
+            :confirm-label="confirmDialogState.confirmLabel"
+            :cancel-label="confirmDialogState.cancelLabel"
+            :confirm-variant="confirmDialogState.confirmVariant"
+            :confirm-disabled="confirmDialogState.confirmDisabled"
+            @confirm="handleConfirmDialogConfirm"
+            @cancel="handleConfirmDialogCancel"
         />
     </AppLayout>
 </template>
