@@ -1141,12 +1141,6 @@ parameters:
 			path: app/Http/Controllers/DashboardController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ecommerce/ProductCatalogController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Badge\:\:\$pivot\.$#'
 			identifier: property.notFound
 			count: 1
@@ -2125,54 +2119,6 @@ parameters:
 			path: app/Support/Billing/SubscriptionManager.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Support/Commerce/CartManager.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantity\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Support/Commerce/CartManager.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$snapshot\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Support/Commerce/CartManager.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Support/Commerce/CartManager.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_price\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Support/Commerce/CartManager.php
-
-		-
-			message: '#^Method App\\Support\\Commerce\\CartManager\:\:addItem\(\) should return App\\Models\\CartItem but returns Illuminate\\Database\\Eloquent\\Model\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Support/Commerce/CartManager.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Support/Commerce/CartManager.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: mixed, variant\: mixed, quantity\: int\<0, max\>, unit_price\: numeric\-string, total\: numeric\-string\}, Closure\(App\\Models\\CartItem\)\: array\{id\: int\<0, max\>, name\: mixed, variant\: mixed, quantity\: int\<0, max\>, unit_price\: numeric\-string, total\: numeric\-string\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Support/Commerce/CartManager.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 2
@@ -2303,18 +2249,6 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 1
 			path: database/seeders/AcpDashboardDemoSeeder.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$amount\.$#'
-			identifier: property.notFound
-			count: 1
-			path: database/seeders/CommerceDemoSeeder.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: database/seeders/CommerceDemoSeeder.php
 
 		-
 			message: '#^Offset ''categories'' on array\{name\: string, slug\: string, description\: string, metadata\: array\{hero_image\: string\}, brand\: string, categories\: array\{0\: string, 1\?\: string\}, tags\: array\{string\}, options\: array\{\}\|array\{array\{name\: string, display_name\: string, values\: array\{0\: string, 1\: string, 2\: string, 3\?\: string\}\}\}, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'

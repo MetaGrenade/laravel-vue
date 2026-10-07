@@ -131,6 +131,8 @@ class BillingWebhookProcessor
         BillingWebhookCall::updateOrCreate(
             ['stripe_id' => Arr::get($payload, 'id')],
             [
+                'provider' => 'stripe',
+                'external_id' => Arr::get($payload, 'id'),
                 'user_id' => $userId,
                 'type' => (string) Arr::get($payload, 'type', 'unknown'),
                 'payload' => $payload,

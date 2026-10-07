@@ -71,6 +71,8 @@ export interface NotificationBag {
 export interface CartItemSummary {
     id: number;
     name: string;
+    /** Product slug for linking back to the product page; null if the product was deleted. */
+    slug?: string | null;
     variant: string | null;
     quantity: number;
     unit_price: string;
@@ -81,6 +83,8 @@ export interface CartSummary {
     id: number;
     currency: string;
     subtotal: string;
+    /** Total units across all lines. */
+    count: number;
     items: CartItemSummary[];
 }
 

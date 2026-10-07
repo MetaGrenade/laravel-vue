@@ -8,11 +8,16 @@ use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
+use App\Models\Order;
 use App\Models\PersonalAccessToken;
 use App\Observers\ForumIndexCacheObserver;
+use App\Payments\PaymentManager;
+use App\Payments\Stripe\CashierStripeGateway;
+use App\Payments\Stripe\StripeGateway;
 use App\Policies\BlogCommentPolicy;
 use App\Policies\BlogPolicy;
 use App\Policies\ForumPostPolicy;
+use App\Policies\OrderPolicy;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
@@ -39,6 +44,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(SubscriptionManager::class, fn () => new SubscriptionManager);
         $this->app->singleton(HtmlSanitizer::class);
+        $this->app->singleton(PaymentManager::class);
+        $this->app->bind(StripeGateway::class, CashierStripeGateway::class);
         $this->app->scoped(Seo::class);
     }
 
@@ -58,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(ForumPost::class, ForumPostPolicy::class);
         Gate::policy(Blog::class, BlogPolicy::class);
         Gate::policy(BlogComment::class, BlogCommentPolicy::class);
+        Gate::policy(Order::class, OrderPolicy::class);
         Gate::policy(SupportTicketMessageAttachment::class, SupportTicketMessageAttachmentPolicy::class);
 
         Gate::before(function ($user) {

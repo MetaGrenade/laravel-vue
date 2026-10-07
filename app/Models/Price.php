@@ -25,6 +25,9 @@ class Price extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @return MorphTo<Model, $this>
+     */
     public function priceable(): MorphTo
     {
         return $this->morphTo();

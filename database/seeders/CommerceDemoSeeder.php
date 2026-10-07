@@ -269,6 +269,11 @@ class CommerceDemoSeeder extends Seeder
             $order = Order::create([
                 'cart_id' => $cart->id,
                 'status' => 'processing',
+                'payment_status' => 'paid',
+                'payment_provider' => 'stripe',
+                'customer_email' => 'demo.customer@example.com',
+                'placed_at' => now(),
+                'paid_at' => now(),
                 'currency' => 'USD',
                 'subtotal' => $cartItems->sum('total'),
                 'tax_total' => 0,

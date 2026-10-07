@@ -63,6 +63,10 @@ class StripeWebhookTest extends TestCase
 
         $webhook = BillingWebhookCall::firstWhere('stripe_id', 'evt_test_succeeded');
         $this->assertNotNull($webhook);
+
+        // Subscription events are stored under the same (provider, external id) key as shop events.
+        $this->assertSame('stripe', $webhook->provider);
+        $this->assertSame('evt_test_succeeded', $webhook->external_id);
     }
 
     public function test_invoice_payment_failed_webhook_persists_invoice_details(): void

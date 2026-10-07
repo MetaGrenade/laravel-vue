@@ -6,6 +6,7 @@ use App\Http\Controllers\BlogCommentSubscriptionController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Ecommerce\CartController;
+use App\Http\Controllers\Ecommerce\CheckoutController;
 use App\Http\Controllers\Ecommerce\OrderController;
 use App\Http\Controllers\Ecommerce\ProductCatalogController;
 use App\Http\Controllers\ForumController;
@@ -54,11 +55,28 @@ Route::middleware('section.enabled:commerce')->group(function () {
         Route::post('/cart/items', [CartController::class, 'store'])
             ->middleware('throttle:interactions')
             ->name('shop.cart.items.store');
+        Route::patch('/cart/items/{item}', [CartController::class, 'update'])
+            ->middleware('throttle:interactions')
+            ->name('shop.cart.items.update');
+        Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
+            ->middleware('throttle:interactions')
+            ->name('shop.cart.items.destroy');
     });
 
     Route::get('/cart', [CartController::class, 'show'])->name('shop.cart');
+
+    Route::middleware('throttle:billing')->group(function () {
+        Route::get('/checkout', [CheckoutController::class, 'show'])->name('shop.checkout');
+        Route::post('/checkout', [CheckoutController::class, 'store'])->name('shop.checkout.store');
+    });
+
     Route::middleware('auth')->get('/orders', [OrderController::class, 'index'])->name('shop.orders');
 });
+
+// Outside the shop toggle: a customer's receipt must keep working even if the shop is switched off.
+Route::get('/checkout/complete/{order}', [CheckoutController::class, 'complete'])
+    ->middleware('throttle:billing')
+    ->name('shop.checkout.complete');
 
 // Public Blog Routes
 Route::middleware('section.enabled:blog')->group(function () {
