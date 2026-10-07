@@ -32,9 +32,23 @@ An order has two independent states.
 | `paid` | Payment confirmed for the full amount. |
 | `failed` | The payment attempt failed for good. |
 
-All state changes go through `App\Support\Commerce\OrderLifecycle`. Each method locks the order row, re-reads it and does nothing if the change already happened, so a redelivered webhook or a double click cannot apply a change twice. Events (`OrderPaid`, `OrderCancelled`) are dispatched after the transaction commits; the receipt email and closing the provider's checkout are listeners on them.
+All state changes go through `App\Support\Commerce\OrderLifecycle`. Each method locks the order row, re-reads it and does nothing if the change already happened, so a redelivered webhook or a double click cannot apply a change twice. Events (`OrderPaid`, `OrderCancelled`) are dispatched after the transaction commits; the receipt email and a safety-net close of the provider's checkout are listeners on them.
 
 Orders are addressed in URLs by an unguessable `public_id` (a ULID), not the row id. People see the order number (`MF-000123`; the prefix is `COMMERCE_ORDER_PREFIX`).
+
+### One payable checkout per cart
+
+A cart never has two checkouts that can both be paid. When a shopper starts again (they changed their mind, edited the cart, or came back from the provider), `CheckoutStarter`:
+
+1. takes a short per-cart lock, so a double click or two tabs cannot run two checkouts at once;
+2. asks the provider to **close** the earlier checkout (`PaymentProvider::closeCheckout()`) and waits for the answer;
+3. only then cancels the earlier order, frees its stock and creates the replacement.
+
+The answer decides what happens next. *Closed*: carry on. *Paid*: the earlier checkout had in fact been paid, so the shopper is taken to that order and nothing new is started. *Unresolved* (a bank debit still settling, or a payment held for review) or an error (the provider could not be reached): nothing is replaced and the shopper is asked to try again, because a checkout that stays payable beside its replacement could be paid twice. The queued `ExpireProviderCheckout` listener is only a safety net for other cancellations; this guarantee does not depend on a queue worker.
+
+### The cart after payment
+
+An order is a snapshot of the cart when checkout started. The shopper may keep editing the cart while the payment is pending, so paying removes only what was ordered: a line leaves when its whole quantity was bought and is reduced when the cart held more. Anything added since stays, and the cart is marked converted only once nothing is left in it.
 
 ### Who may see an order
 
@@ -81,6 +95,10 @@ How the Stripe integration protects the order:
 `App\Payments\Webhooks\WebhookReceiver` is the pattern every provider's webhook follows. Each delivery is stored in `billing_webhook_calls` under `(provider, external_id)`. If that event was already processed the delivery is acknowledged and nothing runs again, so a provider's retries are harmless. The work runs in a transaction: an event is fully applied or not at all. If processing fails, the error and attempt count are stored on the call and a `500` is returned so the provider redelivers.
 
 `/stripe/webhook` stays registered even if the shop section is switched off in the ACP, so payments in flight still settle. The customer's receipt link also keeps working.
+
+## Rate limits
+
+Starting a checkout uses the shared `billing` limiter (10 requests a minute). The confirmation page, which re-checks a pending payment each time it loads, has its own `checkout-status` limiter (30 a minute, per order), so waiting on a slow payment never competes with starting a checkout. The page checks about seven times over a little more than a minute, slowing down as it goes, and then stops.
 
 ## Money
 

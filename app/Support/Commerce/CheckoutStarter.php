@@ -7,15 +7,22 @@ use App\Enums\PaymentStatus;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Payments\Data\CheckoutClosure;
 use App\Payments\Data\CheckoutContext;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\PaymentManager;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\URL;
 
 /**
  * Starts a checkout for a cart: places the order, creates the checkout at the
  * store's payment provider and records the pending payment. Returns where to
  * send the customer.
+ *
+ * A cart has at most one payable checkout at a time. Starting again closes the
+ * earlier checkout at the provider and waits for that to be confirmed before a
+ * replacement is created, so a shopper can never pay both.
  */
 class CheckoutStarter
 {
@@ -34,8 +41,31 @@ class CheckoutStarter
      * @return array{order: Order, url: string}
      *
      * @throws CheckoutException
+     * @throws OrderAlreadyPaidException When the earlier checkout turns out to have been paid.
      */
     public function start(Cart $cart, CustomerDetails $customer, ?string $idempotencyKey = null): array
+    {
+        // Two requests for one cart (a double click, two tabs) must not both
+        // close and create checkouts at once.
+        $lock = Cache::lock('checkout:cart:'.$cart->id, 120);
+
+        try {
+            $lock->block(3);
+        } catch (LockTimeoutException) {
+            throw new CheckoutException('Your checkout is already being prepared. Please wait a moment and try again.');
+        }
+
+        try {
+            return $this->begin($cart, $customer, $idempotencyKey);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * @return array{order: Order, url: string}
+     */
+    private function begin(Cart $cart, CustomerDetails $customer, ?string $idempotencyKey): array
     {
         $provider = $this->payments->active();
 
@@ -50,9 +80,11 @@ class CheckoutStarter
             return ['order' => $existing, 'url' => $this->resumeUrl($existing)];
         }
 
+        $this->supersedeEarlierCheckouts($cart);
+
         $order = $this->placer->place($cart, $customer, $provider->key(), $idempotencyKey);
 
-        // A concurrent duplicate submission returns the order the other request placed.
+        // Should a concurrent duplicate ever slip past the lock, it lands on the order the other request placed.
         if ($order->payments()->exists()) {
             return ['order' => $order, 'url' => $this->resumeUrl($order)];
         }
@@ -94,6 +126,50 @@ class CheckoutStarter
         }
 
         return ['order' => $order, 'url' => $session->redirectUrl];
+    }
+
+    /**
+     * Retire the cart's earlier unpaid orders before a new one is placed.
+     *
+     * Each earlier checkout is closed at its provider and the answer is
+     * confirmed first; only then is the order cancelled and its stock freed.
+     * If the provider cannot confirm, nothing is replaced and the shopper is
+     * asked to try again, because an earlier checkout that stays payable next to
+     * its replacement could be paid twice.
+     */
+    private function supersedeEarlierCheckouts(Cart $cart): void
+    {
+        $earlier = Order::query()
+            ->where('cart_id', $cart->id)
+            ->where('status', OrderStatus::Pending->value)
+            ->get();
+
+        foreach ($earlier as $order) {
+            // A payment held for review has money behind it: a person decides.
+            if ($order->payments()->where('status', PaymentStatus::Review->value)->exists()) {
+                throw new CheckoutException('Your earlier payment is being reviewed, so a new checkout cannot be started yet.');
+            }
+
+            foreach ($order->payments()->where('status', PaymentStatus::Pending->value)->get() as $payment) {
+                try {
+                    $closure = $this->payments->provider($payment->provider)->closeCheckout($payment);
+                } catch (PaymentException $exception) {
+                    report($exception);
+
+                    throw new CheckoutException("We couldn't close your earlier checkout, so a new one was not started. Please try again in a moment.", previous: $exception);
+                }
+
+                if ($closure === CheckoutClosure::Paid) {
+                    throw new OrderAlreadyPaidException($order->refresh());
+                }
+
+                if ($closure === CheckoutClosure::Unresolved) {
+                    throw new CheckoutException('Your earlier payment is still being confirmed. Please wait for it to finish before starting again.');
+                }
+            }
+
+            $this->lifecycle->cancel($order, 'replaced');
+        }
     }
 
     /**

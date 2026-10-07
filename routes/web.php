@@ -75,7 +75,7 @@ Route::middleware('section.enabled:commerce')->group(function () {
 
 // Outside the shop toggle: a customer's receipt must keep working even if the shop is switched off.
 Route::get('/checkout/complete/{order}', [CheckoutController::class, 'complete'])
-    ->middleware('throttle:billing')
+    ->middleware('throttle:checkout-status')
     ->name('shop.checkout.complete');
 
 // Public Blog Routes

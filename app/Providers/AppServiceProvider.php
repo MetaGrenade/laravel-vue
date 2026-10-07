@@ -152,5 +152,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('search', fn (Request $request) => Limit::perMinute(60)->by('search:'.$byUserOrIp($request)));
 
         RateLimiter::for('billing', fn (Request $request) => Limit::perMinute(10)->by('billing:'.$byUserOrIp($request)));
+
+        // The page a customer lands on after paying re-checks the payment while it is pending. It has its
+        // own allowance, per order, so waiting on a slow payment never competes with starting a checkout.
+        RateLimiter::for('checkout-status', function (Request $request) use ($byUserOrIp) {
+            $order = $request->route('order');
+            $order = $order instanceof Order ? $order->public_id : (string) $order;
+
+            return Limit::perMinute(30)->by('checkout-status:'.$byUserOrIp($request).'|'.$order);
+        });
     }
 }

@@ -11,6 +11,7 @@ use App\Support\Commerce\CartManager;
 use App\Support\Commerce\CheckoutException;
 use App\Support\Commerce\CheckoutStarter;
 use App\Support\Commerce\CustomerDetails;
+use App\Support\Commerce\OrderAlreadyPaidException;
 use App\Support\Seo\Seo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -79,6 +80,9 @@ class CheckoutController extends Controller
 
         try {
             $result = $starter->start($cart, $customer, $this->idempotencyKey($cart->id, $validated['token']));
+        } catch (OrderAlreadyPaidException $exception) {
+            // The earlier attempt was paid after all: show that order rather than charge again.
+            return redirect($starter->completeUrl($exception->order))->with('success', $exception->getMessage());
         } catch (CheckoutException $exception) {
             return redirect()->route('shop.cart')->with('error', $exception->getMessage());
         }

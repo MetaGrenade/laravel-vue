@@ -5,6 +5,7 @@ namespace App\Payments\Contracts;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Payments\Capability;
+use App\Payments\Data\CheckoutClosure;
 use App\Payments\Data\CheckoutContext;
 use App\Payments\Data\CheckoutSession;
 use App\Payments\Data\WebhookOutcome;
@@ -45,9 +46,16 @@ interface PaymentProvider
     public function startCheckout(Order $order, CheckoutContext $context): CheckoutSession;
 
     /**
-     * Best-effort: stop the provider accepting payment on an abandoned checkout.
+     * Stop the provider accepting payment on a checkout, and confirm that it did.
+     *
+     * A replacement checkout must never be offered while the one it replaces can
+     * still be paid, so callers rely on the answer: Closed means no further
+     * payment is possible; Paid means the customer had already paid (and the
+     * payment was applied); Unresolved means it is neither, so leave the order.
+     *
+     * @throws PaymentException When the provider cannot be asked or its answer is unknown.
      */
-    public function cancelCheckout(Payment $payment): void;
+    public function closeCheckout(Payment $payment): CheckoutClosure;
 
     /**
      * Ask the provider what happened to a payment and apply it. Used when a

@@ -19,5 +19,10 @@ interface StripeGateway
      */
     public function retrieveCheckoutSession(string $id): array;
 
-    public function expireCheckoutSession(string $id): void;
+    /**
+     * @return array<string, mixed> The Checkout Session, now expired.
+     *
+     * @throws \Throwable When the session is not open (already paid or expired).
+     */
+    public function expireCheckoutSession(string $id): array;
 }

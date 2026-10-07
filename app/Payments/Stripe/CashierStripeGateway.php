@@ -21,8 +21,8 @@ class CashierStripeGateway implements StripeGateway
         return Cashier::stripe()->checkout->sessions->retrieve($id)->toArray();
     }
 
-    public function expireCheckoutSession(string $id): void
+    public function expireCheckoutSession(string $id): array
     {
-        Cashier::stripe()->checkout->sessions->expire($id);
+        return Cashier::stripe()->checkout->sessions->expire($id)->toArray();
     }
 }

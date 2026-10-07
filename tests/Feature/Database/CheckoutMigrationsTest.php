@@ -24,6 +24,32 @@ class CheckoutMigrationsTest extends TestCase
         return require database_path("migrations/{$file}.php");
     }
 
+    /**
+     * Assert that a statement is refused by a unique index.
+     *
+     * PostgreSQL aborts the surrounding transaction when a statement fails, and
+     * its DDL is transactional, so the test's transaction is still open and the
+     * statement needs a savepoint. MySQL commits implicitly on DDL, which ends
+     * the test's transaction (a savepoint would then not exist), and SQLite
+     * simply rolls back the failed statement. So only PostgreSQL gets one.
+     */
+    private function assertRefusedAsDuplicate(callable $statement, string $message): void
+    {
+        try {
+            if (DB::getDriverName() === 'pgsql') {
+                DB::transaction($statement);
+            } else {
+                $statement();
+            }
+        } catch (QueryException) {
+            $this->addToAssertionCount(1);
+
+            return;
+        }
+
+        $this->fail($message);
+    }
+
     #[Test]
     public function existing_orders_are_backfilled_by_the_checkout_columns_migration(): void
     {
@@ -86,18 +112,17 @@ class CheckoutMigrationsTest extends TestCase
             $this->assertSame($updated, $orders['cancelled']->cancelled_at);
 
             // The new columns exist with their indexes: a duplicate public id is refused.
-            try {
-                DB::transaction(fn () => DB::table('orders')->where('id', $ids['pending'])->update(['public_id' => $orders['processing']->public_id]));
-                $this->fail('public ids must be unique');
-            } catch (QueryException $exception) {
-                $this->addToAssertionCount(1);
-            }
+            $this->assertRefusedAsDuplicate(
+                fn () => DB::table('orders')->where('id', $ids['pending'])->update(['public_id' => $orders['processing']->public_id]),
+                'public ids must be unique',
+            );
         } finally {
             if (! Schema::hasColumn('orders', 'public_id')) {
                 $migration->up();
             }
 
             DB::table('orders')->whereIn('id', $ids)->delete();
+            $user->delete();
         }
     }
 
@@ -158,19 +183,17 @@ class CheckoutMigrationsTest extends TestCase
             $this->assertNull($orphan->external_id);
 
             // (provider, external_id) is now unique, which is what makes redelivery idempotent.
-            try {
-                DB::transaction(fn () => DB::table('billing_webhook_calls')->insert([
+            $this->assertRefusedAsDuplicate(
+                fn () => DB::table('billing_webhook_calls')->insert([
                     'provider' => 'stripe',
                     'external_id' => 'evt_legacy_1',
                     'type' => 'invoice.payment_succeeded',
                     'payload' => '{}',
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]));
-                $this->fail('a repeated (provider, external_id) must be refused');
-            } catch (QueryException $exception) {
-                $this->addToAssertionCount(1);
-            }
+                ]),
+                'a repeated (provider, external_id) must be refused',
+            );
 
             // The same external id from another provider is fine.
             $ids[] = DB::table('billing_webhook_calls')->insertGetId([

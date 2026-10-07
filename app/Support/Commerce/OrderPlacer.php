@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Turns a cart into a pending order and holds its stock.
+ * Turns a cart into a pending order and holds its stock. Retiring the cart's
+ * earlier unpaid orders is the caller's job ({@see CheckoutStarter}), because it
+ * has to be confirmed with the payment provider first.
  *
  * Nothing from the cart is trusted: the product, variant, price and
  * availability are looked up again, so a stale or tampered cart cannot buy
@@ -23,7 +25,6 @@ class OrderPlacer
     public function __construct(
         private readonly PriceResolver $prices,
         private readonly InventoryReserver $inventory,
-        private readonly OrderLifecycle $lifecycle,
     ) {}
 
     /**
@@ -49,13 +50,6 @@ class OrderPlacer
 
         try {
             return DB::transaction(function () use ($cart, $customer, $provider, $idempotencyKey) {
-                // Starting again replaces an earlier attempt: give its stock back first.
-                Order::query()
-                    ->where('cart_id', $cart->id)
-                    ->where('status', OrderStatus::Pending->value)
-                    ->get()
-                    ->each(fn (Order $previous) => $this->lifecycle->cancel($previous, 'replaced'));
-
                 $lines = $cart->items->map(fn (CartItem $item) => $this->line($item));
 
                 $currency = $this->prices->currency();

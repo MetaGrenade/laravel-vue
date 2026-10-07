@@ -80,9 +80,7 @@ class OrderLifecycle
                 'metadata' => $metadata ?: null,
             ])->save();
 
-            if ($order->cart_id !== null) {
-                Cart::query()->whereKey($order->cart_id)->update(['status' => 'converted']);
-            }
+            $this->consumeCart($order);
 
             DB::afterCommit(fn () => OrderPaid::dispatch($order));
 
@@ -137,5 +135,54 @@ class OrderLifecycle
     private function lock(Order $order): Order
     {
         return Order::query()->lockForUpdate()->findOrFail($order->id);
+    }
+
+    /**
+     * Take the ordered lines out of the cart they came from.
+     *
+     * The shopper may have changed the cart while the order waited for payment
+     * (the order holds a snapshot from when it was placed), so only what was
+     * actually ordered is removed: a line leaves when its whole quantity was
+     * bought, and is reduced when more was in the cart. Anything added since
+     * stays. The cart is marked converted only once nothing is left in it.
+     */
+    private function consumeCart(Order $order): void
+    {
+        $cart = $order->cart_id !== null ? Cart::query()->find($order->cart_id) : null;
+
+        if ($cart === null) {
+            return;
+        }
+
+        foreach ($order->items as $ordered) {
+            if ($ordered->product_id === null) {
+                continue;
+            }
+
+            $line = $cart->items()
+                ->where('product_id', $ordered->product_id)
+                ->when(
+                    $ordered->product_variant_id === null,
+                    fn ($query) => $query->whereNull('product_variant_id'),
+                    fn ($query) => $query->where('product_variant_id', $ordered->product_variant_id),
+                )
+                ->first();
+
+            if ($line === null) {
+                continue;
+            }
+
+            $remaining = $line->quantity - $ordered->quantity;
+
+            if ($remaining > 0) {
+                CartManager::updateQuantity($line, $remaining);
+            } else {
+                CartManager::removeItem($line);
+            }
+        }
+
+        if ($cart->items()->doesntExist()) {
+            $cart->forceFill(['status' => CartManager::CONVERTED])->save();
+        }
     }
 }

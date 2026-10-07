@@ -44,29 +44,33 @@ const state = computed<'paid' | 'waiting' | 'closed'>(() => {
 });
 
 // The payment provider tells us a moment after the customer returns. Check a
-// few times, then stop: the order page and the receipt email carry on from there.
-let timer: ReturnType<typeof setInterval> | undefined;
-let checks = 0;
+// handful of times, slowing down as we go (about seven checks over a little more
+// than a minute, well inside the status page's own rate limit), then stop: the
+// receipt email carries on from there. Each check waits for the last to finish.
+const CHECK_DELAYS_MS = [3000, 5000, 8000, 12000, 15000, 15000, 15000];
 
-onMounted(() => {
-    if (state.value !== 'waiting') {
+let timer: ReturnType<typeof setTimeout> | undefined;
+let stopped = false;
+
+const scheduleCheck = (attempt: number) => {
+    if (stopped || attempt >= CHECK_DELAYS_MS.length || state.value !== 'waiting') {
         return;
     }
 
-    timer = setInterval(() => {
-        checks += 1;
+    timer = setTimeout(() => {
+        router.reload({
+            only: ['order'],
+            onFinish: () => scheduleCheck(attempt + 1),
+        });
+    }, CHECK_DELAYS_MS[attempt]);
+};
 
-        if (checks > 10 || state.value !== 'waiting') {
-            clearInterval(timer);
+onMounted(() => scheduleCheck(0));
 
-            return;
-        }
-
-        router.reload({ only: ['order'] });
-    }, 4000);
+onBeforeUnmount(() => {
+    stopped = true;
+    clearTimeout(timer);
 });
-
-onBeforeUnmount(() => clearInterval(timer));
 </script>
 
 <template>

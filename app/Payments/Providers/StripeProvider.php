@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Payments\Capability;
 use App\Payments\Contracts\PaymentProvider;
+use App\Payments\Data\CheckoutClosure;
 use App\Payments\Data\CheckoutContext;
 use App\Payments\Data\CheckoutSession;
 use App\Payments\Data\WebhookOutcome;
@@ -149,17 +150,39 @@ class StripeProvider implements PaymentProvider
         );
     }
 
-    public function cancelCheckout(Payment $payment): void
+    public function closeCheckout(Payment $payment): CheckoutClosure
     {
+        $payment->loadMissing('order');
+
         try {
-            $this->stripe->expireCheckoutSession($payment->provider_reference);
+            $session = $this->stripe->expireCheckoutSession($payment->provider_reference);
         } catch (Throwable $exception) {
-            // Already completed or expired is expected; the webhook settles the order.
-            Log::notice('Could not expire the Stripe checkout session.', [
-                'session' => $payment->provider_reference,
-                'reason' => $exception->getMessage(),
-            ]);
+            // Stripe only expires an open session. If it is already paid or expired the
+            // call is refused, so ask what state it is in instead of assuming.
+            try {
+                $session = $this->stripe->retrieveCheckoutSession($payment->provider_reference);
+            } catch (Throwable $retrieval) {
+                throw new PaymentException(
+                    'Could not confirm whether the Stripe checkout is closed: '.$retrieval->getMessage(),
+                    previous: $exception,
+                );
+            }
         }
+
+        if (Arr::get($session, 'payment_status') === 'paid') {
+            $this->applyPaid($payment, $session);
+
+            return $payment->order->refresh()->isPaid() ? CheckoutClosure::Paid : CheckoutClosure::Unresolved;
+        }
+
+        return match (Arr::get($session, 'status')) {
+            'expired' => CheckoutClosure::Closed,
+            // Completed but not paid yet: a bank debit still settling. It cannot be cancelled.
+            'complete' => CheckoutClosure::Unresolved,
+            // Still open although expiring it failed (or an unknown state): it is not closed,
+            // and saying otherwise would let a replacement be offered next to it.
+            default => throw new PaymentException('The Stripe checkout is still open and could not be expired.'),
+        };
     }
 
     public function reconcile(Payment $payment): void
