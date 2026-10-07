@@ -33,6 +33,19 @@ class ProductFactory extends Factory
     }
 
     /**
+     * A product that is not shipped (a download, a licence): no address or shipping charge.
+     */
+    public function digital(): static
+    {
+        return $this->state(['requires_shipping' => false]);
+    }
+
+    public function untaxed(): static
+    {
+        return $this->state(['is_taxable' => false]);
+    }
+
+    /**
      * Give the product a price in the given currency.
      */
     public function priced(string $amount, ?string $currency = null): static

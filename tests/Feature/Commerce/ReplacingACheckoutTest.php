@@ -15,7 +15,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
@@ -42,10 +41,7 @@ class ReplacingACheckoutTest extends TestCase
 
     private function submit(): TestResponse
     {
-        return $this->post(route('shop.checkout.store'), [
-            'email' => 'buyer@example.com',
-            'token' => (string) Str::uuid(),
-        ]);
+        return $this->post(route('shop.checkout.store'), $this->checkoutPayload());
     }
 
     /**

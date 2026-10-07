@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
+import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Bell, CreditCard, KeyRound, Lock, Palette, Receipt, ShieldCheck, User, Wallet } from '@lucide/vue';
+import { Bell, CreditCard, KeyRound, Lock, MapPin, Palette, Receipt, ShieldCheck, User, Wallet } from '@lucide/vue';
 import { computed, type Component } from 'vue';
 
 interface SettingsNavItem {
     title: string;
     href: string;
     icon: Component;
+    /** Only shown while this section of the site is switched on. */
+    section?: 'commerce';
 }
 
-const navGroups: { title: string; items: SettingsNavItem[] }[] = [
+const allNavGroups: { title: string; items: SettingsNavItem[] }[] = [
     {
         title: 'Account',
         items: [
@@ -28,11 +31,21 @@ const navGroups: { title: string; items: SettingsNavItem[] }[] = [
             { title: 'Subscription', href: '/settings/billing', icon: CreditCard },
             { title: 'Payment methods', href: '/settings/billing/payment-methods', icon: Wallet },
             { title: 'Invoices', href: '/settings/billing/invoices', icon: Receipt },
+            { title: 'Addresses', href: '/settings/addresses', icon: MapPin, section: 'commerce' },
         ],
     },
 ];
 
-const page = usePage();
+const page = usePage<SharedData>();
+
+const sections = computed(() => page.props.settings?.website_sections);
+
+const navGroups = computed(() =>
+    allNavGroups
+        .map((group) => ({ ...group, items: group.items.filter((item) => !item.section || sections.value?.[item.section] !== false) }))
+        .filter((group) => group.items.length > 0),
+);
+
 const currentPath = computed(() => page.url.split(/[?#]/)[0]);
 
 const isActive = (href: string) => currentPath.value === href;

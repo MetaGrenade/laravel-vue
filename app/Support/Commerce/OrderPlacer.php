@@ -4,26 +4,25 @@ namespace App\Support\Commerce;
 
 use App\Enums\OrderStatus;
 use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\Order;
 use App\Support\Ownership;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Turns a cart into a pending order and holds its stock. Retiring the cart's
  * earlier unpaid orders is the caller's job ({@see CheckoutStarter}), because it
  * has to be confirmed with the payment provider first.
  *
- * Nothing from the cart is trusted: the product, variant, price and
- * availability are looked up again, so a stale or tampered cart cannot buy
- * something at the wrong price or that has been withdrawn.
+ * The order is priced by {@see OrderPricer} in strict mode, so nothing from the
+ * cart or the browser is trusted: products, prices, availability, the shipping
+ * method and the tax are all worked out again here, and what is stored is
+ * exactly what the customer will be charged.
  */
 class OrderPlacer
 {
     public function __construct(
-        private readonly PriceResolver $prices,
+        private readonly OrderPricer $pricer,
         private readonly InventoryReserver $inventory,
     ) {}
 
@@ -39,55 +38,68 @@ class OrderPlacer
 
     /**
      * @throws CheckoutException When something in the cart cannot be bought.
+     * @throws InvalidCheckoutInput When an address or shipping method cannot be accepted.
      */
-    public function place(Cart $cart, CustomerDetails $customer, string $provider, ?string $idempotencyKey = null): Order
-    {
-        $cart->load(['items.product', 'items.variant']);
-
-        if ($cart->items->isEmpty()) {
-            throw new CheckoutException('Your cart is empty.');
-        }
-
+    public function place(
+        Cart $cart,
+        CustomerDetails $customer,
+        string $provider,
+        CheckoutInput $input,
+        ?string $idempotencyKey = null,
+    ): Order {
         try {
-            return DB::transaction(function () use ($cart, $customer, $provider, $idempotencyKey) {
-                $lines = $cart->items->map(fn (CartItem $item) => $this->line($item));
-
-                $currency = $this->prices->currency();
-                $subtotal = $lines->reduce(
-                    fn (Money $carry, array $line) => $carry->add($line['subtotal']),
-                    Money::zero($currency),
+            return DB::transaction(function () use ($cart, $customer, $provider, $input, $idempotencyKey) {
+                $pricing = $this->pricer->price(
+                    $cart,
+                    $input->shippingAddress ? Destination::make($input->shippingAddress->country, $input->shippingAddress->region) : null,
+                    $input->billingAddress ? Destination::make($input->billingAddress->country, $input->billingAddress->region) : null,
+                    $input->shippingRateId,
+                    strict: true,
                 );
+
+                $shippingAddress = $pricing->needsShipping ? $input->shippingAddress : null;
+                // Billing falls back to the shipping address when the customer did not give another.
+                $billingAddress = $input->billingAddress ?? $shippingAddress;
 
                 $order = new Order([
                     'user_id' => $customer->user?->id,
                     'cart_id' => $cart->id,
                     'status' => OrderStatus::Pending,
                     'payment_provider' => $provider,
-                    'currency' => $currency,
-                    'subtotal' => $subtotal->toDecimal(),
-                    'tax_total' => '0.00',
-                    'shipping_total' => '0.00',
-                    'discount_total' => '0.00',
-                    'grand_total' => $subtotal->toDecimal(),
+                    'currency' => $pricing->currency,
+                    'subtotal' => $pricing->subtotal->toDecimal(),
+                    'tax_total' => $pricing->taxTotal()->toDecimal(),
+                    'shipping_total' => $pricing->shippingTotal()->toDecimal(),
+                    'discount_total' => $pricing->discount->toDecimal(),
+                    'grand_total' => $pricing->grandTotal->toDecimal(),
                     'customer_email' => $customer->email,
                     'customer_name' => $customer->name,
                     'idempotency_key' => $idempotencyKey,
+                    'shipping_method' => $pricing->shipping?->name,
+                    'shipping_address' => $shippingAddress?->toArray(),
+                    'billing_address' => $billingAddress?->toArray(),
                     'placed_at' => now(),
                     'expires_at' => now()->addMinutes((int) config('commerce.checkout.payment_window_minutes', 60)),
+                    'metadata' => array_filter([
+                        'shipping_rate_id' => $pricing->shipping?->id,
+                        'shipping_tax' => $pricing->shippingTax->isZero() ? null : $pricing->shippingTax->toDecimal(),
+                        'tax_lines' => $pricing->taxLines === [] ? null : array_map(fn (TaxLine $line) => $line->toArray(), $pricing->taxLines),
+                    ], fn ($value) => $value !== null) ?: null,
                 ]);
 
                 $order->assignOwner($customer->user ? Ownership::newRecordOwnerFor($customer->user) : null);
                 $order->save();
 
-                foreach ($lines as $line) {
+                foreach ($pricing->lines as $line) {
                     $order->items()->create([
-                        'product_id' => $line['item']->product_id,
-                        'product_variant_id' => $line['item']->product_variant_id,
-                        'quantity' => $line['item']->quantity,
-                        'unit_price' => $line['unit']->toDecimal(),
-                        'subtotal' => $line['subtotal']->toDecimal(),
-                        'description' => $line['description'],
-                        'metadata' => $line['metadata'],
+                        'product_id' => $line->item->product_id,
+                        'product_variant_id' => $line->item->product_variant_id,
+                        'quantity' => $line->item->quantity,
+                        'unit_price' => $line->unit->toDecimal(),
+                        'subtotal' => $line->subtotal->toDecimal(),
+                        'tax_total' => $line->tax->toDecimal(),
+                        'description' => $line->description,
+                        'metadata' => $line->metadata,
                     ]);
                 }
 
@@ -106,51 +118,5 @@ class OrderPlacer
 
             return $existing;
         }
-    }
-
-    /**
-     * @return array{item: CartItem, unit: Money, subtotal: Money, description: string, metadata: array<string, mixed>}
-     */
-    private function line(CartItem $item): array
-    {
-        $product = $item->product;
-        $variant = $item->variant;
-        $name = $product !== null ? $product->name : ($item->snapshot['product']['name'] ?? 'This item');
-
-        if ($product === null || ! $product->is_active) {
-            throw new CheckoutException("{$name} is no longer available.");
-        }
-
-        if ($item->product_variant_id !== null && ($variant === null || $variant->product_id !== $product->id)) {
-            throw new CheckoutException("{$name} is no longer available in the option you chose.");
-        }
-
-        $max = (int) config('commerce.checkout.max_quantity', 20);
-
-        if ($item->quantity < 1 || $item->quantity > $max) {
-            throw new CheckoutException("You can buy between 1 and {$max} of {$name} at a time.");
-        }
-
-        $price = $this->prices->resolve($product, $variant);
-
-        if ($price === null) {
-            throw new CheckoutException("{$name} can't be purchased right now.");
-        }
-
-        $unit = Money::parse($price->amount, $price->currency);
-        $description = $variant ? "{$product->name} — {$variant->name}" : $product->name;
-
-        return [
-            'item' => $item,
-            'unit' => $unit,
-            'subtotal' => $unit->multiply($item->quantity),
-            'description' => Str::limit($description, 250, ''),
-            'metadata' => array_filter([
-                'product' => $product->name,
-                'variant' => $variant?->name,
-                'sku' => $variant?->sku,
-                'price_id' => $price->id,
-            ], fn ($value) => $value !== null),
-        ];
     }
 }

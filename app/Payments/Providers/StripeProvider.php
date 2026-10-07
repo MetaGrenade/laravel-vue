@@ -101,9 +101,28 @@ class StripeProvider implements PaymentProvider
             ];
         }
 
-        // Anything on the order that is not a product line (shipping, tax, a
-        // discount) has to be sent as its own line or the customer would pay
-        // a different amount than the order says.
+        // Everything on the order that is not a product line is sent as its own line, so
+        // the customer pays exactly what the order says: shipping, then each tax.
+        $shipping = Money::parse($order->shipping_total, $order->currency);
+
+        if (! $shipping->isZero()) {
+            $lines[] = $this->extraLine('Shipping'.($order->shipping_method ? " — {$order->shipping_method}" : ''), $shipping, $order->currency);
+            $linesTotal = $linesTotal->add($shipping);
+        }
+
+        foreach ((array) ($order->metadata['tax_lines'] ?? []) as $taxLine) {
+            $tax = Money::parse($taxLine['amount'] ?? 0, $order->currency);
+
+            if ($tax->isZero()) {
+                continue;
+            }
+
+            $lines[] = $this->extraLine("{$taxLine['name']} ({$taxLine['rate']}%)", $tax, $order->currency);
+            $linesTotal = $linesTotal->add($tax);
+        }
+
+        // A discount (or anything else not sent as a line) would make the totals differ, so
+        // refuse rather than charge a different amount than the order says.
         if (! $linesTotal->equals(Money::parse($order->grand_total, $order->currency))) {
             throw new PaymentException("Order {$order->number} total does not match its line items.");
         }
@@ -126,7 +145,10 @@ class StripeProvider implements PaymentProvider
                 'expires_at' => $context->expiresAt->getTimestamp(),
                 'locale' => $context->locale,
                 'metadata' => $metadata,
-                'payment_intent_data' => ['metadata' => $metadata],
+                'payment_intent_data' => array_filter([
+                    'metadata' => $metadata,
+                    'shipping' => $this->shippingDetails($order),
+                ]),
             ]), "order-{$order->public_id}-checkout");
         } catch (Throwable $exception) {
             throw new PaymentException('Stripe could not create the checkout: '.$exception->getMessage(), previous: $exception);
@@ -331,6 +353,51 @@ class StripeProvider implements PaymentProvider
         $this->lifecycle->markPaid($payment->order, $payment, [
             'provider_payment_id' => Arr::get($session, 'payment_intent'),
             'raw' => $this->summarise($session),
+        ]);
+    }
+
+    /**
+     * A line for something that is not a product (shipping, a tax).
+     *
+     * @return array<string, mixed>
+     */
+    private function extraLine(string $name, Money $amount, string $currency): array
+    {
+        return [
+            'quantity' => 1,
+            'price_data' => [
+                'currency' => strtolower($currency),
+                'unit_amount' => $amount->minor,
+                'product_data' => ['name' => Str::limit($name, 250, '')],
+            ],
+        ];
+    }
+
+    /**
+     * Where the order ships, in the shape Stripe records on the PaymentIntent so it shows
+     * in the dashboard. Null when nothing is shipped.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function shippingDetails(Order $order): ?array
+    {
+        $address = $order->shipping_address;
+
+        if (! is_array($address) || blank(Arr::get($address, 'line1'))) {
+            return null;
+        }
+
+        return array_filter([
+            'name' => Arr::get($address, 'name'),
+            'phone' => Arr::get($address, 'phone'),
+            'address' => array_filter([
+                'line1' => Arr::get($address, 'line1'),
+                'line2' => Arr::get($address, 'line2'),
+                'city' => Arr::get($address, 'city'),
+                'state' => Arr::get($address, 'region'),
+                'postal_code' => Arr::get($address, 'postal_code'),
+                'country' => Arr::get($address, 'country'),
+            ]),
         ]);
     }
 

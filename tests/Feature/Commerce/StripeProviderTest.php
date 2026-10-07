@@ -10,7 +10,6 @@ use App\Payments\Exceptions\PaymentException;
 use App\Payments\PaymentManager;
 use App\Payments\Providers\StripeProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\Support\InteractsWithCommerce;
@@ -140,7 +139,7 @@ class StripeProviderTest extends TestCase
         $product = Product::factory()->priced('1500', 'JPY')->stocked(5)->create();
         $this->cartWith($product, 2);
 
-        $this->post(route('shop.checkout.store'), ['email' => 'a@example.com', 'token' => (string) Str::uuid()])->assertRedirect();
+        $this->post(route('shop.checkout.store'), $this->checkoutPayload(['email' => 'a@example.com']))->assertRedirect();
 
         $order = Order::sole();
         $this->assertSame('JPY', $order->currency);

@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { addressLines } from '@/lib/address';
 import { formatMoney } from '@/lib/money';
+import type { AddressFormValue, TaxLineQuote } from '@/types/commerce';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleAlert, CircleCheck, Clock } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted } from 'vue';
@@ -30,6 +32,10 @@ interface Order {
     discount_total: string;
     grand_total: string;
     customer_email: string | null;
+    shipping_method: string | null;
+    shipping_address: Partial<AddressFormValue> | null;
+    billing_address: Partial<AddressFormValue> | null;
+    tax_lines: TaxLineQuote[];
     items: OrderItem[];
 }
 
@@ -132,10 +138,18 @@ onBeforeUnmount(() => {
                     <Separator />
                     <dl class="space-y-1 text-sm">
                         <div v-if="Number(props.order.shipping_total) > 0" class="flex justify-between">
-                            <dt class="text-muted-foreground">Shipping</dt>
+                            <dt class="text-muted-foreground">
+                                Shipping<template v-if="props.order.shipping_method"> ({{ props.order.shipping_method }})</template>
+                            </dt>
                             <dd class="tabular-nums">{{ formatMoney(props.order.shipping_total, props.order.currency) }}</dd>
                         </div>
-                        <div v-if="Number(props.order.tax_total) > 0" class="flex justify-between">
+                        <template v-if="props.order.tax_lines.length">
+                            <div v-for="line in props.order.tax_lines" :key="line.name" class="flex justify-between">
+                                <dt class="text-muted-foreground">{{ line.name }} ({{ line.rate }}%)</dt>
+                                <dd class="tabular-nums">{{ formatMoney(line.amount, props.order.currency) }}</dd>
+                            </div>
+                        </template>
+                        <div v-else-if="Number(props.order.tax_total) > 0" class="flex justify-between">
                             <dt class="text-muted-foreground">Tax</dt>
                             <dd class="tabular-nums">{{ formatMoney(props.order.tax_total, props.order.currency) }}</dd>
                         </div>
@@ -150,6 +164,29 @@ onBeforeUnmount(() => {
                     </dl>
                 </CardContent>
             </Card>
+
+            <div v-if="props.order.shipping_address || props.order.billing_address" class="grid gap-4 sm:grid-cols-2">
+                <Card v-if="props.order.shipping_address">
+                    <CardHeader>
+                        <CardTitle class="text-base">Shipping to</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <address class="text-sm text-muted-foreground not-italic">
+                            <span v-for="(line, index) in addressLines(props.order.shipping_address)" :key="index" class="block">{{ line }}</span>
+                        </address>
+                    </CardContent>
+                </Card>
+                <Card v-if="props.order.billing_address">
+                    <CardHeader>
+                        <CardTitle class="text-base">Billing address</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <address class="text-sm text-muted-foreground not-italic">
+                            <span v-for="(line, index) in addressLines(props.order.billing_address)" :key="index" class="block">{{ line }}</span>
+                        </address>
+                    </CardContent>
+                </Card>
+            </div>
 
             <div class="flex justify-center gap-3">
                 <Button variant="outline" as-child>

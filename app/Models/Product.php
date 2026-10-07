@@ -20,11 +20,15 @@ class Product extends Model
         'description',
         'metadata',
         'is_active',
+        'requires_shipping',
+        'is_taxable',
     ];
 
     protected $casts = [
         'metadata' => 'array',
         'is_active' => 'boolean',
+        'requires_shipping' => 'boolean',
+        'is_taxable' => 'boolean',
     ];
 
     /**

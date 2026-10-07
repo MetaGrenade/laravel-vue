@@ -101,6 +101,8 @@ class CommerceController extends Controller
             'slug' => ['required', 'string', 'max:255', Rule::unique('products', 'slug')],
             'description' => ['nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],
+            'requires_shipping' => ['sometimes', 'boolean'],
+            'is_taxable' => ['sometimes', 'boolean'],
         ]);
 
         Product::create($validated);

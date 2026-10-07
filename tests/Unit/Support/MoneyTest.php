@@ -93,4 +93,99 @@ class MoneyTest extends TestCase
 
         Money::parse('1.000', 'KWD');
     }
+
+    /**
+     * @return array<string, array{int, string, int}>
+     */
+    public static function percentages(): array
+    {
+        return [
+            'twenty percent of 19.99' => [1999, '20', 400],
+            'a fractional rate rounds half up' => [1000, '8.875', 89],
+            'half a minor unit rounds up' => [10, '5', 1],
+            'just under half rounds down' => [9, '5', 0],
+            'zero percent' => [1999, '0', 0],
+            'one hundred percent' => [1999, '100', 1999],
+            'four decimals' => [100000, '7.7777', 7778],
+            'negative amounts round away from zero' => [-1000, '8.875', -89],
+            'a very large amount stays exact' => [9_999_999_999, '100', 9_999_999_999],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('percentages')]
+    public function it_applies_a_percentage_exactly(int $minor, string $percent, int $expected): void
+    {
+        $this->assertSame($expected, Money::ofMinor($minor, 'USD')->percent($percent)->minor);
+    }
+
+    #[Test]
+    public function it_rejects_malformed_percentages(): void
+    {
+        foreach (['-5', 'abc', '1.23456', '', '5%', '1,5'] as $bad) {
+            try {
+                Money::ofMinor(100, 'USD')->percent($bad);
+                $this->fail("'{$bad}' should be rejected");
+            } catch (InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    #[Test]
+    public function allocation_hands_the_odd_cent_to_the_first_of_equal_parts(): void
+    {
+        $parts = Money::ofMinor(100, 'USD')->allocate([1, 1, 1]);
+
+        $this->assertSame([34, 33, 33], array_map(fn (Money $part) => $part->minor, $parts));
+    }
+
+    #[Test]
+    public function allocation_follows_the_weights(): void
+    {
+        $this->assertSame([3, 3, 4], array_map(fn (Money $part) => $part->minor, Money::ofMinor(10, 'USD')->allocate([3, 3, 4])));
+        $this->assertSame([0, 100, 0], array_map(fn (Money $part) => $part->minor, Money::ofMinor(100, 'USD')->allocate([0, 5, 0])));
+        $this->assertSame([1, 0], array_map(fn (Money $part) => $part->minor, Money::ofMinor(1, 'USD')->allocate([1, 1])));
+    }
+
+    #[Test]
+    public function allocation_of_a_negative_amount_mirrors_the_positive(): void
+    {
+        $this->assertSame([-34, -33, -33], array_map(fn (Money $part) => $part->minor, Money::ofMinor(-100, 'USD')->allocate([1, 1, 1])));
+    }
+
+    #[Test]
+    public function allocation_with_no_weight_gives_everything_to_the_first_part(): void
+    {
+        $this->assertSame([57, 0, 0], array_map(fn (Money $part) => $part->minor, Money::ofMinor(57, 'USD')->allocate([0, 0, 0])));
+    }
+
+    #[Test]
+    public function allocated_parts_always_add_up_to_the_whole(): void
+    {
+        mt_srand(20261007);
+
+        for ($round = 0; $round < 500; $round++) {
+            $weights = array_map(fn () => mt_rand(0, 100_000), range(1, mt_rand(1, 9)));
+            $amount = mt_rand(-1_000_000, 1_000_000);
+
+            $parts = Money::ofMinor($amount, 'USD')->allocate($weights);
+
+            $this->assertCount(count($weights), $parts);
+            $this->assertSame($amount, array_sum(array_map(fn (Money $part) => $part->minor, $parts)), 'weights: '.implode(',', $weights));
+        }
+    }
+
+    #[Test]
+    public function allocation_rejects_nonsense(): void
+    {
+        foreach ([[], [1, -1]] as $weights) {
+            try {
+                Money::ofMinor(100, 'USD')->allocate($weights);
+                $this->fail('expected an exception');
+            } catch (InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
 }
