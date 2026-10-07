@@ -40,6 +40,11 @@ updates:
           - '@eslint/*'
           - 'typescript-eslint'
           - 'prettier*'
+    ignore:
+      # laravel-vite-plugin declares support for fontaine ^0.8 only. A newer major makes
+      # `npm install` fail with ERESOLVE (npm 10), so wait until the plugin widens its range.
+      - dependency-name: fontaine
+        update-types: ['version-update:semver-major']
     labels:
       - dependencies
 
