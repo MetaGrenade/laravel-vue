@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Ecommerce;
 
 use App\Http\Controllers\Controller;
-use App\Models\Price;
+use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Payments\PaymentManager;
 use App\Support\Commerce\CartManager;
+use App\Support\Commerce\PriceResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,24 +16,32 @@ use Inertia\Response;
 
 class CartController extends Controller
 {
-    public function show(Request $request): Response
+    public function show(Request $request, PaymentManager $payments): Response
     {
         $cart = CartManager::forRequest($request);
 
         return Inertia::render('commerce/Cart', [
-            'cart' => $cart,
+            'cart' => CartManager::summary($cart),
+            'checkoutAvailable' => $payments->active()->isConfigured(),
+            'maxQuantity' => (int) config('commerce.checkout.max_quantity', 20),
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, PriceResolver $prices): RedirectResponse
     {
+        $max = (int) config('commerce.checkout.max_quantity', 20);
+
         $validated = $request->validate([
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'product_variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
-            'quantity' => ['required', 'integer', 'min:1', 'max:20'],
+            'quantity' => ['required', 'integer', 'min:1', "max:{$max}"],
         ]);
 
-        $product = Product::query()->with(['prices'])->findOrFail($validated['product_id']);
+        $product = Product::query()->where('is_active', true)->find($validated['product_id']);
+
+        if ($product === null) {
+            return back()->with('error', 'This product is not available.');
+        }
 
         $variant = null;
 
@@ -41,25 +51,50 @@ class CartController extends Controller
                 ->findOrFail($validated['product_variant_id']);
         }
 
-        $price = $variant?->prices()->where('is_active', true)->orderBy('amount')->first()
-            ?? $variant?->prices()->orderBy('amount')->first()
-            ?? $product->prices()->where('is_active', true)->orderBy('amount')->first()
-            ?? $product->prices()->orderBy('amount')->first();
+        $price = $prices->resolve($product, $variant);
 
-        if (! $price instanceof Price) {
+        if ($price === null) {
             return back()->with('error', 'This product is not available for purchase yet.');
         }
 
         $cart = CartManager::forRequest($request, true);
 
-        CartManager::addItem(
-            $cart,
-            $product,
-            $variant,
-            $price,
-            $validated['quantity'],
-        );
+        CartManager::addItem($cart, $product, $variant, $price, $validated['quantity']);
 
         return back()->with('success', 'Added to your cart.');
+    }
+
+    public function update(Request $request, CartItem $item): RedirectResponse
+    {
+        $this->authorizeItem($request, $item);
+
+        $max = (int) config('commerce.checkout.max_quantity', 20);
+
+        $validated = $request->validate([
+            'quantity' => ['required', 'integer', 'min:1', "max:{$max}"],
+        ]);
+
+        CartManager::updateQuantity($item, $validated['quantity']);
+
+        return back()->with('success', 'Cart updated.');
+    }
+
+    public function destroy(Request $request, CartItem $item): RedirectResponse
+    {
+        $this->authorizeItem($request, $item);
+
+        CartManager::removeItem($item);
+
+        return back()->with('success', 'Removed from your cart.');
+    }
+
+    /**
+     * Cart lines are only ever changed through the shopper's own open cart.
+     */
+    private function authorizeItem(Request $request, CartItem $item): void
+    {
+        $cart = CartManager::forRequest($request);
+
+        abort_unless($cart !== null && $item->cart_id === $cart->id, 404);
     }
 }

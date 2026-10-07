@@ -27,21 +27,33 @@ class Product extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @return BelongsTo<Brand, $this>
+     */
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
     }
 
+    /**
+     * @return BelongsToMany<ProductCategory, $this>
+     */
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(ProductCategory::class);
     }
 
+    /**
+     * @return BelongsToMany<ProductTag, $this>
+     */
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(ProductTag::class);
     }
 
+    /**
+     * @return HasMany<ProductOption, $this>
+     */
     public function options(): HasMany
     {
         return $this->hasMany(ProductOption::class);
@@ -52,16 +64,25 @@ class Product extends Model
         return $this->hasManyThrough(ProductOptionValue::class, ProductOption::class);
     }
 
+    /**
+     * @return HasMany<ProductVariant, $this>
+     */
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
     }
 
+    /**
+     * @return MorphMany<Price, $this>
+     */
     public function prices(): MorphMany
     {
         return $this->morphMany(Price::class, 'priceable');
     }
 
+    /**
+     * @return HasMany<InventoryItem, $this>
+     */
     public function inventoryItems(): HasMany
     {
         return $this->hasMany(InventoryItem::class);

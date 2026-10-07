@@ -12,6 +12,7 @@ use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\ThrottleTokenUsage;
 use App\Http\Middleware\UpdateLastActivity;
 use App\Jobs\AggregateSearchQueryStats;
+use App\Jobs\ExpirePendingOrders;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneSearchQueryLogs;
 use Illuminate\Console\Scheduling\Schedule;
@@ -73,6 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();
         $schedule->job(new AggregateSearchQueryStats)->dailyAt('00:30');
         $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
+        $schedule->job(new ExpirePendingOrders)->everyFiveMinutes();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

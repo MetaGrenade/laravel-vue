@@ -66,14 +66,7 @@ const currencyCode = computed(() => cart.value?.currency ?? 'USD');
 const cartItems = computed(() => cart.value?.items ?? []);
 const cartItemCount = computed(() => cartItems.value.reduce((total, item) => total + item.quantity, 0));
 
-const cartTotals = computed(() => {
-    const subtotal = cartItems.value.reduce((total, item) => total + Number(item.total), 0);
-    const tax = subtotal * 0.07;
-    const shipping = subtotal > 0 ? 8 : 0;
-    const total = subtotal + tax + shipping;
-
-    return { subtotal, tax, shipping, total };
-});
+const cartSubtotal = computed(() => cartItems.value.reduce((total, item) => total + Number(item.total), 0));
 
 const formatCurrency = (value: number) =>
     new Intl.NumberFormat('en-US', {
@@ -579,26 +572,17 @@ const viewNotification = (notification: NotificationItem) => {
                             </div>
                         </div>
                         <div class="space-y-3 border-t px-6 py-4">
-                            <dl class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <dt class="text-muted-foreground">Subtotal</dt>
-                                    <dd class="font-medium tabular-nums">{{ formatCurrency(cartTotals.subtotal) }}</dd>
-                                </div>
-                                <div class="flex justify-between">
-                                    <dt class="text-muted-foreground">Estimated tax</dt>
-                                    <dd class="font-medium tabular-nums">{{ formatCurrency(cartTotals.tax) }}</dd>
-                                </div>
-                                <div class="flex justify-between">
-                                    <dt class="text-muted-foreground">Shipping</dt>
-                                    <dd class="font-medium tabular-nums">{{ cartTotals.shipping ? formatCurrency(cartTotals.shipping) : 'Free' }}</dd>
-                                </div>
-                                <div class="flex justify-between border-t pt-2 text-base font-semibold">
-                                    <dt>Total</dt>
-                                    <dd class="tabular-nums">{{ formatCurrency(cartTotals.total) }}</dd>
+                            <dl class="text-sm">
+                                <div class="flex justify-between text-base font-semibold">
+                                    <dt>Subtotal</dt>
+                                    <dd class="tabular-nums">{{ formatCurrency(cartSubtotal) }}</dd>
                                 </div>
                             </dl>
                             <div class="flex gap-2">
-                                <Button class="flex-1" :disabled="!cartItems.length">Checkout</Button>
+                                <Button v-if="cartItems.length" class="flex-1" as-child>
+                                    <Link :href="route('shop.cart')">View cart</Link>
+                                </Button>
+                                <Button v-else class="flex-1" disabled>View cart</Button>
                                 <Button variant="outline" class="flex-1" as-child>
                                     <Link :href="route('shop.index')">Keep shopping</Link>
                                 </Button>

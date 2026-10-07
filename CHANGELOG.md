@@ -16,7 +16,14 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 - `SECURITY.md`, `CONTRIBUTING.md`, `.well-known/security.txt`, issue and pull-request templates, `CODEOWNERS` and Dependabot configuration.
 - `compose.yaml` with the backing services for local development (MySQL, PostgreSQL, Redis, Meilisearch and Mailpit).
 - Internationalisation infrastructure (English only for now): `config/i18n.php`, the `SetLocale` middleware, `useI18n()`, shared translations as Inertia props and `php artisan lang:check` (see `docs/i18n.md`).
-- Static analysis with Larastan (level 5, with a baseline), a gitleaks secrets scan, a weekly dependency-advisory audit and a scheduled workflow that repeats the test suite in random order.
+- Static analysis with Larastan (level 5, with a baseline that shrinks as relations are typed), a gitleaks secrets scan, a weekly dependency-advisory audit and a scheduled workflow that repeats the test suite in random order.
+- **Checkout and orders (M1, first slice).** Guests and signed-in customers can check out a cart with Stripe: an order is placed with its stock held, payment happens on hosted Stripe Checkout, and a webhook marks it paid and emails a receipt. Orders have a lifecycle (`pending`, `processing`, `completed`, `cancelled`) separate from payment state, unpaid orders expire and release their stock, and every stock change is recorded in an inventory ledger. A cart never has two payable checkouts: starting again closes the earlier Stripe session and confirms it before a replacement is created, and paying removes only the ordered lines from the cart. See [docs/commerce.md](docs/commerce.md).
+- A provider-neutral payment layer (`App\Payments`): a `PaymentProvider` contract, `PaymentManager`, `StripeProvider`, and a store-level provider setting in the ACP (System settings). Tebex plugs in behind the same contract in M2.
+- Idempotent webhook handling shared by all providers: each delivery is stored under `(provider, external_id)`, redeliveries are acknowledged without reprocessing, and failures are recorded and retried by the provider.
+- Cart quantity updates and removal, a checkout page, an order confirmation page (signed link for guests) and an owner-scoped order history.
+- `Money` value object for exact arithmetic in minor units, including zero-decimal currencies, and `COMMERCE_*` configuration (`config/commerce.php`).
+- Orders and payments belong to an owner (`owner_type`/`owner_id`) and are authorised through a policy, so teams can own orders in 1.1 without a rewrite.
+- Factories for products, variants, prices, inventory, orders and payments.
 - Web manifest generated from configuration; home page SEO copy configurable through `seo.home.*` (`SEO_HOME_TITLE`, `SEO_HOME_DESCRIPTION`).
 
 ### Changed
@@ -25,6 +32,10 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 - All text filters and search use case-insensitive `whereLike`, so they behave the same on MySQL, PostgreSQL and SQLite.
 - The brand name now comes from one place (`APP_NAME`); the logo, web manifest and home page no longer hard-code it.
 - Default `APP_NAME` in `.env.example` is `MetaForge`.
+- Only prices in the store currency (`COMMERCE_CURRENCY`) can be added to a cart, and checkout prices every line again from the catalogue instead of trusting the cart.
+- The header cart no longer shows an estimated 7% tax and a flat shipping charge that were not real; it shows the subtotal and links to the cart.
+- `billing_webhook_calls` is keyed by `(provider, external_id)` and records attempts and errors; a migration backfills existing rows. The stored `stripe_id` is kept for the admin screens.
+- The Stripe webhook controller verifies signatures through a shared `StripeSignatureVerifier`; behaviour is unchanged.
 
 ### Removed
 
@@ -37,6 +48,8 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 - **PostgreSQL:** the blog `scheduled` status was rejected by a CHECK constraint that the original migration never widened. A new migration (`2026_10_08_000100_allow_scheduled_blog_status_on_postgresql`) fixes both fresh and existing PostgreSQL databases; existing installations only need to run `php artisan migrate`.
 - Rolling back the blog status migration now turns `scheduled` posts into drafts first, so the rollback no longer fails once any post has used that status.
 - Moving legacy support attachments to the private disk now keeps a row on its original disk when the original file cannot be deleted, so the move is retried and reported instead of looking complete while a public copy remains.
+- Carts that had become orders were still returned as the shopper's cart; only open carts are used now.
+- Cart line totals are computed in integer minor units instead of floating point.
 
 ## Before the changelog
 

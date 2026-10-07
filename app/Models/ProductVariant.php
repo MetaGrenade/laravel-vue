@@ -25,16 +25,25 @@ class ProductVariant extends Model
         'is_default' => 'boolean',
     ];
 
+    /**
+     * @return BelongsTo<Product, $this>
+     */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
+    /**
+     * @return MorphMany<Price, $this>
+     */
     public function prices(): MorphMany
     {
         return $this->morphMany(Price::class, 'priceable');
     }
 
+    /**
+     * @return HasMany<InventoryItem, $this>
+     */
     public function inventoryItems(): HasMany
     {
         return $this->hasMany(InventoryItem::class);

@@ -19,7 +19,7 @@ A batteries-included boilerplate for building SaaS products, online shops and la
 - **Blog & Previewing**: Public blog listing, tokenized preview links, and authenticated commenting APIs.
 - **Support Center**: Ticket submission, messaging threads, authenticated access to customer conversations, and configurable
   assignment rules so tickets auto-route to the right agents or support teams without touching the database.
-- **Shop (in progress)**: Product catalogue with variants, prices and inventory, a cart and an order history page. Checkout and payment are on the 1.0 roadmap.
+- **Shop (in progress)**: Product catalogue with variants, prices and inventory, a cart, and checkout with Stripe (guest and signed-in), orders with stock held while they wait for payment, receipts and an order history. Shipping, tax, refunds, coupons and digital goods are next; see [docs/commerce.md](docs/commerce.md) and the roadmap.
 - **Polls & Surveys**: Polls with admin management, voting and an API.
 - **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics.
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
@@ -296,7 +296,8 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - **Payment collection**: `/settings/billing` renders Stripe's Payment Element. Users create PaymentMethods client-side and the
   backend finalises subscriptions through Cashier's `newSubscription()->create()` API, including SCA flows. No plain text
   payment method IDs are accepted.
-- **Webhooks**: Stripe should forward events (e.g., `invoice.payment_succeeded`, `customer.subscription.deleted`) to
+- **Webhooks**: Stripe should forward events (e.g., `invoice.payment_succeeded`, `customer.subscription.deleted`, and for shop
+  checkout the four `checkout.session.*` events listed in [docs/commerce.md](docs/commerce.md)) to
   `/stripe/webhook`. Use the Stripe CLI during development:
 
   ```bash

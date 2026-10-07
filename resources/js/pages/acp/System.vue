@@ -22,7 +22,9 @@ const props = defineProps<{
         email_verification_required: boolean;
         website_sections: Record<'blog' | 'forum' | 'support' | 'commerce', boolean>;
         oauth_providers: Record<string, boolean>;
+        commerce_provider: string;
     };
+    commerceProviders: Array<{ key: string; label: string; configured: boolean }>;
     oauthProviders: Array<{ key: string; label: string; description?: string | null; enabled: boolean }>;
     diagnostics: {
         php_version: string;
@@ -49,6 +51,7 @@ const form = useForm({
         commerce: props.settings.website_sections.commerce,
     },
     oauth_providers: { ...props.settings.oauth_providers },
+    commerce_provider: props.settings.commerce_provider,
 });
 
 const diagnostics = computed(() => props.diagnostics);
@@ -155,6 +158,37 @@ const saveSettings = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Payment Provider -->
+                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                        <h3 class="mb-2 text-lg font-semibold">Payment Provider</h3>
+                        <p class="mb-4 text-sm text-muted-foreground">
+                            Choose how the shop takes payment. Orders already placed are always settled with the provider they were placed with.
+                        </p>
+                        <fieldset class="space-y-3" :disabled="!canEditSystemSettings">
+                            <legend class="sr-only">Payment provider</legend>
+                            <label
+                                v-for="provider in props.commerceProviders"
+                                :key="provider.key"
+                                class="flex cursor-pointer items-center justify-between gap-3"
+                            >
+                                <span class="flex items-center gap-2">
+                                    <input
+                                        v-model="form.commerce_provider"
+                                        type="radio"
+                                        name="commerce_provider"
+                                        :value="provider.key"
+                                        class="accent-primary"
+                                    />
+                                    <span class="text-sm font-medium">{{ provider.label }}</span>
+                                </span>
+                                <span class="text-xs" :class="provider.configured ? 'text-success' : 'text-muted-foreground'">
+                                    {{ provider.configured ? 'Configured' : 'Missing credentials' }}
+                                </span>
+                            </label>
+                        </fieldset>
+                        <p v-if="form.errors.commerce_provider" class="mt-2 text-sm text-destructive">{{ form.errors.commerce_provider }}</p>
                     </div>
 
                     <!-- OAuth Providers -->

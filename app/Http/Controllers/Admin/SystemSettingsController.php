@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemSetting;
+use App\Payments\PaymentManager;
 use App\Support\EmailVerification;
 use App\Support\OAuth\OAuthProviders;
 use App\Support\WebsiteSections;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,7 +19,7 @@ class SystemSettingsController extends Controller
     /**
      * Display the system settings management screen.
      */
-    public function index(): Response
+    public function index(PaymentManager $payments): Response
     {
         return Inertia::render('acp/System', [
             'settings' => [
@@ -25,8 +27,10 @@ class SystemSettingsController extends Controller
                 'email_verification_required' => EmailVerification::isRequired(),
                 'website_sections' => WebsiteSections::all(),
                 'oauth_providers' => OAuthProviders::all(),
+                'commerce_provider' => $payments->activeKey(),
             ],
             'oauthProviders' => OAuthProviders::options(),
+            'commerceProviders' => $payments->options(),
             'diagnostics' => $this->diagnosticsPayload(),
         ]);
     }
@@ -34,7 +38,7 @@ class SystemSettingsController extends Controller
     /**
      * Persist the incoming system setting updates.
      */
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, PaymentManager $payments): RedirectResponse
     {
         $validated = $request->validate([
             'maintenance_mode' => ['required', 'boolean'],
@@ -43,6 +47,8 @@ class SystemSettingsController extends Controller
             ...collect(WebsiteSections::keys())
                 ->mapWithKeys(fn (string $section) => ["website_sections.{$section}" => ['required', 'boolean']])
                 ->all(),
+            // The shop's payment provider. Existing orders keep the provider they were placed with.
+            'commerce_provider' => ['sometimes', 'string', Rule::in($payments->keys())],
             'oauth_providers' => ['required', 'array'],
             ...collect(OAuthProviders::keys())
                 ->mapWithKeys(fn (string $provider) => ["oauth_providers.{$provider}" => ['required', 'boolean']])
@@ -53,6 +59,10 @@ class SystemSettingsController extends Controller
         SystemSetting::set('email_verification_required', (bool) $validated['email_verification_required']);
         SystemSetting::set('website_sections', WebsiteSections::normalize($validated['website_sections']));
         SystemSetting::set('oauth_providers', OAuthProviders::normalize($validated['oauth_providers']));
+
+        if (isset($validated['commerce_provider'])) {
+            SystemSetting::set(PaymentManager::SETTING_KEY, $validated['commerce_provider']);
+        }
 
         return back()->with('success', 'System settings were updated successfully.');
     }

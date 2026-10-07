@@ -12,14 +12,21 @@ class BillingWebhookCall extends Model
 
     protected $fillable = [
         'user_id',
+        'provider',
+        'external_id',
         'stripe_id',
         'type',
         'payload',
+        'signature_valid',
+        'attempts',
+        'error',
         'processed_at',
     ];
 
     protected $casts = [
         'payload' => 'array',
+        'signature_valid' => 'boolean',
+        'attempts' => 'integer',
         'processed_at' => 'datetime',
     ];
 

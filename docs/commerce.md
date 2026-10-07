@@ -1,0 +1,129 @@
+# Commerce
+
+How the shop takes an order from a cart to a paid order. This page covers what exists now (milestone M1, first slice) and how it is built, so you can extend or replace parts of it. Planned follow-ups (addresses, shipping and tax, refunds, coupons, digital goods, reviews and wishlists) are listed at the end and in [ROADMAP-v1.0.0.md](ROADMAP-v1.0.0.md).
+
+## The flow
+
+```
+cart ──► checkout form ──► order placed (pending, stock held) ──► payment provider's page
+                                                                        │
+              order paid ◄── webhook (or the return page, as a fallback)┘
+```
+
+1. **Cart.** Guests have a cart tied to their browser session; signed-in customers have one tied to their account. The cart is only a convenience view: it remembers a price, but nothing that matters is read from it later.
+2. **Checkout.** `POST /checkout` places an order. `OrderPlacer` looks the product, variant, price and stock up again, so a stale or tampered cart cannot buy something at the wrong price or that has been withdrawn. Stock is held with one conditional `UPDATE` per line, so two shoppers racing for the last unit cannot both win, on any database.
+3. **Payment.** The store's payment provider creates a checkout and the customer is sent to the provider's own page. For Stripe this is hosted Stripe Checkout: card details never touch this application.
+4. **Confirmation.** The provider calls the webhook, the order becomes paid, and a receipt email is sent. If the customer returns before the webhook arrives, the confirmation page asks the provider directly, so the order is not stuck on "waiting".
+
+## Orders
+
+An order has two independent states.
+
+| `status` | Meaning |
+|----------|---------|
+| `pending` | Placed, waiting for payment. Stock is held. |
+| `processing` | Paid, waiting to be fulfilled. |
+| `completed` | Fulfilled. |
+| `cancelled` | Cancelled before payment. Stock was released. |
+
+| `payment_status` | Meaning |
+|------------------|---------|
+| `unpaid` | No successful payment yet. |
+| `paid` | Payment confirmed for the full amount. |
+| `failed` | The payment attempt failed for good. |
+
+All state changes go through `App\Support\Commerce\OrderLifecycle`. Each method locks the order row, re-reads it and does nothing if the change already happened, so a redelivered webhook or a double click cannot apply a change twice. Events (`OrderPaid`, `OrderCancelled`) are dispatched after the transaction commits; the receipt email and a safety-net close of the provider's checkout are listeners on them.
+
+Orders are addressed in URLs by an unguessable `public_id` (a ULID), not the row id. People see the order number (`MF-000123`; the prefix is `COMMERCE_ORDER_PREFIX`).
+
+### One payable checkout per cart
+
+A cart never has two checkouts that can both be paid. When a shopper starts again (they changed their mind, edited the cart, or came back from the provider), `CheckoutStarter`:
+
+1. takes a short per-cart lock, so a double click or two tabs cannot run two checkouts at once;
+2. asks the provider to **close** the earlier checkout (`PaymentProvider::closeCheckout()`) and waits for the answer;
+3. only then cancels the earlier order, frees its stock and creates the replacement.
+
+The answer decides what happens next. *Closed*: carry on. *Paid*: the earlier checkout had in fact been paid, so the shopper is taken to that order and nothing new is started. *Unresolved* (a bank debit still settling, or a payment held for review) or an error (the provider could not be reached): nothing is replaced and the shopper is asked to try again, because a checkout that stays payable beside its replacement could be paid twice. The queued `ExpireProviderCheckout` listener is only a safety net for other cancellations; this guarantee does not depend on a queue worker.
+
+### The cart after payment
+
+An order is a snapshot of the cart when checkout started. The shopper may keep editing the cart while the payment is pending, so paying removes only what was ordered: a line leaves when its whole quantity was bought and is reduced when the cart held more. Anything added since stays, and the cart is marked converted only once nothing is left in it.
+
+### Who may see an order
+
+Orders and payments carry an owner (`owner_type`, `owner_id`), and `user_id` only records who placed the order. Access goes through `OrderPolicy` and `App\Support\Ownership`, never through `user_id`. In 1.0 a person's only owner is themselves; 1.1 adds teams, and this is the one place that changes. A guest order has no owner and is opened through the signed link in the receipt email.
+
+## Stock
+
+`inventory_items` holds the on-hand quantity. A product (or variant) with **no** inventory row is not tracked and always available; give it a row to track it. A variant's own row is used first, then the product's row. `allow_backorder` lets the level go negative.
+
+Every change is written to `inventory_movements` (`reservation`, `release`), so a reservation is released exactly once and a stock level can always be explained. Unpaid orders hold stock for `COMMERCE_PAYMENT_WINDOW` minutes (default 60, minimum 30 because Stripe sessions cannot expire sooner). The scheduler runs `ExpirePendingOrders` every five minutes (`php artisan commerce:expire-orders` does the same by hand). Before cancelling, it asks the provider what happened to the payment: an order that was paid just as its window ran out is settled, not cancelled, and an order is left alone if the provider cannot be reached. **The scheduler (`php artisan schedule:run` every minute) and a queue worker must be running in production.**
+
+A payment that arrives for an order that was already cancelled is honoured: the order is reinstated, the stock is taken again (even if that leaves it negative) and the order is flagged `metadata.late_payment` and logged, so a person can check it.
+
+## Payment providers
+
+`App\Payments\Contracts\PaymentProvider` is the contract; the shop never talks to Stripe (or, later, Tebex) directly. Providers are registered in `config/commerce.php` and resolved by `PaymentManager`.
+
+- The **store-level provider** is `COMMERCE_PROVIDER` (default `stripe`) and can be changed in the ACP under System settings. Every order records the provider it was placed with, and webhooks and reconciliation use that recorded provider, so switching never strands an in-flight payment.
+- Providers declare `capabilities()` (one-time payments, subscriptions, refunds, hosted checkout, ...) and the shop checks those rather than the provider's name.
+- To add a provider: implement the contract, register it under `commerce.providers`, and route its webhooks through `WebhookReceiver` (below).
+
+### Stripe
+
+Set `STRIPE_KEY`, `STRIPE_SECRET` and `STRIPE_WEBHOOK_SECRET` (the same credentials Cashier uses). Stripe is only offered at checkout when the secret **and** the webhook signing secret are set, because without the secret a payment could never be confirmed.
+
+Point a Stripe webhook endpoint at `/stripe/webhook` and enable, in addition to the subscription events already listed in the README:
+
+- `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
+- `checkout.session.async_payment_failed`
+- `checkout.session.expired`
+
+With the Stripe CLI: `stripe listen --forward-to http://localhost:8000/stripe/webhook`.
+
+How the Stripe integration protects the order:
+
+- The Checkout Session is built from our order's lines in exact minor units. If the order has any amount that is not a product line (shipping, tax, a discount) and it is not sent as its own line, the provider refuses to create the session rather than charge a different total.
+- When Stripe reports a payment, the amount and currency are compared with the order before anything is marked paid. A mismatch is logged at `critical`, the payment is set to `review`, and the order is **not** fulfilled.
+- The session must name the order we have on record (`client_reference_id`), and only sessions created for shop orders (`metadata.source = commerce`) are handled; plan-subscription checkouts are ignored.
+- The return link is signed, and the session is created with an idempotency key, so repeating a request does not create a second session.
+
+## Webhooks
+
+`App\Payments\Webhooks\WebhookReceiver` is the pattern every provider's webhook follows. Each delivery is stored in `billing_webhook_calls` under `(provider, external_id)`. If that event was already processed the delivery is acknowledged and nothing runs again, so a provider's retries are harmless. The work runs in a transaction: an event is fully applied or not at all. If processing fails, the error and attempt count are stored on the call and a `500` is returned so the provider redelivers.
+
+`/stripe/webhook` stays registered even if the shop section is switched off in the ACP, so payments in flight still settle. The customer's receipt link also keeps working.
+
+## Rate limits
+
+Starting a checkout uses the shared `billing` limiter (10 requests a minute). The confirmation page, which re-checks a pending payment each time it loads, has its own `checkout-status` limiter (30 a minute, per order), so waiting on a slow payment never competes with starting a checkout. The page checks about seven times over a little more than a minute, slowing down as it goes, and then stops.
+
+## Money
+
+Prices are `decimal(10,2)` columns, but all arithmetic is done on integers in `App\Support\Commerce\Money`, which also knows zero-decimal currencies (JPY, KRW, ...). Three-decimal currencies (KWD, BHD, ...) are not supported. The shop sells in one currency, `COMMERCE_CURRENCY` (falls back to `CASHIER_CURRENCY`); a price in any other currency cannot be added to a cart.
+
+## Configuration
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `COMMERCE_CURRENCY` | `CASHIER_CURRENCY`, else `USD` | Currency the shop sells in. |
+| `COMMERCE_PROVIDER` | `stripe` | Store-level payment provider (the ACP can override). |
+| `COMMERCE_GUEST_CHECKOUT` | `true` | Allow buying without an account. |
+| `COMMERCE_PAYMENT_WINDOW` | `60` | Minutes stock is held for an unpaid order (minimum 30). |
+| `COMMERCE_ORDER_PREFIX` | `MF` | Prefix of the order number. |
+
+## Upgrading an existing installation
+
+Run `php artisan migrate`. The new migrations are safe on a database that already has data:
+
+- `add_checkout_columns_to_orders_table` adds the new order columns and **backfills** existing orders: each gets a public id and number, an owner (the placing user), and a payment state implied by its old status (`processing` and `completed` become `paid`).
+- `generalise_billing_webhook_calls_table` adds `provider` and `external_id` (copied from `stripe_id`) so shop and subscription events share one idempotency key.
+- `create_payments_table` and `create_inventory_movements_table` are new.
+
+The header cart previously showed an estimated 7% tax and a flat shipping charge that were not real; it now shows the subtotal only.
+
+## Not built yet
+
+Planned for the rest of M1 (see the roadmap): billing and shipping addresses, shipping zones and rates, tax, ACP order management (view, status changes, notes, refunds), catalogue editing and product images, inventory adjustments, coupons and gift cards, digital goods, reviews and wishlists. Until addresses and shipping exist, the shop suits products that need no delivery address, or merchants who collect it another way. Tebex arrives in M2 behind the same provider contract.

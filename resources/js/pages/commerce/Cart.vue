@@ -1,43 +1,36 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-
-interface Product {
-    id: number;
-    name: string;
-}
-
-interface Variant {
-    id: number;
-    name: string;
-    sku?: string | null;
-}
-
-interface CartItem {
-    id: number;
-    quantity: number;
-    unit_price: string;
-    total: string;
-    product?: Product | null;
-    variant?: Variant | null;
-}
-
-interface Cart {
-    id: number;
-    status: string;
-    currency: string;
-    subtotal: string;
-    items: CartItem[];
-}
+import AppLayout from '@/layouts/AppLayout.vue';
+import { formatMoney } from '@/lib/money';
+import type { CartSummary } from '@/types';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { Trash2 } from '@lucide/vue';
+import { ref } from 'vue';
 
 interface Props {
-    cart: Cart | null;
+    cart: CartSummary | null;
+    checkoutAvailable: boolean;
+    maxQuantity: number;
 }
 
 const props = defineProps<Props>();
+
+const busyItemId = ref<number | null>(null);
+
+const changeQuantity = (itemId: number, value: number) => {
+    const quantity = Math.min(props.maxQuantity, Math.max(1, Math.trunc(Number.isFinite(value) ? value : 1)));
+
+    busyItemId.value = itemId;
+    router.patch(route('shop.cart.items.update', itemId), { quantity }, { preserveScroll: true, onFinish: () => (busyItemId.value = null) });
+};
+
+const removeItem = (itemId: number) => {
+    busyItemId.value = itemId;
+    router.delete(route('shop.cart.items.destroy', itemId), { preserveScroll: true, onFinish: () => (busyItemId.value = null) });
+};
 </script>
 
 <template>
@@ -45,49 +38,84 @@ const props = defineProps<Props>();
         <Head title="Cart" />
 
         <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-muted-foreground uppercase">Cart</p>
-                    <h1 class="text-3xl font-bold tracking-tight">Your cart</h1>
-                    <p class="text-muted-foreground">Stubbed cart view wired for future checkout.</p>
-                </div>
-                <Button variant="secondary" disabled>Proceed to checkout</Button>
+            <div>
+                <p class="text-sm text-muted-foreground uppercase">Cart</p>
+                <h1 class="text-3xl font-bold tracking-tight">Your cart</h1>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Line items</CardTitle>
+                    <CardTitle>Items</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div v-if="props.cart && props.cart.items.length" class="space-y-4">
-                        <div v-for="item in props.cart.items" :key="item.id" class="rounded border p-4">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <div class="font-medium">{{ item.product?.name || 'Product' }}</div>
-                                    <p class="text-sm text-muted-foreground">{{ item.variant?.name || 'Base product' }}</p>
-                                    <p class="text-sm text-muted-foreground">Qty: {{ item.quantity }}</p>
-                                </div>
-                                <div class="text-right">
-                                    <div class="font-semibold">{{ item.total }} {{ props.cart.currency }}</div>
-                                    <p class="text-sm text-muted-foreground">{{ item.unit_price }} each</p>
-                                </div>
+                    <ul v-if="props.cart && props.cart.items.length" class="divide-y">
+                        <li
+                            v-for="item in props.cart.items"
+                            :key="item.id"
+                            class="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+                        >
+                            <div class="min-w-0">
+                                <Link v-if="item.slug" :href="route('shop.products.show', item.slug)" class="font-medium hover:underline">{{
+                                    item.name
+                                }}</Link>
+                                <span v-else class="font-medium">{{ item.name }}</span>
+                                <p v-if="item.variant" class="text-sm text-muted-foreground">{{ item.variant }}</p>
+                                <p class="text-sm text-muted-foreground tabular-nums">{{ formatMoney(item.unit_price, props.cart.currency) }} each</p>
                             </div>
-                            <div class="mt-3 flex items-center justify-end gap-2">
-                                <Button variant="outline" size="sm" disabled>Update</Button>
-                                <Button variant="ghost" size="sm" disabled>Remove</Button>
+
+                            <div class="flex items-center gap-3">
+                                <label class="sr-only" :for="`quantity-${item.id}`">Quantity for {{ item.name }}</label>
+                                <Input
+                                    :id="`quantity-${item.id}`"
+                                    type="number"
+                                    inputmode="numeric"
+                                    min="1"
+                                    :max="props.maxQuantity"
+                                    class="w-20"
+                                    :model-value="item.quantity"
+                                    :disabled="busyItemId === item.id"
+                                    @change="changeQuantity(item.id, Number(($event.target as HTMLInputElement).value))"
+                                />
+                                <div class="w-24 text-right font-semibold tabular-nums">{{ formatMoney(item.total, props.cart.currency) }}</div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    :aria-label="`Remove ${item.name}`"
+                                    :disabled="busyItemId === item.id"
+                                    @click="removeItem(item.id)"
+                                >
+                                    <Trash2 class="size-4" />
+                                </Button>
                             </div>
-                        </div>
+                        </li>
+                    </ul>
+                    <div v-else class="space-y-3 py-6 text-center">
+                        <p class="text-muted-foreground">Your cart is empty.</p>
+                        <Button as-child>
+                            <Link :href="route('shop.index')">Browse the shop</Link>
+                        </Button>
                     </div>
-                    <p v-else class="text-sm text-muted-foreground">No items yet. Connect add-to-cart actions to populate this view.</p>
                 </CardContent>
-                <Separator />
-                <CardFooter class="flex items-center justify-between">
-                    <div class="text-sm text-muted-foreground">Status: {{ props.cart?.status || 'open' }}</div>
-                    <div class="text-right">
-                        <div class="text-sm text-muted-foreground">Subtotal</div>
-                        <div class="text-2xl font-bold">{{ props.cart?.subtotal || '0.00' }} {{ props.cart?.currency || 'USD' }}</div>
-                    </div>
-                </CardFooter>
+
+                <template v-if="props.cart && props.cart.items.length">
+                    <Separator />
+                    <CardFooter class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <div class="text-sm text-muted-foreground">Subtotal</div>
+                            <div class="text-2xl font-bold tabular-nums">{{ formatMoney(props.cart.subtotal, props.cart.currency) }}</div>
+                            <p class="mt-1 text-xs text-muted-foreground">The final total is confirmed at checkout.</p>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <Button v-if="props.checkoutAvailable" as-child size="lg">
+                                <Link :href="route('shop.checkout')">Proceed to checkout</Link>
+                            </Button>
+                            <Button v-else size="lg" disabled>Checkout unavailable</Button>
+                            <p v-if="!props.checkoutAvailable" class="text-xs text-muted-foreground">
+                                Payments are not set up yet. Please check back soon.
+                            </p>
+                        </div>
+                    </CardFooter>
+                </template>
             </Card>
 
             <div class="flex justify-end">
