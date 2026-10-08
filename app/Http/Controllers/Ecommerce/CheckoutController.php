@@ -166,6 +166,8 @@ class CheckoutController extends Controller
                 'shipping_total' => $order->shipping_total,
                 'discount_total' => $order->discount_total,
                 'grand_total' => $order->grand_total,
+                'refunded_total' => $order->refunded_total,
+                'shipment' => $order->metadata['shipment'] ?? null,
                 'customer_email' => $order->customer_email,
                 'placed_at' => $order->placed_at?->toIso8601String(),
                 'shipping_method' => $order->shipping_method,

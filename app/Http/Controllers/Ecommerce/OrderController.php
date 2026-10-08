@@ -27,6 +27,7 @@ class OrderController extends Controller
                 'payment_status_label' => $order->payment_status->label(),
                 'currency' => $order->currency,
                 'grand_total' => $order->grand_total,
+                'refunded_total' => $order->refunded_total,
                 'created_at' => $order->created_at?->toIso8601String(),
                 'url' => route('shop.checkout.complete', ['order' => $order->public_id]),
                 'items' => $order->items->map(fn ($item) => [

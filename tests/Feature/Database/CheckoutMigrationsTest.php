@@ -216,15 +216,39 @@ class CheckoutMigrationsTest extends TestCase
     #[Test]
     public function the_new_tables_can_be_rolled_back_and_recreated(): void
     {
-        foreach (['2026_10_09_000200_create_inventory_movements_table', '2026_10_09_000100_create_payments_table'] as $file) {
-            $migration = $this->migration($file);
-            $table = str_contains($file, 'payments') ? 'payments' : 'inventory_movements';
+        $tables = [
+            'payments' => '2026_10_09_000100_create_payments_table',
+            'inventory_movements' => '2026_10_09_000200_create_inventory_movements_table',
+            'refunds' => '2026_10_11_000000_create_refunds_table',
+            'order_events' => '2026_10_11_000100_create_order_events_table',
+        ];
 
-            $migration->down();
-            $this->assertFalse(Schema::hasTable($table));
-
-            $migration->up();
-            $this->assertTrue(Schema::hasTable($table));
+        // Newest first, as `migrate:rollback` goes, so no table is dropped while another still
+        // refers to it (refunds point at payments). Then back again, oldest first.
+        foreach (array_reverse($tables, true) as $table => $file) {
+            $this->migration($file)->down();
+            $this->assertFalse(Schema::hasTable($table), "{$table} should be gone");
         }
+
+        foreach ($tables as $table => $file) {
+            $this->migration($file)->up();
+            $this->assertTrue(Schema::hasTable($table), "{$table} should be back");
+        }
+    }
+
+    #[Test]
+    public function the_refunded_total_column_rolls_back_and_forward_cleanly(): void
+    {
+        $migration = $this->migration('2026_10_11_000200_add_refunded_total_to_orders_table');
+
+        $migration->down();
+        $this->assertFalse(Schema::hasColumn('orders', 'refunded_total'));
+
+        $migration->up();
+        $this->assertTrue(Schema::hasColumn('orders', 'refunded_total'));
+
+        // Orders placed before refunds existed start with nothing refunded.
+        $id = DB::table('orders')->insertGetId(['status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+        $this->assertSame('0.00', number_format((float) DB::table('orders')->where('id', $id)->value('refunded_total'), 2, '.', ''));
     }
 }

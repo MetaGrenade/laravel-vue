@@ -101,6 +101,21 @@ trait InteractsWithCommerce
     }
 
     /**
+     * Like {@see self::placeOrder()}, then the customer pays and Stripe says so (the way
+     * it does in production: a signed webhook).
+     *
+     * @return array{0: Order, 1: Payment, 2: Product}
+     */
+    protected function placePaidOrder(string $price = '25.00', int $quantity = 1, int $stock = 5): array
+    {
+        [$order, $payment, $product] = $this->placeOrder($price, $quantity, $stock);
+
+        $this->deliverStripeEvent($this->stripeEvent('checkout.session.completed', $this->sessionFor($payment)))->assertOk();
+
+        return [$order->refresh(), $payment->refresh(), $product];
+    }
+
+    /**
      * A valid address as the checkout form posts it.
      *
      * @param  array<string, mixed>  $overrides

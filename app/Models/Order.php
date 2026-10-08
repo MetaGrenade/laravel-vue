@@ -55,6 +55,7 @@ class Order extends Model
         'shipping_total' => 'decimal:2',
         'discount_total' => 'decimal:2',
         'grand_total' => 'decimal:2',
+        'refunded_total' => 'decimal:2',
         'placed_at' => 'datetime',
         'paid_at' => 'datetime',
         'fulfilled_at' => 'datetime',
@@ -139,8 +140,28 @@ class Order extends Model
         return $this->hasMany(InventoryMovement::class);
     }
 
+    /**
+     * @return HasMany<Refund, $this>
+     */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    /**
+     * @return HasMany<OrderEvent, $this>
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(OrderEvent::class);
+    }
+
+    /**
+     * Whether the customer's money was received. True for a refunded order too:
+     * it was paid for, so it can neither be paid again nor cancelled as unpaid.
+     */
     public function isPaid(): bool
     {
-        return $this->payment_status === OrderPaymentStatus::Paid;
+        return $this->payment_status->hasReceivedPayment();
     }
 }

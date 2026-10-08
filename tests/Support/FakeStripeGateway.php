@@ -2,6 +2,7 @@
 
 namespace Tests\Support;
 
+use App\Payments\Exceptions\RefundRejected;
 use App\Payments\Stripe\StripeGateway;
 use RuntimeException;
 use Throwable;
@@ -38,6 +39,23 @@ class FakeStripeGateway implements StripeGateway
     public ?Throwable $failRetrieveWith = null;
 
     public ?Throwable $failExpireWith = null;
+
+    /** Refunds Stripe holds, by id. @var array<string, array<string, mixed>> */
+    public array $refunds = [];
+
+    /** The status new refunds get ("succeeded", "pending", "failed"). */
+    public string $nextRefundStatus = 'succeeded';
+
+    /** Throw before Stripe sees the request (a dropped connection): nothing is created. */
+    public ?Throwable $failRefundWith = null;
+
+    /** Create the refund, then lose the reply: the caller sees an error but Stripe has it. */
+    public bool $loseRefundReply = false;
+
+    public ?Throwable $failListRefundsWith = null;
+
+    /** @var array<string, string> */
+    private array $refundsByKey = [];
 
     public function createCheckoutSession(array $params, string $idempotencyKey): array
     {
@@ -106,6 +124,106 @@ class FakeStripeGateway implements StripeGateway
         $this->expired[] = $id;
 
         return $this->sessions[$id];
+    }
+
+    public function createRefund(array $params, string $idempotencyKey): array
+    {
+        $this->calls[] = "refund:{$params['payment_intent']}";
+
+        if ($this->failRefundWith !== null) {
+            throw $this->failRefundWith;
+        }
+
+        if (isset($this->refundsByKey[$idempotencyKey])) {
+            return $this->refunds[$this->refundsByKey[$idempotencyKey]];
+        }
+
+        $refund = $this->storeRefund(
+            $params['payment_intent'],
+            $params['amount'],
+            $this->nextRefundStatus,
+            $params['reason'] ?? null,
+            $params['metadata'] ?? [],
+        );
+
+        $this->refundsByKey[$idempotencyKey] = $refund['id'];
+
+        if ($this->loseRefundReply) {
+            throw new RuntimeException('Connection reset while waiting for Stripe.');
+        }
+
+        return $refund;
+    }
+
+    public function listRefunds(string $paymentIntentId): array
+    {
+        $this->calls[] = "list-refunds:{$paymentIntentId}";
+
+        if ($this->failListRefundsWith !== null) {
+            throw $this->failListRefundsWith;
+        }
+
+        return array_values(array_filter(
+            $this->refunds,
+            fn (array $refund) => $refund['payment_intent'] === $paymentIntentId,
+        ));
+    }
+
+    /**
+     * A refund made in Stripe's dashboard: the shop never asked for it.
+     *
+     * @return array<string, mixed>
+     */
+    public function refundExternally(string $paymentIntentId, int $amount, string $status = 'succeeded'): array
+    {
+        return $this->storeRefund($paymentIntentId, $amount, $status, 'requested_by_customer', []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function setRefundStatus(string $refundId, string $status, ?string $failureReason = null): array
+    {
+        $this->refunds[$refundId]['status'] = $status;
+        $this->refunds[$refundId]['failure_reason'] = $failureReason;
+
+        return $this->refunds[$refundId];
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array<string, mixed>
+     */
+    private function storeRefund(string $paymentIntentId, int $amount, string $status, ?string $reason, array $metadata): array
+    {
+        $session = collect($this->sessions)->first(fn (array $session) => $session['payment_intent'] === $paymentIntentId);
+
+        if ($session === null) {
+            throw new RefundRejected("No such payment_intent: '{$paymentIntentId}'");
+        }
+
+        $held = collect($this->refunds)
+            ->filter(fn (array $refund) => $refund['payment_intent'] === $paymentIntentId && in_array($refund['status'], ['succeeded', 'pending'], true))
+            ->sum('amount');
+
+        // Like Stripe, never more than is left on the charge.
+        if ($amount > $session['amount_total'] - $held) {
+            throw new RefundRejected("Refund amount ({$amount}) is greater than unrefunded amount on charge");
+        }
+
+        $id = 're_test_'.(count($this->refunds) + 1);
+
+        return $this->refunds[$id] = [
+            'id' => $id,
+            'object' => 'refund',
+            'amount' => $amount,
+            'currency' => $session['currency'],
+            'payment_intent' => $paymentIntentId,
+            'status' => $status,
+            'reason' => $reason,
+            'failure_reason' => null,
+            'metadata' => $metadata,
+        ];
     }
 
     /**

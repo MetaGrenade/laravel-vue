@@ -15,6 +15,7 @@ import {
     MessageCircle,
     MessageSquare,
     Percent,
+    ReceiptText,
     Search,
     Settings,
     Shield,
@@ -95,6 +96,7 @@ const navGroups = computed<AdminNavGroup[]>(() => {
             title: 'Commerce & billing',
             items: [
                 { title: 'Commerce', href: '/acp/commerce', icon: ShoppingBag, visible: can('commerce.acp.view') && sections.value.commerce },
+                { title: 'Orders', href: '/acp/commerce/orders', icon: ReceiptText, visible: can('commerce.acp.view') && sections.value.commerce },
                 { title: 'Shipping', href: '/acp/commerce/shipping', icon: Truck, visible: can('commerce.acp.view') && sections.value.commerce },
                 { title: 'Tax rates', href: '/acp/commerce/tax-rates', icon: Percent, visible: can('commerce.acp.view') && sections.value.commerce },
                 { title: 'Subscription plans', href: '/acp/billing/plans', icon: Layers, visible: can('billing.acp.view') },

@@ -71,9 +71,24 @@ class InventoryReserver
      */
     public function release(Order $order, ?string $note = null): void
     {
+        $this->giveBack($order, InventoryMovement::RELEASE, $note);
+    }
+
+    /**
+     * Put a paid order's stock back on the shelf because it was refunded in full.
+     * Like {@see self::release()}, only what the order still holds is returned, so
+     * repeating it (or releasing afterwards) cannot add stock twice.
+     */
+    public function restock(Order $order, ?string $note = null): void
+    {
+        $this->giveBack($order, InventoryMovement::RESTOCK, $note);
+    }
+
+    private function giveBack(Order $order, string $reason, ?string $note): void
+    {
         $held = InventoryMovement::query()
             ->where('order_id', $order->id)
-            ->whereIn('reason', [InventoryMovement::RESERVATION, InventoryMovement::RELEASE])
+            ->whereIn('reason', [InventoryMovement::RESERVATION, InventoryMovement::RELEASE, InventoryMovement::RESTOCK])
             ->get()
             ->groupBy(fn (InventoryMovement $movement) => $movement->inventory_item_id.':'.$movement->order_item_id);
 
@@ -96,7 +111,7 @@ class InventoryReserver
                 'order_id' => $order->id,
                 'order_item_id' => $first->order_item_id,
                 'delta' => $outstanding,
-                'reason' => InventoryMovement::RELEASE,
+                'reason' => $reason,
                 'note' => $note,
             ]);
         }

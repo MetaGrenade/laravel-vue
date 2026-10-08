@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { Percent, Truck } from '@lucide/vue';
+import { Percent, ReceiptText, Truck } from '@lucide/vue';
 import type { BreadcrumbItem } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -54,6 +54,8 @@ type Inventory = {
 
 type Order = {
     id: number;
+    public_id: string;
+    number: string;
     user_id: number | null;
     status: string;
     currency: string;
@@ -283,6 +285,9 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
         <AdminLayout>
             <div class="w-full space-y-6">
                 <div class="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" as-child>
+                        <Link :href="route('acp.commerce.orders.index')"><ReceiptText class="size-4" /> Orders</Link>
+                    </Button>
                     <Button variant="outline" size="sm" as-child>
                         <Link :href="route('acp.commerce.shipping.index')"><Truck class="size-4" /> Shipping zones and rates</Link>
                     </Button>
@@ -609,7 +614,11 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                                 </TableHeader>
                                 <TableBody>
                                     <TableRow v-for="order in orders" :key="order.id">
-                                        <TableCell>#{{ order.id }}</TableCell>
+                                        <TableCell>
+                                            <Link :href="route('acp.commerce.orders.show', order.public_id)" class="font-medium hover:underline">{{
+                                                order.number
+                                            }}</Link>
+                                        </TableCell>
                                         <TableCell
                                             ><Badge variant="outline">{{ formatStatus(order.status) }}</Badge></TableCell
                                         >

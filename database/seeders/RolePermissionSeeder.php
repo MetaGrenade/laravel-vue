@@ -44,6 +44,10 @@ class RolePermissionSeeder extends Seeder
             if ($permission === 'users') {
                 Permission::firstOrCreate(['name' => 'users.acp.update']);
             }
+            if ($permission === 'commerce') {
+                // Sending money back cannot be undone, so it is granted separately from editing.
+                Permission::firstOrCreate(['name' => 'commerce.acp.refund']);
+            }
             if ($permission == 'blogs') {
                 Permission::firstOrCreate(['name' => $permission.'.acp.publish']);
             }

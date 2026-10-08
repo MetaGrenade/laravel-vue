@@ -30,10 +30,14 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 - Products can be marked as not needing shipping (digital goods) and as not taxable; the ACP product form sets both.
 - Example shipping zones, rates and tax rates in the demo seeder.
 - **Admin screens for shipping and tax.** Commerce → Shipping manages zones (pick countries one by one, add all EU countries, or cover everywhere else) and their rates (price, optional minimum and maximum order value, active or not); Commerce → Tax rates manages the tax table. The screens warn when shipping isn't set up or a zone has no active rates, and when you are about to delete your last active zone. Each action has its own permission (`commerce.acp.view`, `create`, `edit`, `delete`).
+- **Order management and refunds (M1).** Commerce → Orders lists and searches orders (by status, payment state, number, name or email) and opens each one to show its items, totals, customer, addresses, payments and history. Staff can mark an order fulfilled with optional tracking (the customer is emailed), cancel an unpaid order, check a payment with the provider, and leave notes. Every change is written to an append-only order history with who did it.
+- **Refunds.** Full or partial refunds sent back through Stripe from the order page, with a reason, a note, an option to return the items to stock and an option to email the customer. A refund is recorded before the provider is asked and is idempotent, so a double click or a lost reply cannot refund twice; a refund Stripe has not confirmed stays pending until it is checked, and a refund that fails frees its balance. Refunds made in the Stripe dashboard are picked up through the `refund.*` and `charge.refunded` webhooks, and a refund made outside the shop can be recorded by hand. Orders gain the payment states `partially_refunded` and `refunded`; a full refund of an unshipped order cancels it. Refunding has its own permission, `commerce.acp.refund`. See [docs/commerce.md](docs/commerce.md#refunds).
+- Customers see refunds and tracking details on their order, and are emailed when an order ships and when a refund goes through.
 - Web manifest generated from configuration; home page SEO copy configurable through `seo.home.*` (`SEO_HOME_TITLE`, `SEO_HOME_DESCRIPTION`).
 
 ### Changed
 
+- The revenue figure on the ACP Commerce page now counts only paid orders, less what was refunded (it used to add up every order, including unpaid and cancelled ones).
 - Support attachments are stored on a private disk (`SUPPORT_ATTACHMENT_DISK`, default `local`) instead of the public disk. A migration moves existing files.
 - All text filters and search use case-insensitive `whereLike`, so they behave the same on MySQL, PostgreSQL and SQLite.
 - The brand name now comes from one place (`APP_NAME`); the logo, web manifest and home page no longer hard-code it.

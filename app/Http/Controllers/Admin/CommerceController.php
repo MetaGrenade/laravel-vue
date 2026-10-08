@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\OrderPaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\InventoryItem;
@@ -49,7 +50,7 @@ class CommerceController extends Controller
             ->with(['user:id,nickname,email'])
             ->latest()
             ->limit(10)
-            ->get(['id', 'user_id', 'status', 'currency', 'grand_total', 'created_at']);
+            ->get(['id', 'public_id', 'number', 'user_id', 'status', 'payment_status', 'currency', 'grand_total', 'created_at']);
 
         $metrics = [
             'products' => [
@@ -72,7 +73,13 @@ class CommerceController extends Controller
                 'processing' => Order::where('status', 'processing')->count(),
                 'completed' => Order::where('status', 'completed')->count(),
                 'cancelled' => Order::where('status', 'cancelled')->count(),
-                'revenue' => (float) Order::sum('grand_total'),
+                // What was actually taken: only orders that were paid, less what was refunded.
+                'revenue' => (float) Order::query()
+                    ->whereIn('payment_status', array_map(
+                        fn (OrderPaymentStatus $status) => $status->value,
+                        array_filter(OrderPaymentStatus::cases(), fn (OrderPaymentStatus $status) => $status->hasReceivedPayment()),
+                    ))
+                    ->sum(DB::raw('grand_total - refunded_total')),
             ],
         ];
 

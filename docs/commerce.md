@@ -23,16 +23,20 @@ An order has two independent states.
 |----------|---------|
 | `pending` | Placed, waiting for payment. Stock is held. |
 | `processing` | Paid, waiting to be fulfilled. |
-| `completed` | Fulfilled. |
-| `cancelled` | Cancelled before payment. Stock was released. |
+| `completed` | Fulfilled (shipped, or delivered if digital). |
+| `cancelled` | Cancelled before payment (stock released), or refunded in full before it was fulfilled. |
 
 | `payment_status` | Meaning |
 |------------------|---------|
 | `unpaid` | No successful payment yet. |
 | `paid` | Payment confirmed for the full amount. |
 | `failed` | The payment attempt failed for good. |
+| `partially_refunded` | Some of the money has been returned (see [Refunds](#refunds)). |
+| `refunded` | All of it has been returned. |
 
-All state changes go through `App\Support\Commerce\OrderLifecycle`. Each method locks the order row, re-reads it and does nothing if the change already happened, so a redelivered webhook or a double click cannot apply a change twice. Events (`OrderPaid`, `OrderCancelled`) are dispatched after the transaction commits; the receipt email and a safety-net close of the provider's checkout are listeners on them.
+A refunded order was still paid for once, so `Order::isPaid()` is true for `paid`, `partially_refunded` and `refunded`: it cannot be paid a second time or cancelled as if it were unpaid.
+
+All state changes go through `App\Support\Commerce\OrderLifecycle` (and, for refunds, `OrderRefunder`). Each method locks the order row, re-reads it and does nothing if the change already happened, so a redelivered webhook or a double click cannot apply a change twice. Events (`OrderPaid`, `OrderCancelled`, `OrderFulfilled`, `OrderRefunded`) are dispatched after the transaction commits; the receipt, shipping and refund emails and a safety-net close of the provider's checkout are listeners on them.
 
 Orders are addressed in URLs by an unguessable `public_id` (a ULID), not the row id. People see the order number (`MF-000123`; the prefix is `COMMERCE_ORDER_PREFIX`).
 
@@ -101,6 +105,50 @@ Tax is a configurable table (`tax_rates`). **Prices are tax-exclusive**: tax is 
 
 This suits simple setups. It does not do thresholds, product-category rates, tax-inclusive pricing or B2B reverse charge; for complex jurisdictions, an integration with Stripe Tax is planned as an alternative driver.
 
+## Managing orders
+
+**Commerce → Orders** in the ACP lists every order, newest first, with tabs for each status (and how many are in it), a search by order number, name or email, and a filter by payment state. Opening an order shows its items and totals, customer, addresses, payments (with a link to the payment in the provider's dashboard), refunds and its history.
+
+| Action | What it does | Permission |
+|--------|--------------|------------|
+| Mark as fulfilled | Moves a paid order to `completed`. Optional carrier, tracking number and tracking link are kept on the order and shown to the customer; the customer is emailed unless you untick it. | `commerce.acp.edit` |
+| Cancel order | Cancels an **unpaid** order and gives its stock back. A paid order is refunded instead. | `commerce.acp.edit` |
+| Check payment | Asks the provider what became of an unpaid order's payment, for when its webhook was late or lost. | `commerce.acp.edit` |
+| Add a note | A note for the team, kept in the history. Customers never see it. | `commerce.acp.edit` |
+| Refund | Sends money back (below). | `commerce.acp.refund` |
+
+Refunding has its own permission because it cannot be undone. The `admin` role has every permission; give `commerce.acp.refund` to other staff roles in Access control only if they should be able to.
+
+The history (`order_events`) records payment, fulfilment, cancellation, refunds and notes, each with who did it. It is append-only.
+
+The tracking link is shown to customers as a link, so only `http` and `https` addresses are accepted.
+
+## Refunds
+
+A refund is a record of its own (`refunds`), not just a number on the order, because it can be pending at the provider, fail, or be made outside the shop. `App\Support\Commerce\OrderRefunder` is the only place one is created or changes state.
+
+**How a refund runs.**
+
+1. Inside a transaction that locks the order, the refund is checked and saved as `pending`: the order must be paid, the amount must be in the order's currency and greater than zero, and it cannot exceed what is left (the total less refunds that succeeded **or are still pending**, so two staff members cannot refund the same money twice).
+2. After that commits, the provider is asked to send the money back. The refund's idempotency key goes with the request, so repeating it cannot refund twice.
+3. The provider's answer is applied: `succeeded`, `pending` (some payment methods take days), or `failed`.
+
+**When the answer is unknown** (the connection dropped, Stripe errored), the refund stays `pending` and holds its balance. It is *not* marked failed, because it may exist at the provider. **Check status** on the refund asks Stripe for its refunds on that payment and matches them to ours (each is created with our refund id in its metadata). If Stripe has no record of it ten minutes later, it never arrived and is marked failed so the money can be refunded again.
+
+**What the order shows.** `refunded_total` and `payment_status` are recomputed from the succeeded refunds every time one changes; they are never edited, so repeated or reordered provider messages cannot make them drift. A refund that fails after it succeeded (a closed card account) takes the order back to `paid` or `partially_refunded`.
+
+**A full refund of an order that has not shipped cancels it** (`processing` becomes `cancelled`): there is nothing left to send. A shipped order stays `completed` with payment status `refunded`.
+
+**Stock.** Ticking *Put the items back in stock* adds the order's stock back (movement reason `restock`) when the refund completes the order. It is only offered then, because a partial refund cannot say which items came back. Like `release`, only what the order still holds is returned, so it can never add stock twice.
+
+**Recorded by hand.** If you returned the money another way (cash, a bank transfer), record it: the refund is saved as succeeded without asking the provider. An order whose provider cannot refund (it declares no `refunds` capability, or there is no payment reference) can only be recorded this way.
+
+**Refunds made in the provider's dashboard** are picked up too. The refund webhooks only say *which payment* changed; the refunds themselves are then read from Stripe, so the shape of the event does not matter. A refund made in the dashboard is recorded without an email to the customer (whoever made it is looking after them), and a refund made on a duplicate payment (the customer paid twice) is logged and not applied to the order.
+
+**Emails.** When a refund first succeeds the customer gets an email with the amount and a link to their order, unless staff untick *Email the customer* (a refund made in the dashboard never sends one). Marking an order fulfilled sends a shipping email the same way.
+
+`StripeProvider` implements `refund()`, `syncRefunds()` and `paymentUrl()` from the contract; a provider that cannot refund simply leaves `Capability::REFUNDS` out of `capabilities()`.
+
 ## The live quote
 
 As the shopper fills in the form, the page asks the server for the totals (`GET /checkout?ship_country=…&ship_region=…&rate=…`, a partial reload of the `quote` prop). Only the country, region and chosen method are sent, never prices. The same `OrderPricer` produces the quote and the order, in a lenient mode for the quote (it reports what is missing) and a strict mode for the order (it refuses anything incomplete or no longer offered), so the two cannot disagree. A signed-in customer's default saved address is priced from the first render.
@@ -109,7 +157,7 @@ As the shopper fills in the form, the page asks the server for the totals (`GET 
 
 `inventory_items` holds the on-hand quantity. A product (or variant) with **no** inventory row is not tracked and always available; give it a row to track it. A variant's own row is used first, then the product's row. `allow_backorder` lets the level go negative.
 
-Every change is written to `inventory_movements` (`reservation`, `release`), so a reservation is released exactly once and a stock level can always be explained. Unpaid orders hold stock for `COMMERCE_PAYMENT_WINDOW` minutes (default 60, minimum 30 because Stripe sessions cannot expire sooner). The scheduler runs `ExpirePendingOrders` every five minutes (`php artisan commerce:expire-orders` does the same by hand). Before cancelling, it asks the provider what happened to the payment: an order that was paid just as its window ran out is settled, not cancelled, and an order is left alone if the provider cannot be reached. **The scheduler (`php artisan schedule:run` every minute) and a queue worker must be running in production.**
+Every change is written to `inventory_movements` (`reservation`, `release`, `restock`), so a reservation is released exactly once and a stock level can always be explained. Unpaid orders hold stock for `COMMERCE_PAYMENT_WINDOW` minutes (default 60, minimum 30 because Stripe sessions cannot expire sooner). The scheduler runs `ExpirePendingOrders` every five minutes (`php artisan commerce:expire-orders` does the same by hand). Before cancelling, it asks the provider what happened to the payment: an order that was paid just as its window ran out is settled, not cancelled, and an order is left alone if the provider cannot be reached. **The scheduler (`php artisan schedule:run` every minute) and a queue worker must be running in production.**
 
 A payment that arrives for an order that was already cancelled is honoured: the order is reinstated, the stock is taken again (even if that leaves it negative) and the order is flagged `metadata.late_payment` and logged, so a person can check it.
 
@@ -131,6 +179,10 @@ Point a Stripe webhook endpoint at `/stripe/webhook` and enable, in addition to 
 - `checkout.session.async_payment_succeeded`
 - `checkout.session.async_payment_failed`
 - `checkout.session.expired`
+- `refund.created`, `refund.updated` and `refund.failed` (so refunds that are pending, fail later or are made in the Stripe dashboard update the order)
+- `charge.refunded` (optional: a second signal that something was refunded)
+
+Refund events for payments this shop did not take (subscription invoices, for example) are ignored.
 
 With the Stripe CLI: `stripe listen --forward-to http://localhost:8000/stripe/webhook`.
 
@@ -167,7 +219,7 @@ Prices are `decimal(10,2)` columns, but all arithmetic is done on integers in `A
 
 ## Upgrading an existing installation
 
-Run `php artisan migrate`. The new migrations are safe on a database that already has data. For the shipping, tax and address slice: products gain *Needs shipping* and *Charge tax* flags (existing products stay shipped and taxed), orders gain empty address and shipping-method columns, and the address, shipping and tax tables are new. **Behaviour change:** products are shipped by default, so checkout now asks for a shipping address; with no shipping zones configured it still ships anywhere for free, as before. For the first slice:
+Run `php artisan migrate`. The new migrations are safe on a database that already has data. For order management and refunds: `refunds` and `order_events` are new tables and orders gain a `refunded_total` (zero for existing orders). Run `php artisan db:seed --class=RolePermissionSeeder` to create the `commerce.acp.refund` permission (the admin role is given it; grant it to other staff roles in Access control), and add the five refund events above to your Stripe webhook endpoint. For the shipping, tax and address slice: products gain *Needs shipping* and *Charge tax* flags (existing products stay shipped and taxed), orders gain empty address and shipping-method columns, and the address, shipping and tax tables are new. **Behaviour change:** products are shipped by default, so checkout now asks for a shipping address; with no shipping zones configured it still ships anywhere for free, as before. For the first slice:
 
 - `add_checkout_columns_to_orders_table` adds the new order columns and **backfills** existing orders: each gets a public id and number, an owner (the placing user), and a payment state implied by its old status (`processing` and `completed` become `paid`).
 - `generalise_billing_webhook_calls_table` adds `provider` and `external_id` (copied from `stripe_id`) so shop and subscription events share one idempotency key.
@@ -177,4 +229,4 @@ The header cart previously showed an estimated 7% tax and a flat shipping charge
 
 ## Not built yet
 
-Planned for the rest of M1 (see the roadmap): ACP order management (view, status changes, notes, refunds), catalogue editing and product images, inventory adjustments, coupons and gift cards, digital goods (downloads and licence keys; the *Needs shipping* flag is already in place), reviews and wishlists. A guest's cart is not yet carried over when they sign in, and a guest's orders are not yet attached to an account created later with the same email. Tebex arrives in M2 behind the same provider contract.
+Planned for the rest of M1 (see the roadmap): catalogue editing and product images, inventory adjustments, coupons and gift cards, digital goods (downloads and licence keys; the *Needs shipping* flag is already in place), reviews and wishlists. A guest's cart is not yet carried over when they sign in, and a guest's orders are not yet attached to an account created later with the same email. Tebex arrives in M2 behind the same provider contract.
