@@ -47,8 +47,17 @@ class CashierStripeGateway implements StripeGateway
 
     public function listRefunds(string $paymentIntentId): array
     {
-        $refunds = Cashier::stripe()->refunds->all(['payment_intent' => $paymentIntentId, 'limit' => 100]);
+        $refunds = [];
 
-        return array_values($refunds->toArray()['data'] ?? []);
+        // Stripe returns at most 100 refunds a page. Follow the cursor to the end: a refund on an
+        // earlier page is as real as one on the first, and missing it would leave a refund that
+        // was made in the dashboard unrecorded, or an asynchronous one stuck as pending.
+        $pages = Cashier::stripe()->refunds->all(['payment_intent' => $paymentIntentId, 'limit' => 100]);
+
+        foreach ($pages->autoPagingIterator() as $refund) {
+            $refunds[] = $refund->toArray();
+        }
+
+        return $refunds;
     }
 }

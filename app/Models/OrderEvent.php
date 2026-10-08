@@ -28,6 +28,8 @@ class OrderEvent extends Model
 
     public const REFUND_UNCONFIRMED = 'refund_unconfirmed';
 
+    public const REINSTATED = 'reinstated';
+
     protected $fillable = [
         'order_id',
         'user_id',

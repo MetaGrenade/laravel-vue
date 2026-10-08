@@ -343,6 +343,124 @@ class OrderRefundTest extends TestCase
     }
 
     #[Test]
+    public function a_full_refund_that_later_fails_puts_the_order_back_to_processing(): void
+    {
+        [$order] = $this->placePaidOrder(price: '20.00');
+        $this->refund($order, '20.00');
+        $this->assertSame(OrderStatus::Cancelled, $order->fresh()->status);
+
+        $failed = $this->stripe->setRefundStatus('re_test_1', 'failed', 'expired_or_canceled_card');
+        $this->deliverStripeEvent($this->stripeEvent('refund.failed', $failed))->assertOk();
+
+        // The customer's money was never returned, so the order is owed again.
+        $order->refresh();
+        $this->assertSame(OrderStatus::Processing, $order->status);
+        $this->assertNull($order->cancelled_at);
+        $this->assertSame(OrderPaymentStatus::Paid, $order->payment_status);
+        $this->assertSame('0.00', $order->refunded_total);
+        $this->assertArrayNotHasKey('cancelled_by_refund', $order->metadata ?? []);
+        $this->assertContains(OrderEvent::REINSTATED, $order->events()->pluck('type')->all());
+        $this->assertTrue($this->app->make(OrderLifecycle::class)->fulfil($order->fresh()), 'it can be shipped again');
+    }
+
+    #[Test]
+    public function the_stock_a_failed_refund_returned_is_taken_again(): void
+    {
+        [$order] = $this->placePaidOrder(price: '10.00', quantity: 3, stock: 10);
+        $this->refund($order, '30.00', ['restock' => true]);
+        $this->assertSame(10, InventoryItem::sole()->quantity);
+
+        $failed = $this->stripe->setRefundStatus('re_test_1', 'failed');
+        $event = $this->stripeEvent('refund.failed', $failed);
+        $this->deliverStripeEvent($event)->assertOk();
+
+        $this->assertSame(7, InventoryItem::sole()->quantity, 'the order holds its three again');
+
+        // Repeating the message, or the correction, cannot take the stock twice.
+        $this->deliverStripeEvent($event)->assertOk();
+        $this->deliverStripeEvent($this->stripeEvent('refund.updated', $failed))->assertOk();
+        $this->app->make(InventoryReserver::class)->takeBack($order->fresh(), 'again');
+
+        $this->assertSame(7, InventoryItem::sole()->quantity);
+        $this->assertSame(
+            [-3, 3, -3],
+            InventoryMovement::query()->orderBy('id')->pluck('delta')->all(),
+            'reserved, restocked, then taken again',
+        );
+    }
+
+    #[Test]
+    public function a_failed_refund_that_then_succeeds_cancels_and_restocks_the_order_again(): void
+    {
+        [$order] = $this->placePaidOrder(price: '10.00', quantity: 3, stock: 10);
+        $refund = $this->refund($order, '30.00', ['restock' => true]);
+
+        $this->deliverStripeEvent($this->stripeEvent('refund.failed', $this->stripe->setRefundStatus('re_test_1', 'failed')))->assertOk();
+        $this->assertSame(OrderStatus::Processing, $order->fresh()->status);
+        $this->assertSame(7, InventoryItem::sole()->quantity);
+
+        $this->deliverStripeEvent($this->stripeEvent('refund.updated', $this->stripe->setRefundStatus('re_test_1', 'succeeded')))->assertOk();
+
+        $order->refresh();
+        $this->assertSame(RefundStatus::Succeeded, $refund->fresh()->status);
+        $this->assertSame(OrderStatus::Cancelled, $order->status);
+        $this->assertSame(OrderPaymentStatus::Refunded, $order->payment_status);
+        $this->assertSame(10, InventoryItem::sole()->quantity, 'the stock goes back again');
+
+        // The customer was told once, when it first went through.
+        Notification::assertSentOnDemandTimes(RefundIssued::class, 1);
+    }
+
+    #[Test]
+    public function the_stock_may_go_negative_if_it_was_sold_in_the_meantime(): void
+    {
+        [$order] = $this->placePaidOrder(price: '10.00', quantity: 3, stock: 10);
+        $this->refund($order, '30.00', ['restock' => true]);
+        InventoryItem::query()->update(['quantity' => 1]); // Someone bought the restocked goods.
+
+        $this->deliverStripeEvent($this->stripeEvent('refund.failed', $this->stripe->setRefundStatus('re_test_1', 'failed')))->assertOk();
+
+        // The order is real and the goods are owed; it is for a person to sort out, not to lose.
+        $this->assertSame(-2, InventoryItem::sole()->quantity);
+        $this->assertSame(OrderStatus::Processing, $order->fresh()->status);
+    }
+
+    #[Test]
+    public function when_a_final_refund_fails_the_order_is_back_to_partially_refunded_and_processing(): void
+    {
+        [$order] = $this->placePaidOrder(price: '20.00');
+        $this->refund($order, '10.00');
+        $this->refund($order, '10.00');
+        $this->assertSame(OrderStatus::Cancelled, $order->fresh()->status);
+
+        $this->deliverStripeEvent($this->stripeEvent('refund.failed', $this->stripe->setRefundStatus('re_test_2', 'failed')))->assertOk();
+
+        $order->refresh();
+        $this->assertSame(OrderStatus::Processing, $order->status);
+        $this->assertSame(OrderPaymentStatus::PartiallyRefunded, $order->payment_status);
+        $this->assertSame('10.00', $order->refunded_total);
+    }
+
+    #[Test]
+    public function a_shipped_order_is_left_alone_when_its_refund_fails(): void
+    {
+        [$order] = $this->placePaidOrder(price: '10.00', quantity: 3, stock: 10);
+        $this->app->make(OrderLifecycle::class)->fulfil($order->fresh());
+        $this->refund($order, '30.00', ['restock' => true]);
+        $this->assertSame(OrderStatus::Completed, $order->fresh()->status);
+
+        $this->deliverStripeEvent($this->stripeEvent('refund.failed', $this->stripe->setRefundStatus('re_test_1', 'failed')))->assertOk();
+
+        // It went out and was never cancelled by the refund, so there is nothing to reinstate and
+        // the goods that were returned to the shelf are still there.
+        $order->refresh();
+        $this->assertSame(OrderStatus::Completed, $order->status);
+        $this->assertSame(OrderPaymentStatus::Paid, $order->payment_status);
+        $this->assertNotContains(OrderEvent::REINSTATED, $order->events()->pluck('type')->all());
+        $this->assertSame(10, InventoryItem::sole()->quantity);
+    }
+
+    #[Test]
     public function a_refund_made_in_the_stripe_dashboard_is_picked_up(): void
     {
         [$order, $payment] = $this->placePaidOrder(price: '20.00');

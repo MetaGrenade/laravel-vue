@@ -34,6 +34,12 @@ use Illuminate\Support\Facades\Log;
 class OrderRefunder
 {
     /**
+     * Set in the order's metadata when a full refund cancelled it, so that if that refund
+     * later fails the order can be told apart from one cancelled for another reason.
+     */
+    private const CANCELLED_BY_REFUND = 'cancelled_by_refund';
+
+    /**
      * A refund the provider has no record of after this long never reached it.
      */
     private const UNCONFIRMED_AFTER_MINUTES = 10;
@@ -226,19 +232,27 @@ class OrderRefunder
 
             $this->recalculate($order);
 
-            if ($firstSuccess) {
-                $this->recordEvent(
-                    $order,
-                    $locked,
-                    OrderEvent::REFUND_SUCCEEDED,
-                    "Refunded {$locked->amount} {$locked->currency}".($locked->isProviderRefund() ? '' : ' (recorded by hand)'),
-                );
+            if ($status === RefundStatus::Succeeded) {
+                if ($firstSuccess) {
+                    $this->recordEvent(
+                        $order,
+                        $locked,
+                        OrderEvent::REFUND_SUCCEEDED,
+                        "Refunded {$locked->amount} {$locked->currency}".($locked->isProviderRefund() ? '' : ' (recorded by hand)'),
+                    );
+                } elseif ($changed) {
+                    $this->recordEvent($order, $locked, OrderEvent::REFUND_SUCCEEDED, "Refund of {$locked->amount} {$locked->currency} went through after all");
+                }
 
+                // Every time, not just the first: a refund that failed and then succeeded again has
+                // cancelled the order again. Only what the order still holds is returned.
                 if ($locked->restock && $order->payment_status === OrderPaymentStatus::Refunded) {
                     $this->inventory->restock($order, "Refund {$locked->id}");
                 }
 
-                DB::afterCommit(fn () => OrderRefunded::dispatch($order, $locked));
+                if ($firstSuccess) {
+                    DB::afterCommit(fn () => OrderRefunded::dispatch($order, $locked));
+                }
             } elseif ($changed && in_array($status, [RefundStatus::Failed, RefundStatus::Canceled], true)) {
                 $this->recordEvent(
                     $order,
@@ -417,17 +431,39 @@ class OrderRefunder
         };
 
         $attributes = ['refunded_total' => $refunded->toDecimal()];
+        $metadata = $order->metadata ?? [];
 
         if ($order->isPaid()) {
             $attributes['payment_status'] = $paymentStatus;
         }
 
-        // Nothing left to ship: an order refunded in full before it went out is cancelled.
         if ($paymentStatus === OrderPaymentStatus::Refunded && $order->status === OrderStatus::Processing) {
+            // Nothing left to ship: an order refunded in full before it went out is cancelled.
             $attributes['status'] = OrderStatus::Cancelled;
             $attributes['cancelled_at'] = now();
+            $attributes['metadata'] = [...$metadata, self::CANCELLED_BY_REFUND => true];
 
             OrderEvent::record($order, OrderEvent::CANCELLED, 'Cancelled: refunded in full before it was fulfilled.');
+        } elseif (
+            $paymentStatus !== OrderPaymentStatus::Refunded
+            && $order->isPaid()
+            && $order->status === OrderStatus::Cancelled
+            && ($metadata[self::CANCELLED_BY_REFUND] ?? false)
+        ) {
+            // The refund that cancelled the order did not hold (a refund can succeed and then fail).
+            // The customer's money was never returned, so the order is owed again: back to processing
+            // with its stock taken again, rather than left cancelled with the goods up for sale.
+            unset($metadata[self::CANCELLED_BY_REFUND]);
+
+            $attributes['status'] = OrderStatus::Processing;
+            $attributes['cancelled_at'] = null;
+            $attributes['metadata'] = $metadata ?: null;
+
+            $this->inventory->takeBack($order, 'Refund did not hold');
+
+            OrderEvent::record($order, OrderEvent::REINSTATED, 'Back to processing: the refund that cancelled this order did not go through. Refund it again, or contact the customer.');
+
+            Log::warning('A refund that had cancelled an order did not hold; the order was put back to processing.', ['order' => $order->number]);
         }
 
         $order->forceFill($attributes)->save();
