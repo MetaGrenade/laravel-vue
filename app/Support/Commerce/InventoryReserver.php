@@ -71,9 +71,67 @@ class InventoryReserver
      */
     public function release(Order $order, ?string $note = null): void
     {
+        $this->giveBack($order, InventoryMovement::RELEASE, $note);
+    }
+
+    /**
+     * Put a paid order's stock back on the shelf because it was refunded in full.
+     * Like {@see self::release()}, only what the order still holds is returned, so
+     * repeating it (or releasing afterwards) cannot add stock twice.
+     */
+    public function restock(Order $order, ?string $note = null): void
+    {
+        $this->giveBack($order, InventoryMovement::RESTOCK, $note);
+    }
+
+    /**
+     * Take again the stock that {@see self::restock()} returned, because the refund that
+     * returned it did not hold and the order is owed to the customer once more. Like a
+     * late payment it may leave stock negative: the order is real, so the goods are spoken for.
+     *
+     * Only stock that was actually restocked is taken, and only if the order does not already
+     * hold it, so repeating this cannot take it twice.
+     */
+    public function takeBack(Order $order, ?string $note = null): void
+    {
+        $groups = InventoryMovement::query()
+            ->where('order_id', $order->id)
+            ->whereIn('reason', [InventoryMovement::RESERVATION, InventoryMovement::RELEASE, InventoryMovement::RESTOCK])
+            ->orderBy('id')
+            ->get()
+            ->groupBy(fn (InventoryMovement $movement) => $movement->inventory_item_id.':'.$movement->order_item_id);
+
+        foreach ($groups as $movements) {
+            if (! $movements->contains('reason', InventoryMovement::RESTOCK) || -$movements->sum('delta') > 0) {
+                continue;
+            }
+
+            $reservation = $movements->firstWhere('reason', InventoryMovement::RESERVATION);
+
+            if ($reservation === null || $reservation->delta >= 0) {
+                continue;
+            }
+
+            $quantity = -$reservation->delta;
+
+            InventoryItem::query()->whereKey($reservation->inventory_item_id)->decrement('quantity', $quantity);
+
+            InventoryMovement::create([
+                'inventory_item_id' => $reservation->inventory_item_id,
+                'order_id' => $order->id,
+                'order_item_id' => $reservation->order_item_id,
+                'delta' => -$quantity,
+                'reason' => InventoryMovement::RESERVATION,
+                'note' => $note,
+            ]);
+        }
+    }
+
+    private function giveBack(Order $order, string $reason, ?string $note): void
+    {
         $held = InventoryMovement::query()
             ->where('order_id', $order->id)
-            ->whereIn('reason', [InventoryMovement::RESERVATION, InventoryMovement::RELEASE])
+            ->whereIn('reason', [InventoryMovement::RESERVATION, InventoryMovement::RELEASE, InventoryMovement::RESTOCK])
             ->get()
             ->groupBy(fn (InventoryMovement $movement) => $movement->inventory_item_id.':'.$movement->order_item_id);
 
@@ -96,7 +154,7 @@ class InventoryReserver
                 'order_id' => $order->id,
                 'order_item_id' => $first->order_item_id,
                 'delta' => $outstanding,
-                'reason' => InventoryMovement::RELEASE,
+                'reason' => $reason,
                 'note' => $note,
             ]);
         }

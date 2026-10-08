@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
+import { paymentStatusVariant } from '@/lib/orderStatus';
 import { Head, Link } from '@inertiajs/vue3';
 
 interface OrderItem {
@@ -23,6 +24,7 @@ interface Order {
     payment_status_label: string;
     currency: string;
     grand_total: string;
+    refunded_total: string;
     created_at: string;
     url: string;
     items: OrderItem[];
@@ -63,7 +65,7 @@ const placedOn = (value: string) => new Date(value).toLocaleDateString(undefined
                                 </div>
                                 <div class="flex gap-2">
                                     <Badge variant="secondary">{{ order.status_label }}</Badge>
-                                    <Badge :variant="order.payment_status === 'paid' ? 'default' : 'outline'">{{ order.payment_status_label }}</Badge>
+                                    <Badge :variant="paymentStatusVariant(order.payment_status)">{{ order.payment_status_label }}</Badge>
                                 </div>
                             </div>
 
@@ -80,6 +82,9 @@ const placedOn = (value: string) => new Date(value).toLocaleDateString(undefined
                                 <div>
                                     <span class="text-sm text-muted-foreground">Total </span>
                                     <span class="text-xl font-bold tabular-nums">{{ formatMoney(order.grand_total, order.currency) }}</span>
+                                    <p v-if="Number(order.refunded_total) > 0" class="text-sm text-muted-foreground">
+                                        {{ formatMoney(order.refunded_total, order.currency) }} refunded
+                                    </p>
                                 </div>
                                 <Button variant="outline" size="sm" as-child>
                                     <Link :href="order.url">View order</Link>

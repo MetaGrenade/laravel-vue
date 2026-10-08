@@ -6,10 +6,13 @@ use App\Enums\OrderPaymentStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Events\OrderCancelled;
+use App\Events\OrderFulfilled;
 use App\Events\OrderPaid;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\OrderEvent;
 use App\Models\Payment;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -82,6 +85,8 @@ class OrderLifecycle
 
             $this->consumeCart($order);
 
+            OrderEvent::record($order, OrderEvent::PAID, "Payment of {$payment->amount} {$payment->currency} received".($payment->provider ? ' through '.ucfirst($payment->provider) : ''));
+
             DB::afterCommit(fn () => OrderPaid::dispatch($order));
 
             return true;
@@ -101,12 +106,52 @@ class OrderLifecycle
     }
 
     /**
-     * Cancel an order that has not been paid and give its stock back.
-     * Paid orders are never cancelled here; returns false for them.
+     * Mark a paid order as fulfilled: shipped, or delivered if it is digital. The
+     * optional shipment (carrier, tracking number, tracking link) is kept on the
+     * order for the customer to see. Returns false when the order is not waiting
+     * to be fulfilled (unpaid, cancelled, or already done).
+     *
+     * @param  array{carrier?: string|null, tracking_number?: string|null, tracking_url?: string|null}  $shipment
      */
-    public function cancel(Order $order, string $reason = 'cancelled', OrderPaymentStatus $paymentStatus = OrderPaymentStatus::Unpaid): bool
+    public function fulfil(Order $order, array $shipment = [], bool $notifyCustomer = true, ?User $by = null): bool
     {
-        return DB::transaction(function () use ($order, $reason, $paymentStatus) {
+        return DB::transaction(function () use ($order, $shipment, $notifyCustomer, $by) {
+            $order = $this->lock($order);
+
+            if ($order->status !== OrderStatus::Processing || ! $order->isPaid()) {
+                return false;
+            }
+
+            $shipment = array_filter($shipment, fn ($value) => filled($value));
+            $metadata = $order->metadata ?? [];
+
+            if ($shipment !== []) {
+                $metadata['shipment'] = $shipment;
+            }
+
+            $order->forceFill([
+                'status' => OrderStatus::Completed,
+                'fulfilled_at' => now(),
+                'metadata' => $metadata ?: null,
+            ])->save();
+
+            $detail = trim(($shipment['carrier'] ?? '').' '.($shipment['tracking_number'] ?? ''));
+
+            OrderEvent::record($order, OrderEvent::FULFILLED, 'Marked as fulfilled'.($detail !== '' ? " — {$detail}" : ''), $shipment, $by);
+
+            DB::afterCommit(fn () => OrderFulfilled::dispatch($order, $notifyCustomer));
+
+            return true;
+        });
+    }
+
+    /**
+     * Cancel an order that has not been paid and give its stock back.
+     * Paid orders are never cancelled here (they are refunded); returns false for them.
+     */
+    public function cancel(Order $order, string $reason = 'cancelled', OrderPaymentStatus $paymentStatus = OrderPaymentStatus::Unpaid, ?User $by = null): bool
+    {
+        return DB::transaction(function () use ($order, $reason, $paymentStatus, $by) {
             $order = $this->lock($order);
 
             if ($order->status !== OrderStatus::Pending || $order->isPaid()) {
@@ -125,6 +170,14 @@ class OrderLifecycle
                 ->where('order_id', $order->id)
                 ->where('status', PaymentStatus::Pending->value)
                 ->update(['status' => PaymentStatus::Canceled->value]);
+
+            OrderEvent::record($order, OrderEvent::CANCELLED, match ($reason) {
+                'expired' => 'Cancelled: payment was not completed in time',
+                'payment_failed' => 'Cancelled: the payment failed',
+                'replaced' => 'Replaced by a newer checkout',
+                'cancelled' => 'Cancelled',
+                default => "Cancelled: {$reason}",
+            }, by: $by);
 
             DB::afterCommit(fn () => OrderCancelled::dispatch($order, $reason));
 

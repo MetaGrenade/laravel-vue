@@ -10,6 +10,8 @@ use App\Http\Controllers\Admin\BlogCommentController as AdminBlogCommentControll
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\CommerceController;
+use App\Http\Controllers\Admin\CommerceOrderController;
+use App\Http\Controllers\Admin\CommerceOrderRefundController;
 use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\ForumBoardController;
 use App\Http\Controllers\Admin\ForumCategoryController;
@@ -178,6 +180,28 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
             Route::delete('shipping/rates/{rate}', [ShippingRateController::class, 'destroy'])
                 ->middleware('can:commerce.acp.delete')
                 ->name('shipping.rates.destroy');
+
+            // Orders: find them, fulfil them, keep notes. Refunds have their own permission.
+            Route::get('orders', [CommerceOrderController::class, 'index'])->name('orders.index');
+            Route::get('orders/{order}', [CommerceOrderController::class, 'show'])->name('orders.show');
+            Route::post('orders/{order}/fulfil', [CommerceOrderController::class, 'fulfil'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('orders.fulfil');
+            Route::post('orders/{order}/cancel', [CommerceOrderController::class, 'cancel'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('orders.cancel');
+            Route::post('orders/{order}/notes', [CommerceOrderController::class, 'storeNote'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('orders.notes.store');
+            Route::post('orders/{order}/check-payment', [CommerceOrderController::class, 'checkPayment'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('orders.check-payment');
+            Route::post('orders/{order}/refunds', [CommerceOrderRefundController::class, 'store'])
+                ->middleware('can:commerce.acp.refund')
+                ->name('orders.refunds.store');
+            Route::post('orders/{order}/refunds/{refund}/check', [CommerceOrderRefundController::class, 'check'])
+                ->middleware('can:commerce.acp.refund')
+                ->name('orders.refunds.check');
 
             // The tax table.
             Route::get('tax-rates', [TaxRateController::class, 'index'])->name('tax-rates.index');

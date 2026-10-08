@@ -11,6 +11,8 @@ class InventoryMovement extends Model
 
     public const RELEASE = 'release';
 
+    public const RESTOCK = 'restock';
+
     protected $fillable = [
         'inventory_item_id',
         'order_id',

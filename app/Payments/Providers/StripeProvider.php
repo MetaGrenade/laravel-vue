@@ -3,20 +3,26 @@
 namespace App\Payments\Providers;
 
 use App\Enums\PaymentStatus;
+use App\Enums\RefundStatus;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Refund;
 use App\Payments\Capability;
 use App\Payments\Contracts\PaymentProvider;
 use App\Payments\Data\CheckoutClosure;
 use App\Payments\Data\CheckoutContext;
 use App\Payments\Data\CheckoutSession;
+use App\Payments\Data\ProviderRefund;
+use App\Payments\Data\RefundOutcome;
 use App\Payments\Data\WebhookOutcome;
 use App\Payments\Exceptions\PaymentException;
+use App\Payments\Exceptions\RefundRejected;
 use App\Payments\Stripe\StripeGateway;
 use App\Payments\Stripe\StripeSignatureVerifier;
 use App\Payments\Webhooks\WebhookReceiver;
 use App\Support\Commerce\Money;
 use App\Support\Commerce\OrderLifecycle;
+use App\Support\Commerce\OrderRefunder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -49,11 +55,27 @@ class StripeProvider implements PaymentProvider
         'checkout.session.expired',
     ];
 
+    /**
+     * Events that say a refund changed. They only tell us which payment to look at: the
+     * refunds themselves are then read from Stripe, so the shape of the event does not matter.
+     * Subscribe the webhook endpoint to these as well as to the checkout events.
+     *
+     * @var list<string>
+     */
+    public const REFUND_EVENTS = [
+        'refund.created',
+        'refund.updated',
+        'refund.failed',
+        'charge.refunded',
+        'charge.refund.updated',
+    ];
+
     public function __construct(
         private readonly StripeGateway $stripe,
         private readonly StripeSignatureVerifier $signatures,
         private readonly WebhookReceiver $webhooks,
         private readonly OrderLifecycle $lifecycle,
+        private readonly OrderRefunder $refunds,
     ) {}
 
     public function key(): string
@@ -72,6 +94,7 @@ class StripeProvider implements PaymentProvider
             Capability::ONE_TIME_PAYMENTS,
             Capability::SUBSCRIPTIONS,
             Capability::HOSTED_CHECKOUT,
+            Capability::REFUNDS,
         ];
     }
 
@@ -248,12 +271,178 @@ class StripeProvider implements PaymentProvider
             return WebhookOutcome::rejected('Malformed event');
         }
 
+        if (in_array($type, self::REFUND_EVENTS, true)) {
+            return $this->processRefundEvent($id, $type, $event, $session);
+        }
+
         // Plan subscriptions also use Checkout; only sessions we created for an order are ours.
         if (! in_array($type, self::EVENTS, true) || Arr::get($session, 'metadata.source') !== 'commerce') {
             return WebhookOutcome::ignored();
         }
 
         return $this->webhooks->receive(self::KEY, $id, $type, $event, fn () => $this->apply($type, $session));
+    }
+
+    /**
+     * A refund event is ours when it is about a payment this shop took. Refunds of
+     * subscription invoices, or of anything else on the account, are not.
+     *
+     * @param  array<string, mixed>  $event
+     * @param  array<string, mixed>  $object  A refund, or for charge.refunded the charge.
+     */
+    private function processRefundEvent(string $id, string $type, array $event, array $object): WebhookOutcome
+    {
+        $intent = Arr::get($object, 'payment_intent');
+
+        $payment = is_string($intent) && $intent !== ''
+            ? Payment::query()
+                ->with('order')
+                ->where('provider', self::KEY)
+                ->where('provider_payment_id', $intent)
+                ->first()
+            : null;
+
+        if ($payment === null || $payment->order === null) {
+            return WebhookOutcome::ignored('Not a refund of a shop payment');
+        }
+
+        return $this->webhooks->receive(self::KEY, $id, $type, $event, function () use ($payment) {
+            $this->syncRefunds($payment);
+
+            return WebhookOutcome::handled();
+        });
+    }
+
+    public function refund(Refund $refund): RefundOutcome
+    {
+        $refund->loadMissing(['payment', 'order']);
+
+        $payment = $refund->payment;
+
+        if ($payment === null || blank($payment->provider_payment_id)) {
+            throw new PaymentException('The payment has no Stripe PaymentIntent to refund.');
+        }
+
+        $reason = in_array($refund->reason, ['duplicate', 'fraudulent', 'requested_by_customer'], true) ? $refund->reason : null;
+
+        try {
+            $result = $this->stripe->createRefund(array_filter([
+                'payment_intent' => $payment->provider_payment_id,
+                'amount' => $refund->money()->minor,
+                'reason' => $reason,
+                // How a refund is recognised later, even if Stripe's reply to this call is lost.
+                'metadata' => [
+                    'source' => 'commerce',
+                    'refund_id' => (string) $refund->id,
+                    'order_number' => (string) $refund->order?->number,
+                ],
+            ]), $refund->idempotency_key);
+        } catch (RefundRejected $exception) {
+            return RefundOutcome::refused($exception->getMessage());
+        } catch (Throwable $exception) {
+            throw new PaymentException('Stripe did not confirm the refund: '.$exception->getMessage(), previous: $exception);
+        }
+
+        $reference = Arr::get($result, 'id');
+
+        if (! is_string($reference)) {
+            throw new PaymentException('Stripe answered the refund without an id.');
+        }
+
+        return RefundOutcome::of(
+            $this->refundStatus(Arr::get($result, 'status')),
+            $reference,
+            $this->failureOf($result),
+        );
+    }
+
+    public function syncRefunds(Payment $payment): void
+    {
+        $payment->loadMissing('order');
+
+        if (blank($payment->provider_payment_id) || $payment->order === null) {
+            return;
+        }
+
+        // A refund can only follow a payment we know about; if the payment's own message
+        // has not arrived yet, ask for it first.
+        if ($payment->status === PaymentStatus::Pending) {
+            $this->reconcile($payment);
+            $payment->refresh();
+        }
+
+        try {
+            $remote = $this->stripe->listRefunds($payment->provider_payment_id);
+        } catch (Throwable $exception) {
+            throw new PaymentException('Could not read the refunds from Stripe: '.$exception->getMessage(), previous: $exception);
+        }
+
+        $refunds = [];
+
+        foreach ($remote as $item) {
+            $reference = Arr::get($item, 'id');
+            $amount = Arr::get($item, 'amount');
+            $currency = Arr::get($item, 'currency');
+
+            if (! is_string($reference) || ! is_int($amount) || ! is_string($currency)) {
+                continue;
+            }
+
+            try {
+                $money = Money::ofMinor($amount, $currency);
+            } catch (InvalidArgumentException) {
+                continue;
+            }
+
+            $ours = Arr::get($item, 'metadata.refund_id');
+            $reason = Arr::get($item, 'reason');
+
+            $refunds[] = new ProviderRefund(
+                reference: $reference,
+                amount: $money,
+                status: $this->refundStatus(Arr::get($item, 'status')),
+                reason: is_string($reason) ? $reason : null,
+                failureReason: $this->failureOf($item),
+                refundId: is_numeric($ours) ? (int) $ours : null,
+            );
+        }
+
+        $this->refunds->sync($payment, $refunds);
+    }
+
+    public function paymentUrl(Payment $payment): ?string
+    {
+        if (blank($payment->provider_payment_id)) {
+            return null;
+        }
+
+        $mode = str_starts_with((string) config('cashier.secret'), 'sk_test_') ? 'test/' : '';
+
+        return "https://dashboard.stripe.com/{$mode}payments/{$payment->provider_payment_id}";
+    }
+
+    /**
+     * Stripe's refund statuses in ours. A refund that needs the customer or the bank
+     * to act (requires_action) is still on its way, so it stays pending.
+     */
+    private function refundStatus(mixed $status): RefundStatus
+    {
+        return match ($status) {
+            'succeeded' => RefundStatus::Succeeded,
+            'failed' => RefundStatus::Failed,
+            'canceled' => RefundStatus::Canceled,
+            default => RefundStatus::Pending,
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $refund
+     */
+    private function failureOf(array $refund): ?string
+    {
+        $reason = Arr::get($refund, 'failure_reason') ?? (Arr::get($refund, 'status') === 'requires_action' ? 'requires_action' : null);
+
+        return is_string($reason) ? $reason : null;
     }
 
     /**

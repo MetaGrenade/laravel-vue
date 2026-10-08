@@ -76,6 +76,31 @@ class StripeWebhookController extends CashierWebhookController
         return $this->forwardToCommerce($payload);
     }
 
+    protected function handleRefundCreated(array $payload): Response
+    {
+        return $this->forwardToCommerce($payload);
+    }
+
+    protected function handleRefundUpdated(array $payload): Response
+    {
+        return $this->forwardToCommerce($payload);
+    }
+
+    protected function handleRefundFailed(array $payload): Response
+    {
+        return $this->forwardToCommerce($payload);
+    }
+
+    protected function handleChargeRefunded(array $payload): Response
+    {
+        return $this->forwardToCommerce($payload);
+    }
+
+    protected function handleChargeRefundUpdated(array $payload): Response
+    {
+        return $this->forwardToCommerce($payload);
+    }
+
     /**
      * A non-2xx response (a failure worth retrying) makes Stripe redeliver the event.
      */
