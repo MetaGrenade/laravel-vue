@@ -123,11 +123,16 @@ class CheckoutRequest extends FormRequest
 
     /**
      * The address the customer typed in (rather than picked from their saved
-     * ones), which they may ask to have saved to their address book.
+     * ones), which they may ask to have saved to their address book. Only an
+     * address that is actually part of this order counts: a billing address that
+     * was posted but is not used (it is the same as shipping, or no tax needs it)
+     * is ignored.
      */
     public function typedAddress(string $kind): ?AddressData
     {
-        if ($this->filled("{$kind}_address_id") || ! is_array($this->input("{$kind}_address"))) {
+        $partOfOrder = $kind === 'shipping' ? $this->cartNeedsShipping() : $this->needsBillingAddress();
+
+        if (! $partOfOrder || $this->filled("{$kind}_address_id") || ! is_array($this->input("{$kind}_address"))) {
             return null;
         }
 

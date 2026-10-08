@@ -51,6 +51,15 @@ class CheckoutQuoteTest extends TestCase
     }
 
     #[Test]
+    public function billing_can_be_in_any_country_even_when_shipping_is_limited(): void
+    {
+        $this->get(route('shop.checkout'))->assertInertia(fn (Assert $page) => $page
+            // Shipping is limited to the zones; billing is not.
+            ->where('countries', ['GB', 'IE'])
+            ->where('billingCountries', fn ($countries) => collect($countries)->count() === 249 && collect($countries)->contains('US') && collect($countries)->contains('JP')));
+    }
+
+    #[Test]
     public function the_quote_prices_shipping_and_tax_for_a_country(): void
     {
         $this->get(route('shop.checkout', ['ship_country' => 'GB']))->assertInertia(fn (Assert $page) => $page

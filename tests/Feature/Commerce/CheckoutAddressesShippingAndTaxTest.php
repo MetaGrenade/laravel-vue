@@ -240,6 +240,23 @@ class CheckoutAddressesShippingAndTaxTest extends TestCase
     }
 
     #[Test]
+    public function a_billing_address_may_be_outside_the_delivery_area(): void
+    {
+        ShippingZone::factory()->serving(['GB'])->withRate('Standard', '5.00')->create();
+        $this->physicalCart();
+
+        // Delivery is limited to the UK, but the card can be billed to a US address.
+        $this->submit([
+            'billing_same_as_shipping' => false,
+            'billing_address' => $this->addressFields(['country' => 'US', 'postal_code' => '94105', 'city' => 'San Francisco']),
+        ])->assertSessionHasNoErrors();
+
+        $order = Order::sole();
+        $this->assertSame('GB', $order->shipping_address['country']);
+        $this->assertSame('US', $order->billing_address['country']);
+    }
+
+    #[Test]
     public function the_state_is_required_where_tax_depends_on_it(): void
     {
         TaxRate::factory()->create(['name' => 'CA tax', 'country' => 'US', 'region' => 'California', 'rate' => '7.25']);
@@ -405,6 +422,92 @@ class CheckoutAddressesShippingAndTaxTest extends TestCase
         $this->actingAs($user)->post(route('shop.checkout.store'), $this->checkoutPayload(['save_addresses' => true]))->assertRedirect();
 
         $this->assertSame(1, Address::query()->visibleTo($user)->count());
+    }
+
+    #[Test]
+    public function a_billing_address_typed_for_a_download_can_be_saved(): void
+    {
+        TaxRate::factory()->create(['name' => 'MwSt', 'country' => 'DE', 'rate' => '19']);
+        $user = User::factory()->create();
+        $this->cartWith(Product::factory()->digital()->priced('100.00')->create(), 1, $user);
+
+        $this->actingAs($user)->post(route('shop.checkout.store'), [
+            'token' => (string) Str::uuid(),
+            'billing_address' => $this->addressFields(['country' => 'DE', 'postal_code' => '10115', 'city' => 'Berlin']),
+            'save_addresses' => true,
+        ])->assertSessionHasNoErrors();
+
+        $saved = Address::query()->visibleTo($user)->get();
+        $this->assertCount(1, $saved, 'only the billing address was typed, and it is remembered');
+        $this->assertSame('DE', $saved->first()->country);
+        $this->assertTrue($saved->first()->is_default);
+    }
+
+    #[Test]
+    public function a_new_billing_address_is_saved_beside_a_saved_shipping_address(): void
+    {
+        $user = User::factory()->create();
+        $home = Address::factory()->forOwner($user)->inCountry('GB')->default()->create();
+        $this->cartWith(Product::factory()->priced('10.00')->create(), 1, $user);
+
+        $this->actingAs($user)->post(route('shop.checkout.store'), [
+            'token' => (string) Str::uuid(),
+            'shipping_address_id' => $home->id,
+            'billing_same_as_shipping' => false,
+            'billing_address' => $this->addressFields(['country' => 'US', 'postal_code' => '94105', 'city' => 'San Francisco']),
+            'save_addresses' => true,
+        ])->assertSessionHasNoErrors();
+
+        $saved = Address::query()->visibleTo($user)->orderBy('id')->get();
+        $this->assertCount(2, $saved, 'the saved shipping address is not duplicated; the new billing one is added');
+        $this->assertSame(['GB', 'US'], $saved->pluck('country')->all());
+        $this->assertTrue($saved->first()->is_default, 'the default does not change');
+    }
+
+    #[Test]
+    public function both_typed_addresses_are_saved_when_asked(): void
+    {
+        $user = User::factory()->create();
+        $this->cartWith(Product::factory()->priced('10.00')->create(), 1, $user);
+
+        $this->actingAs($user)->post(route('shop.checkout.store'), $this->checkoutPayload([
+            'billing_same_as_shipping' => false,
+            'billing_address' => $this->addressFields(['country' => 'IE', 'postal_code' => 'D01 F5P2', 'city' => 'Dublin']),
+            'save_addresses' => true,
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertSame(['GB', 'IE'], Address::query()->visibleTo($user)->orderBy('id')->pluck('country')->all());
+    }
+
+    #[Test]
+    public function a_billing_address_that_is_not_part_of_the_order_is_never_saved(): void
+    {
+        $user = User::factory()->create();
+        $this->cartWith(Product::factory()->priced('10.00')->create(), 1, $user);
+
+        // Billing is the same as shipping, yet a billing address was posted anyway.
+        $this->actingAs($user)->post(route('shop.checkout.store'), $this->checkoutPayload([
+            'billing_same_as_shipping' => true,
+            'billing_address' => $this->addressFields(['country' => 'US', 'postal_code' => '94105']),
+            'save_addresses' => true,
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertSame(['GB'], Address::query()->visibleTo($user)->pluck('country')->all(), 'only the shipping address was used');
+    }
+
+    #[Test]
+    public function a_download_with_no_location_tax_saves_nothing_even_if_a_billing_address_is_posted(): void
+    {
+        $user = User::factory()->create();
+        $this->cartWith(Product::factory()->digital()->priced('20.00')->create(), 1, $user);
+
+        $this->actingAs($user)->post(route('shop.checkout.store'), [
+            'token' => (string) Str::uuid(),
+            'billing_address' => $this->addressFields(),
+            'save_addresses' => true,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(0, Address::count(), 'no billing address is needed, so none is stored');
     }
 
     #[Test]

@@ -25,7 +25,10 @@ interface Props {
     token: string;
     needsShipping: boolean;
     billingRequired: boolean;
+    /** Countries an order can be shipped to (limited by the shipping zones). */
     countries: string[];
+    /** Countries a billing address can be in: all of them. */
+    billingCountries: string[];
     addresses: SavedAddress[];
     quote: CheckoutQuote;
 }
@@ -44,7 +47,7 @@ const form = useForm({
     shipping_address: emptyAddress(onlyCountry),
     billing_same_as_shipping: true,
     billing_address_id: null as number | null,
-    billing_address: emptyAddress(onlyCountry),
+    billing_address: emptyAddress(),
     shipping_rate_id: null as number | null,
     save_addresses: false,
 });
@@ -57,6 +60,11 @@ const savedById = (id: number | null) => props.addresses.find((address) => addre
 
 /** Billing is its own address when asked for (digital goods) or when the shopper says it differs. */
 const billingIsSeparate = computed(() => (props.needsShipping ? !form.billing_same_as_shipping : props.billingRequired));
+
+// An address is only worth offering to save when the shopper is typing it in, rather than picking a saved one.
+const typesShippingAddress = computed(() => props.needsShipping && !form.shipping_address_id);
+const typesBillingAddress = computed(() => billingIsSeparate.value && !form.billing_address_id);
+const savesAnAddress = computed(() => typesShippingAddress.value || typesBillingAddress.value);
 
 const shippingPlace = computed(() => {
     const saved = savedById(form.shipping_address_id);
@@ -158,7 +166,7 @@ const submit = () => {
             email: data.email,
             name: data.name,
             token: data.token,
-            save_addresses: data.save_addresses,
+            save_addresses: data.save_addresses && savesAnAddress.value,
         };
 
         if (props.needsShipping) {
@@ -282,11 +290,6 @@ const submit = () => {
                                     :region-required="regionRequired"
                                 />
                                 <InputError :message="form.errors.shipping_address" />
-
-                                <div v-if="!props.isGuest" class="flex items-center gap-2">
-                                    <Checkbox id="save_addresses" v-model="form.save_addresses" />
-                                    <Label for="save_addresses" class="font-normal">Save this address for next time</Label>
-                                </div>
                             </template>
                         </CardContent>
                     </Card>
@@ -387,7 +390,7 @@ const submit = () => {
                                 <AddressFields
                                     v-if="!form.billing_address_id"
                                     v-model="form.billing_address"
-                                    :countries="props.countries"
+                                    :countries="props.billingCountries"
                                     :errors="errors"
                                     error-prefix="billing_address"
                                     id-prefix="billing"
@@ -397,6 +400,15 @@ const submit = () => {
                             </template>
                         </CardContent>
                     </Card>
+
+                    <div v-if="!props.isGuest && savesAnAddress" class="flex items-center gap-2">
+                        <Checkbox id="save_addresses" v-model="form.save_addresses" />
+                        <Label for="save_addresses" class="font-normal">
+                            {{
+                                typesShippingAddress && typesBillingAddress ? 'Save these addresses for next time' : 'Save this address for next time'
+                            }}
+                        </Label>
+                    </div>
 
                     <div class="space-y-3">
                         <p v-if="props.quote.error" class="text-sm text-destructive">{{ props.quote.error }}</p>

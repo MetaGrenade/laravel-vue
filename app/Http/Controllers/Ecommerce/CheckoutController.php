@@ -72,7 +72,11 @@ class CheckoutController extends Controller
             'needsShipping' => $needsShipping,
             // Digital goods ship nowhere; a billing address is only needed when tax depends on location.
             'billingRequired' => ! $needsShipping && TaxRate::query()->active()->exists(),
+            // Where an order can be shipped to: limited by the shipping zones.
             'countries' => $needsShipping ? ($shipping->servedCountries() ?? Countries::codes()) : Countries::codes(),
+            // Where a bill can be addressed: anywhere. Billing does not decide delivery, so a shopper
+            // shipping to GB can bill a US address even if the shop only delivers to GB.
+            'billingCountries' => Countries::codes(),
             'addresses' => $saved->map(fn (Address $address) => $this->presentAddress($address))->values(),
             // Recalculated by partial reloads as the shopper fills in their address and picks a method.
             // The page pre-selects the default saved address (the first one), so it is priced from the start.
