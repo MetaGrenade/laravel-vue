@@ -16,11 +16,14 @@ use App\Http\Controllers\Admin\ForumCategoryController;
 use App\Http\Controllers\Admin\ForumReportController;
 use App\Http\Controllers\Admin\PollController;
 use App\Http\Controllers\Admin\SearchAnalyticsController;
+use App\Http\Controllers\Admin\ShippingRateController;
+use App\Http\Controllers\Admin\ShippingZoneController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\SupportAssignmentRuleController;
 use App\Http\Controllers\Admin\SupportController;
 use App\Http\Controllers\Admin\SupportTicketCategoryController;
 use App\Http\Controllers\Admin\SystemSettingsController;
+use App\Http\Controllers\Admin\TaxRateController;
 use App\Http\Controllers\Admin\TokenController;
 use App\Http\Controllers\Admin\TrustSafetyController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
@@ -154,6 +157,39 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
             Route::post('inventory', [CommerceController::class, 'storeInventory'])
                 ->middleware('can:commerce.acp.create')
                 ->name('inventory.store');
+
+            // Shipping zones and their rates.
+            Route::get('shipping', [ShippingZoneController::class, 'index'])->name('shipping.index');
+            Route::post('shipping/zones', [ShippingZoneController::class, 'store'])
+                ->middleware('can:commerce.acp.create')
+                ->name('shipping.zones.store');
+            Route::put('shipping/zones/{zone}', [ShippingZoneController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('shipping.zones.update');
+            Route::delete('shipping/zones/{zone}', [ShippingZoneController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('shipping.zones.destroy');
+            Route::post('shipping/zones/{zone}/rates', [ShippingRateController::class, 'store'])
+                ->middleware('can:commerce.acp.create')
+                ->name('shipping.rates.store');
+            Route::put('shipping/rates/{rate}', [ShippingRateController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('shipping.rates.update');
+            Route::delete('shipping/rates/{rate}', [ShippingRateController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('shipping.rates.destroy');
+
+            // The tax table.
+            Route::get('tax-rates', [TaxRateController::class, 'index'])->name('tax-rates.index');
+            Route::post('tax-rates', [TaxRateController::class, 'store'])
+                ->middleware('can:commerce.acp.create')
+                ->name('tax-rates.store');
+            Route::put('tax-rates/{taxRate}', [TaxRateController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('tax-rates.update');
+            Route::delete('tax-rates/{taxRate}', [TaxRateController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('tax-rates.destroy');
         });
 
     // Support ACP

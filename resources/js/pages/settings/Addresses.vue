@@ -34,12 +34,16 @@ const form = useForm({
 
 const errors = computed(() => form.errors as Record<string, string | undefined>);
 
+// Inertia's reset() goes back to the last *submitted* values, so a new dialog would open pre-filled
+// with the previous address's label. Blank defaults are set explicitly instead.
 const openNew = () => {
     editing.value = null;
-    form.reset();
+    form.defaults({
+        label: '',
+        is_default: props.addresses.length === 0,
+        address: emptyAddress(props.countries.length === 1 ? props.countries[0] : ''),
+    }).reset();
     form.clearErrors();
-    form.address = emptyAddress(props.countries.length === 1 ? props.countries[0] : '');
-    form.is_default = props.addresses.length === 0;
     dialogOpen.value = true;
 };
 

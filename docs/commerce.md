@@ -1,6 +1,6 @@
 # Commerce
 
-How the shop takes an order from a cart to a paid order. This page covers what exists now (milestone M1, first two slices) and how it is built, so you can extend or replace parts of it. Planned follow-ups (refunds and order management, coupons, digital goods, reviews and wishlists) are listed at the end and in [ROADMAP-v1.0.0.md](ROADMAP-v1.0.0.md).
+How the shop takes an order from a cart to a paid order. This page covers what exists now (milestone M1, first three slices) and how it is built, so you can extend or replace parts of it. Planned follow-ups (refunds and order management, coupons, digital goods, reviews and wishlists) are listed at the end and in [ROADMAP-v1.0.0.md](ROADMAP-v1.0.0.md).
 
 ## The flow
 
@@ -75,7 +75,17 @@ Shipping is set up with **zones** and **rates** (stored in `shipping_zones` and 
 - The shopper chooses among the rates that apply. One shipping charge is made per order however many items it holds.
 - **If no zone is active, shipping is not set up**: orders are accepted for any country with no shipping charge, so you can arrange delivery yourself. As soon as one zone exists, only the countries your zones cover can order physical goods; for other countries checkout says it cannot ship there.
 
-Until the admin screens for zones and rates arrive in the next slice, manage them through the database or the demo seeder (`php artisan db:seed --class=CommerceDemoSeeder` adds example zones, rates and tax).
+Manage them in the admin area under **Commerce → Shipping** (or the *Shipping zones and rates* button on the Commerce page). Add a zone, choose its countries (one at a time, *Add EU countries* for all 27, or *Everywhere else*), then add its rates. `php artisan db:seed --class=CommerceDemoSeeder` adds example zones, rates and tax to try it out.
+
+Things the screen guards against, because they change what customers can do:
+
+- With **no active zone**, the page says shipping isn't set up and that orders ship anywhere for free. Deleting or deactivating your last active zone puts you back there, and the delete confirmation says so.
+- A zone with **no active rates** is flagged: customers in its countries cannot order anything that needs shipping (it does not fall through to another zone).
+- *Everywhere else* cannot be combined with named countries in one zone, since it already means "every country not listed in another zone".
+
+Changing or deleting a zone, rate or tax rate never affects orders already placed: an order keeps the shipping method, shipping charge and tax it was charged. A customer who is part-way through checkout and had chosen a rate that has since been deleted is asked to choose again.
+
+Permissions: seeing the pages needs `commerce.acp.view`; adding, editing and deleting need `commerce.acp.create`, `commerce.acp.edit` and `commerce.acp.delete`. Someone with only *view* sees the tables without the buttons.
 
 ## Tax
 
@@ -87,6 +97,7 @@ Tax is a configurable table (`tax_rates`). **Prices are tax-exclusive**: tax is 
 - Each rate can apply to shipping or not. A product can be marked **not taxable**.
 - Each rate is applied to the taxable base and rounded half up in minor units, then shared between the order lines by largest remainder, so the line amounts always add up to the total exactly. The tax shown to the customer is one line per rate (`VAT (20%)`).
 - Where tax depends on the state or province (a rate has a region), checkout requires one.
+- Rates are managed under **Commerce → Tax rates**. A rate for *Everywhere else* is the fallback and cannot have a region. With no active rate, no tax is charged, and the page says so.
 
 This suits simple setups. It does not do thresholds, product-category rates, tax-inclusive pricing or B2B reverse charge; for complex jurisdictions, an integration with Stripe Tax is planned as an alternative driver.
 
@@ -166,4 +177,4 @@ The header cart previously showed an estimated 7% tax and a flat shipping charge
 
 ## Not built yet
 
-Planned for the rest of M1 (see the roadmap): admin screens for shipping zones, rates and tax (the next slice), ACP order management (view, status changes, notes, refunds), catalogue editing and product images, inventory adjustments, coupons and gift cards, digital goods (downloads and licence keys; the *Needs shipping* flag is already in place), reviews and wishlists. A guest's cart is not yet carried over when they sign in, and a guest's orders are not yet attached to an account created later with the same email. Tebex arrives in M2 behind the same provider contract.
+Planned for the rest of M1 (see the roadmap): ACP order management (view, status changes, notes, refunds), catalogue editing and product images, inventory adjustments, coupons and gift cards, digital goods (downloads and licence keys; the *Needs shipping* flag is already in place), reviews and wishlists. A guest's cart is not yet carried over when they sign in, and a guest's orders are not yet attached to an account created later with the same email. Tebex arrives in M2 behind the same provider contract.
