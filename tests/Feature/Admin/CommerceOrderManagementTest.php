@@ -279,7 +279,9 @@ class CommerceOrderManagementTest extends TestCase
         $order->refresh();
         $this->assertSame(OrderStatus::Completed, $order->status);
         $this->assertNotNull($order->fulfilled_at);
-        $this->assertSame([
+        // Compared without regard to key order: MySQL's JSON type stores object keys in its own
+        // order (shortest first), while SQLite, MariaDB and PostgreSQL's json keep them as written.
+        $this->assertEquals([
             'carrier' => 'Royal Mail',
             'tracking_number' => 'AB123456789GB',
             'tracking_url' => 'https://track.example.com/AB123456789GB',
