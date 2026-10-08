@@ -9,6 +9,8 @@ const props = defineProps<{
     modelValue: string;
     invalid?: boolean;
     class?: string;
+    /** When set, adds an extra choice with the value "*" (every country not covered elsewhere). */
+    anyLabel?: string;
 }>();
 
 const emit = defineEmits<{ (event: 'update:modelValue', value: string): void }>();
@@ -32,6 +34,7 @@ const options = computed(() => countryOptions(props.countries));
         @change="emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
     >
         <option value="" disabled>Select a country</option>
+        <option v-if="anyLabel" value="*">{{ anyLabel }}</option>
         <option v-for="option in options" :key="option.code" :value="option.code">{{ option.name }}</option>
     </select>
 </template>

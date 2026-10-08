@@ -2,7 +2,8 @@
 import { computed, ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Percent, Truck } from '@lucide/vue';
 import type { BreadcrumbItem } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -281,6 +282,15 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
     <AppLayout :breadcrumbs="breadcrumbs" title="Commerce" description="Manage products, pricing, and orders." sticky>
         <AdminLayout>
             <div class="w-full space-y-6">
+                <div class="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" as-child>
+                        <Link :href="route('acp.commerce.shipping.index')"><Truck class="size-4" /> Shipping zones and rates</Link>
+                    </Button>
+                    <Button variant="outline" size="sm" as-child>
+                        <Link :href="route('acp.commerce.tax-rates.index')"><Percent class="size-4" /> Tax rates</Link>
+                    </Button>
+                </div>
+
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <Card>
                         <CardHeader>

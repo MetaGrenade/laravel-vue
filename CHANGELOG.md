@@ -29,6 +29,7 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 - `OrderPricer`, one pricing engine for the live quote and the order that is placed, working in exact minor units with the tax shared between lines by largest remainder (`Money::percent()` and `Money::allocate()`). Stripe is sent shipping and each tax as their own lines, and the shipping address is attached to the payment.
 - Products can be marked as not needing shipping (digital goods) and as not taxable; the ACP product form sets both.
 - Example shipping zones, rates and tax rates in the demo seeder.
+- **Admin screens for shipping and tax.** Commerce → Shipping manages zones (pick countries one by one, add all EU countries, or cover everywhere else) and their rates (price, optional minimum and maximum order value, active or not); Commerce → Tax rates manages the tax table. The screens warn when shipping isn't set up or a zone has no active rates, and when you are about to delete your last active zone. Each action has its own permission (`commerce.acp.view`, `create`, `edit`, `delete`).
 - Web manifest generated from configuration; home page SEO copy configurable through `seo.home.*` (`SEO_HOME_TITLE`, `SEO_HOME_DESCRIPTION`).
 
 ### Changed
@@ -57,6 +58,7 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 - Moving legacy support attachments to the private disk now keeps a row on its original disk when the original file cannot be deleted, so the move is retried and reported instead of looking complete while a public copy remains.
 - Carts that had become orders were still returned as the shopper's cart; only open carts are used now.
 - Cart line totals are computed in integer minor units instead of floating point.
+- Dialogs that add something (an address in the address book) no longer open pre-filled with the previously saved values: Inertia's `form.reset()` returns to the last *submitted* values, not blanks.
 
 ## Before the changelog
 
