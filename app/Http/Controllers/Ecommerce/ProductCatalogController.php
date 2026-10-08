@@ -27,7 +27,13 @@ class ProductCatalogController extends Controller
         ]);
 
         $products = Product::query()
-            ->with(['variants.prices', 'prices', 'categories:id,name,slug', 'tags:id,name,slug', 'brand:id,name,slug'])
+            ->with([
+                'variants' => fn ($query) => $query->where('is_active', true)->with('prices'),
+                'prices',
+                'categories:id,name,slug',
+                'tags:id,name,slug',
+                'brand:id,name,slug',
+            ])
             ->where('is_active', true)
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(function ($query) use ($search) {
@@ -90,7 +96,15 @@ class ProductCatalogController extends Controller
     {
         abort_unless($product->is_active, 404);
 
-        $product->load(['options.values', 'variants.prices', 'prices', 'inventoryItems', 'categories', 'tags', 'brand']);
+        $product->load([
+            'options.values',
+            'variants' => fn ($query) => $query->where('is_active', true)->with('prices'),
+            'prices',
+            'inventoryItems',
+            'categories',
+            'tags',
+            'brand',
+        ]);
 
         app(Seo::class)
             ->title($product->name)

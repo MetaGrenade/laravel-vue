@@ -4,53 +4,52 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\OrderPaymentStatus;
 use App\Http\Controllers\Controller;
-use App\Models\Brand;
 use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductOption;
-use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * The commerce overview in the ACP: how the shop is doing, and what needs attention.
+ * Managing products is {@see Catalogue\ProductController}; orders are {@see CommerceOrderController}.
+ */
 class CommerceController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $products = Product::query()
-            ->with(['brand:id,name'])
-            ->withCount(['variants', 'prices', 'inventoryItems'])
-            ->orderBy('name')
-            ->get(['id', 'brand_id', 'name', 'slug', 'is_active']);
-
-        $variants = ProductVariant::query()
-            ->with(['product:id,name'])
-            ->withCount(['inventoryItems'])
-            ->orderBy('name')
-            ->get(['id', 'product_id', 'name', 'sku', 'is_default']);
-
-        $prices = Price::query()
-            ->latest()
-            ->limit(20)
-            ->get(['id', 'priceable_type', 'priceable_id', 'currency', 'amount', 'compare_at_amount', 'is_active']);
-
-        $inventory = InventoryItem::query()
-            ->with(['product:id,name', 'variant:id,name'])
-            ->latest()
-            ->limit(20)
-            ->get(['id', 'product_id', 'product_variant_id', 'quantity', 'allow_backorder']);
+        $user = $request->user();
+        $threshold = max(0, (int) config('commerce.low_stock_threshold', 5));
 
         $orders = Order::query()
             ->with(['user:id,nickname,email'])
             ->latest()
             ->limit(10)
             ->get(['id', 'public_id', 'number', 'user_id', 'status', 'payment_status', 'currency', 'grand_total', 'created_at']);
+
+        // Tracked stock that is out or nearly out, worst first. Items that may be backordered are
+        // sold regardless, so they are not a worry.
+        $lowStock = InventoryItem::query()
+            ->with(['product:id,name', 'variant:id,name'])
+            ->where('allow_backorder', false)
+            ->where('quantity', '<=', $threshold)
+            ->orderBy('quantity')
+            ->orderBy('id')
+            ->limit(10)
+            ->get()
+            ->map(fn (InventoryItem $item) => [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'product' => $item->product?->name,
+                'variant' => $item->variant?->name,
+                'quantity' => $item->quantity,
+            ])
+            ->values();
 
         $metrics = [
             'products' => [
@@ -65,8 +64,9 @@ class CommerceController extends Controller
             ],
             'inventory' => [
                 'items' => InventoryItem::count(),
-                'on_hand' => (int) InventoryItem::sum('quantity'),
+                'on_hand' => (int) InventoryItem::where('quantity', '>', 0)->sum('quantity'),
                 'backorderable' => InventoryItem::where('allow_backorder', true)->count(),
+                'out_of_stock' => InventoryItem::where('allow_backorder', false)->where('quantity', '<=', 0)->count(),
             ],
             'orders' => [
                 'total' => Order::count(),
@@ -83,131 +83,19 @@ class CommerceController extends Controller
             ],
         ];
 
-        $orderStatusBreakdown = Order::query()
-            ->select('status', DB::raw('COUNT(*) as aggregate'))
-            ->groupBy('status')
-            ->pluck('aggregate', 'status');
-
         return Inertia::render('acp/Commerce', [
-            'products' => $products,
-            'variants' => $variants,
-            'prices' => $prices,
-            'inventory' => $inventory,
             'orders' => $orders,
             'metrics' => $metrics,
-            'orderStatusBreakdown' => $orderStatusBreakdown,
-            'brands' => Brand::query()->orderBy('name')->get(['id', 'name', 'slug']),
+            'orderStatusBreakdown' => Order::query()
+                ->select('status', DB::raw('COUNT(*) as aggregate'))
+                ->groupBy('status')
+                ->pluck('aggregate', 'status'),
+            'lowStock' => $lowStock,
+            'lowStockThreshold' => $threshold,
+            'currency' => strtoupper((string) config('commerce.currency', 'USD')),
+            'can' => [
+                'create' => (bool) $user?->can('commerce.acp.create'),
+            ],
         ]);
-    }
-
-    public function storeProduct(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'brand_id' => ['nullable', 'integer', Rule::exists('brands', 'id')],
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', Rule::unique('products', 'slug')],
-            'description' => ['nullable', 'string'],
-            'is_active' => ['sometimes', 'boolean'],
-            'requires_shipping' => ['sometimes', 'boolean'],
-            'is_taxable' => ['sometimes', 'boolean'],
-        ]);
-
-        Product::create($validated);
-
-        return back()->with('success', 'Product created successfully.');
-    }
-
-    public function storeBrand(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', Rule::unique('brands', 'slug')],
-            'description' => ['nullable', 'string'],
-        ]);
-
-        Brand::create($validated);
-
-        return back()->with('success', 'Brand created successfully.');
-    }
-
-    public function storeOption(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'product_id' => ['required', 'integer', Rule::exists('products', 'id')],
-            'name' => ['required', 'string', 'max:255'],
-            'display_name' => ['required', 'string', 'max:255'],
-            'position' => ['nullable', 'integer', 'min:0'],
-        ]);
-
-        ProductOption::create($validated);
-
-        return back()->with('success', 'Option created successfully.');
-    }
-
-    public function storeOptionValue(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'product_option_id' => ['required', 'integer', Rule::exists('product_options', 'id')],
-            'value' => ['required', 'string', 'max:255'],
-            'position' => ['nullable', 'integer', 'min:0'],
-        ]);
-
-        ProductOptionValue::create($validated);
-
-        return back()->with('success', 'Option value created successfully.');
-    }
-
-    public function storeVariant(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'product_id' => ['required', 'integer', Rule::exists('products', 'id')],
-            'name' => ['required', 'string', 'max:255'],
-            'sku' => ['required', 'string', 'max:255', Rule::unique('product_variants', 'sku')],
-            'option_values' => ['nullable', 'array'],
-            'option_values.*' => ['string'],
-            'is_default' => ['sometimes', 'boolean'],
-        ]);
-
-        ProductVariant::create($validated);
-
-        return back()->with('success', 'Variant created successfully.');
-    }
-
-    public function storePrice(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'priceable_type' => ['required', 'string', Rule::in([Product::class, ProductVariant::class])],
-            'priceable_id' => ['required', 'integer'],
-            'currency' => ['required', 'string', 'size:3'],
-            'amount' => ['required', 'numeric', 'min:0'],
-            'compare_at_amount' => ['nullable', 'numeric', 'min:0'],
-            'is_active' => ['sometimes', 'boolean'],
-        ]);
-
-        $exists = $validated['priceable_type'] === Product::class
-            ? Product::whereKey($validated['priceable_id'])->exists()
-            : ProductVariant::whereKey($validated['priceable_id'])->exists();
-
-        if (! $exists) {
-            return back()->withErrors(['priceable_id' => 'Selected item does not exist.']);
-        }
-
-        Price::create($validated);
-
-        return back()->with('success', 'Price created successfully.');
-    }
-
-    public function storeInventory(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'product_id' => ['required', 'integer', Rule::exists('products', 'id')],
-            'product_variant_id' => ['nullable', 'integer', Rule::exists('product_variants', 'id')],
-            'quantity' => ['required', 'integer', 'min:0'],
-            'allow_backorder' => ['sometimes', 'boolean'],
-        ]);
-
-        InventoryItem::create($validated);
-
-        return back()->with('success', 'Inventory item created successfully.');
     }
 }

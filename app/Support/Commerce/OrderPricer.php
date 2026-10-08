@@ -192,7 +192,7 @@ class OrderPricer
             throw new CheckoutException("{$name} is no longer available.");
         }
 
-        if ($item->product_variant_id !== null && ($variant === null || $variant->product_id !== $product->id)) {
+        if ($item->product_variant_id !== null && ($variant === null || $variant->product_id !== $product->id || ! $variant->is_active)) {
             throw new CheckoutException("{$name} is no longer available in the option you chose.");
         }
 

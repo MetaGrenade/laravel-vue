@@ -105,6 +105,43 @@ Tax is a configurable table (`tax_rates`). **Prices are tax-exclusive**: tax is 
 
 This suits simple setups. It does not do thresholds, product-category rates, tax-inclusive pricing or B2B reverse charge; for complex jurisdictions, an integration with Stripe Tax is planned as an alternative driver.
 
+## Managing the catalogue
+
+**Commerce → Products** lists everything you sell (search by name, web address or a variant's SKU; filter by status and brand) with its price, stock and whether a shopper could buy it today. A product's own page has everything about it, with a checklist at the top of what is still missing:
+
+| Tab | What it holds |
+|-----|---------------|
+| Details | Name, web address, description, brand, categories, tags, and the switches *On sale*, *Needs shipping* and *Charge tax*. |
+| Price and stock | The product's price, and its stock if it has no variants. |
+| Options and variants | Options such as Size and Colour with their values, and the variants made from them, each with its own SKU, price and stock. |
+
+**Brands, categories and tags** are managed on their own page (Commerce → Brands and tags). Deleting one never deletes products: they just lose the brand, or the link.
+
+Each action has its own permission: `commerce.acp.view` to look, `create` to add products, options, variants, prices and stock, `edit` to change them, and `delete` to remove them.
+
+### Prices
+
+The shop sells in one currency (`COMMERCE_CURRENCY`), so a price is always created in it and there is no currency to choose. A product or variant has **one active price** at a time: that is what a shopper is charged (see `PriceResolver`); a variant without a price of its own is sold at the product's price. A switched-off price is a draft, and switching a new one on while another is on is refused, so a change is always two deliberate steps. A price needs a real amount (more than zero, at most two decimals, whole units for currencies without cents such as yen), and the optional *original price* shown struck through must be higher than the price. Old prices in another currency are shown as not in use; they can be deleted or left alone.
+
+### Options and variants
+
+A variant is one combination of a product's options (Medium / Red). The options are kept on the variant by name (`{"Size": "M"}`), so:
+
+- **Renaming** an option or a value rewrites the variants made from it; **deleting** one is refused while a variant is made from it.
+- A variant must choose a value for every option that has values, and no two variants of a product may share a combination or a SKU.
+- **Create the missing variants** makes one for every combination that does not have a variant yet (up to 100 a product, with generated SKUs such as `HOODIE-M-RED`). It can be run again after adding a value.
+- Exactly one variant is the default; the first one added becomes it, and deleting the default promotes another.
+
+### Deleting, archiving and switching off
+
+Anything that has been **ordered** is kept for the order history and the stock ledger, so it cannot be deleted: archive a product (switch *On sale* off) or switch a variant off instead. Both disappear from the shop at once, and a cart that holds one fails at checkout with "no longer available" rather than charging for something withdrawn. Anything **never ordered** can be deleted, and its options, values, variants, prices (which are polymorphic and so have no foreign key), stock and category and tag links go with it. Carts lose the lines for it: a cart line whose variant was deleted would otherwise quietly turn into a line for the base product at the base price.
+
+### Stock adjustments
+
+Stock is tracked per product, or per variant when a product has variants (a product or variant with no stock row is always available). On a tracked item staff can **set** the count to a counted figure, or **add or remove** some (a delivery, damage), each with an optional note. `quantity` is what can still be sold, because orders take from it while they wait for payment and return it if cancelled. Every change is a movement in the ledger with reason `adjustment`, who made it and why, next to the movements orders make, and the product page shows the latest eight. The count cannot go below zero unless the item allows backorders. Changes lock the row while the new level is worked out, so a sale cannot slip in between the read and the write. Stopping tracking makes the item always available again and deletes its history.
+
+Tracked stock at or below `COMMERCE_LOW_STOCK_THRESHOLD` (default 5) is labelled *Low* and listed under *Running low* on the Commerce overview. It only labels; the shop keeps selling until the count reaches zero.
+
 ## Managing orders
 
 **Commerce → Orders** in the ACP lists every order, newest first, with tabs for each status (and how many are in it), a search by order number, name or email, and a filter by payment state. Opening an order shows its items and totals, customer, addresses, payments (with a link to the payment in the provider's dashboard), refunds and its history.
@@ -157,7 +194,7 @@ As the shopper fills in the form, the page asks the server for the totals (`GET 
 
 `inventory_items` holds the on-hand quantity. A product (or variant) with **no** inventory row is not tracked and always available; give it a row to track it. A variant's own row is used first, then the product's row. `allow_backorder` lets the level go negative.
 
-Every change is written to `inventory_movements` (`reservation`, `release`, `restock`), so a reservation is released exactly once and a stock level can always be explained. Unpaid orders hold stock for `COMMERCE_PAYMENT_WINDOW` minutes (default 60, minimum 30 because Stripe sessions cannot expire sooner). The scheduler runs `ExpirePendingOrders` every five minutes (`php artisan commerce:expire-orders` does the same by hand). Before cancelling, it asks the provider what happened to the payment: an order that was paid just as its window ran out is settled, not cancelled, and an order is left alone if the provider cannot be reached. **The scheduler (`php artisan schedule:run` every minute) and a queue worker must be running in production.**
+Every change is written to `inventory_movements` (`reservation`, `release`, `restock`, and `adjustment` for counts by staff), so a reservation is released exactly once and a stock level can always be explained. Unpaid orders hold stock for `COMMERCE_PAYMENT_WINDOW` minutes (default 60, minimum 30 because Stripe sessions cannot expire sooner). The scheduler runs `ExpirePendingOrders` every five minutes (`php artisan commerce:expire-orders` does the same by hand). Before cancelling, it asks the provider what happened to the payment: an order that was paid just as its window ran out is settled, not cancelled, and an order is left alone if the provider cannot be reached. **The scheduler (`php artisan schedule:run` every minute) and a queue worker must be running in production.**
 
 A payment that arrives for an order that was already cancelled is honoured: the order is reinstated, the stock is taken again (even if that leaves it negative) and the order is flagged `metadata.late_payment` and logged, so a person can check it.
 
@@ -216,10 +253,11 @@ Prices are `decimal(10,2)` columns, but all arithmetic is done on integers in `A
 | `COMMERCE_GUEST_CHECKOUT` | `true` | Allow buying without an account. |
 | `COMMERCE_PAYMENT_WINDOW` | `60` | Minutes stock is held for an unpaid order (minimum 30). |
 | `COMMERCE_ORDER_PREFIX` | `MF` | Prefix of the order number. |
+| `COMMERCE_LOW_STOCK_THRESHOLD` | `5` | Tracked stock at or below this is shown as low in the ACP. |
 
 ## Upgrading an existing installation
 
-Run `php artisan migrate`. The new migrations are safe on a database that already has data. For order management and refunds: `refunds` and `order_events` are new tables and orders gain a `refunded_total` (zero for existing orders). Run `php artisan db:seed --class=RolePermissionSeeder` to create the `commerce.acp.refund` permission (the admin role is given it; grant it to other staff roles in Access control), and add the five refund events above to your Stripe webhook endpoint. For the shipping, tax and address slice: products gain *Needs shipping* and *Charge tax* flags (existing products stay shipped and taxed), orders gain empty address and shipping-method columns, and the address, shipping and tax tables are new. **Behaviour change:** products are shipped by default, so checkout now asks for a shipping address; with no shipping zones configured it still ships anywhere for free, as before. For the first slice:
+Run `php artisan migrate`. The new migrations are safe on a database that already has data. For catalogue management: variants gain an `is_active` flag (existing variants stay on sale), and the commerce overview no longer carries the old quick-create forms: use Commerce → Products. For order management and refunds: `refunds` and `order_events` are new tables and orders gain a `refunded_total` (zero for existing orders). Run `php artisan db:seed --class=RolePermissionSeeder` to create the `commerce.acp.refund` permission (the admin role is given it; grant it to other staff roles in Access control), and add the five refund events above to your Stripe webhook endpoint. For the shipping, tax and address slice: products gain *Needs shipping* and *Charge tax* flags (existing products stay shipped and taxed), orders gain empty address and shipping-method columns, and the address, shipping and tax tables are new. **Behaviour change:** products are shipped by default, so checkout now asks for a shipping address; with no shipping zones configured it still ships anywhere for free, as before. For the first slice:
 
 - `add_checkout_columns_to_orders_table` adds the new order columns and **backfills** existing orders: each gets a public id and number, an owner (the placing user), and a payment state implied by its old status (`processing` and `completed` become `paid`).
 - `generalise_billing_webhook_calls_table` adds `provider` and `external_id` (copied from `stripe_id`) so shop and subscription events share one idempotency key.
@@ -229,4 +267,4 @@ The header cart previously showed an estimated 7% tax and a flat shipping charge
 
 ## Not built yet
 
-Planned for the rest of M1 (see the roadmap): catalogue editing and product images, inventory adjustments, coupons and gift cards, digital goods (downloads and licence keys; the *Needs shipping* flag is already in place), reviews and wishlists. A guest's cart is not yet carried over when they sign in, and a guest's orders are not yet attached to an account created later with the same email. Tebex arrives in M2 behind the same provider contract.
+Planned for the rest of M1 (see the roadmap): product images, coupons and gift cards, digital goods (downloads and licence keys; the *Needs shipping* flag is already in place), reviews and wishlists. A guest's cart is not yet carried over when they sign in, and a guest's orders are not yet attached to an account created later with the same email. Tebex arrives in M2 behind the same provider contract.

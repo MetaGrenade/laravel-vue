@@ -13,6 +13,9 @@ class InventoryMovement extends Model
 
     public const RESTOCK = 'restock';
 
+    /** Stock counted or corrected by a person, not moved by an order. */
+    public const ADJUSTMENT = 'adjustment';
+
     protected $fillable = [
         'inventory_item_id',
         'order_id',
@@ -41,5 +44,13 @@ class InventoryMovement extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }
