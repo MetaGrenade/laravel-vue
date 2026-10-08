@@ -9,6 +9,12 @@ use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogCommentController as AdminBlogCommentController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\BlogTagController;
+use App\Http\Controllers\Admin\Catalogue\OptionController;
+use App\Http\Controllers\Admin\Catalogue\PriceController;
+use App\Http\Controllers\Admin\Catalogue\ProductController;
+use App\Http\Controllers\Admin\Catalogue\StockController;
+use App\Http\Controllers\Admin\Catalogue\TaxonomyController;
+use App\Http\Controllers\Admin\Catalogue\VariantController;
 use App\Http\Controllers\Admin\CommerceController;
 use App\Http\Controllers\Admin\CommerceOrderController;
 use App\Http\Controllers\Admin\CommerceOrderRefundController;
@@ -138,27 +144,93 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->name('acp.commerce.')
         ->group(function () {
             Route::get('/', [CommerceController::class, 'index'])->name('index');
-            Route::post('brands', [CommerceController::class, 'storeBrand'])
+            // Products, and everything edited from a product's page.
+            Route::get('products', [ProductController::class, 'index'])->name('products.index');
+            Route::get('products/create', [ProductController::class, 'create'])
                 ->middleware('can:commerce.acp.create')
-                ->name('brands.store');
-            Route::post('products', [CommerceController::class, 'storeProduct'])
+                ->name('products.create');
+            Route::post('products', [ProductController::class, 'store'])
                 ->middleware('can:commerce.acp.create')
                 ->name('products.store');
-            Route::post('options', [CommerceController::class, 'storeOption'])
+            Route::get('products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
+            Route::put('products/{product}', [ProductController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('products.update');
+            Route::delete('products/{product}', [ProductController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('products.destroy');
+
+            Route::post('products/{product}/options', [OptionController::class, 'store'])
                 ->middleware('can:commerce.acp.create')
                 ->name('options.store');
-            Route::post('option-values', [CommerceController::class, 'storeOptionValue'])
+            Route::put('options/{option}', [OptionController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('options.update');
+            Route::delete('options/{option}', [OptionController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('options.destroy');
+            Route::post('options/{option}/values', [OptionController::class, 'storeValue'])
                 ->middleware('can:commerce.acp.create')
                 ->name('option-values.store');
-            Route::post('variants', [CommerceController::class, 'storeVariant'])
+            Route::put('option-values/{value}', [OptionController::class, 'updateValue'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('option-values.update');
+            Route::delete('option-values/{value}', [OptionController::class, 'destroyValue'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('option-values.destroy');
+
+            Route::post('products/{product}/variants', [VariantController::class, 'store'])
                 ->middleware('can:commerce.acp.create')
                 ->name('variants.store');
-            Route::post('prices', [CommerceController::class, 'storePrice'])
+            Route::post('products/{product}/variants/generate', [VariantController::class, 'generate'])
+                ->middleware('can:commerce.acp.create')
+                ->name('variants.generate');
+            Route::put('variants/{variant}', [VariantController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('variants.update');
+            Route::delete('variants/{variant}', [VariantController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('variants.destroy');
+
+            Route::post('products/{product}/prices', [PriceController::class, 'storeForProduct'])
                 ->middleware('can:commerce.acp.create')
                 ->name('prices.store');
-            Route::post('inventory', [CommerceController::class, 'storeInventory'])
+            Route::post('variants/{variant}/prices', [PriceController::class, 'storeForVariant'])
                 ->middleware('can:commerce.acp.create')
-                ->name('inventory.store');
+                ->name('variants.prices.store');
+            Route::put('prices/{price}', [PriceController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('prices.update');
+            Route::delete('prices/{price}', [PriceController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('prices.destroy');
+
+            Route::post('products/{product}/stock', [StockController::class, 'track'])
+                ->middleware('can:commerce.acp.create')
+                ->name('stock.track');
+            Route::put('stock/{item}', [StockController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('stock.update');
+            Route::delete('stock/{item}', [StockController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('stock.destroy');
+
+            // Brands, categories and tags.
+            Route::get('taxonomy', [TaxonomyController::class, 'index'])->name('taxonomy.index');
+            Route::post('taxonomy/{type}', [TaxonomyController::class, 'store'])
+                ->where('type', 'brands|categories|tags')
+                ->middleware('can:commerce.acp.create')
+                ->name('taxonomy.store');
+            Route::put('taxonomy/{type}/{id}', [TaxonomyController::class, 'update'])
+                ->where('type', 'brands|categories|tags')
+                ->whereNumber('id')
+                ->middleware('can:commerce.acp.edit')
+                ->name('taxonomy.update');
+            Route::delete('taxonomy/{type}/{id}', [TaxonomyController::class, 'destroy'])
+                ->where('type', 'brands|categories|tags')
+                ->whereNumber('id')
+                ->middleware('can:commerce.acp.delete')
+                ->name('taxonomy.destroy');
 
             // Shipping zones and their rates.
             Route::get('shipping', [ShippingZoneController::class, 'index'])->name('shipping.index');

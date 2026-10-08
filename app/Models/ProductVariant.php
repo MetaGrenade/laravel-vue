@@ -18,11 +18,17 @@ class ProductVariant extends Model
         'sku',
         'option_values',
         'is_default',
+        'is_active',
     ];
 
     protected $casts = [
         'option_values' => 'array',
         'is_default' => 'boolean',
+        'is_active' => 'boolean',
+    ];
+
+    protected $attributes = [
+        'is_active' => true,
     ];
 
     /**

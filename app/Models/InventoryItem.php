@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,24 @@ class InventoryItem extends Model
     protected $casts = [
         'allow_backorder' => 'boolean',
     ];
+
+    /**
+     * Stock that belongs to something a shopper can still buy: a product that is on sale and,
+     * for a variant's stock, a variant that is on. What is archived or switched off keeps its
+     * stock row for the history, but is not a shortage anyone needs to act on.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForSale(Builder $query): Builder
+    {
+        return $query
+            ->whereHas('product', fn ($product) => $product->where('is_active', true))
+            ->where(function ($inner) {
+                $inner->whereNull('product_variant_id')
+                    ->orWhereHas('variant', fn ($variant) => $variant->where('is_active', true));
+            });
+    }
 
     /**
      * @return BelongsTo<Product, $this>

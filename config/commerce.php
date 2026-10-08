@@ -55,6 +55,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Low stock
+    |--------------------------------------------------------------------------
+    |
+    | A tracked product with this many left (or fewer) is shown as low on stock in
+    | the ACP. It only labels; the shop keeps selling until it runs out.
+    |
+    */
+
+    'low_stock_threshold' => max(0, (int) env('COMMERCE_LOW_STOCK_THRESHOLD', 5)),
+
+    /*
+    |--------------------------------------------------------------------------
     | Orders
     |--------------------------------------------------------------------------
     */

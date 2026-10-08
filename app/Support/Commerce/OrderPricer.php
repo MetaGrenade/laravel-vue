@@ -192,7 +192,13 @@ class OrderPricer
             throw new CheckoutException("{$name} is no longer available.");
         }
 
-        if ($item->product_variant_id !== null && ($variant === null || $variant->product_id !== $product->id)) {
+        if ($item->product_variant_id !== null && ($variant === null || $variant->product_id !== $product->id || ! $variant->is_active)) {
+            throw new CheckoutException("{$name} is no longer available in the option you chose.");
+        }
+
+        // A cart from before the product gained variants holds a line for the base product. It is
+        // not sold as that any more.
+        if ($item->product_variant_id === null && $product->variants()->exists()) {
             throw new CheckoutException("{$name} is no longer available in the option you chose.");
         }
 

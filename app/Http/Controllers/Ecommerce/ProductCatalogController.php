@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductTag;
+use App\Support\Commerce\ProductAvailability;
 use App\Support\Seo\Seo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,7 +16,7 @@ use Inertia\Response;
 
 class ProductCatalogController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ProductAvailability $availability): Response
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
@@ -27,7 +28,14 @@ class ProductCatalogController extends Controller
         ]);
 
         $products = Product::query()
-            ->with(['variants.prices', 'prices', 'categories:id,name,slug', 'tags:id,name,slug', 'brand:id,name,slug'])
+            ->with([
+                'variants' => ProductAvailability::activeVariants(),
+                'prices' => ProductAvailability::chargeablePrices(),
+                'categories:id,name,slug',
+                'tags:id,name,slug',
+                'brand:id,name,slug',
+            ])
+            ->withExists('variants as has_variants')
             ->where('is_active', true)
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(function ($query) use ($search) {
@@ -51,13 +59,15 @@ class ProductCatalogController extends Controller
             ->orderBy('name')
             ->paginate(12)
             ->withQueryString()
-            ->through(function (Product $product) {
+            ->through(function (Product $product) use ($availability) {
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
                     'slug' => $product->slug,
                     'description' => $product->description,
                     'is_active' => $product->is_active,
+                    // What checkout will accept, so the button is never on for something it would refuse.
+                    'can_buy' => $availability->canBuy($product),
                     'variants' => $product->variants,
                     'prices' => $product->prices,
                     'brand' => $product->brand,
@@ -86,11 +96,21 @@ class ProductCatalogController extends Controller
         ]);
     }
 
-    public function show(Product $product): Response
+    public function show(Product $product, ProductAvailability $availability): Response
     {
         abort_unless($product->is_active, 404);
 
-        $product->load(['options.values', 'variants.prices', 'prices', 'inventoryItems', 'categories', 'tags', 'brand']);
+        $product->load([
+            'options.values',
+            'variants' => ProductAvailability::activeVariants(),
+            'prices' => ProductAvailability::chargeablePrices(),
+            'inventoryItems',
+            'categories',
+            'tags',
+            'brand',
+        ]);
+        $product->loadExists('variants as has_variants');
+        $product->setAttribute('can_buy', $availability->canBuy($product));
 
         app(Seo::class)
             ->title($product->name)

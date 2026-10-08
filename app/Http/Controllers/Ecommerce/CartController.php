@@ -46,9 +46,22 @@ class CartController extends Controller
         $variant = null;
 
         if ($validated['product_variant_id'] ?? null) {
+            // A variant of some other product is a tampered request; one that was switched off is
+            // just no longer for sale.
             $variant = ProductVariant::query()
                 ->where('product_id', $product->id)
                 ->findOrFail($validated['product_variant_id']);
+
+            if (! $variant->is_active) {
+                return back()->with('error', 'This option is not available.');
+            }
+        } elseif ($product->variants()->exists()) {
+            // A product with variants is only ever bought as one of them. Without this, switching
+            // every variant off would let it be bought as the base product at the product's price,
+            // skipping the variants' stock.
+            return back()->with('error', $product->variants()->where('is_active', true)->exists()
+                ? 'Choose an option for this product.'
+                : 'This product is not available.');
         }
 
         $price = $prices->resolve($product, $variant);
