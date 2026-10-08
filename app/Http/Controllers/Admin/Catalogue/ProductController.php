@@ -79,7 +79,7 @@ class ProductController extends Controller
             'brand' => $product->brand?->name,
             'variants_count' => $product->variants_count,
             'price' => $this->priceRange($product, $currency),
-            'stock' => $this->stockSummary($product->inventoryItems),
+            'stock' => $this->stockSummary($this->itemsForSale($product)),
             'sellable' => $this->isSellable($product, $currency),
         ])->values()->all();
 
@@ -158,6 +158,12 @@ class ProductController extends Controller
             ->all();
 
         $movements = $this->movements($items);
+        $usedByOrders = InventoryMovement::query()
+            ->whereIn('inventory_item_id', $items->pluck('id'))
+            ->whereNotNull('order_id')
+            ->distinct()
+            ->pluck('inventory_item_id')
+            ->all();
 
         return Inertia::render('acp/CommerceProductEdit', [
             'product' => [
@@ -178,7 +184,7 @@ class ProductController extends Controller
             'tags' => ProductTag::query()->orderBy('name')->get(['id', 'name']),
             'currency' => $currency,
             'prices' => $product->prices->map(fn (Price $price) => $this->priceRow($price, $currency))->values(),
-            'stock' => $this->stockRow($items->first(fn (InventoryItem $item) => $item->product_variant_id === null), $movements),
+            'stock' => $this->stockRow($items->first(fn (InventoryItem $item) => $item->product_variant_id === null), $movements, $usedByOrders),
             'options' => $product->options->map(fn (ProductOption $option) => [
                 'id' => $option->id,
                 'name' => $option->name,
@@ -194,7 +200,7 @@ class ProductController extends Controller
                 'is_active' => $variant->is_active,
                 'ordered' => in_array($variant->id, $ordered, true),
                 'prices' => $variant->prices->map(fn (Price $price) => $this->priceRow($price, $currency))->values(),
-                'stock' => $this->stockRow($items->first(fn (InventoryItem $item) => $item->product_variant_id === $variant->id), $movements),
+                'stock' => $this->stockRow($items->first(fn (InventoryItem $item) => $item->product_variant_id === $variant->id), $movements, $usedByOrders),
             ])->values(),
             'missing_variants' => count($this->generator->missing($product)),
             'variant_limit' => VariantGenerator::LIMIT,
@@ -315,9 +321,10 @@ class ProductController extends Controller
 
     /**
      * @param  array<int, list<array<string, mixed>>>  $movements
+     * @param  list<int>  $usedByOrders  Ids of the stock rows that orders have used.
      * @return array<string, mixed>|null
      */
-    private function stockRow(?InventoryItem $item, array $movements): ?array
+    private function stockRow(?InventoryItem $item, array $movements, array $usedByOrders): ?array
     {
         if ($item === null) {
             return null;
@@ -327,8 +334,23 @@ class ProductController extends Controller
             'id' => $item->id,
             'quantity' => $item->quantity,
             'allow_backorder' => $item->allow_backorder,
+            // Once orders have used it, their reservations live in its history, which is kept.
+            'can_untrack' => ! in_array($item->id, $usedByOrders, true),
             'movements' => $movements[$item->id] ?? [],
         ];
+    }
+
+    /**
+     * A product's stock rows, less those of variants that are switched off: stock that cannot be
+     * sold is not what the product has available.
+     *
+     * @return Collection<int, InventoryItem>
+     */
+    private function itemsForSale(Product $product): Collection
+    {
+        $off = $product->variants->where('is_active', false)->pluck('id');
+
+        return $product->inventoryItems->reject(fn (InventoryItem $item) => $item->product_variant_id !== null && $off->contains($item->product_variant_id))->values();
     }
 
     /**

@@ -123,6 +123,8 @@ Each action has its own permission: `commerce.acp.view` to look, `create` to add
 
 The shop sells in one currency (`COMMERCE_CURRENCY`), so a price is always created in it and there is no currency to choose. A product or variant has **one active price** at a time: that is what a shopper is charged (see `PriceResolver`); a variant without a price of its own is sold at the product's price. A switched-off price is a draft, and switching a new one on while another is on is refused, so a change is always two deliberate steps. A price needs a real amount (more than zero, at most two decimals, whole units for currencies without cents such as yen), and the optional *original price* shown struck through must be higher than the price. Old prices in another currency are shown as not in use; they can be deleted or left alone.
 
+The shop only ever shows a price that can be charged (active, in the shop's currency; `Price::scopeChargeable()`, the same definition `PriceResolver` uses at checkout), cheapest first, so an obsolete or foreign-currency price is never displayed. The server also tells the storefront whether a product can be bought (`ProductAvailability::canBuy()`), and the add-to-cart button follows that rather than guessing from the prices it was sent.
+
 ### Options and variants
 
 A variant is one combination of a product's options (Medium / Red). The options are kept on the variant by name (`{"Size": "M"}`), so:
@@ -130,7 +132,8 @@ A variant is one combination of a product's options (Medium / Red). The options 
 - **Renaming** an option or a value rewrites the variants made from it; **deleting** one is refused while a variant is made from it.
 - A variant must choose a value for every option that has values, and no two variants of a product may share a combination or a SKU.
 - **Create the missing variants** makes one for every combination that does not have a variant yet (up to 100 a product, with generated SKUs such as `HOODIE-M-RED`). It can be run again after adding a value.
-- Exactly one variant is the default; the first one added becomes it, and deleting the default promotes another.
+- Exactly one variant is the default; the first one added becomes it, and deleting the default promotes another. The default is changed by making another variant the default, never by clearing it, so a product that has variants always has one.
+- **A product that has variants is only sold as one of them.** The cart refuses a missing variant, and checkout refuses a cart line for the base product once the product has gained variants. Otherwise switching every variant off would let the product be bought at its own price and skip the variants' stock.
 
 ### Deleting, archiving and switching off
 
@@ -138,9 +141,9 @@ Anything that has been **ordered** is kept for the order history and the stock l
 
 ### Stock adjustments
 
-Stock is tracked per product, or per variant when a product has variants (a product or variant with no stock row is always available). On a tracked item staff can **set** the count to a counted figure, or **add or remove** some (a delivery, damage), each with an optional note. `quantity` is what can still be sold, because orders take from it while they wait for payment and return it if cancelled. Every change is a movement in the ledger with reason `adjustment`, who made it and why, next to the movements orders make, and the product page shows the latest eight. The count cannot go below zero unless the item allows backorders. Changes lock the row while the new level is worked out, so a sale cannot slip in between the read and the write. Stopping tracking makes the item always available again and deletes its history.
+Stock is tracked per product, or per variant when a product has variants (a product or variant with no stock row is always available). On a tracked item staff can **set** the count to a counted figure, or **add or remove** some (a delivery, damage), each with an optional note. `quantity` is what can still be sold, because orders take from it while they wait for payment and return it if cancelled. Every change is a movement in the ledger with reason `adjustment`, who made it and why, next to the movements orders make, and the product page shows the latest eight. The count cannot go below zero unless the item allows backorders. Changes lock the row while the new level is worked out, so a sale cannot slip in between the read and the write. Stopping tracking makes the item always available again and deletes its history, so it is **refused once orders have used the stock**: cancelling an order or refunding one returns exactly what its movements say it holds, and deleting them would lose that stock for good. To keep selling past zero, allow backorders instead.
 
-Tracked stock at or below `COMMERCE_LOW_STOCK_THRESHOLD` (default 5) is labelled *Low* and listed under *Running low* on the Commerce overview. It only labels; the shop keeps selling until the count reaches zero.
+Tracked stock at or below `COMMERCE_LOW_STOCK_THRESHOLD` (default 5) is labelled *Low* and listed under *Running low* on the Commerce overview. It only labels; the shop keeps selling until the count reaches zero. Only stock that belongs to something on sale counts (`InventoryItem::scopeForSale()`): an archived product or a switched-off variant keeps its row for the history, but is not a shortage, and could otherwise fill the list and hide real ones.
 
 ## Managing orders
 

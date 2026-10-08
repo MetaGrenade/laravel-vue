@@ -191,7 +191,15 @@ const selectClass =
                 </ul>
             </div>
 
-            <Button v-if="can.delete" variant="ghost" size="sm" class="text-destructive" @click="untrackOpen = true">Stop tracking stock</Button>
+            <template v-if="can.delete">
+                <Button v-if="stock.can_untrack" variant="ghost" size="sm" class="text-destructive" @click="untrackOpen = true"
+                    >Stop tracking stock</Button
+                >
+                <p v-else class="text-xs text-muted-foreground">
+                    Orders have used this stock, so it stays tracked and its history is kept. To keep selling past zero, switch on "Keep selling when
+                    it runs out".
+                </p>
+            </template>
         </template>
 
         <template v-else>

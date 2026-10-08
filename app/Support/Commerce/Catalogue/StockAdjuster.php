@@ -96,11 +96,40 @@ class StockAdjuster
     }
 
     /**
-     * Stop tracking: the item is always available again. Its movement history goes with it.
+     * Whether orders have used this stock: they hold their reservations (and what a refund may
+     * return) in its movements.
+     */
+    public function usedByOrders(InventoryItem $item): bool
+    {
+        return InventoryMovement::query()->where('inventory_item_id', $item->id)->whereNotNull('order_id')->exists();
+    }
+
+    /**
+     * Stop tracking: the item is always available again, and its movement history goes with it.
+     *
+     * Refused once orders have used it. Cancelling an order or refunding one returns exactly what
+     * its movements say it holds, so deleting them (and starting again later with a fresh count)
+     * would lose that stock for good, and the history is the record of why the count is what it is.
+     * To keep selling past zero, allow backorders instead.
+     *
+     * @throws CatalogueException
      */
     public function untrack(InventoryItem $item): void
     {
-        $item->delete();
+        DB::transaction(function () use ($item) {
+            // The row is locked, so an order cannot reserve from it between the check and the delete.
+            $locked = InventoryItem::query()->lockForUpdate()->find($item->id);
+
+            if ($locked === null) {
+                return;
+            }
+
+            if ($this->usedByOrders($locked)) {
+                throw new CatalogueException('Orders have used this stock, so its history is kept. To keep selling past zero, switch on "Keep selling when it runs out" instead.');
+            }
+
+            $locked->delete();
+        });
     }
 
     private function lock(InventoryItem $item): InventoryItem

@@ -283,9 +283,15 @@ const selectClass =
                         <InputError :message="form.errors.sku" />
                     </div>
 
-                    <div class="flex items-center gap-3">
-                        <Switch id="variant-default" v-model="form.is_default" />
-                        <Label for="variant-default" class="font-normal">The default choice</Label>
+                    <div class="grid gap-1">
+                        <div class="flex items-center gap-3">
+                            <Switch id="variant-default" v-model="form.is_default" :disabled="editing?.is_default" />
+                            <Label for="variant-default" class="font-normal">The default choice</Label>
+                        </div>
+                        <p v-if="editing?.is_default" class="text-xs text-muted-foreground">
+                            A product always has a default. To change it, make another variant the default.
+                        </p>
+                        <InputError :message="form.errors.is_default" />
                     </div>
                     <div class="grid gap-1">
                         <div class="flex items-center gap-3">

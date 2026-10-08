@@ -35,6 +35,7 @@ class CommerceController extends Controller
         // Tracked stock that is out or nearly out, worst first. Items that may be backordered are
         // sold regardless, so they are not a worry.
         $lowStock = InventoryItem::query()
+            ->forSale()
             ->with(['product:id,name', 'variant:id,name'])
             ->where('allow_backorder', false)
             ->where('quantity', '<=', $threshold)
@@ -63,10 +64,12 @@ class CommerceController extends Controller
                 'total_prices' => Price::count(),
             ],
             'inventory' => [
-                'items' => InventoryItem::count(),
-                'on_hand' => (int) InventoryItem::where('quantity', '>', 0)->sum('quantity'),
-                'backorderable' => InventoryItem::where('allow_backorder', true)->count(),
-                'out_of_stock' => InventoryItem::where('allow_backorder', false)->where('quantity', '<=', 0)->count(),
+                // Only stock that belongs to something on sale: an archived product or a variant that is
+                // off keeps its row for the history, but it is not a shortage.
+                'items' => InventoryItem::forSale()->count(),
+                'on_hand' => (int) InventoryItem::forSale()->where('quantity', '>', 0)->sum('quantity'),
+                'backorderable' => InventoryItem::forSale()->where('allow_backorder', true)->count(),
+                'out_of_stock' => InventoryItem::forSale()->where('allow_backorder', false)->where('quantity', '<=', 0)->count(),
             ],
             'orders' => [
                 'total' => Order::count(),

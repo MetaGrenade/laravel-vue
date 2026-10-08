@@ -66,6 +66,12 @@ class VariantRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            // The default is changed by choosing another one, never by clearing it, so a product
+            // that has variants always has a default.
+            if ($this->variant()?->is_default && $this->has('is_default') && ! $this->boolean('is_default')) {
+                $validator->errors()->add('is_default', 'A product needs a default variant. Make another variant the default instead.');
+            }
+
             if ($validator->errors()->has('option_values') || $validator->errors()->has('option_values.*')) {
                 return;
             }

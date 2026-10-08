@@ -63,10 +63,15 @@ class StockController extends Controller
 
     /**
      * Stop tracking: the item can always be bought, and its stock history is deleted with it.
+     * Refused once orders have used the stock.
      */
     public function destroy(InventoryItem $item): RedirectResponse
     {
-        $this->stock->untrack($item);
+        try {
+            $this->stock->untrack($item);
+        } catch (CatalogueException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
 
         return back()->with('success', 'Stock is no longer tracked.');
     }

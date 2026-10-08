@@ -29,6 +29,8 @@ export interface StockRow {
     id: number;
     quantity: number;
     allow_backorder: boolean;
+    /** False once orders have used it: their reservations are in its history, which is kept. */
+    can_untrack: boolean;
     movements: StockMovement[];
 }
 

@@ -137,10 +137,13 @@ class CheckoutTest extends TestCase
     #[Test]
     public function stripe_is_asked_for_exactly_what_the_order_costs(): void
     {
-        $product = Product::factory()->priced('19.99')->create(['name' => 'Hoodie']);
-        $variant = ProductVariant::factory()->for($product)->priced('5.50')->create(['name' => 'Small']);
-        $cart = $this->cartWith($product, 2);
-        CartManager::addItem($cart, $product, $variant, $variant->prices()->firstOrFail(), 3);
+        // A plain product, and a product sold as one of its variants (a product that has variants is
+        // never sold as the base product).
+        $hoodie = Product::factory()->priced('19.99')->create(['name' => 'Hoodie']);
+        $tee = Product::factory()->create(['name' => 'Tee']);
+        $variant = ProductVariant::factory()->for($tee)->priced('5.50')->create(['name' => 'Small']);
+        $cart = $this->cartWith($hoodie, 2);
+        CartManager::addItem($cart, $tee, $variant, $variant->prices()->firstOrFail(), 3);
 
         $this->submit();
 
@@ -169,7 +172,7 @@ class CheckoutTest extends TestCase
                 'price_data' => [
                     'currency' => 'usd',
                     'unit_amount' => 550,
-                    'product_data' => ['name' => 'Hoodie — Small'],
+                    'product_data' => ['name' => 'Tee — Small'],
                 ],
             ],
         ], $params['line_items']);

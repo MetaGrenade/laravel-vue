@@ -37,8 +37,7 @@ class PriceResolver
     private function lowest(Product|ProductVariant $priceable): ?Price
     {
         return $priceable->prices()
-            ->where('is_active', true)
-            ->where('currency', $this->currency())
+            ->chargeable()
             ->orderBy('amount')
             ->first();
     }

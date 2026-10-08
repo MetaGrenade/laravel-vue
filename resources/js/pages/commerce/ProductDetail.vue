@@ -56,6 +56,7 @@ interface InventoryItem {
 
 interface Product {
     id: number;
+    can_buy: boolean;
     name: string;
     slug: string;
     description?: string | null;
@@ -88,8 +89,8 @@ const props = defineProps<Props>();
                         <Badge variant="outline">{{ props.product.brand.name }}</Badge>
                     </div>
                 </div>
-                <Badge v-if="props.product.prices.length" variant="secondary">Pricing ready</Badge>
-                <Badge v-else variant="outline">Needs pricing</Badge>
+                <Badge v-if="props.product.can_buy" variant="secondary">Available</Badge>
+                <Badge v-else variant="outline">Currently unavailable</Badge>
             </div>
 
             <Card>

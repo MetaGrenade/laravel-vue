@@ -196,6 +196,12 @@ class OrderPricer
             throw new CheckoutException("{$name} is no longer available in the option you chose.");
         }
 
+        // A cart from before the product gained variants holds a line for the base product. It is
+        // not sold as that any more.
+        if ($item->product_variant_id === null && $product->variants()->exists()) {
+            throw new CheckoutException("{$name} is no longer available in the option you chose.");
+        }
+
         $max = (int) config('commerce.checkout.max_quantity', 20);
 
         if ($item->quantity < 1 || $item->quantity > $max) {

@@ -41,6 +41,8 @@ interface Price {
 
 interface Product {
     id: number;
+    /** Decided by the server with the same rules checkout uses, so the button is never on for something checkout would refuse. */
+    can_buy: boolean;
     name: string;
     slug: string;
     description?: string | null;
@@ -97,9 +99,7 @@ const setQuantity = (productId: number, value: number) => {
     quantities[productId] = Math.max(1, nextValue);
 };
 
-const canAddToCart = (product: Product) => {
-    return product.prices.length > 0 || product.variants.some((variant) => variant.prices.length);
-};
+const canAddToCart = (product: Product) => product.can_buy;
 
 const addToCart = (product: Product) => {
     if (!canAddToCart(product)) {
@@ -135,7 +135,7 @@ const getPriceRangeLabel = (product: Product) => {
     const allPrices = [...product.prices, ...product.variants.flatMap((variant) => variant.prices || [])];
 
     if (!allPrices.length) {
-        return 'Add pricing to this item';
+        return 'Currently unavailable';
     }
 
     const amounts = allPrices.map((price) => ({
@@ -161,7 +161,7 @@ const getProductPriceLabel = (product: Product) => {
     const price = selectedVariant?.prices[0] ?? product.prices[0];
 
     if (!price) {
-        return 'Pricing pending';
+        return 'Currently unavailable';
     }
 
     return formatCurrency(Number(price.amount), price.currency);
