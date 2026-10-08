@@ -45,6 +45,11 @@ updates:
       # `npm install` fail with ERESOLVE (npm 10), so wait until the plugin widens its range.
       - dependency-name: fontaine
         update-types: ['version-update:semver-major']
+      # The types should match the Node version the project runs on (.nvmrc, which CI uses), not the
+      # newest Node. A newer major describes APIs the runtime does not have yet, so type-checking
+      # passes code that fails on Node 24. Raise this by hand when .nvmrc moves.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     labels:
       - dependencies
 
