@@ -16,7 +16,6 @@ use App\Support\Commerce\OrderLifecycle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Support\InteractsWithCommerce;
 use Tests\TestCase;
@@ -155,7 +154,7 @@ class OrderLifecycleTest extends TestCase
     {
         $product = Product::factory()->priced('5.00')->create();
         $this->cartWith($product, 2);
-        $this->post(route('shop.checkout.store'), ['email' => 'a@example.com', 'token' => (string) Str::uuid()]);
+        $this->post(route('shop.checkout.store'), $this->checkoutPayload(['email' => 'a@example.com']));
         $order = Order::sole();
 
         $this->assertTrue(app(OrderLifecycle::class)->cancel($order, 'test'));

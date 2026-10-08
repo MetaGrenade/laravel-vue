@@ -40,12 +40,7 @@ class CheckoutTest extends TestCase
      */
     private function submit(array $data = []): TestResponse
     {
-        return $this->post(route('shop.checkout.store'), [
-            'email' => 'buyer@example.com',
-            'name' => 'Ada Buyer',
-            'token' => (string) Str::uuid(),
-            ...$data,
-        ]);
+        return $this->post(route('shop.checkout.store'), $this->checkoutPayload($data));
     }
 
     #[Test]

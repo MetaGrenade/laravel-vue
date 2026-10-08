@@ -1,6 +1,6 @@
 # Commerce
 
-How the shop takes an order from a cart to a paid order. This page covers what exists now (milestone M1, first slice) and how it is built, so you can extend or replace parts of it. Planned follow-ups (addresses, shipping and tax, refunds, coupons, digital goods, reviews and wishlists) are listed at the end and in [ROADMAP-v1.0.0.md](ROADMAP-v1.0.0.md).
+How the shop takes an order from a cart to a paid order. This page covers what exists now (milestone M1, first two slices) and how it is built, so you can extend or replace parts of it. Planned follow-ups (refunds and order management, coupons, digital goods, reviews and wishlists) are listed at the end and in [ROADMAP-v1.0.0.md](ROADMAP-v1.0.0.md).
 
 ## The flow
 
@@ -11,7 +11,7 @@ cart ──► checkout form ──► order placed (pending, stock held) ──
 ```
 
 1. **Cart.** Guests have a cart tied to their browser session; signed-in customers have one tied to their account. The cart is only a convenience view: it remembers a price, but nothing that matters is read from it later.
-2. **Checkout.** `POST /checkout` places an order. `OrderPlacer` looks the product, variant, price and stock up again, so a stale or tampered cart cannot buy something at the wrong price or that has been withdrawn. Stock is held with one conditional `UPDATE` per line, so two shoppers racing for the last unit cannot both win, on any database.
+2. **Checkout.** The shopper gives an email, a shipping address (for anything that is shipped), picks a shipping method and sees shipping and tax update as they go. `POST /checkout` places an order. `OrderPricer` looks the product, variant, price, shipping and tax up again and `OrderPlacer` stores the result, so a stale or tampered cart or form cannot buy something at the wrong price, ship somewhere it should not, or skip tax. Stock is held with one conditional `UPDATE` per line, so two shoppers racing for the last unit cannot both win, on any database.
 3. **Payment.** The store's payment provider creates a checkout and the customer is sent to the provider's own page. For Stripe this is hosted Stripe Checkout: card details never touch this application.
 4. **Confirmation.** The provider calls the webhook, the order becomes paid, and a receipt email is sent. If the customer returns before the webhook arrives, the confirmation page asks the provider directly, so the order is not stuck on "waiting".
 
@@ -54,6 +54,46 @@ An order is a snapshot of the cart when checkout started. The shopper may keep e
 
 Orders and payments carry an owner (`owner_type`, `owner_id`), and `user_id` only records who placed the order. Access goes through `OrderPolicy` and `App\Support\Ownership`, never through `user_id`. In 1.0 a person's only owner is themselves; 1.1 adds teams, and this is the one place that changes. A guest order has no owner and is opened through the signed link in the receipt email.
 
+## Addresses
+
+A signed-in customer has an address book (**Settings → Addresses**, only while the shop section is on). At checkout they can pick a saved address or type one, and tick *Save this address for next time*. Guests just type one.
+
+An order keeps its **own copy** of the shipping and billing address (`orders.shipping_address`, `orders.billing_address`), so editing or deleting a saved address never changes an order that was placed. Saved addresses are owned through `owner_type` / `owner_id` and authorised through `AddressPolicy`, like orders, so a team can have one in 1.1.
+
+Which addresses the form asks for depends on the cart:
+
+- Anything that has to be **shipped** needs a shipping address. A separate billing address is only asked for if the shopper says it differs; otherwise billing is the shipping address.
+- A cart of **digital goods** (every product has *Needs shipping* off) is not shipped anywhere, so there is no shipping address. A billing address is asked for only when the shop charges tax by location, because it decides the tax.
+- Postal codes are required except in the few countries that have none. A state or province is required where tax depends on it (see below). Country codes are ISO 3166-1 alpha-2.
+
+## Shipping
+
+Shipping is set up with **zones** and **rates** (stored in `shipping_zones` and `shipping_rates`, in the store currency):
+
+- A zone lists the countries it covers, or `*` for everywhere not covered by another zone. A zone that names a country always beats the `*` zone; among zones naming it, the lowest position wins.
+- A zone has one or more rates. Each has a price, an optional minimum and maximum order value (only the items that are actually shipped count, so a download cannot help a parcel qualify), and can be switched off. *Free shipping over 100* is a zero-price rate with a minimum of 100.
+- The shopper chooses among the rates that apply. One shipping charge is made per order however many items it holds.
+- **If no zone is active, shipping is not set up**: orders are accepted for any country with no shipping charge, so you can arrange delivery yourself. As soon as one zone exists, only the countries your zones cover can order physical goods; for other countries checkout says it cannot ship there.
+
+Until the admin screens for zones and rates arrive in the next slice, manage them through the database or the demo seeder (`php artisan db:seed --class=CommerceDemoSeeder` adds example zones, rates and tax).
+
+## Tax
+
+Tax is a configurable table (`tax_rates`). **Prices are tax-exclusive**: tax is added at checkout.
+
+- For a destination, every active rate for that country applies, and a rate with a **region** only when the address is in that region (matched without regard to case). Several rates **add together**, for example a federal and a provincial tax.
+- A rate for `*` is the **fallback** for countries (and regions) that have none of their own.
+- Tax follows where the goods go: the shipping country, or for digital-only orders the billing country.
+- Each rate can apply to shipping or not. A product can be marked **not taxable**.
+- Each rate is applied to the taxable base and rounded half up in minor units, then shared between the order lines by largest remainder, so the line amounts always add up to the total exactly. The tax shown to the customer is one line per rate (`VAT (20%)`).
+- Where tax depends on the state or province (a rate has a region), checkout requires one.
+
+This suits simple setups. It does not do thresholds, product-category rates, tax-inclusive pricing or B2B reverse charge; for complex jurisdictions, an integration with Stripe Tax is planned as an alternative driver.
+
+## The live quote
+
+As the shopper fills in the form, the page asks the server for the totals (`GET /checkout?ship_country=…&ship_region=…&rate=…`, a partial reload of the `quote` prop). Only the country, region and chosen method are sent, never prices. The same `OrderPricer` produces the quote and the order, in a lenient mode for the quote (it reports what is missing) and a strict mode for the order (it refuses anything incomplete or no longer offered), so the two cannot disagree. A signed-in customer's default saved address is priced from the first render.
+
 ## Stock
 
 `inventory_items` holds the on-hand quantity. A product (or variant) with **no** inventory row is not tracked and always available; give it a row to track it. A variant's own row is used first, then the product's row. `allow_backorder` lets the level go negative.
@@ -85,7 +125,7 @@ With the Stripe CLI: `stripe listen --forward-to http://localhost:8000/stripe/we
 
 How the Stripe integration protects the order:
 
-- The Checkout Session is built from our order's lines in exact minor units. If the order has any amount that is not a product line (shipping, tax, a discount) and it is not sent as its own line, the provider refuses to create the session rather than charge a different total.
+- The Checkout Session is built from our order's lines in exact minor units. Shipping and each tax are sent as their own lines, and the shipping address is attached to the payment so it shows in your Stripe dashboard. If the order has any other amount that is not a product line (a discount, for now) the provider refuses to create the session rather than charge a different total.
 - When Stripe reports a payment, the amount and currency are compared with the order before anything is marked paid. A mismatch is logged at `critical`, the payment is set to `review`, and the order is **not** fulfilled.
 - The session must name the order we have on record (`client_reference_id`), and only sessions created for shop orders (`metadata.source = commerce`) are handled; plan-subscription checkouts are ignored.
 - The return link is signed, and the session is created with an idempotency key, so repeating a request does not create a second session.
@@ -116,7 +156,7 @@ Prices are `decimal(10,2)` columns, but all arithmetic is done on integers in `A
 
 ## Upgrading an existing installation
 
-Run `php artisan migrate`. The new migrations are safe on a database that already has data:
+Run `php artisan migrate`. The new migrations are safe on a database that already has data. For the shipping, tax and address slice: products gain *Needs shipping* and *Charge tax* flags (existing products stay shipped and taxed), orders gain empty address and shipping-method columns, and the address, shipping and tax tables are new. **Behaviour change:** products are shipped by default, so checkout now asks for a shipping address; with no shipping zones configured it still ships anywhere for free, as before. For the first slice:
 
 - `add_checkout_columns_to_orders_table` adds the new order columns and **backfills** existing orders: each gets a public id and number, an owner (the placing user), and a payment state implied by its old status (`processing` and `completed` become `paid`).
 - `generalise_billing_webhook_calls_table` adds `provider` and `external_id` (copied from `stripe_id`) so shop and subscription events share one idempotency key.
@@ -126,4 +166,4 @@ The header cart previously showed an estimated 7% tax and a flat shipping charge
 
 ## Not built yet
 
-Planned for the rest of M1 (see the roadmap): billing and shipping addresses, shipping zones and rates, tax, ACP order management (view, status changes, notes, refunds), catalogue editing and product images, inventory adjustments, coupons and gift cards, digital goods, reviews and wishlists. Until addresses and shipping exist, the shop suits products that need no delivery address, or merchants who collect it another way. Tebex arrives in M2 behind the same provider contract.
+Planned for the rest of M1 (see the roadmap): admin screens for shipping zones, rates and tax (the next slice), ACP order management (view, status changes, notes, refunds), catalogue editing and product images, inventory adjustments, coupons and gift cards, digital goods (downloads and licence keys; the *Needs shipping* flag is already in place), reviews and wishlists. A guest's cart is not yet carried over when they sign in, and a guest's orders are not yet attached to an account created later with the same email. Tebex arrives in M2 behind the same provider contract.

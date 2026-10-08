@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Address;
 use App\Models\Blog;
 use App\Models\BlogComment;
 use App\Models\ForumBoard;
@@ -14,6 +15,7 @@ use App\Observers\ForumIndexCacheObserver;
 use App\Payments\PaymentManager;
 use App\Payments\Stripe\CashierStripeGateway;
 use App\Payments\Stripe\StripeGateway;
+use App\Policies\AddressPolicy;
 use App\Policies\BlogCommentPolicy;
 use App\Policies\BlogPolicy;
 use App\Policies\ForumPostPolicy;
@@ -66,6 +68,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Blog::class, BlogPolicy::class);
         Gate::policy(BlogComment::class, BlogCommentPolicy::class);
         Gate::policy(Order::class, OrderPolicy::class);
+        Gate::policy(Address::class, AddressPolicy::class);
         Gate::policy(SupportTicketMessageAttachment::class, SupportTicketMessageAttachmentPolicy::class);
 
         Gate::before(function ($user) {

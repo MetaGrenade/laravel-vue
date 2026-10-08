@@ -24,6 +24,11 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 - `Money` value object for exact arithmetic in minor units, including zero-decimal currencies, and `COMMERCE_*` configuration (`config/commerce.php`).
 - Orders and payments belong to an owner (`owner_type`/`owner_id`) and are authorised through a policy, so teams can own orders in 1.1 without a rewrite.
 - Factories for products, variants, prices, inventory, orders and payments.
+- **Addresses, shipping and tax at checkout (M1, second slice).** Checkout collects a shipping address (and a billing address when it differs, or for digital goods when tax depends on location), offers the shipping methods that apply and shows shipping and tax as the shopper types. A signed-in customer has an address book (Settings → Addresses) and can pick or save addresses. Orders keep their own copy of both addresses. See [docs/commerce.md](docs/commerce.md).
+- Shipping zones and rates (by country, with a rest-of-world zone, minimum and maximum order values such as free shipping over a threshold) and a tax-rate table (country and region, several rates adding together, rate applying to shipping or not, products can be untaxed). With no zones configured, orders ship anywhere for free as before.
+- `OrderPricer`, one pricing engine for the live quote and the order that is placed, working in exact minor units with the tax shared between lines by largest remainder (`Money::percent()` and `Money::allocate()`). Stripe is sent shipping and each tax as their own lines, and the shipping address is attached to the payment.
+- Products can be marked as not needing shipping (digital goods) and as not taxable; the ACP product form sets both.
+- Example shipping zones, rates and tax rates in the demo seeder.
 - Web manifest generated from configuration; home page SEO copy configurable through `seo.home.*` (`SEO_HOME_TITLE`, `SEO_HOME_DESCRIPTION`).
 
 ### Changed
@@ -36,6 +41,8 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 - The header cart no longer shows an estimated 7% tax and a flat shipping charge that were not real; it shows the subtotal and links to the cart.
 - `billing_webhook_calls` is keyed by `(provider, external_id)` and records attempts and errors; a migration backfills existing rows. The stored `stripe_id` is kept for the admin screens.
 - The Stripe webhook controller verifies signatures through a shared `StripeSignatureVerifier`; behaviour is unchanged.
+- Products are shipped by default, so checkout now asks for a shipping address. Shops with no shipping zones configured are unaffected: orders still ship anywhere at no charge.
+- Validation messages for addresses use plain field names ("The postal code field is required").
 
 ### Removed
 

@@ -91,6 +91,8 @@ const productForm = useForm({
     slug: '',
     description: '',
     is_active: true,
+    requires_shipping: true,
+    is_taxable: true,
 });
 
 const brandForm = useForm({
@@ -379,6 +381,14 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                             <label class="flex items-center space-x-2 text-sm text-muted-foreground">
                                 <input v-model="productForm.is_active" type="checkbox" />
                                 <span>Active</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-sm text-muted-foreground">
+                                <input v-model="productForm.requires_shipping" type="checkbox" />
+                                <span>Needs shipping (untick for downloads and other digital goods)</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-sm text-muted-foreground">
+                                <input v-model="productForm.is_taxable" type="checkbox" />
+                                <span>Charge tax</span>
                             </label>
                             <Button class="w-full" :disabled="productForm.processing" @click="submitProduct"> Save product </Button>
                         </CardContent>

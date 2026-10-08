@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\AddressController;
 use App\Http\Controllers\Settings\DataErasureRequestController;
 use App\Http\Controllers\Settings\DataExportController;
 use App\Http\Controllers\Settings\LinkedSocialAccountController;
@@ -37,6 +38,15 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
 
     Route::get('settings/privacy', PrivacyController::class)->name('privacy.index');
+
+    // The address book belongs to the shop, so it goes away with it.
+    Route::middleware('section.enabled:commerce')->group(function () {
+        Route::get('settings/addresses', [AddressController::class, 'index'])->name('settings.addresses.index');
+        Route::post('settings/addresses', [AddressController::class, 'store'])->name('settings.addresses.store');
+        Route::put('settings/addresses/{address}', [AddressController::class, 'update'])->name('settings.addresses.update');
+        Route::put('settings/addresses/{address}/default', [AddressController::class, 'default'])->name('settings.addresses.default');
+        Route::delete('settings/addresses/{address}', [AddressController::class, 'destroy'])->name('settings.addresses.destroy');
+    });
 
     Route::get('settings/billing', [SubscriptionController::class, 'index'])->name('settings.billing.index');
     Route::post('settings/billing/setup-intent', [SubscriptionController::class, 'setupIntent'])->name('settings.billing.intent');

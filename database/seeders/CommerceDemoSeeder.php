@@ -15,6 +15,9 @@ use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Models\ProductTag;
 use App\Models\ProductVariant;
+use App\Models\ShippingRate;
+use App\Models\ShippingZone;
+use App\Models\TaxRate;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -22,6 +25,8 @@ class CommerceDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->seedShippingAndTax();
+
         $brands = collect([
             ['name' => 'Acme Co.', 'slug' => 'acme', 'description' => 'Default demo brand'],
             ['name' => 'Summit Supply', 'slug' => 'summit-supply', 'description' => 'Outdoor-inspired basics'],
@@ -311,5 +316,74 @@ class CommerceDemoSeeder extends Seeder
                 ],
             );
         });
+    }
+
+    /**
+     * Example shipping zones and tax rates so a fresh install can try the whole
+     * checkout. Replace them in the admin area (amounts are in the store currency).
+     */
+    private function seedShippingAndTax(): void
+    {
+        $zones = [
+            [
+                'name' => 'United States',
+                'countries' => ['US'],
+                'position' => 1,
+                'rates' => [
+                    ['name' => 'Standard', 'description' => '3–5 business days', 'amount' => '5.00', 'max_subtotal' => '99.99'],
+                    ['name' => 'Free standard shipping', 'description' => '3–5 business days, orders over 100', 'amount' => '0.00', 'min_subtotal' => '100.00'],
+                    ['name' => 'Express', 'description' => '1–2 business days', 'amount' => '15.00'],
+                ],
+            ],
+            [
+                'name' => 'United Kingdom',
+                'countries' => ['GB'],
+                'position' => 2,
+                'rates' => [
+                    ['name' => 'Standard', 'description' => '3–6 business days', 'amount' => '8.00'],
+                ],
+            ],
+            [
+                'name' => 'Rest of world',
+                'countries' => ['*'],
+                'position' => 99,
+                'rates' => [
+                    ['name' => 'International', 'description' => '7–14 business days', 'amount' => '25.00'],
+                ],
+            ],
+        ];
+
+        foreach ($zones as $zoneData) {
+            $zone = ShippingZone::updateOrCreate(
+                ['name' => $zoneData['name']],
+                ['countries' => $zoneData['countries'], 'position' => $zoneData['position'], 'is_active' => true],
+            );
+
+            foreach ($zoneData['rates'] as $index => $rate) {
+                ShippingRate::updateOrCreate(
+                    ['shipping_zone_id' => $zone->id, 'name' => $rate['name']],
+                    [
+                        'description' => $rate['description'],
+                        'amount' => $rate['amount'],
+                        'min_subtotal' => $rate['min_subtotal'] ?? null,
+                        'max_subtotal' => $rate['max_subtotal'] ?? null,
+                        'position' => $index + 1,
+                        'is_active' => true,
+                    ],
+                );
+            }
+        }
+
+        $taxRates = [
+            ['name' => 'VAT', 'country' => 'GB', 'region' => null, 'rate' => '20'],
+            ['name' => 'Sales tax', 'country' => 'US', 'region' => 'California', 'rate' => '7.25'],
+        ];
+
+        foreach ($taxRates as $taxRate) {
+            TaxRate::updateOrCreate(
+                ['country' => $taxRate['country'], 'region' => $taxRate['region'], 'name' => $taxRate['name']],
+                ['rate' => $taxRate['rate'], 'applies_to_shipping' => true, 'is_active' => true],
+            );
+        }
     }
 }

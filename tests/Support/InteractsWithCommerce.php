@@ -93,14 +93,44 @@ trait InteractsWithCommerce
         $product = Product::factory()->priced($price)->stocked($stock)->create();
         $this->cartWith($product, $quantity);
 
-        $this->post(route('shop.checkout.store'), [
-            'email' => 'buyer@example.com',
-            'token' => (string) Str::uuid(),
-        ])->assertRedirect();
+        $this->post(route('shop.checkout.store'), $this->checkoutPayload())->assertRedirect();
 
         $order = Order::query()->latest('id')->firstOrFail();
 
         return [$order, $order->payments()->firstOrFail(), $product];
+    }
+
+    /**
+     * A valid address as the checkout form posts it.
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function addressFields(array $overrides = []): array
+    {
+        return array_replace([
+            'name' => 'Ada Buyer',
+            'line1' => '1 Test Street',
+            'city' => 'London',
+            'postal_code' => 'N1 1AA',
+            'country' => 'GB',
+        ], $overrides);
+    }
+
+    /**
+     * A complete checkout form for a cart of physical goods (a shipping address included).
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function checkoutPayload(array $overrides = []): array
+    {
+        return array_replace_recursive([
+            'email' => 'buyer@example.com',
+            'name' => 'Ada Buyer',
+            'token' => (string) Str::uuid(),
+            'shipping_address' => $this->addressFields(),
+        ], $overrides);
     }
 
     /**

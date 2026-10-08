@@ -41,9 +41,10 @@ class CheckoutStarter
      * @return array{order: Order, url: string}
      *
      * @throws CheckoutException
+     * @throws InvalidCheckoutInput When an address or shipping method cannot be accepted.
      * @throws OrderAlreadyPaidException When the earlier checkout turns out to have been paid.
      */
-    public function start(Cart $cart, CustomerDetails $customer, ?string $idempotencyKey = null): array
+    public function start(Cart $cart, CustomerDetails $customer, CheckoutInput $input, ?string $idempotencyKey = null): array
     {
         // Two requests for one cart (a double click, two tabs) must not both
         // close and create checkouts at once.
@@ -56,7 +57,7 @@ class CheckoutStarter
         }
 
         try {
-            return $this->begin($cart, $customer, $idempotencyKey);
+            return $this->begin($cart, $customer, $input, $idempotencyKey);
         } finally {
             $lock->release();
         }
@@ -65,7 +66,7 @@ class CheckoutStarter
     /**
      * @return array{order: Order, url: string}
      */
-    private function begin(Cart $cart, CustomerDetails $customer, ?string $idempotencyKey): array
+    private function begin(Cart $cart, CustomerDetails $customer, CheckoutInput $input, ?string $idempotencyKey): array
     {
         $provider = $this->payments->active();
 
@@ -82,7 +83,7 @@ class CheckoutStarter
 
         $this->supersedeEarlierCheckouts($cart);
 
-        $order = $this->placer->place($cart, $customer, $provider->key(), $idempotencyKey);
+        $order = $this->placer->place($cart, $customer, $provider->key(), $input, $idempotencyKey);
 
         // Should a concurrent duplicate ever slip past the lock, it lands on the order the other request placed.
         if ($order->payments()->exists()) {

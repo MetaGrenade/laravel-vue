@@ -11,7 +11,6 @@ use App\Models\ProductVariant;
 use App\Support\Commerce\CartManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Support\InteractsWithCommerce;
@@ -128,7 +127,7 @@ class CartAfterPaymentTest extends TestCase
         $large = ProductVariant::factory()->for($product)->priced('12.00')->create(['name' => 'Large']);
 
         $this->addToCart($small, 2)->assertRedirect();
-        $this->post(route('shop.checkout.store'), ['email' => 'a@example.com', 'token' => (string) Str::uuid()])->assertRedirect();
+        $this->post(route('shop.checkout.store'), $this->checkoutPayload(['email' => 'a@example.com']))->assertRedirect();
         $order = Order::sole();
 
         $this->addToCart($large)->assertRedirect();
