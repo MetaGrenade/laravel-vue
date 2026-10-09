@@ -52,3 +52,43 @@ export interface CheckoutQuote {
     discount_total?: string;
     grand_total?: string;
 }
+
+/** A product picture as the shop shows it, at three sizes. */
+export interface StorefrontImage {
+    /** The large size. */
+    url: string;
+    medium: string;
+    thumb: string;
+    alt: string;
+    /** Of the large size. */
+    width: number;
+    height: number;
+}
+
+export interface StorefrontPrice {
+    id: number;
+    currency: string;
+    amount: string;
+    /** The price it used to be, shown struck through. */
+    compare_at_amount: string | null;
+}
+
+/** How much is left, in words: the shop never shows counts. `backorder` means orders are taken for when it arrives. */
+export type StorefrontStock = 'in_stock' | 'low' | 'out' | 'backorder';
+
+export interface StorefrontVariant {
+    id: number;
+    name: string;
+    sku: string | null;
+    option_values: Record<string, string>;
+    is_default: boolean;
+    stock: StorefrontStock;
+    prices: StorefrontPrice[];
+}
+
+export interface StorefrontOption {
+    id: number;
+    name: string;
+    display_name: string;
+    values: string[];
+}

@@ -13,7 +13,7 @@ runs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ inputs.php-version }}
-        extensions: mbstring, pdo_mysql, pdo_pgsql, pdo_sqlite, zip
+        extensions: mbstring, pdo_mysql, pdo_pgsql, pdo_sqlite, zip, gd
         tools: composer:v2
         coverage: none
 

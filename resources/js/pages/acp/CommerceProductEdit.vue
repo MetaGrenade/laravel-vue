@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import OptionsSection from '@/components/commerce/admin/OptionsSection.vue';
+import ProductImagesSection from '@/components/commerce/admin/ProductImagesSection.vue';
 import PriceSection from '@/components/commerce/admin/PriceSection.vue';
 import ProductDetailsForm from '@/components/commerce/admin/ProductDetailsForm.vue';
 import StockSection from '@/components/commerce/admin/StockSection.vue';
@@ -13,7 +14,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
-import type { CatalogueLookup, Capabilities, OptionRow, PriceRow, ProductDetails, Readiness, StockRow, VariantRow } from '@/types/catalogue';
+import type {
+    CatalogueLookup,
+    Capabilities,
+    OptionRow,
+    PriceRow,
+    ProductDetails,
+    ProductImageRow,
+    Readiness,
+    StockRow,
+    VariantRow,
+} from '@/types/catalogue';
 import { Head, router } from '@inertiajs/vue3';
 import { CircleAlert, CircleCheck, CircleX, ExternalLink, Trash2 } from '@lucide/vue';
 import { computed, ref } from 'vue';
@@ -24,6 +35,8 @@ const props = defineProps<{
     categories: CatalogueLookup[];
     tags: CatalogueLookup[];
     currency: string;
+    images: ProductImageRow[];
+    image_rules: { max_count: number; max_kilobytes: number };
     prices: PriceRow[];
     stock: StockRow | null;
     options: OptionRow[];
@@ -114,6 +127,9 @@ const remove = () => {
                 <Tabs v-model="tab" class="space-y-4">
                     <TabsList class="max-w-full justify-start overflow-x-auto">
                         <TabsTrigger value="details">Details</TabsTrigger>
+                        <TabsTrigger value="images">
+                            Pictures<span v-if="images.length" class="ml-1.5 text-muted-foreground">{{ images.length }}</span>
+                        </TabsTrigger>
                         <TabsTrigger value="pricing">Price and stock</TabsTrigger>
                         <TabsTrigger value="variants">
                             Options and variants<span v-if="hasVariants" class="ml-1.5 text-muted-foreground">{{ variants.length }}</span>
@@ -124,6 +140,18 @@ const remove = () => {
                         <Card>
                             <CardContent class="pt-6">
                                 <ProductDetailsForm :product="product" :brands="brands" :categories="categories" :tags="tags" :can-save="can.edit" />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="images">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Pictures</CardTitle>
+                                <CardDescription>What customers see in the shop. The first picture is the main one.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ProductImagesSection :product-id="product.id" :images="images" :rules="image_rules" :can="can" />
                             </CardContent>
                         </Card>
                     </TabsContent>

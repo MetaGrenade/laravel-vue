@@ -34,6 +34,17 @@ export interface StockRow {
     movements: StockMovement[];
 }
 
+export interface ProductImageRow {
+    id: number;
+    /** The medium size, for showing on the page. */
+    url: string;
+    thumb: string;
+    alt: string | null;
+    width: number;
+    height: number;
+    bytes: number;
+}
+
 export interface OptionValueRow {
     id: number;
     value: string;

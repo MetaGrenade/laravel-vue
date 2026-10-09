@@ -7,7 +7,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
 import type { CartSummary } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Trash2 } from '@lucide/vue';
+import { ImageOff, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 
 interface Props {
@@ -54,13 +54,25 @@ const removeItem = (itemId: number) => {
                             :key="item.id"
                             class="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
                         >
-                            <div class="min-w-0">
-                                <Link v-if="item.slug" :href="route('shop.products.show', item.slug)" class="font-medium hover:underline">{{
-                                    item.name
-                                }}</Link>
-                                <span v-else class="font-medium">{{ item.name }}</span>
-                                <p v-if="item.variant" class="text-sm text-muted-foreground">{{ item.variant }}</p>
-                                <p class="text-sm text-muted-foreground tabular-nums">{{ formatMoney(item.unit_price, props.cart.currency) }} each</p>
+                            <div class="flex min-w-0 items-center gap-3">
+                                <img v-if="item.image" :src="item.image" alt="" class="size-16 shrink-0 rounded-md border object-cover" />
+                                <span
+                                    v-else
+                                    class="flex size-16 shrink-0 items-center justify-center rounded-md border border-dashed text-muted-foreground"
+                                    aria-hidden="true"
+                                >
+                                    <ImageOff class="size-5" />
+                                </span>
+                                <div class="min-w-0">
+                                    <Link v-if="item.slug" :href="route('shop.products.show', item.slug)" class="font-medium hover:underline">{{
+                                        item.name
+                                    }}</Link>
+                                    <span v-else class="font-medium">{{ item.name }}</span>
+                                    <p v-if="item.variant" class="text-sm text-muted-foreground">{{ item.variant }}</p>
+                                    <p class="text-sm text-muted-foreground tabular-nums">
+                                        {{ formatMoney(item.unit_price, props.cart.currency) }} each
+                                    </p>
+                                </div>
                             </div>
 
                             <div class="flex items-center gap-3">

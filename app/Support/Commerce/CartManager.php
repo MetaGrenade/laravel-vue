@@ -6,6 +6,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Price;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 
@@ -148,6 +149,15 @@ class CartManager
 
         $cart->loadMissing(['items.product', 'items.variant']);
 
+        // One query for every line's main picture.
+        $pictures = ProductImage::query()
+            ->whereIn('product_id', $cart->items->pluck('product_id')->filter()->unique()->all())
+            ->orderBy('position')
+            ->orderBy('id')
+            ->get()
+            ->unique('product_id')
+            ->keyBy('product_id');
+
         return [
             'id' => $cart->id,
             'currency' => $cart->currency,
@@ -158,6 +168,7 @@ class CartManager
                     'id' => $item->id,
                     'name' => $item->product?->name ?? $item->snapshot['product']['name'] ?? 'Product',
                     'slug' => $item->product?->slug,
+                    'image' => $item->product_id !== null ? $pictures->get($item->product_id)?->thumbUrl() : null,
                     'variant' => $item->variant?->name ?? $item->snapshot['variant']['name'] ?? null,
                     'quantity' => $item->quantity,
                     'unit_price' => (string) $item->unit_price,

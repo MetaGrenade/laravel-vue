@@ -12,6 +12,7 @@ use App\Models\OrderItem;
 use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\ProductImage;
 use App\Models\ProductOption;
 use App\Models\ProductTag;
 use App\Models\ProductVariant;
@@ -52,7 +53,7 @@ class ProductController extends Controller
         $brand = $request->integer('brand') ?: null;
 
         $paginator = Product::query()
-            ->with(['brand:id,name', 'prices', 'variants.prices', 'inventoryItems'])
+            ->with(['brand:id,name', 'prices', 'variants.prices', 'inventoryItems', 'primaryImage'])
             ->withCount('variants')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
@@ -77,6 +78,7 @@ class ProductController extends Controller
             'slug' => $product->slug,
             'is_active' => $product->is_active,
             'brand' => $product->brand?->name,
+            'image' => $product->primaryImage?->thumbUrl(),
             'variants_count' => $product->variants_count,
             'price' => $this->priceRange($product, $currency),
             'stock' => $this->stockSummary($this->itemsForSale($product)),
@@ -143,6 +145,7 @@ class ProductController extends Controller
             'categories:id',
             'tags:id',
             'prices',
+            'images',
             'options' => fn ($query) => $query->orderBy('position')->orderBy('id'),
             'options.values' => fn ($query) => $query->orderBy('position')->orderBy('id'),
         ]);
@@ -183,6 +186,19 @@ class ProductController extends Controller
             'categories' => ProductCategory::query()->orderBy('name')->get(['id', 'name']),
             'tags' => ProductTag::query()->orderBy('name')->get(['id', 'name']),
             'currency' => $currency,
+            'images' => $product->images->map(fn (ProductImage $image) => [
+                'id' => $image->id,
+                'url' => $image->mediumUrl(),
+                'thumb' => $image->thumbUrl(),
+                'alt' => $image->alt,
+                'width' => $image->width,
+                'height' => $image->height,
+                'bytes' => $image->bytes,
+            ])->values(),
+            'image_rules' => [
+                'max_count' => (int) config('commerce.images.max_per_product', 12),
+                'max_kilobytes' => (int) config('commerce.images.max_kilobytes', 5120),
+            ],
             'prices' => $product->prices->map(fn (Price $price) => $this->priceRow($price, $currency))->values(),
             'stock' => $this->stockRow($items->first(fn (InventoryItem $item) => $item->product_variant_id === null), $movements, $usedByOrders),
             'options' => $product->options->map(fn (ProductOption $option) => [

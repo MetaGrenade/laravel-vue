@@ -94,6 +94,10 @@
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ]
     },
+    "suggest": {
+        "ext-gd": "Needed to process product images (with WebP support).",
+        "ext-exif": "Lets product photos taken sideways be turned the right way up."
+    },
     "extra": {
         "laravel": {
             "dont-discover": []
