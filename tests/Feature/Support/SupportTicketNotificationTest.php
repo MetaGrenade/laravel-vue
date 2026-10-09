@@ -4,6 +4,7 @@ namespace Tests\Feature\Support;
 
 use App\Models\SupportTeam;
 use App\Models\SupportTicket;
+use App\Models\SupportTicketMessage;
 use App\Models\User;
 use App\Models\UserNotificationSetting;
 use App\Notifications\TicketOpened;
@@ -54,6 +55,15 @@ class SupportTicketNotificationTest extends TestCase
         return $agent;
     }
 
+    /**
+     * The newest message on a ticket. The relation is ordered by created_at (to one second), so
+     * `latest('id')` on it would only break ties and could return the first message instead.
+     */
+    private function newestMessage(SupportTicket $ticket): ?SupportTicketMessage
+    {
+        return $ticket->messages()->reorder('id', 'desc')->first();
+    }
+
     public function test_it_notifies_the_owner_when_a_ticket_is_opened(): void
     {
         Notification::fake();
@@ -75,7 +85,7 @@ class SupportTicketNotificationTest extends TestCase
         $ticket = SupportTicket::where('user_id', $user->id)->latest()->first();
         $this->assertNotNull($ticket);
 
-        $message = $ticket->messages()->latest('id')->first();
+        $message = $this->newestMessage($ticket);
         $this->assertNotNull($message);
 
         Notification::assertSentToTimes($user, TicketOpened::class, 2);
@@ -137,6 +147,10 @@ class SupportTicketNotificationTest extends TestCase
             'body' => 'Initial description of the deployment failure.',
         ]);
 
+        // The reply arrives later than the first message, as it does in life (and as it did in CI
+        // when a clock second happened to tick between the two).
+        $this->travel(2)->seconds();
+
         $this->actingAs($owner);
 
         $response = $this->post(route('support.tickets.messages.store', $ticket), [
@@ -146,7 +160,7 @@ class SupportTicketNotificationTest extends TestCase
         $response->assertRedirect(route('support.tickets.show', $ticket));
 
         $ticket->refresh();
-        $message = $ticket->messages()->latest('id')->first();
+        $message = $this->newestMessage($ticket);
         $this->assertNotNull($message);
 
         Notification::assertSentToTimes($owner, TicketReplied::class, 2);
@@ -247,6 +261,8 @@ class SupportTicketNotificationTest extends TestCase
             'body' => 'Additional logs attached for review.',
         ]);
 
+        $this->travel(2)->seconds();
+
         $this->actingAs($agent);
 
         $response = $this->post(route('acp.support.tickets.messages.store', $ticket), [
@@ -256,7 +272,7 @@ class SupportTicketNotificationTest extends TestCase
         $response->assertRedirect(route('acp.support.tickets.show', $ticket));
 
         $ticket->refresh();
-        $message = $ticket->messages()->latest('id')->first();
+        $message = $this->newestMessage($ticket);
         $this->assertNotNull($message);
 
         Notification::assertSentToTimes($owner, TicketReplied::class, 1);
