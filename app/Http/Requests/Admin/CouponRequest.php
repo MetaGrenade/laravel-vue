@@ -10,6 +10,9 @@ use Illuminate\Validation\Rule;
 
 class CouponRequest extends FormRequest
 {
+    /** The most a fixed amount can be: `coupons.value` is decimal(12,4), which holds eight digits before the point. */
+    public const MAX_AMOUNT = '99999999.99';
+
     public function authorize(): bool
     {
         return true;
@@ -58,7 +61,7 @@ class CouponRequest extends FormRequest
                     'required',
                     'numeric',
                     'gt:0',
-                    $type === CouponType::Percent ? 'max:100' : 'max:9999999999',
+                    $type === CouponType::Percent ? 'max:100' : 'max:'.self::MAX_AMOUNT,
                     $type === CouponType::Percent ? 'decimal:0,4' : 'decimal:0,2',
                 ],
             'minimum_subtotal' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],

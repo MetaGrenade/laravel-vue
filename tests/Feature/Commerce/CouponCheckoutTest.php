@@ -435,6 +435,36 @@ class CouponCheckoutTest extends TestCase
     }
 
     #[Test]
+    public function a_shipped_order_that_is_refunded_in_full_gives_its_use_of_the_code_back(): void
+    {
+        Notification::fake();
+        $this->fill('50.00', 2);
+        $coupon = Coupon::factory()->limited(total: 1, perCustomer: 1)->create(['code' => 'ONCE']);
+        $this->apply('ONCE');
+        $this->submit(['email' => 'ada@example.com', 'shipping_address' => $this->addressFields()])->assertRedirect();
+        $order = Order::sole();
+        $this->deliverStripeEvent($this->stripeEvent('checkout.session.completed', $this->sessionFor($order->payments()->sole())))->assertOk();
+
+        $this->assertTrue(app(OrderLifecycle::class)->fulfil($order->refresh(), notifyCustomer: false));
+        $this->app->make(OrderRefunder::class)->request(
+            $order->refresh(),
+            Money::parse($order->grand_total, 'USD'),
+            new RefundRequest(token: (string) Str::uuid()),
+        );
+
+        $order->refresh();
+
+        // The order stays completed: only its payment status says it was returned.
+        $this->assertSame(OrderStatus::Completed, $order->status);
+        $this->assertSame('refunded', $order->payment_status->value);
+        $this->assertSame(0, app(CouponRedemptions::class)->total($coupon));
+
+        // So neither limit blocks the customer or the next person.
+        $again = $this->anotherShopperWith($coupon);
+        $this->checkoutAs($again, 'ada@example.com')->assertRedirect()->assertSessionMissing('error');
+    }
+
+    #[Test]
     public function a_fully_refunded_order_gives_its_use_of_the_code_back(): void
     {
         Notification::fake();

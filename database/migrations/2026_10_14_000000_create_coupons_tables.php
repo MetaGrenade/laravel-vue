@@ -32,10 +32,14 @@ return new class extends Migration
             $table->unsignedInteger('max_redemptions')->nullable();
             $table->unsignedInteger('max_redemptions_per_customer')->nullable();
             $table->boolean('is_active')->default(true);
+            // Whether the code is limited to the products and categories below. Kept as its own flag
+            // because the limits are rows that disappear with the products and categories they name:
+            // a code whose last product is deleted must apply to nothing, not become store-wide.
+            $table->boolean('is_restricted')->default(false);
             $table->timestamps();
         });
 
-        // Optional restrictions: with none, the code applies to everything in the cart.
+        // The products and categories a restricted code applies to.
         Schema::create('coupon_product', function (Blueprint $table) {
             $table->foreignId('coupon_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();

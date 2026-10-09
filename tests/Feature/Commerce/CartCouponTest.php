@@ -103,6 +103,30 @@ class CartCouponTest extends TestCase
     }
 
     #[Test]
+    public function a_code_that_would_save_nothing_is_refused(): void
+    {
+        $cart = $this->cart('10.00', 1);
+        Coupon::factory()->percent('0.0001')->create(['code' => 'TINY']);
+
+        $this->apply('TINY')->assertSessionHasErrors(['code' => "That code wouldn't take anything off your cart."]);
+
+        $this->assertNull($cart->fresh()->coupon_id);
+    }
+
+    #[Test]
+    public function a_code_limited_to_things_that_were_deleted_applies_to_nothing(): void
+    {
+        $cart = $this->cart();
+        $gone = Product::factory()->priced('10.00')->create();
+        Coupon::factory()->forProducts([$gone])->create(['code' => 'ORPHAN']);
+        $gone->delete();
+
+        $this->apply('ORPHAN')->assertSessionHasErrors(['code' => "That code doesn't apply to anything in your cart."]);
+
+        $this->assertNull($cart->fresh()->coupon_id);
+    }
+
+    #[Test]
     public function a_new_code_replaces_the_one_on_the_cart(): void
     {
         $cart = $this->cart();

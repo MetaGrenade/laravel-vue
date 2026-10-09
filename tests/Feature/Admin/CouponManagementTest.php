@@ -96,6 +96,7 @@ class CouponManagementTest extends TestCase
         Coupon::factory()->create(['code' => 'ONCE'])->update(['max_redemptions' => 1]);
         Order::factory()->count(2)->create(['coupon_id' => $live->id, 'status' => 'processing']);
         Order::factory()->create(['coupon_id' => $live->id, 'status' => 'cancelled']);
+        Order::factory()->create(['coupon_id' => $live->id, 'status' => 'completed', 'payment_status' => 'refunded']);
         Order::factory()->create(['coupon_id' => Coupon::where('code', 'ONCE')->value('id'), 'status' => 'processing']);
 
         $rows = collect($this->actingAs($this->admin())->get(route('acp.commerce.coupons.index'))
@@ -103,7 +104,7 @@ class CouponManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->component('acp/CommerceCoupons')->where('currency', 'USD'))
             ->viewData('page')['props']['coupons']['data'])->keyBy('code');
 
-        $this->assertSame(['active', 2], [$rows['LIVE']['status'], $rows['LIVE']['uses']], 'a cancelled order does not count');
+        $this->assertSame(['active', 2], [$rows['LIVE']['status'], $rows['LIVE']['uses']], 'neither a cancelled order nor one refunded in full counts');
         $this->assertSame('expired', $rows['OLD']['status']);
         $this->assertSame('inactive', $rows['OFF']['status']);
         $this->assertSame('used_up', $rows['ONCE']['status']);
@@ -286,8 +287,90 @@ class CouponManagementTest extends TestCase
             ->where('coupon.value', '12.5')
             ->where('coupon.category_ids', [$category->id])
             ->where('coupon.products', [['id' => $product->id, 'name' => 'Hoodie']])
-            ->where('usage', ['orders' => 2, 'discounted' => '9.75'])
+            ->where('usage', ['orders' => 2, 'discounted' => [['currency' => 'USD', 'amount' => '9.75']]])
             ->has('categories', 1));
+    }
+
+    #[Test]
+    public function usage_is_kept_apart_by_currency(): void
+    {
+        $coupon = Coupon::factory()->create();
+        Order::factory()->create(['coupon_id' => $coupon->id, 'status' => 'processing', 'currency' => 'USD', 'discount_total' => '9.75']);
+        Order::factory()->create(['coupon_id' => $coupon->id, 'status' => 'processing', 'currency' => 'USD', 'discount_total' => '0.25']);
+        Order::factory()->create(['coupon_id' => $coupon->id, 'status' => 'processing', 'currency' => 'EUR', 'discount_total' => '3.00']);
+
+        $this->actingAs($this->admin())->get(route('acp.commerce.coupons.edit', $coupon))->assertInertia(fn (Assert $page) => $page
+            ->where('usage.orders', 3)
+            ->where('usage.discounted', [
+                ['currency' => 'EUR', 'amount' => '3.00'],
+                ['currency' => 'USD', 'amount' => '10.00'],
+            ]));
+    }
+
+    #[Test]
+    public function a_code_with_no_orders_has_nothing_discounted(): void
+    {
+        $coupon = Coupon::factory()->create();
+
+        $this->actingAs($this->admin())->get(route('acp.commerce.coupons.edit', $coupon))->assertInertia(fn (Assert $page) => $page
+            ->where('usage', ['orders' => 0, 'discounted' => []]));
+    }
+
+    // --- Limits that outlive their products --------------------------------------------------------
+
+    #[Test]
+    public function choosing_products_or_categories_limits_the_code_and_choosing_none_does_not(): void
+    {
+        $product = Product::factory()->create();
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->post(route('acp.commerce.coupons.store'), $this->payload(['code' => 'LIMITED', 'product_ids' => [$product->id]]))->assertRedirect();
+        $this->actingAs($admin)->post(route('acp.commerce.coupons.store'), $this->payload(['code' => 'EVERYTHING']))->assertRedirect();
+
+        $this->assertTrue(Coupon::where('code', 'LIMITED')->value('is_restricted'));
+        $this->assertFalse(Coupon::where('code', 'EVERYTHING')->value('is_restricted'));
+    }
+
+    #[Test]
+    public function saving_a_code_with_no_limits_left_removes_the_limit(): void
+    {
+        $product = Product::factory()->create();
+        $coupon = Coupon::factory()->forProducts([$product])->create();
+
+        $this->actingAs($this->admin())->put(route('acp.commerce.coupons.update', $coupon), $this->payload(['product_ids' => []]))->assertRedirect();
+
+        $this->assertFalse($coupon->fresh()->is_restricted);
+    }
+
+    #[Test]
+    public function free_shipping_is_never_limited(): void
+    {
+        $product = Product::factory()->create();
+
+        $this->actingAs($this->admin())->post(route('acp.commerce.coupons.store'), $this->payload(['type' => 'free_shipping', 'product_ids' => [$product->id]]))->assertRedirect();
+
+        $this->assertFalse(Coupon::sole()->is_restricted);
+    }
+
+    #[Test]
+    public function the_pages_warn_when_everything_a_code_was_limited_to_has_been_deleted(): void
+    {
+        $product = Product::factory()->create();
+        $coupon = Coupon::factory()->forProducts([$product])->create(['code' => 'ORPHAN']);
+        Coupon::factory()->forProducts([Product::factory()->create()])->create(['code' => 'FINE']);
+        $product->delete();
+        $admin = $this->admin();
+
+        $rows = collect($this->actingAs($admin)->get(route('acp.commerce.coupons.index'))->viewData('page')['props']['coupons']['data'])->keyBy('code');
+
+        $this->assertTrue($rows['ORPHAN']['restricted']);
+        $this->assertTrue($rows['ORPHAN']['limits_missing']);
+        $this->assertFalse($rows['FINE']['limits_missing']);
+
+        $this->actingAs($admin)->get(route('acp.commerce.coupons.edit', $coupon))->assertInertia(fn (Assert $page) => $page
+            ->where('coupon.restricted', true)
+            ->where('coupon.limits_missing', true)
+            ->where('coupon.products', []));
     }
 
     // --- Validation --------------------------------------------------------------------------------
@@ -309,6 +392,8 @@ class CouponManagementTest extends TestCase
             'a percentage with five decimals' => [['value' => '10.12345'], 'value'],
             'a negative amount' => [['type' => 'fixed', 'value' => '-5'], 'value'],
             'an amount with three decimals' => [['type' => 'fixed', 'value' => '5.123'], 'value'],
+            'an amount too big for the column' => [['type' => 'fixed', 'value' => '100000000'], 'value'],
+            'an amount far too big for the column' => [['type' => 'fixed', 'value' => '9999999999'], 'value'],
             'not a number' => [['value' => 'ten'], 'value'],
             'a negative minimum spend' => [['minimum_subtotal' => '-1'], 'minimum_subtotal'],
             'ending before it starts' => [['starts_at' => '2026-12-02T00:00:00Z', 'ends_at' => '2026-12-01T00:00:00Z'], 'ends_at'],
@@ -349,6 +434,15 @@ class CouponManagementTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertSame('20.0000', $coupon->fresh()->value);
+    }
+
+    #[Test]
+    public function the_biggest_fixed_amount_the_column_holds_is_accepted_and_kept(): void
+    {
+        $this->actingAs($this->admin())->post(route('acp.commerce.coupons.store'), $this->payload(['type' => 'fixed', 'value' => '99999999.99']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('99999999.9900', Coupon::sole()->value);
     }
 
     #[Test]

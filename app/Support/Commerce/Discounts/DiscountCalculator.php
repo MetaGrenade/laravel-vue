@@ -29,6 +29,9 @@ class DiscountCalculator
      * @param  Money  $shipping  The shipping charge chosen so far (zero when none is known yet).
      * @param  CustomerDetails|null  $customer  Who is buying, when known, for the per-customer limit.
      * @param  Cart|null  $cart  The cart being priced, so its own earlier unpaid order does not count as a use.
+     * @param  bool  $shippingKnown  Whether `$shipping` is what will really be charged. Before the shopper has
+     *                               given an address it is not known (zero is a placeholder), so free shipping
+     *                               cannot yet be judged to save nothing.
      *
      * @throws CouponRejected
      */
@@ -39,6 +42,7 @@ class DiscountCalculator
         Money $shipping,
         ?CustomerDetails $customer = null,
         ?Cart $cart = null,
+        bool $shippingKnown = true,
     ): Discount {
         $currency = $shipping->currency;
 
@@ -52,6 +56,11 @@ class DiscountCalculator
             }
 
             $this->assertMinimum($coupon, $this->subtotalOf($lines, array_keys($lines), $currency));
+
+            // Nothing to waive: the order's shipping is already free. A use would be spent for no saving.
+            if ($shippingKnown && $shipping->isZero()) {
+                throw new CouponRejected('Shipping is already free on this order.');
+            }
 
             return new Discount($coupon, Money::zero($currency), $shipping, $none);
         }
@@ -67,6 +76,12 @@ class DiscountCalculator
         $this->assertMinimum($coupon, $eligibleSubtotal);
 
         $total = $this->amountOff($coupon, $eligibleSubtotal);
+
+        // A tiny percentage can round down to nothing. A code that saves nothing is not used, so it
+        // never takes one of its limited uses.
+        if ($total->isZero()) {
+            throw new CouponRejected("That code wouldn't take anything off your cart.");
+        }
 
         $shares = $total->allocate(array_map(fn (int $index) => $lines[$index]->subtotal->minor, $eligible));
         $perLine = $none;
@@ -147,16 +162,25 @@ class DiscountCalculator
      * The positions of the lines the code applies to: all of them, or those for the products or in
      * the categories it is limited to.
      *
+     * Whether it is limited is the coupon's own flag, not whether any limits are left: the limits are
+     * rows that go when their product or category is deleted, and a promotion scoped to one product must
+     * not turn into a store-wide discount because that product was removed. With nothing left to match,
+     * a limited code applies to nothing.
+     *
      * @param  list<PricedLine>  $lines
      * @return list<int>
      */
     private function eligibleLines(Coupon $coupon, array $lines): array
     {
+        if (! $coupon->is_restricted) {
+            return array_keys($lines);
+        }
+
         $productIds = DB::table('coupon_product')->where('coupon_id', $coupon->id)->pluck('product_id')->map(fn ($id) => (int) $id)->all();
         $categoryIds = DB::table('coupon_product_category')->where('coupon_id', $coupon->id)->pluck('product_category_id')->map(fn ($id) => (int) $id)->all();
 
         if ($productIds === [] && $categoryIds === []) {
-            return array_keys($lines);
+            return [];
         }
 
         $inACategory = [];

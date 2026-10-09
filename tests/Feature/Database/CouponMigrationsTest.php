@@ -47,7 +47,7 @@ class CouponMigrationsTest extends TestCase
     {
         $this->assertTrue(Schema::hasColumns('coupons', [
             'code', 'description', 'type', 'value', 'currency', 'minimum_subtotal', 'starts_at', 'ends_at',
-            'max_redemptions', 'max_redemptions_per_customer', 'is_active',
+            'max_redemptions', 'max_redemptions_per_customer', 'is_active', 'is_restricted',
         ]));
         $this->assertTrue(Schema::hasTable('coupon_product'));
         $this->assertTrue(Schema::hasTable('coupon_product_category'));
@@ -139,5 +139,6 @@ class CouponMigrationsTest extends TestCase
         $this->assertSame(0, $coupon->products()->count());
         $this->assertSame(0, $coupon->categories()->count());
         $this->assertModelExists($coupon);
+        $this->assertTrue($coupon->fresh()->is_restricted, 'the code is still limited, to nothing, rather than store-wide');
     }
 }

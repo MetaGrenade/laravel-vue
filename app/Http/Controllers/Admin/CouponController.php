@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\CouponType;
-use App\Enums\OrderStatus;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CouponRequest;
@@ -27,7 +26,7 @@ class CouponController extends Controller
 {
     use InteractsWithInertiaPagination;
 
-    public function index(Request $request): Response
+    public function index(Request $request, CouponRedemptions $redemptions): Response
     {
         $user = $request->user();
         $search = trim((string) $request->query('search', ''));
@@ -42,12 +41,8 @@ class CouponController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $uses = Order::query()
-            ->whereIn('coupon_id', $paginator->pluck('id'))
-            ->where('status', '!=', OrderStatus::Cancelled->value)
-            ->groupBy('coupon_id')
-            ->selectRaw('coupon_id, count(*) as uses')
-            ->pluck('uses', 'coupon_id');
+        // Counted by the same rule that enforces the limits.
+        $uses = $redemptions->totals($paginator->pluck('id'));
 
         $coupons = $paginator->getCollection()
             ->map(fn (Coupon $coupon) => $this->row($coupon, (int) ($uses[$coupon->id] ?? 0), $currency))
@@ -91,7 +86,7 @@ class CouponController extends Controller
     {
         $user = $request->user();
         $currency = $this->currency();
-        $usage = $redemptions->usage($coupon, $currency);
+        $usage = $redemptions->usage($coupon);
 
         return Inertia::render('acp/CommerceCouponEdit', [
             'coupon' => [
@@ -108,6 +103,8 @@ class CouponController extends Controller
                 'max_redemptions_per_customer' => $coupon->max_redemptions_per_customer,
                 'is_active' => $coupon->is_active,
                 'status' => $coupon->status($usage['orders']),
+                'restricted' => $coupon->is_restricted,
+                'limits_missing' => $coupon->is_restricted && ! $coupon->products()->exists() && ! $coupon->categories()->exists(),
                 'category_ids' => $coupon->categories()->pluck('product_categories.id')->all(),
                 'products' => $coupon->products()->orderBy('name')->get(['products.id', 'products.name'])
                     ->map(fn (Product $product) => ['id' => $product->id, 'name' => $product->name])->values(),
@@ -192,8 +189,14 @@ class CouponController extends Controller
     {
         $limited = CouponType::from($validated['type'])->discountsItems();
 
-        $coupon->products()->sync($limited ? ($validated['product_ids'] ?? []) : []);
-        $coupon->categories()->sync($limited ? ($validated['category_ids'] ?? []) : []);
+        $products = $limited ? ($validated['product_ids'] ?? []) : [];
+        $categories = $limited ? ($validated['category_ids'] ?? []) : [];
+
+        $coupon->products()->sync($products);
+        $coupon->categories()->sync($categories);
+
+        // Choosing nothing means no limit; choosing something is remembered even after what was chosen is deleted.
+        $coupon->forceFill(['is_restricted' => $products !== [] || $categories !== []])->save();
     }
 
     /**
@@ -226,7 +229,9 @@ class CouponController extends Controller
             'is_active' => $coupon->is_active,
             'status' => $coupon->status($uses),
             'uses' => $uses,
-            'restricted' => $coupon->products_count > 0 || $coupon->categories_count > 0,
+            'restricted' => $coupon->is_restricted,
+            // Limited, but everything it was limited to has been deleted: it applies to nothing.
+            'limits_missing' => $coupon->is_restricted && $coupon->products_count === 0 && $coupon->categories_count === 0,
         ];
     }
 

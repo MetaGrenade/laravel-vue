@@ -127,6 +127,38 @@ class CouponPricingTest extends TestCase
     }
 
     #[Test]
+    public function a_percentage_too_small_to_save_a_cent_is_refused_rather_than_used(): void
+    {
+        // 0.0001% of 10.00 is a hundred-thousandth of a cent: it rounds to nothing.
+        $coupon = Coupon::factory()->percent('0.0001')->limited(total: 1)->create();
+
+        $pricing = $this->price($this->hoodies('10.00', 1), $coupon);
+
+        $this->assertSame("That code wouldn't take anything off your cart.", $pricing->couponProblem);
+        $this->assertNull($pricing->applied);
+        $this->assertSame('0.00', $pricing->discount->toDecimal());
+    }
+
+    #[Test]
+    public function placing_an_order_refuses_a_code_that_would_save_nothing(): void
+    {
+        $this->expectException(CheckoutException::class);
+        $this->expectExceptionMessage("That code wouldn't take anything off your cart.");
+
+        $this->price($this->hoodies('10.00', 1), Coupon::factory()->percent('0.0001')->create(), strict: true);
+    }
+
+    #[Test]
+    public function the_smallest_percentage_that_saves_a_cent_is_accepted(): void
+    {
+        // 0.05% of 10.00 is 0.005, which rounds half up to a cent.
+        $pricing = $this->price($this->hoodies('10.00', 1), Coupon::factory()->percent('0.05')->create());
+
+        $this->assertNull($pricing->couponProblem);
+        $this->assertSame('0.01', $pricing->discount->toDecimal());
+    }
+
+    #[Test]
     public function a_percentage_can_have_decimals(): void
     {
         $pricing = $this->price($this->hoodies('100.00', 1), Coupon::factory()->percent('12.5')->create());
@@ -242,6 +274,50 @@ class CouponPricingTest extends TestCase
     }
 
     #[Test]
+    public function deleting_the_last_product_a_code_is_limited_to_does_not_make_it_store_wide(): void
+    {
+        $mug = Product::factory()->priced('10.00')->stocked(9)->create();
+        $coupon = Coupon::factory()->percent('50')->forProducts([$mug])->create();
+
+        $mug->delete();
+
+        $this->assertSame(0, $coupon->products()->count(), 'the limit row went with the product');
+        $this->assertTrue($coupon->fresh()->is_restricted, 'but the code is still limited');
+
+        $pricing = $this->price($this->hoodies('50.00', 2), $coupon);
+
+        $this->assertSame("That code doesn't apply to anything in your cart.", $pricing->couponProblem);
+        $this->assertNull($pricing->applied);
+        $this->assertSame('0.00', $pricing->discount->toDecimal());
+    }
+
+    #[Test]
+    public function deleting_the_last_category_a_code_is_limited_to_does_not_make_it_store_wide(): void
+    {
+        $clothing = ProductCategory::create(['name' => 'Clothing', 'slug' => 'clothing']);
+        $coupon = Coupon::factory()->percent('50')->forCategories([$clothing])->create();
+
+        $clothing->delete();
+
+        $this->assertSame("That code doesn't apply to anything in your cart.", $this->price($this->hoodies(), $coupon)->couponProblem);
+    }
+
+    #[Test]
+    public function deleting_one_of_several_targets_leaves_the_code_on_the_others(): void
+    {
+        $mug = Product::factory()->priced('10.00')->stocked(9)->create();
+        $hoodie = Product::factory()->priced('40.00')->stocked(9)->create();
+        $coupon = Coupon::factory()->percent('50')->forProducts([$mug, $hoodie])->create();
+
+        $mug->delete();
+
+        $pricing = $this->price($this->cartOf([[$hoodie, 1]]), $coupon);
+
+        $this->assertNull($pricing->couponProblem);
+        $this->assertSame('20.00', $pricing->discount->toDecimal());
+    }
+
+    #[Test]
     public function the_minimum_spend_counts_only_the_items_the_code_applies_to(): void
     {
         $hoodie = Product::factory()->priced('40.00')->stocked(9)->create();
@@ -292,6 +368,54 @@ class CouponPricingTest extends TestCase
         $pricing = $this->price($cart, Coupon::factory()->freeShipping()->create());
 
         $this->assertSame('That code only applies to orders that are shipped.', $pricing->couponProblem);
+    }
+
+    #[Test]
+    public function free_shipping_is_refused_when_shipping_is_already_free(): void
+    {
+        ShippingZone::query()->delete();
+        ShippingZone::factory()->serving(['GB'])->withRate('Free', '0.00')->create();
+
+        $pricing = $this->price($this->hoodies(), Coupon::factory()->freeShipping()->create());
+
+        $this->assertSame('Shipping is already free on this order.', $pricing->couponProblem);
+        $this->assertNull($pricing->applied);
+    }
+
+    #[Test]
+    public function free_shipping_is_refused_when_the_shop_charges_no_shipping(): void
+    {
+        ShippingZone::query()->delete();
+
+        $pricing = $this->price($this->hoodies(), Coupon::factory()->freeShipping()->create());
+
+        $this->assertSame('Shipping is already free on this order.', $pricing->couponProblem);
+    }
+
+    #[Test]
+    public function free_shipping_is_not_judged_before_the_shopper_has_given_an_address(): void
+    {
+        // On the cart page the shipping charge is not known yet: zero there is only a placeholder.
+        $coupon = Coupon::factory()->freeShipping()->create();
+        $cart = $this->hoodies();
+        $cart->update(['coupon_id' => $coupon->id]);
+
+        $pricing = app(OrderPricer::class)->price($cart->fresh());
+
+        $this->assertNull($pricing->couponProblem);
+        $this->assertNotNull($pricing->applied);
+    }
+
+    #[Test]
+    public function free_shipping_is_refused_at_checkout_when_the_chosen_rate_is_already_free(): void
+    {
+        ShippingZone::query()->delete();
+        ShippingZone::factory()->serving(['GB'])->withRate('Free', '0.00')->create();
+
+        $this->expectException(CheckoutException::class);
+        $this->expectExceptionMessage('Shipping is already free on this order.');
+
+        $this->price($this->hoodies(), Coupon::factory()->freeShipping()->create(), strict: true);
     }
 
     #[Test]
@@ -462,6 +586,31 @@ class CouponPricingTest extends TestCase
         $gone->delete();
 
         $this->assertNull($order->fresh()->cart_id);
+        $this->assertSame('That code has been fully redeemed.', $this->price($this->hoodies(), $coupon)->couponProblem);
+    }
+
+    #[Test]
+    public function an_order_refunded_in_full_gives_its_use_back_even_though_it_was_fulfilled(): void
+    {
+        // Refunding a fulfilled order changes only its payment status: it stays "completed".
+        $coupon = Coupon::factory()->limited(total: 1, perCustomer: 1)->create();
+        $user = User::factory()->create();
+        $order = $this->usedOn($coupon, 'completed', user: $user, email: $user->email);
+        $customer = new CustomerDetails($user->email, 'Ada', $user);
+
+        $this->assertSame('That code has been fully redeemed.', $this->price($this->hoodies(), $coupon, customer: $customer)->couponProblem);
+
+        $order->update(['payment_status' => 'refunded']);
+
+        $this->assertNull($this->price($this->hoodies(), $coupon, customer: $customer)->couponProblem, 'neither limit blocks them now');
+    }
+
+    #[Test]
+    public function an_order_refunded_in_part_still_holds_its_use(): void
+    {
+        $coupon = Coupon::factory()->limited(total: 1)->create();
+        $this->usedOn($coupon, 'completed')->update(['payment_status' => 'partially_refunded']);
+
         $this->assertSame('That code has been fully redeemed.', $this->price($this->hoodies(), $coupon)->couponProblem);
     }
 

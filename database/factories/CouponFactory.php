@@ -30,6 +30,7 @@ class CouponFactory extends Factory
             'max_redemptions' => null,
             'max_redemptions_per_customer' => null,
             'is_active' => true,
+            'is_restricted' => false,
         ];
     }
 
@@ -78,7 +79,10 @@ class CouponFactory extends Factory
      */
     public function forProducts(iterable $products): static
     {
-        return $this->afterCreating(fn (Coupon $coupon) => $coupon->products()->attach(collect($products)->pluck('id')->all()));
+        return $this->afterCreating(function (Coupon $coupon) use ($products) {
+            $coupon->products()->attach(collect($products)->pluck('id')->all());
+            $coupon->update(['is_restricted' => true]);
+        });
     }
 
     /**
@@ -86,6 +90,9 @@ class CouponFactory extends Factory
      */
     public function forCategories(iterable $categories): static
     {
-        return $this->afterCreating(fn (Coupon $coupon) => $coupon->categories()->attach(collect($categories)->pluck('id')->all()));
+        return $this->afterCreating(function (Coupon $coupon) use ($categories) {
+            $coupon->categories()->attach(collect($categories)->pluck('id')->all());
+            $coupon->update(['is_restricted' => true]);
+        });
     }
 }

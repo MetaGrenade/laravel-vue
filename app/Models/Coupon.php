@@ -26,6 +26,7 @@ class Coupon extends Model
         'max_redemptions',
         'max_redemptions_per_customer',
         'is_active',
+        'is_restricted',
     ];
 
     protected $casts = [
@@ -37,6 +38,7 @@ class Coupon extends Model
         'max_redemptions' => 'integer',
         'max_redemptions_per_customer' => 'integer',
         'is_active' => 'boolean',
+        'is_restricted' => 'boolean',
     ];
 
     /**
@@ -55,7 +57,8 @@ class Coupon extends Model
     }
 
     /**
-     * Products the code is limited to. With no products and no categories it applies to everything.
+     * Products the code is limited to. Only meaningful while `is_restricted` is set: a restricted code
+     * with no products and no categories left (they were deleted) applies to nothing.
      *
      * @return BelongsToMany<Product, $this>
      */
@@ -105,18 +108,5 @@ class Coupon extends Model
         }
 
         return 'active';
-    }
-
-    /**
-     * Whether the code is limited to some products. Needs `products` and `categories` loaded, or
-     * asks the database.
-     */
-    public function isRestricted(): bool
-    {
-        if ($this->relationLoaded('products') && $this->relationLoaded('categories')) {
-            return $this->products->isNotEmpty() || $this->categories->isNotEmpty();
-        }
-
-        return $this->products()->exists() || $this->categories()->exists();
     }
 }

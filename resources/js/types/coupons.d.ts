@@ -25,6 +25,8 @@ export interface CouponRow {
     uses: number;
     /** Limited to some products or categories. */
     restricted: boolean;
+    /** Limited, but everything it was limited to has been deleted, so it applies to nothing. */
+    limits_missing: boolean;
 }
 
 /** A discount code as the form edits it. */
@@ -42,12 +44,16 @@ export interface CouponDetails {
     max_redemptions_per_customer: number | null;
     is_active: boolean;
     status: CouponStatus;
+    /** Limited to the products and categories below. */
+    restricted: boolean;
+    /** Limited, but everything it was limited to has been deleted, so it applies to nothing. */
+    limits_missing: boolean;
     category_ids: number[];
     products: { id: number; name: string }[];
 }
 
 export interface CouponUsage {
     orders: number;
-    /** Total taken off those orders, a decimal string. */
-    discounted: string;
+    /** Taken off those orders, kept apart by the currency they were placed in (it can differ if the shop's currency changed). */
+    discounted: { currency: string; amount: string }[];
 }

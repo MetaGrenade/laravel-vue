@@ -102,9 +102,13 @@ class OrderPricer
         $discount = null;
         $problem = null;
 
+        // The shipping charge is real once a rate is chosen, or an address is given and the shop has no
+        // rates to charge. Until then (no address yet) the zero above is only a placeholder.
+        $shippingKnown = $needsShipping && $canShip && $message === null && ($selected !== null || $shipTo !== null);
+
         if ($coupon !== null) {
             try {
-                $discount = $this->discounts->calculate($coupon, $lines, $needsShipping, $shippingAmount, $customer, $cart);
+                $discount = $this->discounts->calculate($coupon, $lines, $needsShipping, $shippingAmount, $customer, $cart, $shippingKnown);
             } catch (CouponRejected $rejected) {
                 $problem = $rejected->getMessage();
             }

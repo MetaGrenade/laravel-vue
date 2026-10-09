@@ -150,7 +150,8 @@ const usesLabel = (coupon: CouponRow) => (coupon.max_redemptions === null ? `${c
                                     </TableCell>
                                     <TableCell class="text-sm text-muted-foreground">
                                         <p v-if="coupon.minimum_subtotal">Spend {{ formatMoney(coupon.minimum_subtotal, currency) }}+</p>
-                                        <p v-if="coupon.restricted">Some products only</p>
+                                        <p v-if="coupon.limits_missing" class="text-destructive">Applies to nothing: its products were deleted</p>
+                                        <p v-else-if="coupon.restricted">Some products only</p>
                                         <p v-if="coupon.max_redemptions_per_customer">{{ coupon.max_redemptions_per_customer }} per customer</p>
                                         <p v-if="!coupon.minimum_subtotal && !coupon.restricted && !coupon.max_redemptions_per_customer">None</p>
                                     </TableCell>

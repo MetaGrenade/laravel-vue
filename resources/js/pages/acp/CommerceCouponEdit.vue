@@ -12,7 +12,7 @@ import type { BreadcrumbItem } from '@/types';
 import type { CatalogueLookup } from '@/types/catalogue';
 import type { CouponDetails, CouponUsage } from '@/types/coupons';
 import { Head, router } from '@inertiajs/vue3';
-import { Trash2 } from '@lucide/vue';
+import { CircleAlert, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 
 const props = defineProps<{
@@ -59,6 +59,18 @@ const remove = () => {
                     </Button>
                 </div>
 
+                <div
+                    v-if="coupon.limits_missing"
+                    class="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm"
+                    role="status"
+                >
+                    <CircleAlert class="mt-0.5 size-4 shrink-0 text-warning" />
+                    <p>
+                        <strong>This code applies to nothing.</strong> It was limited to products and categories that have since been deleted. Pick
+                        new ones below, or save it with none to apply it to everything in the cart.
+                    </p>
+                </div>
+
                 <div class="grid gap-4 sm:grid-cols-2">
                     <Card>
                         <CardHeader>
@@ -75,10 +87,18 @@ const remove = () => {
                     <Card>
                         <CardHeader>
                             <CardDescription>Taken off those orders</CardDescription>
-                            <CardTitle class="text-3xl tabular-nums">{{ formatMoney(usage.discounted, currency) }}</CardTitle>
+                            <CardTitle v-if="usage.discounted.length === 0" class="text-3xl tabular-nums">{{ formatMoney('0', currency) }}</CardTitle>
+                            <CardTitle v-else class="space-y-1 text-3xl tabular-nums">
+                                <span v-for="total in usage.discounted" :key="total.currency" class="block">{{
+                                    formatMoney(total.amount, total.currency)
+                                }}</span>
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p class="text-sm text-muted-foreground">Includes free shipping.</p>
+                            <p class="text-sm text-muted-foreground">
+                                Includes free shipping.
+                                <template v-if="usage.discounted.length > 1">Orders in different currencies are not added together.</template>
+                            </p>
                         </CardContent>
                     </Card>
                 </div>
