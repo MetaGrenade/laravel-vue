@@ -145,6 +145,34 @@ Stock is tracked per product, or per variant when a product has variants (a prod
 
 Tracked stock at or below `COMMERCE_LOW_STOCK_THRESHOLD` (default 5) is labelled *Low* and listed under *Running low* on the Commerce overview. It only labels; the shop keeps selling until the count reaches zero. Only stock that belongs to something on sale counts (`InventoryItem::scopeForSale()`): an archived product or a switched-off variant keeps its row for the history, but is not a shortage, and could otherwise fill the list and hide real ones.
 
+## Product pictures
+
+A product's **Pictures** tab takes JPEG, PNG, WebP and GIF uploads (drag and drop, several at once; up to 5 MB each and 12 a product). The first picture is the product's main one; the others can be moved earlier or later, given a description for people who cannot see them (it falls back to the product name) and deleted.
+
+**Nothing the shop serves is the file that was uploaded.** `ImageProcessor` decodes the upload as a picture and draws it again at three sizes (1600, 800 and 320 pixels on the longest side, never enlarged), encoding each as WebP. That means:
+
+- Anything that is not a picture is refused whatever it is called: the file-type rule goes by what a file looks like, but the real check is that it decodes. An SVG (a document that can carry script) is not accepted at all.
+- Metadata does not survive: location, camera, embedded profiles, and anything hidden in the file. A file that is a picture and something else at once (a "polyglot", with a script appended) comes out as only the picture.
+- The size the file *declares* is checked before it is decoded, against `COMMERCE_IMAGE_MAX_PIXELS` (default 16 million, a 4000 × 4000 photo). Decoding needs memory in proportion to the pixels, so a few kilobytes that describe a gigantic picture are refused instead of exhausting the server.
+- A photo taken sideways is turned upright first if the `exif` extension is available; transparency is kept.
+- Several uploaded together are processed one by one: a refused file is listed with its reason and the others are kept.
+
+Files live on `COMMERCE_IMAGE_DISK` (default `public`, which needs `php artisan storage:link`) under `products/{id}/`, and the rows and files are kept in step: files are removed again if the row cannot be saved, a deleted picture's files go with it, and a deleted product's files go once the deletion has committed. The positions are changed under a lock, and an order that names the wrong set of pictures is refused, so two people arranging at once cannot lose or invent one.
+
+The pictures need PHP's `gd` extension with WebP support. Without it uploads are refused with a message saying so; the rest of the shop is unaffected.
+
+## The storefront
+
+The shop window sends only what a shopper should see:
+
+- **Prices** that can be charged (active, in the shop's currency), cheapest first, and a `can_buy` flag decided with the same rules checkout uses (see [Prices](#prices)).
+- **Variants** that are on sale, with the options they are made from, so the product page can offer Size and Colour as choices, strike out a value that does not come in the other things picked, and show the price and stock of the combination.
+- **Stock in words, never numbers**: *In stock*, *Only a few left* (at or below `COMMERCE_LOW_STOCK_THRESHOLD`), *Out of stock*, or *Available to order* when backorders are allowed. A variant without a stock row of its own uses the product's, the same rule an order follows when it takes stock. Exact counts are never sent to the browser. A product is marked *Sold out* in the catalogue when everything on offer is out, and its add-to-cart button is off.
+- **Pictures** at three sizes: the thumbnail in lists and the cart, the medium size in the catalogue and gallery, and the large one for big screens (`srcset`), with the product name as the description when none was written.
+- **Structured data and sharing**: the main picture is the page's share image, and the page's JSON-LD includes every picture and, when it can be bought, an offer with the lowest price and its availability.
+
+Products with nothing to choose (no variants) can be added to the cart straight from the catalogue; the rest go through their page.
+
 ## Managing orders
 
 **Commerce → Orders** in the ACP lists every order, newest first, with tabs for each status (and how many are in it), a search by order number, name or email, and a filter by payment state. Opening an order shows its items and totals, customer, addresses, payments (with a link to the payment in the provider's dashboard), refunds and its history.
@@ -256,11 +284,13 @@ Prices are `decimal(10,2)` columns, but all arithmetic is done on integers in `A
 | `COMMERCE_GUEST_CHECKOUT` | `true` | Allow buying without an account. |
 | `COMMERCE_PAYMENT_WINDOW` | `60` | Minutes stock is held for an unpaid order (minimum 30). |
 | `COMMERCE_ORDER_PREFIX` | `MF` | Prefix of the order number. |
-| `COMMERCE_LOW_STOCK_THRESHOLD` | `5` | Tracked stock at or below this is shown as low in the ACP. |
+| `COMMERCE_LOW_STOCK_THRESHOLD` | `5` | Tracked stock at or below this is shown as low in the ACP and as "only a few left" in the shop. |
+| `COMMERCE_IMAGE_DISK` | `public` | Disk product pictures are stored on. It must be one the web can serve. |
+| `COMMERCE_IMAGE_MAX_PIXELS` | `16000000` | Largest picture accepted, in pixels (width × height). |
 
 ## Upgrading an existing installation
 
-Run `php artisan migrate`. The new migrations are safe on a database that already has data. For catalogue management: variants gain an `is_active` flag (existing variants stay on sale), and the commerce overview no longer carries the old quick-create forms: use Commerce → Products. For order management and refunds: `refunds` and `order_events` are new tables and orders gain a `refunded_total` (zero for existing orders). Run `php artisan db:seed --class=RolePermissionSeeder` to create the `commerce.acp.refund` permission (the admin role is given it; grant it to other staff roles in Access control), and add the five refund events above to your Stripe webhook endpoint. For the shipping, tax and address slice: products gain *Needs shipping* and *Charge tax* flags (existing products stay shipped and taxed), orders gain empty address and shipping-method columns, and the address, shipping and tax tables are new. **Behaviour change:** products are shipped by default, so checkout now asks for a shipping address; with no shipping zones configured it still ships anywhere for free, as before. For the first slice:
+Run `php artisan migrate`. The new migrations are safe on a database that already has data. For product pictures: `product_images` is a new table; make sure `php artisan storage:link` has been run and that PHP has the `gd` extension (with WebP). The product page in the shop was rebuilt (gallery, options, price, stock wording, add to cart) and no longer sends stock counts to the browser. For catalogue management: variants gain an `is_active` flag (existing variants stay on sale), and the commerce overview no longer carries the old quick-create forms: use Commerce → Products. For order management and refunds: `refunds` and `order_events` are new tables and orders gain a `refunded_total` (zero for existing orders). Run `php artisan db:seed --class=RolePermissionSeeder` to create the `commerce.acp.refund` permission (the admin role is given it; grant it to other staff roles in Access control), and add the five refund events above to your Stripe webhook endpoint. For the shipping, tax and address slice: products gain *Needs shipping* and *Charge tax* flags (existing products stay shipped and taxed), orders gain empty address and shipping-method columns, and the address, shipping and tax tables are new. **Behaviour change:** products are shipped by default, so checkout now asks for a shipping address; with no shipping zones configured it still ships anywhere for free, as before. For the first slice:
 
 - `add_checkout_columns_to_orders_table` adds the new order columns and **backfills** existing orders: each gets a public id and number, an owner (the placing user), and a payment state implied by its old status (`processing` and `completed` become `paid`).
 - `generalise_billing_webhook_calls_table` adds `provider` and `external_id` (copied from `stripe_id`) so shop and subscription events share one idempotency key.
@@ -270,4 +300,4 @@ The header cart previously showed an estimated 7% tax and a flat shipping charge
 
 ## Not built yet
 
-Planned for the rest of M1 (see the roadmap): product images, coupons and gift cards, digital goods (downloads and licence keys; the *Needs shipping* flag is already in place), reviews and wishlists. A guest's cart is not yet carried over when they sign in, and a guest's orders are not yet attached to an account created later with the same email. Tebex arrives in M2 behind the same provider contract.
+Planned for the rest of M1 (see the roadmap): coupons and gift cards, digital goods (downloads and licence keys; the *Needs shipping* flag is already in place), reviews and wishlists. A guest's cart is not yet carried over when they sign in, and a guest's orders are not yet attached to an account created later with the same email. Tebex arrives in M2 behind the same provider contract.

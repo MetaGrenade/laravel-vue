@@ -1,61 +1,45 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import ProductPrice from '@/components/commerce/ProductPrice.vue';
 import { Badge } from '@/components/ui/badge';
-import { reactive, ref } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import AppLayout from '@/layouts/AppLayout.vue';
+import type { StorefrontImage, StorefrontPrice, StorefrontVariant } from '@/types/commerce';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ImageOff } from '@lucide/vue';
+import { computed, reactive, ref } from 'vue';
 
-interface Category {
+interface Taxon {
     id: number;
     name: string;
     slug: string;
-}
-
-interface Tag {
-    id: number;
-    name: string;
-    slug: string;
-}
-
-interface Brand {
-    id: number;
-    name: string;
-    slug: string;
-}
-
-interface Variant {
-    id: number;
-    name: string;
-    sku?: string | null;
-    prices: Price[];
-}
-
-interface Price {
-    id: number;
-    currency: string;
-    amount: string;
-    compare_at_amount?: string | null;
 }
 
 interface Product {
     id: number;
-    /** Decided by the server with the same rules checkout uses, so the button is never on for something checkout would refuse. */
-    can_buy: boolean;
     name: string;
     slug: string;
     description?: string | null;
-    variants: Variant[];
-    prices: Price[];
-    brand?: Brand | null;
-    categories: Category[];
-    tags: Tag[];
+    /** Decided by the server with the same rules checkout uses, so the button is never on for something checkout would refuse. */
+    can_buy: boolean;
+    sold_out: boolean;
+    image: StorefrontImage | null;
+    variants: StorefrontVariant[];
+    prices: StorefrontPrice[];
+    brand?: Taxon | null;
+    categories: Taxon[];
+    tags: Taxon[];
 }
 
 interface Props {
     products: {
         data: Product[];
+        current_page: number;
+        last_page: number;
+        total: number;
+        prev_page_url: string | null;
+        next_page_url: string | null;
     };
     filters: {
         search: string | null;
@@ -63,19 +47,16 @@ interface Props {
         tags: number[];
         brand: number | null;
     };
-    categories: Category[];
-    tags: Tag[];
-    brands: Brand[];
+    categories: Taxon[];
+    tags: Taxon[];
+    brands: Taxon[];
 }
 
 const props = defineProps<Props>();
 
-const selectedVariants = reactive<Record<number, number | null>>({});
-const quantities = reactive<Record<number, number>>({});
-const submittingProductId = ref<number | null>(null);
-// Selects bind '' for "any", or the selected id.
 const breadcrumbs = [{ title: 'Shop', href: route('shop.index') }];
 
+// Selects bind '' for "any", or the selected id.
 const filterState = reactive<{ search: string; category: number | ''; tags: number[]; brand: number | '' }>({
     search: props.filters.search ?? '',
     category: props.filters.category?.[0] ?? '',
@@ -83,88 +64,44 @@ const filterState = reactive<{ search: string; category: number | ''; tags: numb
     brand: props.filters.brand ?? '',
 });
 
-const getSelectedVariantId = (product: Product) => {
-    if (selectedVariants[product.id] === undefined) {
-        selectedVariants[product.id] = product.variants[0]?.id ?? null;
+const filtering = computed(() =>
+    Boolean(props.filters.search || props.filters.category?.length || props.filters.tags?.length || props.filters.brand),
+);
+
+/** What a shopper pays for a variant: its own price, or the product's (as checkout does). */
+const effectivePrices = (product: Product): StorefrontPrice[] => {
+    if (!product.variants.length) {
+        return product.prices.slice(0, 1);
     }
 
-    return selectedVariants[product.id];
+    return product.variants.map((variant) => variant.prices[0] ?? product.prices[0]).filter((price): price is StorefrontPrice => Boolean(price));
 };
 
-const getQuantity = (productId: number) => quantities[productId] ?? 1;
+/** The cheapest it can be had for, and whether other choices cost more. */
+const cardPrice = (product: Product) => {
+    const prices = [...effectivePrices(product)].sort((a, b) => Number(a.amount) - Number(b.amount));
 
-const setQuantity = (productId: number, value: number) => {
-    const nextValue = Number.isFinite(value) ? value : 1;
-
-    quantities[productId] = Math.max(1, nextValue);
+    return { price: prices[0] ?? null, from: new Set(prices.map((price) => price.amount)).size > 1 };
 };
 
-const canAddToCart = (product: Product) => product.can_buy;
+/** Products with nothing to choose can be added straight from the list. */
+const quickAdd = (product: Product) => product.can_buy && !product.sold_out && product.variants.length === 0;
+
+const addingId = ref<number | null>(null);
 
 const addToCart = (product: Product) => {
-    if (!canAddToCart(product)) {
-        return;
-    }
-
-    submittingProductId.value = product.id;
+    addingId.value = product.id;
 
     router.post(
         route('shop.cart.items.store'),
-        {
-            product_id: product.id,
-            product_variant_id: getSelectedVariantId(product),
-            quantity: getQuantity(product.id),
-        },
+        { product_id: product.id, quantity: 1 },
         {
             preserveScroll: true,
             onFinish: () => {
-                submittingProductId.value = null;
+                addingId.value = null;
             },
         },
     );
-};
-
-const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat(undefined, {
-        style: 'currency',
-        currency: currency.toUpperCase(),
-    }).format(amount);
-};
-
-const getPriceRangeLabel = (product: Product) => {
-    const allPrices = [...product.prices, ...product.variants.flatMap((variant) => variant.prices || [])];
-
-    if (!allPrices.length) {
-        return 'Currently unavailable';
-    }
-
-    const amounts = allPrices.map((price) => ({
-        amount: Number(price.amount),
-        currency: price.currency || 'USD',
-    }));
-
-    const minAmount = Math.min(...amounts.map((price) => price.amount));
-    const maxAmount = Math.max(...amounts.map((price) => price.amount));
-    const currency = amounts[0].currency;
-
-    if (minAmount === maxAmount) {
-        return formatCurrency(minAmount, currency);
-    }
-
-    return `${formatCurrency(minAmount, currency)} - ${formatCurrency(maxAmount, currency)}`;
-};
-
-const getProductPriceLabel = (product: Product) => {
-    const selectionId = getSelectedVariantId(product);
-
-    const selectedVariant = product.variants.find((variant) => variant.id === selectionId);
-    const price = selectedVariant?.prices[0] ?? product.prices[0];
-
-    if (!price) {
-        return 'Currently unavailable';
-    }
-
-    return formatCurrency(Number(price.amount), price.currency);
 };
 
 const applyFilters = () => {
@@ -198,24 +135,26 @@ const toggleTag = (tagId: number) => {
         filterState.tags.push(tagId);
     }
 };
+
+const selectClass = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden';
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Shop" />
 
-        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+        <div class="flex h-full flex-1 flex-col gap-6 rounded-xl p-4">
             <div>
                 <h1 class="text-3xl font-semibold tracking-tight">Shop</h1>
-                <p class="text-muted-foreground">Starter catalog page teams can extend into a full storefront.</p>
+                <p class="text-muted-foreground">Browse our products.</p>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Filter products</CardTitle>
+                    <CardTitle>Find something</CardTitle>
                 </CardHeader>
                 <CardContent class="space-y-4">
-                    <div class="grid gap-4 md:grid-cols-4">
+                    <div class="grid gap-4 md:grid-cols-3">
                         <div class="space-y-2">
                             <label class="text-sm font-semibold text-foreground" for="search">Search</label>
                             <Input id="search" v-model="filterState.search" placeholder="Search by name or description" @keyup.enter="applyFilters" />
@@ -223,46 +162,35 @@ const toggleTag = (tagId: number) => {
 
                         <div class="space-y-2">
                             <label class="text-sm font-semibold text-foreground" for="category">Category</label>
-                            <select
-                                id="category"
-                                v-model="filterState.category"
-                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
-                            >
+                            <select id="category" v-model="filterState.category" :class="selectClass">
                                 <option value="">All categories</option>
-                                <option v-for="category in props.categories" :key="category.id" :value="category.id">
-                                    {{ category.name }}
-                                </option>
+                                <option v-for="category in props.categories" :key="category.id" :value="category.id">{{ category.name }}</option>
                             </select>
                         </div>
 
                         <div class="space-y-2">
                             <label class="text-sm font-semibold text-foreground" for="brand">Brand</label>
-                            <select
-                                id="brand"
-                                v-model="filterState.brand"
-                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
-                            >
+                            <select id="brand" v-model="filterState.brand" :class="selectClass">
                                 <option value="">All brands</option>
-                                <option v-for="brand in props.brands" :key="brand.id" :value="brand.id">
-                                    {{ brand.name }}
-                                </option>
+                                <option v-for="brand in props.brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
                             </select>
                         </div>
+                    </div>
 
-                        <div class="space-y-2">
-                            <label class="text-sm font-semibold text-foreground">Tags</label>
-                            <div class="flex flex-wrap gap-2">
-                                <Button
-                                    v-for="tag in props.tags"
-                                    :key="tag.id"
-                                    size="sm"
-                                    variant="outline"
-                                    :class="filterState.tags.includes(tag.id) ? 'border-primary text-primary' : ''"
-                                    @click="toggleTag(tag.id)"
-                                >
-                                    {{ tag.name }}
-                                </Button>
-                            </div>
+                    <div v-if="props.tags.length" class="space-y-2">
+                        <span class="text-sm font-semibold text-foreground">Tags</span>
+                        <div class="flex flex-wrap gap-2">
+                            <Button
+                                v-for="tag in props.tags"
+                                :key="tag.id"
+                                size="sm"
+                                variant="outline"
+                                :aria-pressed="filterState.tags.includes(tag.id)"
+                                :class="filterState.tags.includes(tag.id) ? 'border-primary text-primary' : ''"
+                                @click="toggleTag(tag.id)"
+                            >
+                                {{ tag.name }}
+                            </Button>
                         </div>
                     </div>
 
@@ -273,84 +201,71 @@ const toggleTag = (tagId: number) => {
                 </CardContent>
             </Card>
 
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Card v-for="product in props.products.data" :key="product.id" class="flex flex-col">
-                    <CardHeader>
-                        <CardTitle class="text-xl">{{ product.name }}</CardTitle>
-                        <div v-if="product.brand" class="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Badge variant="outline">{{ product.brand.name }}</Badge>
-                        </div>
-                        <p class="line-clamp-2 text-sm text-muted-foreground">{{ product.description || 'No description yet.' }}</p>
-                    </CardHeader>
-                    <CardContent class="flex flex-1 flex-col justify-between space-y-4">
-                        <div class="space-y-3">
-                            <div class="space-y-2">
-                                <div class="font-medium">Variants: {{ product.variants.length }}</div>
-                                <div class="text-sm text-muted-foreground">
-                                    {{ getPriceRangeLabel(product) }}
-                                </div>
-                                <div class="text-sm font-semibold text-foreground">
-                                    {{ getProductPriceLabel(product) }}
-                                </div>
-                            </div>
+            <p v-if="props.products.data.length === 0" class="py-10 text-center text-muted-foreground">
+                {{ filtering ? 'Nothing matches those filters.' : 'There is nothing in the shop yet.' }}
+            </p>
 
-                            <div class="flex flex-wrap gap-2">
-                                <Badge v-for="category in product.categories" :key="category.id" variant="secondary">
-                                    {{ category.name }}
-                                </Badge>
-                                <Badge v-for="tag in product.tags" :key="tag.id" variant="outline">
-                                    {{ tag.name }}
-                                </Badge>
+            <ul v-else class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                <li v-for="product in props.products.data" :key="product.id">
+                    <Card class="h-full gap-0 overflow-hidden py-0">
+                        <Link
+                            :href="route('shop.products.show', product.slug)"
+                            class="relative block bg-muted/30"
+                            :aria-label="`View ${product.name}`"
+                            tabindex="-1"
+                        >
+                            <img
+                                v-if="product.image"
+                                :src="product.image.medium"
+                                :alt="product.image.alt"
+                                :width="product.image.width"
+                                :height="product.image.height"
+                                class="aspect-[4/3] w-full object-cover"
+                                loading="lazy"
+                            />
+                            <div v-else class="flex aspect-[4/3] items-center justify-center text-muted-foreground" aria-hidden="true">
+                                <ImageOff class="size-10" />
                             </div>
-                        </div>
+                            <Badge v-if="product.sold_out" class="absolute top-3 left-3" variant="destructive">Sold out</Badge>
+                        </Link>
 
-                        <div class="space-y-3">
-                            <div v-if="product.variants.length" class="space-y-1">
-                                <label class="text-sm font-semibold text-foreground">Select variant</label>
-                                <select
-                                    class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
-                                    :value="getSelectedVariantId(product) ?? ''"
-                                    @change="
-                                        selectedVariants[product.id] = ($event.target as HTMLSelectElement).value
-                                            ? Number(($event.target as HTMLSelectElement).value)
-                                            : null
-                                    "
-                                >
-                                    <option v-for="variant in product.variants" :key="variant.id" :value="variant.id">
-                                        {{ variant.name }}
-                                    </option>
-                                </select>
-                            </div>
-
+                        <div class="flex flex-1 flex-col gap-3 p-4">
                             <div class="space-y-1">
-                                <label class="text-sm font-semibold text-foreground" :for="`quantity-${product.id}`">Quantity</label>
-                                <Input
-                                    :id="`quantity-${product.id}`"
-                                    type="number"
-                                    min="1"
-                                    class="w-full"
-                                    :value="getQuantity(product.id)"
-                                    @input="setQuantity(product.id, Number(($event.target as HTMLInputElement).value))"
-                                />
+                                <p v-if="product.brand" class="text-xs tracking-wide text-muted-foreground uppercase">{{ product.brand.name }}</p>
+                                <h2 class="line-clamp-2 text-lg leading-snug font-semibold">
+                                    <Link :href="route('shop.products.show', product.slug)" class="hover:underline">{{ product.name }}</Link>
+                                </h2>
+                                <ProductPrice :price="cardPrice(product).price" :from="cardPrice(product).from" />
                             </div>
 
-                            <div class="flex items-center justify-between gap-3">
-                                <Link :href="route('shop.products.show', product.slug)">
-                                    <Button variant="secondary">View details</Button>
-                                </Link>
-                                <Button
-                                    class="flex-1"
-                                    variant="outline"
-                                    :disabled="!canAddToCart(product) || submittingProductId === product.id"
-                                    @click="addToCart(product)"
-                                >
-                                    {{ submittingProductId === product.id ? 'Adding…' : 'Add to cart' }}
+                            <p v-if="product.description" class="line-clamp-2 text-sm text-muted-foreground">{{ product.description }}</p>
+
+                            <div class="mt-auto flex gap-2 pt-2">
+                                <Button as-child variant="secondary" class="flex-1">
+                                    <Link :href="route('shop.products.show', product.slug)">{{
+                                        product.variants.length ? 'Choose options' : 'View'
+                                    }}</Link>
+                                </Button>
+                                <Button v-if="quickAdd(product)" variant="outline" :disabled="addingId === product.id" @click="addToCart(product)">
+                                    {{ addingId === product.id ? 'Adding…' : 'Add to cart' }}
                                 </Button>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
-            </div>
+                    </Card>
+                </li>
+            </ul>
+
+            <nav v-if="props.products.last_page > 1" class="flex items-center justify-between gap-3" aria-label="Pages">
+                <Button v-if="props.products.prev_page_url" as-child variant="outline">
+                    <Link :href="props.products.prev_page_url" preserve-scroll>Previous</Link>
+                </Button>
+                <span v-else />
+                <span class="text-sm text-muted-foreground">Page {{ props.products.current_page }} of {{ props.products.last_page }}</span>
+                <Button v-if="props.products.next_page_url" as-child variant="outline">
+                    <Link :href="props.products.next_page_url" preserve-scroll>Next</Link>
+                </Button>
+                <span v-else />
+            </nav>
         </div>
     </AppLayout>
 </template>

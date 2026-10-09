@@ -21,7 +21,7 @@ import { formatMoney } from '@/lib/money';
 import type { BreadcrumbItem } from '@/types';
 import type { CatalogueLookup, StockStatus } from '@/types/catalogue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Package, Plus } from '@lucide/vue';
+import { ImageOff, Package, Plus } from '@lucide/vue';
 import { computed, reactive, watch } from 'vue';
 
 interface ProductRow {
@@ -30,6 +30,7 @@ interface ProductRow {
     slug: string;
     is_active: boolean;
     brand: string | null;
+    image: string | null;
     variants_count: number;
     price: { from: string | null; to: string | null };
     stock: { tracked: boolean; total: number; status: StockStatus };
@@ -176,16 +177,35 @@ const selectClass = 'h-10 rounded-md border border-input bg-background px-3 py-2
                             <TableBody>
                                 <TableRow v-for="product in rows" :key="product.id">
                                     <TableCell>
-                                        <Link :href="route('acp.commerce.products.edit', product.id)" class="font-medium hover:underline">{{
-                                            product.name
-                                        }}</Link>
-                                        <p class="text-xs text-muted-foreground">
-                                            <template v-if="product.brand">{{ product.brand }} · </template>
-                                            <template v-if="product.variants_count"
-                                                >{{ product.variants_count }} {{ product.variants_count === 1 ? 'variant' : 'variants' }}</template
+                                        <div class="flex items-center gap-3">
+                                            <img
+                                                v-if="product.image"
+                                                :src="product.image"
+                                                alt=""
+                                                class="size-10 shrink-0 rounded-md border object-cover"
+                                                loading="lazy"
+                                            />
+                                            <span
+                                                v-else
+                                                class="flex size-10 shrink-0 items-center justify-center rounded-md border border-dashed text-muted-foreground"
+                                                aria-hidden="true"
                                             >
-                                            <template v-else>No variants</template>
-                                        </p>
+                                                <ImageOff class="size-4" />
+                                            </span>
+                                            <div class="min-w-0">
+                                                <Link :href="route('acp.commerce.products.edit', product.id)" class="font-medium hover:underline">{{
+                                                    product.name
+                                                }}</Link>
+                                                <p class="text-xs text-muted-foreground">
+                                                    <template v-if="product.brand">{{ product.brand }} · </template>
+                                                    <template v-if="product.variants_count"
+                                                        >{{ product.variants_count }}
+                                                        {{ product.variants_count === 1 ? 'variant' : 'variants' }}</template
+                                                    >
+                                                    <template v-else>No variants</template>
+                                                </p>
+                                            </div>
+                                        </div>
                                     </TableCell>
                                     <TableCell class="whitespace-nowrap tabular-nums">
                                         <template v-if="priceLabel(product)">{{ priceLabel(product) }}</template>

@@ -55,6 +55,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Product images
+    |--------------------------------------------------------------------------
+    |
+    | Uploads are decoded and re-encoded to WebP at three sizes (never enlarged), which
+    | removes metadata and anything else hidden in the file; the original is not kept.
+    | Images are public, so the disk must be one the web can serve ("public" needs
+    | `php artisan storage:link`). Decoding needs memory proportional to the picture's
+    | pixels (about four bytes each), so the pixel limit protects the server from a
+    | small file that expands into a huge image.
+    |
+    */
+
+    'images' => [
+        'disk' => env('COMMERCE_IMAGE_DISK', 'public'),
+        // Largest upload, in kilobytes.
+        'max_kilobytes' => 5120,
+        // Largest picture, in pixels (width x height). 16 million is a 4000 x 4000 photo.
+        'max_pixels' => (int) env('COMMERCE_IMAGE_MAX_PIXELS', 16_000_000),
+        'max_per_product' => 12,
+        // The longest side of each kept size, in pixels.
+        'sizes' => ['large' => 1600, 'medium' => 800, 'thumb' => 320],
+        'quality' => 82,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Low stock
     |--------------------------------------------------------------------------
     |

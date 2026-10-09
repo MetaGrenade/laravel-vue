@@ -22,6 +22,8 @@ use Illuminate\Support\Facades\DB;
  */
 class CatalogueRemover
 {
+    public function __construct(private readonly ProductImages $images) {}
+
     public function productBlock(Product $product): ?string
     {
         return OrderItem::query()->where('product_id', $product->id)->exists()
@@ -41,7 +43,9 @@ class CatalogueRemover
      */
     public function deleteProduct(Product $product): void
     {
-        DB::transaction(function () use ($product) {
+        $files = [];
+
+        DB::transaction(function () use ($product, &$files) {
             // Held while the check and the delete happen, so two deletions cannot interleave.
             $locked = Product::query()->whereKey($product->id)->lockForUpdate()->firstOrFail();
 
@@ -50,13 +54,18 @@ class CatalogueRemover
             }
 
             $variantIds = $locked->variants()->pluck('id')->all();
+            $files = $this->images->filesOf($locked);
 
             $this->removeFromCarts(CartItem::query()->where('product_id', $locked->id));
             $this->removePrices($locked, $variantIds);
 
-            // Options, values, variants, stock and the category and tag links go with it.
+            // Options, values, variants, stock, picture rows and the category and tag links go with it.
             $locked->delete();
         });
+
+        // The picture files are not covered by the foreign key. Removed after the commit, so a
+        // failed deletion never leaves a product whose pictures have vanished.
+        $this->images->deleteFiles($files);
     }
 
     /**

@@ -48,7 +48,7 @@ resources/
 ```
 
 ## Prerequisites
-- PHP 8.4+ with Composer 2.
+- PHP 8.4+ with Composer 2. For product images, the `gd` extension with WebP support (and, optionally, `exif` so sideways photos are turned upright).
 - Node.js 22.13+ (24 LTS recommended, see `.nvmrc`) with npm.
 - A database: SQLite (the default, for local development and tests), **MySQL 8** or **PostgreSQL 16**. CI runs the whole test suite on all three. Configure credentials in `.env`.
 - Optional: Docker, for the backing services in `compose.yaml` (see below).

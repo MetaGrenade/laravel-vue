@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\Catalogue\OptionController;
 use App\Http\Controllers\Admin\Catalogue\PriceController;
 use App\Http\Controllers\Admin\Catalogue\ProductController;
+use App\Http\Controllers\Admin\Catalogue\ProductImageController;
 use App\Http\Controllers\Admin\Catalogue\StockController;
 use App\Http\Controllers\Admin\Catalogue\TaxonomyController;
 use App\Http\Controllers\Admin\Catalogue\VariantController;
@@ -214,6 +215,23 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
             Route::delete('stock/{item}', [StockController::class, 'destroy'])
                 ->middleware('can:commerce.acp.delete')
                 ->name('stock.destroy');
+
+            // A product's pictures.
+            Route::post('products/{product}/images', [ProductImageController::class, 'store'])
+                ->middleware('can:commerce.acp.create')
+                ->name('images.store');
+            Route::post('products/{product}/images/order', [ProductImageController::class, 'reorder'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('images.reorder');
+            Route::put('images/{image}', [ProductImageController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('images.update');
+            Route::post('images/{image}/main', [ProductImageController::class, 'makeMain'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('images.main');
+            Route::delete('images/{image}', [ProductImageController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('images.destroy');
 
             // Brands, categories and tags.
             Route::get('taxonomy', [TaxonomyController::class, 'index'])->name('taxonomy.index');

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Product extends Model
@@ -82,6 +83,26 @@ class Product extends Model
     public function prices(): MorphMany
     {
         return $this->morphMany(Price::class, 'priceable');
+    }
+
+    /**
+     * Pictures in the order they are shown; the first is the main one.
+     *
+     * @return HasMany<ProductImage, $this>
+     */
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * The main picture.
+     *
+     * @return HasOne<ProductImage, $this>
+     */
+    public function primaryImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)->ofMany(['position' => 'min', 'id' => 'min']);
     }
 
     /**
