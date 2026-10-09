@@ -112,21 +112,19 @@ class StripeProvider implements PaymentProvider
 
         foreach ($order->items as $item) {
             $unit = Money::parse($item->unit_price, $order->currency);
-            $linesTotal = $linesTotal->add($unit->multiply($item->quantity));
+            $net = $unit->multiply($item->quantity)->subtract(Money::parse($item->discount_total, $order->currency));
+            $linesTotal = $linesTotal->add($net);
 
-            $lines[] = [
-                'quantity' => $item->quantity,
-                'price_data' => [
-                    'currency' => strtolower($order->currency),
-                    'unit_amount' => $unit->minor,
-                    'product_data' => ['name' => Str::limit($item->description ?: 'Item', 250, '')],
-                ],
-            ];
+            foreach ($this->itemLines($item->description ?: 'Item', $item->quantity, $unit, $net, $order->currency) as $line) {
+                $lines[] = $line;
+            }
         }
 
         // Everything on the order that is not a product line is sent as its own line, so
-        // the customer pays exactly what the order says: shipping, then each tax.
-        $shipping = Money::parse($order->shipping_total, $order->currency);
+        // the customer pays exactly what the order says: shipping (less any the discount code
+        // waived), then each tax.
+        $shipping = Money::parse($order->shipping_total, $order->currency)
+            ->subtract(Money::parse($order->metadata['discount']['shipping'] ?? 0, $order->currency));
 
         if (! $shipping->isZero()) {
             $lines[] = $this->extraLine('Shipping'.($order->shipping_method ? " — {$order->shipping_method}" : ''), $shipping, $order->currency);
@@ -144,8 +142,8 @@ class StripeProvider implements PaymentProvider
             $linesTotal = $linesTotal->add($tax);
         }
 
-        // A discount (or anything else not sent as a line) would make the totals differ, so
-        // refuse rather than charge a different amount than the order says.
+        // Anything not sent as a line would make the totals differ, so refuse rather than charge
+        // a different amount than the order says.
         if (! $linesTotal->equals(Money::parse($order->grand_total, $order->currency))) {
             throw new PaymentException("Order {$order->number} total does not match its line items.");
         }
@@ -560,6 +558,41 @@ class StripeProvider implements PaymentProvider
                 'product_data' => ['name' => Str::limit($name, 250, '')],
             ],
         ];
+    }
+
+    /**
+     * The Checkout lines for one product line, which must add up to what the customer pays for it
+     * ($net) while keeping the quantity they ordered.
+     *
+     * Without a discount that is one line. A discount can leave a price that does not divide
+     * evenly between the units (three at 10.00 with 1.00 off is 29.00), and Checkout takes no
+     * negative lines and no fractions of a cent, so the units are split into two lines whose prices
+     * differ by one minor unit: here one at 9.66 and two at 9.67. The total is exact.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function itemLines(string $name, int $quantity, Money $unit, Money $net, string $currency): array
+    {
+        $line = fn (int $count, int $amount): array => [
+            'quantity' => $count,
+            'price_data' => [
+                'currency' => strtolower($currency),
+                'unit_amount' => $amount,
+                'product_data' => ['name' => Str::limit($name, 250, '')],
+            ],
+        ];
+
+        if ($net->equals($unit->multiply($quantity))) {
+            return [$line($quantity, $unit->minor)];
+        }
+
+        $each = intdiv($net->minor, $quantity);
+        $dearer = $net->minor % $quantity;
+
+        return array_values(array_filter([
+            $quantity - $dearer > 0 ? $line($quantity - $dearer, $each) : null,
+            $dearer > 0 ? $line($dearer, $each + 1) : null,
+        ]));
     }
 
     /**

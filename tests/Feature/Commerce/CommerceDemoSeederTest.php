@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Commerce;
 
+use App\Models\Coupon;
 use App\Models\ShippingRate;
 use App\Models\ShippingZone;
 use App\Models\TaxRate;
@@ -30,6 +31,17 @@ class CommerceDemoSeederTest extends TestCase
 
         $this->assertSame([3, 5, 2], $counts);
         $this->assertSame($counts, [ShippingZone::count(), ShippingRate::count(), TaxRate::count()]);
+    }
+
+    #[Test]
+    public function it_seeds_a_few_discount_codes_once(): void
+    {
+        $this->seed(CommerceDemoSeeder::class);
+        $this->seed(CommerceDemoSeeder::class);
+
+        $this->assertEqualsCanonicalizing(['FREESHIP', 'SAVE5', 'WELCOME10'], Coupon::query()->pluck('code')->all());
+        $this->assertSame(1, Coupon::where('code', 'WELCOME10')->value('max_redemptions_per_customer'));
+        $this->assertSame('USD', Coupon::where('code', 'SAVE5')->value('currency'));
     }
 
     #[Test]

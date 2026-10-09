@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AddressFields from '@/components/commerce/AddressFields.vue';
+import CouponCode from '@/components/commerce/CouponCode.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +56,10 @@ const form = useForm({
 const errors = computed(() => form.errors as Record<string, string | undefined>);
 const currency = computed(() => props.quote.currency ?? props.cart.currency);
 const money = (amount: string | undefined) => formatMoney(amount ?? '0', currency.value);
+
+// The part of the discount that comes off the items; a free-shipping code shows on the shipping line instead.
+const shippingDiscount = computed(() => Number(props.quote.shipping?.discount ?? 0));
+const itemsDiscount = computed(() => (Number(props.quote.discount_total ?? 0) - shippingDiscount.value).toFixed(2));
 
 const savedById = (id: number | null) => props.addresses.find((address) => address.id === id) ?? null;
 
@@ -441,17 +446,28 @@ const submit = () => {
                             </li>
                         </ul>
                         <Separator />
+                        <CouponCode :coupon="props.quote.coupon ?? null" :currency="currency" :discount="itemsDiscount" />
+                        <Separator />
                         <dl class="space-y-2 text-sm">
                             <div class="flex justify-between">
                                 <dt class="text-muted-foreground">Subtotal</dt>
                                 <dd class="tabular-nums">{{ money(props.quote.subtotal ?? props.cart.subtotal) }}</dd>
                             </div>
+                            <div v-if="Number(itemsDiscount) > 0" class="flex justify-between">
+                                <dt class="text-muted-foreground">Discount ({{ props.quote.coupon?.code }})</dt>
+                                <dd class="tabular-nums">−{{ money(itemsDiscount) }}</dd>
+                            </div>
                             <div v-if="props.needsShipping" class="flex justify-between">
                                 <dt class="text-muted-foreground">Shipping</dt>
                                 <dd class="tabular-nums">
-                                    <template v-if="props.quote.shipping?.options.length">{{
-                                        Number(props.quote.shipping.amount) === 0 ? 'Free' : money(props.quote.shipping.amount)
-                                    }}</template>
+                                    <template v-if="props.quote.shipping?.options.length">
+                                        <template v-if="shippingDiscount > 0">
+                                            <s class="mr-1 text-muted-foreground">{{ money(props.quote.shipping.amount) }}</s> Free
+                                        </template>
+                                        <template v-else>{{
+                                            Number(props.quote.shipping.amount) === 0 ? 'Free' : money(props.quote.shipping.amount)
+                                        }}</template>
+                                    </template>
                                     <span v-else class="text-muted-foreground">{{ cannotShip ? 'Unavailable' : 'Enter address' }}</span>
                                 </dd>
                             </div>

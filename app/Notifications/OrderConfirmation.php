@@ -46,6 +46,11 @@ class OrderConfirmation extends Notification implements ShouldQueue
             $message->line('Shipping'.($order->shipping_method ? " ({$order->shipping_method})" : '').": {$order->shipping_total} {$order->currency}");
         }
 
+        // What a discount code took off (the shipping charge above is shown before it).
+        if ((float) $order->discount_total > 0) {
+            $message->line('Discount'.($order->coupon_code ? " ({$order->coupon_code})" : '').": -{$order->discount_total} {$order->currency}");
+        }
+
         foreach ((array) ($order->metadata['tax_lines'] ?? []) as $taxLine) {
             $message->line("{$taxLine['name']} ({$taxLine['rate']}%): {$taxLine['amount']} {$order->currency}");
         }

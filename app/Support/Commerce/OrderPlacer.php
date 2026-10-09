@@ -4,6 +4,7 @@ namespace App\Support\Commerce;
 
 use App\Enums\OrderStatus;
 use App\Models\Cart;
+use App\Models\Coupon;
 use App\Models\Order;
 use App\Support\Ownership;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -49,12 +50,19 @@ class OrderPlacer
     ): Order {
         try {
             return DB::transaction(function () use ($cart, $customer, $provider, $input, $idempotencyKey) {
+                // Two checkouts racing for the last use of a discount code take turns here: the second
+                // waits for the first to commit, then counts again and finds the code used up.
+                if ($cart->coupon_id !== null) {
+                    $cart->setRelation('coupon', Coupon::query()->whereKey($cart->coupon_id)->lockForUpdate()->first());
+                }
+
                 $pricing = $this->pricer->price(
                     $cart,
                     $input->shippingAddress ? Destination::make($input->shippingAddress->country, $input->shippingAddress->region) : null,
                     $input->billingAddress ? Destination::make($input->billingAddress->country, $input->billingAddress->region) : null,
                     $input->shippingRateId,
                     strict: true,
+                    customer: $customer,
                 );
 
                 $shippingAddress = $pricing->needsShipping ? $input->shippingAddress : null;
@@ -72,6 +80,8 @@ class OrderPlacer
                     'shipping_total' => $pricing->shippingTotal()->toDecimal(),
                     'discount_total' => $pricing->discount->toDecimal(),
                     'grand_total' => $pricing->grandTotal->toDecimal(),
+                    'coupon_id' => $pricing->applied?->coupon->id,
+                    'coupon_code' => $pricing->applied?->coupon->code,
                     'customer_email' => $customer->email,
                     'customer_name' => $customer->name,
                     'idempotency_key' => $idempotencyKey,
@@ -83,6 +93,8 @@ class OrderPlacer
                     'metadata' => array_filter([
                         'shipping_rate_id' => $pricing->shipping?->id,
                         'shipping_tax' => $pricing->shippingTax->isZero() ? null : $pricing->shippingTax->toDecimal(),
+                        // What the code was worth on this order, kept as it was in case the coupon is edited later.
+                        'discount' => $pricing->applied?->toRecord(),
                         'tax_lines' => $pricing->taxLines === [] ? null : array_map(fn (TaxLine $line) => $line->toArray(), $pricing->taxLines),
                     ], fn ($value) => $value !== null) ?: null,
                 ]);
@@ -97,6 +109,7 @@ class OrderPlacer
                         'quantity' => $line->item->quantity,
                         'unit_price' => $line->unit->toDecimal(),
                         'subtotal' => $line->subtotal->toDecimal(),
+                        'discount_total' => ($line->discount ?? Money::zero($pricing->currency))->toDecimal(),
                         'tax_total' => $line->tax->toDecimal(),
                         'description' => $line->description,
                         'metadata' => $line->metadata,

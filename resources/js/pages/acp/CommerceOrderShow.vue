@@ -48,6 +48,7 @@ interface Order {
     tax_total: string;
     shipping_total: string;
     discount_total: string;
+    coupon_code: string | null;
     grand_total: string;
     refunded_total: string;
     customer_name: string | null;
@@ -355,7 +356,9 @@ const selectClass =
                                         <dd class="tabular-nums">{{ money(props.order.subtotal) }}</dd>
                                     </div>
                                     <div v-if="Number(props.order.discount_total) > 0" class="flex justify-between">
-                                        <dt class="text-muted-foreground">Discount</dt>
+                                        <dt class="text-muted-foreground">
+                                            Discount<template v-if="props.order.coupon_code"> ({{ props.order.coupon_code }})</template>
+                                        </dt>
                                         <dd class="tabular-nums">−{{ money(props.order.discount_total) }}</dd>
                                     </div>
                                     <div v-if="Number(props.order.shipping_total) > 0 || props.order.shipping_method" class="flex justify-between">

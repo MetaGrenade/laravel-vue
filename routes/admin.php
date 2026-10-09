@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\Catalogue\VariantController;
 use App\Http\Controllers\Admin\CommerceController;
 use App\Http\Controllers\Admin\CommerceOrderController;
 use App\Http\Controllers\Admin\CommerceOrderRefundController;
+use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\ForumBoardController;
 use App\Http\Controllers\Admin\ForumCategoryController;
@@ -292,6 +293,23 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
             Route::post('orders/{order}/refunds/{refund}/check', [CommerceOrderRefundController::class, 'check'])
                 ->middleware('can:commerce.acp.refund')
                 ->name('orders.refunds.check');
+
+            // Discount codes.
+            Route::get('coupons', [CouponController::class, 'index'])->name('coupons.index');
+            Route::get('coupons/create', [CouponController::class, 'create'])
+                ->middleware('can:commerce.acp.create')
+                ->name('coupons.create');
+            Route::get('coupons/product-search', [CouponController::class, 'productSearch'])->name('coupons.product-search');
+            Route::post('coupons', [CouponController::class, 'store'])
+                ->middleware('can:commerce.acp.create')
+                ->name('coupons.store');
+            Route::get('coupons/{coupon}/edit', [CouponController::class, 'edit'])->name('coupons.edit');
+            Route::put('coupons/{coupon}', [CouponController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('coupons.update');
+            Route::delete('coupons/{coupon}', [CouponController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('coupons.destroy');
 
             // The tax table.
             Route::get('tax-rates', [TaxRateController::class, 'index'])->name('tax-rates.index');
