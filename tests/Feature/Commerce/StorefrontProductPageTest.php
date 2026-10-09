@@ -176,6 +176,48 @@ class StorefrontProductPageTest extends TestCase
         $this->assertSame(['A out' => true, 'B some' => false, 'C variants out' => true, 'D one left' => false], $listed);
     }
 
+    #[Test]
+    public function a_variant_that_cannot_be_bought_does_not_stop_a_product_being_sold_out(): void
+    {
+        // No product price: the unpriced variant has nothing to charge, so it is not on offer, and
+        // plenty of it in stock does not make the product available.
+        $product = Product::factory()->create(['name' => 'Mixed']);
+        ProductVariant::factory()->for($product)->priced('10.00')->stocked(0)->create(['name' => 'Priced']);
+        ProductVariant::factory()->for($product)->create(['name' => 'Unpriced']);
+
+        $listed = collect($this->get(route('shop.index'))->viewData('page')['props']['products']['data'])->firstWhere('name', 'Mixed');
+
+        $this->assertTrue($listed['can_buy']);
+        $this->assertTrue($listed['sold_out']);
+        $this->assertTrue($this->shown($product)['sold_out']);
+        $this->assertStringContainsString('https:\/\/schema.org\/OutOfStock', $this->get(route('shop.products.show', $product))->getContent());
+    }
+
+    #[Test]
+    public function a_variant_priced_by_the_product_still_counts_towards_being_sold_out(): void
+    {
+        $product = Product::factory()->priced('10.00')->create();
+        ProductVariant::factory()->for($product)->priced('12.00')->stocked(0)->create();
+        ProductVariant::factory()->for($product)->stocked(5)->create(); // Falls back to the product's price.
+
+        $this->assertFalse($this->shown($product)['sold_out']);
+    }
+
+    #[Test]
+    public function something_that_cannot_be_bought_is_unavailable_not_sold_out(): void
+    {
+        Product::factory()->stocked(0)->create(['name' => 'Unpriced']);
+        $variants = Product::factory()->create(['name' => 'Unpriced variants']);
+        ProductVariant::factory()->for($variants)->stocked(0)->create();
+
+        $listed = collect($this->get(route('shop.index'))->viewData('page')['props']['products']['data'])->keyBy('name');
+
+        $this->assertFalse($listed['Unpriced']['can_buy']);
+        $this->assertFalse($listed['Unpriced']['sold_out']);
+        $this->assertFalse($listed['Unpriced variants']['can_buy']);
+        $this->assertFalse($listed['Unpriced variants']['sold_out']);
+    }
+
     // --- The page gives the shopper what they need to choose --------------------------------------
 
     #[Test]
@@ -257,6 +299,63 @@ class StorefrontProductPageTest extends TestCase
         ProductVariant::factory()->for($product)->priced('12.50')->create();
 
         $this->assertStringContainsString('"price":"12.50"', $this->get(route('shop.products.show', $product))->getContent());
+    }
+
+    #[Test]
+    public function a_product_price_every_variant_overrides_is_never_offered(): void
+    {
+        // Checkout charges each variant its own price, so the product's 5.00 can never be paid.
+        $product = Product::factory()->priced('5.00')->create();
+        ProductVariant::factory()->for($product)->priced('20.00')->create();
+        ProductVariant::factory()->for($product)->priced('30.00')->create();
+
+        $html = $this->get(route('shop.products.show', $product))->getContent();
+
+        $this->assertStringContainsString('"price":"20.00"', $html);
+        $this->assertStringNotContainsString('"price":"5.00"', $html);
+    }
+
+    #[Test]
+    public function a_variant_with_no_price_of_its_own_is_offered_at_the_products(): void
+    {
+        $product = Product::factory()->priced('5.00')->create();
+        ProductVariant::factory()->for($product)->priced('20.00')->create();
+        ProductVariant::factory()->for($product)->create(); // Charged the product's 5.00.
+
+        $this->assertStringContainsString('"price":"5.00"', $this->get(route('shop.products.show', $product))->getContent());
+    }
+
+    #[Test]
+    public function a_variant_that_cannot_be_bought_is_not_offered(): void
+    {
+        // Variants off, in another currency or unpriced contribute no price to the offer.
+        $product = Product::factory()->create();
+        ProductVariant::factory()->for($product)->priced('1.00')->create(['is_active' => false]);
+        ProductVariant::factory()->for($product)->priced('2.00', 'EUR')->create();
+        ProductVariant::factory()->for($product)->priced('40.00')->create();
+
+        $html = $this->get(route('shop.products.show', $product))->getContent();
+
+        $this->assertStringContainsString('"price":"40.00"', $html);
+        $this->assertStringNotContainsString('"price":"1.00"', $html);
+        $this->assertStringNotContainsString('"price":"2.00"', $html);
+    }
+
+    #[Test]
+    public function a_variant_with_nothing_to_charge_is_sent_without_a_price_so_the_page_can_say_so(): void
+    {
+        // The product can be bought (one variant is priced); the unpriced one cannot, and the page
+        // turns the button off for it by finding no price on the variant or the product.
+        $product = Product::factory()->create();
+        ProductVariant::factory()->for($product)->create(['name' => 'Unpriced']);
+        ProductVariant::factory()->for($product)->priced('9.00')->create(['name' => 'Priced']);
+
+        $shown = $this->shown($product);
+        $prices = collect($shown['variants'])->pluck('prices', 'name')->map(fn ($prices) => count($prices))->all();
+
+        $this->assertTrue($shown['can_buy']);
+        $this->assertSame([], $shown['prices']);
+        $this->assertSame(['Unpriced' => 0, 'Priced' => 1], $prices);
     }
 
     // --- The cart ---------------------------------------------------------------------------------

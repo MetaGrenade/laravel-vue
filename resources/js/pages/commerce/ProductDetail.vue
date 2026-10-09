@@ -48,7 +48,17 @@ const breadcrumbs = [
 // ----- Choosing a variant -------------------------------------------------------------------------
 
 const hasVariants = computed(() => props.product.variants.length > 0);
-const start = props.product.variants.find((variant) => variant.is_default) ?? props.product.variants[0] ?? null;
+
+/** A variant is sold at its own price, or the product's if it has none (as checkout does). */
+const priceOf = (variant: StorefrontVariant | null): StorefrontPrice | null => variant?.prices[0] ?? props.product.prices[0] ?? null;
+
+/** Start on a combination that can be bought, the default one if it can. */
+const start =
+    props.product.variants.find((variant) => variant.is_default && priceOf(variant)) ??
+    props.product.variants.find((variant) => priceOf(variant)) ??
+    props.product.variants.find((variant) => variant.is_default) ??
+    props.product.variants[0] ??
+    null;
 
 /** What is picked for each option, by option name. */
 const picked = reactive<Record<string, string>>({ ...(start?.option_values ?? {}) });
@@ -71,10 +81,11 @@ const selectedVariant = computed<StorefrontVariant | null>(() => {
     );
 });
 
-/** Whether some variant is for sale with this value, given what is picked for the other options. */
+/** Whether some variant that can be bought has this value, given what is picked for the other options. */
 const offered = (option: StorefrontOption, value: string) =>
     props.product.variants.some(
         (variant) =>
+            priceOf(variant) !== null &&
             variant.option_values[option.name] === value &&
             props.product.options.every((other) => other.name === option.name || variant.option_values[other.name] === picked[other.name]),
     );
@@ -94,13 +105,12 @@ const choose = (option: StorefrontOption, value: string) => {
 
 // ----- What it costs and whether it can be had ----------------------------------------------------
 
-/** A variant is sold at its own price, or the product's if it has none (as checkout does). */
 const price = computed<StorefrontPrice | null>(() => {
     if (hasVariants.value && !selectedVariant.value) {
         return null;
     }
 
-    return selectedVariant.value?.prices[0] ?? props.product.prices[0] ?? null;
+    return priceOf(selectedVariant.value);
 });
 
 const stock = computed<StorefrontStock | null>(() => (hasVariants.value ? (selectedVariant.value?.stock ?? null) : props.product.stock));
@@ -112,6 +122,11 @@ const problem = computed(() => {
 
     if (hasVariants.value && !selectedVariant.value) {
         return 'That combination is not available. Pick another.';
+    }
+
+    // Some variants may be priced and others not: the product can be bought, this choice cannot.
+    if (!price.value) {
+        return 'This option is currently unavailable.';
     }
 
     if (stock.value === 'out') {
@@ -158,7 +173,7 @@ const addToCart = () => {
                     <Badge v-if="product.brand" variant="outline">{{ product.brand.name }}</Badge>
                     <h1 class="text-3xl font-semibold tracking-tight">{{ product.name }}</h1>
                     <ProductPrice :price="price" large />
-                    <StockBadge v-if="stock" :status="stock" />
+                    <StockBadge v-if="stock && price" :status="stock" />
                 </div>
 
                 <p v-if="product.description" class="leading-relaxed whitespace-pre-line text-muted-foreground">{{ product.description }}</p>

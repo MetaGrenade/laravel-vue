@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use Closure;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Collection;
 
 /**
  * What the shop may offer for sale, decided in one place so that what a shopper is shown and
@@ -88,28 +89,59 @@ class ProductAvailability
     }
 
     /**
-     * Whether everything on offer is out of stock: every variant that is on, or the product itself.
+     * The price an order for this would be charged: the variant's own, otherwise the product's (the
+     * rule {@see PriceResolver} follows). Null means it cannot be bought. Needs `prices` loaded with
+     * {@see self::chargeablePrices()}, which puts the cheapest first.
      */
-    public function soldOut(Product $product): bool
+    public function priceFor(Product $product, ?ProductVariant $variant = null): ?Price
     {
-        $hasVariants = $product->getAttribute('has_variants') ?? $product->variants()->exists();
-
-        if ($hasVariants) {
-            return $product->variants->isNotEmpty()
-                && $product->variants->every(fn (ProductVariant $variant) => $this->status($product, $variant) === 'out');
-        }
-
-        return $this->status($product) === 'out';
+        return $variant?->prices->first() ?? $product->prices->first();
     }
 
     /**
-     * The cheapest price a shopper could pay, for structured data and "from" prices. Needs the same
-     * loaded relations as {@see self::canBuy()}.
+     * The variants a shopper could actually buy: on sale and with a price to charge. A variant with
+     * none of its own falls back to the product's price, and with neither it is not for sale, however
+     * much of it there is. Needs `variants` loaded with {@see self::activeVariants()}.
+     *
+     * @return Collection<int, ProductVariant>
+     */
+    public function purchasableVariants(Product $product): Collection
+    {
+        return $product->variants
+            ->filter(fn (ProductVariant $variant) => $this->priceFor($product, $variant) !== null)
+            ->values();
+    }
+
+    /**
+     * Whether everything that could be bought is out of stock: every purchasable variant, or the
+     * product itself. Something that cannot be bought at all is not "sold out", it is unavailable.
+     */
+    public function soldOut(Product $product): bool
+    {
+        if ($this->hasVariants($product)) {
+            $purchasable = $this->purchasableVariants($product);
+
+            return $purchasable->isNotEmpty()
+                && $purchasable->every(fn (ProductVariant $variant) => $this->status($product, $variant) === 'out');
+        }
+
+        return $this->priceFor($product) !== null && $this->status($product) === 'out';
+    }
+
+    /**
+     * The cheapest price a shopper could pay, for structured data and "from" prices: each purchasable
+     * variant at the price it would be charged (its own, or the product's when it has none), or the
+     * product's own price when it has no variants. A product price that every variant overrides is
+     * never charged, so it is never offered. Needs the same loaded relations as {@see self::canBuy()}.
      */
     public function lowestPrice(Product $product): ?Price
     {
-        return $product->prices
-            ->concat($product->variants->flatMap(fn (ProductVariant $variant) => $variant->prices))
+        if (! $this->hasVariants($product)) {
+            return $this->priceFor($product);
+        }
+
+        return $this->purchasableVariants($product)
+            ->map(fn (ProductVariant $variant) => $this->priceFor($product, $variant))
             ->sortBy(fn (Price $price) => (float) $price->amount)
             ->first();
     }
@@ -125,15 +157,21 @@ class ProductAvailability
             return false;
         }
 
-        $productPriced = $product->prices->isNotEmpty();
-        $hasVariants = $product->getAttribute('has_variants') ?? $product->variants()->exists();
-
-        if (! $hasVariants) {
-            return $productPriced;
+        if (! $this->hasVariants($product)) {
+            return $this->priceFor($product) !== null;
         }
 
         // A product that has variants is only ever sold as one of them: with every variant off
         // there is nothing to sell, however the product itself is priced.
-        return $product->variants->contains(fn ($variant) => $productPriced || $variant->prices->isNotEmpty());
+        return $this->purchasableVariants($product)->isNotEmpty();
+    }
+
+    /**
+     * Whether the product has variants at all, switched off or not: a product whose variants are
+     * all off is not the same as one that never had any.
+     */
+    private function hasVariants(Product $product): bool
+    {
+        return (bool) ($product->getAttribute('has_variants') ?? $product->variants()->exists());
     }
 }
