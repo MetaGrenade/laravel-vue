@@ -165,6 +165,7 @@ class CheckoutController extends Controller
                 'tax_total' => $order->tax_total,
                 'shipping_total' => $order->shipping_total,
                 'discount_total' => $order->discount_total,
+                'coupon_code' => $order->coupon_code,
                 'grand_total' => $order->grand_total,
                 'refunded_total' => $order->refunded_total,
                 'shipment' => $order->metadata['shipment'] ?? null,
@@ -207,6 +208,7 @@ class CheckoutController extends Controller
                 $shipTo,
                 Destination::make($request->query('bill_country'), $request->query('bill_region')),
                 $request->filled('rate') ? $request->integer('rate') : null,
+                customer: $request->user() ? new CustomerDetails(email: $request->user()->email, name: $request->user()->nickname, user: $request->user()) : null,
             );
         } catch (CheckoutException $exception) {
             return ['error' => $exception->getMessage()];

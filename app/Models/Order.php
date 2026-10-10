@@ -29,6 +29,8 @@ class Order extends Model
         'shipping_total',
         'discount_total',
         'grand_total',
+        'coupon_id',
+        'coupon_code',
         'customer_email',
         'customer_name',
         'idempotency_key',
@@ -106,6 +108,17 @@ class Order extends Model
     public function cart(): BelongsTo
     {
         return $this->belongsTo(Cart::class);
+    }
+
+    /**
+     * The discount code the order was placed with. The order keeps its own copy of the code and
+     * what it was worth, so editing the coupon later does not change it.
+     *
+     * @return BelongsTo<Coupon, $this>
+     */
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     /**

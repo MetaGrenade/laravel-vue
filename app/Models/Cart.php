@@ -17,6 +17,7 @@ class Cart extends Model
         'status',
         'currency',
         'subtotal',
+        'coupon_id',
         'metadata',
     ];
 
@@ -31,6 +32,16 @@ class Cart extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The discount code the shopper applied, if any. Checked again whenever the cart is priced.
+     *
+     * @return BelongsTo<Coupon, $this>
+     */
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     /**

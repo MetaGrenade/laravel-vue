@@ -118,6 +118,7 @@ class CommerceOrderController extends Controller
                 'tax_total' => $order->tax_total,
                 'shipping_total' => $order->shipping_total,
                 'discount_total' => $order->discount_total,
+                'coupon_code' => $order->coupon_code,
                 'grand_total' => $order->grand_total,
                 'refunded_total' => $order->refunded_total,
                 'customer_name' => $order->customer_name,

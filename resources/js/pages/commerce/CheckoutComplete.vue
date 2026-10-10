@@ -31,6 +31,7 @@ interface Order {
     tax_total: string;
     shipping_total: string;
     discount_total: string;
+    coupon_code: string | null;
     grand_total: string;
     refunded_total: string;
     shipment: { carrier?: string; tracking_number?: string; tracking_url?: string } | null;
@@ -167,7 +168,9 @@ onBeforeUnmount(() => {
                             <dd class="tabular-nums">{{ formatMoney(props.order.tax_total, props.order.currency) }}</dd>
                         </div>
                         <div v-if="Number(props.order.discount_total) > 0" class="flex justify-between">
-                            <dt class="text-muted-foreground">Discount</dt>
+                            <dt class="text-muted-foreground">
+                                Discount<template v-if="props.order.coupon_code"> ({{ props.order.coupon_code }})</template>
+                            </dt>
                             <dd class="tabular-nums">−{{ formatMoney(props.order.discount_total, props.order.currency) }}</dd>
                         </div>
                         <div class="flex justify-between text-base font-semibold">

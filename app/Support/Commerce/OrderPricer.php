@@ -4,6 +4,11 @@ namespace App\Support\Commerce;
 
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\TaxRate;
+use App\Support\Commerce\Discounts\CouponRejected;
+use App\Support\Commerce\Discounts\Discount;
+use App\Support\Commerce\Discounts\DiscountCalculator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
@@ -15,6 +20,10 @@ use Illuminate\Support\Str;
  * that has been withdrawn. The same code produces the live quote on the checkout
  * page (lenient: it reports what is missing) and the order that is placed
  * (strict: it refuses anything incomplete or no longer offered).
+ *
+ * A discount code on the cart is checked again each time. Shipping is chosen from the cart before
+ * any discount (a code never changes which rates are offered), the discount comes off the items or
+ * the shipping charge, and tax is charged on what is left.
  */
 class OrderPricer
 {
@@ -22,6 +31,7 @@ class OrderPricer
         private readonly PriceResolver $prices,
         private readonly ShippingCalculator $shipping,
         private readonly TaxCalculator $tax,
+        private readonly DiscountCalculator $discounts,
     ) {}
 
     /**
@@ -35,7 +45,10 @@ class OrderPricer
     }
 
     /**
-     * @throws CheckoutException When something in the cart cannot be bought, or (strict) the order is incomplete.
+     * @param  CustomerDetails|null  $customer  Who is buying, when known (it decides a code's per-customer limit).
+     *
+     * @throws CheckoutException When something in the cart cannot be bought, or (strict) the order is incomplete
+     *                           or the discount code on the cart can no longer be used.
      * @throws InvalidCheckoutInput When (strict) an address or shipping method cannot be accepted.
      */
     public function price(
@@ -44,8 +57,9 @@ class OrderPricer
         ?Destination $billTo = null,
         ?int $shippingRateId = null,
         bool $strict = false,
+        ?CustomerDetails $customer = null,
     ): Pricing {
-        $cart->loadMissing(['items.product', 'items.variant']);
+        $cart->loadMissing(['items.product', 'items.variant', 'coupon']);
 
         if ($cart->items->isEmpty()) {
             throw new CheckoutException('Your cart is empty.');
@@ -56,17 +70,12 @@ class OrderPricer
 
         $subtotal = Money::zero($currency);
         $shippable = Money::zero($currency);
-        $taxableItems = Money::zero($currency);
 
         foreach ($lines as $line) {
             $subtotal = $subtotal->add($line->subtotal);
 
             if ($line->requiresShipping) {
                 $shippable = $shippable->add($line->subtotal);
-            }
-
-            if ($line->taxable) {
-                $taxableItems = $taxableItems->add($line->subtotal);
             }
         }
 
@@ -87,11 +96,84 @@ class OrderPricer
 
         $rates = $this->tax->ratesFor($taxDestination?->country, $taxDestination?->region);
         $shippingAmount = $selected->amount ?? Money::zero($currency);
-        $taxResult = $this->tax->calculate($rates, $taxableItems, $shippingAmount);
+
+        $coupon = $cart->coupon;
+        $couponCode = $coupon !== null ? $coupon->code : null;
+        $discount = null;
+        $problem = null;
+
+        // The shipping charge is real once a rate is chosen, or an address is given and the shop has no
+        // rates to charge. Until then (no address yet) the zero above is only a placeholder.
+        $shippingKnown = $needsShipping && $canShip && $message === null && ($selected !== null || $shipTo !== null);
+
+        if ($coupon !== null) {
+            try {
+                $discount = $this->discounts->calculate($coupon, $lines, $needsShipping, $shippingAmount, $customer, $cart, $shippingKnown);
+            } catch (CouponRejected $rejected) {
+                $problem = $rejected->getMessage();
+            }
+        }
+
+        $pricing = $this->assemble($currency, $lines, $subtotal, $needsShipping, $options, $selected, $canShip, $message, $rates, $shippingAmount, $regionRequired, $discount, $couponCode, $problem);
+
+        // A code is not allowed to make the whole order free: payment providers cannot take a payment
+        // of nothing, so the order would have no way to be paid.
+        if ($discount !== null && $pricing->grandTotal->minor <= 0) {
+            $problem = "That code can't be used on this order because it would make it free.";
+            $pricing = $this->assemble($currency, $lines, $subtotal, $needsShipping, $options, $selected, $canShip, $message, $rates, $shippingAmount, $regionRequired, null, $couponCode, $problem);
+        }
+
+        if ($strict && $problem !== null) {
+            throw new CheckoutException("Your discount code {$couponCode} can't be used. {$problem}");
+        }
+
+        return $pricing;
+    }
+
+    /**
+     * Put the quote together with or without a discount: tax is worked out on what the customer
+     * pays for the items and the shipping after it.
+     *
+     * @param  list<PricedLine>  $lines
+     * @param  list<ShippingOption>  $options
+     * @param  Collection<int, TaxRate>  $rates
+     */
+    private function assemble(
+        string $currency,
+        array $lines,
+        Money $subtotal,
+        bool $needsShipping,
+        array $options,
+        ?ShippingOption $selected,
+        bool $canShip,
+        ?string $message,
+        Collection $rates,
+        Money $shippingAmount,
+        bool $regionRequired,
+        ?Discount $discount,
+        ?string $couponCode,
+        ?string $couponProblem,
+    ): Pricing {
+        if ($discount !== null) {
+            foreach ($lines as $index => $line) {
+                $lines[$index] = $line->withDiscount($discount->forLine($index));
+            }
+        }
+
+        $taxableItems = Money::zero($currency);
+
+        foreach ($lines as $line) {
+            if ($line->taxable) {
+                $taxableItems = $taxableItems->add($line->net());
+            }
+        }
+
+        $shippingToTax = $shippingAmount->subtract($discount->onShipping ?? Money::zero($currency));
+        $taxResult = $this->tax->calculate($rates, $taxableItems, $shippingToTax);
 
         $lines = $this->spreadItemTax($lines, $taxResult->onItems);
-        $discount = Money::zero($currency);
-        $grandTotal = $subtotal->add($shippingAmount)->add($taxResult->total())->subtract($discount);
+        $discounted = $discount?->total() ?? Money::zero($currency);
+        $grandTotal = $subtotal->add($shippingAmount)->add($taxResult->total())->subtract($discounted);
 
         return new Pricing(
             currency: $currency,
@@ -105,9 +187,12 @@ class OrderPricer
             taxLines: $taxResult->lines,
             itemTax: $taxResult->onItems,
             shippingTax: $taxResult->onShipping,
-            discount: $discount,
+            discount: $discounted,
             grandTotal: $grandTotal,
             regionRequired: $regionRequired,
+            applied: $discount,
+            couponCode: $couponCode,
+            couponProblem: $couponProblem,
         );
     }
 
@@ -160,7 +245,8 @@ class OrderPricer
 
     /**
      * Share the tax charged on items between the taxable lines in proportion to
-     * their value, so the line amounts add up to the total exactly.
+     * what the customer pays for each (after any discount), so the line amounts
+     * add up to the total exactly.
      *
      * @param  list<PricedLine>  $lines
      * @return list<PricedLine>
@@ -173,7 +259,7 @@ class OrderPricer
             return $lines;
         }
 
-        $shares = $itemTax->allocate(array_map(fn (int $index) => $lines[$index]->subtotal->minor, $taxable));
+        $shares = $itemTax->allocate(array_map(fn (int $index) => $lines[$index]->net()->minor, $taxable));
 
         foreach ($taxable as $position => $index) {
             $lines[$index] = $lines[$index]->withTax($shares[$position]);

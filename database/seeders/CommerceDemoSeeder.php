@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Enums\CouponType;
 use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Coupon;
 use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -26,6 +28,7 @@ class CommerceDemoSeeder extends Seeder
     public function run(): void
     {
         $this->seedShippingAndTax();
+        $this->seedCoupons();
 
         $brands = collect([
             ['name' => 'Acme Co.', 'slug' => 'acme', 'description' => 'Default demo brand'],
@@ -316,6 +319,28 @@ class CommerceDemoSeeder extends Seeder
                 ],
             );
         });
+    }
+
+    /**
+     * Example discount codes to try at checkout. Switch them off or delete them in the admin area
+     * (a code that has been used on an order can only be switched off).
+     */
+    private function seedCoupons(): void
+    {
+        $currency = strtoupper((string) config('commerce.currency', 'USD'));
+
+        $coupons = [
+            ['code' => 'WELCOME10', 'description' => 'Demo: 10% off, once per customer', 'type' => CouponType::Percent, 'value' => '10', 'currency' => null, 'minimum_subtotal' => null, 'max_redemptions_per_customer' => 1],
+            ['code' => 'SAVE5', 'description' => 'Demo: 5.00 off orders of 25.00 or more', 'type' => CouponType::Fixed, 'value' => '5.00', 'currency' => $currency, 'minimum_subtotal' => '25.00', 'max_redemptions_per_customer' => null],
+            ['code' => 'FREESHIP', 'description' => 'Demo: free shipping on orders of 50.00 or more', 'type' => CouponType::FreeShipping, 'value' => null, 'currency' => null, 'minimum_subtotal' => '50.00', 'max_redemptions_per_customer' => null],
+        ];
+
+        foreach ($coupons as $coupon) {
+            Coupon::updateOrCreate(
+                ['code' => $coupon['code']],
+                $coupon + ['is_active' => true],
+            );
+        }
     }
 
     /**

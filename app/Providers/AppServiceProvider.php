@@ -156,6 +156,12 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('billing', fn (Request $request) => Limit::perMinute(10)->by('billing:'.$byUserOrIp($request)));
 
+        // Trying discount codes: every attempt counts, right or wrong, so a code cannot be guessed.
+        RateLimiter::for('coupons', fn (Request $request) => [
+            Limit::perMinute(10)->by('coupons:'.$byUserOrIp($request)),
+            Limit::perHour(60)->by('coupons-hourly:'.$byUserOrIp($request)),
+        ]);
+
         // The page a customer lands on after paying re-checks the payment while it is pending. It has its
         // own allowance, per order, so waiting on a slow payment never competes with starting a checkout.
         RateLimiter::for('checkout-status', function (Request $request) use ($byUserOrIp) {

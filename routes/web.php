@@ -6,6 +6,7 @@ use App\Http\Controllers\BlogCommentSubscriptionController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Ecommerce\CartController;
+use App\Http\Controllers\Ecommerce\CartCouponController;
 use App\Http\Controllers\Ecommerce\CheckoutController;
 use App\Http\Controllers\Ecommerce\OrderController;
 use App\Http\Controllers\Ecommerce\ProductCatalogController;
@@ -61,6 +62,13 @@ Route::middleware('section.enabled:commerce')->group(function () {
         Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
             ->middleware('throttle:interactions')
             ->name('shop.cart.items.destroy');
+        // Codes can be tried one after another, so guessing them is slowed right down.
+        Route::post('/cart/coupon', [CartCouponController::class, 'store'])
+            ->middleware('throttle:coupons')
+            ->name('shop.cart.coupon.store');
+        Route::delete('/cart/coupon', [CartCouponController::class, 'destroy'])
+            ->middleware('throttle:interactions')
+            ->name('shop.cart.coupon.destroy');
     });
 
     Route::get('/cart', [CartController::class, 'show'])->name('shop.cart');

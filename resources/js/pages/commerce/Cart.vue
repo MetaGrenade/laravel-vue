@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CouponCode from '@/components/commerce/CouponCode.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,12 +7,15 @@ import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
 import type { CartSummary } from '@/types';
+import type { CartCoupon } from '@/types/commerce';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ImageOff, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 
 interface Props {
     cart: CartSummary | null;
+    /** The discount code on the cart, with what it takes off the items now. */
+    coupon: CartCoupon | null;
     checkoutAvailable: boolean;
     maxQuantity: number;
 }
@@ -111,11 +115,19 @@ const removeItem = (itemId: number) => {
 
                 <template v-if="props.cart && props.cart.items.length">
                     <Separator />
+                    <CardContent class="max-w-md">
+                        <CouponCode :coupon="props.coupon" :currency="props.cart.currency" :discount="props.coupon?.discount" />
+                    </CardContent>
+                    <Separator />
                     <CardFooter class="flex flex-wrap items-center justify-between gap-4">
                         <div>
                             <div class="text-sm text-muted-foreground">Subtotal</div>
                             <div class="text-2xl font-bold tabular-nums">{{ formatMoney(props.cart.subtotal, props.cart.currency) }}</div>
-                            <p class="mt-1 text-xs text-muted-foreground">The final total is confirmed at checkout.</p>
+                            <p v-if="props.coupon?.applied && Number(props.coupon.discount) > 0" class="mt-1 text-sm">
+                                Discount ({{ props.coupon.code }}):
+                                <span class="font-medium tabular-nums">−{{ formatMoney(props.coupon.discount ?? '0', props.cart.currency) }}</span>
+                            </p>
+                            <p class="mt-1 text-xs text-muted-foreground">Shipping, tax and the final total are confirmed at checkout.</p>
                         </div>
                         <div class="flex flex-col items-end gap-2">
                             <Button v-if="props.checkoutAvailable" as-child size="lg">

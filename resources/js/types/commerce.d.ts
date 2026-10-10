@@ -31,6 +31,16 @@ export interface TaxLineQuote {
     amount: string;
 }
 
+/** The discount code on the cart. `applied` is false when it cannot be used (and `problem` says why). */
+export interface CartCoupon {
+    code: string;
+    applied: boolean;
+    problem: string | null;
+    free_shipping: boolean;
+    /** What it takes off the items now, a decimal string; null when it does not apply. (The cart page only.) */
+    discount?: string | null;
+}
+
 /** What the checkout page shows for the details entered so far. */
 export interface CheckoutQuote {
     error: string | null;
@@ -42,8 +52,12 @@ export interface CheckoutQuote {
         message: string | null;
         options: ShippingOptionQuote[];
         selected_id: number | null;
+        /** The charge before any discount code. */
         amount: string;
+        /** What a discount code takes off it (all of it for free shipping). */
+        discount?: string;
     };
+    coupon?: CartCoupon | null;
     tax?: {
         lines: TaxLineQuote[];
         total: string;

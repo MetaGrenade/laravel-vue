@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Payments\PaymentManager;
 use App\Support\Commerce\CartManager;
+use App\Support\Commerce\Discounts\CartCoupons;
 use App\Support\Commerce\PriceResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,12 +17,14 @@ use Inertia\Response;
 
 class CartController extends Controller
 {
-    public function show(Request $request, PaymentManager $payments): Response
+    public function show(Request $request, PaymentManager $payments, CartCoupons $coupons): Response
     {
         $cart = CartManager::forRequest($request);
 
         return Inertia::render('commerce/Cart', [
             'cart' => CartManager::summary($cart),
+            // The code on the cart, and what it takes off now (checked again at checkout).
+            'coupon' => $cart !== null && $cart->items->isNotEmpty() ? $coupons->describe($cart, $request->user()) : null,
             'checkoutAvailable' => $payments->active()->isConfigured(),
             'maxQuantity' => (int) config('commerce.checkout.max_quantity', 20),
         ]);

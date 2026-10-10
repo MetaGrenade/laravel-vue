@@ -9,7 +9,7 @@ import { formatMoney } from '@/lib/money';
 import { orderStatusVariant, paymentStatusVariant } from '@/lib/orderStatus';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { Package, Percent, Plus, ReceiptText, Tags, Truck } from '@lucide/vue';
+import { Package, Percent, Plus, ReceiptText, Tags, TicketPercent, Truck } from '@lucide/vue';
 
 interface RecentOrder {
     id: number;
@@ -81,6 +81,9 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                     </Button>
                     <Button variant="outline" size="sm" as-child>
                         <Link :href="route('acp.commerce.tax-rates.index')"><Percent class="size-4" /> Tax rates</Link>
+                    </Button>
+                    <Button variant="outline" size="sm" as-child>
+                        <Link :href="route('acp.commerce.coupons.index')"><TicketPercent class="size-4" /> Discount codes</Link>
                     </Button>
                 </div>
 
