@@ -8,6 +8,7 @@ use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Support\Commerce\CartManager;
+use App\Support\Commerce\Digital\ProductFiles;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -22,7 +23,10 @@ use Illuminate\Support\Facades\DB;
  */
 class CatalogueRemover
 {
-    public function __construct(private readonly ProductImages $images) {}
+    public function __construct(
+        private readonly ProductImages $images,
+        private readonly ProductFiles $downloads,
+    ) {}
 
     public function productBlock(Product $product): ?string
     {
@@ -44,8 +48,9 @@ class CatalogueRemover
     public function deleteProduct(Product $product): void
     {
         $files = [];
+        $downloads = [];
 
-        DB::transaction(function () use ($product, &$files) {
+        DB::transaction(function () use ($product, &$files, &$downloads) {
             // Held while the check and the delete happen, so two deletions cannot interleave.
             $locked = Product::query()->whereKey($product->id)->lockForUpdate()->firstOrFail();
 
@@ -55,6 +60,7 @@ class CatalogueRemover
 
             $variantIds = $locked->variants()->pluck('id')->all();
             $files = $this->images->filesOf($locked);
+            $downloads = $this->downloads->filesOf($locked);
 
             $this->removeFromCarts(CartItem::query()->where('product_id', $locked->id));
             $this->removePrices($locked, $variantIds);
@@ -66,6 +72,7 @@ class CatalogueRemover
         // The picture files are not covered by the foreign key. Removed after the commit, so a
         // failed deletion never leaves a product whose pictures have vanished.
         $this->images->deleteFiles($files);
+        $this->downloads->deleteFiles($downloads);
     }
 
     /**

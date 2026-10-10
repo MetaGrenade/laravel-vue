@@ -32,11 +32,13 @@ class OrderConfirmation extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $order = $this->order->loadMissing('items');
+        // Nothing to pay: a free product, or a discount code that covered it all.
+        $free = (float) $order->grand_total <= 0;
 
         $message = (new MailMessage)
             ->subject("Your order {$order->number}")
             ->greeting($order->customer_name ? "Thanks for your order, {$order->customer_name}!" : 'Thanks for your order!')
-            ->line("We've received your payment for order {$order->number}.");
+            ->line($free ? "Your order {$order->number} is confirmed. Nothing was charged." : "We've received your payment for order {$order->number}.");
 
         foreach ($order->items as $item) {
             $message->line("{$item->quantity} × {$item->description} — {$item->subtotal} {$order->currency}");
@@ -59,8 +61,14 @@ class OrderConfirmation extends Notification implements ShouldQueue
             $message->line('Shipping to: '.$this->describe($order->shipping_address));
         }
 
+        // The links to the files are short-lived and made when the order page is opened, so the email
+        // sends the customer there rather than carrying a link that would go stale.
+        if ($order->downloadGrants()->exists()) {
+            $message->line('Your downloads are on your order page. Open it with the button below whenever you need them.');
+        }
+
         return $message
-            ->line("Total paid: {$order->grand_total} {$order->currency}")
+            ->line($free ? "Total: {$order->grand_total} {$order->currency}" : "Total paid: {$order->grand_total} {$order->currency}")
             // Signed, so it works for guests who cannot sign in to see the order.
             ->action('View your order', URL::signedRoute('shop.checkout.complete', ['order' => $order->public_id]));
     }

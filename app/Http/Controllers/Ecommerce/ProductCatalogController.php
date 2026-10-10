@@ -124,6 +124,7 @@ class ProductCatalogController extends Controller
             'brand',
         ]);
         $product->loadExists('variants as has_variants');
+        $downloads = $product->files()->where('is_active', true)->count();
 
         $canBuy = $availability->canBuy($product);
         $soldOut = $availability->soldOut($product);
@@ -167,6 +168,8 @@ class ProductCatalogController extends Controller
                 // How much is left, for a product sold as it is. (Variants carry their own.)
                 'stock' => $availability->status($product),
                 'requires_shipping' => $product->requires_shipping,
+                // How many files come with it once paid (the file names are for buyers only).
+                'downloads' => $downloads,
                 'images' => $images,
                 'options' => $product->options
                     ->filter(fn (ProductOption $option) => $option->values->isNotEmpty())

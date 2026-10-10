@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class OrderItem extends Model
 {
@@ -19,6 +20,7 @@ class OrderItem extends Model
         'subtotal',
         'tax_total',
         'discount_total',
+        'requires_shipping',
         'description',
         'metadata',
     ];
@@ -29,6 +31,7 @@ class OrderItem extends Model
         'subtotal' => 'decimal:2',
         'tax_total' => 'decimal:2',
         'discount_total' => 'decimal:2',
+        'requires_shipping' => 'boolean',
     ];
 
     /**
@@ -37,6 +40,16 @@ class OrderItem extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * The right to download this line's files, once it is paid for (only lines whose product has files).
+     *
+     * @return HasOne<DownloadGrant, $this>
+     */
+    public function downloadGrant(): HasOne
+    {
+        return $this->hasOne(DownloadGrant::class);
     }
 
     /**

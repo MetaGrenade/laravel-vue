@@ -25,7 +25,8 @@ class CartController extends Controller
             'cart' => CartManager::summary($cart),
             // The code on the cart, and what it takes off now (checked again at checkout).
             'coupon' => $cart !== null && $cart->items->isNotEmpty() ? $coupons->describe($cart, $request->user()) : null,
-            'checkoutAvailable' => $payments->active()->isConfigured(),
+            // A cart of free items needs no payment provider.
+            'checkoutAvailable' => $payments->active()->isConfigured() || ($cart !== null && (float) $cart->subtotal <= 0.0),
             'maxQuantity' => (int) config('commerce.checkout.max_quantity', 20),
         ]);
     }

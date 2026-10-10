@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Ecommerce\CartController;
 use App\Http\Controllers\Ecommerce\CartCouponController;
 use App\Http\Controllers\Ecommerce\CheckoutController;
+use App\Http\Controllers\Ecommerce\DownloadController;
 use App\Http\Controllers\Ecommerce\OrderController;
 use App\Http\Controllers\Ecommerce\ProductCatalogController;
 use App\Http\Controllers\ForumController;
@@ -85,6 +86,13 @@ Route::middleware('section.enabled:commerce')->group(function () {
 Route::get('/checkout/complete/{order}', [CheckoutController::class, 'complete'])
     ->middleware('throttle:checkout-status')
     ->name('shop.checkout.complete');
+
+// A purchased file. The signature (short-lived, made by the order page) is what authorises it, so a
+// guest can use it; like the receipt it keeps working if the shop is switched off.
+Route::get('/downloads/{grant}/{file}', [DownloadController::class, 'show'])
+    ->middleware(['signed', 'throttle:downloads'])
+    ->whereNumber('file')
+    ->name('shop.downloads.show');
 
 // Public Blog Routes
 Route::middleware('section.enabled:blog')->group(function () {

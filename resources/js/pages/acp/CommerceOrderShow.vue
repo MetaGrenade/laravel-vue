@@ -19,8 +19,18 @@ import { formatDateTime, orderStatusVariant, paymentStatusVariant } from '@/lib/
 import type { BreadcrumbItem } from '@/types';
 import type { AddressFormValue, TaxLineQuote } from '@/types/commerce';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CircleAlert, ExternalLink, PackageCheck, RefreshCw, Undo2 } from '@lucide/vue';
+import { CircleAlert, Download, ExternalLink, PackageCheck, RefreshCw, Undo2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+
+interface DownloadRow {
+    /** The grant's public id. */
+    id: string;
+    description: string;
+    status: 'active' | 'expired' | 'revoked';
+    revoked_reason: 'refunded' | 'staff' | null;
+    expires_at: string | null;
+    files: { id: number; name: string; is_active: boolean; downloads: number; limit: number | null }[];
+}
 
 interface OrderItem {
     id: number;
@@ -107,6 +117,7 @@ interface EventRow {
 
 const props = defineProps<{
     order: Order;
+    downloads: DownloadRow[];
     payments: PaymentRow[];
     refunds: RefundRow[];
     events: EventRow[];
@@ -128,6 +139,10 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 ]);
 
 const money = (amount: string | number) => formatMoney(amount, props.order.currency);
+
+const downloadAction = (action: 'reset' | 'revoke' | 'restore', grant: DownloadRow) => {
+    router.post(route(`acp.commerce.orders.downloads.${action}`, { order: props.order.public_id, grant: grant.id }), {}, { preserveScroll: true });
+};
 
 const hasRefunds = computed(() => Number(props.order.refunded_total) > 0);
 
@@ -386,6 +401,66 @@ const selectClass =
                                         </div>
                                     </template>
                                 </dl>
+                            </CardContent>
+                        </Card>
+
+                        <Card v-if="props.downloads.length">
+                            <CardHeader>
+                                <CardTitle class="flex items-center gap-2"><Download class="size-5" /> Digital delivery</CardTitle>
+                                <CardDescription>
+                                    What the customer can download. They open it from their order page; the links there are short-lived.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-5">
+                                <section v-for="grant in props.downloads" :key="grant.id" class="space-y-2">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <h3 class="text-sm font-medium">{{ grant.description }}</h3>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <Badge v-if="grant.status === 'revoked'" variant="secondary">
+                                                Revoked<template v-if="grant.revoked_reason === 'refunded'"> (refunded)</template>
+                                            </Badge>
+                                            <Badge v-else-if="grant.status === 'expired'" variant="destructive">Expired</Badge>
+                                            <Badge v-else variant="outline">Active</Badge>
+                                        </div>
+                                    </div>
+                                    <p v-if="grant.expires_at" class="text-xs text-muted-foreground">
+                                        Expires {{ formatDateTime(grant.expires_at) }}.
+                                    </p>
+                                    <ul class="divide-y rounded-md border text-sm">
+                                        <li
+                                            v-for="file in grant.files"
+                                            :key="file.id"
+                                            class="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
+                                        >
+                                            <span>
+                                                {{ file.name }}
+                                                <Badge v-if="!file.is_active" variant="secondary" class="ml-1">Switched off</Badge>
+                                            </span>
+                                            <span class="text-muted-foreground tabular-nums">
+                                                {{ file.downloads }}<template v-if="file.limit !== null"> of {{ file.limit }}</template>
+                                                {{ file.downloads === 1 ? 'download' : 'downloads' }}
+                                            </span>
+                                        </li>
+                                    </ul>
+                                    <div v-if="props.can.edit" class="flex flex-wrap gap-2">
+                                        <Button variant="outline" size="sm" @click="downloadAction('reset', grant)">Reset counts</Button>
+                                        <Button
+                                            v-if="grant.status !== 'revoked'"
+                                            variant="outline"
+                                            size="sm"
+                                            class="text-destructive"
+                                            @click="downloadAction('revoke', grant)"
+                                            >Revoke access</Button
+                                        >
+                                        <Button
+                                            v-else-if="grant.revoked_reason !== 'refunded'"
+                                            variant="outline"
+                                            size="sm"
+                                            @click="downloadAction('restore', grant)"
+                                            >Restore access</Button
+                                        >
+                                    </div>
+                                </section>
                             </CardContent>
                         </Card>
 

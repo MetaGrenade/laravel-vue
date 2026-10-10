@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { addressLines } from '@/lib/address';
+import { formatBytes } from '@/lib/bytes';
 import { formatMoney } from '@/lib/money';
 import { hasReceivedPayment, paymentStatusVariant } from '@/lib/orderStatus';
-import type { AddressFormValue, TaxLineQuote } from '@/types/commerce';
+import type { AddressFormValue, OrderDownload, TaxLineQuote } from '@/types/commerce';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { CircleAlert, CircleCheck, Clock, ExternalLink, Undo2 } from '@lucide/vue';
+import { CircleAlert, CircleCheck, Clock, Download, ExternalLink, Undo2 } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 
 interface OrderItem {
@@ -43,7 +44,20 @@ interface Order {
     items: OrderItem[];
 }
 
-const props = defineProps<{ order: Order }>();
+const props = defineProps<{ order: Order; downloads: OrderDownload[]; downloadsPending: boolean }>();
+
+const day = (iso: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(iso));
+
+const fileNote = (file: OrderDownload['files'][number]) => {
+    switch (file.state) {
+        case 'used_up':
+            return 'No downloads left. Contact us if you need it again.';
+        case 'unavailable':
+            return 'Not available right now.';
+        default:
+            return file.remaining === null ? null : `${file.remaining} ${file.remaining === 1 ? 'download' : 'downloads'} left`;
+    }
+};
 
 const state = computed<'paid' | 'refunded' | 'waiting' | 'closed'>(() => {
     if (props.order.payment_status === 'refunded') {
@@ -73,7 +87,7 @@ const scheduleCheck = (attempt: number) => {
 
     timer = setTimeout(() => {
         router.reload({
-            only: ['order'],
+            only: ['order', 'downloads', 'downloadsPending'],
             onFinish: () => scheduleCheck(attempt + 1),
         });
     }, CHECK_DELAYS_MS[attempt]);
@@ -126,6 +140,55 @@ onBeforeUnmount(() => {
                             </template>
                         </p>
                     </div>
+                </CardContent>
+            </Card>
+
+            <Card v-if="props.downloads.length || props.downloadsPending">
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2"><Download class="size-5" /> Your downloads</CardTitle>
+                </CardHeader>
+                <CardContent class="space-y-6">
+                    <p v-if="!props.downloads.length" class="text-sm text-muted-foreground">
+                        Your downloads will appear here as soon as the payment is confirmed.
+                    </p>
+
+                    <section v-for="download in props.downloads" :key="download.item_id" class="space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <h3 class="font-medium">{{ download.description }}</h3>
+                            <Badge v-if="download.status === 'expired'" variant="destructive">Expired</Badge>
+                            <Badge v-else-if="download.status === 'revoked'" variant="secondary">No longer available</Badge>
+                        </div>
+
+                        <p v-if="download.status === 'active' && download.expires_at" class="text-xs text-muted-foreground">
+                            Available until {{ day(download.expires_at) }}.
+                        </p>
+
+                        <ul class="divide-y rounded-md border">
+                            <li v-for="file in download.files" :key="file.id" class="flex flex-wrap items-center justify-between gap-3 p-3">
+                                <div class="min-w-0">
+                                    <p class="font-medium break-words">{{ file.name }}</p>
+                                    <p class="text-xs text-muted-foreground">
+                                        {{ formatBytes(file.size) }}
+                                        <template v-if="fileNote(file)"> · {{ fileNote(file) }}</template>
+                                    </p>
+                                    <details class="mt-1 text-xs text-muted-foreground">
+                                        <summary class="cursor-pointer">Check the file arrived intact</summary>
+                                        <p class="mt-1">
+                                            SHA-256: <code class="break-all">{{ file.sha256 }}</code>
+                                        </p>
+                                    </details>
+                                </div>
+                                <Button v-if="file.url" as-child size="sm">
+                                    <a :href="file.url" download><Download class="size-4" /> Download</a>
+                                </Button>
+                                <Button v-else size="sm" variant="outline" disabled>Unavailable</Button>
+                            </li>
+                        </ul>
+                    </section>
+
+                    <p v-if="props.downloads.some((download) => download.status === 'active')" class="text-xs text-muted-foreground">
+                        These links work for a short while. Open this page again whenever you need a new one.
+                    </p>
                 </CardContent>
             </Card>
 

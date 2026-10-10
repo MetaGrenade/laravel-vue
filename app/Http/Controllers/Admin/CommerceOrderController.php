@@ -9,9 +9,11 @@ use App\Enums\RefundStatus;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\FulfilOrderRequest;
+use App\Models\DownloadGrant;
 use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Models\Payment;
+use App\Models\ProductFile;
 use App\Models\Refund;
 use App\Payments\Capability;
 use App\Payments\PaymentManager;
@@ -147,6 +149,7 @@ class CommerceOrderController extends Controller
                     'subtotal' => $item->subtotal,
                 ])->values(),
             ],
+            'downloads' => $this->downloads($order),
             'payments' => $order->payments->map(fn (Payment $payment) => [
                 'id' => $payment->id,
                 'provider' => $payment->provider,
@@ -239,6 +242,43 @@ class CommerceOrderController extends Controller
         return $done
             ? back()->with('success', 'Order cancelled and its stock released.')
             : back()->with('error', 'Only an unpaid order can be cancelled. Refund a paid order instead.');
+    }
+
+    /**
+     * What each line with files can download, and how often each file has been.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function downloads(Order $order): array
+    {
+        $limit = (int) config('commerce.downloads.limit', 10);
+        $grants = $order->downloadGrants()->with(['item', 'counts'])->orderBy('id')->get();
+
+        if ($grants->isEmpty()) {
+            return [];
+        }
+
+        $files = ProductFile::query()
+            ->whereIn('product_id', $grants->pluck('product_id')->filter()->all())
+            ->orderBy('position')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('product_id');
+
+        return $grants->map(fn (DownloadGrant $grant) => [
+            'id' => $grant->public_id,
+            'description' => (string) ($grant->item->description ?? 'Item'),
+            'status' => $grant->status(),
+            'revoked_reason' => $grant->revoked_reason,
+            'expires_at' => $grant->expires_at?->toIso8601String(),
+            'files' => ($files[$grant->product_id] ?? collect())->map(fn (ProductFile $file) => [
+                'id' => $file->id,
+                'name' => $file->name,
+                'is_active' => $file->is_active,
+                'downloads' => (int) ($grant->counts->firstWhere('product_file_id', $file->id)->downloads ?? 0),
+                'limit' => $limit > 0 ? $limit : null,
+            ])->values()->all(),
+        ])->values()->all();
     }
 
     public function storeNote(Request $request, Order $order): RedirectResponse
