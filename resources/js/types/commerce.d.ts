@@ -31,6 +31,27 @@ export interface TaxLineQuote {
     amount: string;
 }
 
+/** One file of a purchase the customer can download. `url` is a short-lived signed link, present only when `state` is `ready`. */
+export interface OrderDownloadFile {
+    id: number;
+    name: string;
+    size: number;
+    sha256: string;
+    /** Downloads left of the limit; null when there is no limit. */
+    remaining: number | null;
+    state: 'ready' | 'used_up' | 'unavailable';
+    url: string | null;
+}
+
+/** What one order line lets the customer download. */
+export interface OrderDownload {
+    item_id: number;
+    description: string;
+    status: 'active' | 'expired' | 'revoked';
+    expires_at: string | null;
+    files: OrderDownloadFile[];
+}
+
 /** The discount code on the cart. `applied` is false when it cannot be used (and `problem` says why). */
 export interface CartCoupon {
     code: string;

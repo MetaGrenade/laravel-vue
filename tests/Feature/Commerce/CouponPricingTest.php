@@ -482,18 +482,20 @@ class CouponPricingTest extends TestCase
     }
 
     #[Test]
-    public function a_code_that_would_make_the_order_free_is_refused(): void
+    public function a_code_can_make_the_whole_order_free(): void
     {
-        // Free of everything: no shipping, no tax, everything discounted.
+        // Free of everything: no shipping, no tax, everything discounted. Such an order is paid on the
+        // spot, without a payment provider (see FreeOrderTest).
         ShippingZone::query()->delete();
         TaxRate::query()->delete();
         $cart = $this->hoodies('10.00', 1);
 
         $pricing = $this->price($cart, Coupon::factory()->percent('100')->create());
 
-        $this->assertSame("That code can't be used on this order because it would make it free.", $pricing->couponProblem);
-        $this->assertNull($pricing->applied);
-        $this->assertSame('10.00', $pricing->grandTotal->toDecimal());
+        $this->assertNull($pricing->couponProblem);
+        $this->assertNotNull($pricing->applied);
+        $this->assertSame('10.00', $pricing->discount->toDecimal());
+        $this->assertSame('0.00', $pricing->grandTotal->toDecimal());
     }
 
     #[Test]

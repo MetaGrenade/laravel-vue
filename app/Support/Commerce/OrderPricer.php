@@ -116,13 +116,6 @@ class OrderPricer
 
         $pricing = $this->assemble($currency, $lines, $subtotal, $needsShipping, $options, $selected, $canShip, $message, $rates, $shippingAmount, $regionRequired, $discount, $couponCode, $problem);
 
-        // A code is not allowed to make the whole order free: payment providers cannot take a payment
-        // of nothing, so the order would have no way to be paid.
-        if ($discount !== null && $pricing->grandTotal->minor <= 0) {
-            $problem = "That code can't be used on this order because it would make it free.";
-            $pricing = $this->assemble($currency, $lines, $subtotal, $needsShipping, $options, $selected, $canShip, $message, $rates, $shippingAmount, $regionRequired, null, $couponCode, $problem);
-        }
-
         if ($strict && $problem !== null) {
             throw new CheckoutException("Your discount code {$couponCode} can't be used. {$problem}");
         }

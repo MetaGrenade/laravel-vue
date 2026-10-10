@@ -70,10 +70,6 @@ class CheckoutStarter
     {
         $provider = $this->payments->active();
 
-        if (! $provider->isConfigured()) {
-            throw new CheckoutException('Checkout is not available right now. Please try again later.');
-        }
-
         // Pressing the button twice must not create two orders.
         $existing = $this->placer->existing($idempotencyKey);
 
@@ -83,11 +79,24 @@ class CheckoutStarter
 
         $this->supersedeEarlierCheckouts($cart);
 
-        $order = $this->placer->place($cart, $customer, $provider->key(), $input, $idempotencyKey);
-
+        $order = $this->placer->place($cart, $customer, $provider->key(), $input, $idempotencyKey, function (Pricing $pricing) use ($provider) {
+            // Something to pay needs a provider to pay through. Refused before the order is written, so
+            // nothing is reserved. (An order that costs nothing needs none.)
+            if (! $pricing->grandTotal->isZero() && ! $provider->isConfigured()) {
+                throw new CheckoutException('Checkout is not available right now. Please try again later.');
+            }
+        });
         // Should a concurrent duplicate ever slip past the lock, it lands on the order the other request placed.
         if ($order->payments()->exists()) {
             return ['order' => $order, 'url' => $this->resumeUrl($order)];
+        }
+
+        // An order that costs nothing (a free product, or a code that covers all of it) is paid on the
+        // spot. No payment is taken, so no provider is asked, or even needed.
+        if (Money::parse($order->grand_total, $order->currency)->isZero()) {
+            $this->lifecycle->markFree($order);
+
+            return ['order' => $order->refresh(), 'url' => $this->completeUrl($order)];
         }
 
         try {

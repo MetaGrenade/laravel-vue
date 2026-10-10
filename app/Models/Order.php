@@ -130,6 +130,14 @@ class Order extends Model
     }
 
     /**
+     * @return HasMany<DownloadGrant, $this>
+     */
+    public function downloadGrants(): HasMany
+    {
+        return $this->hasMany(DownloadGrant::class);
+    }
+
+    /**
      * @return HasMany<Payment, $this>
      */
     public function payments(): HasMany

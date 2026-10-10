@@ -38,6 +38,9 @@ class OrderPlacer
     }
 
     /**
+     * @param  (callable(Pricing): void)|null  $accept  Run once the order has been priced and before anything is
+     *                                                  written or reserved: it throws to refuse the order.
+     *
      * @throws CheckoutException When something in the cart cannot be bought.
      * @throws InvalidCheckoutInput When an address or shipping method cannot be accepted.
      */
@@ -47,9 +50,10 @@ class OrderPlacer
         string $provider,
         CheckoutInput $input,
         ?string $idempotencyKey = null,
+        ?callable $accept = null,
     ): Order {
         try {
-            return DB::transaction(function () use ($cart, $customer, $provider, $input, $idempotencyKey) {
+            return DB::transaction(function () use ($cart, $customer, $provider, $input, $idempotencyKey, $accept) {
                 // Two checkouts racing for the last use of a discount code take turns here: the second
                 // waits for the first to commit, then counts again and finds the code used up.
                 if ($cart->coupon_id !== null) {
@@ -64,6 +68,10 @@ class OrderPlacer
                     strict: true,
                     customer: $customer,
                 );
+
+                if ($accept !== null) {
+                    $accept($pricing);
+                }
 
                 $shippingAddress = $pricing->needsShipping ? $input->shippingAddress : null;
                 // Billing falls back to the shipping address when the customer did not give another.
@@ -110,6 +118,8 @@ class OrderPlacer
                         'unit_price' => $line->unit->toDecimal(),
                         'subtotal' => $line->subtotal->toDecimal(),
                         'discount_total' => ($line->discount ?? Money::zero($pricing->currency))->toDecimal(),
+                        // Remembered, so a paid order made only of digital lines can be completed without shipping.
+                        'requires_shipping' => $line->requiresShipping,
                         'tax_total' => $line->tax->toDecimal(),
                         'description' => $line->description,
                         'metadata' => $line->metadata,
