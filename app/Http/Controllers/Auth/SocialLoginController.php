@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Commerce\GuestCarryOver;
 use App\Support\OAuth\Exceptions\OAuthException;
 use App\Support\OAuth\OAuthManager;
 use App\Support\OAuth\OAuthProviders;
@@ -96,7 +97,9 @@ class SocialLoginController extends Controller
 
         $user = $account?->user;
 
-        if (! $user && $oauthUser->email) {
+        // An email address is only a way to recognise an existing account if the provider has verified that the
+        // person owns it: otherwise anyone could sign in as someone else by giving a provider their address.
+        if (! $user && $oauthUser->emailVerified && $oauthUser->email) {
             $user = User::query()->where('email', $oauthUser->email)->first();
         }
 
@@ -119,6 +122,9 @@ class SocialLoginController extends Controller
         $account->fill($this->socialAccountAttributes($oauthUser));
         $account->save();
 
+        // Logging in changes the browser's session, so what it did as a guest is noted first.
+        app(GuestCarryOver::class)->remember($request);
+
         Auth::login($user);
 
         if ($user->two_factor_confirmed_at) {
@@ -130,6 +136,8 @@ class SocialLoginController extends Controller
             return redirect()->route('two-factor.login');
         }
 
+        app(GuestCarryOver::class)->afterSignIn($user, $request);
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
@@ -137,12 +145,17 @@ class SocialLoginController extends Controller
 
     protected function createUserFromProvider(string $provider, OAuthUser $oauthUser): User
     {
-        $email = $oauthUser->email ?: $this->placeholderEmail($provider, $oauthUser->id);
+        // The provider's address is used if it is free; an address another account already has is never taken
+        // over, whatever the provider says about it.
+        $email = $oauthUser->email && ! User::query()->where('email', $oauthUser->email)->exists()
+            ? $oauthUser->email
+            : $this->placeholderEmail($provider, $oauthUser->id);
 
         $user = User::create([
             'nickname' => $this->generateNickname($oauthUser),
             'email' => $email,
-            'email_verified_at' => $oauthUser->email ? now() : null,
+            // Verified only if the provider vouches for the address; otherwise the person confirms it by email as usual.
+            'email_verified_at' => $oauthUser->emailVerified && $email === $oauthUser->email ? now() : null,
             'password' => Hash::make(Str::random(40)),
             'avatar_url' => $oauthUser->avatar,
         ]);

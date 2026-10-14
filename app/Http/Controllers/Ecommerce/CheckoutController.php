@@ -167,6 +167,10 @@ class CheckoutController extends Controller
             'licenceKeys' => $licenceKeys,
             // Not paid yet, but something in it will deliver keys: say where they will appear.
             'licenceKeysPending' => $licenceKeys === [] && $order->status === OrderStatus::Pending && $keys->willDeliver($order),
+            // A guest looking at their own guest order: they can keep it by making an account with this address.
+            'claim' => $request->user() === null && $order->owner_type === null && filled($order->customer_email)
+                ? ['email' => $order->customer_email]
+                : null,
             // Fresh signed links each time the page is opened (or polled while payment is confirmed).
             'downloads' => $downloads,
             // Not paid yet, but something in it will deliver files: say where they will appear.

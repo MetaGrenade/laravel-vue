@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Support\Commerce\GuestCarryOver;
 use App\Support\OAuth\OAuthProviders;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,8 +30,11 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request, GuestCarryOver $carryOver): RedirectResponse
     {
+        // Signing in changes the browser's session, so what it did as a guest has to be noted first.
+        $carryOver->remember($request);
+
         $request->authenticate();
 
         $user = $request->user();
@@ -43,6 +47,8 @@ class AuthenticatedSessionController extends Controller
 
             return redirect()->route('two-factor.login');
         }
+
+        $carryOver->afterSignIn($user, $request);
 
         $request->session()->regenerate();
 

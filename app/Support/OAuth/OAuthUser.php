@@ -14,5 +14,7 @@ class OAuthUser
         public readonly ?string $accessToken = null,
         public readonly ?string $refreshToken = null,
         public readonly ?int $expiresIn = null,
+        /** Whether the provider says the person owns {@see self::$email}. A provider that does not say has not verified it. */
+        public readonly bool $emailVerified = false,
     ) {}
 }

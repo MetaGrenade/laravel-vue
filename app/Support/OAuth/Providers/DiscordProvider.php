@@ -65,6 +65,8 @@ class DiscordProvider extends AbstractOAuth2Provider
             accessToken: $accessToken,
             refreshToken: Arr::get($tokenResponse, 'refresh_token'),
             expiresIn: Arr::get($tokenResponse, 'expires_in'),
+            // Discord lets people keep an email address they never confirmed, and says so here.
+            emailVerified: filter_var(Arr::get($user, 'verified', false), FILTER_VALIDATE_BOOLEAN),
         );
     }
 }

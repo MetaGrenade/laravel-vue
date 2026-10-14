@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Commerce\GuestCarryOver;
 use App\Support\OAuth\OAuthProviders;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -48,7 +49,12 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
+        // Logging in changes the browser's session, which would leave the cart it filled in behind.
+        app(GuestCarryOver::class)->remember($request);
+
         Auth::login($user);
+
+        app(GuestCarryOver::class)->afterSignIn($user, $request);
 
         return to_route('dashboard');
     }

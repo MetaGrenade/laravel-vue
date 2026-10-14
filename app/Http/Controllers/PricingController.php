@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Commerce\GuestCarryOver;
 use App\Support\Seo\Seo;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
@@ -70,7 +71,9 @@ class PricingController extends Controller
 
         if (! $user) {
             $user = $this->createUserFromEmail($data['email']);
+            app(GuestCarryOver::class)->remember($request);
             Auth::login($user);
+            app(GuestCarryOver::class)->afterSignIn($user, $request);
             event(new Registered($user));
         }
 
