@@ -93,10 +93,15 @@ class TwoFactorChallengeController extends Controller
         $remember = (bool) $request->session()->pull('two_factor:remember', false);
         $request->session()->forget('two_factor:id');
 
+        // The password step already moved the browser to a new session, and the shopper may have filled a cart
+        // in it while the code was awaited. Signing in moves it again, so this one is noted as well.
+        $carryOver = app(GuestCarryOver::class);
+        $carryOver->remember($request);
+
         Auth::login($user, $remember);
 
-        // Signing in is complete only now, so this is when the guest session's cart and orders follow.
-        app(GuestCarryOver::class)->afterSignIn($user, $request);
+        // Signing in is complete only now, so this is when the guest sessions' carts and orders follow.
+        $carryOver->afterSignIn($user, $request);
 
         $request->session()->regenerate();
 

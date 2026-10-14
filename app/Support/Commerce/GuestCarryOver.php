@@ -26,18 +26,22 @@ use Illuminate\Support\Facades\DB;
  */
 class GuestCarryOver
 {
-    /** Where the browser's guest session id is kept while it signs in. */
-    private const SESSION_KEY = 'commerce.guest_session';
+    /** Where the guest session ids the browser has used while signing in are kept. */
+    private const SESSION_KEY = 'commerce.guest_sessions';
 
     /**
      * Note which session the browser is using as a guest. Call it before anything signs the person in: signing in
      * (`Auth::attempt()` and `Auth::login()` alike) gives the browser a new session id at once, and the guest's
-     * cart is tied to the old one. A sign-in that takes two steps (a password, then a code) keeps the first note.
+     * cart is tied to the old one. A sign-in that takes two steps (a password, then a code) goes through two
+     * sessions, and the shopper may fill a cart in the second while the code is awaited, so each one is noted.
      */
     public function remember(Request $request): void
     {
-        if (! $request->session()->has(self::SESSION_KEY)) {
-            $request->session()->put(self::SESSION_KEY, $request->session()->getId());
+        $sessions = $this->remembered($request);
+        $current = $request->session()->getId();
+
+        if (! in_array($current, $sessions, true)) {
+            $request->session()->put(self::SESSION_KEY, [...$sessions, $current]);
         }
     }
 
@@ -46,30 +50,36 @@ class GuestCarryOver
      */
     public function afterSignIn(User $user, Request $request): void
     {
-        $guestSession = (string) $request->session()->pull(self::SESSION_KEY, $request->session()->getId());
+        $sessions = $this->remembered($request);
+        $request->session()->forget(self::SESSION_KEY);
 
-        $this->mergeCart($user, $guestSession);
+        $this->mergeCart($user, $sessions !== [] ? $sessions : [$request->session()->getId()]);
         $this->claimOrders($user);
     }
 
     /**
-     * Merge the cart this browser session had as a guest into the account's cart.
+     * Merge the carts this browser had as a guest into the account's cart.
      *
      * A line the account's cart already has is added to (up to the most one line may hold); any other line
      * moves over. The account's discount code is kept, or the guest's is taken when the account has none. The
-     * guest cart is then gone, so there is never a second cart to choose between.
+     * guest cart is then gone, so there is never a second cart to choose between, and any checkout that was
+     * started from it carries on from the account's cart.
+     *
+     * @param  string|list<string>  $guestSessionIds  The session (or sessions) the browser was a guest in.
      */
-    public function mergeCart(User $user, string $guestSessionId): ?Cart
+    public function mergeCart(User $user, string|array $guestSessionIds): ?Cart
     {
-        if ($guestSessionId === '') {
+        $sessions = array_values(array_filter((array) $guestSessionIds, fn (string $id) => $id !== ''));
+
+        if ($sessions === []) {
             return null;
         }
 
-        return DB::transaction(function () use ($user, $guestSessionId) {
+        return DB::transaction(function () use ($user, $sessions) {
             $guestCarts = Cart::query()
                 ->where('status', CartManager::OPEN)
                 ->whereNull('user_id')
-                ->where('session_id', $guestSessionId)
+                ->whereIn('session_id', $sessions)
                 ->with('items')
                 ->orderBy('id')
                 ->lockForUpdate()
@@ -88,8 +98,9 @@ class GuestCarryOver
                 ->first();
 
             foreach ($guestCarts as $guest) {
-                if ($guest->items->isEmpty()) {
-                    // Nothing to carry over: an empty guest cart is just discarded.
+                // An empty cart with nothing started from it is just discarded. One that a checkout was started
+                // from is not: that checkout can still be paid, and needs a cart to be found through.
+                if ($guest->items->isEmpty() && ! Order::query()->where('cart_id', $guest->id)->exists()) {
                     $guest->delete();
 
                     continue;
@@ -160,6 +171,14 @@ class GuestCarryOver
         return $claimed;
     }
 
+    /**
+     * @return list<string>
+     */
+    private function remembered(Request $request): array
+    {
+        return array_values(array_filter((array) $request->session()->get(self::SESSION_KEY, []), is_string(...)));
+    }
+
     private function mergeInto(Cart $mine, Cart $guest): void
     {
         foreach ($guest->items as $line) {
@@ -181,6 +200,11 @@ class GuestCarryOver
         if ($mine->coupon_id === null && $guest->coupon_id !== null) {
             $mine->forceFill(['coupon_id' => $guest->coupon_id])->save();
         }
+
+        // A checkout started from the guest cart can still be paid. It is found through the cart it came from
+        // (starting again closes it first; paying it takes its lines out), and deleting the cart would cut that
+        // link, so the orders move to the cart that replaces it.
+        Order::query()->where('cart_id', $guest->id)->update(['cart_id' => $mine->id]);
 
         $guest->delete();
 

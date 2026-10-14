@@ -10,6 +10,8 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
 use App\Support\OAuth\OAuthProviders;
+use Carbon\CarbonInterface;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -233,7 +235,7 @@ class UsersController extends Controller
      */
     public function verify(User $user)
     {
-        $user->update(['email_verified_at' => now()]);
+        $this->markVerified($user, now());
 
         return redirect()->route('acp.users.index')
             ->with('success', 'User verified.');
@@ -307,7 +309,7 @@ class UsersController extends Controller
             switch ($action) {
                 case 'verify':
                     if ($user->email_verified_at === null) {
-                        $user->forceFill(['email_verified_at' => $now])->save();
+                        $this->markVerified($user, $now);
                         $changed = true;
                     }
 
@@ -372,5 +374,20 @@ class UsersController extends Controller
         };
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * Mark a user's email as verified, announcing it the way the verification link does, so that whatever
+     * waits on a verified address (a guest's earlier orders being linked to the account) is not skipped.
+     */
+    private function markVerified(User $user, CarbonInterface $at): void
+    {
+        $wasVerified = $user->hasVerifiedEmail();
+
+        $user->forceFill(['email_verified_at' => $at])->save();
+
+        if (! $wasVerified) {
+            event(new Verified($user));
+        }
     }
 }

@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\Commerce;
 
+use App\Enums\OrderPaymentStatus;
+use App\Enums\OrderStatus;
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\OrderEvent;
@@ -13,8 +16,10 @@ use App\Models\User;
 use App\Support\Commerce\CartManager;
 use App\Support\Commerce\GuestCarryOver;
 use App\Support\Security\TwoFactorAuthenticator;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -47,11 +52,28 @@ class GuestCarryOverTest extends TestCase
     }
 
     /**
-     * @return array<string, int> Quantity of each product in the cart, by product id.
+     * @return array<string, int> Quantity of each product in the cart, by product id and variant id, in key order
+     *                            (a database returns rows in whatever order it likes, and PostgreSQL moves an updated one).
      */
     private function lines(Cart $cart): array
     {
-        return $cart->items()->get()->mapWithKeys(fn ($item) => [$item->product_id.'/'.($item->product_variant_id ?? '-') => $item->quantity])->all();
+        $lines = $cart->items()->get()->mapWithKeys(fn ($item) => [$item->product_id.'/'.($item->product_variant_id ?? '-') => $item->quantity])->all();
+
+        ksort($lines);
+
+        return $lines;
+    }
+
+    private function userWithTwoFactor(): User
+    {
+        $user = User::factory()->create(['email' => 'ada@example.test']);
+        $user->forceFill([
+            'two_factor_secret' => TwoFactorAuthenticator::encryptSecret(TwoFactorAuthenticator::generateSecret()),
+            'two_factor_confirmed_at' => now(),
+            'two_factor_recovery_codes' => TwoFactorAuthenticator::encryptRecoveryCodes(['TEST-RECOVERY-CODE']),
+        ])->save();
+
+        return $user;
     }
 
     private function guestOrder(string $email, array $attributes = []): Order
@@ -89,7 +111,9 @@ class GuestCarryOverTest extends TestCase
         $cart = $this->carryOver->mergeCart($user, $this->guestSessionId);
 
         $this->assertSame($mine->id, $cart->id, 'the account keeps its own cart');
-        $this->assertSame([$a->id.'/-' => 5, $b->id.'/-' => 1, $c->id.'/-' => 4], $this->lines($cart), 'the same line is added to, the rest move over');
+        $expected = [$a->id.'/-' => 5, $b->id.'/-' => 1, $c->id.'/-' => 4];
+        ksort($expected);
+        $this->assertSame($expected, $this->lines($cart), 'the same line is added to, the rest move over');
         $this->assertSame('65.00', $cart->subtotal, '5 x 10.00 + 1 x 5.00 + 4 x 2.50, worked out again');
         $this->assertNull(Cart::query()->find($guest->id), 'there is no second cart to choose between');
         $this->assertSame(1, Cart::query()->where('status', CartManager::OPEN)->count());
@@ -120,7 +144,9 @@ class GuestCarryOverTest extends TestCase
 
         $cart = $this->carryOver->mergeCart($user, $this->guestSessionId);
 
-        $this->assertSame([$product->id.'/-' => 1, $product->id.'/'.$variant->id => 2], $this->lines($cart));
+        $expected = [$product->id.'/-' => 1, $product->id.'/'.$variant->id => 2];
+        ksort($expected);
+        $this->assertSame($expected, $this->lines($cart));
     }
 
     #[Test]
@@ -179,6 +205,58 @@ class GuestCarryOverTest extends TestCase
         $this->assertSame(1, Cart::query()->count());
     }
 
+    // --- A checkout the guest had started --------------------------------------------------------
+
+    #[Test]
+    public function a_checkout_started_as_a_guest_carries_on_from_the_accounts_cart(): void
+    {
+        [$order, $payment, $product] = $this->placeOrder(price: '10.00', quantity: 2);
+        $user = User::factory()->create();
+        $other = $this->product('5.00');
+        $mine = $this->cartWith($other, 1, $user);
+
+        $this->carryOver->mergeCart($user, $this->guestSessionId);
+
+        $this->assertSame($mine->id, $order->fresh()->cart_id, 'the order is still tied to a cart that exists');
+        $this->assertSame(OrderStatus::Pending, $order->fresh()->status);
+
+        // Paying it takes what was bought out of that cart, and leaves what the account had put there.
+        $this->deliverStripeEvent($this->stripeEvent('checkout.session.completed', $this->sessionFor($payment)))->assertOk();
+
+        $this->assertSame(OrderPaymentStatus::Paid, $order->fresh()->payment_status);
+        $this->assertSame([$other->id.'/-' => 1], $this->lines($mine->fresh()));
+    }
+
+    #[Test]
+    public function starting_again_after_signing_in_closes_the_checkout_the_guest_had_started(): void
+    {
+        [$first, $firstPayment] = $this->placeOrder(price: '10.00', quantity: 2);
+        $user = User::factory()->create();
+        $this->cartWith($this->product('5.00'), 1, $user);
+
+        $this->carryOver->mergeCart($user, $this->guestSessionId);
+
+        $this->actingAs($user)->post(route('shop.checkout.store'), $this->checkoutPayload())->assertRedirect();
+
+        $this->assertSame(OrderStatus::Cancelled, $first->fresh()->status, 'the earlier checkout was found and replaced');
+        $this->assertSame([$firstPayment->provider_reference], $this->stripe->expired, 'and closed at Stripe, so it cannot also be paid');
+        $this->assertSame(1, Order::query()->where('status', OrderStatus::Pending->value)->count());
+    }
+
+    #[Test]
+    public function an_emptied_guest_cart_that_a_checkout_was_started_from_is_kept_for_it(): void
+    {
+        [$order] = $this->placeOrder(price: '10.00', quantity: 2);
+        $user = User::factory()->create();
+        CartItem::query()->delete(); // they took everything out after being sent to pay
+
+        $cart = $this->carryOver->mergeCart($user, $this->guestSessionId);
+
+        $this->assertNotNull($cart, 'the cart is not thrown away with a payable checkout behind it');
+        $this->assertSame($user->id, $cart->user_id);
+        $this->assertSame($cart->id, $order->fresh()->cart_id);
+    }
+
     // --- Each way of signing in ------------------------------------------------------------------
 
     #[Test]
@@ -198,13 +276,7 @@ class GuestCarryOverTest extends TestCase
     #[Test]
     public function the_cart_waits_for_the_second_step_when_the_account_has_two_factor(): void
     {
-        $user = User::factory()->create();
-        $secret = TwoFactorAuthenticator::generateSecret();
-        $user->forceFill([
-            'two_factor_secret' => TwoFactorAuthenticator::encryptSecret($secret),
-            'two_factor_confirmed_at' => now(),
-            'two_factor_recovery_codes' => TwoFactorAuthenticator::encryptRecoveryCodes(['TEST-RECOVERY-CODE']),
-        ])->save();
+        $user = $this->userWithTwoFactor();
         $product = $this->product();
         $this->addToCart($product, 2);
 
@@ -216,6 +288,31 @@ class GuestCarryOverTest extends TestCase
         $this->post(route('two-factor.login'), ['recovery_code' => 'TEST-RECOVERY-CODE'])->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertSame([$product->id.'/-' => 2], $this->lines(Cart::query()->where('user_id', $user->id)->sole()));
+    }
+
+    #[Test]
+    public function a_cart_filled_in_while_the_code_is_awaited_comes_along_too(): void
+    {
+        $user = $this->userWithTwoFactor();
+        $before = $this->product('10.00');
+        $while = $this->product('5.00');
+        $this->addToCart($before, 2);
+
+        $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('two-factor.login'));
+
+        // The password step moved the browser to another session. A browser would send that one from now on, and
+        // whatever goes in the cart while the code is typed in is kept under it.
+        $this->withCookie(config('session.cookie'), app('session.store')->getId());
+        $this->assertNotSame($this->guestSessionId, app('session.store')->getId());
+        $this->addToCart($while, 3);
+        $this->assertSame(2, Cart::query()->whereNull('user_id')->count(), 'one cart for each of the two sessions');
+
+        $this->post(route('two-factor.login'), ['recovery_code' => 'TEST-RECOVERY-CODE'])->assertRedirect(route('dashboard', absolute: false));
+
+        $expected = [$before->id.'/-' => 2, $while->id.'/-' => 3];
+        ksort($expected);
+        $this->assertSame($expected, $this->lines(Cart::query()->where('user_id', $user->id)->sole()), 'nothing was left behind');
+        $this->assertSame(1, Cart::query()->count(), 'and there is only the one cart');
     }
 
     #[Test]
@@ -321,6 +418,38 @@ class GuestCarryOverTest extends TestCase
     }
 
     #[Test]
+    public function an_administrator_verifying_the_address_hands_over_the_orders_too(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+        $admin = User::factory()->create()->assignRole('admin');
+        $single = User::factory()->unverified()->create(['email' => 'single@example.test']);
+        $bulk = User::factory()->unverified()->create(['email' => 'bulk@example.test']);
+        $singleOrder = $this->guestOrder('single@example.test');
+        $bulkOrder = $this->guestOrder('bulk@example.test');
+
+        $this->actingAs($admin)->put(route('acp.users.verify', $single))->assertRedirect();
+        $this->assertNotNull($single->fresh()->email_verified_at);
+        $this->assertTrue($singleOrder->fresh()->isOwnedBy($single), 'verified one by one');
+
+        $this->actingAs($admin)->patch(route('acp.users.bulk-update'), ['action' => 'verify', 'ids' => [$bulk->id]])->assertRedirect();
+        $this->assertNotNull($bulk->fresh()->email_verified_at);
+        $this->assertTrue($bulkOrder->fresh()->isOwnedBy($bulk), 'and in bulk');
+    }
+
+    #[Test]
+    public function an_address_that_was_already_verified_is_not_announced_again(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+        $admin = User::factory()->create()->assignRole('admin');
+        $user = User::factory()->create();
+        Event::fake([Verified::class]);
+
+        $this->actingAs($admin)->put(route('acp.users.verify', $user))->assertRedirect();
+
+        Event::assertNotDispatched(Verified::class);
+    }
+
+    #[Test]
     public function signing_in_hands_over_the_orders_of_a_verified_account(): void
     {
         $user = User::factory()->create(['email' => 'ada@example.test']);
@@ -334,13 +463,7 @@ class GuestCarryOverTest extends TestCase
     #[Test]
     public function a_password_alone_does_not_hand_over_orders_when_there_is_a_second_step(): void
     {
-        $user = User::factory()->create(['email' => 'ada@example.test']);
-        $secret = TwoFactorAuthenticator::generateSecret();
-        $user->forceFill([
-            'two_factor_secret' => TwoFactorAuthenticator::encryptSecret($secret),
-            'two_factor_confirmed_at' => now(),
-            'two_factor_recovery_codes' => TwoFactorAuthenticator::encryptRecoveryCodes(['TEST-RECOVERY-CODE']),
-        ])->save();
+        $user = $this->userWithTwoFactor();
         $order = $this->guestOrder('ada@example.test');
 
         $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('two-factor.login'));
