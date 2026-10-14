@@ -69,12 +69,7 @@ class DownloadDelivery
                         $used = (int) ($counts[$file->id]->downloads ?? 0);
                         $remaining = $limit > 0 ? max(0, $limit - $used) : null;
 
-                        $state = match (true) {
-                            ! $usable => 'unavailable',
-                            ! $file->is_active => 'unavailable',
-                            $remaining === 0 => 'used_up',
-                            default => 'ready',
-                        };
+                        $state = $this->stateOf($usable, $file, $used, $limit);
 
                         return [
                             'id' => $file->id,
@@ -88,6 +83,59 @@ class DownloadDelivery
                     })->values()->all(),
             ];
         })->values()->all();
+    }
+
+    /**
+     * Whether a file can be downloaded right now: `ready`, `used_up` (the allowance for this file is spent) or
+     * `unavailable` (the grant cannot be used, or the file is switched off). The one rule for it, used by the
+     * order page and by anything that tells a customer there is something to download.
+     */
+    public function stateOf(bool $usable, ProductFile $file, int $used, int $limit): string
+    {
+        return match (true) {
+            ! $usable, ! $file->is_active => 'unavailable',
+            $limit > 0 && $used >= $limit => 'used_up',
+            default => 'ready',
+        };
+    }
+
+    /**
+     * Which of these grants still have a file the customer can download: the grant can be used and at least one
+     * of its product's files is switched on and not used up, by the same rule as the order page. Whether the order
+     * itself is paid is for the caller. A fixed number of queries however many grants there are.
+     *
+     * @param  iterable<DownloadGrant>  $grants
+     * @return array<int, bool> Keyed by grant id.
+     */
+    public function available(iterable $grants): array
+    {
+        $grants = collect($grants)->values();
+        $result = $grants->mapWithKeys(fn (DownloadGrant $grant) => [$grant->id => false])->all();
+        $usable = $grants->filter(fn (DownloadGrant $grant) => $grant->product_id !== null && $grant->isUsable());
+
+        if ($usable->isEmpty()) {
+            return $result;
+        }
+
+        $limit = (int) config('commerce.downloads.limit', 10);
+
+        $files = ProductFile::query()
+            ->whereIn('product_id', $usable->pluck('product_id')->unique()->all())
+            ->get()
+            ->groupBy('product_id');
+
+        $counts = $limit > 0
+            ? DownloadCount::query()->whereIn('download_grant_id', $usable->pluck('id')->all())->get()->groupBy('download_grant_id')
+            : collect();
+
+        foreach ($usable as $grant) {
+            $used = $counts->get($grant->id, collect())->keyBy('product_file_id');
+
+            $result[$grant->id] = $files->get($grant->product_id, collect())
+                ->contains(fn (ProductFile $file) => $this->stateOf(true, $file, (int) ($used->get($file->id)->downloads ?? 0), $limit) === 'ready');
+        }
+
+        return $result;
     }
 
     /**

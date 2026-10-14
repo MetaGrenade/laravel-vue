@@ -6,9 +6,13 @@ use App\Models\Blog;
 use App\Models\BlogView;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
+use App\Models\SubscriptionPlan;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Support\Commerce\CustomerOrders;
+use App\Support\Commerce\Money;
 use App\Support\Localization\DateFormatter;
+use App\Support\WebsiteSections;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -33,7 +37,76 @@ class DashboardController extends Controller
             'activityChart' => $this->buildActivityChart($user),
             'recentItems' => $this->recentActivity($user, $formatter),
             'recommendedArticles' => $this->recommendedArticles($user, $formatter),
+            'shop' => $this->shop($user),
+            'plan' => $this->plan($user),
+            'account' => $this->account($user),
         ]);
+    }
+
+    /**
+     * The customer's orders and digital purchases, or nothing when the shop is switched off (their order
+     * pages are then not reachable from the site, so the dashboard does not offer them).
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function shop(User $user): ?array
+    {
+        if (! WebsiteSections::isEnabled(WebsiteSections::COMMERCE)) {
+            return null;
+        }
+
+        return app(CustomerOrders::class)->dashboard($user);
+    }
+
+    /**
+     * The user's subscription, if plans are offered or they have one.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function plan(User $user): ?array
+    {
+        $subscription = $user->subscription((string) config('billing.subscription_name', 'default'));
+
+        if ($subscription === null && ! SubscriptionPlan::query()->active()->exists()) {
+            return null;
+        }
+
+        $plan = $subscription !== null
+            ? SubscriptionPlan::query()->where('stripe_price_id', $subscription->stripe_price)->first()
+            : null;
+
+        $state = match (true) {
+            $subscription === null => 'none',
+            $subscription->onGracePeriod() => 'grace',
+            $subscription->pastDue() || $subscription->incomplete() => 'attention',
+            $subscription->valid() => 'active',
+            default => 'ended',
+        };
+
+        return [
+            'state' => $state,
+            'name' => $plan?->name,
+            // Plans store minor units (1200 is $12.00); the page formats a decimal in the currency's major units.
+            'price' => $plan !== null ? Money::ofMinor((int) $plan->price, (string) $plan->currency)->toDecimal() : null,
+            'currency' => $plan?->currency,
+            'interval' => $plan?->interval,
+            'ends_at' => $subscription?->ends_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * What helps a user look after their account.
+     *
+     * @return array<string, mixed>
+     */
+    protected function account(User $user): array
+    {
+        return [
+            'two_factor_enabled' => $user->two_factor_confirmed_at !== null,
+            'reputation' => (int) $user->reputation_points,
+            'badges' => $user->badges()->count(),
+            'member_since' => $user->created_at?->toIso8601String(),
+        ];
     }
 
     /**
@@ -139,7 +212,11 @@ class DashboardController extends Controller
      */
     protected function recentActivity(User $user, DateFormatter $formatter): array
     {
-        $threads = $user->forumThreads()
+        // Nothing from a section that is switched off: its pages are not there to link to.
+        $forumOn = WebsiteSections::isEnabled(WebsiteSections::FORUM);
+        $supportOn = WebsiteSections::isEnabled(WebsiteSections::SUPPORT);
+
+        $threads = ! $forumOn ? collect() : $user->forumThreads()
             ->with(['board:id,slug'])
             ->latest('updated_at')
             ->take(5)
@@ -159,7 +236,7 @@ class DashboardController extends Controller
                 ];
             });
 
-        $posts = $user->forumPosts()
+        $posts = ! $forumOn ? collect() : $user->forumPosts()
             ->with(['thread:id,slug,forum_board_id', 'thread.board:id,slug'])
             ->latest('created_at')
             ->take(5)
@@ -183,7 +260,7 @@ class DashboardController extends Controller
                 ];
             });
 
-        $tickets = SupportTicket::query()
+        $tickets = ! $supportOn ? collect() : SupportTicket::query()
             ->where('user_id', $user->id)
             ->latest('updated_at')
             ->take(5)
@@ -217,6 +294,10 @@ class DashboardController extends Controller
      */
     protected function recommendedArticles(User $user, DateFormatter $formatter): array
     {
+        if (! WebsiteSections::isEnabled(WebsiteSections::BLOG)) {
+            return [];
+        }
+
         $viewedBlogIds = BlogView::query()
             ->where('user_id', $user->id)
             ->orderByDesc('last_viewed_at')

@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import AccountCard from '@/components/dashboard/AccountCard.vue';
+import DigitalPurchasesCard from '@/components/dashboard/DigitalPurchasesCard.vue';
+import PlanCard from '@/components/dashboard/PlanCard.vue';
+import RecentOrdersCard from '@/components/dashboard/RecentOrdersCard.vue';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LineChart } from '@/components/ui/chart-line';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LineChart } from '@/components/ui/chart-line';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, CheckCircle2, FileText, LifeBuoy, MessageSquare } from '@lucide/vue';
+import type { DashboardAccount, DashboardPlan, DashboardShop } from '@/types/dashboard';
+import { Head, usePage } from '@inertiajs/vue3';
+import { Activity, CheckCircle2, FileText, KeyRound, LifeBuoy, MessageSquare, ShoppingBag } from '@lucide/vue';
+import { computed } from 'vue';
 
 type SupportMetrics = {
     total: number;
@@ -62,6 +67,11 @@ interface DashboardProps {
     activityChart: ActivityChartDatum[];
     recentItems: ActivityItem[];
     recommendedArticles: RecommendedArticle[];
+    /** The customer's orders and digital purchases; null when the shop is switched off. */
+    shop: DashboardShop | null;
+    /** The subscription; null when no plans are offered and the user has none. */
+    plan: DashboardPlan | null;
+    account: DashboardAccount | null;
 }
 
 const props = withDefaults(defineProps<DashboardProps>(), {
@@ -73,6 +83,9 @@ const props = withDefaults(defineProps<DashboardProps>(), {
     activityChart: () => [],
     recentItems: () => [],
     recommendedArticles: () => [],
+    shop: null,
+    plan: null,
+    account: null,
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -82,6 +95,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+// Areas the site owner has switched off are left off the dashboard too.
+const page = usePage();
+const sections = computed(() => page.props.settings?.website_sections ?? { blog: true, forum: true, support: true, commerce: true });
+
 const numberFormatter = new Intl.NumberFormat();
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 
@@ -89,43 +106,106 @@ const formatNumber = (value: number | null | undefined) => numberFormatter.forma
 const formatDate = (value: string | null | undefined) => (value ? dateFormatter.format(new Date(value)) : '—');
 const pluralize = (count: number, singular: string, plural: string) => (count === 1 ? singular : plural);
 
-const statCards = computed(() => [
-    {
-        title: 'Open support tickets',
-        value: props.metrics.support.open,
-        helper: `of ${formatNumber(props.metrics.support.total)} total`,
-        icon: LifeBuoy,
-    },
-    {
-        title: 'Forum threads started',
-        value: props.metrics.forum.threads,
-        helper: `${formatNumber(props.metrics.forum.active_this_month)} active this month`,
-        icon: MessageSquare,
-    },
-    {
-        title: 'Forum replies posted',
-        value: props.metrics.forum.replies,
-        helper: `${formatNumber(props.metrics.forum.replies_this_week)} this week`,
-        icon: Activity,
-    },
-    {
-        title: 'Published articles',
-        value: props.metrics.knowledge.published_articles,
-        helper: `${formatNumber(props.metrics.knowledge.drafts)} drafts in progress`,
-        icon: FileText,
-    },
-]);
+const statCards = computed(() => {
+    const cards = [];
 
-const chartSeries = ['Forum Replies', 'Support Tickets'] as const;
+    if (props.shop) {
+        cards.push(
+            {
+                title: 'Orders',
+                value: props.shop.summary.orders,
+                helper:
+                    props.shop.summary.in_progress > 0
+                        ? `${formatNumber(props.shop.summary.in_progress)} in progress`
+                        : props.shop.summary.awaiting_payment > 0
+                          ? `${formatNumber(props.shop.summary.awaiting_payment)} awaiting payment`
+                          : 'All up to date',
+                icon: ShoppingBag,
+            },
+            {
+                title: 'Keys and downloads',
+                value: props.shop.summary.digital,
+                helper:
+                    props.shop.summary.keys_waiting > 0
+                        ? `${formatNumber(props.shop.summary.keys_waiting)} ${pluralize(props.shop.summary.keys_waiting, 'key', 'keys')} on the way`
+                        : 'Ready to open from your orders',
+                icon: KeyRound,
+            },
+        );
+    }
+
+    if (sections.value.support) {
+        cards.push({
+            title: 'Open support tickets',
+            value: props.metrics.support.open,
+            helper: `of ${formatNumber(props.metrics.support.total)} total`,
+            icon: LifeBuoy,
+        });
+    }
+
+    if (sections.value.forum) {
+        cards.push(
+            {
+                title: 'Forum threads started',
+                value: props.metrics.forum.threads,
+                helper: `${formatNumber(props.metrics.forum.active_this_month)} active this month`,
+                icon: MessageSquare,
+            },
+            {
+                title: 'Forum replies posted',
+                value: props.metrics.forum.replies,
+                helper: `${formatNumber(props.metrics.forum.replies_this_week)} this week`,
+                icon: Activity,
+            },
+        );
+    }
+
+    // Most people read the blog rather than write it, so the author's card only shows to authors.
+    if (sections.value.blog && props.metrics.knowledge.published_articles + props.metrics.knowledge.drafts > 0) {
+        cards.push({
+            title: 'Published articles',
+            value: props.metrics.knowledge.published_articles,
+            helper: `${formatNumber(props.metrics.knowledge.drafts)} drafts in progress`,
+            icon: FileText,
+        });
+    }
+
+    return cards;
+});
+
+const chartSeries = computed(() => {
+    const series: ('Forum Replies' | 'Support Tickets')[] = [];
+
+    if (sections.value.forum) {
+        series.push('Forum Replies');
+    }
+
+    if (sections.value.support) {
+        series.push('Support Tickets');
+    }
+
+    return series;
+});
 
 const chartData = computed(() => props.activityChart ?? []);
-const hasChartData = computed(() => chartData.value.some((item) => (item['Forum Replies'] ?? 0) > 0 || (item['Support Tickets'] ?? 0) > 0));
+const hasChartData = computed(() => chartData.value.some((item) => chartSeries.value.some((series) => (item[series] ?? 0) > 0)));
 
 const recentActivity = computed(() => props.recentItems ?? []);
 const articles = computed(() => props.recommendedArticles ?? []);
+const showActivity = computed(() => sections.value.forum || sections.value.support);
 
 const alertState = computed(() => {
-    const openTickets = props.metrics.support.open ?? 0;
+    const keysWaiting = props.shop?.summary.keys_waiting ?? 0;
+    if (keysWaiting > 0) {
+        return {
+            variant: 'default' as const,
+            icon: KeyRound,
+            title: 'A licence key is on its way',
+            description: `${formatNumber(keysWaiting)} ${pluralize(keysWaiting, 'key you have', 'keys you have')} paid for ${pluralize(keysWaiting, 'is', 'are')} still being prepared. ${pluralize(keysWaiting, 'It', 'They')} will appear on the order page as soon as ${pluralize(keysWaiting, 'it is', 'they are')} ready.`,
+        };
+    }
+
+    const openTickets = sections.value.support ? (props.metrics.support.open ?? 0) : 0;
     if (openTickets > 0) {
         return {
             variant: 'warning' as const,
@@ -135,7 +215,7 @@ const alertState = computed(() => {
         };
     }
 
-    const unreadThreads = props.metrics.forum.unread_threads ?? 0;
+    const unreadThreads = sections.value.forum ? (props.metrics.forum.unread_threads ?? 0) : 0;
     if (unreadThreads > 0) {
         return {
             variant: 'default' as const,
@@ -159,20 +239,17 @@ const alertState = computed(() => {
         <Head title="Dashboard" />
 
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-            <!--            <Alert variant="destructive">-->
-            <!--                <AlertCircle class="w-4 h-4" />-->
-            <!--                <AlertTitle>Error</AlertTitle>-->
-            <!--                <AlertDescription>-->
-            <!--                    Your session has expired. Please log in again.-->
-            <!--                </AlertDescription>-->
-            <!--            </Alert>-->
             <Alert :variant="alertState.variant">
                 <component :is="alertState.icon" class="h-5 w-5" />
                 <AlertTitle>{{ alertState.title }}</AlertTitle>
                 <AlertDescription>{{ alertState.description }}</AlertDescription>
             </Alert>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div
+                v-if="statCards.length"
+                class="grid grid-cols-1 gap-4 md:grid-cols-2"
+                :class="statCards.length === 4 ? 'xl:grid-cols-4' : 'xl:grid-cols-3'"
+            >
                 <Card v-for="(stat, index) in statCards" :key="index" class="overflow-hidden">
                     <CardHeader class="flex flex-row items-start justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">{{ stat.title }}</CardTitle>
@@ -185,7 +262,22 @@ const alertState = computed(() => {
                 </Card>
             </div>
 
-            <Card>
+            <div v-if="shop" class="grid gap-4 lg:grid-cols-[2fr_1fr]">
+                <RecentOrdersCard :orders="shop.recent_orders" :total="shop.summary.orders" class="min-w-0" />
+                <DigitalPurchasesCard :items="shop.digital" :total="shop.summary.digital" class="min-w-0" />
+            </div>
+
+            <div v-if="account || plan" class="grid gap-4" :class="account && plan ? 'md:grid-cols-2' : ''">
+                <PlanCard v-if="plan" :plan="plan" class="min-w-0" />
+                <AccountCard
+                    v-if="account"
+                    :account="account"
+                    :sections="{ forum: sections.forum, support: sections.support, commerce: sections.commerce }"
+                    class="min-w-0"
+                />
+            </div>
+
+            <Card v-if="chartSeries.length">
                 <CardHeader>
                     <CardTitle>Community engagement</CardTitle>
                     <CardDescription>Monthly view of your forum replies and support requests.</CardDescription>
@@ -202,8 +294,8 @@ const alertState = computed(() => {
                 </CardContent>
             </Card>
 
-            <div class="grid gap-4 lg:grid-cols-[2fr_1fr]">
-                <Card>
+            <div v-if="showActivity || sections.blog" class="grid gap-4" :class="showActivity && sections.blog ? 'lg:grid-cols-[2fr_1fr]' : ''">
+                <Card v-if="showActivity">
                     <CardHeader>
                         <CardTitle>Recent activity</CardTitle>
                         <CardDescription>The latest updates from your tickets and forum participation.</CardDescription>
@@ -231,7 +323,7 @@ const alertState = computed(() => {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card v-if="sections.blog">
                     <CardHeader>
                         <CardTitle>Recommended reading</CardTitle>
                         <CardDescription>Brush up on the latest knowledge base articles.</CardDescription>

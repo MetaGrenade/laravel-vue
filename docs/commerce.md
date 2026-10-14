@@ -58,6 +58,8 @@ An order is a snapshot of the cart when checkout started. The shopper may keep e
 
 Orders and payments carry an owner (`owner_type`, `owner_id`), and `user_id` only records who placed the order. Access goes through `OrderPolicy` and `App\Support\Ownership`, never through `user_id`. In 1.0 a person's only owner is themselves; 1.1 adds teams, and this is the one place that changes. A guest order has no owner and is opened through the signed link in the receipt email.
 
+A signed-in customer finds their orders on the dashboard (the five newest, and the lines that deliver a licence key or a download, each linking to its order page) and on **My orders** (`/orders`, every order, paged). Both come from `CustomerOrders`, which is given the user and nothing else: it finds orders through `visibleTo()`, and sends the page how many keys an order holds and whether a download is still available (the grant works and a file is switched on with downloads left, by the same rule as the order page), never a key. Keys are only ever on the order page, which is never cached. Both are hidden while the shop is switched off (the order page itself keeps working from the receipt link).
+
 ## Addresses
 
 A signed-in customer has an address book (**Settings → Addresses**, only while the shop section is on). At checkout they can pick a saved address or type one, and tick *Save this address for next time*. Guests just type one.
