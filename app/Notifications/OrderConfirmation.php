@@ -34,11 +34,18 @@ class OrderConfirmation extends Notification implements ShouldQueue
         $order = $this->order->loadMissing('items');
         // Nothing to pay: a free product, or a discount code that covered it all.
         $free = (float) $order->grand_total <= 0;
+        // Paid for with a gift card, with or without a card payment for the rest.
+        $giftCardTotal = (float) $order->gift_card_total;
+        $coveredByGiftCard = $giftCardTotal > 0 && $order->amountDue()->isZero();
 
         $message = (new MailMessage)
             ->subject("Your order {$order->number}")
             ->greeting($order->customer_name ? "Thanks for your order, {$order->customer_name}!" : 'Thanks for your order!')
-            ->line($free ? "Your order {$order->number} is confirmed. Nothing was charged." : "We've received your payment for order {$order->number}.");
+            ->line(match (true) {
+                $free => "Your order {$order->number} is confirmed. Nothing was charged.",
+                $coveredByGiftCard => "Your order {$order->number} is confirmed. It was paid for with your gift card.",
+                default => "We've received your payment for order {$order->number}.",
+            });
 
         foreach ($order->items as $item) {
             $message->line("{$item->quantity} × {$item->description} — {$item->subtotal} {$order->currency}");
@@ -72,8 +79,18 @@ class OrderConfirmation extends Notification implements ShouldQueue
             $message->line('Your licence keys are on your order page. Open it with the button below to see them.');
         }
 
+        if ($giftCardTotal > 0) {
+            $message->line("Order total: {$order->grand_total} {$order->currency}");
+            $message->line('Gift card'.($order->giftCard ? " (ending {$order->giftCard->last_four})" : '').": -{$order->gift_card_total} {$order->currency}");
+        }
+
         return $message
-            ->line($free ? "Total: {$order->grand_total} {$order->currency}" : "Total paid: {$order->grand_total} {$order->currency}")
+            ->line(match (true) {
+                $free => "Total: {$order->grand_total} {$order->currency}",
+                $coveredByGiftCard => "Charged to your card: 0.00 {$order->currency}",
+                $giftCardTotal > 0 => "Charged to your card: {$order->amountDue()->toDecimal()} {$order->currency}",
+                default => "Total paid: {$order->grand_total} {$order->currency}",
+            })
             // Signed, so it works for guests who cannot sign in to see the order.
             ->action('View your order', URL::signedRoute('shop.checkout.complete', ['order' => $order->public_id]));
     }

@@ -201,6 +201,10 @@ class GuestCarryOver
             $mine->forceFill(['coupon_id' => $guest->coupon_id])->save();
         }
 
+        if ($mine->gift_card_id === null && $guest->gift_card_id !== null) {
+            $mine->forceFill(['gift_card_id' => $guest->gift_card_id])->save();
+        }
+
         // A checkout started from the guest cart can still be paid. It is found through the cart it came from
         // (starting again closes it first; paying it takes its lines out), and deleting the cart would cut that
         // link, so the orders move to the cart that replaces it.

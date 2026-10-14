@@ -162,6 +162,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Gift cards
+    |--------------------------------------------------------------------------
+    |
+    | Stored value that staff issue (Commerce → Gift cards) and customers spend at checkout, on the
+    | whole order including shipping and tax, one card per order. Switching this off hides the box at
+    | checkout and stops cards being applied; the ones that exist, and their balances, are kept.
+    |
+    */
+
+    'gift_cards' => [
+        'enabled' => (bool) env('COMMERCE_GIFT_CARDS', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Low stock
     |--------------------------------------------------------------------------
     |

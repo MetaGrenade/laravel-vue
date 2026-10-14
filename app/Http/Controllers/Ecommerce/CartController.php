@@ -9,6 +9,7 @@ use App\Models\ProductVariant;
 use App\Payments\PaymentManager;
 use App\Support\Commerce\CartManager;
 use App\Support\Commerce\Discounts\CartCoupons;
+use App\Support\Commerce\GiftCards\CartGiftCards;
 use App\Support\Commerce\PriceResolver;
 use App\Support\Commerce\Pricing;
 use App\Support\Commerce\ShippingCalculator;
@@ -19,7 +20,7 @@ use Inertia\Response;
 
 class CartController extends Controller
 {
-    public function show(Request $request, PaymentManager $payments, CartCoupons $coupons, ShippingCalculator $shipping): Response
+    public function show(Request $request, PaymentManager $payments, CartCoupons $coupons, CartGiftCards $giftCards, ShippingCalculator $shipping): Response
     {
         $cart = CartManager::forRequest($request);
         $hasItems = $cart !== null && $cart->items->isNotEmpty();
@@ -31,6 +32,9 @@ class CartController extends Controller
             'cart' => CartManager::summary($cart),
             // The code on the cart, and what it takes off now (checked again at checkout).
             'coupon' => $hasItems ? $coupons->describe($cart, $pricing) : null,
+            // The gift card on the cart, and whether the shop takes them at all.
+            'giftCard' => $hasItems ? $giftCards->describe($cart) : null,
+            'giftCardsEnabled' => $giftCards->enabled(),
             // Something to pay needs a payment provider; a cart that costs nothing once its code is
             // applied does not. Where shipping is charged, that is not known before an address is given.
             'checkoutAvailable' => $payments->active()->isConfigured() || $this->costsNothing($pricing, $shipping),
@@ -39,13 +43,13 @@ class CartController extends Controller
     }
 
     /**
-     * Whether the cart is free as it stands: nothing left to pay after any discount, and no shipping
+     * Whether the cart is free as it stands: nothing left to pay after any discount or gift card, and no shipping
      * still to be charged for an address that has not been given yet.
      */
     private function costsNothing(?Pricing $pricing, ShippingCalculator $shipping): bool
     {
         return $pricing !== null
-            && $pricing->grandTotal->isZero()
+            && $pricing->amountDue()->isZero()
             && (! $pricing->needsShipping || ! $shipping->isConfigured());
     }
 

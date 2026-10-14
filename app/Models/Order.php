@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\OrderPaymentStatus;
 use App\Enums\OrderStatus;
 use App\Models\Concerns\HasOwner;
+use App\Support\Commerce\Money;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,6 +32,8 @@ class Order extends Model
         'grand_total',
         'coupon_id',
         'coupon_code',
+        'gift_card_id',
+        'gift_card_total',
         'customer_email',
         'customer_name',
         'idempotency_key',
@@ -57,6 +60,7 @@ class Order extends Model
         'shipping_total' => 'decimal:2',
         'discount_total' => 'decimal:2',
         'grand_total' => 'decimal:2',
+        'gift_card_total' => 'decimal:2',
         'refunded_total' => 'decimal:2',
         'placed_at' => 'datetime',
         'paid_at' => 'datetime',
@@ -119,6 +123,25 @@ class Order extends Model
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class);
+    }
+
+    /**
+     * The gift card that paid part (or all) of the order, for as much as `gift_card_total` says.
+     *
+     * @return BelongsTo<GiftCard, $this>
+     */
+    public function giftCard(): BelongsTo
+    {
+        return $this->belongsTo(GiftCard::class);
+    }
+
+    /**
+     * What the payment provider is asked for: the order's total less the part a gift card paid. The order itself
+     * is still worth `grand_total` (refunds, tax and reports go by that).
+     */
+    public function amountDue(): Money
+    {
+        return Money::parse($this->grand_total, $this->currency)->subtract(Money::parse($this->gift_card_total ?? 0, $this->currency));
     }
 
     /**

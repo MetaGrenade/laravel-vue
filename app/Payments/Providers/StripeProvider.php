@@ -154,6 +154,14 @@ class StripeProvider implements PaymentProvider
             throw new PaymentException("Order {$order->number} total does not match its line items.");
         }
 
+        // Checkout takes no negative lines, so when a gift card paid part of the order what is sent is one line for
+        // what is left to pay. (The check above has already made sure the order's own lines add up.)
+        $giftCardTotal = Money::parse($order->gift_card_total ?? 0, $order->currency);
+
+        if (! $giftCardTotal->isZero()) {
+            $lines = [$this->extraLine("Order {$order->number}, less {$giftCardTotal->toDecimal()} paid by gift card", $order->amountDue(), $order->currency)];
+        }
+
         $metadata = [
             'source' => 'commerce',
             'order_id' => (string) $order->id,

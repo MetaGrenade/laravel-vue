@@ -69,6 +69,9 @@ interface Order {
     discount_total: string;
     coupon_code: string | null;
     grand_total: string;
+    /** The gift card that paid part of it (the end of its code only), and what was left to pay by card. */
+    gift_card: { id: number; last_four: string | null; amount: string } | null;
+    amount_due: string;
     refunded_total: string;
     customer_name: string | null;
     customer_email: string | null;
@@ -108,6 +111,8 @@ interface RefundRow {
     note: string | null;
     failure_reason: string | null;
     provider: string | null;
+    /** The money went back onto the order's gift card. */
+    gift_card: boolean;
     reference: string | null;
     restock: boolean;
     issued_by: string | null;
@@ -133,6 +138,9 @@ const props = defineProps<{
     events: EventRow[];
     refunding: {
         refundable: string;
+        /** How much of a refund goes back onto the gift card first, and the end of its code. */
+        gift_card_refundable: string;
+        gift_card_last_four: string | null;
         can_refund: boolean;
         via_provider: boolean;
         provider_label: string | null;
@@ -432,6 +440,23 @@ const selectClass =
                                         <dt>Total</dt>
                                         <dd class="tabular-nums">{{ money(props.order.grand_total) }}</dd>
                                     </div>
+                                    <template v-if="props.order.gift_card">
+                                        <div class="flex justify-between">
+                                            <dt class="text-muted-foreground">
+                                                Paid with gift card
+                                                <Link
+                                                    :href="route('acp.commerce.gift-cards.show', props.order.gift_card.id)"
+                                                    class="font-mono hover:underline"
+                                                    >••••{{ props.order.gift_card.last_four }}</Link
+                                                >
+                                            </dt>
+                                            <dd class="tabular-nums">−{{ money(props.order.gift_card.amount) }}</dd>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <dt class="text-muted-foreground">To pay by card</dt>
+                                            <dd class="tabular-nums">{{ money(props.order.amount_due) }}</dd>
+                                        </div>
+                                    </template>
                                     <template v-if="hasRefunds">
                                         <div class="flex justify-between">
                                             <dt class="text-muted-foreground">Refunded</dt>
@@ -580,7 +605,8 @@ const selectClass =
                                             <div class="flex items-center gap-2">
                                                 <span class="font-medium tabular-nums">{{ formatMoney(item.amount, item.currency) }}</span>
                                                 <Badge :variant="refundVariant(item.status)">{{ item.status_label }}</Badge>
-                                                <Badge v-if="!item.provider" variant="outline">Recorded by hand</Badge>
+                                                <Badge v-if="item.gift_card" variant="outline">Back onto the gift card</Badge>
+                                                <Badge v-else-if="!item.provider" variant="outline">Recorded by hand</Badge>
                                             </div>
                                             <Button v-if="item.can_check" variant="outline" size="sm" @click="checkRefund(item.id)">
                                                 <RefreshCw class="size-3.5" /> Check status
@@ -808,6 +834,10 @@ const selectClass =
                         <DialogTitle>Refund order {{ props.order.number }}</DialogTitle>
                         <DialogDescription>
                             Up to {{ money(props.refunding.refundable) }} can still be refunded.
+                            <template v-if="Number(props.refunding.gift_card_refundable) > 0"
+                                >Up to {{ money(props.refunding.gift_card_refundable) }} of it goes back onto the gift card ending
+                                {{ props.refunding.gift_card_last_four }} first, and the rest the way it was paid.</template
+                            >
                             <template v-if="props.refunding.via_provider && !refundForm.manual"
                                 >The money goes back to the customer's original payment method through {{ props.refunding.provider_label }}. This
                                 cannot be undone.</template

@@ -71,6 +71,17 @@ export interface CartCoupon {
     discount?: string | null;
 }
 
+/** The gift card on the cart. Only the end of its code is ever sent, never the code. */
+export interface CartGiftCard {
+    last_four: string;
+    /** What the card holds for this cart, a decimal string. */
+    balance: string;
+    applied: boolean;
+    problem: string | null;
+    /** What it pays of the order, a decimal string. Only known at checkout, once shipping and tax are. */
+    amount?: string;
+}
+
 /** What the checkout page shows for the details entered so far. */
 export interface CheckoutQuote {
     error: string | null;
@@ -95,6 +106,11 @@ export interface CheckoutQuote {
     };
     discount_total?: string;
     grand_total?: string;
+    gift_card?: CartGiftCard | null;
+    /** What the gift card pays of the total. */
+    gift_card_total?: string;
+    /** What is left to pay by card once the gift card has paid its share. */
+    amount_due?: string;
 }
 
 /** A product picture as the shop shows it, at three sizes. */

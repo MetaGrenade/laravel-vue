@@ -34,6 +34,10 @@ interface Order {
     discount_total: string;
     coupon_code: string | null;
     grand_total: string;
+    /** What a gift card paid of it (the end of its code only), and what was left to pay by card. */
+    gift_card_total: string;
+    gift_card_last_four: string | null;
+    amount_due: string;
     refunded_total: string;
     shipment: { carrier?: string; tracking_number?: string; tracking_url?: string } | null;
     customer_email: string | null;
@@ -349,6 +353,20 @@ onBeforeUnmount(() => {
                             <dt>Total</dt>
                             <dd class="tabular-nums">{{ formatMoney(props.order.grand_total, props.order.currency) }}</dd>
                         </div>
+                        <template v-if="Number(props.order.gift_card_total) > 0">
+                            <div class="flex justify-between">
+                                <dt class="text-muted-foreground">
+                                    Gift card<template v-if="props.order.gift_card_last_four">
+                                        (ending {{ props.order.gift_card_last_four }})</template
+                                    >
+                                </dt>
+                                <dd class="tabular-nums">−{{ formatMoney(props.order.gift_card_total, props.order.currency) }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-muted-foreground">Paid by card</dt>
+                                <dd class="tabular-nums">{{ formatMoney(props.order.amount_due, props.order.currency) }}</dd>
+                            </div>
+                        </template>
                         <div v-if="Number(props.order.refunded_total) > 0" class="flex justify-between">
                             <dt class="text-muted-foreground">Refunded</dt>
                             <dd class="tabular-nums">−{{ formatMoney(props.order.refunded_total, props.order.currency) }}</dd>

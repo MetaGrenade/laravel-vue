@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CouponCode from '@/components/commerce/CouponCode.vue';
+import GiftCardCode from '@/components/commerce/GiftCardCode.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
 import type { CartSummary } from '@/types';
-import type { CartCoupon } from '@/types/commerce';
+import type { CartCoupon, CartGiftCard } from '@/types/commerce';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ImageOff, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
@@ -16,6 +17,9 @@ interface Props {
     cart: CartSummary | null;
     /** The discount code on the cart, with what it takes off the items now. */
     coupon: CartCoupon | null;
+    /** The gift card on the cart, and whether the shop takes them. */
+    giftCard: CartGiftCard | null;
+    giftCardsEnabled: boolean;
     checkoutAvailable: boolean;
     maxQuantity: number;
 }
@@ -115,8 +119,9 @@ const removeItem = (itemId: number) => {
 
                 <template v-if="props.cart && props.cart.items.length">
                     <Separator />
-                    <CardContent class="max-w-md">
+                    <CardContent class="max-w-md space-y-4">
                         <CouponCode :coupon="props.coupon" :currency="props.cart.currency" :discount="props.coupon?.discount" />
+                        <GiftCardCode v-if="props.giftCardsEnabled" :gift-card="props.giftCard" :currency="props.cart.currency" />
                     </CardContent>
                     <Separator />
                     <CardFooter class="flex flex-wrap items-center justify-between gap-4">
@@ -128,6 +133,9 @@ const removeItem = (itemId: number) => {
                                 <span class="font-medium tabular-nums">−{{ formatMoney(props.coupon.discount ?? '0', props.cart.currency) }}</span>
                             </p>
                             <p class="mt-1 text-xs text-muted-foreground">Shipping, tax and the final total are confirmed at checkout.</p>
+                            <p v-if="props.giftCard?.applied" class="mt-1 text-xs text-muted-foreground">
+                                Your gift card is taken off the total at checkout.
+                            </p>
                         </div>
                         <div class="flex flex-col items-end gap-2">
                             <Button v-if="props.checkoutAvailable" as-child size="lg">

@@ -64,6 +64,7 @@ class CartCoupons
     {
         // Read afresh: the code may have been removed, or deleted, since the cart was loaded.
         $cart->unsetRelation('coupon');
+        $cart->unsetRelation('giftCard');
 
         try {
             return $this->pricer->price($cart, customer: $this->customerFor($user));

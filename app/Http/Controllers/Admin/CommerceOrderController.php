@@ -125,6 +125,14 @@ class CommerceOrderController extends Controller
                 'discount_total' => $order->discount_total,
                 'coupon_code' => $order->coupon_code,
                 'grand_total' => $order->grand_total,
+                // What a gift card paid of it, and what was left to pay by card. The card is only ever shown by the
+                // end of its code.
+                'gift_card' => $order->gift_card_id === null ? null : [
+                    'id' => $order->gift_card_id,
+                    'last_four' => $order->giftCard?->last_four,
+                    'amount' => $order->gift_card_total,
+                ],
+                'amount_due' => $order->amountDue()->toDecimal(),
                 'refunded_total' => $order->refunded_total,
                 'customer_name' => $order->customer_name,
                 'customer_email' => $order->customer_email,
@@ -175,6 +183,7 @@ class CommerceOrderController extends Controller
                 'note' => $refund->note,
                 'failure_reason' => $refund->failure_reason,
                 'provider' => $refund->provider,
+                'gift_card' => $refund->isGiftCard(),
                 'reference' => $refund->provider_reference,
                 'restock' => $refund->restock,
                 'issued_by' => $refund->user?->nickname,
@@ -193,6 +202,9 @@ class CommerceOrderController extends Controller
             ])->values(),
             'refunding' => [
                 'refundable' => $refundable->toDecimal(),
+                // What of a refund goes back onto the gift card first, up to what the card paid.
+                'gift_card_refundable' => $this->refunder->giftCardRefundable($order)->toDecimal(),
+                'gift_card_last_four' => $order->giftCard?->last_four,
                 'can_refund' => $order->isPaid() && ! $refundable->isZero(),
                 // Whether the provider can send the money back itself. If not, staff can only
                 // record a refund they made some other way.

@@ -22,6 +22,7 @@ use App\Support\Commerce\CustomerDetails;
 use App\Support\Commerce\Destination;
 use App\Support\Commerce\Digital\DownloadDelivery;
 use App\Support\Commerce\Digital\LicenceKeys;
+use App\Support\Commerce\GiftCards\GiftCards;
 use App\Support\Commerce\InvalidCheckoutInput;
 use App\Support\Commerce\OrderAlreadyPaidException;
 use App\Support\Commerce\OrderPricer;
@@ -45,6 +46,7 @@ class CheckoutController extends Controller
         OrderPricer $pricer,
         ShippingCalculator $shipping,
         AddressBook $addressBook,
+        GiftCards $giftCards,
     ): Response|RedirectResponse {
         $user = $request->user();
 
@@ -68,6 +70,7 @@ class CheckoutController extends Controller
                 'name' => $user?->nickname,
             ],
             'isGuest' => $user === null,
+            'giftCardsEnabled' => $giftCards->enabled(),
             'provider' => $payments->active()->label(),
             'available' => $starter->isAvailable(),
             // Identifies this form, so submitting it twice cannot place two orders.
@@ -189,6 +192,11 @@ class CheckoutController extends Controller
                 'discount_total' => $order->discount_total,
                 'coupon_code' => $order->coupon_code,
                 'grand_total' => $order->grand_total,
+                // What a gift card paid of it (the card's last four characters, never the code), and what was left
+                // to pay by card.
+                'gift_card_total' => $order->gift_card_total,
+                'gift_card_last_four' => $order->gift_card_id !== null ? $order->giftCard?->last_four : null,
+                'amount_due' => $order->amountDue()->toDecimal(),
                 'refunded_total' => $order->refunded_total,
                 'shipment' => $order->metadata['shipment'] ?? null,
                 'customer_email' => $order->customer_email,
