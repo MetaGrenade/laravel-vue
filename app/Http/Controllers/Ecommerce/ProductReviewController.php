@@ -7,11 +7,9 @@ use App\Http\Controllers\Admin\CommerceReviewController;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Commerce\ProductReviewRequest;
 use App\Models\Product;
-use App\Models\ProductReview;
 use App\Support\Commerce\Reviews\ProductReviews;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 /**
  * A customer writing, changing and deleting their own review of a product. (Showing reviews is part of the
@@ -31,12 +29,7 @@ class ProductReviewController extends Controller
 
         abort_if($reason !== null, 403, $reviews->explain((string) $reason));
 
-        $existing = ProductReview::query()->where('product_id', $product->id)->where('user_id', $user->id)->first();
-
-        if ($existing !== null) {
-            Gate::authorize('update', $existing);
-        }
-
+        // A rejected review is refused inside save(), against the review as it is when it is changed.
         $review = $reviews->save($user, $product, $request->validated());
 
         return back()->with('success', $review->status === ReviewStatus::Published
@@ -44,16 +37,9 @@ class ProductReviewController extends Controller
             : 'Thanks, your review will appear once it has been approved.');
     }
 
-    public function destroy(Request $request, Product $product): RedirectResponse
+    public function destroy(Request $request, Product $product, ProductReviews $reviews): RedirectResponse
     {
-        $review = ProductReview::query()
-            ->where('product_id', $product->id)
-            ->where('user_id', $request->user()->id)
-            ->firstOrFail();
-
-        Gate::authorize('delete', $review);
-
-        $review->delete();
+        $reviews->remove($request->user(), $product);
 
         return back()->with('success', 'Your review was deleted.');
     }

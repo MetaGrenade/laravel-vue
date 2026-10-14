@@ -406,6 +406,89 @@ class ProductReviewTest extends TestCase
             ->where('reviews.reason', null));
     }
 
+    /**
+     * Run something once, straight after the next time the user's review is read from the database: the
+     * moment between "the review is not rejected" and "so change it" that two requests can fall into.
+     */
+    private function afterReadingTheReview(callable $between): void
+    {
+        $done = false;
+
+        DB::listen(function ($query) use ($between, &$done) {
+            if (! $done && preg_match('/^select .* from [`"]?product_reviews[`"]? where/i', $query->sql)) {
+                $done = true;
+                $between();
+            }
+        });
+    }
+
+    #[Test]
+    public function a_review_that_staff_reject_while_it_is_being_changed_is_not_written_over(): void
+    {
+        $user = User::factory()->create();
+        $staff = User::factory()->create();
+        $product = $this->product();
+        $review = ProductReview::factory()->for($product)->for($user)->create(['rating' => 4, 'body' => 'What the customer first wrote.']);
+
+        // The review was published when it was read; staff reject it before the change is made.
+        $this->afterReadingTheReview(fn () => DB::table('product_reviews')->where('id', $review->id)->update([
+            'status' => 'rejected',
+            'moderated_by' => $staff->id,
+            'moderated_at' => now(),
+        ]));
+
+        // Refused. (Here the "staff" update shares the request's connection, so the refusal rolls it back too;
+        // for real it is committed on its own. What matters is that nothing was written over the review.)
+        $this->postReview($user, $product, ['body' => 'Rewritten just after staff said no.', 'rating' => 1])->assertForbidden();
+
+        $review->refresh();
+        $this->assertSame('What the customer first wrote.', $review->body);
+        $this->assertNotSame(1, $review->rating);
+        $this->assertNotSame(ReviewStatus::Pending, $review->status, 'not sent back to the queue either');
+    }
+
+    #[Test]
+    public function a_review_that_staff_reject_while_it_is_being_deleted_is_not_deleted(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->product();
+        $review = ProductReview::factory()->for($product)->for($user)->create();
+
+        $this->afterReadingTheReview(fn () => DB::table('product_reviews')->where('id', $review->id)->update(['status' => 'rejected']));
+
+        $this->actingAs($user)->delete(route('shop.products.review.destroy', $product))->assertForbidden();
+
+        $this->assertSame(ReviewStatus::Rejected, $review->fresh()->status);
+    }
+
+    #[Test]
+    public function a_review_deleted_while_it_is_being_changed_is_written_again(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->product();
+        $review = ProductReview::factory()->for($product)->for($user)->create();
+
+        $this->afterReadingTheReview(fn () => DB::table('product_reviews')->where('id', $review->id)->delete());
+
+        $this->postReview($user, $product, ['body' => 'Written after the old one vanished.'])->assertSessionHas('success');
+
+        $this->assertSame('Written after the old one vanished.', ProductReview::query()->sole()->body);
+    }
+
+    #[Test]
+    public function the_same_review_sent_twice_in_the_same_second_changes_nothing_and_does_not_fail(): void
+    {
+        $this->freezeTime();
+        $user = User::factory()->create();
+        $product = $this->product();
+
+        $this->postReview($user, $product)->assertSessionHas('success');
+        $this->postReview($user, $product)->assertSessionHas('success');
+
+        $this->assertSame(1, ProductReview::query()->count());
+        $this->assertSame('Does the job', ProductReview::query()->sole()->title);
+    }
+
     #[Test]
     public function a_customer_can_delete_their_own_review_and_only_their_own(): void
     {

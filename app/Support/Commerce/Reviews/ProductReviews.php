@@ -13,6 +13,7 @@ use App\Support\EmailVerification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * The rules of product reviews, in one place: who may write one, which ones wait for staff, and what a
@@ -137,20 +138,66 @@ class ProductReviews
     private function write(User $user, Product $product, array $data): ProductReview
     {
         $verified = $this->hasPurchased($user, $product);
-
-        $review = ProductReview::query()->firstOrNew(['product_id' => $product->id, 'user_id' => $user->id]);
-
-        $review->fill([
+        $attributes = [
             'rating' => $data['rating'],
             'title' => $data['title'] ?? null,
             'body' => $data['body'],
-            'status' => $this->statusFor($verified),
+            'status' => $this->statusFor($verified)->value,
             'verified_purchase' => $verified,
             'moderated_by' => null,
             'moderated_at' => null,
-        ])->save();
+        ];
 
-        return $review;
+        $existing = ProductReview::query()->where('product_id', $product->id)->where('user_id', $user->id)->first();
+
+        if ($existing !== null) {
+            // Whether this person may change it is decided by the change itself, which is made only to a review
+            // that is not rejected: staff may reject it at any moment, and a rejection is never written over,
+            // however the two requests fall.
+            $changed = ProductReview::query()
+                ->whereKey($existing->id)
+                ->where('status', '!=', ReviewStatus::Rejected->value)
+                ->update($attributes);
+
+            if ($changed > 0) {
+                return $existing->refresh();
+            }
+
+            // Nothing was changed. Either it is rejected (the policy says no), or it was deleted (so it is
+            // written afresh), or the same text was saved twice in the same second.
+            $current = ProductReview::query()->find($existing->id);
+
+            if ($current !== null) {
+                Gate::forUser($user)->authorize('update', $current);
+
+                return $current;
+            }
+        }
+
+        return ProductReview::query()->create([...$attributes, 'product_id' => $product->id, 'user_id' => $user->id]);
+    }
+
+    /**
+     * Delete the user's own review of the product. Like changing one, it is decided by the delete itself, which
+     * only removes a review that is not rejected: a rejected review is staff's to remove, however the two
+     * requests fall.
+     */
+    public function remove(User $user, Product $product): void
+    {
+        $review = ProductReview::query()->where('product_id', $product->id)->where('user_id', $user->id)->firstOrFail();
+
+        $deleted = ProductReview::query()
+            ->whereKey($review->id)
+            ->where('status', '!=', ReviewStatus::Rejected->value)
+            ->delete();
+
+        if ($deleted === 0) {
+            $current = ProductReview::query()->find($review->id);
+
+            if ($current !== null) {
+                Gate::forUser($user)->authorize('delete', $current);
+            }
+        }
     }
 
     /**

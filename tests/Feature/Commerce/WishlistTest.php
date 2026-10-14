@@ -8,6 +8,8 @@ use App\Models\ProductVariant;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\WishlistItem;
+use App\Support\Commerce\WishlistException;
+use App\Support\Commerce\Wishlists;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -116,6 +118,60 @@ class WishlistTest extends TestCase
 
         $this->assertSame(2, WishlistItem::query()->where('user_id', $user->id)->count());
         $this->assertDatabaseMissing('wishlist_items', ['product_id' => $c->id]);
+    }
+
+    #[Test]
+    public function a_save_locks_the_customer_before_it_counts_so_two_saves_cannot_both_fit(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->product();
+        $outside = DB::transactionLevel();
+        $statements = [];
+
+        DB::listen(function ($query) use (&$statements, $outside) {
+            $statements[] = ['sql' => strtolower($query->sql), 'inTransaction' => DB::transactionLevel() > $outside];
+        });
+
+        app(Wishlists::class)->add($user, $product);
+
+        $first = fn (string $verb, string $table) => collect($statements)->search(
+            fn (array $statement) => (bool) preg_match('/^'.$verb.'\b.*\b(from|into)\s+[`"]?'.$table.'[`"]?[\s(]/', $statement['sql']),
+        );
+        $lock = $first('select', 'users');
+        $read = $first('select', 'wishlist_items');
+        $write = $first('insert', 'wishlist_items');
+
+        $this->assertNotFalse($lock, 'the customer\'s own row is read first');
+        $this->assertNotFalse($read);
+        $this->assertNotFalse($write);
+        $this->assertTrue($lock < $read && $read < $write, 'locked, then counted, then saved');
+        $this->assertTrue($statements[$lock]['inTransaction'] && $statements[$read]['inTransaction'] && $statements[$write]['inTransaction'], 'all in one transaction, or the lock is let go at once');
+
+        // SQLite has no row locks (it lets one writer in at a time), so only the others show the locking read.
+        if (in_array(DB::getDriverName(), ['mysql', 'mariadb', 'pgsql'], true)) {
+            $this->assertStringContainsString('for update', $statements[$lock]['sql']);
+            $this->assertStringContainsString('for update', $statements[$read]['sql']);
+        }
+    }
+
+    #[Test]
+    public function a_refused_save_leaves_the_list_as_it_was_and_the_lock_is_let_go(): void
+    {
+        config(['commerce.wishlist.max_items' => 1]);
+        $user = User::factory()->create();
+        $first = $this->product();
+
+        $this->save($user, $first);
+
+        $this->expectException(WishlistException::class);
+
+        try {
+            app(Wishlists::class)->add($user, $this->product());
+        } finally {
+            $this->assertSame(1, WishlistItem::query()->where('user_id', $user->id)->count());
+            // The transaction ended with the refusal: a later save by the same customer is not stuck behind it.
+            $this->assertFalse(app(Wishlists::class)->add($user, $first), 'saving what is already there still just says so');
+        }
     }
 
     #[Test]

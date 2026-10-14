@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\WishlistItem;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The products a signed-in customer has saved to come back to.
@@ -22,25 +23,33 @@ class Wishlists
      */
     public function add(User $user, Product $product): bool
     {
-        $exists = WishlistItem::query()->where('user_id', $user->id)->where('product_id', $product->id)->exists();
-
-        if ($exists) {
-            return false;
-        }
-
         $max = max(1, (int) config('commerce.wishlist.max_items', 200));
 
-        if (WishlistItem::query()->where('user_id', $user->id)->count() >= $max) {
-            throw new WishlistException("Your wishlist is full ({$max} products). Remove something to save more.");
-        }
+        return DB::transaction(function () use ($user, $product, $max): bool {
+            // One save at a time per customer. The count below is only the truth while nobody else is saving,
+            // or two requests for different products could both see room for one more and both go in. What is
+            // locked is the customer's own row, which always exists: locking the range of their entries
+            // instead would, on an empty list, let both requests lock the same gap and then deadlock.
+            User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-        // Two taps at once must not fail on the unique index: whoever is second simply finds it saved.
-        return WishlistItem::query()->insertOrIgnore([
-            'user_id' => $user->id,
-            'product_id' => $product->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]) > 0;
+            // Read as it is now (a locking read), not as it was when this transaction began.
+            $saved = WishlistItem::query()->where('user_id', $user->id)->lockForUpdate()->pluck('product_id')->map(fn ($id) => (int) $id);
+
+            if ($saved->contains($product->id)) {
+                return false;
+            }
+
+            if ($saved->count() >= $max) {
+                throw new WishlistException("Your wishlist is full ({$max} products). Remove something to save more.");
+            }
+
+            return WishlistItem::query()->insertOrIgnore([
+                'user_id' => $user->id,
+                'product_id' => $product->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]) > 0;
+        });
     }
 
     public function remove(User $user, Product $product): void
