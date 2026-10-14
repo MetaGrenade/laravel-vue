@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Support\Commerce\PriceResolver;
+use App\Support\Commerce\ProductAvailability;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -73,12 +74,33 @@ class ProductPricingTest extends TestCase
                 ->assertSessionHasErrors('amount');
         }
 
+        $this->assertSame(0, Price::count());
+    }
+
+    #[Test]
+    public function a_price_of_zero_makes_a_free_product(): void
+    {
+        $product = Product::factory()->create();
+
         foreach (['0', '0.00'] as $amount) {
-            $this->post(route('acp.commerce.prices.store', $product), ['amount' => $amount])
-                ->assertSessionHasErrors(['amount' => 'The price must be more than zero.']);
+            $this->actingAs($this->admin())->post(route('acp.commerce.prices.store', $product), ['amount' => $amount, 'is_active' => false])
+                ->assertSessionHasNoErrors();
         }
 
-        $this->assertSame(0, Price::count());
+        $this->assertSame(2, Price::count());
+        $this->assertSame(['0.00', '0.00'], Price::query()->pluck('amount')->all());
+    }
+
+    #[Test]
+    public function a_free_product_can_be_bought_and_a_negative_price_cannot_be_saved(): void
+    {
+        $product = Product::factory()->create();
+
+        $this->actingAs($this->admin())->post(route('acp.commerce.prices.store', $product), ['amount' => '0'])->assertSessionHasNoErrors();
+        $this->post(route('acp.commerce.prices.store', $product), ['amount' => '-0.01', 'is_active' => false])->assertSessionHasErrors('amount');
+
+        $this->assertSame('0.00', app(PriceResolver::class)->resolve($product)->amount);
+        $this->assertTrue(app(ProductAvailability::class)->canBuy($product->load(['prices' => ProductAvailability::chargeablePrices(), 'variants'])));
     }
 
     #[Test]

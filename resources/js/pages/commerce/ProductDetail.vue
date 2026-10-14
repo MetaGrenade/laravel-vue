@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { StorefrontImage, StorefrontOption, StorefrontPrice, StorefrontStock, StorefrontVariant } from '@/types/commerce';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { Download } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 
 interface Taxon {
@@ -29,6 +30,8 @@ interface Product {
     /** How much is left of the product itself (when it has no variants). */
     stock: StorefrontStock;
     requires_shipping: boolean;
+    /** Files that come with it as a download once paid. */
+    downloads: number;
     images: StorefrontImage[];
     options: StorefrontOption[];
     variants: StorefrontVariant[];
@@ -234,6 +237,11 @@ const addToCart = () => {
                         </Button>
                     </div>
                     <p v-if="problem" class="text-sm text-muted-foreground" role="status">{{ problem }}</p>
+                    <p v-if="product.downloads > 0" class="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Download class="size-4" aria-hidden="true" />
+                        Digital download: {{ product.downloads }} {{ product.downloads === 1 ? 'file' : 'files' }}, available as soon as your order is
+                        confirmed.
+                    </p>
                     <p v-if="!product.requires_shipping" class="text-sm text-muted-foreground">This item does not need shipping.</p>
                 </div>
 

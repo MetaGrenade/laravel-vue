@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import OptionsSection from '@/components/commerce/admin/OptionsSection.vue';
+import ProductFilesSection from '@/components/commerce/admin/ProductFilesSection.vue';
 import ProductImagesSection from '@/components/commerce/admin/ProductImagesSection.vue';
 import PriceSection from '@/components/commerce/admin/PriceSection.vue';
 import ProductDetailsForm from '@/components/commerce/admin/ProductDetailsForm.vue';
@@ -20,6 +21,7 @@ import type {
     OptionRow,
     PriceRow,
     ProductDetails,
+    ProductFileRow,
     ProductImageRow,
     Readiness,
     StockRow,
@@ -37,6 +39,8 @@ const props = defineProps<{
     currency: string;
     images: ProductImageRow[];
     image_rules: { max_count: number; max_kilobytes: number };
+    files: ProductFileRow[];
+    file_rules: { max_count: number; max_kilobytes: number; limit: number; expires_after_days: number };
     prices: PriceRow[];
     stock: StockRow | null;
     options: OptionRow[];
@@ -130,6 +134,9 @@ const remove = () => {
                         <TabsTrigger value="images">
                             Pictures<span v-if="images.length" class="ml-1.5 text-muted-foreground">{{ images.length }}</span>
                         </TabsTrigger>
+                        <TabsTrigger value="files">
+                            Downloads<template v-if="files.length"> ({{ files.length }})</template>
+                        </TabsTrigger>
                         <TabsTrigger value="pricing">Price and stock</TabsTrigger>
                         <TabsTrigger value="variants">
                             Options and variants<span v-if="hasVariants" class="ml-1.5 text-muted-foreground">{{ variants.length }}</span>
@@ -152,6 +159,24 @@ const remove = () => {
                             </CardHeader>
                             <CardContent>
                                 <ProductImagesSection :product-id="product.id" :images="images" :rules="image_rules" :can="can" />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="files">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Downloads</CardTitle>
+                                <CardDescription>Digital goods: the files a customer receives after paying.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ProductFilesSection
+                                    :product-id="product.id"
+                                    :files="files"
+                                    :rules="file_rules"
+                                    :requires-shipping="product.requires_shipping"
+                                    :can="can"
+                                />
                             </CardContent>
                         </Card>
                     </TabsContent>

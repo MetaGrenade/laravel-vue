@@ -29,7 +29,9 @@ const saving = computed(() => {
 <template>
     <p v-if="price" class="flex flex-wrap items-baseline gap-x-2">
         <span v-if="from" class="text-sm text-muted-foreground">From</span>
-        <span class="font-semibold tabular-nums" :class="large ? 'text-3xl' : 'text-lg'">{{ formatMoney(price.amount, price.currency) }}</span>
+        <span class="font-semibold tabular-nums" :class="large ? 'text-3xl' : 'text-lg'">{{
+            Number(price.amount) === 0 ? 'Free' : formatMoney(price.amount, price.currency)
+        }}</span>
         <template v-if="price.compare_at_amount">
             <span class="sr-only">Was</span>
             <span class="text-muted-foreground tabular-nums line-through" :class="large ? 'text-lg' : 'text-sm'">{{

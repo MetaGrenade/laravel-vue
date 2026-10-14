@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\Commerce\CheckoutException;
 use App\Support\Commerce\CustomerDetails;
 use App\Support\Commerce\OrderPricer;
+use App\Support\Commerce\Pricing;
 
 /**
  * The discount code on a shopper's cart: putting one on, taking it off, and describing it for the
@@ -56,22 +57,36 @@ class CartCoupons
     }
 
     /**
+     * What the cart costs now, with its code applied, for the cart page: priced the way checkout will
+     * price it, but before an address is known. Null when something in the cart cannot be bought.
+     */
+    public function price(Cart $cart, ?User $user = null): ?Pricing
+    {
+        // Read afresh: the code may have been removed, or deleted, since the cart was loaded.
+        $cart->unsetRelation('coupon');
+
+        try {
+            return $this->pricer->price($cart, customer: $this->customerFor($user));
+        } catch (CheckoutException) {
+            return null;
+        }
+    }
+
+    /**
      * The code on the cart as the cart page shows it, or null when there is none.
      *
+     * @param  Pricing|null  $pricing  The cart as {@see self::price()} returned it.
      * @return array{code: string, applied: bool, problem: string|null, discount: string|null, free_shipping: bool}|null
      */
-    public function describe(Cart $cart, ?User $user = null): ?array
+    public function describe(Cart $cart, ?Pricing $pricing): ?array
     {
-        $cart->unsetRelation('coupon');
         $cart->loadMissing('coupon');
 
         if ($cart->coupon === null) {
             return null;
         }
 
-        try {
-            $pricing = $this->pricer->price($cart, customer: $this->customerFor($user));
-        } catch (CheckoutException $exception) {
+        if ($pricing === null) {
             // Something in the cart is unavailable: the cart page says so, and the code waits.
             return ['code' => $cart->coupon->code, 'applied' => false, 'problem' => null, 'discount' => null, 'free_shipping' => false];
         }

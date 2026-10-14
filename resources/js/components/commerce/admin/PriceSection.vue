@@ -131,6 +131,7 @@ const remove = () => {
                             placeholder="25.00"
                             :aria-invalid="!!form.errors.amount || undefined"
                         />
+                        <p class="text-xs text-muted-foreground">Enter 0 for a free product (a free download, for example).</p>
                         <InputError :message="form.errors.amount" />
                     </div>
 

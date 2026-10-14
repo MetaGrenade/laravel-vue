@@ -9,6 +9,7 @@ use App\Http\Requests\Commerce\CheckoutRequest;
 use App\Models\Address;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\ProductFile;
 use App\Models\TaxRate;
 use App\Models\User;
 use App\Payments\PaymentManager;
@@ -19,6 +20,7 @@ use App\Support\Commerce\CheckoutStarter;
 use App\Support\Commerce\Countries;
 use App\Support\Commerce\CustomerDetails;
 use App\Support\Commerce\Destination;
+use App\Support\Commerce\Digital\DownloadDelivery;
 use App\Support\Commerce\InvalidCheckoutInput;
 use App\Support\Commerce\OrderAlreadyPaidException;
 use App\Support\Commerce\OrderPricer;
@@ -131,7 +133,7 @@ class CheckoutController extends Controller
      * Where the customer lands after paying. Anyone holding the signed link
      * (a guest) or an owner of the order may open it.
      */
-    public function complete(Request $request, Order $order, PaymentManager $payments): Response
+    public function complete(Request $request, Order $order, PaymentManager $payments, DownloadDelivery $delivery): Response
     {
         abort_unless($request->hasValidSignature() || Gate::allows('view', $order), 403);
 
@@ -153,7 +155,14 @@ class CheckoutController extends Controller
 
         app(Seo::class)->title('Order '.$order->number)->noindex();
 
+        $downloads = $delivery->forOrder($order);
+
         return Inertia::render('commerce/CheckoutComplete', [
+            // Fresh signed links each time the page is opened (or polled while payment is confirmed).
+            'downloads' => $downloads,
+            // Not paid yet, but something in it will deliver files: say where they will appear.
+            'downloadsPending' => $downloads === [] && $order->status === OrderStatus::Pending
+                && ProductFile::query()->whereIn('product_id', $order->items->pluck('product_id')->filter()->all())->exists(),
             'order' => [
                 'number' => $order->number,
                 'status' => $order->status->value,

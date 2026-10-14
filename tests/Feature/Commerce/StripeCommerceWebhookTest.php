@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\SystemSetting;
 use App\Notifications\OrderConfirmation;
+use App\Support\Commerce\Digital\DigitalFulfilment;
 use App\Support\Commerce\InventoryReserver;
 use App\Support\Commerce\OrderLifecycle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -296,11 +297,11 @@ class StripeCommerceWebhookTest extends TestCase
         $state = new \stdClass;
         $state->fail = true;
 
-        $this->app->bind(OrderLifecycle::class, fn ($app) => new class($app->make(InventoryReserver::class), $state) extends OrderLifecycle
+        $this->app->bind(OrderLifecycle::class, fn ($app) => new class($app->make(InventoryReserver::class), $app->make(DigitalFulfilment::class), $state) extends OrderLifecycle
         {
-            public function __construct(InventoryReserver $inventory, private readonly \stdClass $state)
+            public function __construct(InventoryReserver $inventory, DigitalFulfilment $digital, private readonly \stdClass $state)
             {
-                parent::__construct($inventory);
+                parent::__construct($inventory, $digital);
             }
 
             public function markPaid(Order $order, Payment $payment, array $paymentAttributes = []): bool

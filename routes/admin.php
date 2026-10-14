@@ -12,12 +12,14 @@ use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\Catalogue\OptionController;
 use App\Http\Controllers\Admin\Catalogue\PriceController;
 use App\Http\Controllers\Admin\Catalogue\ProductController;
+use App\Http\Controllers\Admin\Catalogue\ProductFileController;
 use App\Http\Controllers\Admin\Catalogue\ProductImageController;
 use App\Http\Controllers\Admin\Catalogue\StockController;
 use App\Http\Controllers\Admin\Catalogue\TaxonomyController;
 use App\Http\Controllers\Admin\Catalogue\VariantController;
 use App\Http\Controllers\Admin\CommerceController;
 use App\Http\Controllers\Admin\CommerceOrderController;
+use App\Http\Controllers\Admin\CommerceOrderDownloadController;
 use App\Http\Controllers\Admin\CommerceOrderRefundController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\FaqCategoryController;
@@ -234,6 +236,20 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
                 ->middleware('can:commerce.acp.delete')
                 ->name('images.destroy');
 
+            // The files a product delivers once it is paid for.
+            Route::post('products/{product}/files', [ProductFileController::class, 'store'])
+                ->middleware('can:commerce.acp.create')
+                ->name('files.store');
+            Route::put('files/{file}', [ProductFileController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('files.update');
+            Route::post('files/{file}/replace', [ProductFileController::class, 'replace'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('files.replace');
+            Route::delete('files/{file}', [ProductFileController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('files.destroy');
+
             // Brands, categories and tags.
             Route::get('taxonomy', [TaxonomyController::class, 'index'])->name('taxonomy.index');
             Route::post('taxonomy/{type}', [TaxonomyController::class, 'store'])
@@ -284,6 +300,15 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
             Route::post('orders/{order}/notes', [CommerceOrderController::class, 'storeNote'])
                 ->middleware('can:commerce.acp.edit')
                 ->name('orders.notes.store');
+            Route::post('orders/{order}/downloads/{grant}/reset', [CommerceOrderDownloadController::class, 'reset'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('orders.downloads.reset');
+            Route::post('orders/{order}/downloads/{grant}/revoke', [CommerceOrderDownloadController::class, 'revoke'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('orders.downloads.revoke');
+            Route::post('orders/{order}/downloads/{grant}/restore', [CommerceOrderDownloadController::class, 'restore'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('orders.downloads.restore');
             Route::post('orders/{order}/check-payment', [CommerceOrderController::class, 'checkPayment'])
                 ->middleware('can:commerce.acp.edit')
                 ->name('orders.check-payment');

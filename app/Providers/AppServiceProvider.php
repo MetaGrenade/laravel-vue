@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Address;
 use App\Models\Blog;
 use App\Models\BlogComment;
+use App\Models\DownloadGrant;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
@@ -155,6 +156,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('search', fn (Request $request) => Limit::perMinute(60)->by('search:'.$byUserOrIp($request)));
 
         RateLimiter::for('billing', fn (Request $request) => Limit::perMinute(10)->by('billing:'.$byUserOrIp($request)));
+
+        // Files are big: a purchased download is limited per order and address, not just per person.
+        RateLimiter::for('downloads', function (Request $request) use ($byUserOrIp) {
+            $grant = $request->route('grant');
+            $grant = $grant instanceof DownloadGrant ? $grant->public_id : (string) $grant;
+
+            return Limit::perMinute(20)->by('downloads:'.$byUserOrIp($request).'|'.$grant);
+        });
 
         // Trying discount codes: every attempt counts, right or wrong, so a code cannot be guessed.
         RateLimiter::for('coupons', fn (Request $request) => [

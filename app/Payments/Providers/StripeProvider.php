@@ -115,6 +115,12 @@ class StripeProvider implements PaymentProvider
             $net = $unit->multiply($item->quantity)->subtract(Money::parse($item->discount_total, $order->currency));
             $linesTotal = $linesTotal->add($net);
 
+            // A line that costs nothing (a free item beside paid ones, or one a code took everything off)
+            // adds nothing to what is charged and is left out of the Checkout page.
+            if ($net->isZero()) {
+                continue;
+            }
+
             foreach ($this->itemLines($item->description ?: 'Item', $item->quantity, $unit, $net, $order->currency) as $line) {
                 $lines[] = $line;
             }

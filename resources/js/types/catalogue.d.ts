@@ -88,6 +88,19 @@ export interface Readiness {
     text: string;
 }
 
+/** A file a product delivers once it is paid for. */
+export interface ProductFileRow {
+    id: number;
+    /** What the customer sees. */
+    name: string;
+    /** What the file is saved as when downloaded. */
+    original_name: string;
+    size: number;
+    mime: string | null;
+    sha256: string;
+    is_active: boolean;
+}
+
 export interface Capabilities {
     create: boolean;
     edit: boolean;

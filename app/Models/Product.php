@@ -70,6 +70,16 @@ class Product extends Model
     }
 
     /**
+     * The files this product delivers once it is paid for, in the order staff arranged them.
+     *
+     * @return HasMany<ProductFile, $this>
+     */
+    public function files(): HasMany
+    {
+        return $this->hasMany(ProductFile::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
      * @return HasMany<ProductVariant, $this>
      */
     public function variants(): HasMany

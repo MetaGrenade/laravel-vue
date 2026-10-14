@@ -163,7 +163,9 @@ onBeforeUnmount(() => clearTimeout(timer));
 const regionRequired = computed(() => Boolean(props.quote.tax?.region_required));
 
 const cannotShip = computed(() => props.needsShipping && props.quote.shipping?.can_ship === false);
-const canPay = computed(() => props.available && !cannotShip.value && !props.quote.error);
+// Nothing to pay (a free item, or a code that covers it all): no payment provider is needed.
+const isFree = computed(() => props.quote.grand_total !== undefined && Number(props.quote.grand_total) === 0);
+const canPay = computed(() => (props.available || isFree.value) && !cannotShip.value && !props.quote.error);
 
 const submit = () => {
     form.transform((data) => {
@@ -419,10 +421,13 @@ const submit = () => {
                         <p v-if="props.quote.error" class="text-sm text-destructive">{{ props.quote.error }}</p>
                         <Button type="submit" size="lg" class="w-full" :disabled="form.processing || !canPay">
                             <LoaderCircle v-if="form.processing" class="size-4 animate-spin" />
-                            <Lock v-else class="size-4" />
-                            {{ form.processing ? 'Redirecting…' : `Pay ${money(props.quote.grand_total ?? props.cart.subtotal)}` }}
+                            <Lock v-else-if="!isFree" class="size-4" />
+                            <template v-if="form.processing">{{ isFree ? 'Placing your order…' : 'Redirecting…' }}</template>
+                            <template v-else-if="isFree">Place your order</template>
+                            <template v-else>Pay {{ money(props.quote.grand_total ?? props.cart.subtotal) }}</template>
                         </Button>
-                        <p v-if="props.available" class="text-center text-xs text-muted-foreground">
+                        <p v-if="isFree" class="text-center text-xs text-muted-foreground">There is nothing to pay for this order.</p>
+                        <p v-else-if="props.available" class="text-center text-xs text-muted-foreground">
                             You'll pay securely on {{ props.provider }}'s page. We never see your card details.
                         </p>
                         <p v-else class="text-center text-sm text-destructive">Checkout isn't available right now. Please try again later.</p>

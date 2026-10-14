@@ -12,6 +12,7 @@ use App\Models\OrderItem;
 use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\ProductFile;
 use App\Models\ProductImage;
 use App\Models\ProductOption;
 use App\Models\ProductTag;
@@ -146,6 +147,7 @@ class ProductController extends Controller
             'tags:id',
             'prices',
             'images',
+            'files',
             'options' => fn ($query) => $query->orderBy('position')->orderBy('id'),
             'options.values' => fn ($query) => $query->orderBy('position')->orderBy('id'),
         ]);
@@ -198,6 +200,21 @@ class ProductController extends Controller
             'image_rules' => [
                 'max_count' => (int) config('commerce.images.max_per_product', 12),
                 'max_kilobytes' => (int) config('commerce.images.max_kilobytes', 5120),
+            ],
+            'files' => $product->files->map(fn (ProductFile $file) => [
+                'id' => $file->id,
+                'name' => $file->name,
+                'original_name' => $file->original_name,
+                'size' => $file->size,
+                'mime' => $file->mime,
+                'sha256' => $file->sha256,
+                'is_active' => $file->is_active,
+            ])->values(),
+            'file_rules' => [
+                'max_count' => (int) config('commerce.downloads.max_per_product', 20),
+                'max_kilobytes' => (int) config('commerce.downloads.max_kilobytes', 102400),
+                'limit' => (int) config('commerce.downloads.limit', 10),
+                'expires_after_days' => (int) config('commerce.downloads.expires_after_days', 0),
             ],
             'prices' => $product->prices->map(fn (Price $price) => $this->priceRow($price, $currency))->values(),
             'stock' => $this->stockRow($items->first(fn (InventoryItem $item) => $item->product_variant_id === null), $movements, $usedByOrders),

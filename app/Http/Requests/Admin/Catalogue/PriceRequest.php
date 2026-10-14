@@ -75,11 +75,8 @@ class PriceRequest extends FormRequest
             $currency = $price->currency ?? strtoupper((string) config('commerce.currency', 'USD'));
             $amount = Money::parse((string) $this->input('amount'), $currency);
 
-            if ($amount->minor <= 0) {
-                $validator->errors()->add('amount', 'The price must be more than zero.');
-
-                return;
-            }
+            // A price of zero is allowed: it makes a free product (a free download), whose orders cost
+            // nothing and are paid on the spot. The amount format already refuses a negative price.
 
             // A zero-decimal currency (yen) has no cents, so 500.50 would be charged as 501.
             if (Money::exponentFor($currency) === 0 && preg_match('/\.\d*[1-9]/', (string) $this->input('amount'))) {

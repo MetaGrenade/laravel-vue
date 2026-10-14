@@ -16,6 +16,7 @@ use App\Payments\Capability;
 use App\Payments\Data\ProviderRefund;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\PaymentManager;
+use App\Support\Commerce\Digital\DigitalFulfilment;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -47,6 +48,7 @@ class OrderRefunder
     public function __construct(
         private readonly PaymentManager $payments,
         private readonly InventoryReserver $inventory,
+        private readonly DigitalFulfilment $digital,
     ) {}
 
     /**
@@ -467,6 +469,9 @@ class OrderRefunder
         }
 
         $order->forceFill($attributes)->save();
+
+        // Downloads follow the money: they end with a refund in full, and return if that refund fails.
+        $this->digital->syncRevocation($order);
     }
 
     private function recordEvent(Order $order, Refund $refund, string $type, string $message): void

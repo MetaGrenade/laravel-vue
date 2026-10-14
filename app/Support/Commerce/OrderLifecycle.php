@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Models\Payment;
 use App\Models\User;
+use App\Support\Commerce\Digital\DigitalFulfilment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -23,7 +24,10 @@ use Illuminate\Support\Facades\Log;
  */
 class OrderLifecycle
 {
-    public function __construct(private readonly InventoryReserver $inventory) {}
+    public function __construct(
+        private readonly InventoryReserver $inventory,
+        private readonly DigitalFulfilment $digital,
+    ) {}
 
     /**
      * Record that a payment succeeded. Returns false when the order was
@@ -89,8 +93,57 @@ class OrderLifecycle
 
             DB::afterCommit(fn () => OrderPaid::dispatch($order));
 
+            $this->deliver($order);
+
             return true;
         });
+    }
+
+    /**
+     * Pay an order that costs nothing (a free product, or a discount code that covers all of it). There
+     * is no payment to record and no provider to ask: the order is simply paid, the same way, and the
+     * customer is told. Returns false for an order that is not pending or has something to pay.
+     */
+    public function markFree(Order $order): bool
+    {
+        return DB::transaction(function () use ($order) {
+            $order = $this->lock($order);
+
+            if ($order->status !== OrderStatus::Pending || $order->isPaid() || ! Money::parse($order->grand_total, $order->currency)->isZero()) {
+                return false;
+            }
+
+            $order->forceFill([
+                'status' => OrderStatus::Processing,
+                'payment_status' => OrderPaymentStatus::Paid,
+                'payment_provider' => null,
+                'paid_at' => now(),
+                'expires_at' => null,
+            ])->save();
+
+            $this->consumeCart($order);
+
+            OrderEvent::record($order, OrderEvent::PAID, 'Nothing to pay: the order total is zero');
+
+            DB::afterCommit(fn () => OrderPaid::dispatch($order));
+
+            $this->deliver($order);
+
+            return true;
+        });
+    }
+
+    /**
+     * What a paid order owes in digital goods: the right to download its files, and, when the downloads
+     * are all there is to deliver (nothing to ship, nothing to send by hand), completion.
+     */
+    private function deliver(Order $order): void
+    {
+        $this->digital->grant($order);
+
+        if ($this->digital->isDeliveredInFull($order)) {
+            $this->fulfil($order, notifyCustomer: false);
+        }
     }
 
     /**

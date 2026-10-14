@@ -70,10 +70,6 @@ class CheckoutStarter
     {
         $provider = $this->payments->active();
 
-        if (! $provider->isConfigured()) {
-            throw new CheckoutException('Checkout is not available right now. Please try again later.');
-        }
-
         // Pressing the button twice must not create two orders.
         $existing = $this->placer->existing($idempotencyKey);
 
@@ -81,13 +77,35 @@ class CheckoutStarter
             return ['order' => $existing, 'url' => $this->resumeUrl($existing)];
         }
 
+        // Something to pay needs a provider to pay through. (An order that costs nothing needs none.)
+        $requireProvider = function (Pricing $pricing) use ($provider): void {
+            if (! $pricing->grandTotal->isZero() && ! $provider->isConfigured()) {
+                throw new CheckoutException('Checkout is not available right now. Please try again later.');
+            }
+        };
+
+        // Priced and checked BEFORE the cart's earlier checkout is touched. Replacing it closes that
+        // session for good, so an order that cannot be placed (a provider that has lost part of its
+        // configuration, an address that is not accepted) must not cost the shopper the checkout they
+        // could still have paid.
+        $requireProvider($this->placer->preview($cart, $customer, $input));
+
         $this->supersedeEarlierCheckouts($cart);
 
-        $order = $this->placer->place($cart, $customer, $provider->key(), $input, $idempotencyKey);
+        // Checked again as the order is written, in case something changed in between.
+        $order = $this->placer->place($cart, $customer, $provider->key(), $input, $idempotencyKey, $requireProvider);
 
         // Should a concurrent duplicate ever slip past the lock, it lands on the order the other request placed.
         if ($order->payments()->exists()) {
             return ['order' => $order, 'url' => $this->resumeUrl($order)];
+        }
+
+        // An order that costs nothing (a free product, or a code that covers all of it) is paid on the
+        // spot. No payment is taken, so no provider is asked, or even needed.
+        if (Money::parse($order->grand_total, $order->currency)->isZero()) {
+            $this->lifecycle->markFree($order);
+
+            return ['order' => $order->refresh(), 'url' => $this->completeUrl($order)];
         }
 
         try {
