@@ -7,6 +7,7 @@ use App\Http\Controllers\BlogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Ecommerce\CartController;
 use App\Http\Controllers\Ecommerce\CartCouponController;
+use App\Http\Controllers\Ecommerce\CartGiftCardController;
 use App\Http\Controllers\Ecommerce\CheckoutController;
 use App\Http\Controllers\Ecommerce\DownloadController;
 use App\Http\Controllers\Ecommerce\OrderController;
@@ -72,6 +73,14 @@ Route::middleware('section.enabled:commerce')->group(function () {
         Route::delete('/cart/coupon', [CartCouponController::class, 'destroy'])
             ->middleware('throttle:interactions')
             ->name('shop.cart.coupon.destroy');
+        // A gift card code is as guessable as a discount code is not (80 bits), but it is worth money,
+        // so trying them is slowed right down all the same.
+        Route::post('/cart/gift-card', [CartGiftCardController::class, 'store'])
+            ->middleware('throttle:coupons')
+            ->name('shop.cart.gift-card.store');
+        Route::delete('/cart/gift-card', [CartGiftCardController::class, 'destroy'])
+            ->middleware('throttle:interactions')
+            ->name('shop.cart.gift-card.destroy');
 
         // A customer's own review of a product (one each: writing again changes it).
         Route::middleware('auth')->group(function () {

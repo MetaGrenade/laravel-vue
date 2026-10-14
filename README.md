@@ -4,7 +4,7 @@ A batteries-included boilerplate for building SaaS products, online shops and la
 
 ![Forum Page Example](https://i.imgur.com/gYNFkFl.png)
 
-> **Status: pre-1.0.** The shop now works end to end (catalogue, cart, discount codes, shipping and tax, Stripe checkout, orders, refunds, digital downloads and licence keys). Gift cards, reviews and wishlists, Tebex payments, plan entitlements and search at scale are still ahead; the road to a stable 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md). Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+> **Status: pre-1.0.** The shop now works end to end (catalogue, cart, discount codes and gift cards, shipping and tax, Stripe checkout, orders, refunds, digital downloads and licence keys, wishlists and reviews). Tebex payments, plan entitlements and search at scale are still ahead; the road to a stable 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md). Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Contents
 - [Stack Highlights](#stack-highlights) · [Application Modules](#application-modules) · [Project Structure](#project-structure)
@@ -35,9 +35,10 @@ A batteries-included boilerplate for building SaaS products, online shops and la
   - **Checkout**: guest or signed-in, an address book (Settings → Addresses), shipping zones and rates, a tax-rate table and a live quote as the shopper types. Payment happens on hosted Stripe Checkout; stock is held for an unpaid order and released when it expires. Orders that cost nothing are paid on the spot without a provider.
   - **Orders & refunds**: an order lifecycle with an append-only history, receipts and shipping emails, fulfilment with tracking, cancellation, notes, and full or partial refunds through Stripe (its own permission, `commerce.acp.refund`).
   - **Digital goods**: files kept on a private disk, per-order download grants, short-lived signed links, download limits and optional expiry, revoked automatically by a full refund. **Licence keys** are sold from an encrypted pool tied to the stock count (so a key is never sold twice), handed over when the order is paid and hidden again by a full refund.
+  - **Gift cards**: staff issue stored value (the code is shown once and never kept, only its hash and last four characters), customers spend it at checkout on the whole order, shipping and tax included, one card per order. An order the card pays in full needs no payment provider, the card's share is given back if the order is not paid, and refunds go back onto the card first. A ledger records every change to a balance.
   - **Wishlists & reviews**: customers save products to a private wishlist and review what they bought (1 to 5 stars, plain text, "Verified purchase" for buyers); staff choose which reviews wait for approval and publish, reject or delete them in the ACP. Ratings show on product cards, the product page and its structured data.
-  - **Admin**: Commerce, Products, Orders, Reviews, Brands and tags, Shipping, Tax rates and Discount codes in the ACP.
-  - **Not built yet**: gift cards and Tebex (both on the roadmap).
+  - **Admin**: Commerce, Products, Orders, Reviews, Brands and tags, Shipping, Tax rates, Discount codes and Gift cards in the ACP.
+  - **Not built yet**: selling gift cards as a product, and Tebex (on the roadmap).
 - **Polls & Surveys**: Polls with admin management, voting and an API.
 - **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics (database search today; Meilisearch is planned for 1.0).
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
@@ -177,6 +178,7 @@ Settings that can be changed in `.env` (full table in [docs/commerce.md](docs/co
 | `COMMERCE_DOWNLOAD_LIMIT` | `10` | Downloads of each file per order (`0` = unlimited). |
 | `COMMERCE_DOWNLOAD_EXPIRY_DAYS` | `0` | Days after payment that downloads stop (`0` = never). |
 | `COMMERCE_DOWNLOAD_LINK_MINUTES` | `30` | How long a download link on the order page works. |
+| `COMMERCE_GIFT_CARDS` | `true` | Accept gift cards at checkout (`false` hides the box; cards and balances are kept). |
 | `COMMERCE_WISHLIST_MAX` | `200` | Most products one customer can save. |
 | `COMMERCE_REVIEWS` | `true` | Allow and show product reviews. |
 | `COMMERCE_REVIEWS_REQUIRE_PURCHASE` | `false` | Only customers with a paid order for the product can review it. |

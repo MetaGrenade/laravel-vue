@@ -79,7 +79,7 @@ class CheckoutStarter
 
         // Something to pay needs a provider to pay through. (An order that costs nothing needs none.)
         $requireProvider = function (Pricing $pricing) use ($provider): void {
-            if (! $pricing->grandTotal->isZero() && ! $provider->isConfigured()) {
+            if (! $pricing->amountDue()->isZero() && ! $provider->isConfigured()) {
                 throw new CheckoutException('Checkout is not available right now. Please try again later.');
             }
         };
@@ -102,7 +102,7 @@ class CheckoutStarter
 
         // An order that costs nothing (a free product, or a code that covers all of it) is paid on the
         // spot. No payment is taken, so no provider is asked, or even needed.
-        if (Money::parse($order->grand_total, $order->currency)->isZero()) {
+        if ($order->amountDue()->isZero()) {
             $this->lifecycle->markFree($order);
 
             return ['order' => $order->refresh(), 'url' => $this->completeUrl($order)];
@@ -130,7 +130,8 @@ class CheckoutStarter
             [
                 'order_id' => $order->id,
                 'status' => PaymentStatus::Pending,
-                'amount' => $order->grand_total,
+                // What the provider takes: the total less any part a gift card paid.
+                'amount' => $order->amountDue()->toDecimal(),
                 'currency' => $order->currency,
                 'checkout_url' => $session->redirectUrl,
                 'expires_at' => $session->expiresAt,

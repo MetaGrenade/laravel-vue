@@ -29,6 +29,7 @@ use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\ForumBoardController;
 use App\Http\Controllers\Admin\ForumCategoryController;
 use App\Http\Controllers\Admin\ForumReportController;
+use App\Http\Controllers\Admin\GiftCardController;
 use App\Http\Controllers\Admin\PollController;
 use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\ShippingRateController;
@@ -361,6 +362,28 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
             Route::delete('coupons/{coupon}', [CouponController::class, 'destroy'])
                 ->middleware('can:commerce.acp.delete')
                 ->name('coupons.destroy');
+
+            // Gift cards. Making one, adding value and replacing a code create value, so they need the create permission.
+            Route::get('gift-cards', [GiftCardController::class, 'index'])->name('gift-cards.index');
+            Route::get('gift-cards/create', [GiftCardController::class, 'create'])
+                ->middleware('can:commerce.acp.create')
+                ->name('gift-cards.create');
+            Route::post('gift-cards', [GiftCardController::class, 'store'])
+                ->middleware('can:commerce.acp.create')
+                ->name('gift-cards.store');
+            Route::get('gift-cards/{giftCard}', [GiftCardController::class, 'show'])->name('gift-cards.show');
+            Route::patch('gift-cards/{giftCard}', [GiftCardController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('gift-cards.update');
+            Route::post('gift-cards/{giftCard}/adjust', [GiftCardController::class, 'adjust'])
+                ->middleware('can:commerce.acp.create')
+                ->name('gift-cards.adjust');
+            Route::post('gift-cards/{giftCard}/regenerate', [GiftCardController::class, 'regenerate'])
+                ->middleware('can:commerce.acp.create')
+                ->name('gift-cards.regenerate');
+            Route::delete('gift-cards/{giftCard}', [GiftCardController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('gift-cards.destroy');
 
             // Product reviews: publish or reject what customers wrote.
             Route::get('reviews', [CommerceReviewController::class, 'index'])->name('reviews.index');

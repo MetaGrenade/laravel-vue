@@ -18,6 +18,7 @@ class Cart extends Model
         'currency',
         'subtotal',
         'coupon_id',
+        'gift_card_id',
         'metadata',
     ];
 
@@ -42,6 +43,16 @@ class Cart extends Model
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class);
+    }
+
+    /**
+     * The gift card the shopper applied, if any. Checked again whenever the cart is priced.
+     *
+     * @return BelongsTo<GiftCard, $this>
+     */
+    public function giftCard(): BelongsTo
+    {
+        return $this->belongsTo(GiftCard::class);
     }
 
     /**

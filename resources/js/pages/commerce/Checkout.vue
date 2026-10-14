@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AddressFields from '@/components/commerce/AddressFields.vue';
 import CouponCode from '@/components/commerce/CouponCode.vue';
+import GiftCardCode from '@/components/commerce/GiftCardCode.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +33,8 @@ interface Props {
     billingCountries: string[];
     addresses: SavedAddress[];
     quote: CheckoutQuote;
+    /** Whether the shop takes gift cards (the box is hidden when it does not). */
+    giftCardsEnabled: boolean;
 }
 
 const props = defineProps<Props>();
@@ -163,8 +166,11 @@ onBeforeUnmount(() => clearTimeout(timer));
 const regionRequired = computed(() => Boolean(props.quote.tax?.region_required));
 
 const cannotShip = computed(() => props.needsShipping && props.quote.shipping?.can_ship === false);
-// Nothing to pay (a free item, or a code that covers it all): no payment provider is needed.
-const isFree = computed(() => props.quote.grand_total !== undefined && Number(props.quote.grand_total) === 0);
+// What is left to pay by card, once a gift card has paid its share.
+const amountDue = computed(() => props.quote.amount_due ?? props.quote.grand_total);
+const paidByGiftCard = computed(() => Number(props.quote.gift_card_total ?? 0) > 0);
+// Nothing to pay (a free item, a code or a gift card that covers it all): no payment provider is needed.
+const isFree = computed(() => amountDue.value !== undefined && Number(amountDue.value) === 0);
 const canPay = computed(() => (props.available || isFree.value) && !cannotShip.value && !props.quote.error);
 
 const submit = () => {
@@ -424,9 +430,11 @@ const submit = () => {
                             <Lock v-else-if="!isFree" class="size-4" />
                             <template v-if="form.processing">{{ isFree ? 'Placing your order…' : 'Redirecting…' }}</template>
                             <template v-else-if="isFree">Place your order</template>
-                            <template v-else>Pay {{ money(props.quote.grand_total ?? props.cart.subtotal) }}</template>
+                            <template v-else>Pay {{ money(amountDue ?? props.cart.subtotal) }}</template>
                         </Button>
-                        <p v-if="isFree" class="text-center text-xs text-muted-foreground">There is nothing to pay for this order.</p>
+                        <p v-if="isFree" class="text-center text-xs text-muted-foreground">
+                            {{ paidByGiftCard ? 'Your gift card pays for all of this order.' : 'There is nothing to pay for this order.' }}
+                        </p>
                         <p v-else-if="props.available" class="text-center text-xs text-muted-foreground">
                             You'll pay securely on {{ props.provider }}'s page. We never see your card details.
                         </p>
@@ -452,6 +460,7 @@ const submit = () => {
                         </ul>
                         <Separator />
                         <CouponCode :coupon="props.quote.coupon ?? null" :currency="currency" :discount="itemsDiscount" />
+                        <GiftCardCode v-if="props.giftCardsEnabled" :gift-card="props.quote.gift_card ?? null" :currency="currency" />
                         <Separator />
                         <dl class="space-y-2 text-sm">
                             <div class="flex justify-between">
@@ -486,6 +495,16 @@ const submit = () => {
                             <span>Total</span>
                             <span class="tabular-nums">{{ money(props.quote.grand_total ?? props.cart.subtotal) }}</span>
                         </div>
+                        <template v-if="paidByGiftCard">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-muted-foreground">Gift card (ending {{ props.quote.gift_card?.last_four }})</span>
+                                <span class="tabular-nums">−{{ money(props.quote.gift_card_total) }}</span>
+                            </div>
+                            <div class="flex justify-between text-base font-semibold">
+                                <span>To pay by card</span>
+                                <span class="tabular-nums">{{ money(amountDue) }}</span>
+                            </div>
+                        </template>
                         <Link :href="route('shop.cart')" class="block text-center text-sm text-muted-foreground underline">Edit cart</Link>
                     </CardContent>
                 </Card>

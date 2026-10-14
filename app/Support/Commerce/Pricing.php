@@ -3,6 +3,7 @@
 namespace App\Support\Commerce;
 
 use App\Enums\CouponType;
+use App\Models\GiftCard;
 use App\Support\Commerce\Discounts\Discount;
 
 /**
@@ -13,6 +14,9 @@ use App\Support\Commerce\Discounts\Discount;
  * The totals always add up as: subtotal, plus shipping, plus tax, less the discount. Shipping
  * and the subtotal are shown before any discount (a free-shipping code is part of the discount),
  * and tax is charged on what is left after it.
+ *
+ * A gift card is not a discount: it pays for part of the finished total (shipping and tax included), so it
+ * changes what the payment provider is asked for, `amountDue()`, and nothing about the price or the tax.
  */
 final readonly class Pricing
 {
@@ -23,6 +27,11 @@ final readonly class Pricing
      * @param  Discount|null  $applied  The discount code's effect, when one is on the cart and can be used.
      * @param  string|null  $couponCode  The code on the cart, whether or not it could be used.
      * @param  string|null  $couponProblem  Why the code on the cart could not be used, for the shopper.
+     * @param  GiftCard|null  $giftCard  The gift card on the cart, whether or not it could be used.
+     * @param  Money|null  $giftCardAmount  What it pays of the total (nothing when it could not be used).
+     * @param  string|null  $giftCardProblem  Why the card on the cart could not be used, for the shopper.
+     * @param  Money|null  $giftCardAvailable  What the card holds for this cart (its balance, and what the cart's own unpaid
+     *                                         checkout is holding on it).
      */
     public function __construct(
         public string $currency,
@@ -42,7 +51,27 @@ final readonly class Pricing
         public ?Discount $applied = null,
         public ?string $couponCode = null,
         public ?string $couponProblem = null,
+        public ?GiftCard $giftCard = null,
+        public ?Money $giftCardAmount = null,
+        public ?string $giftCardProblem = null,
+        public ?Money $giftCardAvailable = null,
     ) {}
+
+    /**
+     * The part of the total a gift card pays.
+     */
+    public function giftCardTotal(): Money
+    {
+        return $this->giftCardAmount ?? Money::zero($this->currency);
+    }
+
+    /**
+     * What is left to pay by card: the total less the gift card's share. Zero means no payment is needed.
+     */
+    public function amountDue(): Money
+    {
+        return $this->grandTotal->subtract($this->giftCardTotal());
+    }
 
     public function shippingTotal(): Money
     {
@@ -96,6 +125,16 @@ final readonly class Pricing
             ],
             'discount_total' => $this->discount->toDecimal(),
             'grand_total' => $this->grandTotal->toDecimal(),
+            'gift_card' => $this->giftCard === null ? null : [
+                'last_four' => $this->giftCard->last_four,
+                'applied' => $this->giftCardProblem === null,
+                'problem' => $this->giftCardProblem,
+                // What it pays of this order, and what the card holds.
+                'amount' => $this->giftCardTotal()->toDecimal(),
+                'balance' => $this->giftCardAvailable?->toDecimal() ?? $this->giftCard->balance,
+            ],
+            'gift_card_total' => $this->giftCardTotal()->toDecimal(),
+            'amount_due' => $this->amountDue()->toDecimal(),
         ];
     }
 }

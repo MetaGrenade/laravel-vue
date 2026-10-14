@@ -5,8 +5,11 @@ namespace App\Support\Commerce;
 use App\Enums\OrderStatus;
 use App\Models\Cart;
 use App\Models\Coupon;
+use App\Models\GiftCard;
 use App\Models\InventoryItem;
 use App\Models\Order;
+use App\Models\OrderEvent;
+use App\Support\Commerce\GiftCards\GiftCards;
 use App\Support\Ownership;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +29,7 @@ class OrderPlacer
     public function __construct(
         private readonly OrderPricer $pricer,
         private readonly InventoryReserver $inventory,
+        private readonly GiftCards $giftCards,
     ) {}
 
     /**
@@ -51,7 +55,7 @@ class OrderPlacer
         return $this->price($cart, $customer, $input);
     }
 
-    private function price(Cart $cart, CustomerDetails $customer, CheckoutInput $input): Pricing
+    private function price(Cart $cart, CustomerDetails $customer, CheckoutInput $input, bool $countOwnHolds = true): Pricing
     {
         return $this->pricer->price(
             $cart,
@@ -60,6 +64,7 @@ class OrderPlacer
             $input->shippingRateId,
             strict: true,
             customer: $customer,
+            countOwnHolds: $countOwnHolds,
         );
     }
 
@@ -86,7 +91,14 @@ class OrderPlacer
                     $cart->setRelation('coupon', Coupon::query()->whereKey($cart->coupon_id)->lockForUpdate()->first());
                 }
 
-                $pricing = $this->price($cart, $customer, $input);
+                // The same for a gift card: two checkouts spending one card take turns, and the second prices
+                // from what the first left on it.
+                if ($cart->gift_card_id !== null) {
+                    $cart->setRelation('giftCard', GiftCard::query()->whereKey($cart->gift_card_id)->lockForUpdate()->first());
+                }
+
+                // Whatever this cart's earlier checkout held on the card has been given back by now.
+                $pricing = $this->price($cart, $customer, $input, countOwnHolds: false);
 
                 if ($accept !== null) {
                     $accept($pricing);
@@ -109,6 +121,8 @@ class OrderPlacer
                     'grand_total' => $pricing->grandTotal->toDecimal(),
                     'coupon_id' => $pricing->applied?->coupon->id,
                     'coupon_code' => $pricing->applied?->coupon->code,
+                    'gift_card_id' => $pricing->giftCardTotal()->minor > 0 ? $pricing->giftCard?->id : null,
+                    'gift_card_total' => $pricing->giftCardTotal()->toDecimal(),
                     'customer_email' => $customer->email,
                     'customer_name' => $customer->name,
                     'idempotency_key' => $idempotencyKey,
@@ -145,6 +159,14 @@ class OrderPlacer
                         'description' => $line->description,
                         'metadata' => $line->metadata,
                     ]);
+                }
+
+                // The card's share is taken now, so it cannot be spent twice while the rest is being paid, and
+                // given back if the order is cancelled. (Before the stock is held: card first, then stock.)
+                if ($pricing->giftCardTotal()->minor > 0 && $pricing->giftCard !== null) {
+                    $this->giftCards->redeem($pricing->giftCard, $pricing->giftCardTotal(), $order);
+
+                    OrderEvent::record($order, OrderEvent::GIFT_CARD_APPLIED, "Gift card ending {$pricing->giftCard->last_four} pays {$pricing->giftCardTotal()->toDecimal()} {$order->currency} of the total");
                 }
 
                 $order->load('items');

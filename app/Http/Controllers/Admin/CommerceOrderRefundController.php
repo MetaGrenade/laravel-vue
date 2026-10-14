@@ -46,9 +46,11 @@ class CommerceOrderRefundController extends Controller
         }
 
         return match ($refund->status) {
-            RefundStatus::Succeeded => back()->with('success', $refund->isProviderRefund()
-                ? "Refunded {$refund->amount} {$refund->currency}."
-                : "Recorded a refund of {$refund->amount} {$refund->currency}."),
+            RefundStatus::Succeeded => back()->with('success', match (true) {
+                $refund->isGiftCard() => "Put {$refund->amount} {$refund->currency} back on the gift card.",
+                $refund->isProviderRefund() => "Refunded {$refund->amount} {$refund->currency}.",
+                default => "Recorded a refund of {$refund->amount} {$refund->currency}.",
+            }),
             RefundStatus::Failed, RefundStatus::Canceled => back()->with('error', 'The refund was refused'.($refund->failure_reason ? ": {$refund->failure_reason}" : '.')),
             RefundStatus::Pending => back()->with('warning', 'The refund is pending. It will update when the provider confirms it; use "Check status" if it does not.'),
         };

@@ -25,6 +25,7 @@ class Refund extends Model
         'order_id',
         'payment_id',
         'user_id',
+        'gift_card_id',
         'provider',
         'provider_reference',
         'idempotency_key',
@@ -83,5 +84,22 @@ class Refund extends Model
     public function isProviderRefund(): bool
     {
         return $this->provider !== null;
+    }
+
+    /**
+     * Whether the money went back onto a gift card (the one the order was partly paid with) rather than
+     * through a payment provider. Settled at once, and never asked of a provider.
+     */
+    public function isGiftCard(): bool
+    {
+        return $this->gift_card_id !== null;
+    }
+
+    /**
+     * @return BelongsTo<GiftCard, $this>
+     */
+    public function giftCard(): BelongsTo
+    {
+        return $this->belongsTo(GiftCard::class);
     }
 }

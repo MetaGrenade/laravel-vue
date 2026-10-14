@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\OrderPaymentStatus;
 use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
+use App\Models\GiftCard;
 use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Models\Price;
@@ -72,6 +73,15 @@ class CommerceController extends Controller
                 'on_hand' => (int) InventoryItem::forSale()->where('quantity', '>', 0)->sum('quantity'),
                 'backorderable' => InventoryItem::forSale()->where('allow_backorder', true)->count(),
                 'out_of_stock' => InventoryItem::forSale()->where('allow_backorder', false)->where('quantity', '<=', 0)->count(),
+            ],
+            'gift_cards' => [
+                // Cards that can still be spent, and what the shop owes on them.
+                'active' => GiftCard::query()->where('is_active', true)
+                    ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                    ->where('balance', '>', 0)->count(),
+                'outstanding' => (float) GiftCard::query()->where('is_active', true)
+                    ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                    ->where('balance', '>', 0)->sum('balance'),
             ],
             'reviews' => [
                 'pending' => ProductReview::where('status', ReviewStatus::Pending->value)->count(),

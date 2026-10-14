@@ -38,6 +38,12 @@ class OrderEvent extends Model
 
     public const LICENCE_REPLACED = 'licence_replaced';
 
+    public const GIFT_CARD_APPLIED = 'gift_card_applied';
+
+    public const GIFT_CARD_RELEASED = 'gift_card_released';
+
+    public const GIFT_CARD_SHORT = 'gift_card_short';
+
     protected $fillable = [
         'order_id',
         'user_id',

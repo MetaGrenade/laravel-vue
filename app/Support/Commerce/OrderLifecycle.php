@@ -17,6 +17,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Support\Commerce\Digital\DigitalFulfilment;
 use App\Support\Commerce\Digital\LicenceKeys;
+use App\Support\Commerce\GiftCards\GiftCards;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -31,6 +32,7 @@ class OrderLifecycle
         private readonly InventoryReserver $inventory,
         private readonly DigitalFulfilment $digital,
         private readonly LicenceKeys $keys,
+        private readonly GiftCards $giftCards,
     ) {}
 
     /**
@@ -75,6 +77,16 @@ class OrderLifecycle
                 $this->inventory->reserve($order, enforce: false);
                 $metadata['late_payment'] = true;
 
+                // The card's share was given back when the order was cancelled. Take it again, as much as the card
+                // still has; what it cannot cover is left for a person.
+                $short = $this->giftCards->reapply($order);
+
+                if (! $short->isZero()) {
+                    $metadata['gift_card_short'] = $short->toDecimal();
+
+                    OrderEvent::record($order, OrderEvent::GIFT_CARD_SHORT, "The gift card could not cover its share again: {$short->toDecimal()} {$order->currency} is still to be settled with the customer.");
+                }
+
                 Log::warning('Payment arrived for a cancelled order; the order was reinstated.', [
                     'order' => $order->number,
                     'payment' => $payment->provider_reference,
@@ -104,16 +116,16 @@ class OrderLifecycle
     }
 
     /**
-     * Pay an order that costs nothing (a free product, or a discount code that covers all of it). There
-     * is no payment to record and no provider to ask: the order is simply paid, the same way, and the
-     * customer is told. Returns false for an order that is not pending or has something to pay.
+     * Pay an order that has nothing left to pay: a free product, a discount code that covers all of it, or a gift
+     * card that does. There is no payment to record and no provider to ask: the order is simply paid, the same
+     * way, and the customer is told. Returns false for an order that is not pending or has something to pay.
      */
     public function markFree(Order $order): bool
     {
         return DB::transaction(function () use ($order) {
             $order = $this->lock($order);
 
-            if ($order->status !== OrderStatus::Pending || $order->isPaid() || ! Money::parse($order->grand_total, $order->currency)->isZero()) {
+            if ($order->status !== OrderStatus::Pending || $order->isPaid() || ! $order->amountDue()->isZero()) {
                 return false;
             }
 
@@ -127,7 +139,9 @@ class OrderLifecycle
 
             $this->consumeCart($order);
 
-            OrderEvent::record($order, OrderEvent::PAID, 'Nothing to pay: the order total is zero');
+            OrderEvent::record($order, OrderEvent::PAID, $order->gift_card_id !== null && (float) $order->gift_card_total > 0
+                ? "Paid in full with a gift card ending {$order->giftCard?->last_four}"
+                : 'Nothing to pay: the order total is zero');
 
             DB::afterCommit(fn () => OrderPaid::dispatch($order));
 
@@ -257,6 +271,13 @@ class OrderLifecycle
 
             if ($order->status !== OrderStatus::Pending || $order->isPaid()) {
                 return false;
+            }
+
+            // The card's share first, then the stock: the order in which an order is placed.
+            $returned = $this->giftCards->release($order, $reason);
+
+            if (! $returned->isZero()) {
+                OrderEvent::record($order, OrderEvent::GIFT_CARD_RELEASED, "{$returned->toDecimal()} {$order->currency} went back onto the gift card");
             }
 
             $this->inventory->release($order, $reason);

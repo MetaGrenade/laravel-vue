@@ -17,6 +17,7 @@ use App\Payments\Data\ProviderRefund;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\PaymentManager;
 use App\Support\Commerce\Digital\DigitalFulfilment;
+use App\Support\Commerce\GiftCards\GiftCards;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -31,6 +32,11 @@ use Illuminate\Support\Facades\Log;
  * about instead of money that moved with no trace. The order's refunded total
  * is never edited: it is recomputed from the succeeded refunds every time one
  * changes, so repeating or reordering provider messages cannot drift it.
+ *
+ * An order that a gift card paid part of is refunded to the card first, up to what it paid, and the rest the way
+ * the money came (through the provider, or by hand). That makes up to two refunds for one request: the one
+ * for the card is settled at once, in the same transaction, and puts the money back on the card; the other
+ * goes through the usual steps. Both count towards what has been refunded.
  */
 class OrderRefunder
 {
@@ -49,6 +55,7 @@ class OrderRefunder
         private readonly PaymentManager $payments,
         private readonly InventoryReserver $inventory,
         private readonly DigitalFulfilment $digital,
+        private readonly GiftCards $giftCards,
     ) {}
 
     /**
@@ -68,6 +75,29 @@ class OrderRefunder
         $remaining = $total->subtract($held);
 
         return $remaining->isNegative() ? Money::zero($order->currency) : $remaining;
+    }
+
+    /**
+     * How much of what the gift card paid has not been refunded to it yet (what a refund goes to first).
+     */
+    public function giftCardRefundable(Order $order): Money
+    {
+        $zero = Money::zero($order->currency);
+
+        if ($order->gift_card_id === null) {
+            return $zero;
+        }
+
+        $held = Refund::query()
+            ->where('order_id', $order->id)
+            ->whereNotNull('gift_card_id')
+            ->whereIn('status', [RefundStatus::Pending->value, RefundStatus::Succeeded->value])
+            ->get(['amount', 'currency'])
+            ->reduce(fn (Money $carry, Refund $refund) => $carry->add($refund->money()), $zero);
+
+        $left = Money::parse($order->gift_card_total, $order->currency)->subtract($held);
+
+        return $left->isNegative() ? $zero : $left;
     }
 
     /**
@@ -232,6 +262,11 @@ class OrderRefunder
                 'processed_at' => $firstSuccess ? now() : $locked->processed_at,
             ])->save();
 
+            // The money goes back onto the card exactly once: the first time the refund succeeds.
+            if ($firstSuccess && $locked->isGiftCard()) {
+                $this->giftCards->credit($order, $locked->money(), $locked->user_id, "Order {$order->number}: refund {$locked->id}");
+            }
+
             $this->recalculate($order);
 
             if ($status === RefundStatus::Succeeded) {
@@ -240,7 +275,11 @@ class OrderRefunder
                         $order,
                         $locked,
                         OrderEvent::REFUND_SUCCEEDED,
-                        "Refunded {$locked->amount} {$locked->currency}".($locked->isProviderRefund() ? '' : ' (recorded by hand)'),
+                        "Refunded {$locked->amount} {$locked->currency}".match (true) {
+                            $locked->isGiftCard() => " to the gift card ending {$order->giftCard?->last_four}",
+                            $locked->isProviderRefund() => '',
+                            default => ' (recorded by hand)',
+                        },
                     );
                 } elseif ($changed) {
                     $this->recordEvent($order, $locked, OrderEvent::REFUND_SUCCEEDED, "Refund of {$locked->amount} {$locked->currency} went through after all");
@@ -318,45 +357,79 @@ class OrderRefunder
             throw new RefundException('Items can only go back into stock when this refund completes the order.', 'restock');
         }
 
-        $payment = $this->primaryPayment($locked);
-        $provider = null;
+        // The gift card is refunded first, up to what it paid; whatever is left goes back the way it was paid.
+        $toCard = Money::ofMinor(min($amount->minor, $this->giftCardRefundable($locked)->minor), $amount->currency);
+        $rest = $amount->subtract($toCard);
 
-        if (! $options->manual) {
-            if (
-                $payment === null
-                || blank($payment->provider_payment_id)
-                || ! in_array(Capability::REFUNDS, $this->payments->provider($payment->provider)->capabilities(), true)
-            ) {
-                throw new RefundException('The provider this order was paid through cannot refund it from here. If you returned the money another way, record the refund instead.');
+        $refund = null;
+
+        if ($rest->minor > 0) {
+            $payment = $this->primaryPayment($locked);
+            $provider = null;
+
+            if (! $options->manual) {
+                if (
+                    $payment === null
+                    || blank($payment->provider_payment_id)
+                    || ! in_array(Capability::REFUNDS, $this->payments->provider($payment->provider)->capabilities(), true)
+                ) {
+                    throw new RefundException('The provider this order was paid through cannot refund it from here. If you returned the money another way, record the refund instead.');
+                }
+
+                $provider = $payment->provider;
             }
 
-            $provider = $payment->provider;
+            $refund = Refund::create([
+                'order_id' => $locked->id,
+                'payment_id' => $payment?->id,
+                'user_id' => $by?->id,
+                'provider' => $provider,
+                'idempotency_key' => $key,
+                'status' => RefundStatus::Pending,
+                'amount' => $rest->toDecimal(),
+                'currency' => $amount->currency,
+                'reason' => $options->reason,
+                'note' => $options->note,
+                'restock' => $options->restock,
+                'notify_customer' => $options->notifyCustomer,
+            ]);
+
+            // A refund recorded by hand succeeds at once, and says so then; only one that has to be
+            // asked of the provider has a moment of being requested.
+            if (! $options->manual) {
+                $this->recordEvent(
+                    $locked,
+                    $refund,
+                    OrderEvent::REFUND_REQUESTED,
+                    "Refund requested: {$refund->amount} {$refund->currency}".($options->note ? " — {$options->note}" : ''),
+                );
+            }
         }
 
-        $refund = Refund::create([
-            'order_id' => $locked->id,
-            'payment_id' => $payment?->id,
-            'user_id' => $by?->id,
-            'provider' => $provider,
-            'idempotency_key' => $key,
-            'status' => RefundStatus::Pending,
-            'amount' => $amount->toDecimal(),
-            'currency' => $amount->currency,
-            'reason' => $options->reason,
-            'note' => $options->note,
-            'restock' => $options->restock,
-            'notify_customer' => $options->notifyCustomer,
-        ]);
+        if ($toCard->minor > 0) {
+            $cardRefund = Refund::create([
+                'order_id' => $locked->id,
+                'user_id' => $by?->id,
+                'gift_card_id' => $locked->gift_card_id,
+                // The key of the request when this is all there is to it; the other refund holds it otherwise.
+                'idempotency_key' => $refund === null ? $key : "{$key}-gift-card",
+                'status' => RefundStatus::Pending,
+                'amount' => $toCard->toDecimal(),
+                'currency' => $amount->currency,
+                'reason' => $options->reason,
+                'note' => $options->note,
+                'restock' => $options->restock,
+                // One email for one request: the other refund sends it when there is one.
+                'notify_customer' => $refund === null && $options->notifyCustomer,
+            ]);
 
-        // A refund recorded by hand succeeds at once, and says so then; only one that has to be
-        // asked of the provider has a moment of being requested.
-        if (! $options->manual) {
-            $this->recordEvent(
-                $locked,
-                $refund,
-                OrderEvent::REFUND_REQUESTED,
-                "Refund requested: {$refund->amount} {$refund->currency}".($options->note ? " — {$options->note}" : ''),
-            );
+            // Money going back onto a card needs nobody's answer: it is settled now, with the order and the
+            // card locked, and the card's ledger says so.
+            $settled = $this->settle($cardRefund, RefundStatus::Succeeded);
+
+            // What the request answers with: the refund that still has to go through the provider, if there is
+            // one, otherwise this one.
+            $refund ??= $settled;
         }
 
         return [$refund, true];

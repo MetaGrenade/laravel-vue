@@ -4,10 +4,12 @@ namespace App\Support\Commerce;
 
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\GiftCard;
 use App\Models\TaxRate;
 use App\Support\Commerce\Discounts\CouponRejected;
 use App\Support\Commerce\Discounts\Discount;
 use App\Support\Commerce\Discounts\DiscountCalculator;
+use App\Support\Commerce\GiftCards\GiftCards;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -23,7 +25,8 @@ use Illuminate\Support\Str;
  *
  * A discount code on the cart is checked again each time. Shipping is chosen from the cart before
  * any discount (a code never changes which rates are offered), the discount comes off the items or
- * the shipping charge, and tax is charged on what is left.
+ * the shipping charge, and tax is charged on what is left. A gift card on the cart then pays as much
+ * of the finished total as it holds, and is checked again each time too.
  */
 class OrderPricer
 {
@@ -32,6 +35,7 @@ class OrderPricer
         private readonly ShippingCalculator $shipping,
         private readonly TaxCalculator $tax,
         private readonly DiscountCalculator $discounts,
+        private readonly GiftCards $giftCards,
     ) {}
 
     /**
@@ -46,6 +50,9 @@ class OrderPricer
 
     /**
      * @param  CustomerDetails|null  $customer  Who is buying, when known (it decides a code's per-customer limit).
+     * @param  bool  $countOwnHolds  Count what the cart's own unpaid checkouts hold on its gift card as still there. True
+     *                               for everything shown to the shopper and checked before a checkout is replaced; false
+     *                               when the order is placed, by which time they have been given back.
      *
      * @throws CheckoutException When something in the cart cannot be bought, or (strict) the order is incomplete
      *                           or the discount code on the cart can no longer be used.
@@ -58,8 +65,9 @@ class OrderPricer
         ?int $shippingRateId = null,
         bool $strict = false,
         ?CustomerDetails $customer = null,
+        bool $countOwnHolds = true,
     ): Pricing {
-        $cart->loadMissing(['items.product', 'items.variant', 'coupon']);
+        $cart->loadMissing(['items.product', 'items.variant', 'coupon', 'giftCard']);
 
         if ($cart->items->isEmpty()) {
             throw new CheckoutException('Your cart is empty.');
@@ -114,10 +122,18 @@ class OrderPricer
             }
         }
 
-        $pricing = $this->assemble($currency, $lines, $subtotal, $needsShipping, $options, $selected, $canShip, $message, $rates, $shippingAmount, $regionRequired, $discount, $couponCode, $problem);
+        // A card switched off in the settings is ignored, though it stays on the cart.
+        $giftCard = config('commerce.gift_cards.enabled', true) ? $cart->giftCard : null;
+        $ownHolds = $giftCard !== null && $countOwnHolds ? $this->giftCards->heldByCart($cart) : Money::zero($currency);
+
+        $pricing = $this->assemble($currency, $lines, $subtotal, $needsShipping, $options, $selected, $canShip, $message, $rates, $shippingAmount, $regionRequired, $discount, $couponCode, $problem, $giftCard, $ownHolds);
 
         if ($strict && $problem !== null) {
             throw new CheckoutException("Your discount code {$couponCode} can't be used. {$problem}");
+        }
+
+        if ($strict && $pricing->giftCardProblem !== null && ! $pricing->grandTotal->isZero()) {
+            throw new CheckoutException("Your gift card ending {$giftCard->last_four} can't be used. {$pricing->giftCardProblem}");
         }
 
         return $pricing;
@@ -146,6 +162,8 @@ class OrderPricer
         ?Discount $discount,
         ?string $couponCode,
         ?string $couponProblem,
+        ?GiftCard $giftCard,
+        Money $ownHolds,
     ): Pricing {
         if ($discount !== null) {
             foreach ($lines as $index => $line) {
@@ -168,6 +186,13 @@ class OrderPricer
         $discounted = $discount?->total() ?? Money::zero($currency);
         $grandTotal = $subtotal->add($shippingAmount)->add($taxResult->total())->subtract($discounted);
 
+        // The card pays what it holds, up to the whole total. An order that costs nothing leaves it untouched.
+        $giftCardAvailable = $giftCard === null ? null : Money::ofMinor($giftCard->balanceMoney()->minor + $ownHolds->minor, $currency);
+        $giftCardProblem = $giftCard?->problem($currency, $ownHolds->minor);
+        $giftCardAmount = $giftCardAvailable !== null && $giftCardProblem === null
+            ? Money::ofMinor(max(0, min($giftCardAvailable->minor, $grandTotal->minor)), $currency)
+            : Money::zero($currency);
+
         return new Pricing(
             currency: $currency,
             lines: $lines,
@@ -186,6 +211,10 @@ class OrderPricer
             applied: $discount,
             couponCode: $couponCode,
             couponProblem: $couponProblem,
+            giftCard: $giftCard,
+            giftCardAmount: $giftCardAmount,
+            giftCardProblem: $giftCardProblem,
+            giftCardAvailable: $giftCardAvailable,
         );
     }
 
