@@ -143,8 +143,8 @@ const remove = () => {
             <template v-if="rules.limit > 0">{{ rules.limit }} {{ rules.limit === 1 ? 'time' : 'times' }} each</template>
             <template v-else>as often as the customer likes</template
             ><template v-if="rules.expires_after_days > 0">, for {{ rules.expires_after_days }} days after payment</template>. A product that is not
-            shipped and has files is completed as soon as it is paid. Uploading a new version replaces the file for everyone who bought the product, and
-            gives them their downloads of it again.
+            shipped and has files is completed as soon as it is paid. Uploading a new version replaces the file for everyone who bought the product,
+            and gives them their downloads of it again.
         </p>
         <p v-if="requiresShipping && files.length" class="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
             This product is also shipped. If it is only a download, switch off "Needs shipping" on the Details tab so orders complete as soon as they
