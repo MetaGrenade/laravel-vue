@@ -1,38 +1,23 @@
 <script setup lang="ts">
+import OrderDigitalBadges from '@/components/dashboard/OrderDigitalBadges.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
 import { paymentStatusVariant } from '@/lib/orderStatus';
+import type { CustomerOrder } from '@/types/dashboard';
 import { Head, Link } from '@inertiajs/vue3';
-
-interface OrderItem {
-    id: number;
-    description?: string | null;
-    quantity: number;
-    subtotal: string;
-}
-
-interface Order {
-    id: number;
-    number: string;
-    status: string;
-    status_label: string;
-    payment_status: string;
-    payment_status_label: string;
-    currency: string;
-    grand_total: string;
-    refunded_total: string;
-    created_at: string;
-    url: string;
-    items: OrderItem[];
-}
 
 interface Props {
     orders: {
-        data: Order[];
+        data: CustomerOrder[];
+        current_page: number;
+        last_page: number;
+        total: number;
+        prev_page_url: string | null;
+        next_page_url: string | null;
     };
 }
 
@@ -53,14 +38,15 @@ const placedOn = (value: string) => new Date(value).toLocaleDateString(undefined
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Recent orders</CardTitle>
+                    <CardTitle>Your orders</CardTitle>
+                    <CardDescription> Open an order to see its details and tracking, and to find your licence keys and downloads. </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div v-if="props.orders.data.length" class="space-y-4">
                         <div v-for="order in props.orders.data" :key="order.id" class="rounded border p-4">
                             <div class="flex flex-wrap items-center justify-between gap-4">
                                 <div>
-                                    <div class="text-lg font-semibold">Order {{ order.number }}</div>
+                                    <Link :href="order.url" class="text-lg font-semibold text-primary hover:underline">Order {{ order.number }}</Link>
                                     <p class="text-sm text-muted-foreground">Placed {{ placedOn(order.created_at) }}</p>
                                 </div>
                                 <div class="flex gap-2">
@@ -69,10 +55,12 @@ const placedOn = (value: string) => new Date(value).toLocaleDateString(undefined
                                 </div>
                             </div>
 
+                            <OrderDigitalBadges :digital="order.digital" class="mt-3" />
+
                             <Separator class="my-3" />
 
                             <div class="space-y-2">
-                                <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm">
+                                <div v-for="item in order.items" :key="item.id" class="flex justify-between gap-3 text-sm">
                                     <span>{{ item.description || 'Line item' }} (x{{ item.quantity }})</span>
                                     <span class="tabular-nums">{{ formatMoney(item.subtotal, order.currency) }}</span>
                                 </div>
@@ -91,8 +79,25 @@ const placedOn = (value: string) => new Date(value).toLocaleDateString(undefined
                                 </Button>
                             </div>
                         </div>
+
+                        <nav v-if="props.orders.last_page > 1" class="flex items-center justify-between gap-3 pt-2" aria-label="Order pages">
+                            <Button v-if="props.orders.prev_page_url" variant="outline" size="sm" as-child>
+                                <Link :href="props.orders.prev_page_url" preserve-scroll>Newer orders</Link>
+                            </Button>
+                            <span v-else />
+                            <span class="text-sm text-muted-foreground">Page {{ props.orders.current_page }} of {{ props.orders.last_page }}</span>
+                            <Button v-if="props.orders.next_page_url" variant="outline" size="sm" as-child>
+                                <Link :href="props.orders.next_page_url" preserve-scroll>Older orders</Link>
+                            </Button>
+                            <span v-else />
+                        </nav>
                     </div>
-                    <p v-else class="text-sm text-muted-foreground">You haven't placed any orders yet.</p>
+                    <div v-else class="space-y-3 text-sm text-muted-foreground">
+                        <p>You haven't placed any orders yet.</p>
+                        <Button size="sm" as-child>
+                            <Link :href="route('shop.index')">Browse the shop</Link>
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
         </div>

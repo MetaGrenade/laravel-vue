@@ -42,6 +42,7 @@ A batteries-included boilerplate for building SaaS products, online shops and la
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
 - **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, support assignment rules, team membership, the shop, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
 - **Authentication & Authorization**: Starter-kit authentication (registration, login, password reset, email verification, TOTP two-factor and social login) plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
+- **Customer Dashboard**: after sign-in, a customer sees their newest orders and a shortcut to the order pages where their licence keys and downloads are found (when the shop is enabled), their plan, their account security and shortcuts, plus their tickets, forum activity and recommended reading. Areas an administrator has switched off are left off it.
 - **Appearance Management**: System/light/dark modes synced between SSR and the client through a reusable composable.
 
 ### Website Sections & Feature Toggles
