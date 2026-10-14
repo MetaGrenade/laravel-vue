@@ -2,6 +2,7 @@
 
 namespace App\Support\Commerce\Digital;
 
+use App\Models\DownloadCount;
 use App\Models\Product;
 use App\Models\ProductFile;
 use App\Support\Commerce\Catalogue\CatalogueException;
@@ -62,8 +63,9 @@ class ProductFiles
     }
 
     /**
-     * Put a new file in place of the current one, keeping the label and every buyer's access. The
-     * old file is removed once the new one is recorded.
+     * Put a new file in place of the current one, keeping the label and every buyer's access, and giving
+     * each buyer their full allowance of downloads for it again: a customer who had used theirs up on the
+     * old version must be able to get the new one. The old file is removed once the new one is recorded.
      */
     public function replace(ProductFile $file, UploadedFile $upload): ProductFile
     {
@@ -72,7 +74,11 @@ class ProductFiles
         $old = ['disk' => $file->disk, 'path' => $file->path];
 
         try {
-            $file->update($stored);
+            DB::transaction(function () use ($file, $stored) {
+                $file->update($stored);
+
+                DownloadCount::query()->where('product_file_id', $file->id)->update(['downloads' => 0, 'updated_at' => now()]);
+            });
         } catch (Throwable $exception) {
             Storage::disk($stored['disk'])->delete($stored['path']);
 

@@ -38,6 +38,31 @@ class OrderPlacer
     }
 
     /**
+     * What the order would be, priced exactly as {@see self::place()} will price it (strictly, so
+     * anything incomplete or no longer offered is refused), without writing or reserving anything. Lets a
+     * caller find out that an order cannot be placed before it does anything that cannot be undone.
+     *
+     * @throws CheckoutException When something in the cart cannot be bought.
+     * @throws InvalidCheckoutInput When an address or shipping method cannot be accepted.
+     */
+    public function preview(Cart $cart, CustomerDetails $customer, CheckoutInput $input): Pricing
+    {
+        return $this->price($cart, $customer, $input);
+    }
+
+    private function price(Cart $cart, CustomerDetails $customer, CheckoutInput $input): Pricing
+    {
+        return $this->pricer->price(
+            $cart,
+            $input->shippingAddress ? Destination::make($input->shippingAddress->country, $input->shippingAddress->region) : null,
+            $input->billingAddress ? Destination::make($input->billingAddress->country, $input->billingAddress->region) : null,
+            $input->shippingRateId,
+            strict: true,
+            customer: $customer,
+        );
+    }
+
+    /**
      * @param  (callable(Pricing): void)|null  $accept  Run once the order has been priced and before anything is
      *                                                  written or reserved: it throws to refuse the order.
      *
@@ -60,14 +85,7 @@ class OrderPlacer
                     $cart->setRelation('coupon', Coupon::query()->whereKey($cart->coupon_id)->lockForUpdate()->first());
                 }
 
-                $pricing = $this->pricer->price(
-                    $cart,
-                    $input->shippingAddress ? Destination::make($input->shippingAddress->country, $input->shippingAddress->region) : null,
-                    $input->billingAddress ? Destination::make($input->billingAddress->country, $input->billingAddress->region) : null,
-                    $input->shippingRateId,
-                    strict: true,
-                    customer: $customer,
-                );
+                $pricing = $this->price($cart, $customer, $input);
 
                 if ($accept !== null) {
                     $accept($pricing);

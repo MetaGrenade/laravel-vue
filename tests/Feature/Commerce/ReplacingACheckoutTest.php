@@ -11,6 +11,7 @@ use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\TaxRate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
@@ -67,6 +68,56 @@ class ReplacingACheckoutTest extends TestCase
             'the old session must be confirmed closed before Stripe is asked for a new one',
         );
         $this->assertSame(OrderStatus::Cancelled, $first->fresh()->status);
+    }
+
+    #[Test]
+    public function a_provider_that_has_lost_part_of_its_setup_leaves_the_earlier_checkout_alone(): void
+    {
+        [$first, $firstPayment] = $this->startedCheckout();
+
+        // The API key still works (it could close the old session) but the webhook secret is gone, so the
+        // provider no longer counts as configured and a replacement could not be offered.
+        config(['cashier.webhook.secret' => null, 'cashier.webhook.cli_secret' => null]);
+
+        $this->submit()->assertRedirect(route('shop.cart'))->assertSessionHas('error', 'Checkout is not available right now. Please try again later.');
+
+        $this->assertSame(OrderStatus::Pending, $first->fresh()->status, 'the shopper can still pay the checkout they had');
+        $this->assertSame(PaymentStatus::Pending, $firstPayment->fresh()->status);
+        $this->assertSame([], $this->stripe->expired, 'its session was not closed');
+        $this->assertSame('open', $this->stripe->sessions[$firstPayment->provider_reference]['status']);
+        $this->assertSame(1, Order::query()->count(), 'and no second order was started');
+        $this->assertSame(8, InventoryItem::query()->sole()->quantity, 'their stock is still held');
+    }
+
+    #[Test]
+    public function the_earlier_checkout_survives_a_retry_that_the_pricing_refuses(): void
+    {
+        [$first, $firstPayment] = $this->startedCheckout();
+
+        // Tax now depends on the region, which the form does not ask for until pricing says so: the form is
+        // accepted, the order is not. (The tax table changed after the first checkout was started.)
+        TaxRate::factory()->create(['country' => 'GB', 'region' => 'London', 'rate' => '20']);
+
+        $this->submit()->assertSessionHasErrors('shipping_address.region');
+
+        $this->assertSame(OrderStatus::Pending, $first->fresh()->status, 'the shopper can still pay the checkout they had');
+        $this->assertSame([], $this->stripe->expired);
+        $this->assertSame('open', $this->stripe->sessions[$firstPayment->provider_reference]['status']);
+        $this->assertSame(1, Order::query()->count());
+    }
+
+    #[Test]
+    public function the_provider_is_checked_again_when_the_order_is_written(): void
+    {
+        // The check before replacing is not the only one: placing the order still refuses an unpayable order.
+        config(['cashier.webhook.secret' => null, 'cashier.webhook.cli_secret' => null]);
+        $product = Product::factory()->priced('10.00')->stocked(5)->create();
+        $this->cartWith($product);
+
+        $this->submit()->assertRedirect(route('shop.cart'))->assertSessionHas('error');
+
+        $this->assertSame(0, Order::query()->count());
+        $this->assertSame(5, InventoryItem::query()->sole()->quantity);
     }
 
     #[Test]

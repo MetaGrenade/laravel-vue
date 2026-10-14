@@ -10,6 +10,8 @@ use App\Payments\PaymentManager;
 use App\Support\Commerce\CartManager;
 use App\Support\Commerce\Discounts\CartCoupons;
 use App\Support\Commerce\PriceResolver;
+use App\Support\Commerce\Pricing;
+use App\Support\Commerce\ShippingCalculator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,18 +19,34 @@ use Inertia\Response;
 
 class CartController extends Controller
 {
-    public function show(Request $request, PaymentManager $payments, CartCoupons $coupons): Response
+    public function show(Request $request, PaymentManager $payments, CartCoupons $coupons, ShippingCalculator $shipping): Response
     {
         $cart = CartManager::forRequest($request);
+        $hasItems = $cart !== null && $cart->items->isNotEmpty();
+
+        // Priced once, with its code, the way checkout will price it.
+        $pricing = $hasItems ? $coupons->price($cart, $request->user()) : null;
 
         return Inertia::render('commerce/Cart', [
             'cart' => CartManager::summary($cart),
             // The code on the cart, and what it takes off now (checked again at checkout).
-            'coupon' => $cart !== null && $cart->items->isNotEmpty() ? $coupons->describe($cart, $request->user()) : null,
-            // A cart of free items needs no payment provider.
-            'checkoutAvailable' => $payments->active()->isConfigured() || ($cart !== null && (float) $cart->subtotal <= 0.0),
+            'coupon' => $hasItems ? $coupons->describe($cart, $pricing) : null,
+            // Something to pay needs a payment provider; a cart that costs nothing once its code is
+            // applied does not. Where shipping is charged, that is not known before an address is given.
+            'checkoutAvailable' => $payments->active()->isConfigured() || $this->costsNothing($pricing, $shipping),
             'maxQuantity' => (int) config('commerce.checkout.max_quantity', 20),
         ]);
+    }
+
+    /**
+     * Whether the cart is free as it stands: nothing left to pay after any discount, and no shipping
+     * still to be charged for an address that has not been given yet.
+     */
+    private function costsNothing(?Pricing $pricing, ShippingCalculator $shipping): bool
+    {
+        return $pricing !== null
+            && $pricing->grandTotal->isZero()
+            && (! $pricing->needsShipping || ! $shipping->isConfigured());
     }
 
     public function store(Request $request, PriceResolver $prices): RedirectResponse

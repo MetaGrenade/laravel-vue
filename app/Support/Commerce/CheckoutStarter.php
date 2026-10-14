@@ -77,15 +77,24 @@ class CheckoutStarter
             return ['order' => $existing, 'url' => $this->resumeUrl($existing)];
         }
 
-        $this->supersedeEarlierCheckouts($cart);
-
-        $order = $this->placer->place($cart, $customer, $provider->key(), $input, $idempotencyKey, function (Pricing $pricing) use ($provider) {
-            // Something to pay needs a provider to pay through. Refused before the order is written, so
-            // nothing is reserved. (An order that costs nothing needs none.)
+        // Something to pay needs a provider to pay through. (An order that costs nothing needs none.)
+        $requireProvider = function (Pricing $pricing) use ($provider): void {
             if (! $pricing->grandTotal->isZero() && ! $provider->isConfigured()) {
                 throw new CheckoutException('Checkout is not available right now. Please try again later.');
             }
-        });
+        };
+
+        // Priced and checked BEFORE the cart's earlier checkout is touched. Replacing it closes that
+        // session for good, so an order that cannot be placed (a provider that has lost part of its
+        // configuration, an address that is not accepted) must not cost the shopper the checkout they
+        // could still have paid.
+        $requireProvider($this->placer->preview($cart, $customer, $input));
+
+        $this->supersedeEarlierCheckouts($cart);
+
+        // Checked again as the order is written, in case something changed in between.
+        $order = $this->placer->place($cart, $customer, $provider->key(), $input, $idempotencyKey, $requireProvider);
+
         // Should a concurrent duplicate ever slip past the lock, it lands on the order the other request placed.
         if ($order->payments()->exists()) {
             return ['order' => $order, 'url' => $this->resumeUrl($order)];

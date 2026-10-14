@@ -172,6 +172,57 @@ class FreeOrderTest extends TestCase
     }
 
     #[Test]
+    public function the_cart_page_offers_checkout_for_a_cart_a_code_covers_without_a_provider(): void
+    {
+        config(['cashier.secret' => null]);
+        // Digital, untaxed and unshipped: 25.00 before the code, nothing after it.
+        $this->cartWith(Product::factory()->priced('25.00')->digital()->create());
+        Coupon::factory()->percent('100')->create(['code' => 'EVERYTHING']);
+        $this->post(route('shop.cart.coupon.store'), ['code' => 'EVERYTHING'])->assertSessionHasNoErrors();
+
+        $this->get(route('shop.cart'))->assertInertia(fn (Assert $page) => $page
+            ->where('cart.subtotal', '25.00')
+            ->where('coupon.applied', true)
+            ->where('checkoutAvailable', true));
+    }
+
+    #[Test]
+    public function a_code_that_only_covers_part_of_the_cart_does_not_make_it_free(): void
+    {
+        config(['cashier.secret' => null]);
+        $this->cartWith(Product::factory()->priced('25.00')->digital()->create());
+        Coupon::factory()->percent('50')->create(['code' => 'HALF']);
+        $this->post(route('shop.cart.coupon.store'), ['code' => 'HALF']);
+
+        $this->get(route('shop.cart'))->assertInertia(fn (Assert $page) => $page->where('checkoutAvailable', false));
+    }
+
+    #[Test]
+    public function a_code_that_has_stopped_working_does_not_make_the_cart_free(): void
+    {
+        config(['cashier.secret' => null]);
+        $this->cartWith(Product::factory()->priced('25.00')->digital()->create());
+        $coupon = Coupon::factory()->percent('100')->create(['code' => 'EVERYTHING']);
+        $this->post(route('shop.cart.coupon.store'), ['code' => 'EVERYTHING']);
+        $coupon->update(['ends_at' => now()->subMinute()]);
+
+        $this->get(route('shop.cart'))->assertInertia(fn (Assert $page) => $page
+            ->where('coupon.applied', false)
+            ->where('checkoutAvailable', false));
+    }
+
+    #[Test]
+    public function a_free_cart_that_ships_is_not_judged_free_before_the_shipping_is_known(): void
+    {
+        config(['cashier.secret' => null]);
+        ShippingZone::factory()->serving(['GB'])->withRate('Standard', '5.00')->create();
+        $this->freeCart();
+
+        // The item costs nothing, but where shipping is charged that depends on an address not given yet.
+        $this->get(route('shop.cart'))->assertInertia(fn (Assert $page) => $page->where('checkoutAvailable', false));
+    }
+
+    #[Test]
     public function something_that_has_to_be_paid_for_still_needs_a_provider_and_reserves_nothing(): void
     {
         config(['cashier.secret' => null]);

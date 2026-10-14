@@ -17,11 +17,13 @@ use App\Support\Commerce\CartManager;
 use App\Support\Commerce\Digital\DigitalFulfilment;
 use App\Support\Commerce\Digital\DownloadDelivery;
 use App\Support\Commerce\Digital\DownloadRefused;
+use App\Support\Commerce\Digital\ProductFiles;
 use App\Support\Commerce\Money;
 use App\Support\Commerce\OrderLifecycle;
 use App\Support\Commerce\OrderRefunder;
 use App\Support\Commerce\RefundRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
@@ -405,6 +407,40 @@ class DigitalDeliveryTest extends TestCase
             ->where('downloads.0.files.0.remaining', 0)
             ->where('downloads.0.files.0.state', 'used_up')
             ->where('downloads.0.files.0.url', null));
+    }
+
+    #[Test]
+    public function a_new_version_of_a_file_gives_buyers_their_downloads_for_it_again(): void
+    {
+        config(['commerce.downloads.limit' => 1]);
+        [$ebook, $file] = $this->digitalProduct('Ebook', 'version one');
+        [, $grant] = $this->buy($ebook);
+        $this->get($this->linkTo($grant, $file))->assertOk();
+        $this->get($this->linkTo($grant, $file))->assertForbidden();
+
+        // Staff publish a new version. The buyer who used their one download on version one must get it.
+        app(ProductFiles::class)->replace($file->fresh(), UploadedFile::fake()->createWithContent('ebook-v2.pdf', 'version two'));
+
+        $response = $this->get($this->linkTo($grant, $file->fresh()));
+        $response->assertOk();
+        $this->assertSame('version two', $response->streamedContent());
+        $this->assertSame(1, $this->downloads($grant, $file), 'counted from zero again');
+    }
+
+    #[Test]
+    public function a_new_version_only_resets_the_file_that_was_replaced(): void
+    {
+        config(['commerce.downloads.limit' => 1]);
+        [$ebook, $first] = $this->digitalProduct();
+        $second = ProductFile::factory()->for($ebook)->withContents('other file')->create(['name' => 'Bonus']);
+        [, $grant] = $this->buy($ebook);
+        $this->get($this->linkTo($grant, $first))->assertOk();
+        $this->get($this->linkTo($grant, $second))->assertOk();
+
+        app(ProductFiles::class)->replace($first->fresh(), UploadedFile::fake()->createWithContent('new.pdf', 'new bytes'));
+
+        $this->get($this->linkTo($grant, $first->fresh()))->assertOk();
+        $this->get($this->linkTo($grant, $second))->assertForbidden();
     }
 
     #[Test]
