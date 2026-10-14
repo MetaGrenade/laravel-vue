@@ -74,12 +74,14 @@ class OrderLifecycle
                 // The customer paid just as the order was being cancelled. The money is
                 // already taken, so honour the order: take the stock back (even if that
                 // leaves it negative) and flag it so a person can check.
+                //
+                // The card's share was given back when the order was cancelled. Take it again, as much as the card
+                // still has; what it cannot cover is left for a person. The card goes first, then the stock, the
+                // order everything else locks them in, so a checkout using the same card cannot wait on this one.
+                $short = $this->giftCards->reapply($order);
+
                 $this->inventory->reserve($order, enforce: false);
                 $metadata['late_payment'] = true;
-
-                // The card's share was given back when the order was cancelled. Take it again, as much as the card
-                // still has; what it cannot cover is left for a person.
-                $short = $this->giftCards->reapply($order);
 
                 if (! $short->isZero()) {
                     $metadata['gift_card_short'] = $short->toDecimal();

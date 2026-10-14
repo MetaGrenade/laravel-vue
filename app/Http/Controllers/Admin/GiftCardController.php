@@ -25,8 +25,9 @@ use Inertia\Response;
  * can do to one. The code of a card is not kept, so it is shown once, when the card is made or its code is replaced,
  * and never again.
  *
- * Making a card, adding value and replacing a code create value, so they need the create permission. Switching a card
- * off or changing its note and date is an edit, and a card that has never been spent can be deleted.
+ * Making a card, adding value and replacing a code create value, so they need the create permission. Taking value
+ * away, switching a card off and changing its note and date are edits, and a card that has never been spent can be
+ * deleted.
  */
 class GiftCardController extends Controller
 {
@@ -192,10 +193,13 @@ class GiftCardController extends Controller
     }
 
     /**
-     * Add value to the card, or take some away, with a reason that stays in its history.
+     * Add value to the card, or take some away, with a reason that stays in its history. The route lets in whoever can
+     * create, which covers adding; taking value away reduces what a customer holds, so it also needs the edit permission.
      */
     public function adjust(Request $request, GiftCard $giftCard): RedirectResponse
     {
+        abort_if($request->input('direction') === 'remove' && ! $request->user()?->can('commerce.acp.edit'), 403);
+
         $validated = $request->validate([
             'direction' => ['required', Rule::in(['add', 'remove'])],
             'amount' => ['required', 'numeric', 'gt:0', 'max:99999999.99', 'decimal:0,2'],

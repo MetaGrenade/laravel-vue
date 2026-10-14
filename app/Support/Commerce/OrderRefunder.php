@@ -64,7 +64,7 @@ class OrderRefunder
      */
     public function refundable(Order $order): Money
     {
-        $total = Money::parse($order->grand_total, $order->currency);
+        $total = $this->received($order);
 
         $held = Refund::query()
             ->where('order_id', $order->id)
@@ -79,6 +79,9 @@ class OrderRefunder
 
     /**
      * How much of what the gift card paid has not been refunded to it yet (what a refund goes to first).
+     *
+     * What it paid is what the card's history says the order holds, not the share the order was priced with: an
+     * order paid after it was cancelled may have taken less from the card than that (see {@see GiftCards::reapply()}).
      */
     public function giftCardRefundable(Order $order): Money
     {
@@ -95,9 +98,22 @@ class OrderRefunder
             ->get(['amount', 'currency'])
             ->reduce(fn (Money $carry, Refund $refund) => $carry->add($refund->money()), $zero);
 
-        $left = Money::parse($order->gift_card_total, $order->currency)->subtract($held);
+        $left = $this->giftCards->held($order)->subtract($held);
 
         return $left->isNegative() ? $zero : $left;
+    }
+
+    /**
+     * What the order took in, which is all that can ever be refunded: its total, less what a gift card could not
+     * cover when a payment arrived after the order was cancelled (flagged on the order for a person to settle).
+     */
+    private function received(Order $order): Money
+    {
+        $total = Money::parse($order->grand_total, $order->currency);
+        $short = Money::parse((string) ($order->metadata['gift_card_short'] ?? '0.00'), $order->currency);
+        $received = $total->subtract($short);
+
+        return $received->isNegative() ? Money::zero($order->currency) : $received;
     }
 
     /**
@@ -503,7 +519,7 @@ class OrderRefunder
             ->get(['amount', 'currency'])
             ->reduce(fn (Money $carry, Refund $refund) => $carry->add($refund->money()), Money::zero($order->currency));
 
-        $total = Money::parse($order->grand_total, $order->currency);
+        $total = $this->received($order);
 
         $paymentStatus = match (true) {
             $refunded->isZero() => OrderPaymentStatus::Paid,

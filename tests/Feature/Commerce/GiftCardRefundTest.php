@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Notifications\RefundIssued;
 use App\Support\Commerce\GiftCards\GiftCards;
 use App\Support\Commerce\Money;
+use App\Support\Commerce\OrderLifecycle;
 use App\Support\Commerce\OrderRefunder;
 use App\Support\Commerce\RefundException;
 use App\Support\Commerce\RefundRequest;
@@ -257,6 +258,77 @@ class GiftCardRefundTest extends TestCase
         $this->assertSame('0.00', $card->fresh()->balance);
         $this->assertSame(0, $order->refunds()->count());
         $this->ledgerAgrees($card);
+    }
+
+    /**
+     * An order of 50.00 that a card of 20.00 was to pay 20.00 of, cancelled, whose card then lost 15.00 elsewhere, and
+     * which was then paid anyway: the customer paid Stripe 30.00 and the card could only be charged 5.00 again, so the
+     * order took in 35.00 and is 15.00 short.
+     *
+     * @return array{0: Order, 1: GiftCard}
+     */
+    private function paidLateWithTheCardShort(): array
+    {
+        $giftCard = GiftCard::factory()->code(self::CODE)->worth('20.00')->withHistory()->create();
+        $this->cartWith(Product::factory()->priced('50.00')->stocked(20)->create(), 1);
+        $this->post(route('shop.cart.gift-card.store'), ['gift_card' => self::CODE])->assertSessionHasNoErrors();
+        $this->post(route('shop.checkout.store'), $this->checkoutPayload())->assertRedirect();
+
+        $order = Order::query()->latest('id')->firstOrFail();
+        $payment = $order->payments()->sole();
+        $this->app->make(OrderLifecycle::class)->cancel($order, 'expired');
+        $this->app->make(GiftCards::class)->adjust($giftCard, Money::parse('-15.00', 'USD'), 'Spent elsewhere');
+
+        $this->deliverStripeEvent($this->stripeEvent('checkout.session.completed', $this->sessionFor($payment)))->assertOk();
+
+        $order->refresh();
+        $this->assertSame('15.00', $order->metadata['gift_card_short']);
+        $this->assertSame('5.00', $this->app->make(GiftCards::class)->held($order)->toDecimal());
+
+        return [$order, $giftCard->refresh()];
+    }
+
+    #[Test]
+    public function a_card_that_could_only_cover_part_of_a_late_payment_is_refunded_only_what_it_paid(): void
+    {
+        [$order, $card] = $this->paidLateWithTheCardShort();
+        $this->assertSame('0.00', $card->balance);
+        $this->assertSame('5.00', $this->refunder->giftCardRefundable($order)->toDecimal(), 'what the card took, not the share the order was priced with');
+
+        $refund = $this->refund($order, '35.00');
+
+        // 5.00 back onto the card, the other 30.00 the way it was paid: never more onto the card than it paid.
+        $this->assertSame('5.00', $order->refunds()->whereNotNull('gift_card_id')->sole()->amount);
+        $this->assertSame('30.00', $refund->amount);
+        $this->assertSame([3000], collect($this->stripe->refunds)->pluck('amount')->values()->all());
+        $this->assertSame('5.00', $card->fresh()->balance);
+        $this->ledgerAgrees($card);
+        $this->assertSame('0.00', $this->refunder->giftCardRefundable($order)->toDecimal());
+    }
+
+    #[Test]
+    public function an_order_that_took_in_less_than_its_total_cannot_be_refunded_more_than_it_took(): void
+    {
+        [$order] = $this->paidLateWithTheCardShort();
+
+        $this->assertSame('35.00', $this->refunder->refundable($order)->toDecimal(), 'the 15.00 the card could not cover was never received');
+
+        try {
+            $this->refund($order, '36.00');
+            $this->fail('A refund of more than the order took in was accepted.');
+        } catch (RefundException $exception) {
+            $this->assertStringContainsString('At most 35.00 USD', $exception->getMessage());
+        }
+
+        $this->assertSame([], $this->stripe->refunds);
+
+        // Refunding all of it is a refund in full: the order is done with, not left owed 15.00.
+        $this->refund($order, '35.00');
+
+        $order->refresh();
+        $this->assertSame(OrderPaymentStatus::Refunded, $order->payment_status);
+        $this->assertSame('35.00', $order->refunded_total);
+        $this->assertSame('0.00', $this->refunder->refundable($order)->toDecimal());
     }
 
     // --- By hand, and when Stripe is slow or says no -----------------------------------------------

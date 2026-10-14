@@ -364,6 +364,28 @@ class GiftCardManagementTest extends TestCase
         $this->assertSame('60.00', app(GiftCards::class)->ledgerBalance($card)->toDecimal());
     }
 
+    #[Test]
+    public function taking_value_away_needs_the_edit_permission_as_well_as_create(): void
+    {
+        $card = $this->issued('50.00');
+        $maker = $this->viewer();
+        $maker->givePermissionTo('commerce.acp.create');
+
+        // Someone who can create may add value, but not reduce what a customer holds.
+        $this->actingAs($maker)->post(route('acp.commerce.gift-cards.adjust', $card), ['direction' => 'add', 'amount' => '5', 'note' => 'Goodwill'])->assertRedirect();
+        $this->actingAs($maker)->post(route('acp.commerce.gift-cards.adjust', $card), ['direction' => 'remove', 'amount' => '55', 'note' => 'Nope'])->assertForbidden();
+        $this->assertSame('55.00', $card->fresh()->balance);
+        $this->assertSame(['issued', 'adjusted'], $card->transactions()->pluck('type')->all(), 'nothing was written');
+
+        // The page does not offer it either.
+        $this->actingAs($maker)->get(route('acp.commerce.gift-cards.show', $card))
+            ->assertInertia(fn (Assert $page) => $page->where('can.create', true)->where('can.edit', false));
+
+        $maker->givePermissionTo('commerce.acp.edit');
+        $this->actingAs($maker)->post(route('acp.commerce.gift-cards.adjust', $card), ['direction' => 'remove', 'amount' => '5', 'note' => 'Charged back'])->assertRedirect();
+        $this->assertSame('50.00', $card->fresh()->balance);
+    }
+
     /**
      * @return array<string, array{0: array<string, mixed>, 1: string}>
      */

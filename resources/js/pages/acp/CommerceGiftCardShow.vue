@@ -217,7 +217,7 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
                                         <Label for="adjust-direction">What to do</Label>
                                         <select id="adjust-direction" v-model="adjustment.direction" :class="selectClass">
                                             <option value="add">Add</option>
-                                            <option value="remove">Take away</option>
+                                            <option v-if="can.edit" value="remove">Take away</option>
                                         </select>
                                     </div>
                                     <div class="grid gap-2">

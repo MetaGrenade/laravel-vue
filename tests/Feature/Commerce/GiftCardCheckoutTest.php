@@ -24,6 +24,7 @@ use App\Support\Commerce\Money;
 use App\Support\Commerce\OrderLifecycle;
 use App\Support\Commerce\OrderPlacer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -718,6 +719,33 @@ class GiftCardCheckoutTest extends TestCase
         $this->assertSame('15.00', $order->metadata['gift_card_short']);
         $this->assertSame('0.00', $card->fresh()->balance);
         $this->assertTrue($order->events()->where('type', OrderEvent::GIFT_CARD_SHORT)->exists());
+    }
+
+    #[Test]
+    public function a_late_payment_takes_the_card_before_it_takes_the_stock(): void
+    {
+        $this->card('20.00');
+        $this->cart('50.00');
+        $this->apply();
+        $this->checkout();
+        $order = $this->order();
+        $payment = Payment::query()->sole();
+        app(OrderLifecycle::class)->cancel($order, 'expired');
+
+        // Placing an order locks the card and then the stock, so this must too: the other way round, a checkout that
+        // uses the same card and the same stock could wait on this payment while it waits on that checkout.
+        $touched = [];
+        DB::listen(function ($query) use (&$touched) {
+            foreach (['gift_cards', 'inventory_items'] as $table) {
+                if (! in_array($table, $touched, true) && preg_match("/\\b{$table}\\b/", $query->sql) === 1) {
+                    $touched[] = $table;
+                }
+            }
+        });
+
+        $this->deliverStripeEvent($this->stripeEvent('checkout.session.completed', $this->sessionFor($payment)))->assertOk();
+
+        $this->assertSame(['gift_cards', 'inventory_items'], $touched);
     }
 
     // --- Guests becoming customers -----------------------------------------------------------------

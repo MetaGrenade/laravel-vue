@@ -364,6 +364,7 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
                 ->name('coupons.destroy');
 
             // Gift cards. Making one, adding value and replacing a code create value, so they need the create permission.
+            // Taking value away needs edit as well: the adjust action checks that itself, since one route does both.
             Route::get('gift-cards', [GiftCardController::class, 'index'])->name('gift-cards.index');
             Route::get('gift-cards/create', [GiftCardController::class, 'create'])
                 ->middleware('can:commerce.acp.create')
