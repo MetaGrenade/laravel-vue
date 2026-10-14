@@ -248,8 +248,14 @@ class OrderRefunder
 
                 // Every time, not just the first: a refund that failed and then succeeded again has
                 // cancelled the order again. Only what the order still holds is returned.
-                if ($locked->restock && $order->payment_status === OrderPaymentStatus::Refunded) {
-                    $this->inventory->restock($order, "Refund {$locked->id}");
+                if ($order->payment_status === OrderPaymentStatus::Refunded) {
+                    if ($locked->restock) {
+                        $this->inventory->restock($order, "Refund {$locked->id}");
+                    } else {
+                        // Goods stay where staff left them, but a licence key the order was owed and never
+                        // got is not goods: that unit is no longer owed, so it must not stay spoken for.
+                        $this->inventory->releaseOwedKeys($order, "Refund {$locked->id}: no key is owed any more");
+                    }
                 }
 
                 if ($firstSuccess) {

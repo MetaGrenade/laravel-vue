@@ -4,6 +4,7 @@ namespace Tests\Feature\Commerce;
 
 use App\Enums\OrderStatus;
 use App\Models\DownloadGrant;
+use App\Models\InventoryItem;
 use App\Models\InventoryMovement;
 use App\Models\LicenceKey;
 use App\Models\Order;
@@ -356,6 +357,95 @@ class LicenceKeyDeliveryTest extends TestCase
 
         $this->assertStringContainsString('Issued 1 licence key', (string) $event->message);
         $this->assertStringNotContainsString("KEY-1-{$product->id}", json_encode($event->toArray()));
+    }
+
+    // --- An order keeps the stock it reserved from ------------------------------------------------
+
+    /**
+     * Keys are kept on the product's own stock, and a variant with no stock of its own is sold from it.
+     *
+     * @return array{0: Product, 1: ProductVariant}
+     */
+    private function variantSoldFromTheProductsPool(int $keys): array
+    {
+        $product = Product::factory()->digital()->keyed($keys)->create();
+        $variant = ProductVariant::factory()->for($product)->priced('12.00')->create(['name' => 'Team']);
+
+        return [$product, $variant];
+    }
+
+    private function payFor(Order $order): void
+    {
+        $this->deliverStripeEvent($this->stripeEvent('checkout.session.completed', $this->sessionFor($order->payments()->sole())))->assertOk();
+    }
+
+    #[Test]
+    public function a_line_is_given_its_key_from_the_stock_it_reserved_from_even_if_the_variant_is_given_stock_before_payment(): void
+    {
+        [$product, $variant] = $this->variantSoldFromTheProductsPool(2);
+        $pool = $this->stockOf($product);
+        $order = $this->buy($variant, pay: false);
+        $this->assertSame(1, $pool->fresh()->quantity, 'the unit was held on the product\'s pool');
+
+        // After checkout, staff give the variant a stock record of its own: an ordinary one.
+        $own = InventoryItem::factory()->create(['product_id' => $product->id, 'product_variant_id' => $variant->id, 'quantity' => 5]);
+
+        $this->payFor($order);
+
+        $order->refresh();
+        $this->assertSame(["KEY-1-{$product->id}"], $this->keysOf($order), 'the key comes from the pool that held the unit');
+        $this->assertSame(OrderStatus::Completed, $order->status);
+        $this->assertSame(5, $own->fresh()->quantity, 'the new ordinary stock was never touched');
+        $this->assertSame(1, $pool->fresh()->quantity);
+        $this->assertSame(1, LicenceKey::query()->unused()->count());
+        $this->assertStockFollowsPool($product);
+    }
+
+    #[Test]
+    public function a_late_payment_takes_its_unit_back_from_the_same_stock_it_first_held(): void
+    {
+        [$product, $variant] = $this->variantSoldFromTheProductsPool(1);
+        $pool = $this->stockOf($product);
+        $order = $this->buy($variant, pay: false);
+        $this->deliverStripeEvent($this->stripeEvent('checkout.session.expired', $this->sessionFor($order->payments()->sole(), paid: false)))->assertOk();
+        $this->assertSame(1, $pool->fresh()->quantity, 'the unit went back');
+
+        $own = InventoryItem::factory()->create(['product_id' => $product->id, 'product_variant_id' => $variant->id, 'quantity' => 5]);
+
+        $this->payFor($order);
+
+        $order->refresh();
+        $this->assertSame(0, $pool->fresh()->quantity, 'the order took its unit from the pool again');
+        $this->assertSame(5, $own->fresh()->quantity, 'and not from the stock that was added meanwhile');
+        $this->assertSame(["KEY-1-{$product->id}"], $this->keysOf($order));
+        $this->assertStockFollowsPool($product);
+    }
+
+    #[Test]
+    public function keys_added_later_still_reach_an_order_owed_from_the_stock_it_reserved_from(): void
+    {
+        [$product, $variant] = $this->variantSoldFromTheProductsPool(1);
+        $pool = $this->stockOf($product);
+        $other = ProductVariant::factory()->for($product)->priced('9.00')->create(['name' => 'Solo']);
+
+        // The Team order's checkout expires; somebody buys the only key (as another variant of the product).
+        $late = $this->buy($variant, pay: false);
+        $this->deliverStripeEvent($this->stripeEvent('checkout.session.expired', $this->sessionFor($late->payments()->sole(), paid: false)))->assertOk();
+        $this->buy($other);
+
+        // The Team variant is then given stock of its own, and the Team order's payment arrives after all.
+        InventoryItem::factory()->create(['product_id' => $product->id, 'product_variant_id' => $variant->id, 'quantity' => 5]);
+        $this->payFor($late);
+        $this->assertSame([], $this->keysOf($late->refresh()), 'no key was left to give');
+        $this->assertSame(-1, $pool->fresh()->quantity);
+
+        $this->seed(RolePermissionSeeder::class);
+        $admin = User::factory()->create()->assignRole('admin');
+        $this->actingAs($admin)->post(route('acp.commerce.licence-keys.store', $pool->id), ['keys' => 'LATER-1'])->assertSessionHas('success');
+
+        $this->assertSame(['LATER-1'], $this->keysOf($late->refresh()), 'the waiting order is found through the stock it reserved from');
+        $this->assertSame(OrderStatus::Completed, $late->status);
+        $this->assertStockFollowsPool($product);
     }
 
     #[Test]

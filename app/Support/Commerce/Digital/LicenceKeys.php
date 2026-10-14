@@ -263,7 +263,7 @@ class LicenceKeys
             }
 
             $missing = $this->missing($item);
-            $stock = $missing > 0 ? InventoryItem::resolveFor($item->product_id, $item->product_variant_id) : null;
+            $stock = $missing > 0 ? InventoryItem::forOrderItem($item) : null;
 
             if ($stock === null) {
                 continue;
@@ -388,8 +388,8 @@ class LicenceKeys
             )
             ->with('order:id,paid_at')
             ->get()
-            // A line sold from a variant's own stock, or falling back to the product's, belongs to one record.
-            ->filter(fn (OrderItem $line) => InventoryItem::resolveFor($line->product_id, $line->product_variant_id)?->id === $stock->id)
+            // A line belongs to the stock record it reserved from, not whichever one would be chosen today.
+            ->filter(fn (OrderItem $line) => InventoryItem::forOrderItem($line)?->id === $stock->id)
             ->sortBy(fn (OrderItem $line) => [$line->order?->paid_at?->getTimestamp() ?? 0, $line->id])
             ->values();
     }

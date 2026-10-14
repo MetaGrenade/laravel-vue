@@ -4,6 +4,7 @@ namespace Tests\Feature\Commerce;
 
 use App\Enums\OrderPaymentStatus;
 use App\Enums\OrderStatus;
+use App\Models\InventoryItem;
 use App\Models\InventoryMovement;
 use App\Models\LicenceKey;
 use App\Models\Order;
@@ -153,6 +154,113 @@ class LicenceKeyRefundsAndSupportTest extends TestCase
         $this->failTheRefund();
         $this->assertSame(-1, $this->stockOf($product)->quantity);
         $this->assertStockFollowsPool($product);
+    }
+
+    // --- Stock that changed after the orders were placed ---------------------------------------------
+
+    /**
+     * Ordinary stock with an earlier order that was paid, then turned into a pool of keys.
+     *
+     * @return array{0: Product, 1: Order}
+     */
+    private function ordinaryProductWithAPaidOrderThenKeys(int $keys): array
+    {
+        $product = Product::factory()->priced('15.00')->digital()->stocked(5)->create();
+        $earlier = $this->buy($product);
+        $this->assertSame(OrderStatus::Processing, $earlier->status, 'nothing delivers it by itself, so it is still open');
+
+        $stock = app(LicenceKeys::class)->enable($product, null);
+        app(LicenceKeys::class)->add($stock, implode("\n", array_map(fn (int $n) => "NEW-{$n}", range(1, $keys))));
+
+        return [$product, $earlier];
+    }
+
+    #[Test]
+    public function refunding_an_order_bought_before_the_stock_became_keys_does_not_add_a_unit_with_no_key(): void
+    {
+        [$product, $earlier] = $this->ordinaryProductWithAPaidOrderThenKeys(2);
+        $this->assertSame(2, $this->stockOf($product)->quantity);
+
+        $this->refund($earlier, restock: true);
+
+        $this->assertSame(2, $this->stockOf($product)->quantity, 'the earlier order held an ordinary unit, which is not a key');
+        $this->assertSame(0, InventoryMovement::query()->where('reason', InventoryMovement::RESTOCK)->count());
+        $this->assertStockFollowsPool($product);
+
+        // And if that refund does not hold, nothing is taken from the pool either.
+        $this->failTheRefund();
+        $this->assertSame(2, $this->stockOf($product)->quantity);
+        $this->assertStockFollowsPool($product);
+    }
+
+    #[Test]
+    public function a_payment_that_arrives_late_for_a_line_bought_before_the_stock_became_keys_takes_nothing_from_the_pool(): void
+    {
+        $product = Product::factory()->priced('15.00')->digital()->stocked(5)->create();
+        $late = $this->buy($product, pay: false);
+        $this->deliverStripeEvent($this->stripeEvent('checkout.session.expired', $this->sessionFor($late->payments()->sole(), paid: false)))->assertOk();
+
+        $stock = app(LicenceKeys::class)->enable($product, null);
+        app(LicenceKeys::class)->add($stock, "NEW-1\nNEW-2");
+
+        $this->deliverStripeEvent($this->stripeEvent('checkout.session.completed', $this->sessionFor($late->payments()->sole())))->assertOk();
+
+        $this->assertSame(OrderStatus::Processing, $late->fresh()->status, 'paid, and honoured');
+        $this->assertSame(2, $this->stockOf($product)->quantity, 'its ordinary unit is not a key, so the pool is not charged for it');
+        $this->assertStockFollowsPool($product);
+    }
+
+    // --- A refund ends what an order was owed ----------------------------------------------------------
+
+    #[Test]
+    public function a_full_refund_releases_the_key_an_order_was_still_owed_even_without_returning_goods_to_stock(): void
+    {
+        [$product, $late] = $this->lateOrderWithNoKeyLeft();
+        $this->assertSame(-1, $this->stockOf($product)->quantity, 'the unit it is owed is spoken for');
+
+        $this->refund($late); // not "put the items back in stock"
+
+        $this->assertSame(0, $this->stockOf($product)->quantity, 'nothing is owed any more, so nothing stays spoken for');
+        $this->assertStockFollowsPool($product);
+
+        // The next key that is added can be sold, rather than being used up to reach zero.
+        app(LicenceKeys::class)->add($this->stockOf($product), 'FRESH-1');
+
+        $this->assertSame(1, $this->stockOf($product)->quantity);
+        $this->assertSame(1, LicenceKey::query()->unused()->count());
+        $this->assertSame([], $this->keysOf($late->refresh()), 'and the refunded order is not given it');
+        $this->assertStockFollowsPool($product);
+        $this->assertCount(1, $this->keysOf($this->buy($product)), 'a new customer can buy it');
+    }
+
+    #[Test]
+    public function the_unit_is_held_again_if_the_refund_that_released_it_fails(): void
+    {
+        [$product, $late] = $this->lateOrderWithNoKeyLeft();
+
+        $this->refund($late);
+        $this->assertSame(0, $this->stockOf($product)->quantity);
+        $this->failTheRefund();
+
+        $this->assertSame(-1, $this->stockOf($product)->quantity, 'the order is owed its key again');
+        $this->assertSame(OrderStatus::Processing, $late->fresh()->status);
+        $this->assertStockFollowsPool($product);
+
+        // Repeating the failure message does not take it twice.
+        $this->failTheRefund();
+        $this->assertSame(-1, $this->stockOf($product)->quantity);
+    }
+
+    #[Test]
+    public function a_refund_without_restocking_leaves_ordinary_stock_exactly_as_it_was(): void
+    {
+        $product = Product::factory()->priced('15.00')->digital()->stocked(5)->create();
+        $order = $this->buy($product);
+        $this->assertSame(4, InventoryItem::sole()->quantity);
+
+        $this->refund($order); // goods are not returned unless staff say so
+
+        $this->assertSame(4, InventoryItem::sole()->quantity, 'only what an order was owed in keys is released, never goods');
     }
 
     #[Test]

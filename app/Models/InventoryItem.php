@@ -48,6 +48,28 @@ class InventoryItem extends Model
     }
 
     /**
+     * The stock an order line takes from. Once the line has reserved some it is the row it reserved from,
+     * whatever has been added since (a variant given a stock record of its own after the order was placed
+     * must not move the line to it), so the unit that was held, the key that is handed over and the stock
+     * a refund returns all come from the same place. A line that has reserved nothing yet is resolved the
+     * way a new purchase is.
+     */
+    public static function forOrderItem(OrderItem $item): ?self
+    {
+        $reserved = InventoryMovement::query()
+            ->where('order_item_id', $item->id)
+            ->where('reason', InventoryMovement::RESERVATION)
+            ->orderByDesc('id')
+            ->value('inventory_item_id');
+
+        if ($reserved !== null && ($row = static::query()->find($reserved)) !== null) {
+            return $row;
+        }
+
+        return static::resolveFor($item->product_id, $item->product_variant_id);
+    }
+
+    /**
      * Stock that belongs to something a shopper can still buy: a product that is on sale and,
      * for a variant's stock, a variant that is on. What is archived or switched off keeps its
      * stock row for the history, but is not a shortage anyone needs to act on.
