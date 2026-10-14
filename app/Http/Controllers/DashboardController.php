@@ -10,6 +10,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Support\Commerce\CustomerOrders;
+use App\Support\Commerce\Money;
 use App\Support\Localization\DateFormatter;
 use App\Support\WebsiteSections;
 use Carbon\Carbon;
@@ -54,13 +55,7 @@ class DashboardController extends Controller
             return null;
         }
 
-        $orders = app(CustomerOrders::class);
-
-        return [
-            'summary' => $orders->summary($user),
-            'recent_orders' => $orders->present($orders->for($user)->with('items')->latest('id')->limit(5)->get()),
-            'digital' => $orders->digitalPurchases($user),
-        ];
+        return app(CustomerOrders::class)->dashboard($user);
     }
 
     /**
@@ -91,7 +86,8 @@ class DashboardController extends Controller
         return [
             'state' => $state,
             'name' => $plan?->name,
-            'price' => $plan?->price,
+            // Plans store minor units (1200 is $12.00); the page formats a decimal in the currency's major units.
+            'price' => $plan !== null ? Money::ofMinor((int) $plan->price, (string) $plan->currency)->toDecimal() : null,
             'currency' => $plan?->currency,
             'interval' => $plan?->interval,
             'ends_at' => $subscription?->ends_at?->toIso8601String(),

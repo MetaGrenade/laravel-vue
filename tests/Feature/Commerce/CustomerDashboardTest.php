@@ -5,15 +5,18 @@ namespace Tests\Feature\Commerce;
 use App\Enums\OrderPaymentStatus;
 use App\Models\Badge;
 use App\Models\Blog;
+use App\Models\DownloadCount;
 use App\Models\DownloadGrant;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumThread;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductFile;
 use App\Models\SubscriptionPlan;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Support\Commerce\Digital\DownloadDelivery;
 use App\Support\Commerce\Digital\LicenceKeys;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -154,6 +157,7 @@ class CustomerDashboardTest extends TestCase
     {
         $user = $this->user();
         $product = Product::factory()->create();
+        ProductFile::factory()->for($product)->create();
         $order = $this->order($user, [['description' => 'Ebook', 'product' => $product]]);
         $grant = DownloadGrant::create(['order_id' => $order->id, 'order_item_id' => $order->items->sole()->id, 'product_id' => $product->id]);
 
@@ -169,6 +173,69 @@ class CustomerDashboardTest extends TestCase
 
         $grant->forceFill(['expires_at' => null, 'revoked_at' => now(), 'revoked_reason' => DownloadGrant::BY_STAFF])->save();
         $this->dashboard($user)->assertInertia(fn (Assert $page) => $page->where('shop.digital', []));
+    }
+
+    #[Test]
+    public function downloads_are_only_advertised_while_the_order_page_would_still_offer_a_file(): void
+    {
+        config(['commerce.downloads.limit' => 2]);
+        $user = $this->user();
+        $product = Product::factory()->create();
+        $file = ProductFile::factory()->for($product)->create(['name' => 'Manual']);
+        $order = $this->order($user, [['description' => 'Ebook', 'product' => $product]]);
+        $grant = DownloadGrant::create(['order_id' => $order->id, 'order_item_id' => $order->items->sole()->id, 'product_id' => $product->id]);
+
+        // Whatever the dashboard says, the order page it sends the customer to must agree.
+        $orderPageOffersAFile = fn (): bool => collect(app(DownloadDelivery::class)->forOrder($order->fresh()))
+            ->flatMap(fn (array $download) => $download['files'])
+            ->contains('state', 'ready');
+
+        $expect = function (bool $available) use ($user, $orderPageOffersAFile): void {
+            $this->dashboard($user)->assertInertia(fn (Assert $page) => $page
+                ->where('shop.recent_orders.0.digital.downloads', $available)
+                ->where('shop.summary.digital', $available ? 1 : 0)
+                ->has('shop.digital', $available ? 1 : 0));
+
+            $this->assertSame($available, $orderPageOffersAFile(), 'the order page agrees');
+        };
+
+        // Some of the allowance left.
+        DownloadCount::create(['download_grant_id' => $grant->id, 'product_file_id' => $file->id, 'downloads' => 1]);
+        $expect(true);
+
+        // Every download of the only file used up: nothing to find there.
+        DownloadCount::query()->update(['downloads' => 2]);
+        $expect(false);
+
+        // A second file with its allowance untouched brings it back.
+        $second = ProductFile::factory()->for($product)->create(['name' => 'Bonus']);
+        $expect(true);
+
+        // Switched off, it is not there to download either.
+        $second->forceFill(['is_active' => false])->save();
+        $expect(false);
+
+        // With no limit, a file that was downloaded often is still there.
+        config(['commerce.downloads.limit' => 0]);
+        $expect(true);
+    }
+
+    #[Test]
+    public function an_order_with_a_key_and_files_used_up_still_offers_its_key(): void
+    {
+        config(['commerce.downloads.limit' => 1]);
+        $user = $this->user();
+        $product = Product::factory()->keyed(1)->create();
+        $file = ProductFile::factory()->for($product)->create();
+        $order = $this->order($user, [['description' => 'Pro Licence', 'product' => $product, 'keys' => true]]);
+        app(LicenceKeys::class)->issue($order);
+        $grant = DownloadGrant::create(['order_id' => $order->id, 'order_item_id' => $order->items->sole()->id, 'product_id' => $product->id]);
+        DownloadCount::create(['download_grant_id' => $grant->id, 'product_file_id' => $file->id, 'downloads' => 1]);
+
+        $this->dashboard($user)->assertInertia(fn (Assert $page) => $page
+            ->where('shop.recent_orders.0.digital', ['keys' => 1, 'keys_waiting' => 0, 'downloads' => false])
+            ->where('shop.digital.0.has_keys', true)
+            ->where('shop.digital.0.downloads', false));
     }
 
     #[Test]
@@ -323,6 +390,21 @@ class CustomerDashboardTest extends TestCase
         SubscriptionPlan::factory()->create();
 
         $this->dashboard($this->user())->assertInertia(fn (Assert $page) => $page->where('plan.state', 'none')->where('plan.name', null));
+    }
+
+    #[Test]
+    public function the_plan_price_is_sent_in_major_units_whatever_the_currency(): void
+    {
+        $user = $this->user();
+        SubscriptionPlan::factory()->create(['name' => 'Pro Plan', 'stripe_price_id' => 'price_usd', 'price' => 1200, 'currency' => 'USD']);
+        Subscription::create(['user_id' => $user->id, 'type' => config('billing.subscription_name', 'default'), 'stripe_id' => 'sub_usd', 'stripe_status' => 'active', 'stripe_price' => 'price_usd', 'quantity' => 1]);
+
+        // Plans store minor units (1200 is $12.00), like the pricing and billing pages assume.
+        $this->dashboard($user)->assertInertia(fn (Assert $page) => $page->where('plan.price', '12.00')->where('plan.currency', 'USD'));
+
+        // A currency with no minor unit has none to divide by: 1200 is 1200 yen, not 12.
+        SubscriptionPlan::query()->update(['currency' => 'JPY']);
+        $this->dashboard($user->fresh())->assertInertia(fn (Assert $page) => $page->where('plan.price', '1200.00'));
     }
 
     #[Test]

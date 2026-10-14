@@ -63,7 +63,8 @@ export interface DashboardShop {
 export interface DashboardPlan {
     state: 'none' | 'active' | 'grace' | 'attention' | 'ended';
     name: string | null;
-    price: string | number | null;
+    /** A decimal in the currency's major units ("12.00"), ready to format. */
+    price: string | null;
     currency: string | null;
     interval: string | null;
     ends_at: string | null;

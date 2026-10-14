@@ -8,6 +8,7 @@ use App\Models\LicenceKey;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
+use App\Support\Commerce\Digital\DownloadDelivery;
 use App\Support\Commerce\Digital\LicenceKeys;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -18,12 +19,17 @@ use Illuminate\Support\Facades\DB;
  * open to find a key or a file again.
  *
  * Only a count of keys is ever sent here, never a key: the keys themselves are shown on the order page
- * (which is never cached), so that is the one place a secret has to be protected. Everything is
+ * (which is never cached), so that is the one place a secret has to be protected. A download is only
+ * advertised while the order page would still offer one (the grant works, a file is switched on and its
+ * allowance is not used up), so the customer is never sent somewhere to find nothing. Everything is
  * worked out in a fixed number of queries however many orders there are.
  */
 class CustomerOrders
 {
-    public function __construct(private readonly LicenceKeys $keys) {}
+    public function __construct(
+        private readonly LicenceKeys $keys,
+        private readonly DownloadDelivery $downloads,
+    ) {}
 
     /**
      * The orders a user may see: whoever owns them, not whoever happened to place them.
@@ -61,9 +67,11 @@ class CustomerOrders
                 ->groupBy('order_item_id')
                 ->pluck('aggregate', 'order_item_id');
 
-        $grants = DownloadGrant::query()->whereIn('order_id', $orders->pluck('id')->all())->get()->groupBy('order_id');
+        $grants = DownloadGrant::query()->whereIn('order_id', $orders->pluck('id')->all())->get();
+        $available = $this->downloads->available($grants);
+        $grantsByOrder = $grants->groupBy('order_id');
 
-        return $orders->map(function (Order $order) use ($held, $grants) {
+        return $orders->map(function (Order $order) use ($held, $available, $grantsByOrder) {
             // Nothing is delivered before the order is paid, or after it was refunded in full.
             $owed = $this->keys->owes($order);
             $keyed = $order->items->where('delivers_keys', true);
@@ -93,53 +101,70 @@ class CustomerOrders
                 'digital' => [
                     'keys' => $holding,
                     'keys_waiting' => $waiting,
-                    'downloads' => $owed && ($grants->get($order->id)?->contains(fn (DownloadGrant $grant) => $grant->isUsable()) ?? false),
+                    'downloads' => $owed && ($grantsByOrder->get($order->id)?->contains(fn (DownloadGrant $grant) => $available[$grant->id] ?? false) ?? false),
                 ],
             ];
         })->all();
     }
 
     /**
-     * Headline numbers for the dashboard.
+     * Everything the dashboard shows about the shop: headline numbers, the newest orders, and the newest digital
+     * purchases (a licence key, or files that can still be downloaded) from paid orders, each with a link to the
+     * order page where the key or file is found.
      *
-     * @return array{orders: int, awaiting_payment: int, in_progress: int, digital: int, keys_waiting: int}
+     * @return array{summary: array<string, int>, recent_orders: list<array<string, mixed>>, digital: list<array<string, mixed>>}
      */
-    public function summary(User $user): array
+    public function dashboard(User $user, int $recent = 5, int $digital = 6): array
     {
         $byStatus = $this->for($user)
             ->select('status', DB::raw('COUNT(*) as aggregate'))
             ->groupBy('status')
             ->pluck('aggregate', 'status');
 
-        $digital = $this->digital($user);
+        $purchases = $this->digitalPurchases($user);
 
         return [
-            'orders' => (int) $byStatus->sum(),
-            'awaiting_payment' => (int) ($byStatus['pending'] ?? 0),
-            'in_progress' => (int) ($byStatus['processing'] ?? 0),
-            'digital' => (int) (clone $digital)->count(),
-            'keys_waiting' => $this->keysWaiting($user),
+            'summary' => [
+                'orders' => (int) $byStatus->sum(),
+                'awaiting_payment' => (int) ($byStatus['pending'] ?? 0),
+                'in_progress' => (int) ($byStatus['processing'] ?? 0),
+                'digital' => count($purchases),
+                'keys_waiting' => (int) array_sum(array_column($purchases, 'keys_waiting')),
+            ],
+            'recent_orders' => $this->present($this->for($user)->with('items')->latest('id')->limit($recent)->get()),
+            'digital' => array_slice($purchases, 0, $digital),
         ];
     }
 
     /**
-     * The newest digital purchases (a licence key, or files that can still be downloaded) from paid orders,
-     * each with a link to the order page where the key or file is found.
+     * Every line of the customer's paid orders that has something to open: a licence key, or a download that can
+     * still be had. Newest first.
      *
      * @return list<array<string, mixed>>
      */
-    public function digitalPurchases(User $user, int $limit = 6): array
+    private function digitalPurchases(User $user): array
     {
-        return $this->digital($user)
+        $lines = OrderItem::query()
+            ->whereHas('order', fn (Builder $order) => $order
+                ->visibleTo($user)
+                ->whereIn('payment_status', [OrderPaymentStatus::Paid->value, OrderPaymentStatus::PartiallyRefunded->value]))
+            // A first, cheap cut in the database; whether a file can really still be downloaded is worked out below.
+            ->where(function (Builder $line) {
+                $line->where('delivers_keys', true)
+                    ->orWhereHas('downloadGrant', fn (Builder $grant) => $grant
+                        ->whereNull('revoked_at')
+                        ->where(fn (Builder $expiry) => $expiry->whereNull('expires_at')->orWhere('expires_at', '>', now())));
+            })
             ->with(['order:id,public_id,number,paid_at,created_at', 'downloadGrant'])
             ->withCount(['licenceKeys as held_count' => fn ($keys) => $keys->active()])
             ->latest('id')
-            ->limit($limit)
-            ->get()
-            ->map(function (OrderItem $item) {
+            ->get();
+
+        $available = $this->downloads->available($lines->pluck('downloadGrant')->filter());
+
+        return $lines
+            ->map(function (OrderItem $item) use ($available) {
                 $held = (int) $item->getAttribute('held_count');
-                $grant = $item->downloadGrant;
-                $downloads = $grant !== null && $grant->isUsable();
 
                 return [
                     'id' => $item->id,
@@ -151,45 +176,11 @@ class CustomerOrders
                     'has_keys' => $item->delivers_keys,
                     'keys' => $item->delivers_keys ? $held : 0,
                     'keys_waiting' => $item->delivers_keys ? max(0, $item->quantity - $held) : 0,
-                    'downloads' => $downloads,
+                    'downloads' => $item->downloadGrant !== null && ($available[$item->downloadGrant->id] ?? false),
                 ];
             })
+            ->filter(fn (array $purchase) => $purchase['has_keys'] || $purchase['downloads'])
             ->values()
             ->all();
-    }
-
-    /**
-     * Lines of paid orders that deliver something the customer may need to open again: a licence key, or a
-     * download that has not been withdrawn or expired.
-     *
-     * @return Builder<OrderItem>
-     */
-    private function digital(User $user): Builder
-    {
-        return OrderItem::query()
-            ->whereHas('order', fn (Builder $order) => $order
-                ->visibleTo($user)
-                ->whereIn('payment_status', [OrderPaymentStatus::Paid->value, OrderPaymentStatus::PartiallyRefunded->value]))
-            ->where(function (Builder $line) {
-                $line->where('delivers_keys', true)
-                    ->orWhereHas('downloadGrant', fn (Builder $grant) => $grant
-                        ->whereNull('revoked_at')
-                        ->where(fn (Builder $expiry) => $expiry->whereNull('expires_at')->orWhere('expires_at', '>', now())));
-            });
-    }
-
-    /**
-     * Licence keys the customer has paid for and not yet received.
-     */
-    private function keysWaiting(User $user): int
-    {
-        return (int) OrderItem::query()
-            ->where('delivers_keys', true)
-            ->whereHas('order', fn (Builder $order) => $order
-                ->visibleTo($user)
-                ->whereIn('payment_status', [OrderPaymentStatus::Paid->value, OrderPaymentStatus::PartiallyRefunded->value]))
-            ->withCount(['licenceKeys as held_count' => fn ($keys) => $keys->active()])
-            ->get()
-            ->sum(fn (OrderItem $item) => max(0, $item->quantity - (int) $item->getAttribute('held_count')));
     }
 }
