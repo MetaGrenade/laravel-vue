@@ -19,6 +19,7 @@ const links = computed(() =>
     [
         { label: 'Shop', href: route('shop.index'), show: props.sections.commerce },
         { label: 'My orders', href: route('shop.orders'), show: props.sections.commerce },
+        { label: 'Wishlist', href: route('shop.wishlist'), show: props.sections.commerce },
         { label: 'Saved addresses', href: route('settings.addresses.index'), show: props.sections.commerce },
         { label: 'Billing', href: route('settings.billing.index'), show: true },
         { label: 'Get support', href: route('support'), show: props.sections.support },

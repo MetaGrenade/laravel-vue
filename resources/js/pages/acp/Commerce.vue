@@ -9,7 +9,7 @@ import { formatMoney } from '@/lib/money';
 import { orderStatusVariant, paymentStatusVariant } from '@/lib/orderStatus';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { Package, Percent, Plus, ReceiptText, Tags, TicketPercent, Truck } from '@lucide/vue';
+import { Package, Percent, Plus, ReceiptText, Star, Tags, TicketPercent, Truck } from '@lucide/vue';
 
 interface RecentOrder {
     id: number;
@@ -37,6 +37,7 @@ defineProps<{
         pricing: { active_prices: number; total_prices: number };
         inventory: { items: number; on_hand: number; backorderable: number; out_of_stock: number };
         orders: { total: number; processing: number; completed: number; cancelled: number; revenue: number };
+        reviews: { pending: number; published: number };
     };
     orderStatusBreakdown: Record<string, number>;
     lowStock: LowStockItem[];
@@ -84,6 +85,12 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                     </Button>
                     <Button variant="outline" size="sm" as-child>
                         <Link :href="route('acp.commerce.coupons.index')"><TicketPercent class="size-4" /> Discount codes</Link>
+                    </Button>
+                    <Button variant="outline" size="sm" as-child>
+                        <Link :href="route('acp.commerce.reviews.index')">
+                            <Star class="size-4" /> Reviews
+                            <Badge v-if="metrics.reviews.pending > 0" variant="highlight">{{ metrics.reviews.pending }} waiting</Badge>
+                        </Link>
                     </Button>
                 </div>
 

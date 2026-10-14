@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\OrderPaymentStatus;
+use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductOption;
+use App\Models\ProductReview;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +72,10 @@ class CommerceController extends Controller
                 'on_hand' => (int) InventoryItem::forSale()->where('quantity', '>', 0)->sum('quantity'),
                 'backorderable' => InventoryItem::forSale()->where('allow_backorder', true)->count(),
                 'out_of_stock' => InventoryItem::forSale()->where('allow_backorder', false)->where('quantity', '<=', 0)->count(),
+            ],
+            'reviews' => [
+                'pending' => ProductReview::where('status', ReviewStatus::Pending->value)->count(),
+                'published' => ProductReview::where('status', ReviewStatus::Published->value)->count(),
             ],
             'orders' => [
                 'total' => Order::count(),

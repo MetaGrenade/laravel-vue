@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import ProductGallery from '@/components/commerce/ProductGallery.vue';
 import ProductPrice from '@/components/commerce/ProductPrice.vue';
+import ProductReviews from '@/components/commerce/ProductReviews.vue';
+import StarRating from '@/components/commerce/StarRating.vue';
 import StockBadge from '@/components/commerce/StockBadge.vue';
+import WishlistButton from '@/components/commerce/WishlistButton.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { StorefrontImage, StorefrontOption, StorefrontPrice, StorefrontStock, StorefrontVariant } from '@/types/commerce';
+import type { ProductReviewsPayload } from '@/types/storefront';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Download } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
@@ -41,6 +45,10 @@ interface Product {
 const props = defineProps<{
     product: Product;
     maxQuantity: number;
+    /** Whether the signed-in customer saved this product. */
+    wishlisted: boolean;
+    /** What customers said about it; null when reviews are switched off. */
+    reviews: ProductReviewsPayload | null;
 }>();
 
 const breadcrumbs = [
@@ -168,92 +176,110 @@ const addToCart = () => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head :title="product.name" />
 
-        <div class="mx-auto grid w-full max-w-6xl gap-8 p-4 lg:grid-cols-2 lg:gap-12">
-            <ProductGallery :images="product.images" />
+        <div class="mx-auto w-full max-w-6xl space-y-12 p-4">
+            <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
+                <ProductGallery :images="product.images" />
 
-            <div class="space-y-6">
-                <div class="space-y-2">
-                    <Badge v-if="product.brand" variant="outline">{{ product.brand.name }}</Badge>
-                    <h1 class="text-3xl font-semibold tracking-tight">{{ product.name }}</h1>
-                    <ProductPrice :price="price" large />
-                    <StockBadge v-if="stock && price" :status="stock" />
-                </div>
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <Badge v-if="product.brand" variant="outline">{{ product.brand.name }}</Badge>
+                        <h1 class="text-3xl font-semibold tracking-tight">{{ product.name }}</h1>
+                        <p v-if="reviews && reviews.summary.count > 0 && reviews.summary.average !== null" class="flex items-center gap-2 text-sm">
+                            <StarRating :value="reviews.summary.average" />
+                            <a href="#reviews" class="text-muted-foreground hover:text-foreground hover:underline">
+                                {{ reviews.summary.average.toFixed(1) }} ({{ reviews.summary.count }}
+                                {{ reviews.summary.count === 1 ? 'review' : 'reviews' }})
+                            </a>
+                        </p>
+                        <ProductPrice :price="price" large />
+                        <StockBadge v-if="stock && price" :status="stock" />
+                    </div>
 
-                <p v-if="product.description" class="leading-relaxed whitespace-pre-line text-muted-foreground">{{ product.description }}</p>
+                    <p v-if="product.description" class="leading-relaxed whitespace-pre-line text-muted-foreground">{{ product.description }}</p>
 
-                <div v-if="hasVariants" class="space-y-4">
-                    <fieldset v-for="option in product.options" :key="option.id" class="space-y-2">
-                        <legend class="text-sm font-medium">
-                            {{ option.display_name
-                            }}<span v-if="picked[option.name]" class="font-normal text-muted-foreground">: {{ picked[option.name] }}</span>
-                        </legend>
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                v-for="value in option.values"
-                                :key="value"
-                                type="button"
-                                class="rounded-md border px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
-                                :class="[
-                                    picked[option.name] === value ? 'border-primary bg-primary text-primary-foreground' : 'hover:border-primary/60',
-                                    offered(option, value) || picked[option.name] === value ? '' : 'text-muted-foreground line-through',
-                                ]"
-                                :aria-pressed="picked[option.name] === value"
-                                @click="choose(option, value)"
+                    <div v-if="hasVariants" class="space-y-4">
+                        <fieldset v-for="option in product.options" :key="option.id" class="space-y-2">
+                            <legend class="text-sm font-medium">
+                                {{ option.display_name
+                                }}<span v-if="picked[option.name]" class="font-normal text-muted-foreground">: {{ picked[option.name] }}</span>
+                            </legend>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="value in option.values"
+                                    :key="value"
+                                    type="button"
+                                    class="rounded-md border px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
+                                    :class="[
+                                        picked[option.name] === value
+                                            ? 'border-primary bg-primary text-primary-foreground'
+                                            : 'hover:border-primary/60',
+                                        offered(option, value) || picked[option.name] === value ? '' : 'text-muted-foreground line-through',
+                                    ]"
+                                    :aria-pressed="picked[option.name] === value"
+                                    @click="choose(option, value)"
+                                >
+                                    {{ value }}
+                                </button>
+                            </div>
+                        </fieldset>
+
+                        <div v-if="product.options.length === 0 && product.variants.length > 1" class="space-y-2">
+                            <label for="variant" class="text-sm font-medium">Choose one</label>
+                            <select
+                                id="variant"
+                                v-model="pickedVariantId"
+                                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
                             >
-                                {{ value }}
-                            </button>
+                                <option v-for="variant in product.variants" :key="variant.id" :value="variant.id">{{ variant.name }}</option>
+                            </select>
                         </div>
-                    </fieldset>
+                    </div>
 
-                    <div v-if="product.options.length === 0 && product.variants.length > 1" class="space-y-2">
-                        <label for="variant" class="text-sm font-medium">Choose one</label>
-                        <select
-                            id="variant"
-                            v-model="pickedVariantId"
-                            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:border-primary focus:outline-hidden"
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap items-end gap-3">
+                            <div class="space-y-1">
+                                <label for="quantity" class="text-sm font-medium">Quantity</label>
+                                <Input
+                                    id="quantity"
+                                    type="number"
+                                    inputmode="numeric"
+                                    min="1"
+                                    :max="maxQuantity"
+                                    class="w-24"
+                                    :model-value="quantity"
+                                    @change="setQuantity(Number(($event.target as HTMLInputElement).value))"
+                                />
+                            </div>
+                            <Button size="lg" class="flex-1 sm:flex-none sm:px-10" :disabled="problem !== null || adding" @click="addToCart">
+                                {{ adding ? 'Adding…' : 'Add to cart' }}
+                            </Button>
+                            <WishlistButton :product-id="product.id" :product-name="product.name" :wishlisted="wishlisted" />
+                        </div>
+                        <p v-if="problem" class="text-sm text-muted-foreground" role="status">{{ problem }}</p>
+                        <p v-if="product.downloads > 0" class="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Download class="size-4" aria-hidden="true" />
+                            Digital download: {{ product.downloads }} {{ product.downloads === 1 ? 'file' : 'files' }}, available as soon as your
+                            order is confirmed.
+                        </p>
+                        <p v-if="!product.requires_shipping" class="text-sm text-muted-foreground">This item does not need shipping.</p>
+                    </div>
+
+                    <div v-if="product.categories.length || product.tags.length" class="flex flex-wrap gap-2 border-t pt-4">
+                        <Link
+                            v-for="category in product.categories"
+                            :key="`c${category.id}`"
+                            :href="route('shop.index', { category: [category.id] })"
                         >
-                            <option v-for="variant in product.variants" :key="variant.id" :value="variant.id">{{ variant.name }}</option>
-                        </select>
+                            <Badge variant="secondary">{{ category.name }}</Badge>
+                        </Link>
+                        <Link v-for="tag in product.tags" :key="`t${tag.id}`" :href="route('shop.index', { tags: [tag.id] })">
+                            <Badge variant="outline">{{ tag.name }}</Badge>
+                        </Link>
                     </div>
-                </div>
-
-                <div class="space-y-3">
-                    <div class="flex flex-wrap items-end gap-3">
-                        <div class="space-y-1">
-                            <label for="quantity" class="text-sm font-medium">Quantity</label>
-                            <Input
-                                id="quantity"
-                                type="number"
-                                inputmode="numeric"
-                                min="1"
-                                :max="maxQuantity"
-                                class="w-24"
-                                :model-value="quantity"
-                                @change="setQuantity(Number(($event.target as HTMLInputElement).value))"
-                            />
-                        </div>
-                        <Button size="lg" class="flex-1 sm:flex-none sm:px-10" :disabled="problem !== null || adding" @click="addToCart">
-                            {{ adding ? 'Adding…' : 'Add to cart' }}
-                        </Button>
-                    </div>
-                    <p v-if="problem" class="text-sm text-muted-foreground" role="status">{{ problem }}</p>
-                    <p v-if="product.downloads > 0" class="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Download class="size-4" aria-hidden="true" />
-                        Digital download: {{ product.downloads }} {{ product.downloads === 1 ? 'file' : 'files' }}, available as soon as your order is
-                        confirmed.
-                    </p>
-                    <p v-if="!product.requires_shipping" class="text-sm text-muted-foreground">This item does not need shipping.</p>
-                </div>
-
-                <div v-if="product.categories.length || product.tags.length" class="flex flex-wrap gap-2 border-t pt-4">
-                    <Link v-for="category in product.categories" :key="`c${category.id}`" :href="route('shop.index', { category: [category.id] })">
-                        <Badge variant="secondary">{{ category.name }}</Badge>
-                    </Link>
-                    <Link v-for="tag in product.tags" :key="`t${tag.id}`" :href="route('shop.index', { tags: [tag.id] })">
-                        <Badge variant="outline">{{ tag.name }}</Badge>
-                    </Link>
                 </div>
             </div>
+
+            <ProductReviews v-if="reviews" :reviews="reviews" :product-slug="product.slug" />
         </div>
     </AppLayout>
 </template>

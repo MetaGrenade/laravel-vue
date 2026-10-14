@@ -124,6 +124,44 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Wishlists
+    |--------------------------------------------------------------------------
+    |
+    | A signed-in customer can save products to come back to. There is no guest wishlist.
+    |
+    */
+
+    'wishlist' => [
+        // Most products one customer can save.
+        'max_items' => max(1, (int) env('COMMERCE_WISHLIST_MAX', 200)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Product reviews
+    |--------------------------------------------------------------------------
+    |
+    | A signed-in customer with a verified email can review a product once (and change or delete their
+    | review). A review from someone with a paid order for the product is marked "Verified purchase".
+    |
+    | `approval` decides which reviews wait for staff to publish them: "all", "unverified" (only those from
+    | people who did not buy the product) or "none". Anything else is treated as "all", the safe choice.
+    |
+    */
+
+    'reviews' => [
+        'enabled' => (bool) env('COMMERCE_REVIEWS', true),
+        // Only people who bought the product can review it.
+        'require_purchase' => (bool) env('COMMERCE_REVIEWS_REQUIRE_PURCHASE', false),
+        'approval' => env('COMMERCE_REVIEWS_APPROVAL', 'unverified'),
+        'per_page' => 10,
+        'title_max' => 120,
+        'body_min' => 10,
+        'body_max' => 5000,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Low stock
     |--------------------------------------------------------------------------
     |

@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import ProductPrice from '@/components/commerce/ProductPrice.vue';
-import { Badge } from '@/components/ui/badge';
+import ProductCard from '@/components/commerce/ProductCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { StorefrontImage, StorefrontPrice, StorefrontVariant } from '@/types/commerce';
+import type { StorefrontCard } from '@/types/storefront';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ImageOff } from '@lucide/vue';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive } from 'vue';
 
 interface Taxon {
     id: number;
@@ -16,25 +14,9 @@ interface Taxon {
     slug: string;
 }
 
-interface Product {
-    id: number;
-    name: string;
-    slug: string;
-    description?: string | null;
-    /** Decided by the server with the same rules checkout uses, so the button is never on for something checkout would refuse. */
-    can_buy: boolean;
-    sold_out: boolean;
-    image: StorefrontImage | null;
-    variants: StorefrontVariant[];
-    prices: StorefrontPrice[];
-    brand?: Taxon | null;
-    categories: Taxon[];
-    tags: Taxon[];
-}
-
 interface Props {
     products: {
-        data: Product[];
+        data: StorefrontCard[];
         current_page: number;
         last_page: number;
         total: number;
@@ -67,42 +49,6 @@ const filterState = reactive<{ search: string; category: number | ''; tags: numb
 const filtering = computed(() =>
     Boolean(props.filters.search || props.filters.category?.length || props.filters.tags?.length || props.filters.brand),
 );
-
-/** What a shopper pays for a variant: its own price, or the product's (as checkout does). */
-const effectivePrices = (product: Product): StorefrontPrice[] => {
-    if (!product.variants.length) {
-        return product.prices.slice(0, 1);
-    }
-
-    return product.variants.map((variant) => variant.prices[0] ?? product.prices[0]).filter((price): price is StorefrontPrice => Boolean(price));
-};
-
-/** The cheapest it can be had for, and whether other choices cost more. */
-const cardPrice = (product: Product) => {
-    const prices = [...effectivePrices(product)].sort((a, b) => Number(a.amount) - Number(b.amount));
-
-    return { price: prices[0] ?? null, from: new Set(prices.map((price) => price.amount)).size > 1 };
-};
-
-/** Products with nothing to choose can be added straight from the list. */
-const quickAdd = (product: Product) => product.can_buy && !product.sold_out && product.variants.length === 0;
-
-const addingId = ref<number | null>(null);
-
-const addToCart = (product: Product) => {
-    addingId.value = product.id;
-
-    router.post(
-        route('shop.cart.items.store'),
-        { product_id: product.id, quantity: 1 },
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                addingId.value = null;
-            },
-        },
-    );
-};
 
 const applyFilters = () => {
     router.get(
@@ -207,51 +153,7 @@ const selectClass = 'w-full rounded-md border border-input bg-background px-3 py
 
             <ul v-else class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 <li v-for="product in props.products.data" :key="product.id">
-                    <Card class="h-full gap-0 overflow-hidden py-0">
-                        <Link
-                            :href="route('shop.products.show', product.slug)"
-                            class="relative block bg-muted/30"
-                            :aria-label="`View ${product.name}`"
-                            tabindex="-1"
-                        >
-                            <img
-                                v-if="product.image"
-                                :src="product.image.medium"
-                                :alt="product.image.alt"
-                                :width="product.image.width"
-                                :height="product.image.height"
-                                class="aspect-[4/3] w-full object-cover"
-                                loading="lazy"
-                            />
-                            <div v-else class="flex aspect-[4/3] items-center justify-center text-muted-foreground" aria-hidden="true">
-                                <ImageOff class="size-10" />
-                            </div>
-                            <Badge v-if="product.sold_out" class="absolute top-3 left-3" variant="destructive">Sold out</Badge>
-                        </Link>
-
-                        <div class="flex flex-1 flex-col gap-3 p-4">
-                            <div class="space-y-1">
-                                <p v-if="product.brand" class="text-xs tracking-wide text-muted-foreground uppercase">{{ product.brand.name }}</p>
-                                <h2 class="line-clamp-2 text-lg leading-snug font-semibold">
-                                    <Link :href="route('shop.products.show', product.slug)" class="hover:underline">{{ product.name }}</Link>
-                                </h2>
-                                <ProductPrice :price="cardPrice(product).price" :from="cardPrice(product).from" />
-                            </div>
-
-                            <p v-if="product.description" class="line-clamp-2 text-sm text-muted-foreground">{{ product.description }}</p>
-
-                            <div class="mt-auto flex gap-2 pt-2">
-                                <Button as-child variant="secondary" class="flex-1">
-                                    <Link :href="route('shop.products.show', product.slug)">{{
-                                        product.variants.length ? 'Choose options' : 'View'
-                                    }}</Link>
-                                </Button>
-                                <Button v-if="quickAdd(product)" variant="outline" :disabled="addingId === product.id" @click="addToCart(product)">
-                                    {{ addingId === product.id ? 'Adding…' : 'Add to cart' }}
-                                </Button>
-                            </div>
-                        </div>
-                    </Card>
+                    <ProductCard :product="product" />
                 </li>
             </ul>
 

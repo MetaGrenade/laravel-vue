@@ -15,6 +15,8 @@ export interface CustomerOrderItem {
     description: string | null;
     quantity: number;
     subtotal: string;
+    /** The product's page, when it is still on sale. */
+    product_url: string | null;
 }
 
 export interface CustomerOrder {

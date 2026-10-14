@@ -35,8 +35,9 @@ A batteries-included boilerplate for building SaaS products, online shops and la
   - **Checkout**: guest or signed-in, an address book (Settings → Addresses), shipping zones and rates, a tax-rate table and a live quote as the shopper types. Payment happens on hosted Stripe Checkout; stock is held for an unpaid order and released when it expires. Orders that cost nothing are paid on the spot without a provider.
   - **Orders & refunds**: an order lifecycle with an append-only history, receipts and shipping emails, fulfilment with tracking, cancellation, notes, and full or partial refunds through Stripe (its own permission, `commerce.acp.refund`).
   - **Digital goods**: files kept on a private disk, per-order download grants, short-lived signed links, download limits and optional expiry, revoked automatically by a full refund. **Licence keys** are sold from an encrypted pool tied to the stock count (so a key is never sold twice), handed over when the order is paid and hidden again by a full refund.
-  - **Admin**: Commerce, Products, Orders, Brands and tags, Shipping, Tax rates and Discount codes in the ACP.
-  - **Not built yet**: gift cards, reviews and wishlists, and Tebex (all on the roadmap).
+  - **Wishlists & reviews**: customers save products to a private wishlist and review what they bought (1 to 5 stars, plain text, "Verified purchase" for buyers); staff choose which reviews wait for approval and publish, reject or delete them in the ACP. Ratings show on product cards, the product page and its structured data.
+  - **Admin**: Commerce, Products, Orders, Reviews, Brands and tags, Shipping, Tax rates and Discount codes in the ACP.
+  - **Not built yet**: gift cards and Tebex (both on the roadmap).
 - **Polls & Surveys**: Polls with admin management, voting and an API.
 - **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics (database search today; Meilisearch is planned for 1.0).
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
@@ -176,6 +177,10 @@ Settings that can be changed in `.env` (full table in [docs/commerce.md](docs/co
 | `COMMERCE_DOWNLOAD_LIMIT` | `10` | Downloads of each file per order (`0` = unlimited). |
 | `COMMERCE_DOWNLOAD_EXPIRY_DAYS` | `0` | Days after payment that downloads stop (`0` = never). |
 | `COMMERCE_DOWNLOAD_LINK_MINUTES` | `30` | How long a download link on the order page works. |
+| `COMMERCE_WISHLIST_MAX` | `200` | Most products one customer can save. |
+| `COMMERCE_REVIEWS` | `true` | Allow and show product reviews. |
+| `COMMERCE_REVIEWS_REQUIRE_PURCHASE` | `false` | Only customers with a paid order for the product can review it. |
+| `COMMERCE_REVIEWS_APPROVAL` | `unverified` | Which reviews wait for staff: `all`, `unverified` (those not from buyers) or `none`. |
 
 ## Realtime Broadcasting & Pusher Setup
 The starter comes pre-wired for private and presence channels using Laravel Echo and Pusher. If Pusher
