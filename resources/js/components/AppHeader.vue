@@ -31,6 +31,7 @@ import {
     Bell,
     Check,
     Trash2,
+    Heart,
     ShoppingBag,
     ShoppingCart,
 } from '@lucide/vue';
@@ -450,6 +451,15 @@ const viewNotification = (notification: NotificationItem) => {
                             <component v-if="item.icon" :is="item.icon" class="size-4" />
                             {{ item.title }}
                         </component>
+                        <!-- On a phone the icon row is full, so the wishlist lives here. -->
+                        <Link
+                            v-if="user && commerceEnabled"
+                            :href="route('shop.wishlist')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        >
+                            <Heart class="size-4" />
+                            Wishlist
+                        </Link>
                     </nav>
                     <div class="flex items-center justify-between border-t px-5 py-3 text-sm text-muted-foreground">
                         Theme
@@ -537,6 +547,18 @@ const viewNotification = (notification: NotificationItem) => {
                 <div class="hidden sm:block">
                     <ThemeToggle />
                 </div>
+
+                <Button
+                    v-if="user && commerceEnabled"
+                    variant="ghost"
+                    size="icon"
+                    class="hidden text-muted-foreground hover:text-foreground sm:inline-flex"
+                    as-child
+                >
+                    <Link :href="route('shop.wishlist')" aria-label="Your wishlist" title="Your wishlist">
+                        <Heart class="size-[1.15rem]" />
+                    </Link>
+                </Button>
 
                 <Sheet v-if="commerceEnabled">
                     <SheetTrigger as-child>

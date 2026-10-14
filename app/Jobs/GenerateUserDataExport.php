@@ -144,6 +144,37 @@ class GenerateUserDataExport implements ShouldQueue
             ])
             ->all();
 
+        $wishlist = $user->wishlistItems()
+            ->with('product:id,name')
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn ($item) => [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'product' => $item->product?->name,
+                'created_at' => $item->created_at?->toIso8601String(),
+                'updated_at' => $item->updated_at?->toIso8601String(),
+            ])
+            ->all();
+
+        $productReviews = $user->productReviews()
+            ->with('product:id,name')
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn ($review) => [
+                'id' => $review->id,
+                'product_id' => $review->product_id,
+                'product' => $review->product?->name,
+                'rating' => $review->rating,
+                'title' => $review->title,
+                'body' => $review->body,
+                'status' => $review->status->value,
+                'verified_purchase' => $review->verified_purchase,
+                'created_at' => $review->created_at?->toIso8601String(),
+                'updated_at' => $review->updated_at?->toIso8601String(),
+            ])
+            ->all();
+
         return [
             'user' => [
                 'id' => $user->id,
@@ -163,6 +194,8 @@ class GenerateUserDataExport implements ShouldQueue
             'blog_comments' => $blogComments,
             'forum_posts' => $forumPosts,
             'support_tickets' => $supportTickets,
+            'wishlist' => $wishlist,
+            'product_reviews' => $productReviews,
         ];
     }
 
@@ -206,6 +239,26 @@ class GenerateUserDataExport implements ShouldQueue
                 Str::limit((string) $ticket['subject'], 120),
                 $ticket['created_at'],
                 $ticket['updated_at'],
+            ]);
+        }
+
+        foreach ($payload['wishlist'] as $item) {
+            fputcsv($handle, [
+                'wishlist_item',
+                $item['id'],
+                Str::limit((string) $item['product'], 120),
+                $item['created_at'],
+                $item['updated_at'],
+            ]);
+        }
+
+        foreach ($payload['product_reviews'] as $review) {
+            fputcsv($handle, [
+                'product_review',
+                $review['id'],
+                Str::limit($review['rating'].'/5 '.($review['product'] ?? '').': '.($review['title'] ?: $review['body']), 120),
+                $review['created_at'],
+                $review['updated_at'],
             ]);
         }
 

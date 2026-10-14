@@ -122,4 +122,14 @@ class Product extends Model
     {
         return $this->hasMany(InventoryItem::class);
     }
+
+    /**
+     * Every review of the product, whatever its status. The public sees only the published ones.
+     *
+     * @return HasMany<ProductReview, $this>
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ProductReview::class);
+    }
 }

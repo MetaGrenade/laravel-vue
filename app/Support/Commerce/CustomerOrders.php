@@ -7,6 +7,7 @@ use App\Models\DownloadGrant;
 use App\Models\LicenceKey;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\User;
 use App\Support\Commerce\Digital\DownloadDelivery;
 use App\Support\Commerce\Digital\LicenceKeys;
@@ -67,11 +68,17 @@ class CustomerOrders
                 ->groupBy('order_item_id')
                 ->pluck('aggregate', 'order_item_id');
 
+        // The product pages the lines can link to (a product that is gone or switched off has none).
+        $productIds = $orders->flatMap(fn (Order $order) => $order->items)->pluck('product_id')->filter()->unique()->values();
+        $slugs = $productIds->isEmpty()
+            ? collect()
+            : Product::query()->where('is_active', true)->whereIn('id', $productIds->all())->pluck('slug', 'id');
+
         $grants = DownloadGrant::query()->whereIn('order_id', $orders->pluck('id')->all())->get();
         $available = $this->downloads->available($grants);
         $grantsByOrder = $grants->groupBy('order_id');
 
-        return $orders->map(function (Order $order) use ($held, $available, $grantsByOrder) {
+        return $orders->map(function (Order $order) use ($held, $available, $grantsByOrder, $slugs) {
             // Nothing is delivered before the order is paid, or after it was refunded in full.
             $owed = $this->keys->owes($order);
             $keyed = $order->items->where('delivers_keys', true);
@@ -95,6 +102,7 @@ class CustomerOrders
                     'description' => $item->description,
                     'quantity' => $item->quantity,
                     'subtotal' => $item->subtotal,
+                    'product_url' => isset($slugs[$item->product_id]) ? route('shop.products.show', $slugs[$item->product_id]) : null,
                 ])->values()->all(),
                 // What the customer can find on the order page: how many keys they hold, how many are still
                 // to come, and whether any file can still be downloaded.

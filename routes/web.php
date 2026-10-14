@@ -11,6 +11,8 @@ use App\Http\Controllers\Ecommerce\CheckoutController;
 use App\Http\Controllers\Ecommerce\DownloadController;
 use App\Http\Controllers\Ecommerce\OrderController;
 use App\Http\Controllers\Ecommerce\ProductCatalogController;
+use App\Http\Controllers\Ecommerce\ProductReviewController;
+use App\Http\Controllers\Ecommerce\WishlistController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumPostRevisionController;
@@ -70,6 +72,16 @@ Route::middleware('section.enabled:commerce')->group(function () {
         Route::delete('/cart/coupon', [CartCouponController::class, 'destroy'])
             ->middleware('throttle:interactions')
             ->name('shop.cart.coupon.destroy');
+
+        // A customer's own review of a product (one each: writing again changes it).
+        Route::middleware('auth')->group(function () {
+            Route::post('/products/{product:slug}/review', [ProductReviewController::class, 'store'])
+                ->middleware('throttle:content')
+                ->name('shop.products.review.store');
+            Route::delete('/products/{product:slug}/review', [ProductReviewController::class, 'destroy'])
+                ->middleware('throttle:interactions')
+                ->name('shop.products.review.destroy');
+        });
     });
 
     Route::get('/cart', [CartController::class, 'show'])->name('shop.cart');
@@ -80,6 +92,17 @@ Route::middleware('section.enabled:commerce')->group(function () {
     });
 
     Route::middleware('auth')->get('/orders', [OrderController::class, 'index'])->name('shop.orders');
+
+    Route::middleware('auth')->prefix('wishlist')->group(function () {
+        Route::get('/', [WishlistController::class, 'index'])->name('shop.wishlist');
+        Route::post('/', [WishlistController::class, 'store'])
+            ->middleware('throttle:interactions')
+            ->name('shop.wishlist.store');
+        Route::delete('/{product}', [WishlistController::class, 'destroy'])
+            ->middleware('throttle:interactions')
+            ->whereNumber('product')
+            ->name('shop.wishlist.destroy');
+    });
 });
 
 // Outside the shop toggle: a customer's receipt must keep working even if the shop is switched off.

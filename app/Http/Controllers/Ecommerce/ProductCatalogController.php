@@ -9,11 +9,17 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductImage;
 use App\Models\ProductOption;
+use App\Models\ProductReview;
 use App\Models\ProductTag;
 use App\Models\ProductVariant;
+use App\Models\User;
 use App\Support\Commerce\ProductAvailability;
+use App\Support\Commerce\Reviews\ProductReviews;
+use App\Support\Commerce\StorefrontProducts;
+use App\Support\Commerce\Wishlists;
 use App\Support\Seo\Seo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,7 +30,7 @@ use Inertia\Response;
  */
 class ProductCatalogController extends Controller
 {
-    public function index(Request $request, ProductAvailability $availability): Response
+    public function index(Request $request, StorefrontProducts $storefront, ProductReviews $reviews, Wishlists $wishlists): Response
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
@@ -35,18 +41,7 @@ class ProductCatalogController extends Controller
             'brand' => ['nullable', 'integer', 'exists:brands,id'],
         ]);
 
-        $products = Product::query()
-            ->with([
-                'variants' => ProductAvailability::activeVariants(),
-                'prices' => ProductAvailability::chargeablePrices(),
-                'inventoryItems:id,product_id,product_variant_id,quantity,allow_backorder',
-                'primaryImage',
-                'categories:id,name,slug',
-                'tags:id,name,slug',
-                'brand:id,name,slug',
-            ])
-            ->withExists('variants as has_variants')
-            ->where('is_active', true)
+        $products = StorefrontProducts::query()
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(function ($query) use ($search) {
                     $query->whereLike('name', "%{$search}%")
@@ -68,25 +63,17 @@ class ProductCatalogController extends Controller
             })
             ->orderBy('name')
             ->paginate(12)
-            ->withQueryString()
-            ->through(function (Product $product) use ($availability) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'slug' => $product->slug,
-                    'description' => $product->description,
-                    'is_active' => $product->is_active,
-                    // What checkout will accept, so the button is never on for something it would refuse.
-                    'can_buy' => $availability->canBuy($product),
-                    'sold_out' => $availability->soldOut($product),
-                    'image' => $product->primaryImage?->toStorefront($product->name),
-                    'variants' => $product->variants->map(fn (ProductVariant $variant) => $this->variantPayload($variant, $product, $availability))->values(),
-                    'prices' => $product->prices->map(fn (Price $price) => $this->pricePayload($price))->values(),
-                    'brand' => $product->brand,
-                    'categories' => $product->categories,
-                    'tags' => $product->tags,
-                ];
-            });
+            ->withQueryString();
+
+        // What the reviews say and what this customer saved, for the whole page in one query each.
+        $ids = $products->getCollection()->pluck('id');
+        $summaries = $reviews->summaries($ids);
+        $saved = $wishlists->among($request->user(), $ids);
+
+        $products->through(fn (Product $product) => [
+            ...$storefront->card($product, $reviews->rating($summaries, $product->id)),
+            'wishlisted' => in_array($product->id, $saved, true),
+        ]);
 
         app(Seo::class)
             ->title('Shop')
@@ -108,7 +95,7 @@ class ProductCatalogController extends Controller
         ]);
     }
 
-    public function show(Product $product, ProductAvailability $availability): Response
+    public function show(Request $request, Product $product, ProductAvailability $availability, StorefrontProducts $storefront, ProductReviews $reviews, Wishlists $wishlists): Response
     {
         abort_unless($product->is_active, 404);
 
@@ -130,6 +117,8 @@ class ProductCatalogController extends Controller
         $soldOut = $availability->soldOut($product);
         $images = $product->images->map(fn (ProductImage $image) => $image->toStorefront($product->name))->values();
         $lowest = $availability->lowestPrice($product);
+        $user = $request->user();
+        $summary = $reviews->enabled() ? $reviews->summary($product) : null;
 
         app(Seo::class)
             ->title($product->name)
@@ -151,10 +140,20 @@ class ProductCatalogController extends Controller
                     'availability' => $soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
                     'url' => route('shop.products.show', $product),
                 ] : null,
+                // Only what published reviews say, and only when there are some.
+                'aggregateRating' => $summary !== null && $summary['count'] > 0 ? [
+                    '@type' => 'AggregateRating',
+                    'ratingValue' => $summary['average'],
+                    'reviewCount' => $summary['count'],
+                    'bestRating' => 5,
+                    'worstRating' => 1,
+                ] : null,
             ]));
 
         return Inertia::render('commerce/ProductDetail', [
             'maxQuantity' => (int) config('commerce.checkout.max_quantity', 20),
+            'wishlisted' => $wishlists->among($user, [$product->id]) !== [],
+            'reviews' => $summary === null ? null : $this->reviewsPayload($request, $user, $product, $reviews, $summary),
             'product' => [
                 'id' => $product->id,
                 'name' => $product->name,
@@ -179,38 +178,66 @@ class ProductCatalogController extends Controller
                         'display_name' => $option->display_name,
                         'values' => $option->values->map(fn ($value) => $value->value)->values(),
                     ])->values(),
-                'variants' => $product->variants->map(fn (ProductVariant $variant) => $this->variantPayload($variant, $product, $availability))->values(),
-                'prices' => $product->prices->map(fn (Price $price) => $this->pricePayload($price))->values(),
+                'variants' => $product->variants->map(fn (ProductVariant $variant) => $storefront->variant($variant, $product))->values(),
+                'prices' => $product->prices->map(fn (Price $price) => $storefront->price($price))->values(),
             ],
         ]);
     }
 
     /**
-     * @return array{id: int, name: string, sku: string|null, option_values: object, is_default: bool, stock: string, prices: list<array<string, mixed>>}
+     * What the product page shows of its reviews: the rating, one page of published reviews, the visitor's
+     * own review (whatever state it is in) and whether they may write one.
+     *
+     * @param  array{count: int, average: float|null, distribution: array<int, int>}  $summary
+     * @return array<string, mixed>
      */
-    private function variantPayload(ProductVariant $variant, Product $product, ProductAvailability $availability): array
+    private function reviewsPayload(Request $request, ?User $user, Product $product, ProductReviews $reviews, array $summary): array
     {
-        return [
-            'id' => $variant->id,
-            'name' => $variant->name,
-            'sku' => $variant->sku,
-            'option_values' => (object) ((array) $variant->option_values),
-            'is_default' => $variant->is_default,
-            'stock' => $availability->status($product, $variant),
-            'prices' => $variant->prices->map(fn (Price $price) => $this->pricePayload($price))->values()->all(),
-        ];
-    }
+        $requested = (string) $request->query('review_sort', 'newest');
+        $sort = in_array($requested, ProductReviews::SORTS, true) ? $requested : 'newest';
 
-    /**
-     * @return array{id: int, currency: string, amount: string, compare_at_amount: string|null}
-     */
-    private function pricePayload(Price $price): array
-    {
+        $page = $reviews->published($product, $sort)
+            ->with('user:id,nickname')
+            ->paginate((int) config('commerce.reviews.per_page', 10), ['*'], 'reviews_page');
+
+        $mine = $user === null
+            ? null
+            : ProductReview::query()->where('product_id', $product->id)->where('user_id', $user->id)->first();
+
+        $reason = $reviews->whyNot($user, $product);
+
         return [
-            'id' => $price->id,
-            'currency' => $price->currency,
-            'amount' => $price->amount,
-            'compare_at_amount' => $price->compare_at_amount,
+            'summary' => $summary,
+            'sort' => $sort,
+            'items' => $page->getCollection()->map(fn (ProductReview $review) => [
+                'id' => $review->id,
+                'rating' => $review->rating,
+                'title' => $review->title,
+                'body' => $review->body,
+                'author' => $review->user->nickname,
+                'verified_purchase' => $review->verified_purchase,
+                'created_at' => $review->created_at?->toIso8601String(),
+                'mine' => $user !== null && $review->user_id === $user->id,
+            ])->values()->all(),
+            'page' => ['current' => $page->currentPage(), 'last' => max(1, $page->lastPage()), 'total' => $page->total()],
+            'mine' => $mine === null ? null : [
+                'rating' => $mine->rating,
+                'title' => $mine->title,
+                'body' => $mine->body,
+                'status' => $mine->status->value,
+                'status_label' => $mine->status->label(),
+                'verified_purchase' => $mine->verified_purchase,
+                'created_at' => $mine->created_at?->toIso8601String(),
+            ],
+            // Writing (or changing) one is possible, and if not, why.
+            'can_write' => $reason === null && ($mine === null || Gate::forUser($user)->allows('update', $mine)),
+            'reason' => $reason,
+            'message' => $reason === null ? null : $reviews->explain($reason),
+            'limits' => [
+                'title_max' => (int) config('commerce.reviews.title_max', 120),
+                'body_min' => (int) config('commerce.reviews.body_min', 10),
+                'body_max' => (int) config('commerce.reviews.body_max', 5000),
+            ],
         ];
     }
 }

@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\CommerceOrderController;
 use App\Http\Controllers\Admin\CommerceOrderDownloadController;
 use App\Http\Controllers\Admin\CommerceOrderLicenceKeyController;
 use App\Http\Controllers\Admin\CommerceOrderRefundController;
+use App\Http\Controllers\Admin\CommerceReviewController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\ForumBoardController;
@@ -360,6 +361,15 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
             Route::delete('coupons/{coupon}', [CouponController::class, 'destroy'])
                 ->middleware('can:commerce.acp.delete')
                 ->name('coupons.destroy');
+
+            // Product reviews: publish or reject what customers wrote.
+            Route::get('reviews', [CommerceReviewController::class, 'index'])->name('reviews.index');
+            Route::patch('reviews/{review}', [CommerceReviewController::class, 'update'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('reviews.update');
+            Route::delete('reviews/{review}', [CommerceReviewController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('reviews.destroy');
 
             // The tax table.
             Route::get('tax-rates', [TaxRateController::class, 'index'])->name('tax-rates.index');

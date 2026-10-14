@@ -24,6 +24,9 @@ interface Props {
 const props = defineProps<Props>();
 
 const placedOn = (value: string) => new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' });
+
+/** Something that was paid for (and not given back in full) can be reviewed. */
+const canReview = (order: CustomerOrder) => ['paid', 'partially_refunded'].includes(order.payment_status) && order.status !== 'cancelled';
 </script>
 
 <template>
@@ -61,7 +64,15 @@ const placedOn = (value: string) => new Date(value).toLocaleDateString(undefined
 
                             <div class="space-y-2">
                                 <div v-for="item in order.items" :key="item.id" class="flex justify-between gap-3 text-sm">
-                                    <span>{{ item.description || 'Line item' }} (x{{ item.quantity }})</span>
+                                    <span>
+                                        {{ item.description || 'Line item' }} (x{{ item.quantity }})
+                                        <a
+                                            v-if="item.product_url && canReview(order)"
+                                            :href="`${item.product_url}#reviews`"
+                                            class="ml-1 text-primary hover:underline"
+                                            >Write a review</a
+                                        >
+                                    </span>
                                     <span class="tabular-nums">{{ formatMoney(item.subtotal, order.currency) }}</span>
                                 </div>
                             </div>
