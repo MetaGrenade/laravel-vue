@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogCommentController as AdminBlogCommentController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\BlogTagController;
+use App\Http\Controllers\Admin\Catalogue\LicenceKeyController;
 use App\Http\Controllers\Admin\Catalogue\OptionController;
 use App\Http\Controllers\Admin\Catalogue\PriceController;
 use App\Http\Controllers\Admin\Catalogue\ProductController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Admin\Catalogue\VariantController;
 use App\Http\Controllers\Admin\CommerceController;
 use App\Http\Controllers\Admin\CommerceOrderController;
 use App\Http\Controllers\Admin\CommerceOrderDownloadController;
+use App\Http\Controllers\Admin\CommerceOrderLicenceKeyController;
 use App\Http\Controllers\Admin\CommerceOrderRefundController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\FaqCategoryController;
@@ -250,6 +252,20 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
                 ->middleware('can:commerce.acp.delete')
                 ->name('files.destroy');
 
+            // The pool of licence keys behind a product's (or a variant's) stock.
+            Route::post('products/{product}/licence-keys/enable', [LicenceKeyController::class, 'enable'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('licence-keys.enable');
+            Route::post('stock/{item}/licence-keys/disable', [LicenceKeyController::class, 'disable'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('licence-keys.disable');
+            Route::post('stock/{item}/licence-keys', [LicenceKeyController::class, 'store'])
+                ->middleware('can:commerce.acp.create')
+                ->name('licence-keys.store');
+            Route::delete('stock/{item}/licence-keys', [LicenceKeyController::class, 'destroy'])
+                ->middleware('can:commerce.acp.delete')
+                ->name('licence-keys.destroy');
+
             // Brands, categories and tags.
             Route::get('taxonomy', [TaxonomyController::class, 'index'])->name('taxonomy.index');
             Route::post('taxonomy/{type}', [TaxonomyController::class, 'store'])
@@ -309,6 +325,15 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
             Route::post('orders/{order}/downloads/{grant}/restore', [CommerceOrderDownloadController::class, 'restore'])
                 ->middleware('can:commerce.acp.edit')
                 ->name('orders.downloads.restore');
+            Route::post('orders/{order}/licence-keys/issue', [CommerceOrderLicenceKeyController::class, 'issue'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('orders.licence-keys.issue');
+            Route::post('orders/{order}/licence-keys/{key}/withdraw', [CommerceOrderLicenceKeyController::class, 'withdraw'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('orders.licence-keys.withdraw');
+            Route::post('orders/{order}/licence-keys/{key}/replace', [CommerceOrderLicenceKeyController::class, 'replace'])
+                ->middleware('can:commerce.acp.edit')
+                ->name('orders.licence-keys.replace');
             Route::post('orders/{order}/check-payment', [CommerceOrderController::class, 'checkPayment'])
                 ->middleware('can:commerce.acp.edit')
                 ->name('orders.check-payment');

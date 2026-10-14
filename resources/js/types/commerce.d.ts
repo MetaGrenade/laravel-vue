@@ -52,6 +52,15 @@ export interface OrderDownload {
     files: OrderDownloadFile[];
 }
 
+/** The licence keys an order line has been given, for the customer. `waiting` counts keys still to come. */
+export interface OrderLicenceKeys {
+    item_id: number;
+    description: string;
+    quantity: number;
+    keys: string[];
+    waiting: number;
+}
+
 /** The discount code on the cart. `applied` is false when it cannot be used (and `problem` says why). */
 export interface CartCoupon {
     code: string;

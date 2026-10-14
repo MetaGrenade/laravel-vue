@@ -4,6 +4,7 @@ namespace App\Support\Commerce;
 
 use App\Models\InventoryItem;
 use App\Models\InventoryMovement;
+use App\Models\LicenceKey;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,12 @@ class InventoryReserver
             $inventory = $this->inventoryFor($item);
 
             if ($inventory === null) {
+                continue;
+            }
+
+            // A pool of licence keys only holds units for lines that were sold as keys. A line bought before the
+            // stock became a pool (and now paying late) takes nothing from it: its unit was counted by hand.
+            if ($inventory->delivers_keys && ! $item->delivers_keys) {
                 continue;
             }
 
@@ -85,12 +92,24 @@ class InventoryReserver
     }
 
     /**
+     * A refund in full ends what an order was owed. For physical goods, whether they go back on the shelf
+     * is for staff to say ({@see self::restock()}); a licence key the order was never given is not goods,
+     * only a unit the order had spoken for, and that is no longer owed, so it is released whatever staff
+     * chose. Only what the order still holds is returned, so repeating it, or restocking afterwards, cannot
+     * add anything twice.
+     */
+    public function releaseOwedKeys(Order $order, ?string $note = null): void
+    {
+        $this->giveBack($order, InventoryMovement::RESTOCK, $note, keysOnly: true);
+    }
+
+    /**
      * Take again the stock that {@see self::restock()} returned, because the refund that
      * returned it did not hold and the order is owed to the customer once more. Like a
      * late payment it may leave stock negative: the order is real, so the goods are spoken for.
      *
-     * Only stock that was actually restocked is taken, and only if the order does not already
-     * hold it, so repeating this cannot take it twice.
+     * Only stock that was actually restocked is taken, and only once for each restock, so repeating
+     * this cannot take it twice.
      */
     public function takeBack(Order $order, ?string $note = null): void
     {
@@ -102,32 +121,34 @@ class InventoryReserver
             ->groupBy(fn (InventoryMovement $movement) => $movement->inventory_item_id.':'.$movement->order_item_id);
 
         foreach ($groups as $movements) {
-            if (! $movements->contains('reason', InventoryMovement::RESTOCK) || -$movements->sum('delta') > 0) {
+            // What the line got back is whatever its latest restock returned (less than it reserved when
+            // licence keys were handed out, which are never put back).
+            /** @var InventoryMovement|null $restock */
+            $restock = $movements->where('reason', InventoryMovement::RESTOCK)->sortBy('id')->last();
+
+            if ($restock === null || $restock->delta <= 0) {
                 continue;
             }
 
-            $reservation = $movements->firstWhere('reason', InventoryMovement::RESERVATION);
-
-            if ($reservation === null || $reservation->delta >= 0) {
+            // Already taken again: something was reserved after that restock.
+            if ($movements->contains(fn (InventoryMovement $movement) => $movement->reason === InventoryMovement::RESERVATION && $movement->id > $restock->id)) {
                 continue;
             }
 
-            $quantity = -$reservation->delta;
-
-            InventoryItem::query()->whereKey($reservation->inventory_item_id)->decrement('quantity', $quantity);
+            InventoryItem::query()->whereKey($restock->inventory_item_id)->decrement('quantity', $restock->delta);
 
             InventoryMovement::create([
-                'inventory_item_id' => $reservation->inventory_item_id,
+                'inventory_item_id' => $restock->inventory_item_id,
                 'order_id' => $order->id,
-                'order_item_id' => $reservation->order_item_id,
-                'delta' => -$quantity,
+                'order_item_id' => $restock->order_item_id,
+                'delta' => -$restock->delta,
                 'reason' => InventoryMovement::RESERVATION,
                 'note' => $note,
             ]);
         }
     }
 
-    private function giveBack(Order $order, string $reason, ?string $note): void
+    private function giveBack(Order $order, string $reason, ?string $note, bool $keysOnly = false): void
     {
         $held = InventoryMovement::query()
             ->where('order_id', $order->id)
@@ -135,15 +156,34 @@ class InventoryReserver
             ->get()
             ->groupBy(fn (InventoryMovement $movement) => $movement->inventory_item_id.':'.$movement->order_item_id);
 
+        $lines = OrderItem::query()->whereIn('id', $held->map(fn ($movements) => $movements->first()->order_item_id)->filter()->unique()->all())->get()->keyBy('id');
+        $stocks = InventoryItem::query()->whereIn('id', $held->map(fn ($movements) => $movements->first()->inventory_item_id)->unique()->all())->get()->keyBy('id');
+
         foreach ($held as $movements) {
+            /** @var InventoryMovement $first */
+            $first = $movements->first();
+
             $outstanding = -$movements->sum('delta');
+
+            if ($reason === InventoryMovement::RESTOCK) {
+                $soldAsKey = $first->order_item_id !== null && (bool) $lines->get($first->order_item_id)?->delivers_keys;
+                $keyed = (bool) $stocks->get($first->inventory_item_id)?->delivers_keys;
+
+                // Stock that became a pool of keys after the line was bought counts keys, not the ordinary
+                // unit this line held, so returning that unit would add a unit with no key behind it. And
+                // when only the keys an order was owed are being released, goods are left alone.
+                if (($keyed || $keysOnly) && ! $soldAsKey) {
+                    continue;
+                }
+
+                // A refund puts stock back, but not licence keys the customer was given: they may have used
+                // them, so they are retired and the pool is not topped up with them.
+                $outstanding -= $this->spentKeys($first);
+            }
 
             if ($outstanding <= 0) {
                 continue;
             }
-
-            /** @var InventoryMovement $first */
-            $first = $movements->first();
 
             InventoryItem::query()->whereKey($first->inventory_item_id)->update([
                 'quantity' => DB::raw('quantity + '.(int) $outstanding),
@@ -162,23 +202,19 @@ class InventoryReserver
 
     private function inventoryFor(OrderItem $item): ?InventoryItem
     {
-        if ($item->product_variant_id !== null) {
-            $variantStock = InventoryItem::query()
-                ->where('product_variant_id', $item->product_variant_id)
-                ->first();
+        return InventoryItem::forOrderItem($item);
+    }
 
-            if ($variantStock !== null) {
-                return $variantStock;
-            }
+    /**
+     * How many licence keys were handed to the order line a movement belongs to: units of stock that
+     * were delivered and can never be put back.
+     */
+    private function spentKeys(InventoryMovement $movement): int
+    {
+        if ($movement->order_item_id === null) {
+            return 0;
         }
 
-        if ($item->product_id === null) {
-            return null;
-        }
-
-        return InventoryItem::query()
-            ->where('product_id', $item->product_id)
-            ->whereNull('product_variant_id')
-            ->first();
+        return LicenceKey::query()->where('order_item_id', $movement->order_item_id)->count();
     }
 }

@@ -21,6 +21,9 @@ class StockAdjuster
     /** The most a single count or correction may be, to keep the column well inside its range. */
     public const LIMIT = 1_000_000;
 
+    /** Why a count that follows a pool of licence keys cannot be edited by hand. */
+    public const FOLLOWS_KEYS = 'The count of this stock follows its pool of licence keys, so add or delete keys on the Licence keys tab instead.';
+
     /**
      * Start tracking stock for a product, or for one of its variants.
      *
@@ -124,6 +127,10 @@ class StockAdjuster
                 return;
             }
 
+            if ($locked->delivers_keys) {
+                throw new CatalogueException('This stock holds a pool of licence keys. Switch licence keys off (after deleting the unused keys) before you stop tracking it.');
+            }
+
             if ($this->usedByOrders($locked)) {
                 throw new CatalogueException('Orders have used this stock, so its history is kept. To keep selling past zero, switch on "Keep selling when it runs out" instead.');
             }
@@ -141,6 +148,10 @@ class StockAdjuster
 
     private function apply(InventoryItem $locked, int $delta, ?string $note, ?User $by): InventoryItem
     {
+        if ($locked->delivers_keys) {
+            throw new CatalogueException(self::FOLLOWS_KEYS, 'quantity');
+        }
+
         if ($delta === 0) {
             return $locked;
         }

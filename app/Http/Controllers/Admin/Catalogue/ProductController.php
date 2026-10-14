@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\Catalogue\ProductRequest;
 use App\Models\Brand;
 use App\Models\InventoryItem;
 use App\Models\InventoryMovement;
+use App\Models\LicenceKey;
 use App\Models\OrderItem;
 use App\Models\Price;
 use App\Models\Product;
@@ -20,6 +21,7 @@ use App\Models\ProductVariant;
 use App\Support\Commerce\Catalogue\CatalogueException;
 use App\Support\Commerce\Catalogue\CatalogueRemover;
 use App\Support\Commerce\Catalogue\VariantGenerator;
+use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\Money;
 use App\Support\Commerce\PriceResolver;
 use Illuminate\Database\Eloquent\Collection;
@@ -45,6 +47,7 @@ class ProductController extends Controller
         private readonly CatalogueRemover $remover,
         private readonly VariantGenerator $generator,
         private readonly PriceResolver $prices,
+        private readonly LicenceKeys $keys,
     ) {}
 
     public function index(Request $request): Response
@@ -235,6 +238,8 @@ class ProductController extends Controller
                 'prices' => $variant->prices->map(fn (Price $price) => $this->priceRow($price, $currency))->values(),
                 'stock' => $this->stockRow($items->first(fn (InventoryItem $item) => $item->product_variant_id === $variant->id), $movements, $usedByOrders),
             ])->values(),
+            'licence_targets' => $this->licenceTargets($variants, $items),
+            'licence_rules' => ['max_per_upload' => max(1, (int) config('commerce.licence_keys.max_per_upload', 1000)), 'max_length' => LicenceKeys::MAX_LENGTH],
             'missing_variants' => count($this->generator->missing($product)),
             'variant_limit' => VariantGenerator::LIMIT,
             'readiness' => $this->readiness($product, $variants, $currency),
@@ -367,9 +372,56 @@ class ProductController extends Controller
             'id' => $item->id,
             'quantity' => $item->quantity,
             'allow_backorder' => $item->allow_backorder,
+            // The count follows a pool of licence keys: it is changed by adding and deleting keys.
+            'delivers_keys' => $item->delivers_keys,
             // Once orders have used it, their reservations live in its history, which is kept.
             'can_untrack' => ! in_array($item->id, $usedByOrders, true),
             'movements' => $movements[$item->id] ?? [],
+        ];
+    }
+
+    /**
+     * The places a product can deliver licence keys from, for its Licence keys tab: the stock of each
+     * variant, or the product's own when it has none. Only a stock record that delivers keys has a pool
+     * to show, so the lists and counts are only worked out for those.
+     *
+     * @param  Collection<int, ProductVariant>  $variants
+     * @param  Collection<int, InventoryItem>  $items
+     * @return list<array<string, mixed>>
+     */
+    private function licenceTargets(Collection $variants, Collection $items): array
+    {
+        $productStock = $items->first(fn (InventoryItem $item) => $item->product_variant_id === null);
+        $targets = [];
+
+        // The product's own stock is where keys go when there are no variants (or if it was set up before there were).
+        if ($variants->isEmpty() || $productStock?->delivers_keys) {
+            $targets[] = $this->licenceTarget($variants->isEmpty() ? 'This product' : 'The product itself', null, $productStock);
+        }
+
+        foreach ($variants as $variant) {
+            $targets[] = $this->licenceTarget($variant->name, $variant->id, $items->first(fn (InventoryItem $item) => $item->product_variant_id === $variant->id));
+        }
+
+        return $targets;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function licenceTarget(string $label, ?int $variantId, ?InventoryItem $stock): array
+    {
+        $enabled = $stock !== null && $stock->delivers_keys;
+
+        return [
+            'key' => $variantId === null ? 'product' : 'variant-'.$variantId,
+            'label' => $label,
+            'variant_id' => $variantId,
+            'stock_id' => $stock?->id,
+            'enabled' => $enabled,
+            'quantity' => $stock->quantity ?? 0,
+            'counts' => $enabled ? $this->keys->counts($stock) : null,
+            'unused' => $enabled ? $this->keys->unused($stock) : [],
         ];
     }
 
@@ -473,6 +525,18 @@ class ProductController extends Controller
 
         $hasPrice = $this->usablePrices($product, $currency)->isNotEmpty();
         $checks[] = ['ok' => $hasPrice, 'text' => $hasPrice ? "Has an active price in {$currency}" : "No active price in {$currency}: it cannot be bought"];
+
+        $keyed = InventoryItem::query()->where('product_id', $product->id)->where('delivers_keys', true)->pluck('id');
+
+        if ($keyed->isNotEmpty()) {
+            $unused = LicenceKey::query()->whereIn('inventory_item_id', $keyed)->unused()->count();
+            $checks[] = [
+                'ok' => $unused > 0,
+                'text' => $unused > 0
+                    ? "{$unused} unused licence ".($unused === 1 ? 'key' : 'keys').' ready to sell'
+                    : 'No unused licence keys: it is sold out until you add some',
+            ];
+        }
 
         if ($variants->isNotEmpty() && $product->prices->where('is_active', true)->isEmpty()) {
             $unpriced = $variants->where('is_active', true)->filter(fn (ProductVariant $variant) => $variant->prices->where('is_active', true)->isEmpty())->count();

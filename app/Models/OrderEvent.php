@@ -30,6 +30,12 @@ class OrderEvent extends Model
 
     public const REINSTATED = 'reinstated';
 
+    public const LICENCE_ISSUED = 'licence_issued';
+
+    public const LICENCE_WITHDRAWN = 'licence_withdrawn';
+
+    public const LICENCE_REPLACED = 'licence_replaced';
+
     protected $fillable = [
         'order_id',
         'user_id',

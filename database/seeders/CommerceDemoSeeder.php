@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
 use App\Models\InventoryItem;
+use App\Models\LicenceKey;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Price;
@@ -20,6 +21,7 @@ use App\Models\ProductVariant;
 use App\Models\ShippingRate;
 use App\Models\ShippingZone;
 use App\Models\TaxRate;
+use App\Support\Commerce\Digital\LicenceKeys;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -29,6 +31,7 @@ class CommerceDemoSeeder extends Seeder
     {
         $this->seedShippingAndTax();
         $this->seedCoupons();
+        $this->seedLicenceProduct();
 
         $brands = collect([
             ['name' => 'Acme Co.', 'slug' => 'acme', 'description' => 'Default demo brand'],
@@ -325,6 +328,37 @@ class CommerceDemoSeeder extends Seeder
      * Example discount codes to try at checkout. Switch them off or delete them in the admin area
      * (a code that has been used on an order can only be switched off).
      */
+    /**
+     * A product that sells licence keys, with a pool to try it with. The keys are made up, and are only
+     * added the first time, so seeding again does not pile more on.
+     */
+    private function seedLicenceProduct(): void
+    {
+        $product = Product::updateOrCreate(
+            ['slug' => 'demo-licence'],
+            [
+                'name' => 'Demo Licence Key',
+                'description' => 'A software licence, delivered as a key on your order page the moment you pay.',
+                'requires_shipping' => false,
+                'is_taxable' => true,
+                'is_active' => true,
+            ],
+        );
+
+        Price::updateOrCreate(
+            ['priceable_type' => Product::class, 'priceable_id' => $product->id, 'currency' => 'USD'],
+            ['amount' => 29.00],
+        );
+
+        $stock = app(LicenceKeys::class)->enable($product, null);
+
+        if (LicenceKey::query()->where('inventory_item_id', $stock->id)->doesntExist()) {
+            $keys = collect(range(1, 25))->map(fn () => implode('-', ['DEMO', Str::upper(Str::random(4)), Str::upper(Str::random(4)), Str::upper(Str::random(4))]));
+
+            app(LicenceKeys::class)->add($stock, $keys->implode("\n"));
+        }
+    }
+
     private function seedCoupons(): void
     {
         $currency = strtoupper((string) config('commerce.currency', 'USD'));

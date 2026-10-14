@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class OrderItem extends Model
@@ -21,6 +22,7 @@ class OrderItem extends Model
         'tax_total',
         'discount_total',
         'requires_shipping',
+        'delivers_keys',
         'description',
         'metadata',
     ];
@@ -32,6 +34,7 @@ class OrderItem extends Model
         'tax_total' => 'decimal:2',
         'discount_total' => 'decimal:2',
         'requires_shipping' => 'boolean',
+        'delivers_keys' => 'boolean',
     ];
 
     /**
@@ -50,6 +53,16 @@ class OrderItem extends Model
     public function downloadGrant(): HasOne
     {
         return $this->hasOne(DownloadGrant::class);
+    }
+
+    /**
+     * The licence keys handed to this line, once it is paid for (only lines sold as licence keys).
+     *
+     * @return HasMany<LicenceKey, $this>
+     */
+    public function licenceKeys(): HasMany
+    {
+        return $this->hasMany(LicenceKey::class);
     }
 
     /**
