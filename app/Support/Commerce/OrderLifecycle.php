@@ -9,11 +9,14 @@ use App\Events\OrderCancelled;
 use App\Events\OrderFulfilled;
 use App\Events\OrderPaid;
 use App\Models\Cart;
+use App\Models\InventoryItem;
+use App\Models\LicenceKey;
 use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Models\Payment;
 use App\Models\User;
 use App\Support\Commerce\Digital\DigitalFulfilment;
+use App\Support\Commerce\Digital\LicenceKeys;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -27,6 +30,7 @@ class OrderLifecycle
     public function __construct(
         private readonly InventoryReserver $inventory,
         private readonly DigitalFulfilment $digital,
+        private readonly LicenceKeys $keys,
     ) {}
 
     /**
@@ -134,16 +138,60 @@ class OrderLifecycle
     }
 
     /**
-     * What a paid order owes in digital goods: the right to download its files, and, when the downloads
-     * are all there is to deliver (nothing to ship, nothing to send by hand), completion.
+     * What a paid order owes in digital goods: the right to download its files and its licence keys, and,
+     * when that is all there is to deliver (nothing to ship, nothing to send by hand), completion.
      */
     private function deliver(Order $order): void
     {
         $this->digital->grant($order);
+        $this->keys->issue($order);
 
         if ($this->digital->isDeliveredInFull($order)) {
             $this->fulfil($order, notifyCustomer: false);
         }
+    }
+
+    /**
+     * Give a paid order the licence keys it is still owed, for when the pool had none to spare when it
+     * was paid (or a key was withdrawn), and complete it if that was all it was waiting for. Returns how
+     * many keys were issued.
+     */
+    public function issueKeys(Order $order, ?User $by = null): int
+    {
+        return DB::transaction(function () use ($order, $by) {
+            $order = $this->lock($order);
+
+            if (! $this->keys->owes($order)) {
+                return 0;
+            }
+
+            $issued = $this->keys->issue($order, $by);
+
+            if ($issued > 0 && $order->status === OrderStatus::Processing && $this->digital->isDeliveredInFull($order)) {
+                $this->fulfil($order, notifyCustomer: false);
+            }
+
+            return $issued;
+        });
+    }
+
+    /**
+     * Pass out the keys that have arrived to the paid orders waiting for them, the oldest first, and stop
+     * when the pool runs dry. Returns how many keys were issued.
+     */
+    public function issueWaitingKeys(InventoryItem $stock): int
+    {
+        $issued = 0;
+
+        foreach ($this->keys->waitingItems($stock)->pluck('order_id')->unique() as $orderId) {
+            if (! LicenceKey::query()->where('inventory_item_id', $stock->id)->unused()->exists()) {
+                break;
+            }
+
+            $issued += $this->issueKeys(Order::query()->findOrFail($orderId));
+        }
+
+        return $issued;
     }
 
     /**

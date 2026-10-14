@@ -67,6 +67,11 @@ class OrderConfirmation extends Notification implements ShouldQueue
             $message->line('Your downloads are on your order page. Open it with the button below whenever you need them.');
         }
 
+        // Keys are secrets, so they are never put in an email: they are on the order page, behind the same link.
+        if ($order->items->contains(fn ($item) => $item->delivers_keys)) {
+            $message->line('Your licence keys are on your order page. Open it with the button below to see them.');
+        }
+
         return $message
             ->line($free ? "Total: {$order->grand_total} {$order->currency}" : "Total paid: {$order->grand_total} {$order->currency}")
             // Signed, so it works for guests who cannot sign in to see the order.

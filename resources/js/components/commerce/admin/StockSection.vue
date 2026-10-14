@@ -124,7 +124,12 @@ const selectClass =
                 <Badge :variant="status.variant">{{ status.label }}</Badge>
             </div>
 
-            <div class="flex items-start gap-3">
+            <p v-if="stock.delivers_keys" class="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                This count follows the pool of licence keys: it is the number of unused keys, less the ones orders are holding. Add or delete keys on
+                the Licence keys tab to change it.
+            </p>
+
+            <div v-if="!stock.delivers_keys" class="flex items-start gap-3">
                 <Switch
                     :id="`${idPrefix}-backorder`"
                     :model-value="stock.allow_backorder"
@@ -138,7 +143,7 @@ const selectClass =
                 </div>
             </div>
 
-            <form v-if="can.edit" class="space-y-2 rounded-lg border p-3" @submit.prevent="adjust">
+            <form v-if="can.edit && !stock.delivers_keys" class="space-y-2 rounded-lg border p-3" @submit.prevent="adjust">
                 <Label :for="`${idPrefix}-quantity`" class="text-sm font-medium">Change the count</Label>
                 <div class="flex flex-wrap items-center gap-2">
                     <select v-model="adjustForm.mode" :class="selectClass" aria-label="How to change the count">
@@ -191,7 +196,7 @@ const selectClass =
                 </ul>
             </div>
 
-            <template v-if="can.delete">
+            <template v-if="can.delete && !stock.delivers_keys">
                 <Button v-if="stock.can_untrack" variant="ghost" size="sm" class="text-destructive" @click="untrackOpen = true"
                     >Stop tracking stock</Button
                 >

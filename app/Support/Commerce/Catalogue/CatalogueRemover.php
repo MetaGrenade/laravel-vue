@@ -3,6 +3,8 @@
 namespace App\Support\Commerce\Catalogue;
 
 use App\Models\CartItem;
+use App\Models\InventoryItem;
+use App\Models\LicenceKey;
 use App\Models\OrderItem;
 use App\Models\Price;
 use App\Models\Product;
@@ -30,16 +32,33 @@ class CatalogueRemover
 
     public function productBlock(Product $product): ?string
     {
-        return OrderItem::query()->where('product_id', $product->id)->exists()
-            ? 'This product has been ordered, so it is kept for the order history. Archive it instead to take it out of the shop.'
-            : null;
+        if (OrderItem::query()->where('product_id', $product->id)->exists()) {
+            return 'This product has been ordered, so it is kept for the order history. Archive it instead to take it out of the shop.';
+        }
+
+        $keys = LicenceKey::query()->whereIn('inventory_item_id', InventoryItem::query()->where('product_id', $product->id)->select('id'))->count();
+
+        return $keys > 0 ? $this->keysBlock($keys) : null;
     }
 
     public function variantBlock(ProductVariant $variant): ?string
     {
-        return OrderItem::query()->where('product_variant_id', $variant->id)->exists()
-            ? 'This variant has been ordered, so it is kept for the order history. Switch it off instead to stop selling it.'
-            : null;
+        if (OrderItem::query()->where('product_variant_id', $variant->id)->exists()) {
+            return 'This variant has been ordered, so it is kept for the order history. Switch it off instead to stop selling it.';
+        }
+
+        $keys = LicenceKey::query()->whereIn('inventory_item_id', InventoryItem::query()->where('product_variant_id', $variant->id)->select('id'))->count();
+
+        return $keys > 0 ? $this->keysBlock($keys) : null;
+    }
+
+    /**
+     * Keys are secrets someone paid for and cannot be typed in again by anyone who has lost them, so
+     * they are never deleted as a side effect of deleting what they were for.
+     */
+    private function keysBlock(int $keys): string
+    {
+        return "It still holds {$keys} licence ".($keys === 1 ? 'key' : 'keys').'. Delete them on the Licence keys tab first, so they are not lost.';
     }
 
     /**

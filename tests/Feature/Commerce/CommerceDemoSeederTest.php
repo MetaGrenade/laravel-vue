@@ -3,6 +3,9 @@
 namespace Tests\Feature\Commerce;
 
 use App\Models\Coupon;
+use App\Models\InventoryItem;
+use App\Models\LicenceKey;
+use App\Models\Product;
 use App\Models\ShippingRate;
 use App\Models\ShippingZone;
 use App\Models\TaxRate;
@@ -42,6 +45,22 @@ class CommerceDemoSeederTest extends TestCase
         $this->assertEqualsCanonicalizing(['FREESHIP', 'SAVE5', 'WELCOME10'], Coupon::query()->pluck('code')->all());
         $this->assertSame(1, Coupon::where('code', 'WELCOME10')->value('max_redemptions_per_customer'));
         $this->assertSame('USD', Coupon::where('code', 'SAVE5')->value('currency'));
+    }
+
+    #[Test]
+    public function it_seeds_a_licence_product_with_keys_once(): void
+    {
+        $this->seed(CommerceDemoSeeder::class);
+        $this->seed(CommerceDemoSeeder::class);
+
+        $product = Product::query()->where('slug', 'demo-licence')->sole();
+        $stock = InventoryItem::query()->where('product_id', $product->id)->sole();
+
+        $this->assertFalse($product->requires_shipping);
+        $this->assertTrue($stock->delivers_keys);
+        $this->assertSame(25, LicenceKey::query()->where('inventory_item_id', $stock->id)->count(), 'seeding again adds no more');
+        $this->assertSame(25, $stock->quantity, 'the count follows the pool');
+        $this->assertSame('29.00', $product->prices()->sole()->amount);
     }
 
     #[Test]

@@ -17,6 +17,7 @@ use App\Models\ProductFile;
 use App\Models\Refund;
 use App\Payments\Capability;
 use App\Payments\PaymentManager;
+use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\OrderLifecycle;
 use App\Support\Commerce\OrderRefunder;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +41,7 @@ class CommerceOrderController extends Controller
         private readonly OrderLifecycle $lifecycle,
         private readonly OrderRefunder $refunder,
         private readonly PaymentManager $payments,
+        private readonly LicenceKeys $keys,
     ) {}
 
     public function index(Request $request): Response
@@ -106,6 +108,7 @@ class CommerceOrderController extends Controller
 
         $refundable = $this->refunder->refundable($order);
         $primary = $this->refunder->primaryPayment($order);
+        $licenceKeys = $this->keys->forStaff($order);
 
         return Inertia::render('acp/CommerceOrderShow', [
             'order' => [
@@ -150,6 +153,7 @@ class CommerceOrderController extends Controller
                 ])->values(),
             ],
             'downloads' => $this->downloads($order),
+            'licence_keys' => $licenceKeys,
             'payments' => $order->payments->map(fn (Payment $payment) => [
                 'id' => $payment->id,
                 'provider' => $payment->provider,
@@ -204,6 +208,9 @@ class CommerceOrderController extends Controller
             'actions' => [
                 'can_fulfil' => $order->status === OrderStatus::Processing && $order->isPaid(),
                 'can_cancel' => $order->status === OrderStatus::Pending && ! $order->isPaid(),
+                // Paid, and a line is still owed a key that the pool could supply now.
+                'can_issue_keys' => $this->keys->owes($order)
+                    && collect($licenceKeys)->contains(fn (array $line) => $line['waiting'] > 0),
                 'can_check_payment' => $order->status === OrderStatus::Pending
                     && $order->payments->contains(fn (Payment $payment) => $payment->status === PaymentStatus::Pending),
             ],

@@ -21,6 +21,7 @@ use App\Support\Commerce\Countries;
 use App\Support\Commerce\CustomerDetails;
 use App\Support\Commerce\Destination;
 use App\Support\Commerce\Digital\DownloadDelivery;
+use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\InvalidCheckoutInput;
 use App\Support\Commerce\OrderAlreadyPaidException;
 use App\Support\Commerce\OrderPricer;
@@ -133,7 +134,7 @@ class CheckoutController extends Controller
      * Where the customer lands after paying. Anyone holding the signed link
      * (a guest) or an owner of the order may open it.
      */
-    public function complete(Request $request, Order $order, PaymentManager $payments, DownloadDelivery $delivery): Response
+    public function complete(Request $request, Order $order, PaymentManager $payments, DownloadDelivery $delivery, LicenceKeys $keys): SymfonyResponse
     {
         abort_unless($request->hasValidSignature() || Gate::allows('view', $order), 403);
 
@@ -156,8 +157,16 @@ class CheckoutController extends Controller
         app(Seo::class)->title('Order '.$order->number)->noindex();
 
         $downloads = $delivery->forOrder($order);
+        $licenceKeys = $keys->forCustomer($order);
 
-        return Inertia::render('commerce/CheckoutComplete', [
+        // A page that shows licence keys is not kept in the browser's history in the clear, and is never cached.
+        Inertia::encryptHistory($keys->willDeliver($order));
+
+        $page = Inertia::render('commerce/CheckoutComplete', [
+            // The keys this order has been given. Empty until it is paid; `waiting` counts those still to come.
+            'licenceKeys' => $licenceKeys,
+            // Not paid yet, but something in it will deliver keys: say where they will appear.
+            'licenceKeysPending' => $licenceKeys === [] && $order->status === OrderStatus::Pending && $keys->willDeliver($order),
             // Fresh signed links each time the page is opened (or polled while payment is confirmed).
             'downloads' => $downloads,
             // Not paid yet, but something in it will deliver files: say where they will appear.
@@ -193,6 +202,11 @@ class CheckoutController extends Controller
                 ])->values(),
             ],
         ]);
+
+        $response = $page->toResponse($request);
+        $response->headers->set('Cache-Control', 'private, no-store');
+
+        return $response;
     }
 
     /**

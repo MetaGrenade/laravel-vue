@@ -4,7 +4,7 @@ A batteries-included boilerplate for building SaaS products, online shops and la
 
 ![Forum Page Example](https://i.imgur.com/gYNFkFl.png)
 
-> **Status: pre-1.0.** The shop now works end to end (catalogue, cart, discount codes, shipping and tax, Stripe checkout, orders, refunds and digital downloads). Gift cards, licence keys, reviews and wishlists, Tebex payments, plan entitlements and search at scale are still ahead; the road to a stable 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md). Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+> **Status: pre-1.0.** The shop now works end to end (catalogue, cart, discount codes, shipping and tax, Stripe checkout, orders, refunds, digital downloads and licence keys). Gift cards, reviews and wishlists, Tebex payments, plan entitlements and search at scale are still ahead; the road to a stable 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md). Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Contents
 - [Stack Highlights](#stack-highlights) · [Application Modules](#application-modules) · [Project Structure](#project-structure)
@@ -34,9 +34,9 @@ A batteries-included boilerplate for building SaaS products, online shops and la
   - **Cart & discount codes**: guest and signed-in carts; percentage, fixed-amount and free-shipping codes with dates, a minimum spend, usage limits and product or category restrictions.
   - **Checkout**: guest or signed-in, an address book (Settings → Addresses), shipping zones and rates, a tax-rate table and a live quote as the shopper types. Payment happens on hosted Stripe Checkout; stock is held for an unpaid order and released when it expires. Orders that cost nothing are paid on the spot without a provider.
   - **Orders & refunds**: an order lifecycle with an append-only history, receipts and shipping emails, fulfilment with tracking, cancellation, notes, and full or partial refunds through Stripe (its own permission, `commerce.acp.refund`).
-  - **Digital goods**: files kept on a private disk, per-order download grants, short-lived signed links, download limits and optional expiry, revoked automatically by a full refund.
+  - **Digital goods**: files kept on a private disk, per-order download grants, short-lived signed links, download limits and optional expiry, revoked automatically by a full refund. **Licence keys** are sold from an encrypted pool tied to the stock count (so a key is never sold twice), handed over when the order is paid and hidden again by a full refund.
   - **Admin**: Commerce, Products, Orders, Brands and tags, Shipping, Tax rates and Discount codes in the ACP.
-  - **Not built yet**: gift cards, licence keys, reviews and wishlists, carrying a guest's cart and orders over to their account when they sign in, and Tebex (all on the roadmap).
+  - **Not built yet**: gift cards, reviews and wishlists, carrying a guest's cart and orders over to their account when they sign in, and Tebex (all on the roadmap).
 - **Polls & Surveys**: Polls with admin management, voting and an API.
 - **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics (database search today; Meilisearch is planned for 1.0).
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
@@ -156,6 +156,7 @@ The shop works out of the box for browsing and for orders that cost nothing. Tak
    - add **Shipping** zones and rates and **Tax rates**. With no shipping zones, orders ship anywhere for free, and with no active tax rate no tax is charged, which is fine for digital shops;
    - create **Products** (details, price, options and variants, stock, pictures and downloads), and **Discount codes**.
 5. **Roles.** The `admin` role can do everything. Give other staff roles the `commerce.acp.*` permissions they need under **Access control**; refunds are a separate permission (`commerce.acp.refund`) because they cannot be undone.
+6. **Licence keys** (optional). To sell keys, open a product's **Licence keys** tab, switch them on and paste the keys in. They are stored encrypted with your app key, so **keep `APP_KEY` safe and backed up** along with the database: without it the keys cannot be read.
 
 Settings that can be changed in `.env` (full table in [docs/commerce.md](docs/commerce.md#configuration)):
 

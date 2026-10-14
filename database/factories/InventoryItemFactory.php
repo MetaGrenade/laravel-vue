@@ -20,6 +20,15 @@ class InventoryItemFactory extends Factory
             'product_variant_id' => null,
             'quantity' => 10,
             'allow_backorder' => false,
+            'delivers_keys' => false,
         ];
+    }
+
+    /**
+     * Stock that follows a pool of licence keys: nothing in stock until keys are added.
+     */
+    public function keyed(): static
+    {
+        return $this->state(['quantity' => 0, 'allow_backorder' => false, 'delivers_keys' => true]);
     }
 }

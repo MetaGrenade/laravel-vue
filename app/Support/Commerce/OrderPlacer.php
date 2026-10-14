@@ -5,6 +5,7 @@ namespace App\Support\Commerce;
 use App\Enums\OrderStatus;
 use App\Models\Cart;
 use App\Models\Coupon;
+use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Support\Ownership;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -138,6 +139,8 @@ class OrderPlacer
                         'discount_total' => ($line->discount ?? Money::zero($pricing->currency))->toDecimal(),
                         // Remembered, so a paid order made only of digital lines can be completed without shipping.
                         'requires_shipping' => $line->requiresShipping,
+                        // Remembered too: the order owes a licence key for exactly the lines sold as one.
+                        'delivers_keys' => (bool) InventoryItem::resolveFor($line->item->product_id, $line->item->product_variant_id)?->delivers_keys,
                         'tax_total' => $line->tax->toDecimal(),
                         'description' => $line->description,
                         'metadata' => $line->metadata,

@@ -55,6 +55,11 @@ class StockController extends Controller
         }
 
         if ($request->has('allow_backorder')) {
+            // Selling past zero would promise keys that are not in the pool.
+            if ($request->boolean('allow_backorder') && $item->delivers_keys) {
+                return $this->refuse(new CatalogueException('Licence keys cannot be sold past zero: there is no key to hand out.'));
+            }
+
             $item->update(['allow_backorder' => $request->boolean('allow_backorder')]);
         }
 

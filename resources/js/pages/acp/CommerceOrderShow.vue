@@ -19,7 +19,7 @@ import { formatDateTime, orderStatusVariant, paymentStatusVariant } from '@/lib/
 import type { BreadcrumbItem } from '@/types';
 import type { AddressFormValue, TaxLineQuote } from '@/types/commerce';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CircleAlert, Download, ExternalLink, PackageCheck, RefreshCw, Undo2 } from '@lucide/vue';
+import { CircleAlert, Download, ExternalLink, KeyRound, PackageCheck, RefreshCw, Undo2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 interface DownloadRow {
@@ -30,6 +30,15 @@ interface DownloadRow {
     revoked_reason: 'refunded' | 'staff' | null;
     expires_at: string | null;
     files: { id: number; name: string; is_active: boolean; downloads: number; limit: number | null }[];
+}
+
+interface LicenceKeyLine {
+    item_id: number;
+    description: string;
+    quantity: number;
+    /** Keys the line is still owed. */
+    waiting: number;
+    keys: { id: number; masked: string; state: 'issued' | 'withdrawn'; reason: 'refunded' | 'staff' | null; issued_at: string | null }[];
 }
 
 interface OrderItem {
@@ -118,6 +127,7 @@ interface EventRow {
 const props = defineProps<{
     order: Order;
     downloads: DownloadRow[];
+    licence_keys: LicenceKeyLine[];
     payments: PaymentRow[];
     refunds: RefundRow[];
     events: EventRow[];
@@ -128,7 +138,7 @@ const props = defineProps<{
         provider_label: string | null;
         reasons: { value: string; label: string }[];
     };
-    actions: { can_fulfil: boolean; can_cancel: boolean; can_check_payment: boolean };
+    actions: { can_fulfil: boolean; can_cancel: boolean; can_check_payment: boolean; can_issue_keys: boolean };
     can: { edit: boolean; refund: boolean };
 }>();
 
@@ -143,6 +153,38 @@ const money = (amount: string | number) => formatMoney(amount, props.order.curre
 const downloadAction = (action: 'reset' | 'revoke' | 'restore', grant: DownloadRow) => {
     router.post(route(`acp.commerce.orders.downloads.${action}`, { order: props.order.public_id, grant: grant.id }), {}, { preserveScroll: true });
 };
+
+// ----- Licence keys -----------------------------------------------------------------------------
+
+/** Keys can only be taken back while the order is paid and not refunded in full. */
+const keysEditable = computed(() => props.can.edit && ['paid', 'partially_refunded'].includes(props.order.payment_status));
+
+const pendingKey = ref<{ action: 'withdraw' | 'replace'; id: number; description: string } | null>(null);
+
+const confirmKeyAction = () => {
+    const pending = pendingKey.value;
+
+    if (!pending) {
+        return;
+    }
+
+    router.post(
+        route(`acp.commerce.orders.licence-keys.${pending.action}`, { order: props.order.public_id, key: pending.id }),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                pendingKey.value = null;
+            },
+        },
+    );
+};
+
+const issueKeys = () => {
+    router.post(route('acp.commerce.orders.licence-keys.issue', props.order.public_id), {}, { preserveScroll: true });
+};
+
+const keysGiven = (line: LicenceKeyLine) => line.keys.filter((key) => key.state === 'issued').length;
 
 const hasRefunds = computed(() => Number(props.order.refunded_total) > 0);
 
@@ -464,6 +506,69 @@ const selectClass =
                             </CardContent>
                         </Card>
 
+                        <Card v-if="props.licence_keys.length">
+                            <CardHeader>
+                                <CardTitle class="flex items-center gap-2"><KeyRound class="size-5" /> Licence keys</CardTitle>
+                                <CardDescription>
+                                    The customer sees these on their order page. They are shown masked here, and the order's history never records
+                                    them.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-5">
+                                <section v-for="line in props.licence_keys" :key="line.item_id" class="space-y-2">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <h3 class="text-sm font-medium">{{ line.description }}</h3>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <Badge variant="outline">{{ keysGiven(line) }} of {{ line.quantity }} given</Badge>
+                                            <Badge v-if="line.waiting > 0" variant="destructive">{{ line.waiting }} owed</Badge>
+                                        </div>
+                                    </div>
+                                    <ul v-if="line.keys.length" class="divide-y rounded-md border text-sm">
+                                        <li
+                                            v-for="key in line.keys"
+                                            :key="key.id"
+                                            class="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
+                                        >
+                                            <span class="flex items-center gap-2">
+                                                <span
+                                                    class="font-mono"
+                                                    :class="key.state === 'withdrawn' ? 'text-muted-foreground line-through' : ''"
+                                                    >{{ key.masked }}</span
+                                                >
+                                                <Badge v-if="key.state === 'withdrawn'" variant="secondary">
+                                                    Withdrawn<template v-if="key.reason === 'refunded'"> (refunded)</template>
+                                                </Badge>
+                                            </span>
+                                            <span v-if="keysEditable && key.state === 'issued'" class="flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    @click="pendingKey = { action: 'replace', id: key.id, description: line.description }"
+                                                    >Replace</Button
+                                                >
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    class="text-destructive"
+                                                    @click="pendingKey = { action: 'withdraw', id: key.id, description: line.description }"
+                                                    >Withdraw</Button
+                                                >
+                                            </span>
+                                        </li>
+                                    </ul>
+                                    <p v-else class="text-sm text-muted-foreground">No keys have been given to this line yet.</p>
+                                </section>
+
+                                <div v-if="props.can.edit && props.actions.can_issue_keys" class="space-y-2 border-t pt-4">
+                                    <p class="text-sm text-muted-foreground">
+                                        This order is paid but still owed keys. They are issued by themselves when keys are added to the product; if
+                                        keys are already in the pool, issue them now.
+                                    </p>
+                                    <Button size="sm" @click="issueKeys"><KeyRound class="size-4" /> Issue the keys that are owed</Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         <Card v-if="props.refunds.length">
                             <CardHeader>
                                 <CardTitle>Refunds</CardTitle>
@@ -749,6 +854,9 @@ const selectClass =
                             <div class="grid gap-1">
                                 <Label for="refund-restock" class="font-normal">Put the items back in stock</Label>
                                 <p class="text-xs text-muted-foreground">Only possible when this refunds everything that is left.</p>
+                                <p v-if="props.licence_keys.length" class="text-xs text-muted-foreground">
+                                    Licence keys the customer was given are not put back: they may have been used, so they are retired.
+                                </p>
                                 <InputError :message="refundForm.errors.restock" />
                             </div>
                         </div>
@@ -792,6 +900,20 @@ const selectClass =
                 @update:open="(open) => (cancelOpen = open)"
                 @confirm="cancelOrder"
                 @cancel="cancelOpen = false"
+            />
+
+            <ConfirmDialog
+                :open="pendingKey !== null"
+                :title="pendingKey?.action === 'replace' ? 'Replace this key?' : 'Withdraw this key?'"
+                :description="
+                    pendingKey?.action === 'replace'
+                        ? `The customer no longer sees the key for ${pendingKey.description}, and gets another from the pool at once. The old key is not used again.`
+                        : `The customer no longer sees the key for ${pendingKey?.description}, and is owed another: it is issued when the pool has one. The old key is not used again.`
+                "
+                :confirm-label="pendingKey?.action === 'replace' ? 'Replace key' : 'Withdraw key'"
+                @update:open="(open) => !open && (pendingKey = null)"
+                @confirm="confirmKeyAction"
+                @cancel="pendingKey = null"
             />
         </AdminLayout>
     </AppLayout>

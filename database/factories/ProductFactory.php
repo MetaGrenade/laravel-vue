@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\InventoryItem;
 use App\Models\Price;
 use App\Models\Product;
+use App\Support\Commerce\Digital\LicenceKeys;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -55,6 +56,20 @@ class ProductFactory extends Factory
                 'amount' => $amount,
                 'currency' => $currency ?? config('commerce.currency'),
             ]);
+        });
+    }
+
+    /**
+     * Sell the product as licence keys: its stock follows a pool holding this many keys ("KEY-<n>-<product id>").
+     */
+    public function keyed(int $keys = 0): static
+    {
+        return $this->afterCreating(function (Product $product) use ($keys) {
+            $stock = app(LicenceKeys::class)->enable($product, null);
+
+            if ($keys > 0) {
+                app(LicenceKeys::class)->add($stock, implode("\n", array_map(fn (int $n) => "KEY-{$n}-{$product->id}", range(1, $keys))));
+            }
         });
     }
 

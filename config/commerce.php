@@ -109,6 +109,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Licence keys
+    |--------------------------------------------------------------------------
+    |
+    | Keys are kept encrypted (with APP_KEY, so back that up with the database) in a pool for the stock
+    | they are sold from, and handed to an order when it is paid. See docs/commerce.md.
+    |
+    */
+
+    'licence_keys' => [
+        // Most keys that can be added in one go; add more in several pastes.
+        'max_per_upload' => 1000,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Low stock
     |--------------------------------------------------------------------------
     |

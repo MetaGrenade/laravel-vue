@@ -8,10 +8,10 @@ import { addressLines } from '@/lib/address';
 import { formatBytes } from '@/lib/bytes';
 import { formatMoney } from '@/lib/money';
 import { hasReceivedPayment, paymentStatusVariant } from '@/lib/orderStatus';
-import type { AddressFormValue, OrderDownload, TaxLineQuote } from '@/types/commerce';
+import type { AddressFormValue, OrderDownload, OrderLicenceKeys, TaxLineQuote } from '@/types/commerce';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { CircleAlert, CircleCheck, Clock, Download, ExternalLink, Undo2 } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { Check, CircleAlert, CircleCheck, Clock, Copy, Download, ExternalLink, KeyRound, Undo2 } from '@lucide/vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 interface OrderItem {
     id: number;
@@ -44,9 +44,47 @@ interface Order {
     items: OrderItem[];
 }
 
-const props = defineProps<{ order: Order; downloads: OrderDownload[]; downloadsPending: boolean }>();
+const props = defineProps<{
+    order: Order;
+    downloads: OrderDownload[];
+    downloadsPending: boolean;
+    licenceKeys: OrderLicenceKeys[];
+    licenceKeysPending: boolean;
+}>();
 
 const day = (iso: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(iso));
+
+// The key that was just copied, so its button can say so for a moment.
+const copied = ref<string | null>(null);
+let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+
+const copyKey = async (key: string, event: MouseEvent) => {
+    // Whatever happens, the button answers for a moment.
+    const answer = (value: string | null) => {
+        copied.value = value;
+        clearTimeout(copiedTimer);
+        copiedTimer = setTimeout(() => (copied.value = null), 2000);
+    };
+
+    try {
+        await navigator.clipboard.writeText(key);
+        answer(key);
+    } catch {
+        // No clipboard (the browser refused, or this is not a secure page): select the key instead, so a
+        // press of Ctrl+C finishes the job, and say so.
+        const code = (event.currentTarget as HTMLElement | null)?.closest('li')?.querySelector('code');
+        const selection = window.getSelection();
+
+        if (code && selection) {
+            const range = document.createRange();
+            range.selectNodeContents(code);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        answer(`select:${key}`);
+    }
+};
 
 const fileNote = (file: OrderDownload['files'][number]) => {
     switch (file.state) {
@@ -87,7 +125,7 @@ const scheduleCheck = (attempt: number) => {
 
     timer = setTimeout(() => {
         router.reload({
-            only: ['order', 'downloads', 'downloadsPending'],
+            only: ['order', 'downloads', 'downloadsPending', 'licenceKeys', 'licenceKeysPending'],
             onFinish: () => scheduleCheck(attempt + 1),
         });
     }, CHECK_DELAYS_MS[attempt]);
@@ -98,6 +136,7 @@ onMounted(() => scheduleCheck(0));
 onBeforeUnmount(() => {
     stopped = true;
     clearTimeout(timer);
+    clearTimeout(copiedTimer);
 });
 </script>
 
@@ -140,6 +179,53 @@ onBeforeUnmount(() => {
                             </template>
                         </p>
                     </div>
+                </CardContent>
+            </Card>
+
+            <Card v-if="props.licenceKeys.length || props.licenceKeysPending">
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2"><KeyRound class="size-5" /> Your licence keys</CardTitle>
+                </CardHeader>
+                <CardContent class="space-y-6">
+                    <p v-if="!props.licenceKeys.length" class="text-sm text-muted-foreground">
+                        Your licence keys will appear here as soon as the payment is confirmed.
+                    </p>
+
+                    <section v-for="line in props.licenceKeys" :key="line.item_id" class="space-y-3">
+                        <h3 class="font-medium">{{ line.description }}</h3>
+
+                        <ul v-if="line.keys.length" class="divide-y rounded-md border">
+                            <li v-for="key in line.keys" :key="key" class="flex flex-wrap items-center justify-between gap-3 p-3">
+                                <code class="min-w-0 text-sm break-all select-all">{{ key }}</code>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    :aria-label="`Copy the key for ${line.description}`"
+                                    @click="copyKey(key, $event)"
+                                >
+                                    <Check v-if="copied === key" class="size-4" />
+                                    <Copy v-else class="size-4" />
+                                    {{ copied === key ? 'Copied' : copied === `select:${key}` ? 'Now press Ctrl+C' : 'Copy' }}
+                                </Button>
+                            </li>
+                        </ul>
+
+                        <p v-if="line.waiting > 0" class="rounded-md border border-dashed p-3 text-sm text-muted-foreground" role="status">
+                            <template v-if="line.waiting === line.quantity"
+                                >Your {{ line.quantity === 1 ? 'key is' : 'keys are' }} not ready yet.</template
+                            >
+                            <template v-else
+                                >{{ line.waiting }} of your {{ line.quantity }} keys {{ line.waiting === 1 ? 'is' : 'are' }} not ready yet.</template
+                            >
+                            Your order is paid and safe: the key appears here as soon as it is ready, so open this page again a little later.
+                        </p>
+                    </section>
+
+                    <p v-if="props.licenceKeys.some((line) => line.keys.length)" class="text-xs text-muted-foreground">
+                        Keep your keys private: anyone who has one can use it. This page is only shown to you, so open it again whenever you need
+                        them.
+                    </p>
                 </CardContent>
             </Card>
 

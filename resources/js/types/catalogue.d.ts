@@ -29,6 +29,8 @@ export interface StockRow {
     id: number;
     quantity: number;
     allow_backorder: boolean;
+    /** The count follows a pool of licence keys: it changes by adding and deleting keys, not by hand. */
+    delivers_keys: boolean;
     /** False once orders have used it: their reservations are in its history, which is kept. */
     can_untrack: boolean;
     movements: StockMovement[];
@@ -99,6 +101,26 @@ export interface ProductFileRow {
     mime: string | null;
     sha256: string;
     is_active: boolean;
+}
+
+/** A key still in the pool, masked: staff never receive a whole key here. */
+export interface UnusedLicenceKey {
+    id: number;
+    masked: string;
+    added_at: string | null;
+}
+
+/** A place a product can sell licence keys from: its own stock, or one variant's. */
+export interface LicenceTarget {
+    key: string;
+    label: string;
+    variant_id: number | null;
+    stock_id: number | null;
+    enabled: boolean;
+    /** The count the shop sells from: unused keys less the units orders have spoken for. */
+    quantity: number;
+    counts: { unused: number; issued: number; withdrawn: number; waiting: number } | null;
+    unused: UnusedLicenceKey[];
 }
 
 export interface Capabilities {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import LicenceKeysSection from '@/components/commerce/admin/LicenceKeysSection.vue';
 import OptionsSection from '@/components/commerce/admin/OptionsSection.vue';
 import ProductFilesSection from '@/components/commerce/admin/ProductFilesSection.vue';
 import ProductImagesSection from '@/components/commerce/admin/ProductImagesSection.vue';
@@ -18,6 +19,7 @@ import type { BreadcrumbItem } from '@/types';
 import type {
     CatalogueLookup,
     Capabilities,
+    LicenceTarget,
     OptionRow,
     PriceRow,
     ProductDetails,
@@ -41,6 +43,8 @@ const props = defineProps<{
     image_rules: { max_count: number; max_kilobytes: number };
     files: ProductFileRow[];
     file_rules: { max_count: number; max_kilobytes: number; limit: number; expires_after_days: number };
+    licence_targets: LicenceTarget[];
+    licence_rules: { max_per_upload: number; max_length: number };
     prices: PriceRow[];
     stock: StockRow | null;
     options: OptionRow[];
@@ -62,6 +66,7 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 const ready = computed(() => props.readiness.every((check) => check.ok));
 const hasVariants = computed(() => props.variants.length > 0);
 const productHasPrice = computed(() => props.prices.some((price) => price.usable));
+const keyTargetsOn = computed(() => props.licence_targets.filter((target) => target.enabled).length);
 
 const tab = ref('details');
 
@@ -137,6 +142,9 @@ const remove = () => {
                         <TabsTrigger value="files">
                             Downloads<template v-if="files.length"> ({{ files.length }})</template>
                         </TabsTrigger>
+                        <TabsTrigger value="keys">
+                            Licence keys<template v-if="keyTargetsOn"> ({{ keyTargetsOn }})</template>
+                        </TabsTrigger>
                         <TabsTrigger value="pricing">Price and stock</TabsTrigger>
                         <TabsTrigger value="variants">
                             Options and variants<span v-if="hasVariants" class="ml-1.5 text-muted-foreground">{{ variants.length }}</span>
@@ -175,6 +183,24 @@ const remove = () => {
                                     :files="files"
                                     :rules="file_rules"
                                     :requires-shipping="product.requires_shipping"
+                                    :can="can"
+                                />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="keys">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Licence keys</CardTitle>
+                                <CardDescription>Digital goods that are a code: a licence, a game key, a gift code.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <LicenceKeysSection
+                                    :product-id="product.id"
+                                    :targets="licence_targets"
+                                    :rules="licence_rules"
+                                    :has-variants="hasVariants"
                                     :can="can"
                                 />
                             </CardContent>
