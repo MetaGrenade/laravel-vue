@@ -907,18 +907,6 @@ parameters:
 			path: app/Http/Controllers/Auth/SocialLoginController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$two_factor_confirmed_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Auth/SocialLoginController.php
-
-		-
-			message: '#^Parameter \#1 \$user of static method Illuminate\\Support\\Facades\\Auth\:\:login\(\) expects Illuminate\\Contracts\\Auth\\Authenticatable, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Auth/SocialLoginController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
 			identifier: property.notFound
 			count: 1

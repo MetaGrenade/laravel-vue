@@ -60,6 +60,15 @@ Orders and payments carry an owner (`owner_type`, `owner_id`), and `user_id` onl
 
 A signed-in customer finds their orders on the dashboard (the five newest, and the lines that deliver a licence key or a download, each linking to its order page) and on **My orders** (`/orders`, every order, paged). Both come from `CustomerOrders`, which is given the user and nothing else: it finds orders through `visibleTo()`, and sends the page how many keys an order holds and whether a download is still available (the grant works and a file is switched on with downloads left, by the same rule as the order page), never a key. Keys are only ever on the order page, which is never cached. Both are hidden while the shop is switched off (the order page itself keeps working from the receipt link).
 
+### A guest becoming a customer
+
+A guest's cart is tied to their browser session, and **signing in gives the browser a new session id** (Laravel does it inside `Auth::attempt()` and `Auth::login()` alike), so the cart they had filled in would be left behind. `App\Support\Commerce\GuestCarryOver` carries it over:
+
+- **The cart.** Before anything signs the person in, `remember()` notes the guest session id (a sign-in that takes two steps, a password and then a code, keeps the first note). Once they are signed in, `afterSignIn()` merges the guest cart into the account's cart: a line the account already has is added to (never past the most one line may hold), other lines move over, the account's discount code is kept (or the guest's is taken if the account has none) and the guest cart is deleted. If the account has no cart, the guest's simply becomes it. This runs for password sign-in, the two-factor step (only when it succeeds, so a password alone hands nothing over), social sign-in, registration and the pricing page's sign-up. Only the browser's own open guest cart is touched.
+- **Orders.** Once an account's email is **verified**, the guest orders placed with that address (compared without regard to case) are linked to it: the order and its payments get the account as owner, the order's history says so, and its keys and downloads appear in the dashboard and order history. It runs when the address is verified (the `Verified` event) and whenever a verified account signs in, and is safe to repeat. Only orders with no owner and no user are touched; an order that already belongs to someone is never reassigned. An unverified account claims nothing, or anyone could take an order by registering with someone else's address.
+- **Telling the guest.** A guest looking at their own guest order is offered to create an account with that address (or sign in to one) to keep it.
+
+Social sign-in only trusts an email address the **provider says it verified** (Google's `email_verified`, Discord's `verified`): an unverified address is never used to find an existing account, and a new account made that way has to verify its address like any other (or gets a placeholder address if another account already has it). Without that, giving a provider someone else's address would sign you in as them, or hand you their guest orders.
 ## Addresses
 
 A signed-in customer has an address book (**Settings → Addresses**, only while the shop section is on). At checkout they can pick a saved address or type one, and tick *Save this address for next time*. Guests just type one.
@@ -371,4 +380,4 @@ The header cart previously showed an estimated 7% tax and a flat shipping charge
 
 ## Not built yet
 
-Planned for the rest of M1 (see the roadmap): gift cards, reviews and wishlists. A guest's cart is not yet carried over when they sign in, and a guest's orders are not yet attached to an account created later with the same email. Tebex arrives in M2 behind the same provider contract.
+Planned for the rest of M1 (see the roadmap): gift cards, reviews and wishlists. Tebex arrives in M2 behind the same provider contract.

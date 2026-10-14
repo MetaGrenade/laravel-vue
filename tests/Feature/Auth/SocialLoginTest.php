@@ -70,6 +70,7 @@ class SocialLoginTest extends TestCase
             accessToken: 'token',
             refreshToken: null,
             expiresIn: null,
+            emailVerified: true,
         );
 
         $provider = Mockery::mock(Provider::class);

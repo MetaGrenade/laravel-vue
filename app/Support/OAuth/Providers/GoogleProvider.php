@@ -46,6 +46,7 @@ class GoogleProvider extends AbstractOAuth2Provider
             accessToken: $accessToken,
             refreshToken: Arr::get($tokenResponse, 'refresh_token'),
             expiresIn: Arr::get($tokenResponse, 'expires_in'),
+            emailVerified: filter_var(Arr::get($user, 'email_verified', false), FILTER_VALIDATE_BOOLEAN),
         );
     }
 }

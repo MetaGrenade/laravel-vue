@@ -10,7 +10,7 @@ import { formatMoney } from '@/lib/money';
 import { hasReceivedPayment, paymentStatusVariant } from '@/lib/orderStatus';
 import type { AddressFormValue, OrderDownload, OrderLicenceKeys, TaxLineQuote } from '@/types/commerce';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Check, CircleAlert, CircleCheck, Clock, Copy, Download, ExternalLink, KeyRound, Undo2 } from '@lucide/vue';
+import { Check, CircleAlert, CircleCheck, Clock, Copy, Download, ExternalLink, KeyRound, Undo2, UserPlus } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 interface OrderItem {
@@ -50,6 +50,8 @@ const props = defineProps<{
     downloadsPending: boolean;
     licenceKeys: OrderLicenceKeys[];
     licenceKeysPending: boolean;
+    /** Set for a guest looking at their own guest order: the address an account would need to keep it. */
+    claim: { email: string } | null;
 }>();
 
 const day = (iso: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(iso));
@@ -275,6 +277,27 @@ onBeforeUnmount(() => {
                     <p v-if="props.downloads.some((download) => download.status === 'active')" class="text-xs text-muted-foreground">
                         These links work for a short while. Open this page again whenever you need a new one.
                     </p>
+                </CardContent>
+            </Card>
+
+            <Card v-if="props.claim && (state === 'paid' || state === 'waiting')">
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2"><UserPlus class="size-5" /> Keep this order in your account</CardTitle>
+                </CardHeader>
+                <CardContent class="space-y-3 text-sm">
+                    <p class="text-muted-foreground">
+                        Make an account with <span class="font-medium text-foreground">{{ props.claim.email }}</span> (or sign in to one that uses it)
+                        and confirm the address. This order, with its keys and downloads, is then kept in your account, so you can find it again
+                        without this link.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <Button size="sm" as-child>
+                            <Link :href="route('register')">Create an account</Link>
+                        </Button>
+                        <Button size="sm" variant="outline" as-child>
+                            <Link :href="route('login')">Sign in</Link>
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 

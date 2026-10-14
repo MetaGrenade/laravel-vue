@@ -30,6 +30,8 @@ class OrderEvent extends Model
 
     public const REINSTATED = 'reinstated';
 
+    public const CLAIMED = 'claimed';
+
     public const LICENCE_ISSUED = 'licence_issued';
 
     public const LICENCE_WITHDRAWN = 'licence_withdrawn';

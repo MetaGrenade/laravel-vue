@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Commerce\GuestCarryOver;
 use App\Support\Security\TwoFactorAuthenticator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -93,6 +94,9 @@ class TwoFactorChallengeController extends Controller
         $request->session()->forget('two_factor:id');
 
         Auth::login($user, $remember);
+
+        // Signing in is complete only now, so this is when the guest session's cart and orders follow.
+        app(GuestCarryOver::class)->afterSignIn($user, $request);
 
         $request->session()->regenerate();
 
