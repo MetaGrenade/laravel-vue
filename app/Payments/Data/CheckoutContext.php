@@ -15,5 +15,6 @@ final readonly class CheckoutContext
         public string $cancelUrl,
         public CarbonInterface $expiresAt,
         public ?string $locale = null,
+        public ?string $ipAddress = null,
     ) {}
 }

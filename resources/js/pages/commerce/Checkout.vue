@@ -35,6 +35,8 @@ interface Props {
     quote: CheckoutQuote;
     /** Whether the shop takes gift cards (the box is hidden when it does not). */
     giftCardsEnabled: boolean;
+    /** The cart holds Tebex packages: Tebex works out the tax and takes any codes or gift cards when the customer pays. */
+    tebex: boolean;
 }
 
 const props = defineProps<Props>();
@@ -430,6 +432,7 @@ const submit = () => {
                             <Lock v-else-if="!isFree" class="size-4" />
                             <template v-if="form.processing">{{ isFree ? 'Placing your order…' : 'Redirecting…' }}</template>
                             <template v-else-if="isFree">Place your order</template>
+                            <template v-else-if="props.tebex">Continue to Tebex</template>
                             <template v-else>Pay {{ money(amountDue ?? props.cart.subtotal) }}</template>
                         </Button>
                         <p v-if="isFree" class="text-center text-xs text-muted-foreground">
@@ -459,7 +462,7 @@ const submit = () => {
                             </li>
                         </ul>
                         <Separator />
-                        <CouponCode :coupon="props.quote.coupon ?? null" :currency="currency" :discount="itemsDiscount" />
+                        <CouponCode v-if="!props.tebex" :coupon="props.quote.coupon ?? null" :currency="currency" :discount="itemsDiscount" />
                         <GiftCardCode v-if="props.giftCardsEnabled" :gift-card="props.quote.gift_card ?? null" :currency="currency" />
                         <Separator />
                         <dl class="space-y-2 text-sm">
@@ -491,8 +494,12 @@ const submit = () => {
                             </div>
                         </dl>
                         <Separator />
+                        <p v-if="props.tebex" class="text-xs text-muted-foreground">
+                            Tebex adds any tax and takes discount codes, creator codes and gift cards when you pay, so what you pay there can differ
+                            from this total.
+                        </p>
                         <div class="flex justify-between text-base font-semibold">
-                            <span>Total</span>
+                            <span>{{ props.tebex ? 'Total before tax' : 'Total' }}</span>
                             <span class="tabular-nums">{{ money(props.quote.grand_total ?? props.cart.subtotal) }}</span>
                         </div>
                         <template v-if="paidByGiftCard">

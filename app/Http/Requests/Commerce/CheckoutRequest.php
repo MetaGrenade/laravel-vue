@@ -159,6 +159,11 @@ class CheckoutRequest extends FormRequest
      */
     private function needsBillingAddress(): bool
     {
+        // Tebex works out the tax of its packages, and asks for what it needs when the customer pays.
+        if (CartManager::kind($this->cart()) === CartManager::PACKAGES) {
+            return false;
+        }
+
         if ($this->cartNeedsShipping()) {
             return $this->has('billing_same_as_shipping') && ! $this->boolean('billing_same_as_shipping');
         }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Payments\Providers\StripeProvider;
+use App\Payments\Providers\TebexProvider;
 
 return [
 
@@ -31,9 +32,13 @@ return [
 
     'provider' => env('COMMERCE_PROVIDER', 'stripe'),
 
-    'providers' => [
+    // Tebex can start a checkout but cannot yet settle an order (its webhooks are not handled), so an order paid
+    // through it would stay pending. It is registered only to try a basket against a real store: never set
+    // TEBEX_CHECKOUT_PREVIEW on a shop that takes money. See docs/tebex.md.
+    'providers' => array_filter([
         'stripe' => StripeProvider::class,
-    ],
+        'tebex' => env('TEBEX_CHECKOUT_PREVIEW', false) ? TebexProvider::class : null,
+    ]),
 
     /*
     |--------------------------------------------------------------------------

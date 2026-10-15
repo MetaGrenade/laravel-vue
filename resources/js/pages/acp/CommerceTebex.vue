@@ -20,13 +20,14 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
 import type { BreadcrumbItem } from '@/types';
-import type { TebexPackageRow, TebexSyncRun, TebexTestResult } from '@/types/tebex';
+import type { TebexPackageRow, TebexStoreInfo, TebexSyncRun, TebexTestResult } from '@/types/tebex';
 import { Head, router } from '@inertiajs/vue3';
 import { CircleAlert, CircleCheck, RefreshCw, Store } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 
 const props = defineProps<{
     connection: { configured: boolean; token: string | null; has_private_key: boolean };
+    store: TebexStoreInfo | null;
     test: TebexTestResult | null;
     sync: { latest: TebexSyncRun | null; last_ok: TebexSyncRun | null; every_minutes: number; runs: TebexSyncRun[] };
     counts: { categories: number; packages: number; subscriptions: number; removed: number };
@@ -147,11 +148,18 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
                                 <CircleCheck class="size-4" />
                                 <AlertTitle>Connected to {{ test.name }}</AlertTitle>
                                 <AlertDescription>
-                                    The store sells in {{ test.currency }}.
+                                    The store sells in {{ test.currency
+                                    }}<template v-if="test.platform"> and is set up for {{ test.platform }}</template
+                                    >.
                                     <template v-if="test.disabled"> Tebex says the store is switched off, so customers cannot pay there.</template>
                                 </AlertDescription>
                             </Alert>
-                            <Alert v-else-if="test" variant="destructive">
+                            <Alert v-if="props.store && !props.store.supported" variant="destructive">
+                                <CircleAlert class="size-4" />
+                                <AlertTitle>The shop cannot sell for this store yet</AlertTitle>
+                                <AlertDescription>{{ props.store.reason }}</AlertDescription>
+                            </Alert>
+                            <Alert v-if="test && !test.ok" variant="destructive">
                                 <CircleAlert class="size-4" />
                                 <AlertTitle>Could not connect</AlertTitle>
                                 <AlertDescription>{{ test.message }}</AlertDescription>

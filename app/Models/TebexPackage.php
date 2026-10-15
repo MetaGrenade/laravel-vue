@@ -87,6 +87,44 @@ class TebexPackage extends Model
         return $query->whereNull('removed_at');
     }
 
+    /**
+     * Packages the shop can offer: Tebex still lists them and they have not run out.
+     *
+     * @param  Builder<TebexPackage>  $query
+     * @return Builder<TebexPackage>
+     */
+    public function scopeOnSale(Builder $query): Builder
+    {
+        return $query->whereNull('removed_at')
+            ->where(fn (Builder $inner) => $inner->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+    }
+
+    /**
+     * Why the shop cannot sell it, as the end of a sentence about the package ("{name} ..."), or null when it can.
+     */
+    public function whyNotForSale(): ?string
+    {
+        if ($this->removed_at !== null || ($this->expires_at !== null && $this->expires_at->isPast())) {
+            return 'is no longer available';
+        }
+
+        if (blank($this->ident)) {
+            return "can't be purchased right now";
+        }
+
+        // The buyer has to choose something (a server, a rank) before Tebex will take it, and the shop does not ask yet.
+        if ($this->hasVariables()) {
+            return 'needs choices the shop cannot collect yet, so it cannot be bought here';
+        }
+
+        // Tebex takes no payment for it, so nothing would tell the shop that it was bought: it is not sold from here.
+        if ($this->basePrice()->isZero()) {
+            return 'is free, which the shop cannot give out through Tebex yet';
+        }
+
+        return null;
+    }
+
     public function isSubscription(): bool
     {
         return $this->type === self::SUBSCRIPTION;

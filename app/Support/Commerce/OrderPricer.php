@@ -45,7 +45,7 @@ class OrderPricer
     {
         $cart->loadMissing('items.product');
 
-        return $cart->items->contains(fn (CartItem $item) => $item->product === null || $item->product->requires_shipping);
+        return $cart->items->contains(fn (CartItem $item) => ! $item->isTebexPackage() && ($item->product === null || $item->product->requires_shipping));
     }
 
     /**
@@ -67,10 +67,20 @@ class OrderPricer
         ?CustomerDetails $customer = null,
         bool $countOwnHolds = true,
     ): Pricing {
-        $cart->loadMissing(['items.product', 'items.variant', 'coupon', 'giftCard']);
+        $cart->loadMissing(['items.product', 'items.variant', 'items.tebexPackage', 'coupon', 'giftCard']);
 
         if ($cart->items->isEmpty()) {
             throw new CheckoutException('Your cart is empty.');
+        }
+
+        $kind = CartManager::kind($cart);
+
+        if ($kind === CartManager::MIXED) {
+            throw new CheckoutException('Your cart has both products and Tebex packages, which are bought separately. Please remove one kind.');
+        }
+
+        if ($kind === CartManager::PACKAGES) {
+            return $this->priceTebex($cart);
         }
 
         $currency = $this->prices->currency();
@@ -137,6 +147,84 @@ class OrderPricer
         }
 
         return $pricing;
+    }
+
+    /**
+     * Prices a cart of Tebex packages: each at the price before tax that Tebex quoted, as the last synchronisation
+     * saw it. Nothing else is added: Tebex is the merchant of record, so it works out the tax, applies its own
+     * coupons, creator codes and gift cards, and takes the payment, which is why none of the shop's own discount codes,
+     * gift cards, shipping and tax come into it. What is shown is the shop's quote; what the buyer pays is Tebex's.
+     *
+     * @throws CheckoutException When a package cannot be bought any more, or at all.
+     */
+    private function priceTebex(Cart $cart): Pricing
+    {
+        $lines = $cart->items->map(fn (CartItem $item) => $this->packageLine($item))->values()->all();
+        $currency = $lines[0]->subtotal->currency;
+
+        $subtotal = Money::zero($currency);
+
+        foreach ($lines as $line) {
+            if ($line->subtotal->currency !== $currency) {
+                throw new CheckoutException('The packages in your cart are sold in different currencies, which one order cannot hold. Please remove some.');
+            }
+
+            $subtotal = $subtotal->add($line->subtotal);
+        }
+
+        return new Pricing(
+            currency: $currency,
+            lines: $lines,
+            subtotal: $subtotal,
+            needsShipping: false,
+            shippingOptions: [],
+            shipping: null,
+            canShip: true,
+            shippingMessage: null,
+            taxLines: [],
+            itemTax: Money::zero($currency),
+            shippingTax: Money::zero($currency),
+            discount: Money::zero($currency),
+            grandTotal: $subtotal,
+        );
+    }
+
+    private function packageLine(CartItem $item): PricedLine
+    {
+        $package = $item->tebexPackage;
+        $name = $package->name ?? ($item->snapshot['package']['name'] ?? 'This package');
+
+        if ($package === null) {
+            throw new CheckoutException("{$name} is no longer available.");
+        }
+
+        if ($reason = $package->whyNotForSale()) {
+            throw new CheckoutException("{$name} {$reason}.");
+        }
+
+        $max = CartManager::maxQuantityFor($package);
+
+        if ($item->quantity < 1 || $item->quantity > $max) {
+            throw new CheckoutException("You can buy between 1 and {$max} of {$name} at a time.");
+        }
+
+        $unit = $package->basePrice();
+
+        return new PricedLine(
+            item: $item,
+            description: Str::limit($name, 250, ''),
+            unit: $unit,
+            subtotal: $unit->multiply($item->quantity),
+            requiresShipping: false,
+            taxable: false,
+            metadata: array_filter([
+                'package' => $name,
+                'tebex_id' => $package->tebex_id,
+                'ident' => $package->ident,
+                'type' => $package->type,
+            ], fn ($value) => $value !== null),
+            tax: Money::zero($unit->currency),
+        );
     }
 
     /**
