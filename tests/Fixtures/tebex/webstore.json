@@ -1,0 +1,17 @@
+{
+    "data": {
+        "id": 123456,
+        "name": "Example Store",
+        "description": "<p>Our <strong>example</strong> store.</p>",
+        "webstore_url": "https://example-store.tebex.io",
+        "currency": "USD",
+        "lang": "en_US",
+        "logo": null,
+        "platform_type": "Minecraft: Java Edition",
+        "platform_type_id": "1",
+        "disabled": false,
+        "supports_usernames": true,
+        "supports_gifting": true,
+        "created_at": "2025-03-04T09:30:00+00:00"
+    }
+}
