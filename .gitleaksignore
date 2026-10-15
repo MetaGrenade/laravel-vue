@@ -1,0 +1,6 @@
+# Findings the secrets scan (gitleaks) has been told to accept, one fingerprint per line.
+#
+# A made-up Tebex public token in a test helper, in the first commit of the Tebex catalogue slice. It was never a
+# real key, and the helper now builds it at run time so no later commit contains it. This line only keeps that old
+# commit from failing the scan of the pull request that contains it.
+d8d7ef245b7239d005a089832b719432ae126ef6:tests/Support/InteractsWithTebex.php:generic-api-key:19

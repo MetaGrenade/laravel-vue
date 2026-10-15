@@ -16,13 +16,19 @@ use Illuminate\Support\Sleep;
  */
 trait InteractsWithTebex
 {
-    protected string $tebexToken = 'spk3-test-0123456789abcdef';
+    /**
+     * A made-up public token, set by {@see self::setUpTebex()}. It is built there, from a repeated letter, so that
+     * nothing in the source looks like a key to the secrets scan (gitleaks flagged the first literal one).
+     */
+    protected string $tebexToken = '';
 
     /**
      * Configure Tebex with a test token, short retry waits, and no real sleeping.
      */
     protected function setUpTebex(): void
     {
+        $this->tebexToken = 'spk3-'.str_repeat('a', 24);
+
         config([
             'tebex.public_token' => $this->tebexToken,
             'tebex.private_key' => 'private-key-that-must-never-be-shown',

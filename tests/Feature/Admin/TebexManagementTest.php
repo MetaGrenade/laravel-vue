@@ -90,7 +90,7 @@ class TebexManagementTest extends TestCase
 
         $page->assertOk()->assertInertia(fn (Assert $inertia) => $inertia
             ->where('connection.configured', true)
-            ->where('connection.token', 'spk3…def')
+            ->where('connection.token', 'spk3…aaa')
             ->where('connection.has_private_key', true));
 
         $content = $page->getContent();
