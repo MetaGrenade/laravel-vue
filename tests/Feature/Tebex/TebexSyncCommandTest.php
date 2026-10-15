@@ -48,6 +48,27 @@ class TebexSyncCommandTest extends TestCase
     }
 
     #[Test]
+    public function the_table_lists_categories_before_packages_whatever_order_the_database_returns_the_counts_in(): void
+    {
+        // MySQL sorts the keys of a JSON object, shortest first, which puts "packages" before "categories".
+        $run = new TebexSync([
+            'status' => TebexSync::OK,
+            'counts' => [
+                'packages' => ['removed' => 1, 'created' => 5, 'updated' => 0, 'unchanged' => 7],
+                'categories' => ['removed' => 0, 'created' => 1, 'updated' => 2, 'unchanged' => 3],
+            ],
+        ]);
+        $this->mock(TebexCatalogue::class)->shouldReceive('sync')->once()->andReturn($run);
+
+        $this->artisan('tebex:sync')
+            ->expectsTable(['', 'Added', 'Changed', 'Unchanged', 'No longer listed'], [
+                ['Categories', 1, 2, 3, 0],
+                ['Packages', 5, 0, 7, 1],
+            ])
+            ->assertSuccessful();
+    }
+
+    #[Test]
     public function the_command_fails_with_the_reason_when_tebex_does(): void
     {
         $this->fakeTebexHttp(['headless.tebex.io/*' => Http::response(['title' => 'Nope'], 403)]);

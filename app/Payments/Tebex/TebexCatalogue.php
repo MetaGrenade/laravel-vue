@@ -28,6 +28,9 @@ class TebexCatalogue
 {
     private const LOCK = 'tebex:sync';
 
+    /** Columns that hold what Tebex sent as it is: lists of objects. */
+    private const JSON_COLUMNS = ['media', 'options', 'variables'];
+
     /** A run still marked as running after this long died without finishing. */
     private const STALE_AFTER_MINUTES = 10;
 
@@ -174,7 +177,7 @@ class TebexCatalogue
 
         if (! $model->exists) {
             $counts['created']++;
-        } elseif ($model->isDirty()) {
+        } elseif ($this->changed($model)) {
             $counts['updated']++;
         } else {
             $counts['unchanged']++;
@@ -185,6 +188,47 @@ class TebexCatalogue
         $model->save();
 
         return $model;
+    }
+
+    /**
+     * Whether a saved row differs from what Tebex says.
+     *
+     * The JSON columns are compared without regard to the order of an object's keys: MySQL keeps them in an order of
+     * its own (shortest first), so read back, they never equal what Tebex sent, and every package with media or
+     * variables would count as changed, and be written, on every run.
+     */
+    private function changed(Model $model): bool
+    {
+        foreach (array_keys($model->getDirty()) as $key) {
+            if (
+                in_array($key, self::JSON_COLUMNS, true)
+                && $this->canonical($model->getOriginal($key)) === $this->canonical($model->getAttribute($key))
+            ) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * The same data with every object's keys in one order, so that two copies of it can be compared.
+     */
+    private function canonical(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $value = array_map(fn (mixed $item) => $this->canonical($item), $value);
+
+        if (! array_is_list($value)) {
+            ksort($value);
+        }
+
+        return $value;
     }
 
     /**

@@ -31,8 +31,11 @@ class TebexSyncCommand extends Command
 
         $rows = [];
 
-        foreach ((array) $run->counts as $what => $counts) {
-            $rows[] = [ucfirst((string) $what), $counts['created'] ?? 0, $counts['updated'] ?? 0, $counts['unchanged'] ?? 0, $counts['removed'] ?? 0];
+        // In this order, not the order the counts come back from the database in (MySQL sorts an object's keys).
+        foreach (['categories', 'packages'] as $what) {
+            $counts = (array) ($run->counts[$what] ?? []);
+
+            $rows[] = [ucfirst($what), $counts['created'] ?? 0, $counts['updated'] ?? 0, $counts['unchanged'] ?? 0, $counts['removed'] ?? 0];
         }
 
         $this->table(['', 'Added', 'Changed', 'Unchanged', 'No longer listed'], $rows);

@@ -10,6 +10,7 @@ use App\Payments\Tebex\TebexCatalogue;
 use App\Payments\Tebex\TebexException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
@@ -57,8 +58,8 @@ class TebexCatalogueTest extends TestCase
         $this->assertSame($staff->id, $run->user_id);
         $this->assertNotNull($run->finished_at);
         $this->assertNull($run->error);
-        $this->assertSame(['created' => 2, 'updated' => 0, 'unchanged' => 0, 'removed' => 0], $run->counts['categories']);
-        $this->assertSame(['created' => 3, 'updated' => 0, 'unchanged' => 0, 'removed' => 0], $run->counts['packages']);
+        $this->assertEquals(['created' => 2, 'updated' => 0, 'unchanged' => 0, 'removed' => 0], $run->counts['categories']);
+        $this->assertEquals(['created' => 3, 'updated' => 0, 'unchanged' => 0, 'removed' => 0], $run->counts['packages']);
 
         $ranks = TebexCategory::query()->where('tebex_id', 1001)->sole();
         $this->assertSame('Ranks', $ranks->name);
@@ -180,10 +181,49 @@ class TebexCatalogueTest extends TestCase
         $this->travel(5)->minutes();
         $run = $this->sync();
 
-        $this->assertSame(['created' => 0, 'updated' => 0, 'unchanged' => 2, 'removed' => 0], $run->counts['categories']);
-        $this->assertSame(['created' => 0, 'updated' => 0, 'unchanged' => 3, 'removed' => 0], $run->counts['packages']);
+        $this->assertEquals(['created' => 0, 'updated' => 0, 'unchanged' => 2, 'removed' => 0], $run->counts['categories']);
+        $this->assertEquals(['created' => 0, 'updated' => 0, 'unchanged' => 3, 'removed' => 0], $run->counts['packages']);
         $this->assertEquals($before, TebexPackage::query()->orderBy('id')->get()->map->only(['id', 'updated_at'])->all());
         $this->assertSame(3, TebexPackage::query()->count());
+    }
+
+    #[Test]
+    public function objects_kept_with_their_keys_in_another_order_are_not_a_change(): void
+    {
+        $this->fakeTebex();
+        $this->sync();
+
+        // MySQL keeps an object's keys shortest first, so what it gives back never has the order Tebex sent them in
+        // (and used to make every package with media or variables look changed on every run). Store them that way on
+        // any database.
+        foreach ([50001 => 'media', 50002 => 'variables'] as $tebexId => $column) {
+            $backwards = array_map(fn (array $object) => array_reverse($object, true), $this->package($tebexId)->{$column});
+
+            DB::table('tebex_packages')->where('tebex_id', $tebexId)->update([$column => json_encode($backwards)]);
+        }
+
+        $this->travel(5)->minutes();
+        $run = $this->sync();
+
+        $this->assertEquals(['created' => 0, 'updated' => 0, 'unchanged' => 3, 'removed' => 0], $run->counts['packages']);
+        $this->assertSame(0, TebexPackage::query()->where('updated_at', '>', now()->subMinute())->count(), 'nothing was written');
+    }
+
+    #[Test]
+    public function a_real_change_inside_an_object_still_counts(): void
+    {
+        $this->fakeTebex();
+        $this->sync();
+
+        $this->fakeTebex($this->tebexCategoriesChanged(function (array $categories) {
+            $categories[0]['packages'][1]['variables'][0]['options'][1]['name'] = 'Hardcore';
+
+            return $categories;
+        }));
+        $run = $this->sync();
+
+        $this->assertEquals(['created' => 0, 'updated' => 1, 'unchanged' => 2, 'removed' => 0], $run->counts['packages']);
+        $this->assertSame('Hardcore', $this->package(50002)->variables[0]['options'][1]['name']);
     }
 
     #[Test]
@@ -202,7 +242,7 @@ class TebexCatalogueTest extends TestCase
         }));
         $run = $this->sync();
 
-        $this->assertSame(['created' => 0, 'updated' => 1, 'unchanged' => 2, 'removed' => 0], $run->counts['packages']);
+        $this->assertEquals(['created' => 0, 'updated' => 1, 'unchanged' => 2, 'removed' => 0], $run->counts['packages']);
         $vip = $this->package(50001);
         $this->assertSame($id, $vip->id, 'the same row, so an order that refers to it still does');
         $this->assertSame('VIP Plus', $vip->name);
