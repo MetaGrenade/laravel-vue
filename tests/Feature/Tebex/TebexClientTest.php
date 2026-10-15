@@ -223,6 +223,24 @@ class TebexClientTest extends TestCase
     }
 
     #[Test]
+    public function a_category_that_is_not_an_object_is_refused_rather_than_dropped_from_the_list(): void
+    {
+        // Dropped, it would look like a category Tebex no longer lists, and the shop would retire it.
+        foreach (['oops', null, 7] as $broken) {
+            $body = $this->tebexFixture('categories-with-packages');
+            $body['data'][1] = $broken;
+            $this->fakeTebex($body);
+
+            try {
+                $this->tebexClient()->categories();
+                $this->fail('A category that is not an object was accepted.');
+            } catch (TebexException $exception) {
+                $this->assertStringContainsString('category the shop could not understand', $exception->getMessage());
+            }
+        }
+    }
+
+    #[Test]
     public function a_json_answer_with_no_data_in_it_is_refused_rather_than_read_as_empty(): void
     {
         Http::fake(['headless.tebex.io/*' => Http::response(['message' => 'Something else entirely'])]);

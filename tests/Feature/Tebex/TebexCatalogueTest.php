@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\Support\InteractsWithTebex;
@@ -344,6 +345,65 @@ class TebexCatalogueTest extends TestCase
         $this->assertNotNull($run->finished_at);
         $this->assertNull($run->counts);
         $this->assertSame(3, TebexPackage::query()->listed()->count());
+    }
+
+    /**
+     * @return array<string, array{0: callable(array<int, array<string, mixed>>): array<int, array<string, mixed>>}>
+     */
+    public static function malformedCatalogues(): array
+    {
+        return [
+            'a package that is a string' => [function (array $categories) {
+                $categories[0]['packages'][1] = 'oops';
+
+                return $categories;
+            }],
+            'a package that is null' => [function (array $categories) {
+                $categories[0]['packages'][1] = null;
+
+                return $categories;
+            }],
+            'a package that is a number' => [function (array $categories) {
+                $categories[0]['packages'][1] = 42;
+
+                return $categories;
+            }],
+            'packages that are an object, not a list' => [function (array $categories) {
+                $categories[0]['packages'] = ['id' => 50001, 'name' => 'VIP'];
+
+                return $categories;
+            }],
+            'packages keyed by something instead of listed' => [function (array $categories) {
+                $categories[0]['packages'] = ['vip' => $categories[0]['packages'][0], 'mvp' => $categories[0]['packages'][1]];
+
+                return $categories;
+            }],
+            'packages that are a string' => [function (array $categories) {
+                $categories[0]['packages'] = 'none';
+
+                return $categories;
+            }],
+        ];
+    }
+
+    /**
+     * @param  callable(array<int, array<string, mixed>>): array<int, array<string, mixed>>  $break
+     */
+    #[Test]
+    #[DataProvider('malformedCatalogues')]
+    public function a_package_that_is_not_an_object_fails_the_run_instead_of_retiring_what_it_stood_for(callable $break): void
+    {
+        $this->fakeTebex();
+        $this->sync();
+
+        $this->fakeTebex($this->tebexCategoriesChanged($break));
+        $run = $this->sync();
+
+        $this->assertSame(TebexSync::FAILED, $run->status, 'a response the shop cannot understand is not a successful run');
+        $this->assertStringContainsString('could not understand', $run->error);
+        $this->assertStringContainsString('so nothing was changed', $run->error);
+        $this->assertSame(3, TebexPackage::query()->listed()->count(), 'no package was marked as no longer listed');
+        $this->assertSame(2, TebexCategory::query()->listed()->count());
     }
 
     #[Test]

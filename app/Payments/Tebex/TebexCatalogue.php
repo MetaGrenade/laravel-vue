@@ -140,9 +140,17 @@ class TebexCatalogue
         foreach ($remote as $data) {
             $enclosing = $categories->get($this->id($data, 'category'));
 
-            foreach ((array) ($data['packages'] ?? []) as $package) {
+            $listed = $data['packages'] ?? [];
+
+            // Anything that is not a list of objects is refused, never skipped: a package left out here would be
+            // taken for one Tebex no longer lists, and retired.
+            if (! is_array($listed) || ! array_is_list($listed)) {
+                throw new TebexException('Tebex sent a list of packages the shop could not understand, so nothing was changed.');
+            }
+
+            foreach ($listed as $package) {
                 if (! is_array($package)) {
-                    continue;
+                    throw new TebexException('Tebex sent a package the shop could not understand (it is not an object), so nothing was changed.');
                 }
 
                 $id = $this->id($package, 'package');

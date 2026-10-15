@@ -57,7 +57,14 @@ class TebexClient
             throw new TebexException('Tebex sent an answer the shop could not understand.');
         }
 
-        return array_values(array_filter($data, 'is_array'));
+        // Refused, never filtered out: a category left out would be taken for one Tebex no longer lists.
+        foreach ($data as $category) {
+            if (! is_array($category)) {
+                throw new TebexException('Tebex sent a category the shop could not understand (it is not an object).');
+            }
+        }
+
+        return $data;
     }
 
     /**

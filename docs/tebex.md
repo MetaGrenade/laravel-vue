@@ -37,7 +37,7 @@ Tebex has **no sandbox**. To try a purchase later you switch the store to *Test 
 What a run does:
 
 - A category or package that is **new** is added, one that **changed** is updated, and one Tebex **no longer lists** is stamped `removed_at` and kept: nothing is ever deleted, because an order will refer to the package it was bought as. If it reappears, it is listed again.
-- A run is **all or nothing**. Everything is fetched first and applied in one transaction, so a failure part way (Tebex down, an answer that makes no sense, an entry with no id) leaves the copy as it was. The run is recorded as failed with the reason, and the ACP shows when the copy was last good.
+- A run is **all or nothing**. Everything is fetched first and applied in one transaction, so a failure part way (Tebex down, an answer that makes no sense, a category or package that is not an object, an entry with no id) leaves the copy as it was. An entry the shop cannot read is never skipped, because a skipped one would be taken for one Tebex no longer lists. The run is recorded as failed with the reason, and the ACP shows when the copy was last good.
 - Only **one run at a time**. A second one started meanwhile is refused (the scheduler's quietly skips). A run that died without finishing is closed off by the next one.
 - A store that Tebex reports with **no categories** marks everything as no longer listed. That is what Tebex said; the next run that sees the packages again restores them.
 - Tebex errors are retried when they might pass (a network failure, a 5xx, a 429) after 0.5, 1.5 and 4 seconds, and not otherwise. A scheduled run that fails is recorded, not thrown, so a store that is down for an hour does not fill the failed-jobs table, and it is not retried until the next interval.
@@ -76,7 +76,7 @@ The page needs `commerce.acp.view`. **Test connection** and **Refresh catalogue*
 | "Tebex answered 401/403: it refused the credentials" | The token or key was rotated or revoked in the Tebex panel. |
 | "Tebex answered 5xx" or "could not be reached" | Tebex or the network is down; it was already retried. The next scheduled run tries again, or press the button. |
 | "A synchronisation is already running" | Another run holds the lock (it is released when the run ends, or after five minutes). |
-| "Tebex sent a package the shop could not understand" | An entry had no id. Nothing was changed. Please report it with the response, since it means the shop's idea of Tebex's format is out of date. |
+| "Tebex sent a package (or category, or list of packages) the shop could not understand" | An entry had no id, was not an object, or the list was not a list. Nothing was changed. Please report it with the response, since it means the shop's idea of Tebex's format is out of date. |
 | The page is empty after a successful run | The store has no categories, or its packages are not in any category Tebex lists. |
 | Prices differ from the Tebex store page | Tebex works out sales tax for the buyer's country. The copy has the price before tax, and the tax and total as Tebex quoted them to the shop's own request, which need not be the buyer's. |
 
