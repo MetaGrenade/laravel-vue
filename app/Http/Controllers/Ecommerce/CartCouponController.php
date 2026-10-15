@@ -30,6 +30,10 @@ class CartCouponController extends Controller
             return back()->withErrors(['code' => 'Add something to your cart before using a code.']);
         }
 
+        if (CartManager::kind($cart) === CartManager::PACKAGES) {
+            return back()->withErrors(['code' => "Tebex takes discount codes when you pay, so the shop's own codes are not used with packages."]);
+        }
+
         try {
             $coupon = $coupons->apply($cart, $validated['code'], $request->user());
         } catch (CouponRejected|CheckoutException $exception) {

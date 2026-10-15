@@ -16,6 +16,7 @@ class OrderItem extends Model
         'order_id',
         'product_id',
         'product_variant_id',
+        'tebex_package_id',
         'quantity',
         'unit_price',
         'subtotal',
@@ -43,6 +44,16 @@ class OrderItem extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * The Tebex package this line was bought as, when it is one (it is then not a product).
+     *
+     * @return BelongsTo<TebexPackage, $this>
+     */
+    public function tebexPackage(): BelongsTo
+    {
+        return $this->belongsTo(TebexPackage::class);
     }
 
     /**

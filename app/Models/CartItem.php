@@ -14,6 +14,7 @@ class CartItem extends Model
         'cart_id',
         'product_id',
         'product_variant_id',
+        'tebex_package_id',
         'quantity',
         'unit_price',
         'total',
@@ -48,5 +49,20 @@ class CartItem extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
+
+    /**
+     * The Tebex package this line is, when it is one (it is then not a product).
+     *
+     * @return BelongsTo<TebexPackage, $this>
+     */
+    public function tebexPackage(): BelongsTo
+    {
+        return $this->belongsTo(TebexPackage::class);
+    }
+
+    public function isTebexPackage(): bool
+    {
+        return $this->tebex_package_id !== null;
     }
 }

@@ -2,8 +2,10 @@
 
 namespace Tests\Support;
 
+use App\Payments\Providers\TebexProvider;
 use App\Payments\Tebex\TebexClient;
 use Illuminate\Http\Client\Factory;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
 
@@ -71,6 +73,35 @@ trait InteractsWithTebex
     {
         Http::swap(new Factory);
         Http::fake($stubs);
+    }
+
+    /**
+     * Tebex's basket API as a stateful stand-in (see {@see FakeTebexBaskets}), answering the store and the catalogue
+     * from the fixtures as well.
+     */
+    protected function fakeTebexBaskets(): FakeTebexBaskets
+    {
+        $baskets = new FakeTebexBaskets;
+
+        $this->fakeTebexHttp([
+            'headless.tebex.io/api/accounts/*/categories*' => Http::response($this->tebexFixture('categories-with-packages')),
+            'headless.tebex.io/*' => fn (Request $request) => $request->method() === 'GET' && preg_match('#^/api/accounts/[^/]+$#', (string) parse_url($request->url(), PHP_URL_PATH)) === 1
+                ? Http::response($this->tebexFixture('webstore'))
+                : $baskets->respond($request),
+        ]);
+
+        return $baskets;
+    }
+
+    /**
+     * Make Tebex the store's payment provider, as it would be once it can be chosen.
+     */
+    protected function sellThroughTebex(): void
+    {
+        config([
+            'commerce.providers.tebex' => TebexProvider::class,
+            'commerce.provider' => 'tebex',
+        ]);
     }
 
     /**

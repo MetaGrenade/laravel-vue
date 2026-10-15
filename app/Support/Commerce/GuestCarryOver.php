@@ -183,10 +183,13 @@ class GuestCarryOver
     {
         foreach ($guest->items as $line) {
             $existing = $mine->items->first(fn (CartItem $item) => $item->product_id === $line->product_id
-                && $item->product_variant_id === $line->product_variant_id);
+                && $item->product_variant_id === $line->product_variant_id
+                && $item->tebex_package_id === $line->tebex_package_id);
 
             if ($existing !== null) {
-                $most = (int) config('commerce.checkout.max_quantity', 20);
+                $most = $line->tebexPackage !== null
+                    ? CartManager::maxQuantityFor($line->tebexPackage)
+                    : (int) config('commerce.checkout.max_quantity', 20);
 
                 CartManager::updateQuantity($existing, min($most, $existing->quantity + $line->quantity));
                 $line->delete();

@@ -350,7 +350,7 @@ A payment that arrives for an order that was already cancelled is honoured: the 
 - The **store-level provider** is `COMMERCE_PROVIDER` (default `stripe`) and can be changed in the ACP under System settings. Every order records the provider it was placed with, and webhooks and reconciliation use that recorded provider, so switching never strands an in-flight payment.
 - Providers declare `capabilities()` (one-time payments, subscriptions, refunds, hosted checkout, ...) and the shop checks those rather than the provider's name.
 - To add a provider: implement the contract, register it under `commerce.providers`, and route its webhooks through `WebhookReceiver` (below).
-- **Tebex** is the second provider. Its connection and local copy of the catalogue are built; it is not registered under `commerce.providers` yet, so it cannot be chosen until baskets, checkout and webhooks land. See [tebex.md](tebex.md).
+- **Tebex** is the second provider. Its connection, catalogue, storefront, cart and basket are built, but not its webhooks, so an order paid through it is never marked paid: it is registered under `commerce.providers` only when `TEBEX_CHECKOUT_PREVIEW` is set, for trying baskets, never for a shop that takes money. See [tebex.md](tebex.md).
 
 ### Stripe
 

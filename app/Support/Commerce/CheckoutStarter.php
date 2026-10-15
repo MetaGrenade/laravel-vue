@@ -11,6 +11,7 @@ use App\Payments\Data\CheckoutClosure;
 use App\Payments\Data\CheckoutContext;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\PaymentManager;
+use App\Payments\Providers\TebexProvider;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\URL;
@@ -77,6 +78,15 @@ class CheckoutStarter
             return ['order' => $existing, 'url' => $this->resumeUrl($existing)];
         }
 
+        // Packages are sold through Tebex and products are not, so a cart is only checked out through the provider
+        // that sells what it holds (the store's provider can change while a cart is waiting).
+        // (A cart that mixes the two is refused by the pricer, which says so.)
+        $kind = CartManager::kind($cart);
+
+        if ($kind !== CartManager::MIXED && ($kind === CartManager::PACKAGES) !== ($provider->key() === TebexProvider::KEY)) {
+            throw new CheckoutException('What is in your cart is not sold the way this shop takes payment now. Please empty it and add something again.');
+        }
+
         // Something to pay needs a provider to pay through. (An order that costs nothing needs none.)
         $requireProvider = function (Pricing $pricing) use ($provider): void {
             if (! $pricing->amountDue()->isZero() && ! $provider->isConfigured()) {
@@ -114,6 +124,7 @@ class CheckoutStarter
                 cancelUrl: route('shop.cart'),
                 expiresAt: $order->expires_at ?? now()->addMinutes(60),
                 locale: null,
+                ipAddress: $customer->ip,
             ));
         } catch (PaymentException $exception) {
             // The customer was never sent anywhere, so give the stock back.
