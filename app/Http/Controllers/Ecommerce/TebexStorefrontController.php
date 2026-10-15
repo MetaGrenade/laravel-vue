@@ -7,6 +7,7 @@ use App\Models\TebexCategory;
 use App\Models\TebexPackage;
 use App\Payments\PaymentManager;
 use App\Payments\Providers\TebexProvider;
+use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\CartManager;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
@@ -27,6 +28,7 @@ class TebexStorefrontController extends Controller
     public function __construct(
         private readonly PaymentManager $payments,
         private readonly HtmlSanitizer $sanitizer,
+        private readonly TebexStoreProfile $profile,
     ) {}
 
     public function index(Request $request): Response
@@ -114,7 +116,8 @@ class TebexStorefrontController extends Controller
      */
     private function card(TebexPackage $package): array
     {
-        $reason = $package->whyNotForSale();
+        // A store the shop cannot sell for sells nothing, whatever the package is.
+        $reason = $package->whyNotForSale() !== null ? ucfirst($package->whyNotForSale()).'.' : $this->profile->unsupportedReason();
 
         return [
             'id' => $package->tebex_id,
@@ -128,7 +131,7 @@ class TebexStorefrontController extends Controller
             'price' => $package->base_price,
             'discount' => $package->discount,
             'can_buy' => $reason === null,
-            'reason' => $reason === null ? null : ucfirst($reason).'.',
+            'reason' => $reason,
         ];
     }
 

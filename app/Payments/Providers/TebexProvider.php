@@ -14,6 +14,7 @@ use App\Payments\Data\RefundOutcome;
 use App\Payments\Data\WebhookOutcome;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\Tebex\TebexClient;
+use App\Payments\Tebex\TebexStoreProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -34,7 +35,10 @@ class TebexProvider implements PaymentProvider
 {
     public const KEY = 'tebex';
 
-    public function __construct(private readonly TebexClient $client) {}
+    public function __construct(
+        private readonly TebexClient $client,
+        private readonly TebexStoreProfile $profile,
+    ) {}
 
     public function key(): string
     {
@@ -54,9 +58,12 @@ class TebexProvider implements PaymentProvider
         ];
     }
 
+    /**
+     * There is a token, and the store is one the shop can sell for (see {@see TebexStoreProfile}).
+     */
     public function isConfigured(): bool
     {
-        return $this->client->isConfigured();
+        return $this->client->isConfigured() && $this->profile->isSupported();
     }
 
     /**
@@ -67,6 +74,11 @@ class TebexProvider implements PaymentProvider
      */
     public function startCheckout(Order $order, CheckoutContext $context): CheckoutSession
     {
+        // Whatever the page said, no basket is made for a store whose buyers have to sign in first.
+        if ($reason = $this->profile->unsupportedReason()) {
+            throw new PaymentException($reason);
+        }
+
         $order->loadMissing('items.tebexPackage');
 
         // In the order they were placed in (a relation has none of its own), so a basket is always built the same way.

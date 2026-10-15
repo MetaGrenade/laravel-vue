@@ -34,7 +34,10 @@ class TebexCatalogue
     /** A run still marked as running after this long died without finishing. */
     private const STALE_AFTER_MINUTES = 10;
 
-    public function __construct(private readonly TebexClient $client) {}
+    public function __construct(
+        private readonly TebexClient $client,
+        private readonly TebexStoreProfile $profile,
+    ) {}
 
     /**
      * Refresh the copy.
@@ -67,6 +70,7 @@ class TebexCatalogue
 
             try {
                 $store = $this->client->webstore();
+                $this->profile->remember($store);
                 $categories = $this->client->categories();
 
                 $counts = DB::transaction(fn () => $this->apply($categories, $store->currency));

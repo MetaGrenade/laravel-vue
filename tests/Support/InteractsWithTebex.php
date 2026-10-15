@@ -79,18 +79,31 @@ trait InteractsWithTebex
      * Tebex's basket API as a stateful stand-in (see {@see FakeTebexBaskets}), answering the store and the catalogue
      * from the fixtures as well.
      */
-    protected function fakeTebexBaskets(): FakeTebexBaskets
+    protected function fakeTebexBaskets(?array $store = null): FakeTebexBaskets
     {
         $baskets = new FakeTebexBaskets;
 
         $this->fakeTebexHttp([
             'headless.tebex.io/api/accounts/*/categories*' => Http::response($this->tebexFixture('categories-with-packages')),
             'headless.tebex.io/*' => fn (Request $request) => $request->method() === 'GET' && preg_match('#^/api/accounts/[^/]+$#', (string) parse_url($request->url(), PHP_URL_PATH)) === 1
-                ? Http::response($this->tebexFixture('webstore'))
+                ? Http::response($store ?? $this->tebexFixture('webstore'))
                 : $baskets->respond($request),
         ]);
 
         return $baskets;
+    }
+
+    /**
+     * The store fixture, set up for this platform instead.
+     *
+     * @return array<string, mixed>
+     */
+    protected function tebexStoreOn(?string $platform): array
+    {
+        $store = $this->tebexFixture('webstore');
+        $store['data']['platform_type'] = $platform;
+
+        return $store;
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TebexPackage;
 use App\Payments\PaymentManager;
 use App\Payments\Providers\TebexProvider;
+use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\CartManager;
 use App\Support\Commerce\CheckoutException;
 use Illuminate\Http\RedirectResponse;
@@ -17,9 +18,13 @@ use Illuminate\Http\Request;
  */
 class CartPackageController extends Controller
 {
-    public function store(Request $request, PaymentManager $payments): RedirectResponse
+    public function store(Request $request, PaymentManager $payments, TebexStoreProfile $profile): RedirectResponse
     {
         abort_unless($payments->activeKey() === TebexProvider::KEY, 404);
+
+        if ($reason = $profile->unsupportedReason()) {
+            return back()->with('error', $reason);
+        }
 
         $validated = $request->validate([
             'package_id' => ['required', 'integer'],
