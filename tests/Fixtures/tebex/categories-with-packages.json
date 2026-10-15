@@ -1,0 +1,122 @@
+{
+    "data": [
+        {
+            "id": 1001,
+            "name": "Ranks",
+            "slug": "ranks",
+            "description": "<p>Support the server.</p>",
+            "parent": null,
+            "tiered": false,
+            "dynamic": false,
+            "active_tier": null,
+            "order": 1,
+            "display_type": "grid",
+            "image_url": null,
+            "packages": [
+                {
+                    "id": 50001,
+                    "ident": "vip-rank",
+                    "name": "VIP",
+                    "slug": "vip",
+                    "description": "<p>VIP perks for <em>everyone</em>.</p>",
+                    "image": "https://cdn.example.test/vip.png",
+                    "type": "single",
+                    "category": {"id": 1001, "name": "Ranks"},
+                    "base_price": 9.99,
+                    "sales_tax": 0,
+                    "total_price": 9.99,
+                    "currency": "USD",
+                    "prorate_price": null,
+                    "discount": 0,
+                    "disable_quantity": false,
+                    "disable_gifting": false,
+                    "expiration_date": null,
+                    "media": [
+                        {"type": "image", "name": null, "url": "https://cdn.example.test/vip.png", "featured": true, "primary": true}
+                    ],
+                    "order": 1,
+                    "user_limit": 0,
+                    "creator_meta_data": {},
+                    "options": [],
+                    "variables": [],
+                    "created_at": "2025-03-05T10:00:00+00:00",
+                    "updated_at": "2026-01-02T10:00:00+00:00",
+                    "vip_status": null
+                },
+                {
+                    "id": 50002,
+                    "ident": "mvp-monthly",
+                    "name": "MVP (monthly)",
+                    "slug": "mvp-monthly",
+                    "description": "<p>Everything in VIP, every month.</p>",
+                    "image": null,
+                    "type": "subscription",
+                    "category": {"id": 1001, "name": "Ranks"},
+                    "base_price": 4.5,
+                    "sales_tax": 0.9,
+                    "total_price": 5.4,
+                    "currency": "USD",
+                    "prorate_price": 2.25,
+                    "discount": 0,
+                    "disable_quantity": true,
+                    "disable_gifting": true,
+                    "expiration_date": null,
+                    "media": [],
+                    "order": 2,
+                    "user_limit": 1,
+                    "creator_meta_data": {},
+                    "options": [],
+                    "variables": [
+                        {"identifier": "server", "description": "Server", "type": "dropdown", "options": [{"id": 1, "name": "Survival"}, {"id": 2, "name": "Creative"}]}
+                    ],
+                    "created_at": "2025-03-06T10:00:00+00:00",
+                    "updated_at": "2026-01-03T10:00:00+00:00",
+                    "vip_status": null
+                }
+            ]
+        },
+        {
+            "id": 1002,
+            "name": "Cosmetics",
+            "slug": "cosmetics",
+            "description": "",
+            "parent": {"id": 1001, "name": "Ranks"},
+            "tiered": false,
+            "dynamic": false,
+            "active_tier": null,
+            "order": 2,
+            "display_type": "list",
+            "image_url": "https://cdn.example.test/cosmetics.png",
+            "packages": [
+                {
+                    "id": 50003,
+                    "ident": "pet-cat",
+                    "name": "Pet cat",
+                    "slug": "pet-cat",
+                    "description": "",
+                    "image": null,
+                    "type": "single",
+                    "category": {"id": 1002, "name": "Cosmetics"},
+                    "base_price": 2,
+                    "sales_tax": 0,
+                    "total_price": 2,
+                    "currency": "USD",
+                    "prorate_price": null,
+                    "discount": 0.5,
+                    "disable_quantity": false,
+                    "disable_gifting": false,
+                    "expiration_date": "2027-01-01T00:00:00+00:00",
+                    "media": [],
+                    "order": 1,
+                    "user_limit": 0,
+                    "creator_meta_data": {},
+                    "options": [],
+                    "variables": [],
+                    "created_at": "2025-03-07T10:00:00+00:00",
+                    "updated_at": "2026-01-04T10:00:00+00:00",
+                    "vip_status": null
+                }
+            ]
+        }
+    ]
+}

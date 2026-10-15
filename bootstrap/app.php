@@ -15,6 +15,8 @@ use App\Jobs\AggregateSearchQueryStats;
 use App\Jobs\ExpirePendingOrders;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneSearchQueryLogs;
+use App\Jobs\SyncTebexCatalogue;
+use App\Payments\Tebex\TebexCatalogue;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -75,6 +77,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new AggregateSearchQueryStats)->dailyAt('00:30');
         $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
         $schedule->job(new ExpirePendingOrders)->everyFiveMinutes();
+        // Looked at every five minutes; runs when the copy of the Tebex catalogue is older than the configured interval.
+        $schedule->job(new SyncTebexCatalogue)->everyFiveMinutes()->when(fn () => app(TebexCatalogue::class)->isDue());
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -40,6 +40,7 @@ use App\Http\Controllers\Admin\SupportController;
 use App\Http\Controllers\Admin\SupportTicketCategoryController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TaxRateController;
+use App\Http\Controllers\Admin\TebexController;
 use App\Http\Controllers\Admin\TokenController;
 use App\Http\Controllers\Admin\TrustSafetyController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
@@ -385,6 +386,16 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
             Route::delete('gift-cards/{giftCard}', [GiftCardController::class, 'destroy'])
                 ->middleware('can:commerce.acp.delete')
                 ->name('gift-cards.destroy');
+
+            // Tebex: the connection and the shop's copy of the Tebex catalogue (Tebex owns the catalogue, so it is read-only).
+            // Both actions call Tebex, so they are limited.
+            Route::get('tebex', [TebexController::class, 'index'])->name('tebex.index');
+            Route::post('tebex/test', [TebexController::class, 'test'])
+                ->middleware(['can:commerce.acp.edit', 'throttle:10,1'])
+                ->name('tebex.test');
+            Route::post('tebex/sync', [TebexController::class, 'sync'])
+                ->middleware(['can:commerce.acp.edit', 'throttle:6,1'])
+                ->name('tebex.sync');
 
             // Product reviews: publish or reject what customers wrote.
             Route::get('reviews', [CommerceReviewController::class, 'index'])->name('reviews.index');
