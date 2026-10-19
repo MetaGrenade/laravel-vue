@@ -15,6 +15,7 @@ use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Models\Payment;
 use App\Models\User;
+use App\Payments\Providers\TebexProvider;
 use App\Support\Commerce\Digital\DigitalFulfilment;
 use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\GiftCards\GiftCards;
@@ -162,7 +163,9 @@ class OrderLifecycle
         $this->digital->grant($order);
         $this->keys->issue($order);
 
-        if ($this->digital->isDeliveredInFull($order)) {
+        // Tebex delivers its packages itself, to the buyer's account in the game, the moment it takes the payment:
+        // there is nothing for the shop to ship or for staff to send.
+        if ($order->payment_provider === TebexProvider::KEY || $this->digital->isDeliveredInFull($order)) {
             $this->fulfil($order, notifyCustomer: false);
         }
     }
@@ -332,18 +335,19 @@ class OrderLifecycle
         }
 
         foreach ($order->items as $ordered) {
-            if ($ordered->product_id === null) {
-                continue;
-            }
-
-            $line = $cart->items()
-                ->where('product_id', $ordered->product_id)
-                ->when(
-                    $ordered->product_variant_id === null,
-                    fn ($query) => $query->whereNull('product_variant_id'),
-                    fn ($query) => $query->where('product_variant_id', $ordered->product_variant_id),
-                )
-                ->first();
+            // A line is a product (with or without a variant) or a Tebex package, never both.
+            $line = match (true) {
+                $ordered->product_id !== null => $cart->items()
+                    ->where('product_id', $ordered->product_id)
+                    ->when(
+                        $ordered->product_variant_id === null,
+                        fn ($query) => $query->whereNull('product_variant_id'),
+                        fn ($query) => $query->where('product_variant_id', $ordered->product_variant_id),
+                    )
+                    ->first(),
+                $ordered->tebex_package_id !== null => $cart->items()->where('tebex_package_id', $ordered->tebex_package_id)->first(),
+                default => null,
+            };
 
             if ($line === null) {
                 continue;

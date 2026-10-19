@@ -34,6 +34,9 @@ trait InteractsWithTebex
         config([
             'tebex.public_token' => $this->tebexToken,
             'tebex.private_key' => 'private-key-that-must-never-be-shown',
+            // Without the webhook's secret Tebex is not ready to sell (nothing could settle an order), so a test that
+            // sells through it has one. Made from a repeated letter for the secrets scan, like the token.
+            'tebex.webhook.secret' => 'whsec-'.str_repeat('b', 24),
             'tebex.http.retry_backoff_ms' => [1, 1, 1],
         ]);
 

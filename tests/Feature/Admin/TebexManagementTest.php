@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\BillingWebhookCall;
 use App\Models\SystemSetting;
 use App\Models\TebexCategory;
 use App\Models\TebexPackage;
@@ -275,5 +276,53 @@ class TebexManagementTest extends TestCase
 
         $this->actingAs($this->admin())->get(route('acp.commerce.tebex.index'))
             ->assertInertia(fn (Assert $page) => $page->where('currencies', ['EUR', 'USD'])->where('shop_currency', 'USD'));
+    }
+
+    // --- The webhook ------------------------------------------------------------------------------
+
+    #[Test]
+    public function the_page_says_where_tebex_sends_payments_and_whether_the_shop_can_receive_them(): void
+    {
+        $this->actingAs($this->admin())->get(route('acp.commerce.tebex.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('webhook.url', route('tebex.webhook'))
+            ->where('webhook.secret_configured', true)
+            ->where('webhook.ip_check', true)
+            ->where('webhook.last_received_at', null)
+            ->where('webhook.needs_a_look', 0)
+            ->where('webhook.can_view_log', true));
+
+        config(['tebex.webhook.secret' => null, 'tebex.webhook.check_ip' => false]);
+
+        $this->actingAs($this->admin())->get(route('acp.commerce.tebex.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('webhook.secret_configured', false)
+            ->where('webhook.ip_check', false));
+    }
+
+    #[Test]
+    public function the_page_counts_the_deliveries_that_need_a_look_and_shows_when_the_last_came(): void
+    {
+        BillingWebhookCall::query()->create(['provider' => 'tebex', 'external_id' => 'evt-1', 'type' => 'payment.completed', 'payload' => [], 'processed_at' => now(), 'error' => 'No order']);
+        BillingWebhookCall::query()->create(['provider' => 'tebex', 'external_id' => 'evt-2', 'type' => 'payment.completed', 'payload' => [], 'processed_at' => now()]);
+        BillingWebhookCall::factory()->create(['provider' => 'stripe', 'error' => 'Not ours to count']);
+
+        $this->actingAs($this->admin())->get(route('acp.commerce.tebex.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('webhook.needs_a_look', 1)
+            ->where('webhook.last_received_at', fn ($at) => is_string($at) && $at !== ''));
+    }
+
+    #[Test]
+    public function only_those_who_may_see_billing_are_offered_the_list_of_deliveries(): void
+    {
+        $this->actingAs($this->viewer())->get(route('acp.commerce.tebex.index'))
+            ->assertInertia(fn (Assert $page) => $page->where('webhook.can_view_log', false));
+    }
+
+    #[Test]
+    public function the_webhook_secret_is_never_sent_to_the_browser(): void
+    {
+        $response = $this->actingAs($this->admin())->get(route('acp.commerce.tebex.index'));
+
+        $response->assertOk();
+        $this->assertStringNotContainsString((string) config('tebex.webhook.secret'), $response->getContent());
     }
 }

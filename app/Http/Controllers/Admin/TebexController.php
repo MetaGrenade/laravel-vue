@@ -4,13 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
+use App\Models\BillingWebhookCall;
 use App\Models\TebexCategory;
 use App\Models\TebexPackage;
 use App\Models\TebexSync;
+use App\Payments\Providers\TebexProvider;
 use App\Payments\Tebex\TebexCatalogue;
 use App\Payments\Tebex\TebexClient;
 use App\Payments\Tebex\TebexException;
 use App\Payments\Tebex\TebexStoreProfile;
+use App\Payments\Tebex\TebexWebhookVerifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -34,6 +37,7 @@ class TebexController extends Controller
         private readonly TebexClient $client,
         private readonly TebexCatalogue $catalogue,
         private readonly TebexStoreProfile $profile,
+        private readonly TebexWebhookVerifier $webhooks,
     ) {}
 
     public function index(Request $request): Response
@@ -63,6 +67,7 @@ class TebexController extends Controller
         $latest = TebexSync::query()->latest('started_at')->latest('id')->first();
         $lastOk = $latest?->status === TebexSync::OK ? $latest : $this->lastOk();
         $currencies = TebexPackage::query()->listed()->distinct()->orderBy('currency')->pluck('currency')->all();
+        $lastDelivery = BillingWebhookCall::query()->where('provider', TebexProvider::KEY)->latest('id')->first();
 
         return Inertia::render('acp/CommerceTebex', [
             'connection' => [
@@ -79,6 +84,15 @@ class TebexController extends Controller
                 // What buyers are asked before they can pay: nothing, a username, or to sign in.
                 'identity' => $this->profile->identity(),
                 'username_label' => $this->profile->usernameLabel(),
+            ],
+            // Where Tebex sends payments. The secret is never sent, only whether there is one.
+            'webhook' => [
+                'url' => route('tebex.webhook'),
+                'secret_configured' => $this->webhooks->isConfigured(),
+                'ip_check' => (bool) config('tebex.webhook.check_ip', true),
+                'last_received_at' => $lastDelivery?->created_at?->toIso8601String(),
+                'needs_a_look' => BillingWebhookCall::query()->where('provider', TebexProvider::KEY)->whereNotNull('error')->count(),
+                'can_view_log' => (bool) $request->user()?->can('billing.acp.view'),
             ],
             // The answer to "Test connection", for the request that asked.
             'test' => $request->session()->get('tebex_test'),

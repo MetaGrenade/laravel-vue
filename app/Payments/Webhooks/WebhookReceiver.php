@@ -41,11 +41,14 @@ class WebhookReceiver
                     return WebhookOutcome::duplicate();
                 }
 
+                // An earlier failure is over. What `$process` writes to `error` itself stays: it is how an event that was
+                // understood but could not be acted on (a payment that matches no order) is left for a person to see.
+                $locked->error = null;
+
                 $outcome = $process($locked) ?? WebhookOutcome::handled();
 
                 $locked->forceFill([
                     'attempts' => $locked->attempts + 1,
-                    'error' => null,
                     'processed_at' => now(),
                 ])->save();
 

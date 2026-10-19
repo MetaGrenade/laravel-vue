@@ -45,6 +45,21 @@ return [
         'retry_backoff_ms' => [500, 1500, 4000],
     ],
 
+    /*
+    | Webhooks: how Tebex tells the shop a payment happened. Without them an order is never marked paid.
+    |
+    | The secret is shown once when the endpoint is added in the Tebex panel (Developers -> Webhooks -> Endpoints) and
+    | signs every delivery. Tebex sends only from the two addresses below; a request from anywhere else is answered with
+    | a 404. Switch the check off only when a proxy hides the sender's address and cannot be told to pass it on (the
+    | signature is still checked).
+    */
+
+    'webhook' => [
+        'secret' => env('TEBEX_WEBHOOK_SECRET'),
+        'check_ip' => (bool) env('TEBEX_WEBHOOK_CHECK_IP', true),
+        'ips' => ['18.209.80.3', '54.87.231.232'],
+    ],
+
     'sync' => [
         // How often the scheduler refreshes the local copy of the catalogue, in minutes, when Tebex is configured
         // (it is checked every five minutes, so nothing under five is useful). 0 turns the schedule off: the command

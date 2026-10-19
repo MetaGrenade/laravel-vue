@@ -20,8 +20,8 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
 import type { BreadcrumbItem } from '@/types';
-import type { TebexPackageRow, TebexStoreInfo, TebexSyncRun, TebexTestResult } from '@/types/tebex';
-import { Head, router } from '@inertiajs/vue3';
+import type { TebexPackageRow, TebexStoreInfo, TebexSyncRun, TebexTestResult, TebexWebhookInfo } from '@/types/tebex';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleAlert, CircleCheck, RefreshCw, Store } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -29,6 +29,7 @@ const props = defineProps<{
     connection: { configured: boolean; token: string | null; has_private_key: boolean };
     store: TebexStoreInfo | null;
     test: TebexTestResult | null;
+    webhook: TebexWebhookInfo;
     sync: { latest: TebexSyncRun | null; last_ok: TebexSyncRun | null; every_minutes: number; runs: TebexSyncRun[] };
     counts: { categories: number; packages: number; subscriptions: number; removed: number };
     categories: { id: number; name: string }[];
@@ -237,6 +238,74 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
                         </CardContent>
                     </Card>
                 </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            Payments
+                            <Badge :variant="webhook.secret_configured ? 'secondary' : 'outline'">{{
+                                webhook.secret_configured ? 'Ready' : 'Not set up'
+                            }}</Badge>
+                        </CardTitle>
+                        <CardDescription>
+                            Tebex tells the shop a payment happened by webhook. Without it an order paid at Tebex is never marked paid, so Tebex is
+                            not offered as ready until the secret is set.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-4">
+                        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+                            <dt class="text-muted-foreground">Endpoint</dt>
+                            <dd class="font-mono break-all">{{ webhook.url }}</dd>
+                            <dt class="text-muted-foreground">Secret</dt>
+                            <dd>{{ webhook.secret_configured ? 'Set' : 'Not set (TEBEX_WEBHOOK_SECRET)' }}</dd>
+                            <dt class="text-muted-foreground">Sender check</dt>
+                            <dd>
+                                {{
+                                    webhook.ip_check
+                                        ? "Only Tebex's two addresses are answered"
+                                        : 'Off (TEBEX_WEBHOOK_CHECK_IP): only the signature is checked'
+                                }}
+                            </dd>
+                            <dt class="text-muted-foreground">Last delivery</dt>
+                            <dd>{{ webhook.last_received_at ? when(webhook.last_received_at) : 'Nothing received yet' }}</dd>
+                        </dl>
+
+                        <ol
+                            v-if="!webhook.secret_configured || !webhook.last_received_at"
+                            class="list-decimal space-y-1 pl-5 text-sm text-muted-foreground"
+                        >
+                            <li>
+                                In the Tebex panel open Developers → Webhooks → Endpoints and add the endpoint above, with the payment, dispute and
+                                recurring payment events.
+                            </li>
+                            <li>
+                                Copy the secret Tebex shows into <code class="rounded bg-muted px-1 py-0.5 text-xs">TEBEX_WEBHOOK_SECRET</code> and
+                                reload the configuration.
+                            </li>
+                            <li>Press Validate next to the endpoint: Tebex sends nothing else until it is validated.</li>
+                        </ol>
+
+                        <Alert v-if="webhook.needs_a_look > 0">
+                            <CircleAlert class="size-4" />
+                            <AlertTitle
+                                >{{ webhook.needs_a_look }} {{ webhook.needs_a_look === 1 ? 'delivery needs' : 'deliveries need' }} a look</AlertTitle
+                            >
+                            <AlertDescription>
+                                A payment that matched no order, one that did not add up, or a delivery that failed and is waiting to be sent again.
+                                <Link
+                                    v-if="webhook.can_view_log"
+                                    :href="route('acp.billing.webhooks.index', { provider: 'tebex', processed: 'attention' })"
+                                    class="font-medium underline"
+                                    >See them</Link
+                                >
+                            </AlertDescription>
+                        </Alert>
+
+                        <Button v-else-if="webhook.can_view_log" variant="outline" as-child>
+                            <Link :href="route('acp.billing.webhooks.index', { provider: 'tebex' })">View deliveries</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
 
                 <div class="flex flex-wrap gap-2" role="tablist" aria-label="Package status">
                     <Button

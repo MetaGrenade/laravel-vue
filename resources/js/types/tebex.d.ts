@@ -36,6 +36,19 @@ export interface TebexStoreInfo {
     username_label: string | null;
 }
 
+/** Where Tebex sends payments, and whether the shop can receive them. The secret itself never leaves the server. */
+export interface TebexWebhookInfo {
+    url: string;
+    secret_configured: boolean;
+    /** Whether a delivery from any address but Tebex's two is refused. */
+    ip_check: boolean;
+    last_received_at: string | null;
+    /** Deliveries that were understood but not acted on, or failed and wait to be sent again. */
+    needs_a_look: number;
+    /** Whether the viewer may open the list of deliveries. */
+    can_view_log: boolean;
+}
+
 export interface TebexPackageRow {
     id: number;
     tebex_id: number;
