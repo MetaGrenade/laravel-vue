@@ -124,6 +124,119 @@ class TebexBasketClientTest extends TestCase
         $this->assertSame("/api/accounts/{$this->tebexToken}/baskets/{$ident}", $tebex->calls('get')[1]['path']);
     }
 
+    // --- Who the buyer is ---------------------------------------------------------------------------------------
+
+    #[Test]
+    public function a_username_is_sent_when_the_basket_is_made_and_tebex_says_what_it_recognised_it_as(): void
+    {
+        $tebex = $this->fakeTebexBaskets();
+
+        $basket = $this->tebexClient()->createBasket('https://shop.test/done', 'https://shop.test/cart', [], null, 'Notch');
+
+        $this->assertSame('Notch', $tebex->calls('create')[0]['body']['username']);
+        $this->assertSame('Notch', $basket->username);
+        $this->assertGreaterThan(0, $basket->usernameId);
+        $this->assertTrue($basket->isAuthorised());
+    }
+
+    #[Test]
+    public function a_basket_nobody_has_signed_in_to_is_not_authorised(): void
+    {
+        $this->fakeTebexBaskets();
+
+        $basket = $this->tebexClient()->createBasket('https://shop.test/done', 'https://shop.test/cart', [], null);
+
+        $this->assertNull($basket->usernameId, 'Tebex says 0, which is nobody');
+        $this->assertNull($basket->username);
+        $this->assertFalse($basket->isAuthorised());
+    }
+
+    #[Test]
+    public function a_username_tebex_does_not_recognise_gives_a_basket_that_is_not_authorised(): void
+    {
+        $tebex = $this->fakeTebexBaskets();
+        $tebex->unknownUsernames[] = 'Nobody';
+
+        $this->assertFalse($this->tebexClient()->createBasket('https://shop.test/done', 'https://shop.test/cart', [], null, 'Nobody')->isAuthorised());
+    }
+
+    #[Test]
+    public function what_a_package_needs_to_be_delivered_goes_in_with_it_and_nothing_is_sent_when_there_is_none(): void
+    {
+        $this->vip();
+        $tebex = $this->fakeTebexBaskets();
+        $ident = $this->tebexClient()->createBasket('https://shop.test/done', 'https://shop.test/cart', [], null)->ident;
+
+        $this->tebexClient()->addPackage($ident, 'vip-rank', 1, ['username_id' => 76561198000000001]);
+        $this->tebexClient()->addPackage($ident, 'vip-rank', 1);
+        $this->tebexClient()->addPackage($ident, 'vip-rank', 1, []);
+
+        [$with, $without, $empty] = array_column($tebex->calls('add'), 'body');
+        $this->assertSame(['package_id' => 'vip-rank', 'quantity' => 1, 'variable_data' => ['username_id' => 76561198000000001]], $with);
+        $this->assertSame(['package_id' => 'vip-rank', 'quantity' => 1], $without);
+        $this->assertSame(['package_id' => 'vip-rank', 'quantity' => 1], $empty);
+    }
+
+    #[Test]
+    public function the_ways_to_sign_in_are_asked_for_with_where_to_come_back_to(): void
+    {
+        $tebex = $this->fakeTebexBaskets();
+        $tebex->signInOptions = [['name' => 'Steam', 'url' => 'https://auth.tebex.test/steam'], ['name' => 'Discord', 'url' => 'https://auth.tebex.test/discord']];
+        $ident = $this->tebexClient()->createBasket('https://shop.test/done', 'https://shop.test/cart', [], null)->ident;
+
+        $options = $this->tebexClient()->signInOptions($ident, 'https://shop.test/back?x=1&y=2');
+
+        $this->assertSame([['name' => 'Steam', 'url' => 'https://auth.tebex.test/steam'], ['name' => 'Discord', 'url' => 'https://auth.tebex.test/discord']], $options);
+        $call = $tebex->calls('auth')[0];
+        $this->assertSame("/api/accounts/{$this->tebexToken}/baskets/{$ident}/auth", $call['path']);
+        parse_str((string) parse_url($call['url'], PHP_URL_QUERY), $query);
+        $this->assertSame('https://shop.test/back?x=1&y=2', $query['returnUrl']);
+        $this->assertArrayNotHasKey('Authorization', $call['headers']);
+    }
+
+    #[Test]
+    public function the_ways_to_sign_in_are_read_whether_or_not_tebex_wraps_them(): void
+    {
+        $this->fakeTebexHttp(['headless.tebex.io/*' => Http::response(['data' => [['name' => 'Steam', 'url' => 'https://auth.tebex.test/steam']]])]);
+
+        $this->assertSame([['name' => 'Steam', 'url' => 'https://auth.tebex.test/steam']], $this->tebexClient()->signInOptions('bsk000001', 'https://shop.test/back'));
+    }
+
+    #[Test]
+    public function a_way_to_sign_in_that_is_not_a_web_address_or_has_no_name_is_handled(): void
+    {
+        $this->fakeTebexHttp(['headless.tebex.io/*' => Http::response([
+            ['name' => 'Evil', 'url' => 'javascript:alert(1)'],
+            ['name' => 'No address'],
+            'not an object',
+            ['url' => 'https://auth.tebex.test/anon'],
+        ])]);
+
+        $this->assertSame([['name' => 'Sign in', 'url' => 'https://auth.tebex.test/anon']], $this->tebexClient()->signInOptions('bsk000001', 'https://shop.test/back'));
+    }
+
+    #[Test]
+    public function a_sign_in_answer_that_is_not_a_list_is_refused(): void
+    {
+        $this->fakeTebexHttp(['headless.tebex.io/*' => Http::response(['name' => 'Steam', 'url' => 'https://auth.tebex.test/steam'])]);
+
+        $this->expectException(TebexException::class);
+        $this->expectExceptionMessage('sign-in answer the shop could not understand');
+
+        $this->tebexClient()->signInOptions('bsk000001', 'https://shop.test/back');
+    }
+
+    #[Test]
+    public function asking_for_the_ways_to_sign_in_is_repeated_after_a_server_error_because_it_changes_nothing(): void
+    {
+        $tebex = $this->fakeTebexBaskets();
+        $ident = $this->tebexClient()->createBasket('https://shop.test/done', 'https://shop.test/cart', [], null)->ident;
+        $tebex->failOn('auth', 503, 2);
+
+        $this->assertCount(1, $this->tebexClient()->signInOptions($ident, 'https://shop.test/back'));
+        $this->assertCount(3, $tebex->calls('auth'));
+    }
+
     #[Test]
     public function a_paid_basket_offers_a_payment_instead_of_a_way_to_pay(): void
     {

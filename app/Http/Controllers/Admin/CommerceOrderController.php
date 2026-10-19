@@ -134,6 +134,8 @@ class CommerceOrderController extends Controller
                 ],
                 'amount_due' => $order->amountDue()->toDecimal(),
                 'refunded_total' => $order->refunded_total,
+                // The game account a Tebex package is delivered to, as Tebex knows the buyer.
+                'game_account' => $this->gameAccount($order),
                 'customer_name' => $order->customer_name,
                 'customer_email' => $order->customer_email,
                 'customer' => $order->user ? [
@@ -354,6 +356,20 @@ class CommerceOrderController extends Controller
         } catch (Throwable) {
             return ucfirst($key);
         }
+    }
+
+    /**
+     * The game account a Tebex package is delivered to, as Tebex knows the buyer: the name and the id Tebex uses.
+     *
+     * @return array{username: string|null, id: int}|null
+     */
+    private function gameAccount(Order $order): ?array
+    {
+        $buyer = $order->payments->where('provider', 'tebex')->sortByDesc('id')->first()?->raw['buyer'] ?? null;
+
+        return is_array($buyer) && is_int($buyer['username_id'] ?? null)
+            ? ['username' => is_string($buyer['username'] ?? null) ? $buyer['username'] : null, 'id' => $buyer['username_id']]
+            : null;
     }
 
     private function dashboardUrl(Payment $payment): ?string

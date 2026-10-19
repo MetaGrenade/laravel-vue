@@ -76,7 +76,9 @@ class TebexController extends Controller
                 'platform' => $this->profile->platform(),
                 'supported' => $this->profile->isSupported(),
                 'reason' => $this->profile->unsupportedReason(),
-                'supported_platform' => TebexStoreProfile::SUPPORTED_PLATFORM,
+                // What buyers are asked before they can pay: nothing, a username, or to sign in.
+                'identity' => $this->profile->identity(),
+                'username_label' => $this->profile->usernameLabel(),
             ],
             // The answer to "Test connection", for the request that asked.
             'test' => $request->session()->get('tebex_test'),

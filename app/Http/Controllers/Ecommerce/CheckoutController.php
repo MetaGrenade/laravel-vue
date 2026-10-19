@@ -13,6 +13,7 @@ use App\Models\ProductFile;
 use App\Models\TaxRate;
 use App\Models\User;
 use App\Payments\PaymentManager;
+use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\AddressBook;
 use App\Support\Commerce\CartManager;
 use App\Support\Commerce\CheckoutException;
@@ -47,6 +48,7 @@ class CheckoutController extends Controller
         ShippingCalculator $shipping,
         AddressBook $addressBook,
         GiftCards $giftCards,
+        TebexStoreProfile $profile,
     ): Response|RedirectResponse {
         $user = $request->user();
 
@@ -74,6 +76,13 @@ class CheckoutController extends Controller
             ],
             'isGuest' => $user === null,
             'tebex' => $tebex,
+            // What a Tebex store wants of its buyer before they can pay: nothing, a username, or signing in (Discord and
+            // the Steam-based games, on the next step).
+            'identity' => $tebex ? [
+                'kind' => $profile->identity() ?? TebexStoreProfile::NONE,
+                'username_label' => $profile->usernameLabel(),
+                'platform' => $profile->platform(),
+            ] : ['kind' => TebexStoreProfile::NONE, 'username_label' => null, 'platform' => null],
             'giftCardsEnabled' => $giftCards->enabled() && ! $tebex,
             'provider' => $payments->active()->label(),
             'available' => $starter->isAvailable(),
@@ -113,6 +122,7 @@ class CheckoutController extends Controller
             name: $request->validated('name') ?? $user?->nickname,
             user: $user,
             ip: $request->ip(),
+            gameUsername: $request->gameUsername(),
         );
 
         try {
@@ -203,6 +213,9 @@ class CheckoutController extends Controller
                 'gift_card_last_four' => $order->gift_card_id !== null ? $order->giftCard?->last_four : null,
                 'amount_due' => $order->amountDue()->toDecimal(),
                 'refunded_total' => $order->refunded_total,
+                // Who a Tebex package is delivered to, as Tebex knows them (a username it recognised or the account
+                // they signed in with); never the id.
+                'game_account' => $this->gameAccount($order),
                 'shipment' => $order->metadata['shipment'] ?? null,
                 'customer_email' => $order->customer_email,
                 'placed_at' => $order->placed_at?->toIso8601String(),
@@ -294,6 +307,16 @@ class CheckoutController extends Controller
                 $addressBook->remember($user, $typed);
             }
         }
+    }
+
+    /**
+     * The name of the game account a Tebex order is for, once Tebex has said who the buyer is.
+     */
+    private function gameAccount(Order $order): ?string
+    {
+        $buyer = $order->payments()->where('provider', 'tebex')->latest('id')->first()?->raw['buyer'] ?? null;
+
+        return is_array($buyer) && is_string($buyer['username'] ?? null) && $buyer['username'] !== '' ? $buyer['username'] : null;
     }
 
     /**

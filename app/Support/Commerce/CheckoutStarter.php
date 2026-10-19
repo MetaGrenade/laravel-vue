@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Payments\Data\CheckoutClosure;
 use App\Payments\Data\CheckoutContext;
+use App\Payments\Exceptions\BuyerIdentityRejected;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\PaymentManager;
 use App\Payments\Providers\TebexProvider;
@@ -125,7 +126,17 @@ class CheckoutStarter
                 expiresAt: $order->expires_at ?? now()->addMinutes(60),
                 locale: null,
                 ipAddress: $customer->ip,
+                buyerUsername: $customer->gameUsername,
             ));
+        } catch (BuyerIdentityRejected $exception) {
+            // Not the provider's fault: the buyer gave a name it does not know. Fixed on the form, so they stay there.
+            $this->lifecycle->cancel($order, 'invalid_identity');
+
+            // They correct it and press the button again on the same form, which carries the same token: that must make a
+            // new order, not find this cancelled one.
+            $order->forceFill(['idempotency_key' => null])->save();
+
+            throw new InvalidCheckoutInput($exception->getMessage(), $exception->field);
         } catch (PaymentException $exception) {
             // The customer was never sent anywhere, so give the stock back.
             $this->lifecycle->cancel($order, 'provider_error');

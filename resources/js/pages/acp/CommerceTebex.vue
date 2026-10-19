@@ -154,9 +154,18 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
                                     <template v-if="test.disabled"> Tebex says the store is switched off, so customers cannot pay there.</template>
                                 </AlertDescription>
                             </Alert>
+                            <p v-if="props.store && props.store.supported && props.store.platform" class="text-sm text-muted-foreground">
+                                Set up for {{ props.store.platform }}:
+                                <template v-if="props.store.identity === 'username'"
+                                    >buyers type their {{ props.store.username_label }} at checkout.</template
+                                >
+                                <template v-else-if="props.store.identity === 'sign-in'">buyers sign in through Tebex before they pay.</template>
+                                <template v-else>buyers are asked for nothing but their email.</template>
+                            </p>
+
                             <Alert v-if="props.store && !props.store.supported" variant="destructive">
                                 <CircleAlert class="size-4" />
-                                <AlertTitle>The shop cannot sell for this store yet</AlertTitle>
+                                <AlertTitle>The shop does not know this kind of store yet</AlertTitle>
                                 <AlertDescription>{{ props.store.reason }}</AlertDescription>
                             </Alert>
                             <Alert v-if="test && !test.ok" variant="destructive">

@@ -41,6 +41,8 @@ interface Order {
     refunded_total: string;
     shipment: { carrier?: string; tracking_number?: string; tracking_url?: string } | null;
     customer_email: string | null;
+    /** Who a Tebex package is delivered to (the name Tebex knows them by), when it is one. */
+    game_account: string | null;
     shipping_method: string | null;
     shipping_address: Partial<AddressFormValue> | null;
     billing_address: Partial<AddressFormValue> | null;
@@ -367,6 +369,10 @@ onBeforeUnmount(() => {
                                 <dd class="tabular-nums">{{ formatMoney(props.order.amount_due, props.order.currency) }}</dd>
                             </div>
                         </template>
+                        <div v-if="props.order.game_account" class="flex justify-between">
+                            <dt class="text-muted-foreground">Delivered to</dt>
+                            <dd class="font-medium">{{ props.order.game_account }}</dd>
+                        </div>
                         <div v-if="Number(props.order.refunded_total) > 0" class="flex justify-between">
                             <dt class="text-muted-foreground">Refunded</dt>
                             <dd class="tabular-nums">−{{ formatMoney(props.order.refunded_total, props.order.currency) }}</dd>

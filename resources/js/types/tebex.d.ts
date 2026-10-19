@@ -25,13 +25,15 @@ export type TebexTestResult =
     | { ok: true; name: string; currency: string; url: string | null; disabled: boolean; platform: string | null; supported: boolean }
     | { ok: false; message: string };
 
-/** The store as the shop last saw it, and whether it can sell for it (only a "Universal (No Auth)" store can be sold for). */
+/** The store as the shop last saw it, what buyers are asked before they can pay, and whether the shop knows its platform. */
 export interface TebexStoreInfo {
     name: string | null;
     platform: string | null;
     supported: boolean;
     reason: string | null;
-    supported_platform: string;
+    /** `none`, `username` (Minecraft, Overwolf), `sign-in` (Discord, the Steam-based games), or null for a platform the shop does not know. */
+    identity: 'none' | 'username' | 'sign-in' | null;
+    username_label: string | null;
 }
 
 export interface TebexPackageRow {

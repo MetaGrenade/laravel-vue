@@ -73,11 +73,13 @@ class TebexClient
      * Start a basket: where the customer comes back to, what to give back to the shop in the webhook, and whose
      * address the buyer is at (Tebex needs it from a backend, or it takes the server's).
      *
+     * A Minecraft or Overwolf store takes the buyer's `username` here and answers with the id it recognised it as.
+     *
      * @param  array<string, scalar|null>  $custom
      *
      * @throws TebexException
      */
-    public function createBasket(string $completeUrl, string $cancelUrl, array $custom, ?string $ipAddress): TebexBasket
+    public function createBasket(string $completeUrl, string $cancelUrl, array $custom, ?string $ipAddress, ?string $username = null): TebexBasket
     {
         $token = $this->token();
 
@@ -87,6 +89,7 @@ class TebexClient
             'custom' => (object) $custom,
             'complete_auto_redirect' => true,
             'ip_address' => $ipAddress,
+            'username' => $username,
         ], fn ($value) => $value !== null)));
     }
 
@@ -96,14 +99,48 @@ class TebexClient
      * The path is the one in Tebex's OpenAPI schema; its guide shows another, with the account in it. Which is right
      * has to be checked against a real store (M2b).
      *
+     * @param  array<string, scalar>|null  $variableData  What the package needs to be delivered to the right person
+     *                                                    (a game account's `username_id`, a Discord id, a server).
+     *
      * @throws TebexException
      */
-    public function addPackage(string $basketIdent, string $packageIdent, int $quantity): TebexBasket
+    public function addPackage(string $basketIdent, string $packageIdent, int $quantity, ?array $variableData = null): TebexBasket
     {
-        return $this->basketFrom($this->post('/baskets/'.rawurlencode($basketIdent).'/packages', [
+        return $this->basketFrom($this->post('/baskets/'.rawurlencode($basketIdent).'/packages', array_filter([
             'package_id' => $packageIdent,
             'quantity' => $quantity,
-        ]));
+            'variable_data' => $variableData === null || $variableData === [] ? null : (object) $variableData,
+        ], fn ($value) => $value !== null)));
+    }
+
+    /**
+     * Where the buyer can sign in to authorise a basket (Steam, Discord...), as Tebex offers them for this store, and
+     * where they come back to afterwards.
+     *
+     * @return list<array{name: string, url: string}>
+     *
+     * @throws TebexException
+     */
+    public function signInOptions(string $basketIdent, string $returnUrl): array
+    {
+        $body = $this->get('/baskets/'.rawurlencode($basketIdent).'/auth', ['returnUrl' => $returnUrl])->json();
+
+        // Documented as a list of {name, url}; read from `data` as well, in case Tebex wraps it like its other answers.
+        $options = is_array($body) && array_key_exists('data', $body) ? $body['data'] : $body;
+
+        if (! is_array($options) || ! array_is_list($options)) {
+            throw new TebexException('Tebex sent a sign-in answer the shop could not understand.');
+        }
+
+        $found = [];
+
+        foreach ($options as $option) {
+            if (is_array($option) && is_string($option['url'] ?? null) && preg_match('#^https?://#i', $option['url']) === 1) {
+                $found[] = ['name' => is_string($option['name'] ?? null) && $option['name'] !== '' ? $option['name'] : 'Sign in', 'url' => $option['url']];
+            }
+        }
+
+        return $found;
     }
 
     /**

@@ -14,6 +14,7 @@ use App\Http\Controllers\Ecommerce\DownloadController;
 use App\Http\Controllers\Ecommerce\OrderController;
 use App\Http\Controllers\Ecommerce\ProductCatalogController;
 use App\Http\Controllers\Ecommerce\ProductReviewController;
+use App\Http\Controllers\Ecommerce\TebexContinueController;
 use App\Http\Controllers\Ecommerce\TebexStorefrontController;
 use App\Http\Controllers\Ecommerce\WishlistController;
 use App\Http\Controllers\ForumController;
@@ -103,6 +104,11 @@ Route::middleware('section.enabled:commerce')->group(function () {
     });
 
     Route::get('/cart', [CartController::class, 'show'])->name('shop.cart');
+
+    // Where a buyer of a Tebex store that makes them sign in is sent, and comes back to (signed, so a guest can use it).
+    Route::get('/checkout/tebex/{order}', TebexContinueController::class)
+        ->middleware(['signed', 'throttle:billing'])
+        ->name('shop.tebex.continue');
 
     Route::middleware('throttle:billing')->group(function () {
         Route::get('/checkout', [CheckoutController::class, 'show'])->name('shop.checkout');

@@ -75,6 +75,8 @@ interface Order {
     refunded_total: string;
     customer_name: string | null;
     customer_email: string | null;
+    /** The game account a Tebex package is delivered to, as Tebex knows the buyer. */
+    game_account: { username: string | null; id: number } | null;
     customer: { id: number; nickname: string; email: string } | null;
     shipping_method: string | null;
     shipping_address: Partial<AddressFormValue> | null;
@@ -685,6 +687,11 @@ const selectClass =
                                     }}</Link>
                                 </p>
                                 <p v-else class="text-muted-foreground">Checked out as a guest.</p>
+                                <p v-if="props.order.game_account" class="text-muted-foreground">
+                                    Delivered to:
+                                    <span class="font-medium text-foreground">{{ props.order.game_account.username ?? 'a Tebex account' }}</span>
+                                    <span class="tabular-nums"> (Tebex id {{ props.order.game_account.id }})</span>
+                                </p>
                             </CardContent>
                         </Card>
 
