@@ -31,9 +31,23 @@ class TebexSignIn
     }
 
     /**
-     * @throws TebexException When Tebex cannot be reached or does not answer sensibly.
+     * Where this buyer goes next. Only one request at a time works on a basket, from reading it to filling it: two
+     * visits to the link (two tabs, a double click) would otherwise both find it empty and both fill it, and every package
+     * would be in twice. The one that waits then reads what the other did and has nothing left to add.
+     *
+     * @throws PaymentException When Tebex cannot be reached or does not answer sensibly, or answers something the shop
+     *                          cannot sell on (no place to pay, another currency).
      */
     public function next(Order $order, Payment $payment): SignInStep
+    {
+        try {
+            return $this->baskets->exclusively((string) $payment->provider_reference, fn () => $this->step($order, $payment));
+        } catch (TebexBasketBusy) {
+            return SignInStep::failed('Your payment is already being prepared, in another window perhaps. Please wait a moment and try again.');
+        }
+    }
+
+    private function step(Order $order, Payment $payment): SignInStep
     {
         $basket = $this->client->basket((string) $payment->provider_reference);
 

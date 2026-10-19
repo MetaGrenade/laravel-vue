@@ -60,6 +60,17 @@ return [
         'ips' => ['18.209.80.3', '54.87.231.232'],
     ],
 
+    /*
+    | A basket is changed by one request at a time. Adding a package at Tebex ADDS to what the basket holds, so two
+    | requests that both found it empty and both filled it (a buyer opening the sign-in link in two tabs) would put every
+    | package in twice and send the buyer to pay double. A request that finds the basket in use waits this many seconds,
+    | then gives up without touching it. (It needs a cache that supports locks, like the checkout's own lock.)
+    */
+
+    'basket' => [
+        'lock_wait_seconds' => max(0, (int) env('TEBEX_BASKET_LOCK_WAIT', 10)),
+    ],
+
     'sync' => [
         // How often the scheduler refreshes the local copy of the catalogue, in minutes, when Tebex is configured
         // (it is checked every five minutes, so nothing under five is useful). 0 turns the schedule off: the command

@@ -12,11 +12,16 @@ use App\Models\User;
 use App\Payments\Data\CheckoutClosure;
 use App\Payments\Data\CheckoutContext;
 use App\Payments\Exceptions\BuyerIdentityRejected;
+use App\Payments\Exceptions\PaymentException;
 use App\Payments\PaymentManager;
+use App\Payments\Tebex\SignInStep;
+use App\Payments\Tebex\TebexBasketBusy;
 use App\Payments\Tebex\TebexCatalogue;
 use App\Payments\Tebex\TebexException;
+use App\Payments\Tebex\TebexSignIn;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -508,5 +513,133 @@ class TebexGamePlatformsTest extends TestCase
 
         $this->assertSame(CheckoutClosure::Closed, app(PaymentManager::class)->provider('tebex')->closeCheckout($payment));
         $this->assertSame([], $this->tebex->baskets[$payment->provider_reference]['lines']);
+    }
+
+    // --- Two requests at once, and an answer the shop will not sell on ---------------------------------------------------
+
+    #[Test]
+    public function a_second_visit_that_arrives_while_the_first_is_filling_the_basket_does_not_fill_it_again(): void
+    {
+        $this->storeFor('FiveM');
+        $this->checkout();
+        $order = Order::query()->sole();
+        $payment = Payment::query()->sole();
+        $ident = $payment->provider_reference;
+        $this->tebex->authorise($ident);
+        config(['tebex.basket.lock_wait_seconds' => 0]);
+
+        // The other tab's visit lands just as Tebex receives the first one's package, before it is recorded: it reads the
+        // basket as empty, which is what made every package go in twice.
+        $second = null;
+        $this->tebex->whenAsked = function (string $action) use (&$second, $order, $payment): void {
+            if ($action === 'add') {
+                $this->tebex->whenAsked = null;
+                $second = app(TebexSignIn::class)->next($order, $payment);
+            }
+        };
+
+        $first = app(TebexSignIn::class)->next($order, $payment);
+
+        $this->assertSame(SignInStep::REDIRECT, $first->kind);
+        $this->assertSame("https://pay.tebex.io/{$ident}", $first->url);
+        $this->assertSame(SignInStep::FAILED, $second?->kind, 'it found the basket in use and left it alone');
+        $this->assertStringContainsString('already being prepared', (string) $second->message);
+        $this->assertCount(1, $this->tebex->calls('add'));
+        $this->assertSame(2, $this->tebex->baskets[$ident]['lines'][50001]['quantity'], 'not 4: the buyer pays for what they ordered');
+    }
+
+    #[Test]
+    public function a_visit_that_finds_the_basket_in_use_is_told_to_wait_and_changes_nothing(): void
+    {
+        $this->storeFor('FiveM');
+        $this->checkout();
+        $order = Order::query()->sole();
+        $ident = Payment::query()->sole()->provider_reference;
+        $this->tebex->authorise($ident);
+        config(['tebex.basket.lock_wait_seconds' => 0]);
+        $held = Cache::lock('tebex:basket:'.$ident, 60);
+        $this->assertTrue($held->get());
+
+        $this->get($this->continueUrl($order))
+            ->assertRedirect(route('shop.cart'))
+            ->assertSessionHas('error', fn (string $error) => str_contains($error, 'already being prepared'));
+
+        $this->assertSame([], $this->tebex->calls('add'));
+        $this->assertSame(OrderStatus::Pending, $order->fresh()->status);
+
+        $held->release();
+        $this->get($this->continueUrl($order))->assertRedirect("https://pay.tebex.io/{$ident}");
+        $this->assertCount(1, $this->tebex->calls('add'));
+    }
+
+    #[Test]
+    public function the_basket_is_free_again_after_a_visit_that_failed(): void
+    {
+        $this->storeFor('FiveM');
+        $this->checkout();
+        $order = Order::query()->sole();
+        $ident = Payment::query()->sole()->provider_reference;
+        $this->tebex->authorise($ident);
+        config(['tebex.basket.lock_wait_seconds' => 0]);
+        $this->tebex->failOn('get', 503, 4);
+
+        $this->get($this->continueUrl($order))->assertRedirect(route('shop.cart'));
+        $this->get($this->continueUrl($order))->assertRedirect("https://pay.tebex.io/{$ident}");
+    }
+
+    #[Test]
+    public function a_checkout_cannot_be_closed_while_the_basket_is_being_filled(): void
+    {
+        $this->storeFor('FiveM');
+        $this->checkout();
+        $payment = Payment::query()->sole();
+        config(['tebex.basket.lock_wait_seconds' => 0]);
+        $held = Cache::lock('tebex:basket:'.$payment->provider_reference, 60);
+        $this->assertTrue($held->get());
+
+        try {
+            app(PaymentManager::class)->provider('tebex')->closeCheckout($payment);
+            $this->fail('A basket in use was closed.');
+        } catch (TebexBasketBusy) {
+            $this->assertSame([], $this->tebex->calls('remove'));
+        }
+
+        $held->release();
+        $this->assertSame(CheckoutClosure::Closed, app(PaymentManager::class)->provider('tebex')->closeCheckout($payment));
+    }
+
+    #[Test]
+    public function a_basket_with_no_place_to_pay_sends_the_buyer_back_with_a_message_and_not_to_an_error_page(): void
+    {
+        Exceptions::fake();
+        $this->storeFor('FiveM');
+        $this->checkout();
+        $order = Order::query()->sole();
+        $this->tebex->authorise(Payment::query()->sole()->provider_reference);
+        $this->tebex->withoutCheckoutLink = true;
+
+        $this->get($this->continueUrl($order))
+            ->assertRedirect(route('shop.cart'))
+            ->assertSessionHas('error', 'We could not start the payment. Please start the checkout again in a moment.');
+
+        $this->assertSame(OrderStatus::Pending, $order->fresh()->status);
+        Exceptions::assertReported(fn (PaymentException $exception) => str_contains($exception->getMessage(), 'did not say where to pay'));
+    }
+
+    #[Test]
+    public function a_basket_priced_in_another_currency_sends_the_buyer_back_with_a_message_too(): void
+    {
+        Exceptions::fake();
+        $this->storeFor('FiveM');
+        $this->checkout();
+        $order = Order::query()->sole();
+        $this->tebex->authorise(Payment::query()->sole()->provider_reference);
+        $this->tebex->currency = 'EUR';
+
+        $this->get($this->continueUrl($order))
+            ->assertRedirect(route('shop.cart'))
+            ->assertSessionHas('error', 'We could not start the payment. Please start the checkout again in a moment.');
+
+        Exceptions::assertReported(fn (PaymentException $exception) => str_contains($exception->getMessage(), 'priced order'));
     }
 }

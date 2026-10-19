@@ -4,7 +4,10 @@ namespace App\Payments\Tebex;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use Closure;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -18,8 +21,44 @@ class TebexBasketBuilder
     public function __construct(private readonly TebexClient $client) {}
 
     /**
+     * Run some work on a basket while nobody else changes it.
+     *
+     * Putting a package in a basket adds to what Tebex holds, so two requests that both read the basket as empty and both
+     * filled it would double every package, and the buyer would be sent to pay twice the order. The work has to read the
+     * basket itself, after the lock is taken, so that the request that waited sees what the other did and leaves it alone.
+     * A request that cannot get the basket in time gives up without touching it.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     *
+     * @throws TebexBasketBusy When another request still has the basket after the time allowed.
+     */
+    public function exclusively(string $ident, Closure $work): mixed
+    {
+        // Held for two minutes at most, in case a request dies; the work itself takes a few calls to Tebex.
+        $lock = Cache::lock('tebex:basket:'.$ident, 120);
+
+        try {
+            $lock->block(max(0, (int) config('tebex.basket.lock_wait_seconds', 10)));
+        } catch (LockTimeoutException) {
+            throw new TebexBasketBusy('The basket is being changed by another request.');
+        }
+
+        try {
+            return $work();
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
      * Make the basket hold exactly what the order holds: what is already right is left, and anything else is taken out
      * and put in again. Safe to repeat, which matters because a buyer can come back through the same link twice.
+     *
+     * Not safe to run twice at once on one basket: wrap the reading of the basket and this in {@see self::exclusively()}
+     * wherever two requests could reach it together.
      *
      * @throws TebexException
      */

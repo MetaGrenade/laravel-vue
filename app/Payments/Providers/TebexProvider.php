@@ -179,25 +179,32 @@ class TebexProvider implements PaymentProvider
      *
      * Tebex has no call that cancels a basket, so the packages are taken out of it: a basket with nothing in it has
      * nothing to pay for. A basket that is already paid cannot be closed, and is left for the webhook to settle.
+     *
+     * Done while nobody else is filling the basket (a buyer coming back from signing in as the checkout is replaced),
+     * since packages put in after it was emptied would make a closed checkout payable again.
+     *
+     * @throws PaymentException When Tebex cannot be asked, or the basket is in use by another request (nothing is done).
      */
     public function closeCheckout(Payment $payment): CheckoutClosure
     {
-        $basket = $this->client->basket($payment->provider_reference);
+        return $this->baskets->exclusively($payment->provider_reference, function () use ($payment): CheckoutClosure {
+            $basket = $this->client->basket($payment->provider_reference);
 
-        if ($basket->isPaid()) {
-            return CheckoutClosure::Unresolved;
-        }
+            if ($basket->isPaid()) {
+                return CheckoutClosure::Unresolved;
+            }
 
-        foreach ($basket->packages as $package) {
-            $basket = $this->client->removePackage($basket->ident, (string) $package['id']);
-        }
+            foreach ($basket->packages as $package) {
+                $basket = $this->client->removePackage($basket->ident, (string) $package['id']);
+            }
 
-        // Asked again rather than trusted: what counts is that Tebex says it is empty and unpaid.
-        $basket = $this->client->basket($payment->provider_reference);
+            // Asked again rather than trusted: what counts is that Tebex says it is empty and unpaid.
+            $basket = $this->client->basket($payment->provider_reference);
 
-        return ! $basket->isPaid() && $basket->packages === []
-            ? CheckoutClosure::Closed
-            : CheckoutClosure::Unresolved;
+            return ! $basket->isPaid() && $basket->packages === []
+                ? CheckoutClosure::Closed
+                : CheckoutClosure::Unresolved;
+        });
     }
 
     /**

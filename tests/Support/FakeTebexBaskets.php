@@ -3,6 +3,7 @@
 namespace Tests\Support;
 
 use App\Models\TebexPackage;
+use Closure;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -47,6 +48,17 @@ class FakeTebexBaskets
 
     /** @var list<array{name: string, url: string}> The ways Tebex offers to sign in. */
     public array $signInOptions = [['name' => 'Steam', 'url' => 'https://auth.tebex.test/steam']];
+
+    /**
+     * Called with the action ('add', 'get'...) as Tebex receives a call and before it does anything, so a test can have
+     * something else happen in that moment (a second request arriving while the first is part way through).
+     *
+     * @var (Closure(string): void)|null
+     */
+    public ?Closure $whenAsked = null;
+
+    /** When true, Tebex answers a basket with packages in it but no place to pay (links.checkout missing). */
+    public bool $withoutCheckoutLink = false;
 
     /**
      * Fail the next `$times` calls of an action ('create', 'add', 'remove', 'get') with this status.
@@ -94,6 +106,10 @@ class FakeTebexBaskets
         $body = (array) json_decode((string) json_encode($request->data()), true);
 
         $this->requests[] = ['method' => $method, 'path' => $path, 'url' => $request->url(), 'body' => $body, 'headers' => $request->headers()];
+
+        if ($this->whenAsked !== null && $action !== null) {
+            ($this->whenAsked)($action);
+        }
 
         if ($action !== null && isset($this->failures[$action]) && $this->failures[$action]['times'] > 0) {
             $this->failures[$action]['times']--;
@@ -255,9 +271,11 @@ class FakeTebexBaskets
             'currency' => $this->currency,
             'packages' => $packages,
             'custom' => $basket['custom'],
-            'links' => $basket['complete']
-                ? ['payment' => "https://pay.tebex.io/{$ident}/payment"]
-                : ['checkout' => "https://pay.tebex.io/{$ident}"],
+            'links' => match (true) {
+                $basket['complete'] => ['payment' => "https://pay.tebex.io/{$ident}/payment"],
+                $this->withoutCheckoutLink && $basket['lines'] !== [] => [],
+                default => ['checkout' => "https://pay.tebex.io/{$ident}"],
+            },
         ];
     }
 }
