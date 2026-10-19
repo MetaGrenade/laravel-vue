@@ -128,10 +128,10 @@ class TebexManagementTest extends TestCase
 
         $this->actingAs($admin)->post(route('acp.commerce.tebex.test'))
             ->assertRedirect()
-            ->assertSessionHas('tebex_test', ['ok' => true, 'name' => 'Example Store', 'currency' => 'USD', 'url' => 'https://example-store.tebex.io', 'disabled' => false]);
+            ->assertSessionHas('tebex_test', ['ok' => true, 'name' => 'Example Store', 'currency' => 'USD', 'url' => 'https://example-store.tebex.io', 'disabled' => false, 'platform' => 'Universal (No Auth)', 'supported' => true]);
 
         $this->actingAs($admin)
-            ->withSession(['_flash' => ['old' => ['tebex_test'], 'new' => []], 'tebex_test' => ['ok' => true, 'name' => 'Example Store', 'currency' => 'USD', 'url' => null, 'disabled' => false]])
+            ->withSession(['_flash' => ['old' => ['tebex_test'], 'new' => []], 'tebex_test' => ['ok' => true, 'name' => 'Example Store', 'currency' => 'USD', 'url' => null, 'disabled' => false, 'platform' => 'Universal (No Auth)', 'supported' => true]])
             ->get(route('acp.commerce.tebex.index'))
             ->assertInertia(fn (Assert $page) => $page->where('test.ok', true)->where('test.name', 'Example Store'));
     }

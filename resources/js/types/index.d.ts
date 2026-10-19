@@ -73,10 +73,14 @@ export interface CartItemSummary {
     name: string;
     /** Product slug for linking back to the product page; null if the product was deleted. */
     slug?: string | null;
+    /** Where the line links to: its product page, or the page of its Tebex package; null when there is none now. */
+    href?: string | null;
     /** Thumbnail of the product's main picture, if it has one. */
     image?: string | null;
     variant: string | null;
     quantity: number;
+    /** The most the line may hold: the shop's limit, or less for a package that is not sold in quantities. */
+    max_quantity: number;
     unit_price: string;
     total: string;
 }

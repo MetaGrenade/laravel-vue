@@ -16,6 +16,7 @@ use App\Observers\ForumIndexCacheObserver;
 use App\Payments\PaymentManager;
 use App\Payments\Stripe\CashierStripeGateway;
 use App\Payments\Stripe\StripeGateway;
+use App\Payments\Tebex\TebexStoreProfile;
 use App\Policies\AddressPolicy;
 use App\Policies\BlogCommentPolicy;
 use App\Policies\BlogPolicy;
@@ -48,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SubscriptionManager::class, fn () => new SubscriptionManager);
         $this->app->singleton(HtmlSanitizer::class);
         $this->app->singleton(PaymentManager::class);
+        $this->app->singleton(TebexStoreProfile::class);
         $this->app->bind(StripeGateway::class, CashierStripeGateway::class);
         $this->app->scoped(Seo::class);
     }

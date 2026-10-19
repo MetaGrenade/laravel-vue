@@ -29,6 +29,10 @@ class CartGiftCardController extends Controller
             return back()->withErrors(['gift_card' => 'Add something to your cart before using a gift card.']);
         }
 
+        if (CartManager::kind($cart) === CartManager::PACKAGES) {
+            return back()->withErrors(['gift_card' => "Tebex takes gift cards when you pay, so the shop's own gift cards are not used with packages."]);
+        }
+
         try {
             $card = $giftCards->apply($cart, $validated['gift_card']);
         } catch (GiftCardRejected $exception) {

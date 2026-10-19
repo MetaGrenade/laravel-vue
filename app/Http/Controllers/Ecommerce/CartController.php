@@ -7,7 +7,9 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Payments\PaymentManager;
+use App\Payments\Providers\TebexProvider;
 use App\Support\Commerce\CartManager;
+use App\Support\Commerce\CheckoutException;
 use App\Support\Commerce\Discounts\CartCoupons;
 use App\Support\Commerce\GiftCards\CartGiftCards;
 use App\Support\Commerce\PriceResolver;
@@ -25,20 +27,24 @@ class CartController extends Controller
         $cart = CartManager::forRequest($request);
         $hasItems = $cart !== null && $cart->items->isNotEmpty();
 
+        // Tebex packages are priced, discounted and taxed by Tebex: the shop's own codes, gift cards, shipping and tax
+        // are not part of them.
+        $tebex = CartManager::kind($cart) === CartManager::PACKAGES;
+
         // Priced once, with its code, the way checkout will price it.
-        $pricing = $hasItems ? $coupons->price($cart, $request->user()) : null;
+        $pricing = $hasItems && ! $tebex ? $coupons->price($cart, $request->user()) : null;
 
         return Inertia::render('commerce/Cart', [
             'cart' => CartManager::summary($cart),
+            'tebex' => $tebex,
             // The code on the cart, and what it takes off now (checked again at checkout).
-            'coupon' => $hasItems ? $coupons->describe($cart, $pricing) : null,
+            'coupon' => $hasItems && ! $tebex ? $coupons->describe($cart, $pricing) : null,
             // The gift card on the cart, and whether the shop takes them at all.
-            'giftCard' => $hasItems ? $giftCards->describe($cart) : null,
-            'giftCardsEnabled' => $giftCards->enabled(),
+            'giftCard' => $hasItems && ! $tebex ? $giftCards->describe($cart) : null,
+            'giftCardsEnabled' => $giftCards->enabled() && ! $tebex,
             // Something to pay needs a payment provider; a cart that costs nothing once its code is
             // applied does not. Where shipping is charged, that is not known before an address is given.
             'checkoutAvailable' => $payments->active()->isConfigured() || $this->costsNothing($pricing, $shipping),
-            'maxQuantity' => (int) config('commerce.checkout.max_quantity', 20),
         ]);
     }
 
@@ -53,8 +59,12 @@ class CartController extends Controller
             && (! $pricing->needsShipping || ! $shipping->isConfigured());
     }
 
-    public function store(Request $request, PriceResolver $prices): RedirectResponse
+    public function store(Request $request, PriceResolver $prices, PaymentManager $payments): RedirectResponse
     {
+        if ($payments->activeKey() === TebexProvider::KEY) {
+            return back()->with('error', 'This shop sells packages, not products.');
+        }
+
         $max = (int) config('commerce.checkout.max_quantity', 20);
 
         $validated = $request->validate([
@@ -96,9 +106,11 @@ class CartController extends Controller
             return back()->with('error', 'This product is not available for purchase yet.');
         }
 
-        $cart = CartManager::forRequest($request, true);
-
-        CartManager::addItem($cart, $product, $variant, $price, $validated['quantity']);
+        try {
+            CartManager::addItem(CartManager::forRequest($request, true), $product, $variant, $price, $validated['quantity']);
+        } catch (CheckoutException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
 
         return back()->with('success', 'Added to your cart.');
     }
@@ -107,7 +119,8 @@ class CartController extends Controller
     {
         $this->authorizeItem($request, $item);
 
-        $max = (int) config('commerce.checkout.max_quantity', 20);
+        // The most this line may hold: the shop's limit, or less for a package that is not sold in quantities.
+        $max = CartManager::maxQuantityForLine($item);
 
         $validated = $request->validate([
             'quantity' => ['required', 'integer', 'min:1', "max:{$max}"],

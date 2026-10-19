@@ -63,6 +63,9 @@ class CheckoutController extends Controller
         $needsShipping = $pricer->cartNeedsShipping($cart);
         $saved = $user ? $addressBook->for($user) : collect();
 
+        // Packages are taxed, discounted and paid for by Tebex: nothing of the shop's own comes into it.
+        $tebex = CartManager::kind($cart) === CartManager::PACKAGES;
+
         return Inertia::render('commerce/Checkout', [
             'cart' => CartManager::summary($cart),
             'customer' => [
@@ -70,14 +73,15 @@ class CheckoutController extends Controller
                 'name' => $user?->nickname,
             ],
             'isGuest' => $user === null,
-            'giftCardsEnabled' => $giftCards->enabled(),
+            'tebex' => $tebex,
+            'giftCardsEnabled' => $giftCards->enabled() && ! $tebex,
             'provider' => $payments->active()->label(),
             'available' => $starter->isAvailable(),
             // Identifies this form, so submitting it twice cannot place two orders.
             'token' => (string) Str::uuid(),
             'needsShipping' => $needsShipping,
             // Digital goods ship nowhere; a billing address is only needed when tax depends on location.
-            'billingRequired' => ! $needsShipping && TaxRate::query()->active()->exists(),
+            'billingRequired' => ! $needsShipping && ! $tebex && TaxRate::query()->active()->exists(),
             // Where an order can be shipped to: limited by the shipping zones.
             'countries' => $needsShipping ? ($shipping->servedCountries() ?? Countries::codes()) : Countries::codes(),
             // Where a bill can be addressed: anywhere. Billing does not decide delivery, so a shopper
@@ -108,6 +112,7 @@ class CheckoutController extends Controller
             email: $user->email ?? $request->validated('email'),
             name: $request->validated('name') ?? $user?->nickname,
             user: $user,
+            ip: $request->ip(),
         );
 
         try {

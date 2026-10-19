@@ -37,7 +37,8 @@ class TebexClientTest extends TestCase
         $this->assertSame('USD', $store->currency);
         $this->assertSame('https://example-store.tebex.io', $store->url);
         $this->assertFalse($store->disabled);
-        $this->assertTrue($store->supportsUsernames);
+        $this->assertFalse($store->supportsUsernames);
+        $this->assertSame('Universal (No Auth)', $store->platform);
 
         Http::assertSentCount(1);
         Http::assertSent(function (Request $request) {

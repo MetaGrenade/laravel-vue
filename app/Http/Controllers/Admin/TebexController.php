@@ -10,6 +10,7 @@ use App\Models\TebexSync;
 use App\Payments\Tebex\TebexCatalogue;
 use App\Payments\Tebex\TebexClient;
 use App\Payments\Tebex\TebexException;
+use App\Payments\Tebex\TebexStoreProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -32,6 +33,7 @@ class TebexController extends Controller
     public function __construct(
         private readonly TebexClient $client,
         private readonly TebexCatalogue $catalogue,
+        private readonly TebexStoreProfile $profile,
     ) {}
 
     public function index(Request $request): Response
@@ -67,6 +69,14 @@ class TebexController extends Controller
                 'configured' => $this->client->isConfigured(),
                 'token' => $this->maskedToken(),
                 'has_private_key' => filled(config('tebex.private_key')),
+            ],
+            // The store as the shop last saw it, and whether it can sell for it.
+            'store' => $this->profile->current() === null ? null : [
+                'name' => $this->profile->current()['name'] ?? null,
+                'platform' => $this->profile->platform(),
+                'supported' => $this->profile->isSupported(),
+                'reason' => $this->profile->unsupportedReason(),
+                'supported_platform' => TebexStoreProfile::SUPPORTED_PLATFORM,
             ],
             // The answer to "Test connection", for the request that asked.
             'test' => $request->session()->get('tebex_test'),
@@ -121,12 +131,16 @@ class TebexController extends Controller
             return back()->with('tebex_test', ['ok' => false, 'message' => $exception->getMessage()]);
         }
 
+        $this->profile->remember($store);
+
         return back()->with('tebex_test', [
             'ok' => true,
             'name' => $store->name,
             'currency' => $store->currency,
             'url' => $store->url,
             'disabled' => $store->disabled,
+            'platform' => $store->platform,
+            'supported' => $this->profile->isSupported(),
         ]);
     }
 

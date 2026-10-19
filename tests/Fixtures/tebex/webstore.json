@@ -7,10 +7,10 @@
         "currency": "USD",
         "lang": "en_US",
         "logo": null,
-        "platform_type": "Minecraft: Java Edition",
-        "platform_type_id": "1",
+        "platform_type": "Universal (No Auth)",
+        "platform_type_id": "18",
         "disabled": false,
-        "supports_usernames": true,
+        "supports_usernames": false,
         "supports_gifting": true,
         "created_at": "2025-03-04T09:30:00+00:00"
     }

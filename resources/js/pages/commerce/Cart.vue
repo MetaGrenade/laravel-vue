@@ -20,16 +20,17 @@ interface Props {
     /** The gift card on the cart, and whether the shop takes them. */
     giftCard: CartGiftCard | null;
     giftCardsEnabled: boolean;
+    /** The cart holds Tebex packages: Tebex works out the tax and takes any codes or gift cards when the customer pays. */
+    tebex: boolean;
     checkoutAvailable: boolean;
-    maxQuantity: number;
 }
 
 const props = defineProps<Props>();
 
 const busyItemId = ref<number | null>(null);
 
-const changeQuantity = (itemId: number, value: number) => {
-    const quantity = Math.min(props.maxQuantity, Math.max(1, Math.trunc(Number.isFinite(value) ? value : 1)));
+const changeQuantity = (itemId: number, value: number, max: number) => {
+    const quantity = Math.min(max, Math.max(1, Math.trunc(Number.isFinite(value) ? value : 1)));
 
     busyItemId.value = itemId;
     router.patch(route('shop.cart.items.update', itemId), { quantity }, { preserveScroll: true, onFinish: () => (busyItemId.value = null) });
@@ -72,9 +73,7 @@ const removeItem = (itemId: number) => {
                                     <ImageOff class="size-5" />
                                 </span>
                                 <div class="min-w-0">
-                                    <Link v-if="item.slug" :href="route('shop.products.show', item.slug)" class="font-medium hover:underline">{{
-                                        item.name
-                                    }}</Link>
+                                    <Link v-if="item.href" :href="item.href" class="font-medium hover:underline">{{ item.name }}</Link>
                                     <span v-else class="font-medium">{{ item.name }}</span>
                                     <p v-if="item.variant" class="text-sm text-muted-foreground">{{ item.variant }}</p>
                                     <p class="text-sm text-muted-foreground tabular-nums">
@@ -90,11 +89,11 @@ const removeItem = (itemId: number) => {
                                     type="number"
                                     inputmode="numeric"
                                     min="1"
-                                    :max="props.maxQuantity"
+                                    :max="item.max_quantity"
                                     class="w-20"
                                     :model-value="item.quantity"
                                     :disabled="busyItemId === item.id"
-                                    @change="changeQuantity(item.id, Number(($event.target as HTMLInputElement).value))"
+                                    @change="changeQuantity(item.id, Number(($event.target as HTMLInputElement).value), item.max_quantity)"
                                 />
                                 <div class="w-24 text-right font-semibold tabular-nums">{{ formatMoney(item.total, props.cart.currency) }}</div>
                                 <Button
@@ -119,11 +118,11 @@ const removeItem = (itemId: number) => {
 
                 <template v-if="props.cart && props.cart.items.length">
                     <Separator />
-                    <CardContent class="max-w-md space-y-4">
+                    <CardContent v-if="!props.tebex" class="max-w-md space-y-4">
                         <CouponCode :coupon="props.coupon" :currency="props.cart.currency" :discount="props.coupon?.discount" />
                         <GiftCardCode v-if="props.giftCardsEnabled" :gift-card="props.giftCard" :currency="props.cart.currency" />
                     </CardContent>
-                    <Separator />
+                    <Separator v-if="!props.tebex" />
                     <CardFooter class="flex flex-wrap items-center justify-between gap-4">
                         <div>
                             <div class="text-sm text-muted-foreground">Subtotal</div>
@@ -132,7 +131,10 @@ const removeItem = (itemId: number) => {
                                 Discount ({{ props.coupon.code }}):
                                 <span class="font-medium tabular-nums">−{{ formatMoney(props.coupon.discount ?? '0', props.cart.currency) }}</span>
                             </p>
-                            <p class="mt-1 text-xs text-muted-foreground">Shipping, tax and the final total are confirmed at checkout.</p>
+                            <p v-if="props.tebex" class="mt-1 max-w-sm text-xs text-muted-foreground">
+                                Tebex adds any tax and takes discount codes, creator codes and gift cards when you pay, so the final total is theirs.
+                            </p>
+                            <p v-else class="mt-1 text-xs text-muted-foreground">Shipping, tax and the final total are confirmed at checkout.</p>
                             <p v-if="props.giftCard?.applied" class="mt-1 text-xs text-muted-foreground">
                                 Your gift card is taken off the total at checkout.
                             </p>

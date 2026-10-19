@@ -13,11 +13,14 @@ use App\Models\ProductReview;
 use App\Models\ProductTag;
 use App\Models\ProductVariant;
 use App\Models\User;
+use App\Payments\PaymentManager;
+use App\Payments\Providers\TebexProvider;
 use App\Support\Commerce\ProductAvailability;
 use App\Support\Commerce\Reviews\ProductReviews;
 use App\Support\Commerce\StorefrontProducts;
 use App\Support\Commerce\Wishlists;
 use App\Support\Seo\Seo;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -30,8 +33,13 @@ use Inertia\Response;
  */
 class ProductCatalogController extends Controller
 {
-    public function index(Request $request, StorefrontProducts $storefront, ProductReviews $reviews, Wishlists $wishlists): Response
+    public function index(Request $request, StorefrontProducts $storefront, ProductReviews $reviews, Wishlists $wishlists, PaymentManager $payments): Response|RedirectResponse
     {
+        // A store that sells through Tebex has packages, not products.
+        if ($payments->activeKey() === TebexProvider::KEY) {
+            return redirect()->route('shop.packages');
+        }
+
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'category' => ['nullable', 'array'],

@@ -1,0 +1,237 @@
+<?php
+
+namespace Tests\Support;
+
+use App\Models\TebexPackage;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
+
+/**
+ * Tebex's basket API as a small stateful stand-in, so a test can follow a basket from being made to being paid or
+ * emptied without scripting each answer.
+ *
+ * It answers in the shape of Tebex's OpenAPI schema. Prices come from the packages in the test database (the ones a
+ * sync would have copied), and a package is found by its `ident` or its id. Everything it was asked is kept in
+ * {@see self::$requests}, and a failure can be made to happen once or more with {@see self::failOn()}.
+ */
+class FakeTebexBaskets
+{
+    /** @var array<string, array<string, mixed>> Baskets by ident. */
+    public array $baskets = [];
+
+    /** @var list<array{method: string, path: string, body: array<string, mixed>, headers: array<string, mixed>}> */
+    public array $requests = [];
+
+    /** @var array<string, array{status: int, times: int}> What to fail with, by action. */
+    private array $failures = [];
+
+    private int $made = 0;
+
+    /** The sales tax Tebex quotes, as a share of the price before tax (0.2 is 20%). */
+    public float $taxRate = 0.0;
+
+    public string $currency = 'USD';
+
+    /** When true, taking a package out of a basket does nothing (Tebex refusing to empty it). */
+    public bool $stubborn = false;
+
+    /** @var array<int, float> What Tebex charges for a package (by its id) when that is not the copy's price. */
+    public array $prices = [];
+
+    /**
+     * Fail the next `$times` calls of an action ('create', 'add', 'remove', 'get') with this status.
+     */
+    public function failOn(string $action, int $status, int $times = 1): self
+    {
+        $this->failures[$action] = ['status' => $status, 'times' => $times];
+
+        return $this;
+    }
+
+    /**
+     * What Tebex does when the customer has paid: the basket is complete and offers a payment, not a way to pay.
+     */
+    public function markPaid(string $ident): void
+    {
+        $this->baskets[$ident]['complete'] = true;
+    }
+
+    /**
+     * The calls made, by action.
+     *
+     * @return list<array{method: string, path: string, body: array<string, mixed>, headers: array<string, mixed>}>
+     */
+    public function calls(string $action): array
+    {
+        return array_values(array_filter($this->requests, fn (array $request) => $this->actionOf($request['method'], $request['path']) === $action));
+    }
+
+    public function respond(Request $request): PromiseInterface
+    {
+        $path = (string) parse_url($request->url(), PHP_URL_PATH);
+        $method = $request->method();
+        $action = $this->actionOf($method, $path);
+        // As it went over the wire: an object the client built is an array here, as it is to Tebex.
+        $body = (array) json_decode((string) json_encode($request->data()), true);
+
+        $this->requests[] = ['method' => $method, 'path' => $path, 'body' => $body, 'headers' => $request->headers()];
+
+        if ($action !== null && isset($this->failures[$action]) && $this->failures[$action]['times'] > 0) {
+            $this->failures[$action]['times']--;
+
+            return Http::response(['title' => 'Failure on purpose', 'detail' => "{$action} failed", 'status' => $this->failures[$action]['status']], $this->failures[$action]['status']);
+        }
+
+        return match ($action) {
+            'create' => $this->create($body),
+            'add' => $this->add($this->identIn($path), $body),
+            'remove' => $this->remove($this->identIn($path), $body),
+            'get' => $this->show($this->identIn($path)),
+            default => Http::response(['title' => 'Not found', 'status' => 404], 404),
+        };
+    }
+
+    private function actionOf(string $method, string $path): ?string
+    {
+        return match (true) {
+            $method === 'POST' && preg_match('#^/api/accounts/[^/]+/baskets$#', $path) === 1 => 'create',
+            $method === 'POST' && preg_match('#^/api/baskets/[^/]+/packages$#', $path) === 1 => 'add',
+            $method === 'POST' && preg_match('#^/api/baskets/[^/]+/packages/remove$#', $path) === 1 => 'remove',
+            $method === 'GET' && preg_match('#^/api/accounts/[^/]+/baskets/[^/]+$#', $path) === 1 => 'get',
+            default => null,
+        };
+    }
+
+    private function identIn(string $path): string
+    {
+        preg_match('#/baskets/([^/]+)#', $path, $matches);
+
+        return rawurldecode($matches[1] ?? '');
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     */
+    private function create(array $body): PromiseInterface
+    {
+        $ident = 'bsk'.str_pad((string) ++$this->made, 6, '0', STR_PAD_LEFT);
+
+        $this->baskets[$ident] = [
+            'id' => (string) (900000 + $this->made),
+            'ident' => $ident,
+            'complete' => false,
+            'complete_url' => $body['complete_url'] ?? null,
+            'cancel_url' => $body['cancel_url'] ?? null,
+            'complete_auto_redirect' => (bool) ($body['complete_auto_redirect'] ?? false),
+            'ip' => $body['ip_address'] ?? null,
+            'custom' => $body['custom'] ?? [],
+            'lines' => [],
+        ];
+
+        return Http::response(['data' => $this->payload($ident)]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     */
+    private function add(string $ident, array $body): PromiseInterface
+    {
+        if (! isset($this->baskets[$ident])) {
+            return Http::response(['title' => 'No such basket', 'status' => 404], 404);
+        }
+
+        $reference = (string) ($body['package_id'] ?? '');
+        $package = TebexPackage::query()->where('ident', $reference)->orWhere('tebex_id', ctype_digit($reference) ? (int) $reference : 0)->first();
+
+        if ($package === null) {
+            return Http::response(['title' => 'Bad request', 'detail' => 'The package ident is not one in this store.', 'status' => 400], 400);
+        }
+
+        $quantity = (int) ($body['quantity'] ?? 1);
+        $line = &$this->baskets[$ident]['lines'][$package->tebex_id];
+        $line = ['package' => $package, 'quantity' => ($line['quantity'] ?? 0) + $quantity];
+        unset($line);
+
+        return Http::response(['data' => $this->payload($ident)]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     */
+    private function remove(string $ident, array $body): PromiseInterface
+    {
+        if (! isset($this->baskets[$ident])) {
+            return Http::response(['title' => 'No such basket', 'status' => 404], 404);
+        }
+
+        if (! $this->stubborn) {
+            unset($this->baskets[$ident]['lines'][(int) ($body['package_id'] ?? 0)]);
+        }
+
+        return Http::response(['data' => $this->payload($ident)]);
+    }
+
+    private function show(string $ident): PromiseInterface
+    {
+        return isset($this->baskets[$ident])
+            ? Http::response(['data' => $this->payload($ident)])
+            : Http::response(['title' => 'No such basket', 'status' => 404], 404);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payload(string $ident): array
+    {
+        $basket = $this->baskets[$ident];
+        $base = 0.0;
+        $packages = [];
+
+        foreach ($basket['lines'] as $line) {
+            /** @var TebexPackage $package */
+            $package = $line['package'];
+            $price = $this->prices[$package->tebex_id] ?? (float) $package->base_price;
+            $base += $price * $line['quantity'];
+
+            $packages[] = [
+                'id' => $package->tebex_id,
+                'name' => $package->name,
+                'slug' => $package->slug,
+                'description' => '',
+                'image' => $package->image_url,
+                'type' => $package->type,
+                'is_recurring' => $package->isSubscription(),
+                'in_basket' => ['quantity' => $line['quantity'], 'price' => $price, 'gift_username_id' => '', 'gift_username' => ''],
+            ];
+        }
+
+        $tax = round($base * $this->taxRate, 2);
+
+        return [
+            'id' => $basket['id'],
+            'ident' => $ident,
+            'complete' => $basket['complete'],
+            'email' => null,
+            'username' => null,
+            'coupons' => [],
+            'giftcards' => [],
+            'creator_code' => '',
+            'cancel_url' => $basket['cancel_url'],
+            'complete_url' => $basket['complete_url'],
+            'complete_auto_redirect' => $basket['complete_auto_redirect'],
+            'country' => 'US',
+            'ip' => $basket['ip'],
+            'username_id' => 0,
+            'base_price' => $base,
+            'sales_tax' => $tax,
+            'total_price' => $base + $tax,
+            'currency' => $this->currency,
+            'packages' => $packages,
+            'custom' => $basket['custom'],
+            'links' => $basket['complete']
+                ? ['payment' => "https://pay.tebex.io/{$ident}/payment"]
+                : ['checkout' => "https://pay.tebex.io/{$ident}"],
+        ];
+    }
+}

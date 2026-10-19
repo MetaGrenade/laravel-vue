@@ -147,6 +147,7 @@ class OrderPlacer
                     $order->items()->create([
                         'product_id' => $line->item->product_id,
                         'product_variant_id' => $line->item->product_variant_id,
+                        'tebex_package_id' => $line->item->tebex_package_id,
                         'quantity' => $line->item->quantity,
                         'unit_price' => $line->unit->toDecimal(),
                         'subtotal' => $line->subtotal->toDecimal(),

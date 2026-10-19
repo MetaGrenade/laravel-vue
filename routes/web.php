@@ -8,11 +8,13 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Ecommerce\CartController;
 use App\Http\Controllers\Ecommerce\CartCouponController;
 use App\Http\Controllers\Ecommerce\CartGiftCardController;
+use App\Http\Controllers\Ecommerce\CartPackageController;
 use App\Http\Controllers\Ecommerce\CheckoutController;
 use App\Http\Controllers\Ecommerce\DownloadController;
 use App\Http\Controllers\Ecommerce\OrderController;
 use App\Http\Controllers\Ecommerce\ProductCatalogController;
 use App\Http\Controllers\Ecommerce\ProductReviewController;
+use App\Http\Controllers\Ecommerce\TebexStorefrontController;
 use App\Http\Controllers\Ecommerce\WishlistController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumPostController;
@@ -55,8 +57,15 @@ Route::middleware('throttle:billing')->group(function () {
 Route::middleware('section.enabled:commerce')->group(function () {
     Route::prefix('shop')->group(function () {
         Route::get('/', [ProductCatalogController::class, 'index'])->name('shop.index');
+        Route::get('/packages', [TebexStorefrontController::class, 'index'])->name('shop.packages');
         Route::get('/products/{product:slug}', [ProductCatalogController::class, 'show'])
             ->name('shop.products.show');
+        // A store that sells through Tebex shows its packages instead (the pages are only there while Tebex is the provider).
+        Route::get('/packages/{package:tebex_id}', [TebexStorefrontController::class, 'show'])
+            ->name('shop.packages.show');
+        Route::post('/cart/packages', [CartPackageController::class, 'store'])
+            ->middleware('throttle:interactions')
+            ->name('shop.cart.packages.store');
         Route::post('/cart/items', [CartController::class, 'store'])
             ->middleware('throttle:interactions')
             ->name('shop.cart.items.store');

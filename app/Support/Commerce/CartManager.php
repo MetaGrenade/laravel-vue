@@ -8,6 +8,7 @@ use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
+use App\Models\TebexPackage;
 use Illuminate\Http\Request;
 
 class CartManager
@@ -15,6 +16,37 @@ class CartManager
     public const OPEN = 'open';
 
     public const CONVERTED = 'converted';
+
+    /** What a cart holds: the shop's own products, or packages from the Tebex catalogue (never both). */
+    public const PRODUCTS = 'products';
+
+    public const PACKAGES = 'packages';
+
+    public const MIXED = 'mixed';
+
+    public const EMPTY = 'empty';
+
+    /**
+     * What the cart holds. A cart of packages is bought through Tebex and a cart of products is not, so the two cannot
+     * share one.
+     */
+    public static function kind(?Cart $cart): string
+    {
+        if ($cart === null) {
+            return self::EMPTY;
+        }
+
+        $cart->loadMissing('items');
+
+        $packages = $cart->items->filter(fn (CartItem $item) => $item->isTebexPackage())->count();
+
+        return match (true) {
+            $cart->items->isEmpty() => self::EMPTY,
+            $packages === 0 => self::PRODUCTS,
+            $packages === $cart->items->count() => self::PACKAGES,
+            default => self::MIXED,
+        };
+    }
 
     /**
      * The shopper's open cart: their account's cart when signed in, otherwise
@@ -27,7 +59,7 @@ class CartManager
         $userId = $request->user()?->id;
 
         $cart = Cart::query()
-            ->with(['items.product', 'items.variant'])
+            ->with(['items.product', 'items.variant', 'items.tebexPackage'])
             ->where('status', self::OPEN)
             ->where(function ($query) use ($userId, $sessionId) {
                 if ($userId) {
@@ -53,9 +85,15 @@ class CartManager
             $cart->save();
         }
 
-        return $cart?->loadMissing(['items.product', 'items.variant']);
+        return $cart?->loadMissing(['items.product', 'items.variant', 'items.tebexPackage']);
     }
 
+    /**
+     * Add a product at the price it has now.
+     *
+     * @throws CheckoutException When the cart holds packages: the store's provider can change while a cart is
+     *                           waiting, and a cart of both is one that no checkout will take.
+     */
     public static function addItem(
         Cart $cart,
         Product $product,
@@ -63,6 +101,12 @@ class CartManager
         Price $price,
         int $quantity,
     ): CartItem {
+        $cart->loadMissing('items');
+
+        if (in_array(self::kind($cart), [self::PACKAGES, self::MIXED], true)) {
+            throw new CheckoutException('Your cart has packages in it, and products are bought separately. Check out or empty your cart first.');
+        }
+
         $max = (int) config('commerce.checkout.max_quantity', 20);
 
         $cartItem = $cart->items()
@@ -101,11 +145,90 @@ class CartManager
         return $cartItem;
     }
 
+    /**
+     * Add a Tebex package at the price Tebex quoted for it (before tax).
+     *
+     * A package that cannot be bought more than once, or that a customer may only have so many of, is held to that.
+     * All the packages in a cart are in one currency, since an order is.
+     *
+     * @throws CheckoutException When it cannot go in this cart.
+     */
+    public static function addPackage(Cart $cart, TebexPackage $package, int $quantity): CartItem
+    {
+        $cart->loadMissing('items');
+
+        if (in_array(self::kind($cart), [self::PRODUCTS, self::MIXED], true)) {
+            throw new CheckoutException('Your cart has products in it, and packages are bought separately. Check out or empty your cart first.');
+        }
+
+        if ($cart->items->isNotEmpty() && strtoupper($cart->currency) !== strtoupper($package->currency)) {
+            throw new CheckoutException("This package is sold in {$package->currency}, and your cart is in {$cart->currency}. Check out or empty your cart first.");
+        }
+
+        $max = self::maxQuantityFor($package);
+        $cartItem = $cart->items->first(fn (CartItem $item) => $item->tebex_package_id === $package->id);
+
+        if ($cartItem) {
+            $cartItem->quantity = min($max, $cartItem->quantity + $quantity);
+        } else {
+            $cartItem = $cart->items()->make([
+                'tebex_package_id' => $package->id,
+                'quantity' => min($max, $quantity),
+            ]);
+        }
+
+        $cartItem->unit_price = $package->base_price;
+        $cartItem->total = self::lineTotal($package->base_price, $cartItem->quantity, $package->currency);
+        $cartItem->snapshot = [
+            'package' => [
+                'id' => $package->id,
+                'tebex_id' => $package->tebex_id,
+                'name' => $package->name,
+                'ident' => $package->ident,
+            ],
+        ];
+
+        $cartItem->save();
+
+        self::recalculate($cart);
+
+        return $cartItem;
+    }
+
+    /**
+     * The most of one package a cart may hold: the shop's limit, or one for a package that is not sold in quantities,
+     * or the number a customer is allowed.
+     */
+    public static function maxQuantityFor(TebexPackage $package): int
+    {
+        $max = (int) config('commerce.checkout.max_quantity', 20);
+
+        if ($package->disable_quantity) {
+            return 1;
+        }
+
+        return $package->user_limit > 0 ? min($max, $package->user_limit) : $max;
+    }
+
+    /**
+     * The most one line of a cart may hold: what its package allows, or the shop's limit.
+     */
+    public static function maxQuantityForLine(CartItem $item): int
+    {
+        return $item->tebexPackage !== null
+            ? self::maxQuantityFor($item->tebexPackage)
+            : (int) config('commerce.checkout.max_quantity', 20);
+    }
+
+    /**
+     * Change how many a line holds, never beyond what the line may hold (a package that is not sold in quantities
+     * stays at one, whoever asks).
+     */
     public static function updateQuantity(CartItem $item, int $quantity): CartItem
     {
         $cart = $item->cart;
-        $item->quantity = $quantity;
-        $item->total = self::lineTotal($item->unit_price, $quantity, $cart->currency);
+        $item->quantity = min($quantity, self::maxQuantityForLine($item));
+        $item->total = self::lineTotal($item->unit_price, $item->quantity, $cart->currency);
         $item->save();
 
         self::recalculate($cart);
@@ -127,7 +250,12 @@ class CartManager
      */
     public static function recalculate(Cart $cart): void
     {
-        $cart->load('items');
+        $cart->load('items.tebexPackage');
+
+        // A cart of packages is in their currency; any other is in the shop's.
+        $cart->currency = self::kind($cart) === self::PACKAGES
+            ? strtoupper((string) $cart->items->first()?->tebexPackage?->currency)
+            : strtoupper((string) config('commerce.currency', 'USD'));
 
         $subtotal = $cart->items->reduce(
             fn (Money $carry, CartItem $item) => $carry->add(Money::parse($item->total, $cart->currency)),
@@ -147,7 +275,7 @@ class CartManager
             return null;
         }
 
-        $cart->loadMissing(['items.product', 'items.variant']);
+        $cart->loadMissing(['items.product', 'items.variant', 'items.tebexPackage']);
 
         // One query for every line's main picture.
         $pictures = ProductImage::query()
@@ -166,11 +294,27 @@ class CartManager
             'items' => $cart->items
                 ->map(fn (CartItem $item) => [
                     'id' => $item->id,
-                    'name' => $item->product?->name ?? $item->snapshot['product']['name'] ?? 'Product',
+                    'name' => $item->isTebexPackage()
+                        ? ($item->tebexPackage->name ?? $item->snapshot['package']['name'] ?? 'Package')
+                        : ($item->product?->name ?? $item->snapshot['product']['name'] ?? 'Product'),
                     'slug' => $item->product?->slug,
-                    'image' => $item->product_id !== null ? $pictures->get($item->product_id)?->thumbUrl() : null,
+                    // Where the line links to: its product page, or the page of its package.
+                    'href' => match (true) {
+                        $item->isTebexPackage() => $item->tebexPackage !== null && $item->tebexPackage->removed_at === null
+                            ? route('shop.packages.show', $item->tebexPackage->tebex_id)
+                            : null,
+                        $item->product?->slug !== null => route('shop.products.show', $item->product->slug),
+                        default => null,
+                    },
+                    'image' => match (true) {
+                        $item->isTebexPackage() => $item->tebexPackage?->image_url,
+                        $item->product_id !== null => $pictures->get($item->product_id)?->thumbUrl(),
+                        default => null,
+                    },
                     'variant' => $item->variant?->name ?? $item->snapshot['variant']['name'] ?? null,
                     'quantity' => $item->quantity,
+                    // What the quantity box may go up to: less than the shop's limit for some packages.
+                    'max_quantity' => self::maxQuantityForLine($item),
                     'unit_price' => (string) $item->unit_price,
                     'total' => (string) $item->total,
                 ])

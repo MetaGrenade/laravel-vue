@@ -12,9 +12,11 @@ use Throwable;
 /**
  * Talks to the Tebex Headless API (https://docs.tebex.io/developers/headless-api).
  *
- * Every call has a timeout. A request that fails on the network, with a 5xx or with a 429 is repeated after the
- * waits in `tebex.http.retry_backoff_ms`; anything else (a 4xx other than 429) is final, since asking again gives the
- * same answer. Whatever goes wrong is thrown as a {@see TebexException} with a message for staff: the public token is
+ * Every call has a timeout. A read that fails on the network, with a 5xx or with a 429 is repeated after the waits in
+ * `tebex.http.retry_backoff_ms`; anything else (a 4xx other than 429) is final, since asking again gives the same
+ * answer. A call that changes something (making a basket, adding a package to it) is repeated only after a 429, which
+ * says it was not done: after a lost reply or a 5xx it may have been, and doing it twice would put two of a package in
+ * a basket. Whatever goes wrong is thrown as a {@see TebexException} with a message for staff: the public token is
  * taken out of it, and the private key is never in a URL or a message to begin with.
  *
  * Tests use `Http::fake()`; see `Tests\Support\InteractsWithTebex` for answers shaped like Tebex's own.
@@ -68,6 +70,78 @@ class TebexClient
     }
 
     /**
+     * Start a basket: where the customer comes back to, what to give back to the shop in the webhook, and whose
+     * address the buyer is at (Tebex needs it from a backend, or it takes the server's).
+     *
+     * @param  array<string, scalar|null>  $custom
+     *
+     * @throws TebexException
+     */
+    public function createBasket(string $completeUrl, string $cancelUrl, array $custom, ?string $ipAddress): TebexBasket
+    {
+        $token = $this->token();
+
+        return $this->basketFrom($this->post("/accounts/{$token}/baskets", array_filter([
+            'complete_url' => $completeUrl,
+            'cancel_url' => $cancelUrl,
+            'custom' => (object) $custom,
+            'complete_auto_redirect' => true,
+            'ip_address' => $ipAddress,
+        ], fn ($value) => $value !== null)));
+    }
+
+    /**
+     * Put a package in a basket, by the identifier Tebex gives it (`ident`).
+     *
+     * The path is the one in Tebex's OpenAPI schema; its guide shows another, with the account in it. Which is right
+     * has to be checked against a real store (M2b).
+     *
+     * @throws TebexException
+     */
+    public function addPackage(string $basketIdent, string $packageIdent, int $quantity): TebexBasket
+    {
+        return $this->basketFrom($this->post('/baskets/'.rawurlencode($basketIdent).'/packages', [
+            'package_id' => $packageIdent,
+            'quantity' => $quantity,
+        ]));
+    }
+
+    /**
+     * Take a package out of a basket. A basket with nothing in it cannot be paid, which is how an unpaid checkout the
+     * shop is done with is closed.
+     *
+     * @throws TebexException
+     */
+    public function removePackage(string $basketIdent, string $packageId): TebexBasket
+    {
+        return $this->basketFrom($this->post('/baskets/'.rawurlencode($basketIdent).'/packages/remove', ['package_id' => $packageId]));
+    }
+
+    /**
+     * A basket as Tebex has it now.
+     *
+     * @throws TebexException
+     */
+    public function basket(string $basketIdent): TebexBasket
+    {
+        return $this->basketFrom($this->get('/baskets/'.rawurlencode($basketIdent)));
+    }
+
+    /**
+     * @throws TebexException
+     */
+    private function basketFrom(Response $response): TebexBasket
+    {
+        $data = $this->data($response);
+
+        if (! is_array($data) || ! is_string($data['ident'] ?? null) || $data['ident'] === '') {
+            throw new TebexException('Tebex sent a basket the shop could not understand.');
+        }
+
+        return TebexBasket::fromApi($data);
+    }
+
+    /**
      * @param  array<string, scalar>  $query
      *
      * @throws TebexException
@@ -76,8 +150,32 @@ class TebexClient
     {
         $token = $this->token();
 
+        return $this->send('GET', "/accounts/{$token}{$path}", $query, repeatable: true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     *
+     * @throws TebexException
+     */
+    private function post(string $url, array $body): Response
+    {
+        // The token belongs in the account paths only; checked here so that a call cannot go out without one.
+        $this->token();
+
+        return $this->send('POST', $url, $body, repeatable: false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data  The query of a GET, the JSON body of anything else.
+     * @param  bool  $repeatable  Whether asking again after a failure that may have got through is harmless.
+     *
+     * @throws TebexException
+     */
+    private function send(string $method, string $url, array $data, bool $repeatable): Response
+    {
         try {
-            $response = $this->request()->get("/accounts/{$token}{$path}", $query);
+            $response = $this->request($repeatable)->send($method, $url, $method === 'GET' ? ['query' => $data] : ['json' => $data]);
         } catch (ConnectionException $exception) {
             throw new TebexException('Tebex could not be reached: '.$this->redact($exception->getMessage()), previous: $exception);
         }
@@ -105,7 +203,7 @@ class TebexClient
         return $body['data'];
     }
 
-    private function request(): PendingRequest
+    private function request(bool $repeatable): PendingRequest
     {
         return Http::baseUrl(rtrim((string) config('tebex.api_url'), '/'))
             ->acceptJson()
@@ -113,24 +211,25 @@ class TebexClient
             ->connectTimeout((int) config('tebex.http.connect_timeout', 5))
             ->retry(
                 array_values((array) config('tebex.http.retry_backoff_ms', [])),
-                when: fn (Throwable $exception) => $this->isTransient($exception),
+                when: fn (Throwable $exception) => $this->isTransient($exception, $repeatable),
                 throw: false,
             );
     }
 
     /**
-     * Worth asking again: the network failed, Tebex had a problem, or Tebex asked us to slow down.
+     * Worth asking again: Tebex asked us to slow down (so the call was not made), or, for a call that is harmless to
+     * repeat, the network failed or Tebex had a problem (so the call may or may not have been made).
      */
-    private function isTransient(Throwable $exception): bool
+    private function isTransient(Throwable $exception, bool $repeatable): bool
     {
         if ($exception instanceof ConnectionException) {
-            return true;
+            return $repeatable;
         }
 
         if ($exception instanceof RequestException) {
             $status = $exception->response->status();
 
-            return $status === 429 || $status >= 500;
+            return $status === 429 || ($repeatable && $status >= 500);
         }
 
         return false;
