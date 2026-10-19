@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Ecommerce;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Payments\Exceptions\PaymentException;
 use App\Payments\Providers\TebexProvider;
 use App\Payments\Tebex\SignInStep;
 use App\Payments\Tebex\TebexException;
@@ -47,6 +48,12 @@ class TebexContinueController extends Controller
             report($exception);
 
             return redirect()->route('shop.cart')->with('error', 'We could not reach Tebex just now. Please try again in a moment.');
+        } catch (PaymentException $exception) {
+            // Tebex answered, but with something the shop will not sell on: no place to pay, or another currency than the
+            // order's. Trying the same link again would only meet the same answer.
+            report($exception);
+
+            return redirect()->route('shop.cart')->with('error', 'We could not start the payment. Please start the checkout again in a moment.');
         }
 
         return match ($step->kind) {
