@@ -61,8 +61,9 @@ class GuestCarryOver
      * Merge the carts this browser had as a guest into the account's cart.
      *
      * A line the account's cart already has is added to (up to the most one line may hold); any other line
-     * moves over. The account's discount code is kept, or the guest's is taken when the account has none. The
-     * guest cart is then gone, so there is never a second cart to choose between, and any checkout that was
+     * moves over. The account's discount code is kept, or the guest's is taken when the account has none. A guest cart
+     * that cannot share a cart with the account's (products against packages, or packages in another currency) is not
+     * merged: the account's cart stays whole and the shopper is told. The guest cart is then gone, so there is never a second cart to choose between, and any checkout that was
      * started from it carries on from the account's cart.
      *
      * @param  string|list<string>  $guestSessionIds  The session (or sessions) the browser was a guest in.
@@ -181,31 +182,21 @@ class GuestCarryOver
 
     private function mergeInto(Cart $mine, Cart $guest): void
     {
-        foreach ($guest->items as $line) {
-            $existing = $mine->items->first(fn (CartItem $item) => $item->product_id === $line->product_id
-                && $item->product_variant_id === $line->product_variant_id
-                && $item->tebex_package_id === $line->tebex_package_id);
+        if ($this->canShareACart($mine, $guest)) {
+            $this->moveLines($mine, $guest);
 
-            if ($existing !== null) {
-                $most = $line->tebexPackage !== null
-                    ? CartManager::maxQuantityFor($line->tebexPackage)
-                    : (int) config('commerce.checkout.max_quantity', 20);
-
-                CartManager::updateQuantity($existing, min($most, $existing->quantity + $line->quantity));
-                $line->delete();
-
-                continue;
+            if ($mine->coupon_id === null && $guest->coupon_id !== null) {
+                $mine->forceFill(['coupon_id' => $guest->coupon_id])->save();
             }
 
-            $line->forceFill(['cart_id' => $mine->id])->save();
-        }
-
-        if ($mine->coupon_id === null && $guest->coupon_id !== null) {
-            $mine->forceFill(['coupon_id' => $guest->coupon_id])->save();
-        }
-
-        if ($mine->gift_card_id === null && $guest->gift_card_id !== null) {
-            $mine->forceFill(['gift_card_id' => $guest->gift_card_id])->save();
+            if ($mine->gift_card_id === null && $guest->gift_card_id !== null) {
+                $mine->forceFill(['gift_card_id' => $guest->gift_card_id])->save();
+            }
+        } else {
+            // The account's cart stays as it is, whole, and what was added before signing in is left out (with its
+            // code): the same refusal adding it to this cart would have got, but there is no one to tell at that
+            // moment, so the shopper is told now.
+            session()->flash('warning', 'Some of what you added before signing in could not be put in your cart, because it cannot be bought together with what is already in it. Check out or empty your cart first, then add it again.');
         }
 
         // A checkout started from the guest cart can still be paid. It is found through the cart it came from
@@ -217,5 +208,46 @@ class GuestCarryOver
 
         $mine->load('items');
         CartManager::recalculate($mine);
+    }
+
+    /**
+     * Whether two carts can become one that checkout will take: products and packages are bought separately, and the
+     * packages in one cart are in one currency. (A cart with nothing in it clashes with nothing.)
+     */
+    private function canShareACart(Cart $mine, Cart $guest): bool
+    {
+        $kinds = [CartManager::kind($mine), CartManager::kind($guest)];
+
+        if (in_array(CartManager::EMPTY, $kinds, true)) {
+            return true;
+        }
+
+        if ($kinds[0] !== $kinds[1]) {
+            return false;
+        }
+
+        return $kinds[0] !== CartManager::PACKAGES || strtoupper($mine->currency) === strtoupper($guest->currency);
+    }
+
+    /**
+     * Add the guest's lines to the cart: a line the cart already has is added to (up to the most it may hold), any
+     * other line moves over.
+     */
+    private function moveLines(Cart $mine, Cart $guest): void
+    {
+        foreach ($guest->items as $line) {
+            $existing = $mine->items->first(fn (CartItem $item) => $item->product_id === $line->product_id
+                && $item->product_variant_id === $line->product_variant_id
+                && $item->tebex_package_id === $line->tebex_package_id);
+
+            if ($existing !== null) {
+                CartManager::updateQuantity($existing, $existing->quantity + $line->quantity);
+                $line->delete();
+
+                continue;
+            }
+
+            $line->forceFill(['cart_id' => $mine->id])->save();
+        }
     }
 }

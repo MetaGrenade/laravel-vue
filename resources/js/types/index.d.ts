@@ -79,6 +79,8 @@ export interface CartItemSummary {
     image?: string | null;
     variant: string | null;
     quantity: number;
+    /** The most the line may hold: the shop's limit, or less for a package that is not sold in quantities. */
+    max_quantity: number;
     unit_price: string;
     total: string;
 }

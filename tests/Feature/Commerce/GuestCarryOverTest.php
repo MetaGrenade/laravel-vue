@@ -193,6 +193,24 @@ class GuestCarryOverTest extends TestCase
     }
 
     #[Test]
+    public function carts_of_products_merge_whatever_currency_the_older_one_was_made_in(): void
+    {
+        $user = User::factory()->create();
+        $first = $this->product();
+        $second = $this->product('5.00');
+        $mine = $this->cartWith($first, 1, $user);
+        // The shop's currency changed after this cart was made. Products are priced again at checkout, in today's.
+        $mine->forceFill(['currency' => 'EUR'])->save();
+        $this->cartWith($second, 2);
+
+        $cart = $this->carryOver->mergeCart($user, $this->guestSessionId);
+
+        $this->assertSame($mine->id, $cart->id);
+        $this->assertEquals([$first->id.'/-' => 1, $second->id.'/-' => 2], $this->lines($cart));
+        $this->assertNull(session('warning'));
+    }
+
+    #[Test]
     public function an_empty_guest_cart_is_simply_discarded(): void
     {
         $user = User::factory()->create();

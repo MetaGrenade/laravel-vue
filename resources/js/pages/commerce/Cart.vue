@@ -23,15 +23,14 @@ interface Props {
     /** The cart holds Tebex packages: Tebex works out the tax and takes any codes or gift cards when the customer pays. */
     tebex: boolean;
     checkoutAvailable: boolean;
-    maxQuantity: number;
 }
 
 const props = defineProps<Props>();
 
 const busyItemId = ref<number | null>(null);
 
-const changeQuantity = (itemId: number, value: number) => {
-    const quantity = Math.min(props.maxQuantity, Math.max(1, Math.trunc(Number.isFinite(value) ? value : 1)));
+const changeQuantity = (itemId: number, value: number, max: number) => {
+    const quantity = Math.min(max, Math.max(1, Math.trunc(Number.isFinite(value) ? value : 1)));
 
     busyItemId.value = itemId;
     router.patch(route('shop.cart.items.update', itemId), { quantity }, { preserveScroll: true, onFinish: () => (busyItemId.value = null) });
@@ -90,11 +89,11 @@ const removeItem = (itemId: number) => {
                                     type="number"
                                     inputmode="numeric"
                                     min="1"
-                                    :max="props.maxQuantity"
+                                    :max="item.max_quantity"
                                     class="w-20"
                                     :model-value="item.quantity"
                                     :disabled="busyItemId === item.id"
-                                    @change="changeQuantity(item.id, Number(($event.target as HTMLInputElement).value))"
+                                    @change="changeQuantity(item.id, Number(($event.target as HTMLInputElement).value), item.max_quantity)"
                                 />
                                 <div class="w-24 text-right font-semibold tabular-nums">{{ formatMoney(item.total, props.cart.currency) }}</div>
                                 <Button

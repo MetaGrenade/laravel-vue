@@ -88,6 +88,12 @@ class CartManager
         return $cart?->loadMissing(['items.product', 'items.variant', 'items.tebexPackage']);
     }
 
+    /**
+     * Add a product at the price it has now.
+     *
+     * @throws CheckoutException When the cart holds packages: the store's provider can change while a cart is
+     *                           waiting, and a cart of both is one that no checkout will take.
+     */
     public static function addItem(
         Cart $cart,
         Product $product,
@@ -95,6 +101,12 @@ class CartManager
         Price $price,
         int $quantity,
     ): CartItem {
+        $cart->loadMissing('items');
+
+        if (in_array(self::kind($cart), [self::PACKAGES, self::MIXED], true)) {
+            throw new CheckoutException('Your cart has packages in it, and products are bought separately. Check out or empty your cart first.');
+        }
+
         $max = (int) config('commerce.checkout.max_quantity', 20);
 
         $cartItem = $cart->items()
@@ -145,7 +157,7 @@ class CartManager
     {
         $cart->loadMissing('items');
 
-        if (self::kind($cart) === self::PRODUCTS) {
+        if (in_array(self::kind($cart), [self::PRODUCTS, self::MIXED], true)) {
             throw new CheckoutException('Your cart has products in it, and packages are bought separately. Check out or empty your cart first.');
         }
 
@@ -198,11 +210,25 @@ class CartManager
         return $package->user_limit > 0 ? min($max, $package->user_limit) : $max;
     }
 
+    /**
+     * The most one line of a cart may hold: what its package allows, or the shop's limit.
+     */
+    public static function maxQuantityForLine(CartItem $item): int
+    {
+        return $item->tebexPackage !== null
+            ? self::maxQuantityFor($item->tebexPackage)
+            : (int) config('commerce.checkout.max_quantity', 20);
+    }
+
+    /**
+     * Change how many a line holds, never beyond what the line may hold (a package that is not sold in quantities
+     * stays at one, whoever asks).
+     */
     public static function updateQuantity(CartItem $item, int $quantity): CartItem
     {
         $cart = $item->cart;
-        $item->quantity = $quantity;
-        $item->total = self::lineTotal($item->unit_price, $quantity, $cart->currency);
+        $item->quantity = min($quantity, self::maxQuantityForLine($item));
+        $item->total = self::lineTotal($item->unit_price, $item->quantity, $cart->currency);
         $item->save();
 
         self::recalculate($cart);
@@ -287,6 +313,8 @@ class CartManager
                     },
                     'variant' => $item->variant?->name ?? $item->snapshot['variant']['name'] ?? null,
                     'quantity' => $item->quantity,
+                    // What the quantity box may go up to: less than the shop's limit for some packages.
+                    'max_quantity' => self::maxQuantityForLine($item),
                     'unit_price' => (string) $item->unit_price,
                     'total' => (string) $item->total,
                 ])
