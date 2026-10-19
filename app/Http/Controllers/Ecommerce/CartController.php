@@ -9,6 +9,7 @@ use App\Models\ProductVariant;
 use App\Payments\PaymentManager;
 use App\Payments\Providers\TebexProvider;
 use App\Support\Commerce\CartManager;
+use App\Support\Commerce\CheckoutException;
 use App\Support\Commerce\Discounts\CartCoupons;
 use App\Support\Commerce\GiftCards\CartGiftCards;
 use App\Support\Commerce\PriceResolver;
@@ -44,7 +45,6 @@ class CartController extends Controller
             // Something to pay needs a payment provider; a cart that costs nothing once its code is
             // applied does not. Where shipping is charged, that is not known before an address is given.
             'checkoutAvailable' => $payments->active()->isConfigured() || $this->costsNothing($pricing, $shipping),
-            'maxQuantity' => (int) config('commerce.checkout.max_quantity', 20),
         ]);
     }
 
@@ -106,9 +106,11 @@ class CartController extends Controller
             return back()->with('error', 'This product is not available for purchase yet.');
         }
 
-        $cart = CartManager::forRequest($request, true);
-
-        CartManager::addItem($cart, $product, $variant, $price, $validated['quantity']);
+        try {
+            CartManager::addItem(CartManager::forRequest($request, true), $product, $variant, $price, $validated['quantity']);
+        } catch (CheckoutException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
 
         return back()->with('success', 'Added to your cart.');
     }
@@ -117,7 +119,8 @@ class CartController extends Controller
     {
         $this->authorizeItem($request, $item);
 
-        $max = (int) config('commerce.checkout.max_quantity', 20);
+        // The most this line may hold: the shop's limit, or less for a package that is not sold in quantities.
+        $max = CartManager::maxQuantityForLine($item);
 
         $validated = $request->validate([
             'quantity' => ['required', 'integer', 'min:1', "max:{$max}"],

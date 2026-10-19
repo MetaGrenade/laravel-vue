@@ -6,6 +6,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
 use App\Models\GiftCard;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\TebexCategory;
 use App\Models\TebexPackage;
@@ -300,6 +301,35 @@ class TebexStorefrontTest extends TestCase
     }
 
     #[Test]
+    public function a_product_does_not_go_in_a_cart_of_packages_when_the_stores_provider_has_changed(): void
+    {
+        $product = Product::factory()->priced('5.00')->stocked(5)->create();
+        $this->addPackage($this->package());
+        config(['commerce.provider' => 'stripe']);
+
+        $this->addToCart($product)->assertSessionHas('error', fn (string $error) => str_contains($error, 'packages in it'));
+
+        $line = CartItem::query()->sole();
+        $this->assertTrue($line->isTebexPackage());
+        $this->assertSame(CartManager::PACKAGES, CartManager::kind($line->cart));
+    }
+
+    #[Test]
+    public function a_cart_that_already_holds_both_takes_neither(): void
+    {
+        $product = Product::factory()->priced('5.00')->stocked(5)->create();
+        $cart = $this->cartWith($product);
+        $cart->items()->create(['tebex_package_id' => $this->package()->id, 'quantity' => 1, 'unit_price' => '10.00', 'total' => '10.00']);
+        $this->assertSame(CartManager::MIXED, CartManager::kind($cart->fresh()));
+
+        $this->addPackage($this->package())->assertSessionHas('error', fn (string $error) => str_contains($error, 'products in it'));
+        config(['commerce.provider' => 'stripe']);
+        $this->addToCart($product)->assertSessionHas('error', fn (string $error) => str_contains($error, 'packages in it'));
+
+        $this->assertSame(2, CartItem::query()->count());
+    }
+
+    #[Test]
     public function the_packages_in_one_cart_are_in_one_currency(): void
     {
         $dollars = $this->package(['currency' => 'USD']);
@@ -370,6 +400,59 @@ class TebexStorefrontTest extends TestCase
     }
 
     #[Test]
+    public function a_line_cannot_be_edited_past_what_its_package_allows(): void
+    {
+        $single = $this->package(['disable_quantity' => true]);
+        $limited = $this->package(['user_limit' => 3]);
+        $this->addPackage($single);
+        $this->addPackage($limited);
+        $singleLine = CartItem::query()->where('tebex_package_id', $single->id)->sole();
+        $limitedLine = CartItem::query()->where('tebex_package_id', $limited->id)->sole();
+
+        $this->patch(route('shop.cart.items.update', $singleLine), ['quantity' => 2])->assertSessionHasErrors('quantity');
+        $this->patch(route('shop.cart.items.update', $limitedLine), ['quantity' => 4])->assertSessionHasErrors('quantity');
+        $this->patch(route('shop.cart.items.update', $limitedLine), ['quantity' => 3])->assertSessionHas('success');
+
+        $this->assertSame(1, $singleLine->fresh()->quantity);
+        $this->assertSame(3, $limitedLine->fresh()->quantity);
+    }
+
+    #[Test]
+    public function the_cart_never_holds_more_of_a_line_than_it_may_whoever_asks(): void
+    {
+        $this->addPackage($this->package(['disable_quantity' => true]));
+        $line = CartItem::query()->sole();
+
+        CartManager::updateQuantity($line, 20);
+
+        $this->assertSame(1, $line->fresh()->quantity);
+        $this->assertSame('10.00', $line->fresh()->total);
+        $this->assertSame('10.00', $line->cart->fresh()->subtotal);
+    }
+
+    #[Test]
+    public function a_line_of_products_is_held_to_the_shops_limit(): void
+    {
+        $line = $this->cartWith(Product::factory()->priced('5.00')->stocked(50)->create())->items->sole();
+
+        CartManager::updateQuantity($line, 25);
+
+        $this->assertSame(20, $line->fresh()->quantity);
+        $this->assertSame('100.00', $line->fresh()->total);
+    }
+
+    #[Test]
+    public function the_cart_says_how_many_each_line_may_hold(): void
+    {
+        $this->addPackage($this->package(['name' => 'Solo', 'disable_quantity' => true]));
+        $this->addPackage($this->package(['name' => 'Few', 'user_limit' => 3]));
+        $this->addPackage($this->package(['name' => 'Many']));
+
+        $this->get(route('shop.cart'))->assertInertia(fn (Assert $page) => $page
+            ->where('cart.items', fn ($items) => collect($items)->pluck('max_quantity', 'name')->all() == ['Solo' => 1, 'Few' => 3, 'Many' => 20]));
+    }
+
+    #[Test]
     public function the_shops_own_codes_and_gift_cards_are_not_used_with_packages(): void
     {
         $this->addPackage($this->package());
@@ -403,5 +486,76 @@ class TebexStorefrontTest extends TestCase
         $this->assertSame($mine->id, $merged->id);
         $lines = $merged->items()->orderBy('tebex_package_id')->get()->mapWithKeys(fn (CartItem $item) => [$item->tebex_package_id => $item->quantity]);
         $this->assertEquals([$package->id => 5, $other->id => 1], $lines->all(), 'the same package adds up; another stays its own line');
+        $this->assertNull(session('warning'), 'nothing was left out, so nothing to say');
+    }
+
+    #[Test]
+    public function a_guests_packages_join_an_account_cart_with_nothing_in_it(): void
+    {
+        $user = User::factory()->create();
+        $mine = Cart::query()->create(['user_id' => $user->id, 'session_id' => Str::random(40), 'status' => CartManager::OPEN, 'currency' => 'USD']);
+        $this->addPackage($this->package());
+
+        $merged = app(GuestCarryOver::class)->mergeCart($user, $this->guestSessionId);
+
+        $this->assertSame($mine->id, $merged->id);
+        $this->assertSame(CartManager::PACKAGES, CartManager::kind($merged->fresh()));
+        $this->assertNull(session('warning'));
+    }
+
+    #[Test]
+    public function products_a_guest_added_are_left_out_of_an_accounts_cart_of_packages(): void
+    {
+        $user = User::factory()->create();
+        $package = $this->package();
+        $mine = Cart::query()->create(['user_id' => $user->id, 'session_id' => Str::random(40), 'status' => CartManager::OPEN, 'currency' => 'USD']);
+        CartManager::addPackage($mine, $package, 2);
+        $guest = $this->cartWith(Product::factory()->priced('5.00')->stocked(5)->create());
+        $guest->forceFill(['coupon_id' => Coupon::factory()->create()->id])->save();
+        $order = Order::factory()->create(['cart_id' => $guest->id]);
+
+        $merged = app(GuestCarryOver::class)->mergeCart($user, $this->guestSessionId);
+
+        $this->assertSame($mine->id, $merged->id);
+        $this->assertNull($merged->fresh()->coupon_id, 'the guest\'s code is left out with the guest\'s lines');
+        $this->assertSame(CartManager::PACKAGES, CartManager::kind($merged->fresh()));
+        $this->assertEquals([$package->id => 2], $merged->items()->pluck('quantity', 'tebex_package_id')->all());
+        $this->assertSame(1, Cart::query()->count(), 'there is one cart to choose, not two');
+        $this->assertSame($mine->id, $order->fresh()->cart_id, 'a checkout started from the guest cart still has a cart to be found through');
+        $this->assertStringContainsString('could not be put in your cart', (string) session('warning'));
+    }
+
+    #[Test]
+    public function packages_a_guest_added_are_left_out_of_an_accounts_cart_of_products(): void
+    {
+        $user = User::factory()->create();
+        $product = Product::factory()->priced('5.00')->stocked(5)->create();
+        $mine = $this->cartWith($product, 1, $user);
+        $this->addPackage($this->package());
+
+        $merged = app(GuestCarryOver::class)->mergeCart($user, $this->guestSessionId);
+
+        $this->assertSame($mine->id, $merged->id);
+        $this->assertSame(CartManager::PRODUCTS, CartManager::kind($merged->fresh()));
+        $this->assertEquals([$product->id => 1], $merged->items()->pluck('quantity', 'product_id')->all());
+        $this->assertSame(1, Cart::query()->count());
+        $this->assertNotNull(session('warning'));
+    }
+
+    #[Test]
+    public function packages_in_another_currency_are_left_out_too(): void
+    {
+        $user = User::factory()->create();
+        $euros = $this->package(['currency' => 'EUR', 'base_price' => '8.00', 'total_price' => '8.00']);
+        $mine = Cart::query()->create(['user_id' => $user->id, 'session_id' => Str::random(40), 'status' => CartManager::OPEN, 'currency' => 'USD']);
+        CartManager::addPackage($mine, $euros, 1);
+        $this->addPackage($this->package(['currency' => 'USD']));
+
+        $merged = app(GuestCarryOver::class)->mergeCart($user, $this->guestSessionId);
+
+        $this->assertEquals([$euros->id => 1], $merged->items()->pluck('quantity', 'tebex_package_id')->all());
+        $this->assertSame('EUR', $merged->fresh()->currency);
+        $this->assertSame(1, Cart::query()->count());
+        $this->assertNotNull(session('warning'));
     }
 }
