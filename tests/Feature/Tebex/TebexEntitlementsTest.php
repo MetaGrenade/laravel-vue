@@ -415,6 +415,57 @@ class TebexEntitlementsTest extends TestCase
     }
 
     #[Test]
+    public function a_recurring_payment_that_ended_and_is_active_again_gives_it_back(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        [$order, $payment, $package] = $this->placeOrder(recurring: true);
+        $this->give($package, $this->feature());
+        $this->give($package, $this->limit(), 4);
+        $this->pay($order, $payment, recurring: true);
+
+        $this->recurring('recurring-payment.ended', $order, $payment, ['status' => ['id' => 5, 'description' => 'Cancelled']], '2026-12-01T10:00:00+00:00')->assertOk();
+        $this->assertFalse($user->canUse('reports'));
+        $this->assertSame(0, $user->limitOf('team_seats'));
+
+        $this->recurring('recurring-payment.status-changed', $order, $payment, ['status' => ['id' => 2, 'description' => 'Active']], '2026-12-05T10:00:00+00:00')->assertOk();
+
+        $this->assertTrue($user->canUse('reports'));
+        $this->assertSame(4, $user->limitOf('team_seats'));
+        $this->assertSame(0, UserEntitlement::query()->whereNotNull('revoked_at')->count());
+    }
+
+    #[Test]
+    public function a_late_delivery_saying_it_is_active_does_not_give_it_back(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        [$order, $payment, $package] = $this->placeOrder(recurring: true);
+        $this->give($package, $this->feature());
+        $this->pay($order, $payment, recurring: true);
+        $this->recurring('recurring-payment.ended', $order, $payment, ['status' => ['id' => 5, 'description' => 'Cancelled']], '2026-12-01T10:00:00+00:00')->assertOk();
+
+        // Sent before the end, arriving after it.
+        $this->recurring('recurring-payment.status-changed', $order, $payment, ['status' => ['id' => 2, 'description' => 'Active']], '2026-11-20T10:00:00+00:00')->assertOk();
+
+        $this->assertFalse($user->canUse('reports'));
+    }
+
+    #[Test]
+    public function the_end_stands_when_the_ending_delivery_itself_carries_an_active_status(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        [$order, $payment, $package] = $this->placeOrder(recurring: true);
+        $this->give($package, $this->feature());
+        $this->pay($order, $payment, recurring: true);
+
+        $this->recurring('recurring-payment.ended', $order, $payment, ['status' => ['id' => 2, 'description' => 'Active']], '2026-12-01T10:00:00+00:00')->assertOk();
+
+        $this->assertFalse($user->canUse('reports'));
+    }
+
+    #[Test]
     public function asking_to_cancel_or_missing_a_payment_does_not_take_anything_back(): void
     {
         $user = User::factory()->create();

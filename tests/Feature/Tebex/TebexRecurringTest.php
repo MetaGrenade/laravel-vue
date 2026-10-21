@@ -274,6 +274,80 @@ class TebexRecurringTest extends TestCase
     }
 
     #[Test]
+    public function a_recurring_payment_that_tebex_says_is_active_again_after_it_ended_is_live_again(): void
+    {
+        [$order, $payment] = $this->start();
+        $this->recurring('recurring-payment.ended', $order, $payment, ['status' => ['id' => 5, 'description' => 'Cancelled']], '2026-12-01T10:00:00+00:00')->assertOk();
+        $this->assertNotNull($this->subscription()->ended_at);
+        $this->assertFalse($this->subscription()->isLive());
+
+        $this->recurring('recurring-payment.status-changed', $order, $payment, ['status' => ['id' => 2, 'description' => 'Active'], 'next_payment_at' => '2027-01-01T00:00:00.000000Z'], '2026-12-05T10:00:00+00:00')->assertOk();
+
+        $subscription = $this->subscription();
+        $this->assertNull($subscription->ended_at, 'the end no longer stands');
+        $this->assertSame(SubscriptionStatus::Active, $subscription->status);
+        $this->assertTrue($subscription->isLive());
+        $this->assertSame('2027-01-01', $subscription->next_payment_at->format('Y-m-d'));
+
+        $notes = $this->notes($order);
+        $this->assertStringContainsString('is active again at Tebex', $notes[array_key_last($notes)]);
+    }
+
+    #[Test]
+    public function an_overdue_status_after_it_ended_also_means_it_is_running_again(): void
+    {
+        [$order, $payment] = $this->start();
+        $this->recurring('recurring-payment.ended', $order, $payment, ['status' => ['id' => 4, 'description' => 'Expired']], '2026-12-01T10:00:00+00:00')->assertOk();
+
+        $this->recurring('recurring-payment.renewed', $order, $payment, ['status' => ['id' => 3, 'description' => 'Overdue'], 'fail_count' => 1], '2026-12-05T10:00:00+00:00')->assertOk();
+
+        $this->assertNull($this->subscription()->ended_at);
+        $this->assertTrue($this->subscription()->isLive(), 'Tebex is trying again');
+    }
+
+    #[Test]
+    public function the_delivery_that_says_it_ended_is_the_end_whatever_status_it_carries(): void
+    {
+        [$order, $payment] = $this->start();
+
+        $this->recurring('recurring-payment.ended', $order, $payment, ['status' => ['id' => 2, 'description' => 'Active']], '2026-12-01T10:00:00+00:00')->assertOk();
+
+        $this->assertNotNull($this->subscription()->ended_at);
+        $this->assertFalse($this->subscription()->isLive());
+
+        // Said again later, it is still the first moment it ended.
+        $this->recurring('recurring-payment.ended', $order, $payment, ['status' => ['id' => 2, 'description' => 'Active']], '2026-12-05T10:00:00+00:00')->assertOk();
+
+        $this->assertSame('2026-12-01', $this->subscription()->ended_at->format('Y-m-d'));
+        $this->assertFalse($this->subscription()->isLive());
+    }
+
+    #[Test]
+    public function a_later_delivery_that_does_not_say_it_is_live_leaves_the_end_in_place(): void
+    {
+        [$order, $payment] = $this->start();
+        $this->recurring('recurring-payment.ended', $order, $payment, ['status' => ['id' => 5, 'description' => 'Cancelled']], '2026-12-01T10:00:00+00:00')->assertOk();
+
+        $this->recurring('recurring-payment.status-changed', $order, $payment, ['status' => ['id' => 4, 'description' => 'Expired']], '2026-12-05T10:00:00+00:00')->assertOk();
+        $this->recurring('recurring-payment.status-changed', $order, $payment, ['status' => ['id' => 99, 'description' => 'Something new']], '2026-12-06T10:00:00+00:00')->assertOk();
+
+        $this->assertSame('2026-12-01', $this->subscription()->ended_at->format('Y-m-d'));
+        $this->assertFalse($this->subscription()->isLive());
+    }
+
+    #[Test]
+    public function an_older_delivery_saying_it_is_active_does_not_undo_the_end(): void
+    {
+        [$order, $payment] = $this->start();
+        $this->recurring('recurring-payment.ended', $order, $payment, ['status' => ['id' => 5, 'description' => 'Cancelled']], '2026-12-01T10:00:00+00:00')->assertOk();
+
+        $this->recurring('recurring-payment.status-changed', $order, $payment, ['status' => ['id' => 2, 'description' => 'Active']], '2026-11-20T10:00:00+00:00')->assertOk();
+
+        $this->assertNotNull($this->subscription()->ended_at);
+        $this->assertFalse($this->subscription()->isLive());
+    }
+
+    #[Test]
     public function asking_to_cancel_does_not_end_it_and_taking_the_request_back_renews_it_as_normal(): void
     {
         [$order, $payment] = $this->start();

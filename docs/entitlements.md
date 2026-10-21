@@ -38,7 +38,7 @@ Entitlements follow the money and the recurring payment, in the way downloads do
 | The order is **refunded in full** (at Tebex, or by hand in the shop), or a **dispute is lost** (the money is gone, which the shop records as a refund) | Taken back (`refund`). |
 | The refund **fails** afterwards | Given back. |
 | The **recurring payment ends** (Tebex sends `ended`, or its status becomes Expired or Cancelled) | Taken back for **the recurring package only** (`subscription`). A one-off package in the same order keeps what it gave. |
-| The recurring payment is **live again** (Tebex says Active) | Given back. |
+| The recurring payment is **live again**: a later delivery (not the `ended` one, and not older than it) says it is Active or Overdue, after an `ended` or an Expired or Cancelled status | Given back. |
 | Cancelling is **asked for** (it runs until the end of what was paid for), a renewal **fails** (Tebex tries again), or a dispute is only **opened** | Nothing. |
 | Both a refund and the end of the recurring payment | Taken back; the refund is the reason that is kept, and it stays taken back even if the recurring payment is live again. |
 
