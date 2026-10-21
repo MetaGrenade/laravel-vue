@@ -48,6 +48,11 @@ class TebexCatalogue
      */
     public function sync(string $trigger = TebexSync::COMMAND, ?User $by = null): TebexSync
     {
+        // With the Checkout API the catalogue is the shop's own: there is nothing of Tebex's to copy, and the copy is not used.
+        if (TebexSelling::checkoutApi()) {
+            throw new TebexException('The Tebex catalogue is not used while the Checkout API mode is on (TEBEX_CHECKOUT_API_ENABLED): the shop sells its own products.');
+        }
+
         if (! $this->client->isConfigured()) {
             throw new TebexException('Tebex is not set up: add the store\'s public token (TEBEX_PUBLIC_TOKEN) to the environment.');
         }
@@ -102,7 +107,7 @@ class TebexCatalogue
     {
         $every = (int) config('tebex.sync.every_minutes', 0);
 
-        if ($every <= 0 || ! $this->client->isConfigured()) {
+        if ($every <= 0 || TebexSelling::checkoutApi() || ! $this->client->isConfigured()) {
             return false;
         }
 

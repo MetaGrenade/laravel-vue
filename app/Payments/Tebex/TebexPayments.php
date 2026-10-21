@@ -254,9 +254,20 @@ class TebexPayments
         $known = Refund::query()->where('provider', TebexProvider::KEY)->where('provider_reference', $reference)->first();
         $amount = Money::parse($payment->amount, $payment->currency);
 
+        // A refund the shop asked Tebex for and never heard back on (it was unreachable, or answered with a problem of its own)
+        // has no reference yet, and it already reserves the whole amount. Tebex saying the payment was refunded is that refund,
+        // further along: without this the delivery would find nothing refundable, take the order for refunded already, and leave
+        // this one pending while the customer has their money and keeps their downloads. (Only for a refund: a lost dispute is
+        // not what the shop asked for.)
+        $asked = $known === null && str_ends_with($reference, '-refund')
+            ? Refund::query()->where('payment_id', $payment->id)->where('provider', TebexProvider::KEY)->unanswered()->latest('id')->first()
+            : null;
+
         if ($known !== null) {
             // The same refund, further along (it was pending and has now gone through).
             $amount = $known->money();
+        } elseif ($asked !== null) {
+            $amount = $asked->money();
         } else {
             $refundable = $this->refunds->refundable($payment->order);
 
@@ -274,7 +285,7 @@ class TebexPayments
         }
 
         $this->refunds->sync($payment, [
-            new ProviderRefund(reference: $reference, amount: $amount, status: $status, reason: 'other'),
+            new ProviderRefund(reference: $reference, amount: $amount, status: $status, reason: 'other', refundId: $asked?->id),
         ]);
 
         return WebhookOutcome::handled();

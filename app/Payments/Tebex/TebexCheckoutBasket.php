@@ -26,6 +26,8 @@ final readonly class TebexCheckoutBasket
         public ?string $paymentUrl,
         public array $rows,
         public array $custom,
+        /** The transaction id (`tbx-...`) of the payment that paid for it, once there is one. */
+        public ?string $paymentTransaction = null,
     ) {}
 
     /**
@@ -66,6 +68,7 @@ final readonly class TebexCheckoutBasket
             paymentUrl: is_string($links['payment'] ?? null) && $links['payment'] !== '' ? $links['payment'] : null,
             rows: $rows,
             custom: is_array($data['custom'] ?? null) ? $data['custom'] : [],
+            paymentTransaction: is_array($data['payment'] ?? null) && is_string($data['payment']['transaction_id'] ?? null) && $data['payment']['transaction_id'] !== '' ? $data['payment']['transaction_id'] : null,
         );
     }
 

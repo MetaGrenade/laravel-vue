@@ -42,6 +42,12 @@ class FakeTebexCheckoutApi
     /** When true, Tebex answers a basket with no place to pay (links.checkout missing), so the shop falls back to the documented address. */
     public bool $withoutCheckoutLink = false;
 
+    /** @var array<string, array<string, mixed>> Payments by transaction id: the shape a webhook carries. */
+    public array $payments = [];
+
+    /** What a refund leaves a payment as: 2 is refunded, 21 a refund pending, 1 not refunded at all (Tebex declining to). */
+    public int $refundStatus = 2;
+
     /** Where the checkout links Tebex gives are. */
     public string $checkoutBase = 'https://pay.tebex.io';
 
@@ -68,6 +74,27 @@ class FakeTebexCheckoutApi
     public function markPaid(string $ident): void
     {
         $this->baskets[$ident]['complete'] = true;
+    }
+
+    /**
+     * What happens when the buyer pays: the basket is complete, and there is a payment for it. `$payment` is the payment as a
+     * webhook would carry it (see `InteractsWithTebexWebhooks::tebexProductPaymentFor()`).
+     *
+     * @param  array<string, mixed>  $payment
+     */
+    public function pay(string $ident, array $payment): void
+    {
+        $this->baskets[$ident]['complete'] = true;
+        $this->baskets[$ident]['payment'] = $payment;
+        $this->payments[$payment['transaction_id']] = $payment;
+    }
+
+    /**
+     * What Tebex does when the payment is refunded in its own panel.
+     */
+    public function refundInPanel(string $transaction, int $status = 2): void
+    {
+        $this->payments[$transaction]['status'] = ['id' => $status, 'description' => $status === 2 ? 'Refund' : 'Refund Pending'];
     }
 
     /**
@@ -103,6 +130,8 @@ class FakeTebexCheckoutApi
         return match ($action) {
             'checkout' => $this->checkout($body),
             'get' => $this->show($this->identIn($path)),
+            'payment' => $this->payment(basename($path)),
+            'refund' => $this->refund(basename(dirname($path))),
             'remove' => $this->remove($this->identIn($path), (int) basename($path)),
             default => Http::response(['type' => 'Not Found', 'title' => 'Resource not found', 'status' => 404], 404),
         };
@@ -113,6 +142,8 @@ class FakeTebexCheckoutApi
         return match (true) {
             $method === 'POST' && $path === '/api/checkout' => 'checkout',
             $method === 'GET' && preg_match('#^/api/baskets/[^/]+$#', $path) === 1 => 'get',
+            $method === 'GET' && preg_match('#^/api/payments/[^/]+$#', $path) === 1 => 'payment',
+            $method === 'POST' && preg_match('#^/api/payments/[^/]+/refund$#', $path) === 1 => 'refund',
             $method === 'DELETE' && preg_match('#^/api/baskets/[^/]+/packages/\d+$#', $path) === 1 => 'remove',
             default => null,
         };
@@ -168,6 +199,26 @@ class FakeTebexCheckoutApi
             : Http::response(['type' => 'Not Found', 'title' => 'Resource not found', 'status' => 404], 404);
     }
 
+    private function payment(string $transaction): PromiseInterface
+    {
+        return isset($this->payments[$transaction])
+            ? Http::response($this->payments[$transaction])
+            : Http::response(['type' => 'Not Found', 'title' => 'Resource not found', 'status' => 404], 404);
+    }
+
+    private function refund(string $transaction): PromiseInterface
+    {
+        if (! isset($this->payments[$transaction])) {
+            return Http::response(['type' => 'Not Found', 'title' => 'Resource not found', 'status' => 404], 404);
+        }
+
+        if ($this->refundStatus !== 1) {
+            $this->refundInPanel($transaction, $this->refundStatus);
+        }
+
+        return Http::response($this->payments[$transaction]);
+    }
+
     private function remove(string $ident, int $rowId): PromiseInterface
     {
         if (! isset($this->baskets[$ident])) {
@@ -214,6 +265,7 @@ class FakeTebexCheckoutApi
                 'roundUp' => 0,
             ],
             'complete' => $basket['complete'],
+            'payment' => $basket['payment'] ?? null,
             'tax' => $tax,
             'rows' => $basket['rows'],
             'complete_url' => $basket['complete_url'],

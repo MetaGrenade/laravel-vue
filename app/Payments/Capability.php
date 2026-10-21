@@ -14,6 +14,12 @@ final class Capability
 
     public const REFUNDS = 'refunds';
 
+    /**
+     * Refunding less than the whole payment. A provider that has {@see self::REFUNDS} but not this one (Tebex's API takes no
+     * amount) can only be asked to return a payment in full; a smaller refund can only be recorded as one made by hand.
+     */
+    public const PARTIAL_REFUNDS = 'partial_refunds';
+
     public const COUPONS = 'coupons';
 
     public const HOSTED_CHECKOUT = 'hosted_checkout';

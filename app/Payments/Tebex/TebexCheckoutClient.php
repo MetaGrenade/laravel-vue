@@ -66,6 +66,68 @@ class TebexCheckoutClient
     }
 
     /**
+     * A payment as Tebex has it, by its transaction id (`tbx-...`): the same shape as the payment a webhook carries.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws TebexException
+     */
+    public function payment(string $transaction): array
+    {
+        return $this->paymentFrom($this->send('GET', '/payments/'.rawurlencode($transaction), ['type' => 'txn_id'], repeatable: true));
+    }
+
+    /**
+     * Refund a payment. Tebex takes no amount: the whole payment goes back. The answer is the payment, with the status it
+     * has now (refunded, or a refund pending).
+     *
+     * @return array<string, mixed>
+     *
+     * @throws TebexException
+     */
+    public function refund(string $transaction): array
+    {
+        return $this->paymentFrom($this->send('POST', '/payments/'.rawurlencode($transaction).'/refund?type=txn_id', [], repeatable: false));
+    }
+
+    /**
+     * Find out whether the project id and private key are accepted, without changing anything. The Checkout API has no call
+     * that says who is asking, so a basket that does not exist is asked for: Tebex answers a refusal of the credentials with
+     * a 401 or 403, and anything about the basket itself (a 404) means it let the request in.
+     *
+     * @throws TebexException When Tebex cannot be reached or does not accept the credentials.
+     */
+    public function ping(): void
+    {
+        try {
+            $this->send('GET', '/baskets/connection-test', [], repeatable: true);
+        } catch (TebexException $exception) {
+            if ($exception->status !== 404) {
+                throw $exception;
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws TebexException
+     */
+    private function paymentFrom(Response $response): array
+    {
+        $body = $response->json();
+
+        // The documented answer is the payment itself; one wrapped like the Headless API's is read as well.
+        $data = is_array($body) && is_array($body['data'] ?? null) && ! isset($body['transaction_id']) ? $body['data'] : $body;
+
+        if (! is_array($data) || ! is_string($data['transaction_id'] ?? null) || $data['transaction_id'] === '') {
+            throw new TebexException('Tebex sent a payment the shop could not understand.');
+        }
+
+        return $data;
+    }
+
+    /**
      * @throws TebexException
      */
     private function basketFrom(Response $response, string $currency): TebexCheckoutBasket

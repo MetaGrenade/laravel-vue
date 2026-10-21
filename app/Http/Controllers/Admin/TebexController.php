@@ -13,8 +13,10 @@ use App\Models\TebexPackage;
 use App\Models\TebexSync;
 use App\Payments\Providers\TebexProvider;
 use App\Payments\Tebex\TebexCatalogue;
+use App\Payments\Tebex\TebexCheckoutClient;
 use App\Payments\Tebex\TebexClient;
 use App\Payments\Tebex\TebexException;
+use App\Payments\Tebex\TebexSelling;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Payments\Tebex\TebexWebhookVerifier;
 use Illuminate\Http\RedirectResponse;
@@ -38,6 +40,7 @@ class TebexController extends Controller
 
     public function __construct(
         private readonly TebexClient $client,
+        private readonly TebexCheckoutClient $checkoutClient,
         private readonly TebexCatalogue $catalogue,
         private readonly TebexStoreProfile $profile,
         private readonly TebexWebhookVerifier $webhooks,
@@ -73,6 +76,13 @@ class TebexController extends Controller
         $lastDelivery = BillingWebhookCall::query()->where('provider', TebexProvider::KEY)->latest('id')->first();
 
         return Inertia::render('acp/CommerceTebex', [
+            // What the shop sells through Tebex: its packages (the Headless API), or its own products (the Checkout API).
+            'mode' => TebexSelling::checkoutApi() ? 'checkout_api' : 'packages',
+            'checkout_api' => [
+                'configured' => $this->checkoutClient->isConfigured(),
+                'project_id' => $this->maskedProjectId(),
+                'has_private_key' => filled(config('tebex.private_key')),
+            ],
             'connection' => [
                 'configured' => $this->client->isConfigured(),
                 'token' => $this->maskedToken(),
@@ -164,6 +174,10 @@ class TebexController extends Controller
      */
     public function test(): RedirectResponse
     {
+        if (TebexSelling::checkoutApi()) {
+            return $this->testCheckoutApi();
+        }
+
         try {
             $store = $this->client->webstore();
         } catch (TebexException $exception) {
@@ -243,6 +257,35 @@ class TebexController extends Controller
             'counts' => $run->counts,
             'error' => $run->error,
         ];
+    }
+
+    /**
+     * Find out whether the project id and private key are accepted. The Checkout API has no call that says who is asking,
+     * so this says only that Tebex let the request in (and not what the store is called).
+     */
+    private function testCheckoutApi(): RedirectResponse
+    {
+        try {
+            $this->checkoutClient->ping();
+        } catch (TebexException $exception) {
+            return back()->with('tebex_test', ['ok' => false, 'message' => $exception->getMessage()]);
+        }
+
+        return back()->with('tebex_test', ['ok' => true, 'checkout_api' => true]);
+    }
+
+    /**
+     * The end of the project id, enough to recognise which project's it is. (It is not a secret, but nothing needs all of it.)
+     */
+    private function maskedProjectId(): ?string
+    {
+        $id = config('tebex.checkout_api.project_id');
+
+        if (! is_string($id) || trim($id) === '') {
+            return null;
+        }
+
+        return '…'.substr(trim($id), -3);
     }
 
     /**

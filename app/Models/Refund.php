@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\RefundStatus;
 use App\Support\Commerce\Money;
 use App\Support\Commerce\OrderRefunder;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -70,6 +71,18 @@ class Refund extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Refunds the shop asked a provider for and never got an answer to: still pending, with no reference. The provider may or
+     * may not have made them, which is found out when it says something about the payment (or when someone checks).
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeUnanswered(Builder $query): Builder
+    {
+        return $query->whereNull('provider_reference')->where('status', RefundStatus::Pending->value);
     }
 
     public function money(): Money

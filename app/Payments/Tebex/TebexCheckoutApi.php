@@ -2,14 +2,21 @@
 
 namespace App\Payments\Tebex;
 
+use App\Enums\RefundStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
+use App\Models\Refund;
 use App\Payments\Data\CheckoutClosure;
 use App\Payments\Data\CheckoutContext;
 use App\Payments\Data\CheckoutSession;
+use App\Payments\Data\ProviderRefund;
+use App\Payments\Data\RefundOutcome;
 use App\Payments\Exceptions\PaymentException;
+use App\Payments\Providers\TebexProvider;
 use App\Support\Commerce\Money;
+use App\Support\Commerce\OrderRefunder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -33,7 +40,10 @@ class TebexCheckoutApi
     /** What a payment made this way says about itself (`payments.raw.mode`), so what is done to it later is too. */
     public const MODE = 'checkout_api';
 
-    public function __construct(private readonly TebexCheckoutClient $client) {}
+    public function __construct(
+        private readonly TebexCheckoutClient $client,
+        private readonly OrderRefunder $refunds,
+    ) {}
 
     public function isConfigured(): bool
     {
@@ -145,6 +155,118 @@ class TebexCheckoutApi
         $basket = $this->client->basket((string) $payment->provider_reference, $currency);
 
         return ! $basket->isPaid() && $basket->rows === [] ? CheckoutClosure::Closed : CheckoutClosure::Unresolved;
+    }
+
+    /**
+     * Ask Tebex to refund the payment. Tebex takes no amount, so the whole payment goes back: the refunder never asks for less
+     * (see `Capability::PARTIAL_REFUNDS`), and this refuses it too.
+     *
+     * The refund is known by `{transaction}-refund`, which is also what the `payment.refunded` delivery Tebex sends afterwards is
+     * recorded under, so the two are one refund and not two.
+     *
+     * @throws TebexException When Tebex cannot be reached or answers with a problem of its own, so the refund may or may not
+     *                        have been made: the refund is then left pending, to be checked.
+     */
+    public function refund(Refund $refund): RefundOutcome
+    {
+        $payment = $refund->payment;
+        $transaction = $payment?->provider_payment_id;
+
+        if ($payment === null || blank($transaction)) {
+            return RefundOutcome::refused('The payment has no Tebex transaction to refund.');
+        }
+
+        if (! $refund->money()->equals(Money::parse($payment->amount, $payment->currency))) {
+            return RefundOutcome::refused('Tebex refunds a payment in full.');
+        }
+
+        try {
+            $data = $this->client->refund($transaction);
+        } catch (TebexException $exception) {
+            // A refusal (a 4xx that is not "slow down") gives the same answer again: it was not made. Anything else may have got through.
+            if ($exception->status !== null && $exception->status >= 400 && $exception->status < 500 && $exception->status !== 429) {
+                return RefundOutcome::refused($exception->getMessage());
+            }
+
+            throw $exception;
+        }
+
+        $reference = "{$transaction}-refund";
+
+        return match ((int) Arr::get($data, 'status.id')) {
+            TebexEvent::STATUS_REFUND => RefundOutcome::of(RefundStatus::Succeeded, $reference),
+            TebexEvent::STATUS_REFUND_PENDING => RefundOutcome::of(RefundStatus::Pending, $reference),
+            default => RefundOutcome::refused('Tebex did not refund the payment (it says: '.(Arr::get($data, 'status.description') ?: 'status '.Arr::get($data, 'status.id')).').'),
+        };
+    }
+
+    /**
+     * Ask Tebex whether the payment has been refunded, and bring the shop's refunds in line: one the shop asked for whose
+     * answer was lost is found again, and one made in the Tebex panel is recorded.
+     *
+     * @throws TebexException When Tebex cannot be asked.
+     */
+    public function syncRefunds(Payment $payment): void
+    {
+        $transaction = $payment->provider_payment_id;
+
+        if (blank($transaction)) {
+            return;
+        }
+
+        $data = $this->client->payment($transaction);
+
+        $status = match ((int) Arr::get($data, 'status.id')) {
+            TebexEvent::STATUS_REFUND => RefundStatus::Succeeded,
+            TebexEvent::STATUS_REFUND_PENDING => RefundStatus::Pending,
+            default => null,
+        };
+
+        if ($status === null) {
+            return;
+        }
+
+        // The refund the shop asked for and never heard the answer to, if there is one.
+        $asked = Refund::query()->where('payment_id', $payment->id)->where('provider', TebexProvider::KEY)->unanswered()->latest('id')->first();
+
+        $this->refunds->sync($payment, [
+            new ProviderRefund(
+                reference: "{$transaction}-refund",
+                amount: Money::parse($payment->amount, $payment->currency),
+                status: $status,
+                reason: 'other',
+                refundId: $asked?->id,
+            ),
+        ]);
+    }
+
+    /**
+     * The payment Tebex took for an unpaid order's basket, if it took one, as the delivery it would have sent: for when that
+     * delivery was late or lost. It is applied by the same code, with the same checks, as a delivery from Tebex. Only a payment
+     * that is complete counts here; a refund or a chargeback reaches the shop by its own delivery.
+     *
+     * @throws TebexException When Tebex cannot be asked.
+     */
+    public function settledPayment(Payment $payment, string $currency): ?TebexEvent
+    {
+        $basket = $this->client->basket((string) $payment->provider_reference, $currency);
+
+        if ($basket->paymentTransaction === null) {
+            return null;
+        }
+
+        $data = $this->client->payment($basket->paymentTransaction);
+
+        if ((int) Arr::get($data, 'status.id') !== TebexEvent::STATUS_COMPLETE) {
+            return null;
+        }
+
+        return TebexEvent::fromArray([
+            'id' => 'lookup-'.$basket->paymentTransaction,
+            'type' => TebexEvent::PAYMENT_COMPLETED,
+            'date' => now()->toIso8601String(),
+            'subject' => $data,
+        ]);
     }
 
     /**
