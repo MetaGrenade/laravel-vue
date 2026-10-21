@@ -22,12 +22,24 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
 import type { BreadcrumbItem } from '@/types';
 import type { EntitlementChoice } from '@/types/entitlements';
-import type { TebexPackageRow, TebexRecurringCounts, TebexStoreInfo, TebexSyncRun, TebexTestResult, TebexWebhookInfo } from '@/types/tebex';
+import type {
+    TebexCheckoutApiInfo,
+    TebexMode,
+    TebexPackageRow,
+    TebexRecurringCounts,
+    TebexStoreInfo,
+    TebexSyncRun,
+    TebexTestResult,
+    TebexWebhookInfo,
+} from '@/types/tebex';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleAlert, CircleCheck, Pencil, RefreshCw, Store } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 
 const props = defineProps<{
+    /** What the shop sells through Tebex: its packages (the Headless API), or its own products (the Checkout API, experimental). */
+    mode: TebexMode;
+    checkout_api: TebexCheckoutApiInfo;
     connection: { configured: boolean; token: string | null; has_private_key: boolean };
     store: TebexStoreInfo | null;
     test: TebexTestResult | null;
@@ -123,129 +135,185 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
             <div class="space-y-6 pb-4">
                 <div>
                     <h2 class="flex items-center gap-2 text-xl font-semibold tracking-tight"><Store class="size-5" /> Tebex</h2>
-                    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
+                    <p v-if="props.mode === 'packages'" class="mt-1 max-w-2xl text-sm text-muted-foreground">
                         Tebex keeps the catalogue and takes the payment. The shop reads a copy of the store's categories and packages, refreshed from
                         here, by <code class="rounded bg-muted px-1 py-0.5 text-xs">php artisan tebex:sync</code> and on a schedule. Packages and
                         prices are changed in the Tebex panel and arrive with the next refresh.
                     </p>
+                    <p v-else class="mt-1 max-w-2xl text-sm text-muted-foreground">
+                        The shop sells its own products and Tebex only takes the payment, as merchant of record: it works out the tax, applies its own
+                        codes and pays the shop out. There is no Tebex catalogue here; products, prices and stock are managed under Products.
+                    </p>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-2">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle class="flex items-center gap-2">
-                                Connection
-                                <Badge :variant="connection.configured ? 'secondary' : 'outline'">{{
-                                    connection.configured ? 'Set up' : 'Not set up'
-                                }}</Badge>
-                            </CardTitle>
-                            <CardDescription>The keys come from the environment and are never shown in full.</CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-4">
-                            <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-                                <dt class="text-muted-foreground">Public token</dt>
-                                <dd class="font-mono">{{ connection.token ?? 'Not set (TEBEX_PUBLIC_TOKEN)' }}</dd>
-                                <dt class="text-muted-foreground">Private key</dt>
-                                <dd>{{ connection.has_private_key ? 'Set' : 'Not set (TEBEX_PRIVATE_KEY): not needed to read the catalogue' }}</dd>
-                            </dl>
+                <template v-if="props.mode === 'packages'">
+                    <div class="grid gap-6 lg:grid-cols-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle class="flex items-center gap-2">
+                                    Connection
+                                    <Badge :variant="connection.configured ? 'secondary' : 'outline'">{{
+                                        connection.configured ? 'Set up' : 'Not set up'
+                                    }}</Badge>
+                                </CardTitle>
+                                <CardDescription>The keys come from the environment and are never shown in full.</CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-4">
+                                <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+                                    <dt class="text-muted-foreground">Public token</dt>
+                                    <dd class="font-mono">{{ connection.token ?? 'Not set (TEBEX_PUBLIC_TOKEN)' }}</dd>
+                                    <dt class="text-muted-foreground">Private key</dt>
+                                    <dd>
+                                        {{ connection.has_private_key ? 'Set' : 'Not set (TEBEX_PRIVATE_KEY): not needed to read the catalogue' }}
+                                    </dd>
+                                </dl>
 
-                            <Button v-if="can.edit && connection.configured" variant="outline" :disabled="busy !== null" @click="post('test')">
-                                <CircleCheck class="size-4" /> {{ busy === 'test' ? 'Asking Tebex…' : 'Test connection' }}
-                            </Button>
+                                <Button v-if="can.edit && connection.configured" variant="outline" :disabled="busy !== null" @click="post('test')">
+                                    <CircleCheck class="size-4" /> {{ busy === 'test' ? 'Asking Tebex…' : 'Test connection' }}
+                                </Button>
 
-                            <Alert v-if="test && test.ok">
-                                <CircleCheck class="size-4" />
-                                <AlertTitle>Connected to {{ test.name }}</AlertTitle>
-                                <AlertDescription>
-                                    The store sells in {{ test.currency
-                                    }}<template v-if="test.platform"> and is set up for {{ test.platform }}</template
-                                    >.
-                                    <template v-if="test.disabled"> Tebex says the store is switched off, so customers cannot pay there.</template>
-                                </AlertDescription>
-                            </Alert>
-                            <p v-if="props.store && props.store.supported && props.store.platform" class="text-sm text-muted-foreground">
-                                Set up for {{ props.store.platform }}:
-                                <template v-if="props.store.identity === 'username'"
-                                    >buyers type their {{ props.store.username_label }} at checkout.</template
-                                >
-                                <template v-else-if="props.store.identity === 'sign-in'">buyers sign in through Tebex before they pay.</template>
-                                <template v-else>buyers are asked for nothing but their email.</template>
-                            </p>
+                                <Alert v-if="test && test.ok && !test.checkout_api">
+                                    <CircleCheck class="size-4" />
+                                    <AlertTitle>Connected to {{ test.name }}</AlertTitle>
+                                    <AlertDescription>
+                                        The store sells in {{ test.currency
+                                        }}<template v-if="test.platform"> and is set up for {{ test.platform }}</template
+                                        >.
+                                        <template v-if="test.disabled">
+                                            Tebex says the store is switched off, so customers cannot pay there.</template
+                                        >
+                                    </AlertDescription>
+                                </Alert>
+                                <p v-if="props.store && props.store.supported && props.store.platform" class="text-sm text-muted-foreground">
+                                    Set up for {{ props.store.platform }}:
+                                    <template v-if="props.store.identity === 'username'"
+                                        >buyers type their {{ props.store.username_label }} at checkout.</template
+                                    >
+                                    <template v-else-if="props.store.identity === 'sign-in'">buyers sign in through Tebex before they pay.</template>
+                                    <template v-else>buyers are asked for nothing but their email.</template>
+                                </p>
 
-                            <Alert v-if="props.store && !props.store.supported" variant="destructive">
-                                <CircleAlert class="size-4" />
-                                <AlertTitle>The shop does not know this kind of store yet</AlertTitle>
-                                <AlertDescription>{{ props.store.reason }}</AlertDescription>
-                            </Alert>
-                            <Alert v-if="test && !test.ok" variant="destructive">
-                                <CircleAlert class="size-4" />
-                                <AlertTitle>Could not connect</AlertTitle>
-                                <AlertDescription>{{ test.message }}</AlertDescription>
-                            </Alert>
-                        </CardContent>
-                    </Card>
+                                <Alert v-if="props.store && !props.store.supported" variant="destructive">
+                                    <CircleAlert class="size-4" />
+                                    <AlertTitle>The shop does not know this kind of store yet</AlertTitle>
+                                    <AlertDescription>{{ props.store.reason }}</AlertDescription>
+                                </Alert>
+                                <Alert v-if="test && !test.ok" variant="destructive">
+                                    <CircleAlert class="size-4" />
+                                    <AlertTitle>Could not connect</AlertTitle>
+                                    <AlertDescription>{{ test.message }}</AlertDescription>
+                                </Alert>
+                            </CardContent>
+                        </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Catalogue</CardTitle>
-                            <CardDescription>
-                                <template v-if="sync.every_minutes > 0"
-                                    >Refreshed every {{ sync.every_minutes }} minutes while the scheduler runs.</template
-                                >
-                                <template v-else
-                                    >Not refreshed on a schedule (TEBEX_SYNC_EVERY_MINUTES is 0); refresh it by hand or with the command.</template
-                                >
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-4">
-                            <dl class="grid grid-cols-3 gap-4 text-sm">
-                                <div>
-                                    <dt class="text-muted-foreground">Categories</dt>
-                                    <dd class="text-2xl font-semibold tabular-nums">{{ counts.categories }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-muted-foreground">Packages</dt>
-                                    <dd class="text-2xl font-semibold tabular-nums">{{ counts.packages }}</dd>
-                                    <dd v-if="counts.subscriptions" class="text-xs text-muted-foreground">{{ counts.subscriptions }} recurring</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-muted-foreground">No longer listed</dt>
-                                    <dd class="text-2xl font-semibold tabular-nums">{{ counts.removed }}</dd>
-                                </div>
-                            </dl>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Catalogue</CardTitle>
+                                <CardDescription>
+                                    <template v-if="sync.every_minutes > 0"
+                                        >Refreshed every {{ sync.every_minutes }} minutes while the scheduler runs.</template
+                                    >
+                                    <template v-else
+                                        >Not refreshed on a schedule (TEBEX_SYNC_EVERY_MINUTES is 0); refresh it by hand or with the
+                                        command.</template
+                                    >
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-4">
+                                <dl class="grid grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                        <dt class="text-muted-foreground">Categories</dt>
+                                        <dd class="text-2xl font-semibold tabular-nums">{{ counts.categories }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-muted-foreground">Packages</dt>
+                                        <dd class="text-2xl font-semibold tabular-nums">{{ counts.packages }}</dd>
+                                        <dd v-if="counts.subscriptions" class="text-xs text-muted-foreground">
+                                            {{ counts.subscriptions }} recurring
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-muted-foreground">No longer listed</dt>
+                                        <dd class="text-2xl font-semibold tabular-nums">{{ counts.removed }}</dd>
+                                    </div>
+                                </dl>
 
-                            <p v-if="sync.latest" class="text-sm">
-                                <span class="text-muted-foreground">Last refresh: </span>
-                                <Badge :variant="statusVariant[sync.latest.status]">{{ statusLabel[sync.latest.status] }}</Badge>
-                                {{ when(sync.latest.started_at) }}
-                            </p>
-                            <p v-else class="text-sm text-muted-foreground">Not refreshed yet.</p>
+                                <p v-if="sync.latest" class="text-sm">
+                                    <span class="text-muted-foreground">Last refresh: </span>
+                                    <Badge :variant="statusVariant[sync.latest.status]">{{ statusLabel[sync.latest.status] }}</Badge>
+                                    {{ when(sync.latest.started_at) }}
+                                </p>
+                                <p v-else class="text-sm text-muted-foreground">Not refreshed yet.</p>
 
-                            <Alert v-if="sync.latest?.status === 'failed'" variant="destructive">
-                                <CircleAlert class="size-4" />
-                                <AlertTitle>The last refresh failed</AlertTitle>
-                                <AlertDescription>
-                                    {{ sync.latest.error }}
-                                    <template v-if="sync.last_ok"> The catalogue below is from {{ when(sync.last_ok.started_at) }}.</template>
-                                </AlertDescription>
-                            </Alert>
+                                <Alert v-if="sync.latest?.status === 'failed'" variant="destructive">
+                                    <CircleAlert class="size-4" />
+                                    <AlertTitle>The last refresh failed</AlertTitle>
+                                    <AlertDescription>
+                                        {{ sync.latest.error }}
+                                        <template v-if="sync.last_ok"> The catalogue below is from {{ when(sync.last_ok.started_at) }}.</template>
+                                    </AlertDescription>
+                                </Alert>
 
-                            <Alert v-if="otherCurrency">
-                                <CircleAlert class="size-4" />
-                                <AlertTitle>Prices are not in the shop's currency</AlertTitle>
-                                <AlertDescription>
-                                    The shop sells in {{ shop_currency }}; the Tebex catalogue has prices in {{ currencies.join(', ') }}. Packages are
-                                    shown, and will be sold, in their own currency.
-                                </AlertDescription>
-                            </Alert>
+                                <Alert v-if="otherCurrency">
+                                    <CircleAlert class="size-4" />
+                                    <AlertTitle>Prices are not in the shop's currency</AlertTitle>
+                                    <AlertDescription>
+                                        The shop sells in {{ shop_currency }}; the Tebex catalogue has prices in {{ currencies.join(', ') }}. Packages
+                                        are shown, and will be sold, in their own currency.
+                                    </AlertDescription>
+                                </Alert>
 
-                            <Button v-if="can.edit && connection.configured" :disabled="busy !== null" @click="post('sync')">
-                                <RefreshCw class="size-4" :class="{ 'animate-spin': busy === 'sync' }" />
-                                {{ busy === 'sync' ? 'Refreshing…' : 'Refresh catalogue' }}
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
+                                <Button v-if="can.edit && connection.configured" :disabled="busy !== null" @click="post('sync')">
+                                    <RefreshCw class="size-4" :class="{ 'animate-spin': busy === 'sync' }" />
+                                    {{ busy === 'sync' ? 'Refreshing…' : 'Refresh catalogue' }}
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </template>
+
+                <Card v-else>
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            Checkout API
+                            <Badge variant="highlight">Experimental</Badge>
+                            <Badge :variant="props.checkout_api.configured ? 'secondary' : 'outline'">{{
+                                props.checkout_api.configured ? 'Set up' : 'Not set up'
+                            }}</Badge>
+                        </CardTitle>
+                        <CardDescription>
+                            It needs Tebex's approval, and has only been tried against Tebex's documentation. The keys come from the environment and
+                            are never shown in full.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-4">
+                        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+                            <dt class="text-muted-foreground">Project id</dt>
+                            <dd class="font-mono">{{ props.checkout_api.project_id ?? 'Not set (TEBEX_PROJECT_ID)' }}</dd>
+                            <dt class="text-muted-foreground">Private key</dt>
+                            <dd>{{ props.checkout_api.has_private_key ? 'Set' : 'Not set (TEBEX_PRIVATE_KEY)' }}</dd>
+                            <dt class="text-muted-foreground">Prices are sent in</dt>
+                            <dd>{{ shop_currency }}, which must be the store's currency (COMMERCE_CURRENCY): Tebex does not let the shop ask.</dd>
+                        </dl>
+
+                        <Button v-if="can.edit && props.checkout_api.configured" variant="outline" :disabled="busy !== null" @click="post('test')">
+                            <CircleCheck class="size-4" /> {{ busy === 'test' ? 'Asking Tebex…' : 'Test connection' }}
+                        </Button>
+
+                        <Alert v-if="test && test.ok && test.checkout_api">
+                            <CircleCheck class="size-4" />
+                            <AlertTitle>Tebex accepted the keys</AlertTitle>
+                            <AlertDescription>
+                                The Checkout API let the request in. It cannot say which store the keys belong to, or what currency it sells in.
+                            </AlertDescription>
+                        </Alert>
+                        <Alert v-if="test && !test.ok" variant="destructive">
+                            <CircleAlert class="size-4" />
+                            <AlertTitle>Could not connect</AlertTitle>
+                            <AlertDescription>{{ test.message }}</AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <CardHeader>
@@ -320,184 +388,189 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
                     </CardContent>
                 </Card>
 
-                <div class="flex flex-wrap gap-2" role="tablist" aria-label="Package status">
-                    <Button
-                        v-for="tab in tabs"
-                        :key="tab.value"
-                        size="sm"
-                        :variant="filters.status === tab.value ? 'default' : 'outline'"
-                        role="tab"
-                        :aria-selected="filters.status === tab.value"
-                        @click="go({ status: tab.value, page: 1 })"
-                    >
-                        {{ tab.label }}
-                    </Button>
-                </div>
-
-                <form class="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4 shadow-xs" @submit.prevent="go({ page: 1 })">
-                    <div class="flex min-w-60 flex-1 flex-col gap-2">
-                        <label for="tebex-search" class="text-sm font-medium">Search</label>
-                        <Input id="tebex-search" v-model="filterState.search" type="search" placeholder="Name or identifier" />
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <label for="tebex-category" class="text-sm font-medium">Category</label>
-                        <select
-                            id="tebex-category"
-                            :value="filters.category ?? ''"
-                            :class="selectClass"
-                            @change="go({ category: ($event.target as HTMLSelectElement).value, page: 1 })"
+                <template v-if="props.mode === 'packages'">
+                    <div class="flex flex-wrap gap-2" role="tablist" aria-label="Package status">
+                        <Button
+                            v-for="tab in tabs"
+                            :key="tab.value"
+                            size="sm"
+                            :variant="filters.status === tab.value ? 'default' : 'outline'"
+                            role="tab"
+                            :aria-selected="filters.status === tab.value"
+                            @click="go({ status: tab.value, page: 1 })"
                         >
-                            <option value="">All categories</option>
-                            <option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option>
-                        </select>
+                            {{ tab.label }}
+                        </Button>
                     </div>
-                    <Button type="submit">Search</Button>
-                    <Button
-                        v-if="filterState.search"
-                        type="button"
-                        variant="outline"
-                        @click="
-                            filterState.search = '';
-                            go({ page: 1, search: '' });
-                        "
-                        >Clear</Button
-                    >
-                </form>
 
-                <Card>
-                    <CardContent class="overflow-x-auto pt-6">
-                        <Table v-if="rows.length">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Package</TableHead>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead class="text-right">Price</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Gives</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow v-for="row in rows" :key="row.id">
-                                    <TableCell>
-                                        <p class="font-medium">{{ row.name }}</p>
-                                        <p class="font-mono text-xs text-muted-foreground">{{ row.ident ?? `#${row.tebex_id}` }}</p>
-                                    </TableCell>
-                                    <TableCell class="text-sm text-muted-foreground">{{ row.category ?? '—' }}</TableCell>
-                                    <TableCell>
-                                        <Badge :variant="row.type === 'subscription' ? 'highlight' : 'outline'">{{
-                                            row.type === 'subscription' ? 'Recurring' : 'One-off'
-                                        }}</Badge>
-                                        <p v-if="row.has_variables" class="mt-1 text-xs text-muted-foreground">Buyer chooses options</p>
-                                    </TableCell>
-                                    <TableCell class="text-right whitespace-nowrap tabular-nums">
-                                        {{ formatMoney(row.base_price, row.currency) }}
-                                        <p v-if="Number(row.sales_tax) > 0" class="text-xs text-muted-foreground">
-                                            {{ formatMoney(row.total_price, row.currency) }} with tax
-                                        </p>
-                                        <p v-if="Number(row.discount) > 0" class="text-xs text-muted-foreground">
-                                            {{ formatMoney(row.discount, row.currency) }} off
-                                        </p>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge :variant="row.removed ? 'destructive' : 'secondary'">{{
-                                            row.removed ? 'No longer listed' : 'Listed'
-                                        }}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div class="flex items-start justify-between gap-2">
-                                            <ul v-if="row.entitlements.length" class="space-y-0.5 text-sm">
-                                                <li v-for="entitlement in row.entitlements" :key="entitlement.id">
-                                                    {{ entitlement.label
-                                                    }}<span v-if="entitlement.type === 'limit'" class="text-muted-foreground">
-                                                        +{{ entitlement.value }}</span
-                                                    >
-                                                </li>
-                                            </ul>
-                                            <span v-else class="text-sm text-muted-foreground">Nothing</span>
-                                            <Button
-                                                v-if="can.edit"
-                                                variant="ghost"
-                                                size="icon"
-                                                :aria-label="`Change what ${row.name} gives`"
-                                                @click="editing = row"
-                                            >
-                                                <Pencil class="size-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                        <p
-                            v-else-if="filterState.search || filters.category !== null || filters.status !== 'listed'"
-                            class="py-8 text-center text-sm text-muted-foreground"
+                    <form
+                        class="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4 shadow-xs"
+                        @submit.prevent="go({ page: 1 })"
+                    >
+                        <div class="flex min-w-60 flex-1 flex-col gap-2">
+                            <label for="tebex-search" class="text-sm font-medium">Search</label>
+                            <Input id="tebex-search" v-model="filterState.search" type="search" placeholder="Name or identifier" />
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label for="tebex-category" class="text-sm font-medium">Category</label>
+                            <select
+                                id="tebex-category"
+                                :value="filters.category ?? ''"
+                                :class="selectClass"
+                                @change="go({ category: ($event.target as HTMLSelectElement).value, page: 1 })"
+                            >
+                                <option value="">All categories</option>
+                                <option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option>
+                            </select>
+                        </div>
+                        <Button type="submit">Search</Button>
+                        <Button
+                            v-if="filterState.search"
+                            type="button"
+                            variant="outline"
+                            @click="
+                                filterState.search = '';
+                                go({ page: 1, search: '' });
+                            "
+                            >Clear</Button
                         >
-                            No packages match.
-                        </p>
-                        <p v-else-if="!connection.configured" class="py-8 text-center text-sm text-muted-foreground">
-                            Add the store's public token to the environment, then refresh the catalogue.
-                        </p>
-                        <p v-else class="py-8 text-center text-sm text-muted-foreground">No packages yet. Refresh the catalogue to fetch them.</p>
-                    </CardContent>
-                </Card>
+                    </form>
 
-                <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <p class="text-sm text-muted-foreground">{{ rangeLabel }}</p>
-                    <Pagination
-                        v-if="pageCount > 1"
-                        v-slot="{ page: currentPage }"
-                        v-model:page="page"
-                        :items-per-page="Math.max(meta.per_page, 1)"
-                        :total="meta.total"
-                        :sibling-count="1"
-                        show-edges
-                    >
-                        <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
-                            <PaginationFirst />
-                            <PaginationPrev />
+                    <Card>
+                        <CardContent class="overflow-x-auto pt-6">
+                            <Table v-if="rows.length">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Package</TableHead>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead>Type</TableHead>
+                                        <TableHead class="text-right">Price</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Gives</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow v-for="row in rows" :key="row.id">
+                                        <TableCell>
+                                            <p class="font-medium">{{ row.name }}</p>
+                                            <p class="font-mono text-xs text-muted-foreground">{{ row.ident ?? `#${row.tebex_id}` }}</p>
+                                        </TableCell>
+                                        <TableCell class="text-sm text-muted-foreground">{{ row.category ?? '—' }}</TableCell>
+                                        <TableCell>
+                                            <Badge :variant="row.type === 'subscription' ? 'highlight' : 'outline'">{{
+                                                row.type === 'subscription' ? 'Recurring' : 'One-off'
+                                            }}</Badge>
+                                            <p v-if="row.has_variables" class="mt-1 text-xs text-muted-foreground">Buyer chooses options</p>
+                                        </TableCell>
+                                        <TableCell class="text-right whitespace-nowrap tabular-nums">
+                                            {{ formatMoney(row.base_price, row.currency) }}
+                                            <p v-if="Number(row.sales_tax) > 0" class="text-xs text-muted-foreground">
+                                                {{ formatMoney(row.total_price, row.currency) }} with tax
+                                            </p>
+                                            <p v-if="Number(row.discount) > 0" class="text-xs text-muted-foreground">
+                                                {{ formatMoney(row.discount, row.currency) }} off
+                                            </p>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge :variant="row.removed ? 'destructive' : 'secondary'">{{
+                                                row.removed ? 'No longer listed' : 'Listed'
+                                            }}</Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div class="flex items-start justify-between gap-2">
+                                                <ul v-if="row.entitlements.length" class="space-y-0.5 text-sm">
+                                                    <li v-for="entitlement in row.entitlements" :key="entitlement.id">
+                                                        {{ entitlement.label
+                                                        }}<span v-if="entitlement.type === 'limit'" class="text-muted-foreground">
+                                                            +{{ entitlement.value }}</span
+                                                        >
+                                                    </li>
+                                                </ul>
+                                                <span v-else class="text-sm text-muted-foreground">Nothing</span>
+                                                <Button
+                                                    v-if="can.edit"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    :aria-label="`Change what ${row.name} gives`"
+                                                    @click="editing = row"
+                                                >
+                                                    <Pencil class="size-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                            <p
+                                v-else-if="filterState.search || filters.category !== null || filters.status !== 'listed'"
+                                class="py-8 text-center text-sm text-muted-foreground"
+                            >
+                                No packages match.
+                            </p>
+                            <p v-else-if="!connection.configured" class="py-8 text-center text-sm text-muted-foreground">
+                                Add the store's public token to the environment, then refresh the catalogue.
+                            </p>
+                            <p v-else class="py-8 text-center text-sm text-muted-foreground">No packages yet. Refresh the catalogue to fetch them.</p>
+                        </CardContent>
+                    </Card>
 
-                            <template v-for="(item, index) in items" :key="index">
-                                <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
-                                    <Button class="h-9 w-9 p-0" :variant="item.value === currentPage ? 'default' : 'outline'">
-                                        {{ item.value }}
-                                    </Button>
-                                </PaginationListItem>
-                                <PaginationEllipsis v-else :index="index" />
-                            </template>
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <p class="text-sm text-muted-foreground">{{ rangeLabel }}</p>
+                        <Pagination
+                            v-if="pageCount > 1"
+                            v-slot="{ page: currentPage }"
+                            v-model:page="page"
+                            :items-per-page="Math.max(meta.per_page, 1)"
+                            :total="meta.total"
+                            :sibling-count="1"
+                            show-edges
+                        >
+                            <PaginationList v-slot="{ items }" class="flex flex-wrap items-center justify-center gap-1">
+                                <PaginationFirst />
+                                <PaginationPrev />
 
-                            <PaginationNext />
-                            <PaginationLast />
-                        </PaginationList>
-                    </Pagination>
-                </div>
+                                <template v-for="(item, index) in items" :key="index">
+                                    <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                                        <Button class="h-9 w-9 p-0" :variant="item.value === currentPage ? 'default' : 'outline'">
+                                            {{ item.value }}
+                                        </Button>
+                                    </PaginationListItem>
+                                    <PaginationEllipsis v-else :index="index" />
+                                </template>
 
-                <Card v-if="sync.runs.length">
-                    <CardHeader>
-                        <CardTitle>Recent refreshes</CardTitle>
-                    </CardHeader>
-                    <CardContent class="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Started</TableHead>
-                                    <TableHead>By</TableHead>
-                                    <TableHead>Result</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow v-for="run in sync.runs" :key="run.id">
-                                    <TableCell class="text-sm whitespace-nowrap">{{ when(run.started_at) }}</TableCell>
-                                    <TableCell class="text-sm text-muted-foreground">{{ run.by ?? triggerLabel[run.trigger] }}</TableCell>
-                                    <TableCell class="text-sm">
-                                        <Badge :variant="statusVariant[run.status]">{{ statusLabel[run.status] }}</Badge>
-                                        <span class="ml-2 text-muted-foreground">{{ run.status === 'failed' ? run.error : summary(run) }}</span>
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                                <PaginationNext />
+                                <PaginationLast />
+                            </PaginationList>
+                        </Pagination>
+                    </div>
+
+                    <Card v-if="sync.runs.length">
+                        <CardHeader>
+                            <CardTitle>Recent refreshes</CardTitle>
+                        </CardHeader>
+                        <CardContent class="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Started</TableHead>
+                                        <TableHead>By</TableHead>
+                                        <TableHead>Result</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow v-for="run in sync.runs" :key="run.id">
+                                        <TableCell class="text-sm whitespace-nowrap">{{ when(run.started_at) }}</TableCell>
+                                        <TableCell class="text-sm text-muted-foreground">{{ run.by ?? triggerLabel[run.trigger] }}</TableCell>
+                                        <TableCell class="text-sm">
+                                            <Badge :variant="statusVariant[run.status]">{{ statusLabel[run.status] }}</Badge>
+                                            <span class="ml-2 text-muted-foreground">{{ run.status === 'failed' ? run.error : summary(run) }}</span>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </template>
             </div>
 
             <PackageEntitlementsDialog :package="editing" :choices="entitlements" @close="editing = null" />

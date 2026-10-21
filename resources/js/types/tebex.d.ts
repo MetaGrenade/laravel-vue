@@ -22,8 +22,29 @@ export interface TebexSyncRun {
 
 /** The answer to "Test connection", for the request that asked. */
 export type TebexTestResult =
-    | { ok: true; name: string; currency: string; url: string | null; disabled: boolean; platform: string | null; supported: boolean }
+    | { ok: true; checkout_api: true }
+    | {
+          ok: true;
+          checkout_api?: false;
+          name: string;
+          currency: string;
+          url: string | null;
+          disabled: boolean;
+          platform: string | null;
+          supported: boolean;
+      }
     | { ok: false; message: string };
+
+/** What the shop sells through Tebex: its packages (the Headless API), or its own products (the Checkout API, experimental). */
+export type TebexMode = 'packages' | 'checkout_api';
+
+/** The Checkout API's credentials, as far as the page may show them. */
+export interface TebexCheckoutApiInfo {
+    configured: boolean;
+    /** The end of the project id. */
+    project_id: string | null;
+    has_private_key: boolean;
+}
 
 /** The store as the shop last saw it, what buyers are asked before they can pay, and whether the shop knows its platform. */
 export interface TebexStoreInfo {

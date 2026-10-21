@@ -386,12 +386,16 @@ class OrderRefunder
             $provider = null;
 
             if (! $options->manual) {
-                if (
-                    $payment === null
-                    || blank($payment->provider_payment_id)
-                    || ! in_array(Capability::REFUNDS, $this->payments->provider($payment->provider)->capabilities(), true)
-                ) {
+                $gateway = $payment !== null && filled($payment->provider_payment_id) ? $this->payments->provider($payment->provider) : null;
+
+                if ($payment === null || $gateway === null || ! in_array(Capability::REFUNDS, $gateway->capabilities(), true)) {
                     throw new RefundException('The provider this order was paid through cannot refund it from here. If you returned the money another way, record the refund instead.');
+                }
+
+                // A provider that can only return a whole payment is never asked for part of one: it would be asked, refuse, and
+                // leave a failed refund behind. (Less than the whole is a refund made by hand.)
+                if (! in_array(Capability::PARTIAL_REFUNDS, $gateway->capabilities(), true) && ! $rest->equals(Money::parse($payment->amount, $payment->currency))) {
+                    throw new RefundException("{$gateway->label()} can only refund a payment in full ({$payment->amount} {$payment->currency}). To give back less, record the refund as one you made another way.", 'amount');
                 }
 
                 $provider = $payment->provider;

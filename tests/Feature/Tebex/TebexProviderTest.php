@@ -323,13 +323,15 @@ class TebexProviderTest extends TestCase
     }
 
     #[Test]
-    public function the_shop_cannot_ask_tebex_to_refund_and_says_so(): void
+    public function the_shop_cannot_ask_tebexs_headless_api_to_refund_and_says_where_it_is_done(): void
     {
+        // (The Checkout API can: see TebexCheckoutApiRefundsTest.)
         try {
             $this->provider()->refund(new Refund);
-            $this->fail('Something that is not built answered.');
+            $this->fail('A provider that cannot refund answered.');
         } catch (PaymentException $exception) {
-            $this->assertStringContainsString('yet', $exception->getMessage());
+            $this->assertStringContainsString('Headless API', $exception->getMessage());
+            $this->assertStringContainsString('Tebex panel', $exception->getMessage());
         }
     }
 }

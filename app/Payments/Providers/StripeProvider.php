@@ -95,6 +95,7 @@ class StripeProvider implements PaymentProvider
             Capability::SUBSCRIPTIONS,
             Capability::HOSTED_CHECKOUT,
             Capability::REFUNDS,
+            Capability::PARTIAL_REFUNDS,
         ];
     }
 

@@ -153,6 +153,8 @@ const props = defineProps<{
         gift_card_last_four: string | null;
         can_refund: boolean;
         via_provider: boolean;
+        /** Whether the provider can send back less than the whole payment (Tebex's API cannot). */
+        partial_refunds: boolean;
         provider_label: string | null;
         reasons: { value: string; label: string }[];
     };
@@ -303,6 +305,10 @@ const cents = (value: string) => {
 
 /** Stock can only go back when this refund returns everything that is left. */
 const completesOrder = computed(() => cents(refundForm.amount) !== null && cents(refundForm.amount) === cents(props.refunding.refundable));
+
+// A provider that can only return a whole payment is asked for exactly that: the amount cannot be edited (give back less by
+// recording the refund as one made another way).
+const fixedAmount = computed(() => props.refunding.via_provider && !props.refunding.partial_refunds && !refundForm.manual);
 
 // An error belongs to the amount that was submitted; once it is edited the message is stale.
 watch(
@@ -934,12 +940,23 @@ const selectClass =
                                     v-model="refundForm.amount"
                                     inputmode="decimal"
                                     class="w-40"
+                                    :readonly="fixedAmount"
                                     :aria-invalid="!!refundForm.errors.amount || undefined"
                                 />
-                                <Button type="button" variant="outline" size="sm" @click="refundForm.amount = props.refunding.refundable">
+                                <Button
+                                    v-if="!fixedAmount"
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    @click="refundForm.amount = props.refunding.refundable"
+                                >
                                     Everything left
                                 </Button>
                             </div>
+                            <p v-if="fixedAmount" class="text-xs text-muted-foreground">
+                                {{ props.refunding.provider_label }} can only refund a payment in full. To give back less, switch on "I already
+                                returned the money another way" and record the amount.
+                            </p>
                             <InputError :message="refundForm.errors.amount" />
                         </div>
 

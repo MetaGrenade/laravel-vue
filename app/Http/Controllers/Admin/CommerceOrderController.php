@@ -221,6 +221,8 @@ class CommerceOrderController extends Controller
                 // Whether the provider can send the money back itself. If not, staff can only
                 // record a refund they made some other way.
                 'via_provider' => $this->canRefundThroughProvider($primary),
+                // Whether it can send back less than the whole payment. If not, the amount is fixed.
+                'partial_refunds' => $primary === null || $this->providerCan($primary, Capability::PARTIAL_REFUNDS),
                 'provider_label' => $primary ? $this->providerLabel($primary->provider) : null,
                 'reasons' => [
                     ['value' => 'requested_by_customer', 'label' => 'Customer asked for it'],
@@ -382,8 +384,13 @@ class CommerceOrderController extends Controller
             return false;
         }
 
+        return $this->providerCan($payment, Capability::REFUNDS);
+    }
+
+    private function providerCan(Payment $payment, string $capability): bool
+    {
         try {
-            return in_array(Capability::REFUNDS, $this->payments->provider($payment->provider)->capabilities(), true);
+            return in_array($capability, $this->payments->provider($payment->provider)->capabilities(), true);
         } catch (Throwable) {
             return false;
         }
