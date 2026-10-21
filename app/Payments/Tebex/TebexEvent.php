@@ -4,6 +4,8 @@ namespace App\Payments\Tebex;
 
 use App\Payments\Providers\TebexProvider;
 use App\Support\Commerce\Money;
+use Carbon\Carbon;
+use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
 
@@ -103,6 +105,87 @@ final class TebexEvent
         }
 
         return null;
+    }
+
+    /**
+     * The id Tebex gives a recurring payment (`tbx-r-...`), as the subject of a `recurring-payment.*` delivery.
+     */
+    public function reference(): ?string
+    {
+        $reference = Arr::get($this->subject, 'reference');
+
+        return is_string($reference) && $reference !== '' ? $reference : null;
+    }
+
+    /**
+     * The recurring payment a payment belongs to: its first payment and each renewal all name it. Null for a one-off.
+     */
+    public function recurringReference(): ?string
+    {
+        $reference = Arr::get($this->subject, 'recurring_payment_reference');
+
+        return is_string($reference) && $reference !== '' ? $reference : null;
+    }
+
+    /**
+     * When Tebex says the delivery was made (the envelope's `date`). Null when it is missing or not a date.
+     */
+    public function at(): ?Carbon
+    {
+        return $this->parseTime($this->date);
+    }
+
+    /**
+     * A moment in the subject (`created_at`, `next_payment_at`, `cancelled_at`...). Null when it is missing or not a date.
+     */
+    public function moment(string $key): ?Carbon
+    {
+        $value = Arr::get($this->subject, $key);
+
+        return $this->parseTime(is_string($value) ? $value : null);
+    }
+
+    /**
+     * Tebex's own words for the status (`Active`, `Cancelled`...).
+     */
+    public function statusDescription(): ?string
+    {
+        $description = Arr::get($this->subject, 'status.description');
+
+        return is_string($description) && $description !== '' ? $description : null;
+    }
+
+    /**
+     * What a recurring payment costs each time (the subject's `price`). Null when it is not a usable amount.
+     */
+    public function price(): ?Money
+    {
+        return $this->money(Arr::get($this->subject, 'price'));
+    }
+
+    public function failCount(): int
+    {
+        $count = Arr::get($this->subject, 'fail_count');
+
+        return is_numeric($count) ? max(0, (int) $count) : 0;
+    }
+
+    public function cancelReason(): ?string
+    {
+        $reason = Arr::get($this->subject, 'cancel_reason');
+
+        return is_string($reason) && $reason !== '' ? mb_substr($reason, 0, 250) : null;
+    }
+
+    /**
+     * A payment nested in a recurring payment (`initial_payment`, `last_payment`), as a payment delivery of its own, so
+     * it can be read and matched the way any payment is. Null when there is none.
+     */
+    public function nestedPayment(string $key): ?self
+    {
+        $payment = Arr::get($this->subject, $key);
+
+        return is_array($payment) && $payment !== [] ? new self("{$this->id}:{$key}", self::PAYMENT_COMPLETED, $this->date, $payment) : null;
     }
 
     public function statusId(): ?int
@@ -265,5 +348,18 @@ final class TebexEvent
         }
 
         return $money->isNegative() ? null : $money;
+    }
+
+    private function parseTime(?string $value): ?Carbon
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value);
+        } catch (InvalidFormatException) {
+            return null;
+        }
     }
 }

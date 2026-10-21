@@ -20,7 +20,7 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
 import type { BreadcrumbItem } from '@/types';
-import type { TebexPackageRow, TebexStoreInfo, TebexSyncRun, TebexTestResult, TebexWebhookInfo } from '@/types/tebex';
+import type { TebexPackageRow, TebexRecurringCounts, TebexStoreInfo, TebexSyncRun, TebexTestResult, TebexWebhookInfo } from '@/types/tebex';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleAlert, CircleCheck, RefreshCw, Store } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
@@ -30,6 +30,7 @@ const props = defineProps<{
     store: TebexStoreInfo | null;
     test: TebexTestResult | null;
     webhook: TebexWebhookInfo;
+    recurring: TebexRecurringCounts;
     sync: { latest: TebexSyncRun | null; last_ok: TebexSyncRun | null; every_minutes: number; runs: TebexSyncRun[] };
     counts: { categories: number; packages: number; subscriptions: number; removed: number };
     categories: { id: number; name: string }[];
@@ -268,6 +269,11 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
                             </dd>
                             <dt class="text-muted-foreground">Last delivery</dt>
                             <dd>{{ webhook.last_received_at ? when(webhook.last_received_at) : 'Nothing received yet' }}</dd>
+                            <dt class="text-muted-foreground">Recurring payments</dt>
+                            <dd>
+                                {{ recurring.running }} running<template v-if="recurring.overdue">, {{ recurring.overdue }} overdue</template
+                                ><template v-if="recurring.ending">, {{ recurring.ending }} ending</template>, {{ recurring.ended }} over
+                            </dd>
                         </dl>
 
                         <ol

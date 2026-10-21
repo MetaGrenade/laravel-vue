@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\SubscriptionStatus;
 use App\Models\BillingWebhookCall;
+use App\Models\ProviderSubscription;
 use App\Models\SystemSetting;
 use App\Models\TebexCategory;
 use App\Models\TebexPackage;
@@ -324,5 +326,34 @@ class TebexManagementTest extends TestCase
 
         $response->assertOk();
         $this->assertStringNotContainsString((string) config('tebex.webhook.secret'), $response->getContent());
+    }
+
+    #[Test]
+    public function the_page_counts_the_recurring_payments_by_where_they_stand(): void
+    {
+        ProviderSubscription::factory()->count(2)->create();
+        ProviderSubscription::factory()->create(['status' => SubscriptionStatus::Overdue]);
+        ProviderSubscription::factory()->create(['cancellation_requested_at' => now()]);
+        ProviderSubscription::factory()->ended()->create();
+        ProviderSubscription::factory()->create(['status' => SubscriptionStatus::Expired]);
+        // Tebex said it ended, whatever status it gave: it is over.
+        ProviderSubscription::factory()->create(['ended_at' => now()]);
+        ProviderSubscription::factory()->create(['provider' => 'stripe-like']);
+
+        $this->actingAs($this->admin())->get(route('acp.commerce.tebex.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('recurring.running', 4)
+            ->where('recurring.overdue', 1)
+            ->where('recurring.ending', 1)
+            ->where('recurring.ended', 3));
+    }
+
+    #[Test]
+    public function the_page_counts_nothing_when_no_recurring_payment_has_been_reported(): void
+    {
+        $this->actingAs($this->admin())->get(route('acp.commerce.tebex.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('recurring.running', 0)
+            ->where('recurring.overdue', 0)
+            ->where('recurring.ending', 0)
+            ->where('recurring.ended', 0));
     }
 }

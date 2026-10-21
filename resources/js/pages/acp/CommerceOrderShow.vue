@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RecurringPayments from '@/components/commerce/RecurringPayments.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import InputError from '@/components/InputError.vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -17,7 +18,7 @@ import { addressLines } from '@/lib/address';
 import { formatMoney } from '@/lib/money';
 import { formatDateTime, orderStatusVariant, paymentStatusVariant } from '@/lib/orderStatus';
 import type { BreadcrumbItem } from '@/types';
-import type { AddressFormValue, TaxLineQuote } from '@/types/commerce';
+import type { AddressFormValue, RecurringPayment, TaxLineQuote } from '@/types/commerce';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { CircleAlert, Download, ExternalLink, KeyRound, PackageCheck, RefreshCw, Undo2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -98,6 +99,8 @@ interface PaymentRow {
     amount: string;
     currency: string;
     reference: string | null;
+    /** A payment Tebex took for a recurring package after the first: money in, not the order being paid again. */
+    renewal: boolean;
     paid_at: string | null;
     created_at: string | null;
     url: string | null;
@@ -136,6 +139,8 @@ const props = defineProps<{
     downloads: DownloadRow[];
     licence_keys: LicenceKeyLine[];
     payments: PaymentRow[];
+    /** The recurring payments this order started and what Tebex has said about them. */
+    subscriptions: RecurringPayment[];
     refunds: RefundRow[];
     events: EventRow[];
     refunding: {
@@ -743,6 +748,16 @@ const selectClass =
                             </CardContent>
                         </Card>
 
+                        <Card v-if="props.subscriptions.length">
+                            <CardHeader>
+                                <CardTitle>Recurring payment</CardTitle>
+                                <CardDescription>Tebex charges and ends it; this is what it has told the shop.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <RecurringPayments :payments="props.subscriptions" :show-order="false" staff />
+                            </CardContent>
+                        </Card>
+
                         <Card>
                             <CardHeader>
                                 <CardTitle>Payments</CardTitle>
@@ -751,7 +766,9 @@ const selectClass =
                                 <ul v-if="props.payments.length" class="divide-y text-sm">
                                     <li v-for="payment in props.payments" :key="payment.id" class="space-y-1 py-3 first:pt-0 last:pb-0">
                                         <div class="flex items-center justify-between gap-2">
-                                            <span class="font-medium capitalize">{{ payment.provider }}</span>
+                                            <span class="font-medium capitalize"
+                                                >{{ payment.provider }}<template v-if="payment.renewal"> renewal</template></span
+                                            >
                                             <Badge
                                                 :variant="
                                                     payment.status === 'succeeded'
@@ -766,7 +783,13 @@ const selectClass =
                                         <p class="tabular-nums">{{ formatMoney(payment.amount, payment.currency) }}</p>
                                         <p class="text-xs text-muted-foreground">{{ formatDateTime(payment.paid_at ?? payment.created_at) }}</p>
                                         <p v-if="payment.status === 'review'" class="text-xs text-destructive">
-                                            The amount Stripe took did not match the order, so it was not applied. Check it in Stripe.
+                                            <template v-if="payment.provider === 'tebex'"
+                                                >Tebex took this payment, but not for what the order holds, so it was not applied. The webhook's note
+                                                says why; look at it in the Tebex panel.</template
+                                            >
+                                            <template v-else
+                                                >The amount Stripe took did not match the order, so it was not applied. Check it in Stripe.</template
+                                            >
                                         </p>
                                         <a
                                             v-if="payment.url"

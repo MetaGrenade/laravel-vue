@@ -59,12 +59,31 @@ trait InteractsWithTebexWebhooks
     }
 
     /**
+     * A recurring payment for an order: active, with the order's payment as its first (and last) payment, shaped like
+     * the documentation's example (`tests/Fixtures/tebex/recurring-payment.json`).
+     *
+     * @param  array<string, mixed>  $subject  Changes to the recurring payment (replacing whole keys).
+     * @return array<string, mixed>
+     */
+    protected function tebexRecurringFor(Order $order, Payment $payment, string $reference = 'tbx-r-4a1b2c', array $subject = []): array
+    {
+        $first = $this->tebexPaymentFor($order, $payment, ['recurring_payment_reference' => $reference]);
+        $base = $this->tebexFixture('recurring-payment');
+
+        $base['reference'] = $reference;
+        $base['initial_payment'] = $first;
+        $base['last_payment'] = $first;
+
+        return array_replace($base, $subject);
+    }
+
+    /**
      * @param  array<string, mixed>  $subject
      * @return array<string, mixed>
      */
-    protected function tebexDelivery(string $type, array $subject, ?string $id = null): array
+    protected function tebexDelivery(string $type, array $subject, ?string $id = null, ?string $date = null): array
     {
-        return ['id' => $id ?? (string) Str::uuid(), 'type' => $type, 'date' => now()->toIso8601String(), 'subject' => $subject];
+        return ['id' => $id ?? (string) Str::uuid(), 'type' => $type, 'date' => $date ?? now()->toIso8601String(), 'subject' => $subject];
     }
 
     /**

@@ -49,6 +49,15 @@ export interface TebexWebhookInfo {
     can_view_log: boolean;
 }
 
+/** Where the recurring payments the shop has been told about stand. */
+export interface TebexRecurringCounts {
+    running: number;
+    overdue: number;
+    /** Still running, but asked to stop at the end of the period. */
+    ending: number;
+    ended: number;
+}
+
 export interface TebexPackageRow {
     id: number;
     tebex_id: number;

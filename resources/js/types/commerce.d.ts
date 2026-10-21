@@ -152,3 +152,31 @@ export interface StorefrontOption {
     display_name: string;
     values: string[];
 }
+
+/** Where a recurring payment kept at Tebex stands, in the words the pages use. The staff fields are only sent to staff. */
+export interface RecurringPayment {
+    id: number;
+    package: string;
+    /** Where the package is sold, if it still is. */
+    package_url: string | null;
+    /** `cancelling` is still running: it was asked to stop at the end of what was paid for. */
+    state: 'active' | 'cancelling' | 'overdue' | 'ended';
+    state_label: string;
+    live: boolean;
+    amount: string | null;
+    currency: string | null;
+    renewals: number;
+    started_at: string | null;
+    last_payment_at: string | null;
+    /** Null once it is over. */
+    next_payment_at: string | null;
+    cancellation_requested_at: string | null;
+    ended_at: string | null;
+    order_number: string | null;
+    order_url: string | null;
+    reference?: string;
+    provider?: string;
+    provider_status?: string | null;
+    fail_count?: number;
+    cancel_reason?: string | null;
+}

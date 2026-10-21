@@ -379,7 +379,7 @@ class TebexWebhookTest extends TestCase
         [$order, $payment] = $this->placeAndPay();
         Log::spy();
 
-        $this->deliver('payment.completed', $this->tebexPaymentFor($order, $payment, ['transaction_id' => 'tbx-another', 'recurring_payment_reference' => 'tbx-r-1', 'price_paid' => ['amount' => 99, 'currency' => 'USD']]))->assertOk();
+        $this->deliver('payment.completed', $this->tebexPaymentFor($order, $payment, ['transaction_id' => 'tbx-another', 'price_paid' => ['amount' => 99, 'currency' => 'USD']]))->assertOk();
 
         $this->assertSame(self::TRANSACTION, $payment->fresh()->provider_payment_id, 'the payment still describes the first');
         $this->assertSame('10.00', $order->fresh()->grand_total);

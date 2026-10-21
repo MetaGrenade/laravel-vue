@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Models\Payment;
+use App\Models\ProviderSubscription;
 use App\Models\User;
 use App\Support\Ownership;
 use Illuminate\Http\Request;
@@ -159,6 +160,12 @@ class GuestCarryOver
 
                 // A payment belongs to whoever owns its order.
                 Payment::query()->where('order_id', $order->id)->update([
+                    'owner_type' => $order->owner_type,
+                    'owner_id' => $order->owner_id,
+                ]);
+
+                // And so does a recurring payment the order started.
+                ProviderSubscription::query()->where('order_id', $order->id)->update([
                     'owner_type' => $order->owner_type,
                     'owner_id' => $order->owner_id,
                 ]);
