@@ -326,6 +326,176 @@ class TebexCheckoutApiRefundsTest extends TestCase
     }
 
     #[Test]
+    public function the_delivery_after_a_refund_nobody_heard_back_on_settles_that_refund(): void
+    {
+        [$order, $payment] = $this->paidOrder('15.00');
+        $this->api->failOn('refund', 500, 5);
+        $refund = $this->refundAll($order);
+        $this->assertNull($refund->provider_reference, 'no answer, so no reference yet');
+
+        // Tebex had made it. Its delivery arrives: this is that refund, further along, not a payment already refunded in full.
+        $this->webhook('payment.refunded', $this->tebexProductPaymentFor($order, $payment, ['status' => ['id' => 2, 'description' => 'Refund']]))->assertOk();
+
+        $this->assertSame(1, Refund::query()->count(), 'not a second refund beside the first');
+        $this->assertSame(RefundStatus::Succeeded, $refund->fresh()->status);
+        $this->assertSame(self::TRANSACTION.'-refund', $refund->fresh()->provider_reference);
+        $this->assertSame(OrderPaymentStatus::Refunded, $order->fresh()->payment_status);
+        $this->assertSame(0, DownloadGrant::query()->where('order_id', $order->id)->whereNull('revoked_at')->count(), 'the customer has their money and no longer the download');
+    }
+
+    #[Test]
+    public function a_delivery_saying_the_refund_is_pending_gives_the_unanswered_refund_its_reference_and_the_next_one_settles_it(): void
+    {
+        [$order, $payment] = $this->paidOrder('15.00');
+        $this->api->failOn('refund', 500, 5);
+        $refund = $this->refundAll($order);
+
+        $this->webhook('payment.refunded', $this->tebexProductPaymentFor($order, $payment, ['status' => ['id' => 21, 'description' => 'Refund Pending']]))->assertOk();
+
+        $this->assertSame(RefundStatus::Pending, $refund->fresh()->status);
+        $this->assertSame(self::TRANSACTION.'-refund', $refund->fresh()->provider_reference);
+
+        $this->webhook('payment.refunded', $this->tebexProductPaymentFor($order, $payment, ['status' => ['id' => 2, 'description' => 'Refund']]))->assertOk();
+
+        $this->assertSame(1, Refund::query()->count());
+        $this->assertSame(RefundStatus::Succeeded, $refund->fresh()->status);
+        $this->assertSame(OrderPaymentStatus::Refunded, $order->fresh()->payment_status);
+    }
+
+    #[Test]
+    public function a_refund_tebex_refused_is_not_adopted_by_a_refund_made_later_in_the_panel(): void
+    {
+        [$order, $payment] = $this->paidOrder('15.00');
+        $this->api->failOn('refund', 400, detail: 'Not refundable yet');
+        $refused = $this->refundAll($order);
+        $this->assertSame(RefundStatus::Failed, $refused->status);
+
+        // Staff refund it in the Tebex panel instead; its delivery arrives.
+        $this->webhook('payment.refunded', $this->tebexProductPaymentFor($order, $payment, ['status' => ['id' => 2, 'description' => 'Refund']]))->assertOk();
+
+        $this->assertSame(RefundStatus::Failed, $refused->fresh()->status, 'a refund that was refused stays refused');
+        $this->assertSame(2, Refund::query()->count(), 'the one made in the panel is recorded as its own');
+        $this->assertSame(OrderPaymentStatus::Refunded, $order->fresh()->payment_status);
+    }
+
+    #[Test]
+    public function a_lost_dispute_is_not_mistaken_for_the_refund_the_shop_asked_for(): void
+    {
+        [$order, $payment] = $this->paidOrder('15.00');
+        $this->api->failOn('refund', 500, 5);
+        $refund = $this->refundAll($order);
+
+        $this->webhook('payment.dispute.lost', $this->tebexProductPaymentFor($order, $payment, ['status' => ['id' => 3, 'description' => 'Chargeback']]))->assertOk();
+
+        $this->assertNull($refund->fresh()->provider_reference, 'what Tebex took back in a dispute is not what the shop asked it to return');
+        $this->assertSame(RefundStatus::Pending, $refund->fresh()->status);
+    }
+
+    #[Test]
+    public function a_refund_left_pending_is_still_checked_after_the_mode_is_switched_off(): void
+    {
+        [$order] = $this->paidOrder('15.00');
+        $this->api->failOn('refund', 500, 5);
+        $refund = $this->refundAll($order);
+
+        config(['tebex.checkout_api.enabled' => false]);
+        $this->api->refundInPanel(self::TRANSACTION, 2);
+
+        $checked = app(OrderRefunder::class)->check($refund);
+
+        $this->assertSame(RefundStatus::Succeeded, $checked->status, 'the payment was made through the API, whatever the mode is now');
+        $this->assertSame(1, Refund::query()->count());
+        $this->assertSame(OrderPaymentStatus::Refunded, $order->fresh()->payment_status);
+    }
+
+    #[Test]
+    public function a_refund_with_a_reference_is_not_left_pending_for_good_when_the_mode_is_switched_off(): void
+    {
+        [$order] = $this->paidOrder('15.00');
+        $this->api->refundStatus = 21;
+        $refund = $this->refundAll($order);
+        $this->assertSame(RefundStatus::Pending, $refund->status);
+
+        config(['tebex.checkout_api.enabled' => false]);
+        $this->api->refundInPanel(self::TRANSACTION, 2);
+
+        $this->assertSame(RefundStatus::Succeeded, app(OrderRefunder::class)->check($refund)->status);
+    }
+
+    #[Test]
+    public function a_refund_tebex_never_received_is_still_failed_after_the_time_it_could_have_been_in_flight(): void
+    {
+        [$order] = $this->paidOrder('15.00');
+        $this->api->failOn('refund', 500, 5);
+        $refund = $this->refundAll($order);
+        $refund->forceFill(['created_at' => now()->subMinutes(11)])->save();
+
+        // Tebex has no record of it: the payment is not refunded.
+        $checked = app(OrderRefunder::class)->check($refund->fresh());
+
+        $this->assertSame(RefundStatus::Failed, $checked->status);
+        $this->assertSame(OrderPaymentStatus::Paid, $order->fresh()->payment_status);
+    }
+
+    #[Test]
+    public function an_unanswered_refund_is_not_failed_when_tebex_made_it_and_the_mode_has_been_switched_off(): void
+    {
+        [$order] = $this->paidOrder('15.00');
+        $this->api->failOn('refund', 500, 5);
+        $refund = $this->refundAll($order);
+        $refund->forceFill(['created_at' => now()->subMinutes(11)])->save();
+
+        config(['tebex.checkout_api.enabled' => false]);
+        $this->api->refundInPanel(self::TRANSACTION, 2);
+
+        $checked = app(OrderRefunder::class)->check($refund->fresh());
+
+        $this->assertSame(RefundStatus::Succeeded, $checked->status, 'it was not asked about, so it must not be taken for one Tebex never saw');
+    }
+
+    #[Test]
+    public function a_refund_still_asked_for_after_the_mode_is_switched_off_goes_to_the_api_for_a_payment_made_through_it(): void
+    {
+        [$order, $payment] = $this->paidOrder('15.00');
+        $refund = Refund::query()->create([
+            'order_id' => $order->id,
+            'payment_id' => $payment->id,
+            'provider' => 'tebex',
+            'idempotency_key' => 'again-1',
+            'status' => RefundStatus::Pending,
+            'amount' => '15.00',
+            'currency' => 'USD',
+        ]);
+
+        config(['tebex.checkout_api.enabled' => false]);
+        $outcome = app(TebexProvider::class)->refund($refund);
+
+        $this->assertSame(RefundStatus::Succeeded, $outcome->status);
+        $this->assertCount(1, $this->api->calls('refund'));
+    }
+
+    #[Test]
+    public function a_payment_made_another_way_is_asked_about_through_the_api_only_while_the_mode_is_on(): void
+    {
+        [$order, $payment] = $this->paidOrder('15.00');
+        $payment->forceFill(['raw' => ['nonce' => 'x']])->save();
+        $this->api->refundInPanel(self::TRANSACTION, 2);
+        $payment = $payment->fresh();
+
+        config(['tebex.checkout_api.enabled' => false]);
+        $asked = count($this->api->requests);
+        app(TebexProvider::class)->syncRefunds($payment);
+
+        $this->assertCount($asked, $this->api->requests, 'the Headless API cannot be asked: a refund there arrives as a delivery');
+        $this->assertSame(0, Refund::query()->count());
+
+        config(['tebex.checkout_api.enabled' => true]);
+        app(TebexProvider::class)->syncRefunds($payment);
+
+        $this->assertSame(1, Refund::query()->count(), 'with the mode on the API is the way to ask about any Tebex payment');
+    }
+
+    #[Test]
     public function a_refund_made_in_the_tebex_panel_is_found_when_the_payment_is_looked_at(): void
     {
         [$order, $payment] = $this->paidOrder('15.00');

@@ -293,7 +293,9 @@ class TebexProvider implements PaymentProvider
 
     public function refund(Refund $refund): RefundOutcome
     {
-        if (! TebexSelling::checkoutApi()) {
+        $payment = $refund->payment;
+
+        if ($payment === null || ! $this->viaCheckoutApi($payment)) {
             throw new PaymentException('The shop cannot refund through Tebex\'s Headless API: only providers that say they can are asked to. Refund it in the Tebex panel.');
         }
 
@@ -304,9 +306,19 @@ class TebexProvider implements PaymentProvider
     {
         // Only the Checkout API can be asked about a payment. With the Headless API a refund made in the Tebex panel
         // arrives as a `payment.refunded` delivery.
-        if (TebexSelling::checkoutApi()) {
+        if ($this->viaCheckoutApi($payment)) {
             $this->checkoutApi->syncRefunds($payment);
         }
+    }
+
+    /**
+     * Whether Tebex is to be asked about this payment through the Checkout API: it was made through it, however the mode is
+     * set now (a refund left pending must still be checked after the mode is switched off, or it would be failed for want of
+     * an answer that was never asked for), or the mode is on, which makes the API the way to ask about any Tebex payment.
+     */
+    private function viaCheckoutApi(Payment $payment): bool
+    {
+        return TebexSelling::checkoutApi() || ($payment->raw['mode'] ?? null) === TebexCheckoutApi::MODE;
     }
 
     public function paymentUrl(Payment $payment): ?string

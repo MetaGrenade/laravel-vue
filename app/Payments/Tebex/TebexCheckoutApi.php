@@ -227,13 +227,7 @@ class TebexCheckoutApi
         }
 
         // The refund the shop asked for and never heard the answer to, if there is one.
-        $asked = Refund::query()
-            ->where('payment_id', $payment->id)
-            ->where('provider', TebexProvider::KEY)
-            ->whereNull('provider_reference')
-            ->where('status', RefundStatus::Pending->value)
-            ->latest('id')
-            ->first();
+        $asked = Refund::query()->where('payment_id', $payment->id)->where('provider', TebexProvider::KEY)->unanswered()->latest('id')->first();
 
         $this->refunds->sync($payment, [
             new ProviderRefund(
