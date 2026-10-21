@@ -34,13 +34,38 @@ const frame = ref<HTMLElement | null>(null);
 let checkout: (typeof import('@tebexio/tebex.js'))['checkout'] | null = null;
 let unsubscribe: (() => void)[] = [];
 
+/**
+ * Set when the buyer leaves the page. Tebex.js keeps ONE checkout for as long as the browser tab lives, so anything this
+ * page leaves registered on it would still be there for the next checkout (and a stale `payment:complete` would take the
+ * buyer to this order's page from another one). Whatever is still being set up when the page goes must not finish.
+ */
+let disposed = false;
+
 const total = computed(() => formatMoney(props.order.total, props.order.currency));
+
+/**
+ * Take back everything this page put on the shared checkout.
+ */
+const tidy = () => {
+    unsubscribe.forEach((off) => off());
+    unsubscribe = [];
+
+    try {
+        checkout?.destroy();
+    } catch {
+        // Nothing left to tidy.
+    }
+};
 
 /**
  * Tebex.js says the payment is complete. That tells the shop nothing it can act on (the browser could be saying anything):
  * the order is settled by Tebex's webhook. So the buyer is only taken to the order's page, which waits for it.
  */
 const complete = () => {
+    if (disposed) {
+        return;
+    }
+
     phase.value = 'completing';
     router.visit(props.completeUrl);
 };
@@ -63,6 +88,12 @@ onMounted(async () => {
     try {
         // Fetched only here: no other page carries it.
         const tebex = await import('@tebexio/tebex.js');
+
+        // The buyer may have gone while it was loading: leave the shared checkout exactly as it was found.
+        if (disposed) {
+            return;
+        }
+
         checkout = tebex.checkout;
 
         checkout.init({
@@ -87,20 +118,24 @@ onMounted(async () => {
             await checkout.render(frame.value, '100%', 680, false);
         }
 
+        // Gone while the frame was being put up: the unmount has already tidied what existed then, so tidy what came after.
+        if (disposed) {
+            tidy();
+
+            return;
+        }
+
         phase.value = 'ready';
     } catch {
-        phase.value = 'unavailable';
+        if (!disposed) {
+            phase.value = 'unavailable';
+        }
     }
 });
 
 onBeforeUnmount(() => {
-    unsubscribe.forEach((off) => off());
-
-    try {
-        checkout?.destroy();
-    } catch {
-        // Nothing left to tidy.
-    }
+    disposed = true;
+    tidy();
 });
 </script>
 
