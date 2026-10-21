@@ -39,10 +39,12 @@ class TebexMigrationsTest extends TestCase
         $this->assertTrue(Schema::hasColumns('tebex_packages', ['tebex_id', 'ident', 'tebex_category_id', 'name', 'type', 'base_price', 'sales_tax', 'total_price', 'currency', 'prorate_price', 'discount', 'media', 'options', 'variables', 'removed_at']));
         $this->assertTrue(Schema::hasColumns('tebex_syncs', ['trigger', 'status', 'user_id', 'started_at', 'finished_at', 'counts', 'error']));
 
-        // The cart and order lines point at the packages, so they let go first and take hold last (MySQL refuses to
-        // drop a table something still refers to).
+        // The cart and order lines and the recurring payments point at the packages, so they let go first and take hold
+        // last (MySQL refuses to drop a table something still refers to).
         $lines = require database_path('migrations/2026_10_20_000000_add_tebex_packages_to_cart_and_order_items.php');
+        $subscriptions = require database_path('migrations/2026_10_21_000000_create_provider_subscriptions_table.php');
 
+        $subscriptions->down();
         $lines->down();
         $this->migration()->down();
 
@@ -52,9 +54,11 @@ class TebexMigrationsTest extends TestCase
 
         $this->migration()->up();
         $lines->up();
+        $subscriptions->up();
 
         $this->assertTrue(Schema::hasTable('tebex_packages'));
         $this->assertTrue(Schema::hasColumn('cart_items', 'tebex_package_id'));
+        $this->assertTrue(Schema::hasTable('provider_subscriptions'));
     }
 
     #[Test]
@@ -211,10 +215,13 @@ class TebexMigrationsTest extends TestCase
             'amount' => '4.5',
             'raw' => ['reference' => 'tbx-r-1', 'price' => ['amount' => 4.5]],
             'ended_at' => '2026-12-01 10:00:00',
+            // Past 2038, where a MySQL TIMESTAMP stops: Tebex's dates are not the shop's to limit.
+            'next_payment_at' => '2099-06-15 12:00:00',
         ])->fresh();
 
         $this->assertSame('4.50', $subscription->amount);
         $this->assertSame('2026-12-01', $subscription->ended_at->format('Y-m-d'));
+        $this->assertSame('2099-06-15', $subscription->next_payment_at->format('Y-m-d'));
         $this->assertSame('tbx-r-1', $subscription->makeVisible('raw')->raw['reference']);
         $this->assertArrayNotHasKey('raw', $subscription->fresh()->toArray(), 'the webhook body is for staff\'s eyes at most, never serialised by accident');
     }

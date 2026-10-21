@@ -34,16 +34,18 @@ return new class extends Migration
             $table->string('currency', 3)->nullable();
             $table->unsignedInteger('renewals_count')->default(0);
             $table->unsignedInteger('fail_count')->default(0);
-            $table->timestamp('started_at')->nullable();
-            $table->timestamp('last_payment_at')->nullable();
-            $table->timestamp('next_payment_at')->nullable();
-            $table->timestamp('cancellation_requested_at')->nullable();
-            $table->timestamp('cancelled_at')->nullable();
+            // Every date here is the provider's to give, so none is a TIMESTAMP: on MySQL that stops at 2038, and a date
+            // past it would make the webhook fail (and be retried) for good.
+            $table->dateTime('started_at')->nullable();
+            $table->dateTime('last_payment_at')->nullable();
+            $table->dateTime('next_payment_at')->nullable();
+            $table->dateTime('cancellation_requested_at')->nullable();
+            $table->dateTime('cancelled_at')->nullable();
             $table->string('cancel_reason')->nullable();
             // Set once, when the provider says it has ended: whatever it granted is to be taken back.
-            $table->timestamp('ended_at')->nullable();
+            $table->dateTime('ended_at')->nullable();
             // When the newest delivery that changed it was sent, so that a late one cannot undo a newer one.
-            $table->timestamp('last_event_at')->nullable();
+            $table->dateTime('last_event_at')->nullable();
             $table->json('raw')->nullable();
             $table->timestamps();
 
