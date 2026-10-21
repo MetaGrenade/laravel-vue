@@ -12,6 +12,7 @@ use App\Models\ProviderSubscription;
 use App\Models\TebexPackage;
 use App\Payments\Data\WebhookOutcome;
 use App\Payments\Providers\TebexProvider;
+use App\Support\Entitlements\OrderEntitlements;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -37,7 +38,10 @@ use Illuminate\Support\Facades\Log;
  */
 class TebexSubscriptions
 {
-    public function __construct(private readonly TebexPaymentMatcher $matcher) {}
+    public function __construct(
+        private readonly TebexPaymentMatcher $matcher,
+        private readonly OrderEntitlements $entitlements,
+    ) {}
 
     /**
      * Whether a payment row is a renewal (recorded here) and not the order's own payment.
@@ -81,14 +85,26 @@ class TebexSubscriptions
             $this->attach($subscription, $order, $initial ?? $event->nestedPayment('initial_payment'));
         }
 
+        $wasOver = $subscription->ended_at !== null;
+
         $this->fill($subscription, $event);
         $note = $this->applyType($subscription, $event, $at);
+
+        if ($wasOver && $subscription->ended_at === null) {
+            $name = $subscription->package_name !== null ? " for {$subscription->package_name}" : '';
+            $note = "The recurring payment{$name} is active again at Tebex ({$subscription->provider_status}); the end it was given no longer stands.";
+        }
 
         $subscription->last_event_at = $at ?? $subscription->last_event_at;
         $subscription->save();
 
-        if ($note !== null && $subscription->order !== null) {
-            OrderEvent::record($subscription->order, OrderEvent::NOTE, $note, ['tebex_recurring_payment' => $reference]);
+        if ($subscription->order !== null) {
+            // What the order gave follows the recurring payment: taken back when it ends, given back if it is live again.
+            $this->entitlements->syncRevocation($subscription->order);
+
+            if ($note !== null) {
+                OrderEvent::record($subscription->order, OrderEvent::NOTE, $note, ['tebex_recurring_payment' => $reference]);
+            }
         }
 
         return WebhookOutcome::handled();
@@ -294,6 +310,13 @@ class TebexSubscriptions
 
         if ($status !== null) {
             $subscription->status = $status;
+        }
+
+        // `ended_at` is set by the `ended` delivery and nothing else. A later delivery that is not that one and says it is
+        // live (Active, or Overdue while Tebex tries again) means Tebex has revived it, so the end no longer stands. The
+        // `ended` delivery itself is the end whatever its own status says.
+        if ($status?->isLive() && $event->type !== 'recurring-payment.ended') {
+            $subscription->ended_at = null;
         }
 
         $subscription->provider_status = $event->statusDescription() ?? $subscription->provider_status;

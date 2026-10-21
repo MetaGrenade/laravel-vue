@@ -10,6 +10,7 @@ import { formatMoney } from '@/lib/money';
 import { paymentStatusVariant } from '@/lib/orderStatus';
 import type { RecurringPayment } from '@/types/commerce';
 import type { CustomerOrder } from '@/types/dashboard';
+import type { HeldEntitlement } from '@/types/entitlements';
 import { Head, Link } from '@inertiajs/vue3';
 
 interface Props {
@@ -23,6 +24,8 @@ interface Props {
     };
     /** Their recurring payments (Tebex's recurring packages), newest first. */
     subscriptions: RecurringPayment[];
+    /** What their purchases give their account: features switched on and limits raised. */
+    entitlements: HeldEntitlement[];
 }
 
 const props = defineProps<Props>();
@@ -50,6 +53,31 @@ const canReview = (order: CustomerOrder) => ['paid', 'partially_refunded'].inclu
                 </CardHeader>
                 <CardContent>
                     <RecurringPayments :payments="props.subscriptions" />
+                </CardContent>
+            </Card>
+
+            <Card v-if="props.entitlements.length">
+                <CardHeader>
+                    <CardTitle>What your purchases give you</CardTitle>
+                    <CardDescription>
+                        Added to your account when an order is paid, and taken back if it is refunded or a recurring payment ends.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ul class="divide-y">
+                        <li
+                            v-for="entitlement in props.entitlements"
+                            :key="entitlement.key"
+                            class="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                        >
+                            <div class="min-w-0">
+                                <p class="font-medium">{{ entitlement.label }}</p>
+                                <p v-if="entitlement.description" class="text-sm text-muted-foreground">{{ entitlement.description }}</p>
+                            </div>
+                            <span v-if="entitlement.type === 'limit'" class="shrink-0 font-medium tabular-nums">{{ entitlement.value }}</span>
+                            <span v-else class="shrink-0 text-sm text-muted-foreground">On</span>
+                        </li>
+                    </ul>
                 </CardContent>
             </Card>
 

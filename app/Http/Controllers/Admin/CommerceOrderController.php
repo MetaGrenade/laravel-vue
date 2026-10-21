@@ -16,6 +16,7 @@ use App\Models\Payment;
 use App\Models\ProductFile;
 use App\Models\ProviderSubscription;
 use App\Models\Refund;
+use App\Models\UserEntitlement;
 use App\Payments\Capability;
 use App\Payments\PaymentManager;
 use App\Support\Commerce\Digital\LicenceKeys;
@@ -169,6 +170,8 @@ class CommerceOrderController extends Controller
             'licence_keys' => $licenceKeys,
             // The recurring payments this order started (Tebex's recurring packages), and what Tebex has said about them.
             'subscriptions' => $this->subscriptions->present(ProviderSubscription::query()->with(['order', 'package'])->where('order_id', $order->id)->orderBy('id')->get(), forStaff: true),
+            // What this order gave the account, and whether each is still held.
+            'entitlements' => $this->entitlementGrants($order),
             'payments' => $order->payments->map(fn (Payment $payment) => [
                 'id' => $payment->id,
                 'provider' => $payment->provider,
@@ -270,6 +273,36 @@ class CommerceOrderController extends Controller
         return $done
             ? back()->with('success', 'Order cancelled and its stock released.')
             : back()->with('error', 'Only an unpaid order can be cancelled. Refund a paid order instead.');
+    }
+
+    /**
+     * What this order gave the account (a feature switched on, a limit raised), and whether each is still held: taken
+     * back because the order was refunded or the recurring payment ended, with why.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function entitlementGrants(Order $order): array
+    {
+        return UserEntitlement::query()
+            ->where('order_id', $order->id)
+            ->with(['entitlement', 'orderItem'])
+            ->orderBy('id')
+            ->get()
+            ->map(fn (UserEntitlement $grant) => [
+                'id' => $grant->id,
+                'key' => $grant->entitlement->key,
+                'label' => $grant->entitlement->label,
+                'type' => $grant->entitlement->type->value,
+                'value' => $grant->value,
+                'line' => $grant->orderItem?->description,
+                'active' => $grant->isActive(),
+                'revoked_at' => $grant->revoked_at?->toIso8601String(),
+                'revoked_reason' => $grant->revoked_reason,
+                // A guest's order has no account to give it to yet.
+                'held_by_account' => $grant->owner_type !== null,
+            ])
+            ->values()
+            ->all();
     }
 
     /**

@@ -58,6 +58,8 @@ export interface TebexRecurringCounts {
     ended: number;
 }
 
+import type { PackageEntitlement } from '@/types/entitlements';
+
 export interface TebexPackageRow {
     id: number;
     tebex_id: number;
@@ -72,4 +74,6 @@ export interface TebexPackageRow {
     currency: string;
     has_variables: boolean;
     removed: boolean;
+    /** What buying it gives the buyer's account in the shop. Set in the shop; Tebex knows nothing of it. */
+    entitlements: PackageEntitlement[];
 }

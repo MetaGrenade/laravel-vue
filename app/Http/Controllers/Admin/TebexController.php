@@ -6,6 +6,7 @@ use App\Enums\SubscriptionStatus;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Models\BillingWebhookCall;
+use App\Models\Entitlement;
 use App\Models\ProviderSubscription;
 use App\Models\TebexCategory;
 use App\Models\TebexPackage;
@@ -51,7 +52,7 @@ class TebexController extends Controller
         $category = is_numeric($category) ? (int) $category : null;
 
         $paginator = TebexPackage::query()
-            ->with('category:id,name')
+            ->with(['category:id,name', 'entitlementLinks.entitlement'])
             ->when($status === 'listed', fn ($query) => $query->whereNull('removed_at'))
             ->when($status === 'removed', fn ($query) => $query->whereNotNull('removed_at'))
             ->when($category !== null, fn ($query) => $query->where('tebex_category_id', $category))
@@ -130,12 +131,30 @@ class TebexController extends Controller
                     'currency' => $package->currency,
                     'has_variables' => $package->hasVariables(),
                     'removed' => $package->removed_at !== null,
+                    // What buying it gives the buyer's account in the shop (set here; Tebex knows nothing of it).
+                    'entitlements' => $package->entitlementLinks
+                        ->sortBy(fn ($link) => $link->entitlement->label)
+                        ->map(fn ($link) => [
+                            'id' => $link->entitlement->id,
+                            'key' => $link->entitlement->key,
+                            'label' => $link->entitlement->label,
+                            'type' => $link->entitlement->type->value,
+                            'value' => $link->value,
+                        ])->values()->all(),
                 ])->values()->all(),
                 ...$this->inertiaPagination($paginator),
             ],
             'filters' => ['search' => $search, 'status' => $status, 'category' => $category],
             'shop_currency' => strtoupper((string) config('commerce.currency', 'USD')),
             'currencies' => $currencies,
+            // Everything a package can be set to give.
+            'entitlements' => Entitlement::query()->orderBy('label')->get()
+                ->map(fn (Entitlement $entitlement) => [
+                    'id' => $entitlement->id,
+                    'key' => $entitlement->key,
+                    'label' => $entitlement->label,
+                    'type' => $entitlement->type->value,
+                ])->values()->all(),
             'can' => ['edit' => (bool) $request->user()?->can('commerce.acp.edit')],
         ]);
     }

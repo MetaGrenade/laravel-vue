@@ -17,6 +17,7 @@ use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\GiftCards\GiftCards;
 use App\Support\Commerce\InventoryReserver;
 use App\Support\Commerce\OrderLifecycle;
+use App\Support\Entitlements\OrderEntitlements;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -299,11 +300,11 @@ class StripeCommerceWebhookTest extends TestCase
         $state = new \stdClass;
         $state->fail = true;
 
-        $this->app->bind(OrderLifecycle::class, fn ($app) => new class($app->make(InventoryReserver::class), $app->make(DigitalFulfilment::class), $app->make(LicenceKeys::class), $app->make(GiftCards::class), $state) extends OrderLifecycle
+        $this->app->bind(OrderLifecycle::class, fn ($app) => new class($app->make(InventoryReserver::class), $app->make(DigitalFulfilment::class), $app->make(LicenceKeys::class), $app->make(GiftCards::class), $app->make(OrderEntitlements::class), $state) extends OrderLifecycle
         {
-            public function __construct(InventoryReserver $inventory, DigitalFulfilment $digital, LicenceKeys $keys, GiftCards $giftCards, private readonly \stdClass $state)
+            public function __construct(InventoryReserver $inventory, DigitalFulfilment $digital, LicenceKeys $keys, GiftCards $giftCards, OrderEntitlements $entitlements, private readonly \stdClass $state)
             {
-                parent::__construct($inventory, $digital, $keys, $giftCards);
+                parent::__construct($inventory, $digital, $keys, $giftCards, $entitlements);
             }
 
             public function markPaid(Order $order, Payment $payment, array $paymentAttributes = []): bool

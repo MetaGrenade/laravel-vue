@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\Entitlements\Entitlements;
+use App\Support\Entitlements\EntitlementSet;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -110,6 +112,31 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Badge::class)
             ->withPivot('awarded_at')
             ->withTimestamps();
+    }
+
+    /**
+     * Everything this user has been given by a purchase (or by staff): the features that are on and the limits, from every
+     * owner they act for. Not a relation, so it is not called `entitlements`.
+     */
+    public function entitlementSet(): EntitlementSet
+    {
+        return app(Entitlements::class)->forUser($this);
+    }
+
+    /**
+     * Whether the user holds an entitlement: a feature that is on, or a limit above nothing.
+     */
+    public function canUse(string $entitlement): bool
+    {
+        return $this->entitlementSet()->has($entitlement);
+    }
+
+    /**
+     * How much of a limit the user has (0 for one they do not hold).
+     */
+    public function limitOf(string $entitlement): int
+    {
+        return $this->entitlementSet()->limit($entitlement);
     }
 
     public function subscribedForumThreads(): BelongsToMany

@@ -19,6 +19,7 @@ import { formatMoney } from '@/lib/money';
 import { formatDateTime, orderStatusVariant, paymentStatusVariant } from '@/lib/orderStatus';
 import type { BreadcrumbItem } from '@/types';
 import type { AddressFormValue, RecurringPayment, TaxLineQuote } from '@/types/commerce';
+import type { OrderGrant } from '@/types/entitlements';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { CircleAlert, Download, ExternalLink, KeyRound, PackageCheck, RefreshCw, Undo2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -141,6 +142,8 @@ const props = defineProps<{
     payments: PaymentRow[];
     /** The recurring payments this order started and what Tebex has said about them. */
     subscriptions: RecurringPayment[];
+    /** What this order gave the account, and whether each is still held. */
+    entitlements: OrderGrant[];
     refunds: RefundRow[];
     events: EventRow[];
     refunding: {
@@ -755,6 +758,53 @@ const selectClass =
                             </CardHeader>
                             <CardContent>
                                 <RecurringPayments :payments="props.subscriptions" :show-order="false" staff />
+                            </CardContent>
+                        </Card>
+
+                        <Card v-if="props.entitlements.length">
+                            <CardHeader>
+                                <CardTitle>Entitlements</CardTitle>
+                                <CardDescription
+                                    >What paying for this order gave the account. Taken back on a full refund or when the recurring payment
+                                    ends.</CardDescription
+                                >
+                            </CardHeader>
+                            <CardContent>
+                                <ul class="divide-y">
+                                    <li
+                                        v-for="grant in props.entitlements"
+                                        :key="grant.id"
+                                        class="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                                    >
+                                        <div class="min-w-0">
+                                            <p class="font-medium">
+                                                {{ grant.label
+                                                }}<span v-if="grant.type === 'limit'" class="text-muted-foreground"> +{{ grant.value }}</span>
+                                            </p>
+                                            <p class="truncate text-xs text-muted-foreground">
+                                                <span class="font-mono">{{ grant.key }}</span
+                                                ><template v-if="grant.line"> · {{ grant.line }}</template>
+                                            </p>
+                                            <p v-if="!grant.held_by_account" class="text-xs text-muted-foreground">
+                                                A guest's order: nobody holds this until an account claims the order.
+                                            </p>
+                                        </div>
+                                        <div class="shrink-0 text-right">
+                                            <Badge :variant="grant.active ? 'secondary' : 'outline'">{{
+                                                grant.active ? 'Held' : 'Taken back'
+                                            }}</Badge>
+                                            <p v-if="grant.revoked_at" class="mt-1 text-xs text-muted-foreground">
+                                                {{
+                                                    grant.revoked_reason === 'refund'
+                                                        ? 'Order refunded'
+                                                        : grant.revoked_reason === 'subscription'
+                                                          ? 'Recurring payment ended'
+                                                          : 'Taken back'
+                                                }}
+                                            </p>
+                                        </div>
+                                    </li>
+                                </ul>
                             </CardContent>
                         </Card>
 

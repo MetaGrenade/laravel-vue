@@ -19,6 +19,7 @@ use App\Payments\Providers\TebexProvider;
 use App\Support\Commerce\Digital\DigitalFulfilment;
 use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\GiftCards\GiftCards;
+use App\Support\Entitlements\OrderEntitlements;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -34,6 +35,7 @@ class OrderLifecycle
         private readonly DigitalFulfilment $digital,
         private readonly LicenceKeys $keys,
         private readonly GiftCards $giftCards,
+        private readonly OrderEntitlements $entitlements,
     ) {}
 
     /**
@@ -157,11 +159,16 @@ class OrderLifecycle
     /**
      * What a paid order owes in digital goods: the right to download its files and its licence keys, and,
      * when that is all there is to deliver (nothing to ship, nothing to send by hand), completion.
+     * It also gives the account what the packages in it are set up to give (entitlements).
      */
     private function deliver(Order $order): void
     {
         $this->digital->grant($order);
         $this->keys->issue($order);
+
+        // Then checked straight away against the recurring payment: Tebex may have said it ended before it said it was paid.
+        $this->entitlements->grant($order);
+        $this->entitlements->syncRevocation($order);
 
         // Tebex delivers its packages itself, to the buyer's account in the game, the moment it takes the payment:
         // there is nothing for the shop to ship or for staff to send.
