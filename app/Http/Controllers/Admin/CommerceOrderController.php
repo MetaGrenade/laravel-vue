@@ -361,14 +361,18 @@ class CommerceOrderController extends Controller
     /**
      * The game account a Tebex package is delivered to, as Tebex knows the buyer: the name and the id Tebex uses.
      *
-     * @return array{username: string|null, id: int}|null
+     * The id is a number when it was kept from the basket, and a string once the payment's own webhook has replaced it
+     * (Tebex sends it as text, and for some platforms it is not a number at all), so both are shown as they are.
+     *
+     * @return array{username: string|null, id: int|string}|null
      */
     private function gameAccount(Order $order): ?array
     {
         $buyer = $order->payments->where('provider', 'tebex')->sortByDesc('id')->first()?->raw['buyer'] ?? null;
+        $id = is_array($buyer) ? ($buyer['username_id'] ?? null) : null;
 
-        return is_array($buyer) && is_int($buyer['username_id'] ?? null)
-            ? ['username' => is_string($buyer['username'] ?? null) ? $buyer['username'] : null, 'id' => $buyer['username_id']]
+        return is_array($buyer) && (is_int($id) || (is_string($id) && $id !== ''))
+            ? ['username' => is_string($buyer['username'] ?? null) ? $buyer['username'] : null, 'id' => $id]
             : null;
     }
 

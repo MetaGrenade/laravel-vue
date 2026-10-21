@@ -75,8 +75,8 @@ interface Order {
     refunded_total: string;
     customer_name: string | null;
     customer_email: string | null;
-    /** The game account a Tebex package is delivered to, as Tebex knows the buyer. */
-    game_account: { username: string | null; id: number } | null;
+    /** The game account a Tebex package is delivered to, as Tebex knows the buyer (the id is text once the payment webhook has said). */
+    game_account: { username: string | null; id: number | string } | null;
     customer: { id: number; nickname: string; email: string } | null;
     shipping_method: string | null;
     shipping_address: Partial<AddressFormValue> | null;

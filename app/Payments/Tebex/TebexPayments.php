@@ -96,20 +96,23 @@ class TebexPayments
         // Tebex works out the tax and takes its own codes, so the amount may differ from the shop's quote; the currency
         // cannot, since the basket was checked to be in the order's.
         if ($paid === null || $paid->currency !== strtoupper($payment->currency)) {
-            $payment->forceFill([
-                'status' => PaymentStatus::Review,
-                'provider_payment_id' => $transaction,
-                'raw' => $this->raw($payment, $event),
-            ])->save();
-
-            Log::critical('Tebex reported a payment that does not match the order; it was not applied.', [
-                'order' => $order->number,
-                'transaction' => $transaction,
+            return $this->hold($payment, $event, $call, "Tebex took a payment ({$transaction}) in a different currency, or with no amount, than order {$order->number}; it was not applied and needs a person.", [
                 'expected_currency' => $payment->currency,
                 'reported' => $paid === null ? null : "{$paid->toDecimal()} {$paid->currency}",
             ]);
+        }
 
-            return $this->flag($call, "Tebex took a payment ({$transaction}) in a different currency, or with no amount, than order {$order->number}; it was not applied and needs a person.", WebhookOutcome::handled('Payment needs review'));
+        // What was bought must be what was ordered. The basket is addressable by anyone who has its identifier (it is in
+        // the address the buyer pays at), so its contents can be changed before payment while it still carries the
+        // order's id and nonce: a cheaper package paid for would otherwise complete an order for a dearer one.
+        $expected = $this->ordered($order);
+        $bought = $event->purchased();
+
+        if ($expected === null || $bought !== $expected) {
+            return $this->hold($payment, $event, $call, "Tebex took a payment ({$transaction}) for packages that are not what order {$order->number} holds ({$this->describe($bought)} against {$this->describe($expected)}); it was not applied and needs a person.", [
+                'expected_packages' => $expected,
+                'reported_packages' => $bought,
+            ], ['purchased' => $bought]);
         }
 
         $this->adoptTotal($order, $paid);
@@ -341,17 +344,80 @@ class TebexPayments
     }
 
     /**
+     * Money was taken that the shop will not turn into a fulfilled order by itself: the payment is put in review, with
+     * what Tebex said kept on it, and the call says why. A person decides (refund it at Tebex, or fulfil it by hand).
+     *
+     * @param  array<string, mixed>  $context  What the log should say besides the order and the transaction.
+     * @param  array<string, mixed>  $keep  More to keep on the payment.
+     */
+    private function hold(Payment $payment, TebexEvent $event, BillingWebhookCall $call, string $why, array $context, array $keep = []): WebhookOutcome
+    {
+        $payment->forceFill([
+            'status' => PaymentStatus::Review,
+            'provider_payment_id' => $event->transactionId(),
+            'raw' => $this->raw($payment, $event, $keep),
+        ])->save();
+
+        Log::critical('Tebex reported a payment that does not match the order; it was not applied.', [
+            'order' => $payment->order->number,
+            'transaction' => $event->transactionId(),
+            ...$context,
+        ]);
+
+        return $this->flag($call, $why, WebhookOutcome::handled('Payment needs review'));
+    }
+
+    /**
+     * The packages an order holds, as Tebex's package id => how many, or null when a line cannot be tied to a package
+     * (its copy was deleted), in which case nothing can be checked against it.
+     *
+     * @return array<int, int>|null
+     */
+    private function ordered(Order $order): ?array
+    {
+        $order->loadMissing('items.tebexPackage');
+
+        $packages = [];
+
+        foreach ($order->items as $item) {
+            if ($item->tebexPackage === null) {
+                return null;
+            }
+
+            $packages[$item->tebexPackage->tebex_id] = ($packages[$item->tebexPackage->tebex_id] ?? 0) + $item->quantity;
+        }
+
+        ksort($packages);
+
+        return $packages === [] ? null : $packages;
+    }
+
+    /**
+     * @param  array<int, int>|null  $packages
+     */
+    private function describe(?array $packages): string
+    {
+        if ($packages === null) {
+            return 'nothing it could read';
+        }
+
+        return implode(', ', array_map(fn (int $id, int $quantity) => "{$quantity} x #{$id}", array_keys($packages), $packages));
+    }
+
+    /**
      * What is kept on the payment: what the shop recorded when the basket was made, with what Tebex has said.
      *
+     * @param  array<string, mixed>  $extra
      * @return array<string, mixed>
      */
-    private function raw(Payment $payment, TebexEvent $event): array
+    private function raw(Payment $payment, TebexEvent $event, array $extra = []): array
     {
         $paid = $event->paid();
         $raw = (array) $payment->raw;
 
         return array_filter([
             ...$raw,
+            ...$extra,
             'transaction_id' => $event->transactionId(),
             'paid' => $paid === null ? null : ['amount' => $paid->toDecimal(), 'currency' => $paid->currency],
             // The account Tebex delivered to, which is the one that counts.

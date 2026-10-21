@@ -30,8 +30,8 @@ trait InteractsWithTebexWebhooks
     }
 
     /**
-     * A delivery for an order's payment: complete, for what the order cost, naming the order and the nonce its basket
-     * was made with the way Tebex is believed to carry them (on each product).
+     * A delivery for an order's payment: complete, for what the order cost, for the packages the order holds, naming the
+     * order and the nonce its basket was made with the way Tebex is believed to carry them (on each product).
      *
      * @param  array<string, mixed>  $subject  Changes to the payment (replacing whole keys).
      * @return array<string, mixed>
@@ -39,12 +39,21 @@ trait InteractsWithTebexWebhooks
     protected function tebexPaymentFor(Order $order, Payment $payment, array $subject = []): array
     {
         $paid = (float) $order->grand_total;
-        $nonce = $payment->raw['nonce'] ?? null;
+        $custom = ['order' => $order->public_id, 'nonce' => $payment->raw['nonce'] ?? null];
         $base = $this->tebexFixture('payment');
+        $order->loadMissing('items.tebexPackage');
 
         $base['price'] = ['amount' => $paid, 'currency' => $order->currency];
         $base['price_paid'] = ['amount' => $paid, 'currency' => $order->currency];
-        $base['products'][0]['custom'] = ['order' => $order->public_id, 'nonce' => $nonce];
+        $base['products'] = $order->items->sortBy('id')->map(fn ($item) => [
+            ...$base['products'][0],
+            'id' => $item->tebexPackage?->tebex_id,
+            'name' => $item->description,
+            'quantity' => $item->quantity,
+            'base_price' => ['amount' => (float) $item->unit_price, 'currency' => $order->currency],
+            'paid_price' => ['amount' => (float) $item->subtotal, 'currency' => $order->currency],
+            'custom' => $custom,
+        ])->values()->all();
 
         return array_replace($base, $subject);
     }

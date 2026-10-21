@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\Support\FakeTebexBaskets;
@@ -973,5 +974,230 @@ class TebexWebhookTest extends TestCase
         $this->deliver('payment.completed', $subject)->assertOk();
 
         $this->assertSame(OrderPaymentStatus::Paid, $order->fresh()->payment_status);
+    }
+
+    // --- What was bought must be what was ordered --------------------------------------------------------------------
+
+    private function anotherPackage(string $ident = 'cheap-thing', string $price = '1.00'): TebexPackage
+    {
+        return TebexPackage::factory()->priced($price)->create(['ident' => $ident, 'name' => Str::headline($ident)]);
+    }
+
+    /**
+     * Assert that a payment was taken for something other than the order, so the shop held it and fulfilled nothing.
+     */
+    private function assertHeld(Order $order, Payment $payment): void
+    {
+        $this->assertSame(PaymentStatus::Review, $payment->fresh()->status);
+        $this->assertSame(self::TRANSACTION, $payment->fresh()->provider_payment_id);
+        $this->assertSame(OrderPaymentStatus::Unpaid, $order->fresh()->payment_status);
+        $this->assertSame(OrderStatus::Pending, $order->fresh()->status);
+        $this->assertSame(0, $order->events()->where('type', OrderEvent::PAID)->count());
+        $this->assertSame(1, CartItem::query()->count(), 'the cart still has what the buyer asked for');
+        $this->assertStringContainsString('not what order', (string) BillingWebhookCall::query()->latest('id')->first()->error);
+    }
+
+    #[Test]
+    public function a_payment_for_a_cheaper_package_than_the_one_ordered_is_held_not_fulfilled(): void
+    {
+        [$order, $payment] = $this->placeOrder(price: '10.00');
+        $cheap = $this->anotherPackage();
+        $subject = $this->tebexPaymentFor($order, $payment, ['price_paid' => ['amount' => 1.0, 'currency' => 'USD'], 'price' => ['amount' => 1.0, 'currency' => 'USD']]);
+        $subject['products'][0]['id'] = $cheap->tebex_id;
+        Log::spy();
+
+        $this->deliver('payment.completed', $subject)->assertOk();
+
+        $this->assertHeld($order, $payment);
+        $this->assertSame('10.00', $order->fresh()->grand_total, 'the order is not rewritten to what was bought instead');
+        $this->assertEquals([$cheap->tebex_id => 1], $payment->fresh()->raw['purchased']);
+        Log::shouldHaveReceived('critical')->once();
+    }
+
+    #[Test]
+    public function a_payment_for_fewer_of_a_package_than_ordered_is_held(): void
+    {
+        [$order, $payment] = $this->placeOrder(quantity: 2);
+        $subject = $this->tebexPaymentFor($order, $payment);
+        $subject['products'][0]['quantity'] = 1;
+
+        $this->deliver('payment.completed', $subject)->assertOk();
+
+        $this->assertHeld($order, $payment);
+    }
+
+    #[Test]
+    public function a_payment_for_more_than_was_ordered_is_held_too(): void
+    {
+        [$order, $payment] = $this->placeOrder();
+        $subject = $this->tebexPaymentFor($order, $payment);
+        $subject['products'][] = [...$subject['products'][0], 'id' => $this->anotherPackage()->tebex_id];
+
+        $this->deliver('payment.completed', $subject)->assertOk();
+
+        $this->assertHeld($order, $payment);
+    }
+
+    #[Test]
+    #[DataProvider('paymentsListingNoPackages')]
+    public function a_payment_that_lists_no_packages_is_held(?array $products): void
+    {
+        [$order, $payment] = $this->placeOrder();
+        $subject = $this->tebexPaymentFor($order, $payment);
+        unset($subject['products']);
+        $products === null || $subject['products'] = $products;
+        // The custom data that finds the order travels on the products, so it goes at the top of the payment here.
+        $subject['custom'] = ['order' => $order->public_id, 'nonce' => $payment->raw['nonce']];
+
+        $this->deliver('payment.completed', $subject)->assertOk();
+
+        $this->assertHeld($order, $payment);
+    }
+
+    /**
+     * @return array<string, array{0: array<int, mixed>|null}>
+     */
+    public static function paymentsListingNoPackages(): array
+    {
+        return ['no products at all' => [null], 'an empty list' => [[]]];
+    }
+
+    #[Test]
+    #[DataProvider('unreadablePackageEntries')]
+    public function a_package_entry_that_cannot_be_read_holds_the_payment(array $broken): void
+    {
+        [$order, $payment] = $this->placeOrder();
+        $subject = $this->tebexPaymentFor($order, $payment);
+        $subject['products'][0] = [...$subject['products'][0], ...$broken];
+
+        $this->deliver('payment.completed', $subject)->assertOk();
+
+        $this->assertHeld($order, $payment);
+    }
+
+    /**
+     * @return array<string, array{0: array<string, mixed>}>
+     */
+    public static function unreadablePackageEntries(): array
+    {
+        return [
+            'an id that is not a number' => [['id' => 'abc']],
+            'no id' => [['id' => null]],
+            'an id that is a fraction' => [['id' => 4.5]],
+            'a quantity of none' => [['quantity' => 0]],
+            'a negative quantity' => [['quantity' => '-1']],
+            'a fractional quantity' => [['quantity' => 1.5]],
+            'no quantity' => [['quantity' => null]],
+        ];
+    }
+
+    #[Test]
+    public function an_order_line_the_shop_can_no_longer_tie_to_a_package_cannot_be_checked_so_the_payment_is_held(): void
+    {
+        [$order, $payment] = $this->placeOrder();
+        $order->items()->update(['tebex_package_id' => null]);
+
+        $this->deliver('payment.completed', $this->tebexPaymentFor($order->fresh(), $payment, ['products' => [['id' => 4, 'quantity' => 1, 'custom' => ['order' => $order->public_id, 'nonce' => $payment->raw['nonce']]]]]))->assertOk();
+
+        $this->assertSame(PaymentStatus::Review, $payment->fresh()->status);
+        $this->assertSame(OrderPaymentStatus::Unpaid, $order->fresh()->payment_status);
+    }
+
+    #[Test]
+    public function a_held_payment_stays_held_when_the_delivery_comes_again(): void
+    {
+        [$order, $payment] = $this->placeOrder();
+        $subject = $this->tebexPaymentFor($order, $payment);
+        $subject['products'][0]['id'] = $this->anotherPackage()->tebex_id;
+
+        $this->deliver('payment.completed', $subject)->assertOk();
+        $this->deliver('payment.completed', $subject)->assertOk();
+
+        $this->assertHeld($order, $payment);
+    }
+
+    #[Test]
+    public function the_packages_may_come_in_any_order_ids_may_be_text_and_a_package_listed_twice_adds_up(): void
+    {
+        $extra = $this->anotherPackage('pet-cat', '3.00');
+        $this->post(route('shop.cart.packages.store'), ['package_id' => $extra->tebex_id, 'quantity' => 1]);
+        [$order, $payment] = $this->placeOrder(quantity: 2);
+        $this->assertCount(2, $order->items);
+
+        $subject = $this->tebexPaymentFor($order, $payment);
+        [$cat, $vip] = $subject['products'];
+        // The cat once, the VIP rank listed as two lines of one (with its id and quantity as text), in the other order.
+        $subject['products'] = [[...$vip, 'id' => (string) $vip['id'], 'quantity' => 1], $cat, [...$vip, 'quantity' => '1']];
+
+        $this->deliver('payment.completed', $subject)->assertOk();
+
+        $this->assertSame(OrderPaymentStatus::Paid, $order->fresh()->payment_status);
+    }
+
+    // --- The account the staff see -------------------------------------------------------------------------------------
+
+    #[Test]
+    public function staff_see_the_account_tebex_delivered_to_with_the_id_it_gave_as_text(): void
+    {
+        [$order] = $this->placeAndPay();
+        $this->seed(RolePermissionSeeder::class);
+
+        $this->actingAs(User::factory()->create()->assignRole('admin'))->get(route('acp.commerce.orders.show', $order))
+            ->assertInertia(fn ($page) => $page->where('order.game_account', ['username' => 'ProGamer', 'id' => '1234']));
+    }
+
+    #[Test]
+    public function an_id_that_is_not_a_number_is_shown_as_it_is(): void
+    {
+        [$order, $payment] = $this->placeOrder();
+        $subject = $this->tebexPaymentFor($order, $payment);
+        $subject['customer']['username'] = ['id' => '069a79f4-44e9-4726-a5be-fca90e38aaf5', 'username' => 'Notch'];
+        $this->deliver('payment.completed', $subject)->assertOk();
+        $this->seed(RolePermissionSeeder::class);
+
+        $this->actingAs(User::factory()->create()->assignRole('admin'))->get(route('acp.commerce.orders.show', $order))
+            ->assertInertia(fn ($page) => $page->where('order.game_account', ['username' => 'Notch', 'id' => '069a79f4-44e9-4726-a5be-fca90e38aaf5']));
+    }
+
+    #[Test]
+    public function an_entry_that_cannot_be_read_holds_the_payment_even_beside_ones_that_match(): void
+    {
+        [$order, $payment] = $this->placeOrder();
+        $subject = $this->tebexPaymentFor($order, $payment);
+        $subject['products'][] = ['id' => 'abc', 'quantity' => 1];
+
+        $this->deliver('payment.completed', $subject)->assertOk();
+
+        $this->assertHeld($order, $payment);
+    }
+
+    #[Test]
+    public function a_negative_quantity_cannot_cancel_out_another_entry(): void
+    {
+        [$order, $payment] = $this->placeOrder(quantity: 2);
+        $subject = $this->tebexPaymentFor($order, $payment);
+        $subject['products'][0]['quantity'] = 3;
+        $subject['products'][] = [...$subject['products'][0], 'quantity' => -1];
+
+        $this->deliver('payment.completed', $subject)->assertOk();
+
+        $this->assertHeld($order, $payment);
+    }
+
+    #[Test]
+    public function an_order_with_a_line_the_shop_can_no_longer_tie_to_a_package_is_not_paid_on_the_strength_of_the_others(): void
+    {
+        $extra = $this->anotherPackage('pet-cat', '3.00');
+        $this->post(route('shop.cart.packages.store'), ['package_id' => $extra->tebex_id, 'quantity' => 1]);
+        [$order, $payment] = $this->placeOrder();
+        $subject = $this->tebexPaymentFor($order, $payment);
+        $order->items()->where('tebex_package_id', $extra->id)->update(['tebex_package_id' => null]);
+
+        // Tebex took money for the VIP rank alone: the order's other line cannot be said to have been paid for.
+        $subject['products'] = [$subject['products'][1]];
+        $this->deliver('payment.completed', $subject)->assertOk();
+
+        $this->assertSame(PaymentStatus::Review, $payment->fresh()->status);
+        $this->assertSame(OrderPaymentStatus::Unpaid, $order->fresh()->payment_status);
     }
 }

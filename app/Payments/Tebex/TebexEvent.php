@@ -129,6 +129,41 @@ final class TebexEvent
     }
 
     /**
+     * The packages the payment was for, as Tebex's package id => how many in all (a package listed twice adds up).
+     * Null when the payment lists none, or any entry that is not a whole id with a whole quantity that is not negative:
+     * what cannot be read cannot be said to match anything, and a negative one could cancel out another entry. (A
+     * quantity of none is not refused here: it lists a package the order does not hold, or adds nothing to one it does,
+     * and the comparison with the order deals with both.)
+     *
+     * @return array<int, int>|null
+     */
+    public function purchased(): ?array
+    {
+        $products = Arr::get($this->subject, 'products');
+
+        if (! is_array($products) || $products === []) {
+            return null;
+        }
+
+        $bought = [];
+
+        foreach ($products as $product) {
+            $id = is_array($product) ? ($product['id'] ?? null) : null;
+            $quantity = is_array($product) ? ($product['quantity'] ?? null) : null;
+
+            if ((! is_int($id) && ! (is_string($id) && ctype_digit($id))) || (! is_int($quantity) && ! (is_string($quantity) && ctype_digit($quantity))) || (int) $quantity < 0) {
+                return null;
+            }
+
+            $bought[(int) $id] = ($bought[(int) $id] ?? 0) + (int) $quantity;
+        }
+
+        ksort($bought);
+
+        return $bought;
+    }
+
+    /**
      * The order and nonce the basket was made with (see {@see TebexProvider::startCheckout()}).
      *
      * Tebex says only that a basket's custom data is "included with webhook responses". The one place its documented
