@@ -2,13 +2,15 @@
 
 [Tebex](https://tebex.io) is a merchant of record for digital goods (game servers and communities above all): it keeps the catalogue, takes the payment, handles tax and chargebacks, and tells the shop when someone has paid. MetaForge supports it as the second payment provider, behind the same contract Stripe uses (see [Payment providers](commerce.md#payment-providers)).
 
-> **Status: a one-off package can be sold and paid for, and the order is settled by Tebex's webhook.** Tebex is built as slices (M2a, built and tested against fixtures, no Tebex account needed). Done: the connection, the local copy of the catalogue and the ACP page; the storefront, the cart, the order and the basket at Tebex; **selling for the games** (a username for Minecraft and Overwolf, signing in for Discord, FiveM, Rust and the other Steam-based games, as well as Universal (No Auth)); **the webhook** (a payment marks the order paid, and refunds and disputes made at Tebex are recorded); an **embedded checkout** (Tebex.js: the buyer pays on a page of the shop's, in a popup or inside it, instead of being sent to Tebex; off by default); and **recurring payments** (Tebex charges and ends them; the shop records each renewal as a payment and keeps, and shows, where the recurring payment stands). **Entitlements** (what a purchase gives the buyer's account in the shop, taken back with a refund, a lost dispute or the end of a recurring payment; see [entitlements.md](entitlements.md)) are built too. Still to come, as its own change: the experimental Checkout API mode. **Not checked against a real Tebex store yet** (M2b, before a release candidate): see [Checked against a real store](#checked-against-a-real-store) for what the webhook and the embedded checkout assume. See [the roadmap](ROADMAP-v1.0.0.md) (M2).
+> **Status: a one-off package can be sold and paid for, and the order is settled by Tebex's webhook.** Tebex is built as slices (M2a, built and tested against fixtures, no Tebex account needed). Done: the connection, the local copy of the catalogue and the ACP page; the storefront, the cart, the order and the basket at Tebex; **selling for the games** (a username for Minecraft and Overwolf, signing in for Discord, FiveM, Rust and the other Steam-based games, as well as Universal (No Auth)); **the webhook** (a payment marks the order paid, and refunds and disputes made at Tebex are recorded); an **embedded checkout** (Tebex.js: the buyer pays on a page of the shop's, in a popup or inside it, instead of being sent to Tebex; off by default); and **recurring payments** (Tebex charges and ends them; the shop records each renewal as a payment and keeps, and shows, where the recurring payment stands). **Entitlements** (what a purchase gives the buyer's account in the shop, taken back with a refund, a lost dispute or the end of a recurring payment; see [entitlements.md](entitlements.md)) are built too. The **experimental Checkout API mode** is begun: with `TEBEX_CHECKOUT_API_ENABLED` the shop sells its own products and Tebex only takes the payment (see [Selling the shop's own products](#selling-the-shops-own-products-the-checkout-api-experimental)); refunds through it, the ACP page for it and the live check are still to come. **Not checked against a real Tebex store yet** (M2b, before a release candidate): see [Checked against a real store](#checked-against-a-real-store) for what the webhook and the embedded checkout assume. See [the roadmap](ROADMAP-v1.0.0.md) (M2).
 
 ## How it fits
 
 In the mode MetaForge ships with (the Tebex **Headless API**) the catalogue lives in Tebex: staff add packages, set prices and write descriptions in the Tebex panel. MetaForge keeps a **local copy** that it refreshes, draws its own storefront from, and sends the customer to Tebex's hosted checkout with. Tebex owns discounts, tax and payment methods; the shop never sees a card.
 
 Nothing about the catalogue is edited in MetaForge. The pages that manage products, prices and stock apply to the shop's own products, not to Tebex packages.
+
+There is a second, **experimental** mode, for stores Tebex has approved for its **Checkout API**: the catalogue is the shop's own and Tebex only takes the payment. The two are alternatives; see [Selling the shop's own products](#selling-the-shops-own-products-the-checkout-api-experimental).
 
 ## Setting up
 
@@ -166,8 +168,46 @@ A recurring package is paid at checkout and then **again every period by Tebex**
 
 Where it shows: on the order in the ACP (the *Recurring payment* card, with Tebex's reference, its status and the failed tries, and the renewals among the payments), on the buyer's order page and under **Your orders** (what it is, how much each time, how many times it has renewed, when the next payment is or when it ended), and on the Tebex page, which counts the ones running, overdue, ending and over. The buyer cannot cancel from the shop: Tebex has its own pages for that, and the shop does not link to a cancel page it has not seen.
 
-## Entitlements
+## Selling the shop's own products (the Checkout API, experimental)
 
+> **Experimental.** It needs Tebex's approval (their compliance team decides, and some creators, FiveM and RedM among them, cannot have it), it is off by default, and it has only been tested against Tebex's documentation, never a live account: read [Checked against a real store](#checked-against-a-real-store) before relying on it.
+
+With the Headless API (everything above) Tebex keeps the catalogue and the shop sells its packages. With the Checkout API the catalogue is **the shop's own**: its products, with their prices, variants and stock, and Tebex is the merchant of record only. It works out the tax and takes the payment; the shop never sees a card. The two modes are alternatives, and `TEBEX_CHECKOUT_API_ENABLED=true` switches the Tebex provider from one to the other:
+
+| | Packages (Headless, the default) | Products (Checkout API) |
+|---|---|---|
+| The catalogue | Tebex's, copied by `tebex:sync` | The shop's own |
+| The shop window | `/shop/packages` (`/shop` goes there) | `/shop`, as for any provider; `/shop/packages` does not exist |
+| Credentials | The store's public token (and private key) | The **project id** and the private key |
+| Delivered by | Tebex, in the game | The shop (downloads, licence keys), or by hand |
+| Refunds | In the Tebex panel | In the Tebex panel (through the API: the next slice) |
+
+### What it sells
+
+Only products that **need no shipping** (downloads, licence keys, services), and only as **single payments**: Tebex cannot ship anything, and the shop's products have no recurring form. A product that has to be shipped cannot be added to the cart, and one already in a cart is refused at checkout with a message that says why. A cart of Tebex packages cannot be checked out in this mode, nor a cart of products in the other.
+
+Because Tebex adds the tax and applies its own codes, the shop's own discount codes, gift cards, shipping and tax are **not used**: the cart and checkout pages say so, and no address is asked for. The order carries the shop's quote (each product at its price before tax); when Tebex reports the payment, the order and the payment say what was really charged (more than the quote is recorded as tax, less as a discount), as for packages. Prices are sent in the store's currency, which the Checkout API does not let the shop ask for, so **`COMMERCE_CURRENCY` must be it**; a payment in another currency is held for review.
+
+### How a checkout goes
+
+1. The buyer checks out. The order is placed (stock is reserved, as for any order) and **one `POST /checkout`** is made to `https://checkout.tebex.io/api` with the project id and private key (HTTP Basic): the buyer's name and email, where they come back to, the order's public id and a random nonce, and each order line as a custom item (its name, its price before tax, `type: single`) with the quantity beside it.
+2. Every item carries, in its `custom` data, the order, the nonce **and the id of the order line it is for**. Tebex hands that back in the webhook.
+3. The buyer pays on Tebex's page (the address in the answer, or `https://pay.tebex.io/{ident}`), or on a page of the shop's with Tebex.js if `TEBEX_CHECKOUT_MODE` is `popup` or `inline`, exactly as for packages.
+4. **The webhook settles the order**, as it does for packages, and only once the payment is for **exactly what was ordered**: Tebex warns that a webhook holds what was actually bought, so the payment must list the same order lines, each in the quantity ordered and at the price ordered (Tebex's `base_price` of the product, accepted whether it is for one unit or for the whole row, since its documentation does not say). Anything else puts the payment in review for a person, with a critical log line, and the delivery shows as **Needs a look**.
+5. The shop delivers what was bought. An order of the shop's products is **not** completed just because Tebex took the payment (Tebex delivers its packages, not the shop's products): downloads are granted and licence keys issued as for any paid order, and the order completes when they are all the order owes; anything else waits for staff.
+
+Checking out again closes the earlier basket first, by taking its rows out (a basket with nothing in it cannot be paid), and if Tebex will not empty it nothing is replaced. A basket already paid is left for the webhook.
+
+### Setting it up
+
+1. Ask Tebex for the Checkout API (their compliance team approves it). Without that, every call is refused with a 401 or 403.
+2. Put the **project id** and **private key** (Tebex panel: Developers → API Keys) in `.env` as `TEBEX_PROJECT_ID` and `TEBEX_PRIVATE_KEY`, set `TEBEX_CHECKOUT_API_ENABLED=true`, and clear the config cache. Add and validate the webhook endpoint as for packages (`TEBEX_WEBHOOK_SECRET`); it is the same endpoint.
+3. Make sure `COMMERCE_CURRENCY` is the store's currency, and that Tebex is the payment provider in System settings.
+
+What is **not** built yet, because it is the next slice: refunding through the API (`POST /payments/{id}/refund`, which refunds a payment in full), looking a payment up (`GET /payments/{id}`), and the ACP page for this mode (the Tebex page still talks about the public token and the packages catalogue).
+
+
+## Entitlements
 A package can be set to give the buyer's account in the shop a **feature** or a **limit** (the **Gives** column on the ACP page; the entitlements themselves are made under **Commerce → Entitlements**). They are given when the order is paid, and taken back when the order is refunded in full, a dispute over it is lost, or the recurring payment it came with ends: for a recurring package that is the `ended` delivery, or a status of Expired or Cancelled; cancelling being asked for, or a renewal failing, takes nothing back. A guest's order gives its grants to nobody until the order is claimed by an account. How it all works, and how code asks for them (`$user->canUse()`, the `entitled` route middleware, `useEntitlements()`), is in [entitlements.md](entitlements.md).
 
 
@@ -180,6 +220,7 @@ The webhook is tested against deliveries written from Tebex's documentation, whi
 - **That a payment's `products[].id` is the package id the catalogue gives** (the id the shop keeps as `tebex_id`) and `quantity` the number bought. The shop holds any payment whose products differ from the order's, so if Tebex numbers them differently every payment would be held for review rather than settled: safe, but nothing would sell.
 - That `price_paid` is what the buyer paid including tax and after codes, that a refund is always of the whole payment, the shape of a dispute's subject (the documentation gives none; the shop looks for a payment in it), and that `basket.abandoned` (an event the SDK knows and the documentation does not) carries nothing the shop needs.
 - **Recurring payments.** The deliveries are written from the documentation's example (`tests/Fixtures/tebex/recurring-payment.json`). To confirm: that the first payment's `recurring_payment_reference` is the `reference` of the `recurring-payment.started` delivery; whether a renewal carries the order's custom data or only the reference (the shop copes with both); that deliveries in any order are handled (they should be); that a renewal's `price_paid` is in the order's currency and its `products` are the recurring package; that `payment.refunded` for a renewal carries the renewal's own transaction id; when `recurring-payment.ended` comes after a cancellation (at the end of the period, as the documentation says, or at once); that `recurring-payment.status-changed` (an event the documentation leaves out) carries the same subject; and what `status` and `cancel_reason` say at each step. The shop also assumes **one recurring payment per payment**, tied to the first recurring package among what was bought; how Tebex reports a basket with several recurring packages, or a recurring package next to one-off ones, is not known.
+- **The Checkout API** (experimental) has never been tried against a real account, so none of this is known: that the answer to `POST /checkout` is the basket itself and has the `links.checkout` the schema shows (the shop reads `data` too, and falls back to `https://pay.tebex.io/{ident}`); what `products[].id` is for a custom item in the webhook (the shop does not use it: it matches by the `line` it puts in each item's `custom` data, so it needs that to come back on `products[].custom`, which Tebex's guide on custom data says it does); whether a product's `base_price` is per unit or per row (either is accepted); that Tebex does not change the price it was sent (a `sale` is never sent, and the quote Tebex answers with is compared with the shop's); how Tebex treats tax on a custom item; the store's currency (it cannot be asked for, a payment in another one is held); and that taking every row out of a basket with `DELETE /baskets/{ident}/packages/{rowId}` makes it unpayable.
 - That the validation delivery is signed (the shop requires it).
 
 ## Keeping the copy fresh
@@ -221,6 +262,9 @@ Prices are kept to the cent. Tebex sends them as floating-point numbers, so they
 | `TEBEX_CHECKOUT_MODE` | `redirect` | Where the buyer pays: `redirect` (Tebex's page), `popup` or `inline` (Tebex.js on the shop's page). |
 | `TEBEX_CHECKOUT_THEME` | `default` | Tebex.js's colour theme: `default` (the store's), `auto`, `light` or `dark`. |
 | `TEBEX_SYNC_EVERY_MINUTES` | `60` | How often the scheduler refreshes the copy; `0` is never. |
+| `TEBEX_CHECKOUT_API_ENABLED` | `false` | **Experimental.** Sell the shop's own products through Tebex's Checkout API instead of Tebex's packages. Needs Tebex's approval. |
+| `TEBEX_PROJECT_ID` | none | The project id (Tebex panel: Developers → API Keys). Only the Checkout API uses it, with the private key. |
+| `TEBEX_CHECKOUT_API_URL` | `https://checkout.tebex.io/api` | The Checkout API. Change it only to point at a test double. |
 | `TEBEX_WEBHOOK_SECRET` | none | The secret of the webhook endpoint added in the Tebex panel. Tebex is not ready to sell without it. |
 | `TEBEX_WEBHOOK_CHECK_IP` | `true` | Answer only Tebex's two addresses. Set `false` only when a proxy hides the sender's address. |
 
@@ -251,6 +295,8 @@ The page needs `commerce.acp.view`. **Test connection** and **Refresh catalogue*
 | "names no order" on a payment | The payment carries none of the shop's custom data. Either it was a sale made outside the shop, or Tebex does not return the data where the shop looks: see [Checked against a real store](#checked-against-a-real-store). |
 | "recorded for review" on a renewal | Tebex took a renewal that is not for what the order holds (another package, more than was ordered, another currency or no amount). It is kept as a payment in review and not counted. Look at it in the Tebex panel and refund it there if it is wrong. |
 | A buyer paid but holds nothing in the shop | The package is not set to give anything (the **Gives** column), was set after they paid, or they bought as a guest and have not claimed the order. See [entitlements.md](entitlements.md#troubleshooting). |
+| Every checkout fails with "Tebex answered 401/403 ... check the project id and private key, and that Tebex has approved the Checkout API" | The Checkout API is not approved for this account, or `TEBEX_PROJECT_ID` / `TEBEX_PRIVATE_KEY` are wrong. The project id is not the public token. |
+| A payment in the Checkout API mode is held with "items that are not what order ... holds" | The webhook did not list the order's lines as ordered: a quantity or price differed, a line was missing or extra, or Tebex did not hand back the `line` data on the products. The message says which line. If it is every payment, the last is likely: see [Checked against a real store](#checked-against-a-real-store). |
 | "has no record of" on a refund or dispute | It is about a transaction the shop has no payment for, most often a renewal whose `payment.completed` never arrived (a delivery that failed and was not retried, or a recurring payment started before the shop was connected). Nothing was changed. Find the renewal's `payment.completed` in the archive and replay it, or have Tebex send it again, then replay the refund. |
 | "names no shop order" on a recurring payment | Tebex sent something about a recurring payment the shop cannot tie to an order: a sale made outside the shop, or the first payment never arrived (look for it in the archive, filtered to Tebex). |
 | The recurring payment is missing from the order page | The first payment was not delivered, or it did not name the recurring payment (`recurring_payment_reference`), so there was nothing to start the copy from. The next delivery about it makes the copy if it names the order. |
@@ -275,4 +321,5 @@ The whole thing is tested without a network: `Http::fake()` answers with the fil
 - Headless API: <https://docs.tebex.io/developers/headless-api/introduction>
 - Endpoints: <https://docs.tebex.io/developers/headless-api/endpoints>
 - Webhooks: <https://docs.tebex.io/developers/webhooks/overview>
+- Checkout API: <https://docs.tebex.io/developers/checkout-api/overview> (and its [endpoints](https://docs.tebex.io/developers/checkout-api/endpoints))
 - Testing: <https://docs.tebex.io/developers/headless-api/testing>

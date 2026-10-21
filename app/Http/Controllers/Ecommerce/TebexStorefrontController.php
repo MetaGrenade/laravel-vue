@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TebexCategory;
 use App\Models\TebexPackage;
 use App\Payments\PaymentManager;
-use App\Payments\Providers\TebexProvider;
+use App\Payments\Tebex\TebexSelling;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\CartManager;
 use App\Support\Security\HtmlSanitizer;
@@ -165,6 +165,6 @@ class TebexStorefrontController extends Controller
 
     private function ensureSellsThroughTebex(): void
     {
-        abort_unless($this->payments->activeKey() === TebexProvider::KEY, 404);
+        abort_unless(TebexSelling::packages($this->payments->activeKey()), 404);
     }
 }

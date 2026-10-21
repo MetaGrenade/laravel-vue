@@ -15,6 +15,7 @@ use App\Models\TaxRate;
 use App\Models\User;
 use App\Payments\PaymentManager;
 use App\Payments\Tebex\TebexCheckoutMode;
+use App\Payments\Tebex\TebexSelling;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\AddressBook;
 use App\Support\Commerce\CartManager;
@@ -68,8 +69,9 @@ class CheckoutController extends Controller
         $needsShipping = $pricer->cartNeedsShipping($cart);
         $saved = $user ? $addressBook->for($user) : collect();
 
-        // Packages are taxed, discounted and paid for by Tebex: nothing of the shop's own comes into it.
-        $tebex = CartManager::kind($cart) === CartManager::PACKAGES;
+        // Packages (and products sold through Tebex's Checkout API) are taxed, discounted and paid for by Tebex: nothing of
+        // the shop's own comes into it.
+        $tebex = TebexSelling::paidThroughTebex($cart);
 
         return Inertia::render('commerce/Checkout', [
             'cart' => CartManager::summary($cart),
@@ -82,8 +84,9 @@ class CheckoutController extends Controller
             // The buyer pays on a page of the shop's (Tebex.js) rather than being sent to Tebex's.
             'tebexEmbedded' => $tebex && TebexCheckoutMode::current()->isEmbedded(),
             // What a Tebex store wants of its buyer before they can pay: nothing, a username, or signing in (Discord and
-            // the Steam-based games, on the next step).
-            'identity' => $tebex ? [
+            // the Steam-based games, on the next step). Only for packages, which are delivered to a game account: the shop's
+            // own products, paid for through the Checkout API, are not.
+            'identity' => $tebex && CartManager::kind($cart) === CartManager::PACKAGES ? [
                 'kind' => $profile->identity() ?? TebexStoreProfile::NONE,
                 'username_label' => $profile->usernameLabel(),
                 'platform' => $profile->platform(),

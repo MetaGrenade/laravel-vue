@@ -113,14 +113,26 @@ class TebexPayments
         // What was bought must be what was ordered. The basket is addressable by anyone who has its identifier (it is in
         // the address the buyer pays at), so its contents can be changed before payment while it still carries the
         // order's id and nonce: a cheaper package paid for would otherwise complete an order for a dearer one.
-        $expected = $this->matcher->ordered($order);
-        $bought = $event->purchased();
+        if ($this->matcher->soldAsProducts($order)) {
+            // The shop's own products, sold through the Checkout API: checked line by line, since Tebex's own ids for what it
+            // was told to sell mean nothing to the shop.
+            $problem = $this->matcher->linesProblem($order, $event);
 
-        if ($expected === null || $bought !== $expected) {
-            return $this->hold($payment, $event, $call, "Tebex took a payment ({$transaction}) for packages that are not what order {$order->number} holds ({$this->describe($bought)} against {$this->describe($expected)}); it was not applied and needs a person.", [
-                'expected_packages' => $expected,
-                'reported_packages' => $bought,
-            ], ['purchased' => $bought]);
+            if ($problem !== null) {
+                return $this->hold($payment, $event, $call, "Tebex took a payment ({$transaction}) for items that are not what order {$order->number} holds ({$problem}); it was not applied and needs a person.", [
+                    'reported_lines' => $event->purchasedLines(),
+                ], ['purchased_lines' => $event->purchasedLines()]);
+            }
+        } else {
+            $expected = $this->matcher->ordered($order);
+            $bought = $event->purchased();
+
+            if ($expected === null || $bought !== $expected) {
+                return $this->hold($payment, $event, $call, "Tebex took a payment ({$transaction}) for packages that are not what order {$order->number} holds ({$this->describe($bought)} against {$this->describe($expected)}); it was not applied and needs a person.", [
+                    'expected_packages' => $expected,
+                    'reported_packages' => $bought,
+                ], ['purchased' => $bought]);
+            }
         }
 
         $this->adoptTotal($order, $paid);

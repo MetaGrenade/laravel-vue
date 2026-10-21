@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Ecommerce;
 
 use App\Http\Controllers\Controller;
+use App\Payments\Tebex\TebexSelling;
 use App\Support\Commerce\CartManager;
 use App\Support\Commerce\CheckoutException;
 use App\Support\Commerce\Discounts\CartCoupons;
@@ -30,8 +31,8 @@ class CartCouponController extends Controller
             return back()->withErrors(['code' => 'Add something to your cart before using a code.']);
         }
 
-        if (CartManager::kind($cart) === CartManager::PACKAGES) {
-            return back()->withErrors(['code' => "Tebex takes discount codes when you pay, so the shop's own codes are not used with packages."]);
+        if (TebexSelling::paidThroughTebex($cart)) {
+            return back()->withErrors(['code' => "Tebex takes discount codes when you pay, so the shop's own codes are not used with ".(CartManager::kind($cart) === CartManager::PACKAGES ? 'packages' : 'what is paid for through Tebex').'.']);
         }
 
         try {

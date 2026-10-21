@@ -21,6 +21,7 @@ class TebexSignIn
         private readonly TebexClient $client,
         private readonly TebexBasketBuilder $baskets,
         private readonly TebexStoreProfile $profile,
+        private readonly TebexCheckoutApi $checkoutApi,
     ) {}
 
     /**
@@ -41,6 +42,11 @@ class TebexSignIn
      */
     public function next(Order $order, Payment $payment): SignInStep
     {
+        // A checkout made through the Checkout API has nobody to sign in and no basket to fill: it only needs paying.
+        if (($payment->raw['mode'] ?? null) === TebexCheckoutApi::MODE) {
+            return $this->checkoutApi->resume($order, $payment);
+        }
+
         try {
             return $this->baskets->exclusively((string) $payment->provider_reference, fn () => $this->step($order, $payment));
         } catch (TebexBasketBusy) {

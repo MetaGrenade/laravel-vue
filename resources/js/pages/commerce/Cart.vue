@@ -20,7 +20,7 @@ interface Props {
     /** The gift card on the cart, and whether the shop takes them. */
     giftCard: CartGiftCard | null;
     giftCardsEnabled: boolean;
-    /** The cart holds Tebex packages: Tebex works out the tax and takes any codes or gift cards when the customer pays. */
+    /** Tebex takes the payment (the cart holds its packages, or products sold through its Checkout API): it works out the tax and takes any codes or gift cards when the customer pays. */
     tebex: boolean;
     checkoutAvailable: boolean;
 }

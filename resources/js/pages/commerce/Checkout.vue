@@ -35,7 +35,7 @@ interface Props {
     quote: CheckoutQuote;
     /** Whether the shop takes gift cards (the box is hidden when it does not). */
     giftCardsEnabled: boolean;
-    /** The cart holds Tebex packages: Tebex works out the tax and takes any codes or gift cards when the customer pays. */
+    /** Tebex takes the payment (the cart holds its packages, or products sold through its Checkout API): it works out the tax and takes any codes or gift cards when the customer pays. */
     tebex: boolean;
     /** The buyer pays on a page of the shop's (Tebex.js) instead of being sent to Tebex's own. */
     tebexEmbedded: boolean;

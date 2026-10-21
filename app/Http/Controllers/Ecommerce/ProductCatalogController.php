@@ -14,7 +14,7 @@ use App\Models\ProductTag;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Payments\PaymentManager;
-use App\Payments\Providers\TebexProvider;
+use App\Payments\Tebex\TebexSelling;
 use App\Support\Commerce\ProductAvailability;
 use App\Support\Commerce\Reviews\ProductReviews;
 use App\Support\Commerce\StorefrontProducts;
@@ -35,8 +35,9 @@ class ProductCatalogController extends Controller
 {
     public function index(Request $request, StorefrontProducts $storefront, ProductReviews $reviews, Wishlists $wishlists, PaymentManager $payments): Response|RedirectResponse
     {
-        // A store that sells through Tebex has packages, not products.
-        if ($payments->activeKey() === TebexProvider::KEY) {
+        // A store that sells Tebex's packages has packages, not products. (One that sells its own products through Tebex's
+        // Checkout API keeps this shop window.)
+        if (TebexSelling::packages($payments->activeKey())) {
             return redirect()->route('shop.packages');
         }
 

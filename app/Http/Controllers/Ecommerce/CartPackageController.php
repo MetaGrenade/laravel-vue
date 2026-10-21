@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Ecommerce;
 use App\Http\Controllers\Controller;
 use App\Models\TebexPackage;
 use App\Payments\PaymentManager;
-use App\Payments\Providers\TebexProvider;
+use App\Payments\Tebex\TebexSelling;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\CartManager;
 use App\Support\Commerce\CheckoutException;
@@ -20,7 +20,7 @@ class CartPackageController extends Controller
 {
     public function store(Request $request, PaymentManager $payments, TebexStoreProfile $profile): RedirectResponse
     {
-        abort_unless($payments->activeKey() === TebexProvider::KEY, 404);
+        abort_unless(TebexSelling::packages($payments->activeKey()), 404);
 
         if ($reason = $profile->unsupportedReason()) {
             return back()->with('error', $reason);
