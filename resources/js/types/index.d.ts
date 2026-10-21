@@ -2,9 +2,16 @@ import type { PageProps } from '@inertiajs/core';
 import type { LucideIcon } from '@lucide/vue';
 import type { Config } from 'ziggy-js';
 
+/** What a purchase has given the signed-in user: the features that are on and the limits (key => how much). */
+export interface Entitlements {
+    features: string[];
+    limits: Record<string, number>;
+}
+
 export interface Auth {
     user: User | null;
     permissions: string[];
+    entitlements: Entitlements;
 }
 
 export interface BreadcrumbItem {

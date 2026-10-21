@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A package of a Tebex store, as the last synchronisation saw it. Written only by
@@ -74,6 +75,17 @@ class TebexPackage extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(TebexCategory::class, 'tebex_category_id');
+    }
+
+    /**
+     * What buying it gives the buyer's account in the shop, each with how much per unit bought (for a limit). Set by
+     * staff, never by Tebex: it is not part of the catalogue.
+     *
+     * @return HasMany<TebexPackageEntitlement, $this>
+     */
+    public function entitlementLinks(): HasMany
+    {
+        return $this->hasMany(TebexPackageEntitlement::class);
     }
 
     /**

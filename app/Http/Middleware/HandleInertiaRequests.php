@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Support\Commerce\CartManager;
+use App\Support\Entitlements\Entitlements;
 use App\Support\Localization\DateFormatter;
 use App\Support\Localization\FrontendTranslations;
 use App\Support\OAuth\OAuthProviders;
@@ -74,6 +75,11 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $user
                     ? $user->getAllPermissions()->pluck('name')
                     : [],
+                // What the user has been given by a purchase: the features that are on and the limits. For showing or
+                // hiding things; the server checks again (the `entitled` middleware, `canUse()`).
+                'entitlements' => fn () => $user
+                    ? app(Entitlements::class)->forUser($user)->toArray()
+                    : ['features' => [], 'limits' => []],
             ],
             'notifications' => fn () => $user ? (function () use ($user, $formatter) {
                 $unreadQuery = $user->unreadNotifications()->latest();

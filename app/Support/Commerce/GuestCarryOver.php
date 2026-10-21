@@ -9,6 +9,7 @@ use App\Models\OrderEvent;
 use App\Models\Payment;
 use App\Models\ProviderSubscription;
 use App\Models\User;
+use App\Support\Entitlements\OrderEntitlements;
 use App\Support\Ownership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -169,6 +170,9 @@ class GuestCarryOver
                     'owner_type' => $order->owner_type,
                     'owner_id' => $order->owner_id,
                 ]);
+
+                // And the entitlements it gave, which are of no use to anyone until it has an owner.
+                app(OrderEntitlements::class)->claim($order);
 
                 OrderEvent::record($order, OrderEvent::CLAIMED, "Linked to the account of {$user->nickname} (verified email {$user->email})", by: $user);
 

@@ -18,6 +18,7 @@ use App\Payments\Exceptions\PaymentException;
 use App\Payments\PaymentManager;
 use App\Support\Commerce\Digital\DigitalFulfilment;
 use App\Support\Commerce\GiftCards\GiftCards;
+use App\Support\Entitlements\OrderEntitlements;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -56,6 +57,7 @@ class OrderRefunder
         private readonly InventoryReserver $inventory,
         private readonly DigitalFulfilment $digital,
         private readonly GiftCards $giftCards,
+        private readonly OrderEntitlements $entitlements,
     ) {}
 
     /**
@@ -567,6 +569,9 @@ class OrderRefunder
 
         // Downloads follow the money: they end with a refund in full, and return if that refund fails.
         $this->digital->syncRevocation($order);
+
+        // So do the entitlements the order gave.
+        $this->entitlements->syncRevocation($order);
     }
 
     private function recordEvent(Order $order, Refund $refund, string $type, string $message): void

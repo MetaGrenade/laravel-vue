@@ -39,11 +39,13 @@ class TebexMigrationsTest extends TestCase
         $this->assertTrue(Schema::hasColumns('tebex_packages', ['tebex_id', 'ident', 'tebex_category_id', 'name', 'type', 'base_price', 'sales_tax', 'total_price', 'currency', 'prorate_price', 'discount', 'media', 'options', 'variables', 'removed_at']));
         $this->assertTrue(Schema::hasColumns('tebex_syncs', ['trigger', 'status', 'user_id', 'started_at', 'finished_at', 'counts', 'error']));
 
-        // The cart and order lines and the recurring payments point at the packages, so they let go first and take hold
-        // last (MySQL refuses to drop a table something still refers to).
+        // The cart and order lines, the recurring payments and what the packages give point at the packages, so they let go
+        // first and take hold last (MySQL refuses to drop a table something still refers to).
         $lines = require database_path('migrations/2026_10_20_000000_add_tebex_packages_to_cart_and_order_items.php');
         $subscriptions = require database_path('migrations/2026_10_21_000000_create_provider_subscriptions_table.php');
+        $entitlements = require database_path('migrations/2026_10_22_000000_create_entitlements_tables.php');
 
+        $entitlements->down();
         $subscriptions->down();
         $lines->down();
         $this->migration()->down();
@@ -55,8 +57,10 @@ class TebexMigrationsTest extends TestCase
         $this->migration()->up();
         $lines->up();
         $subscriptions->up();
+        $entitlements->up();
 
         $this->assertTrue(Schema::hasTable('tebex_packages'));
+        $this->assertTrue(Schema::hasTable('user_entitlements'));
         $this->assertTrue(Schema::hasColumn('cart_items', 'tebex_package_id'));
         $this->assertTrue(Schema::hasTable('provider_subscriptions'));
     }

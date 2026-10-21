@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureEmailIsVerifiedIfRequired;
+use App\Http\Middleware\EnsureEntitled;
 use App\Http\Middleware\EnsureSiteIsAvailable;
 use App\Http\Middleware\EnsureWebsiteSectionIsEnabled;
 use App\Http\Middleware\HandleAppearance;
@@ -70,6 +71,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'section.enabled' => EnsureWebsiteSectionIsEnabled::class,
+            'entitled' => EnsureEntitled::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {

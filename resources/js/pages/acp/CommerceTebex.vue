@@ -2,6 +2,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import PackageEntitlementsDialog from '@/components/commerce/admin/PackageEntitlementsDialog.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,9 +21,10 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
 import type { BreadcrumbItem } from '@/types';
+import type { EntitlementChoice } from '@/types/entitlements';
 import type { TebexPackageRow, TebexRecurringCounts, TebexStoreInfo, TebexSyncRun, TebexTestResult, TebexWebhookInfo } from '@/types/tebex';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { CircleAlert, CircleCheck, RefreshCw, Store } from '@lucide/vue';
+import { CircleAlert, CircleCheck, Pencil, RefreshCw, Store } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -38,6 +40,8 @@ const props = defineProps<{
     filters: { search: string; status: 'listed' | 'removed' | 'all'; category: number | null };
     shop_currency: string;
     currencies: string[];
+    /** Everything a package can be set to give. */
+    entitlements: EntitlementChoice[];
     can: { edit: boolean };
 }>();
 
@@ -55,6 +59,9 @@ const post = (action: 'test' | 'sync') => {
 };
 
 const rows = computed(() => props.packages.data ?? []);
+
+/** The package whose entitlements are being edited. */
+const editing = ref<TebexPackageRow | null>(null);
 
 const tabs: { value: 'listed' | 'removed' | 'all'; label: string }[] = [
     { value: 'listed', label: 'Listed' },
@@ -367,6 +374,7 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
                                     <TableHead>Type</TableHead>
                                     <TableHead class="text-right">Price</TableHead>
                                     <TableHead>Status</TableHead>
+                                    <TableHead>Gives</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -395,6 +403,28 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
                                         <Badge :variant="row.removed ? 'destructive' : 'secondary'">{{
                                             row.removed ? 'No longer listed' : 'Listed'
                                         }}</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div class="flex items-start justify-between gap-2">
+                                            <ul v-if="row.entitlements.length" class="space-y-0.5 text-sm">
+                                                <li v-for="entitlement in row.entitlements" :key="entitlement.id">
+                                                    {{ entitlement.label
+                                                    }}<span v-if="entitlement.type === 'limit'" class="text-muted-foreground">
+                                                        +{{ entitlement.value }}</span
+                                                    >
+                                                </li>
+                                            </ul>
+                                            <span v-else class="text-sm text-muted-foreground">Nothing</span>
+                                            <Button
+                                                v-if="can.edit"
+                                                variant="ghost"
+                                                size="icon"
+                                                :aria-label="`Change what ${row.name} gives`"
+                                                @click="editing = row"
+                                            >
+                                                <Pencil class="size-4" />
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             </TableBody>
@@ -469,6 +499,8 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
                     </CardContent>
                 </Card>
             </div>
+
+            <PackageEntitlementsDialog :package="editing" :choices="entitlements" @close="editing = null" />
         </AdminLayout>
     </AppLayout>
 </template>

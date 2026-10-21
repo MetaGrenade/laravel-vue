@@ -6,6 +6,7 @@ import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     Award,
+    BadgeCheck,
     BookOpen,
     CreditCard,
     Gift,
@@ -121,6 +122,12 @@ const navGroups = computed<AdminNavGroup[]>(() => {
                 { title: 'Gift cards', href: '/acp/commerce/gift-cards', icon: Gift, visible: can('commerce.acp.view') && sections.value.commerce },
                 { title: 'Reviews', href: '/acp/commerce/reviews', icon: Star, visible: can('commerce.acp.view') && sections.value.commerce },
                 { title: 'Tebex', href: '/acp/commerce/tebex', icon: Store, visible: can('commerce.acp.view') && sections.value.commerce },
+                {
+                    title: 'Entitlements',
+                    href: '/acp/commerce/entitlements',
+                    icon: BadgeCheck,
+                    visible: can('commerce.acp.view') && sections.value.commerce,
+                },
                 { title: 'Subscription plans', href: '/acp/billing/plans', icon: Layers, visible: can('billing.acp.view') },
                 { title: 'Invoices', href: '/acp/billing/invoices', icon: CreditCard, visible: can('billing.acp.view') },
                 { title: 'Webhooks', href: '/acp/billing/webhooks', icon: Webhook, visible: can('billing.acp.view') },
