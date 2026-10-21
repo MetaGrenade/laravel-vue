@@ -6,6 +6,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\GiftCard;
 use App\Models\TaxRate;
+use App\Payments\Tebex\TebexSelling;
 use App\Support\Commerce\Discounts\CouponRejected;
 use App\Support\Commerce\Discounts\Discount;
 use App\Support\Commerce\Discounts\DiscountCalculator;
@@ -45,6 +46,11 @@ class OrderPricer
     {
         $cart->loadMissing('items.product');
 
+        // Nothing paid for through Tebex is shipped (what cannot be is refused when it is priced).
+        if (TebexSelling::paidThroughTebex($cart)) {
+            return false;
+        }
+
         return $cart->items->contains(fn (CartItem $item) => ! $item->isTebexPackage() && ($item->product === null || $item->product->requires_shipping));
     }
 
@@ -81,6 +87,11 @@ class OrderPricer
 
         if ($kind === CartManager::PACKAGES) {
             return $this->priceTebex($cart);
+        }
+
+        // The shop's own products, in a shop that takes their payment through Tebex's Checkout API.
+        if (TebexSelling::paidThroughTebex($cart)) {
+            return $this->priceTebexProducts($cart);
         }
 
         $currency = $this->prices->currency();
@@ -159,7 +170,39 @@ class OrderPricer
      */
     private function priceTebex(Cart $cart): Pricing
     {
-        $lines = $cart->items->map(fn (CartItem $item) => $this->packageLine($item))->values()->all();
+        return $this->throughTebex($cart->items->map(fn (CartItem $item) => $this->packageLine($item))->values()->all());
+    }
+
+    /**
+     * Prices a cart of the shop's own products that Tebex takes the payment for (its Checkout API): each at the shop's price,
+     * and nothing else added, for the reasons {@see self::priceTebex()} gives. What cannot be delivered without shipping is
+     * refused, since Tebex cannot ship it.
+     *
+     * @throws CheckoutException When a product cannot be bought any more, or has to be shipped.
+     */
+    private function priceTebexProducts(Cart $cart): Pricing
+    {
+        return $this->throughTebex($cart->items->map(function (CartItem $item) {
+            $line = $this->line($item);
+
+            if ($line->requiresShipping) {
+                throw new CheckoutException("{$line->description} has to be shipped, which cannot be paid for through Tebex. Please remove it.");
+            }
+
+            // Tebex works out the tax; the shop adds none.
+            return new PricedLine($line->item, $line->description, $line->unit, $line->subtotal, false, false, $line->metadata, Money::zero($line->unit->currency));
+        })->values()->all());
+    }
+
+    /**
+     * What a cart costs when Tebex does the rest: the lines at their price before tax, and the same as the total.
+     *
+     * @param  list<PricedLine>  $lines
+     *
+     * @throws CheckoutException When the lines are in different currencies.
+     */
+    private function throughTebex(array $lines): Pricing
+    {
         $currency = $lines[0]->subtotal->currency;
 
         $subtotal = Money::zero($currency);

@@ -170,9 +170,13 @@ class OrderLifecycle
         $this->entitlements->grant($order);
         $this->entitlements->syncRevocation($order);
 
-        // Tebex delivers its packages itself, to the buyer's account in the game, the moment it takes the payment:
-        // there is nothing for the shop to ship or for staff to send.
-        if ($order->payment_provider === TebexProvider::KEY || $this->digital->isDeliveredInFull($order)) {
+        // Tebex delivers its packages itself, to the buyer's account in the game, the moment it takes the payment: there
+        // is nothing for the shop to ship or for staff to send. The shop's own products, which Tebex only took the payment
+        // for, are the shop's to deliver (downloads, keys), so they complete the order only when they have been.
+        $order->loadMissing('items');
+        $tebexDelivers = $order->payment_provider === TebexProvider::KEY && $order->items->every(fn ($item) => $item->product_id === null);
+
+        if ($tebexDelivers || $this->digital->isDeliveredInFull($order)) {
             $this->fulfil($order, notifyCustomer: false);
         }
     }

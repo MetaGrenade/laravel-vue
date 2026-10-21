@@ -7,7 +7,7 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Payments\PaymentManager;
-use App\Payments\Providers\TebexProvider;
+use App\Payments\Tebex\TebexSelling;
 use App\Support\Commerce\CartManager;
 use App\Support\Commerce\CheckoutException;
 use App\Support\Commerce\Discounts\CartCoupons;
@@ -27,12 +27,13 @@ class CartController extends Controller
         $cart = CartManager::forRequest($request);
         $hasItems = $cart !== null && $cart->items->isNotEmpty();
 
-        // Tebex packages are priced, discounted and taxed by Tebex: the shop's own codes, gift cards, shipping and tax
-        // are not part of them.
-        $tebex = CartManager::kind($cart) === CartManager::PACKAGES;
+        // What Tebex takes the payment for (packages, or products sold through its Checkout API) is priced, discounted and
+        // taxed by Tebex: the shop's own codes, gift cards, shipping and tax are not part of it.
+        $tebex = TebexSelling::paidThroughTebex($cart);
 
-        // Priced once, with its code, the way checkout will price it.
-        $pricing = $hasItems && ! $tebex ? $coupons->price($cart, $request->user()) : null;
+        // Priced once, with its code, the way checkout will price it. (A cart Tebex takes the payment for is priced too, by
+        // the pricer's own Tebex path: it is what says a cart of free products costs nothing and needs no provider.)
+        $pricing = $hasItems ? $coupons->price($cart, $request->user()) : null;
 
         return Inertia::render('commerce/Cart', [
             'cart' => CartManager::summary($cart),
@@ -61,7 +62,7 @@ class CartController extends Controller
 
     public function store(Request $request, PriceResolver $prices, PaymentManager $payments): RedirectResponse
     {
-        if ($payments->activeKey() === TebexProvider::KEY) {
+        if (TebexSelling::packages($payments->activeKey())) {
             return back()->with('error', 'This shop sells packages, not products.');
         }
 
@@ -104,6 +105,11 @@ class CartController extends Controller
 
         if ($price === null) {
             return back()->with('error', 'This product is not available for purchase yet.');
+        }
+
+        // Tebex takes the payment and cannot ship anything.
+        if ($product->requires_shipping && TebexSelling::products($payments->activeKey())) {
+            return back()->with('error', 'This shop takes payment through Tebex, which cannot ship goods, so it only sells products that are delivered digitally.');
         }
 
         try {

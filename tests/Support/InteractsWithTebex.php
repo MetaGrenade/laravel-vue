@@ -79,6 +79,33 @@ trait InteractsWithTebex
     }
 
     /**
+     * Turn the Checkout API mode on, as a store approved for it would, with the credentials it needs. The shop then sells
+     * its own products, not Tebex's packages. Use {@see self::fakeTebexCheckoutApi()} to answer it.
+     */
+    protected function useTebexCheckoutApi(): void
+    {
+        config([
+            'tebex.checkout_api.enabled' => true,
+            'tebex.checkout_api.project_id' => '123456',
+            'tebex.checkout_api.url' => 'https://checkout.tebex.io/api',
+            // Not needed in this mode: the Headless API is not used.
+            'tebex.public_token' => null,
+        ]);
+    }
+
+    /**
+     * Tebex's Checkout API as a stateful stand-in (see {@see FakeTebexCheckoutApi}).
+     */
+    protected function fakeTebexCheckoutApi(): FakeTebexCheckoutApi
+    {
+        $api = new FakeTebexCheckoutApi;
+
+        $this->fakeTebexHttp(['checkout.tebex.io/*' => fn (Request $request) => $api->respond($request)]);
+
+        return $api;
+    }
+
+    /**
      * Tebex's basket API as a stateful stand-in (see {@see FakeTebexBaskets}), answering the store and the catalogue
      * from the fixtures as well.
      */

@@ -12,7 +12,7 @@ use App\Payments\Data\CheckoutContext;
 use App\Payments\Exceptions\BuyerIdentityRejected;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\PaymentManager;
-use App\Payments\Providers\TebexProvider;
+use App\Payments\Tebex\TebexSelling;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\URL;
@@ -84,7 +84,7 @@ class CheckoutStarter
         // (A cart that mixes the two is refused by the pricer, which says so.)
         $kind = CartManager::kind($cart);
 
-        if ($kind !== CartManager::MIXED && ($kind === CartManager::PACKAGES) !== ($provider->key() === TebexProvider::KEY)) {
+        if ($kind !== CartManager::MIXED && ($kind === CartManager::PACKAGES) !== TebexSelling::packages($provider->key())) {
             throw new CheckoutException('What is in your cart is not sold the way this shop takes payment now. Please empty it and add something again.');
         }
 

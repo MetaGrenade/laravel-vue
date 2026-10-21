@@ -16,10 +16,12 @@ use App\Payments\Data\WebhookOutcome;
 use App\Payments\Exceptions\BuyerIdentityRejected;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\Tebex\TebexBasketBuilder;
+use App\Payments\Tebex\TebexCheckoutApi;
 use App\Payments\Tebex\TebexCheckoutMode;
 use App\Payments\Tebex\TebexClient;
 use App\Payments\Tebex\TebexEvent;
 use App\Payments\Tebex\TebexPayments;
+use App\Payments\Tebex\TebexSelling;
 use App\Payments\Tebex\TebexSignIn;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Payments\Tebex\TebexWebhookVerifier;
@@ -28,7 +30,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 /**
- * Sells Tebex packages: the order's lines are put in a Tebex basket, and the customer pays on Tebex's hosted checkout.
+ * Sells through Tebex: the order's lines are put in a Tebex basket, and the customer pays on Tebex's hosted checkout.
+ * Which lines it sells depends on the mode (see {@see TebexSelling}): Tebex's own packages, or, with the Checkout API
+ * switched on (experimental), the shop's own products ({@see TebexCheckoutApi}); everything about the payment, the
+ * webhook and what follows is the same.
  *
  * Tebex is the merchant of record. It works out tax, applies its own coupons, creator codes and gift cards, and takes
  * the payment, so what the buyer pays can differ from what the shop quoted; the order carries the shop's quote (the
@@ -52,6 +57,7 @@ class TebexProvider implements PaymentProvider
         private readonly TebexWebhookVerifier $webhooks,
         private readonly TebexPayments $payments,
         private readonly WebhookReceiver $receiver,
+        private readonly TebexCheckoutApi $checkoutApi,
     ) {}
 
     public function key(): string
@@ -74,10 +80,16 @@ class TebexProvider implements PaymentProvider
 
     /**
      * There is a token, the store is one the shop can sell for (see {@see TebexStoreProfile}), and the webhook has a
-     * secret, since a payment Tebex took could never be applied without it.
+     * secret, since a payment Tebex took could never be applied without it. With the Checkout API on, it is the project id
+     * and private key that are needed instead of the token, and there is no store profile to check: the shop sells its own
+     * products, to buyers it does not need Tebex to identify.
      */
     public function isConfigured(): bool
     {
+        if (TebexSelling::checkoutApi()) {
+            return $this->checkoutApi->isConfigured() && $this->webhooks->isConfigured();
+        }
+
         return $this->client->isConfigured() && $this->profile->isSupported() && $this->webhooks->isConfigured();
     }
 
@@ -99,6 +111,10 @@ class TebexProvider implements PaymentProvider
      */
     public function startCheckout(Order $order, CheckoutContext $context): CheckoutSession
     {
+        if (TebexSelling::checkoutApi()) {
+            return $this->checkoutApi->start($order, $context);
+        }
+
         // Whatever the page said, no basket is made for a store whose buyers the shop does not know how to take through.
         if ($reason = $this->profile->unsupportedReason()) {
             throw new PaymentException($reason);
@@ -190,6 +206,11 @@ class TebexProvider implements PaymentProvider
      */
     public function closeCheckout(Payment $payment): CheckoutClosure
     {
+        // A checkout is closed the way it was made, whatever the mode is now.
+        if (($payment->raw['mode'] ?? null) === TebexCheckoutApi::MODE) {
+            return $this->checkoutApi->close($payment, strtoupper($payment->currency));
+        }
+
         return $this->baskets->exclusively($payment->provider_reference, function () use ($payment): CheckoutClosure {
             $basket = $this->client->basket($payment->provider_reference);
 

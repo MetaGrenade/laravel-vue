@@ -1,0 +1,41 @@
+{
+  "ident": "ckt-8d2f9c1ab43e",
+  "expire": "2026-10-22T11:30:00.000000Z",
+  "price": 19.98,
+  "priceDetails": {
+    "fullPrice": 19.98,
+    "subTotal": 19.98,
+    "discounts": [],
+    "total": 23.98,
+    "tax": 4.0,
+    "balance": 23.98,
+    "sales": [],
+    "giftcards": [],
+    "recurring": false,
+    "roundUp": 0
+  },
+  "isPaymentMethodUpdate": false,
+  "returnUrl": "https://shop.example/cart",
+  "complete": false,
+  "tax": 4,
+  "email_immutable": false,
+  "discounts": [],
+  "coupons": [],
+  "giftcards": [],
+  "rows": [
+    {
+      "id": 5001,
+      "basket": 800001,
+      "package": 0,
+      "quantity": 2,
+      "price": 9.99,
+      "meta": { "name": "Ebook", "rowprice": 9.99 },
+      "custom": { "order": "01m5fcgxbnbgcnnbdn8zev1n2d", "nonce": "lw1oG24wTijNyYQf6k0hwvfcKym7pYh5", "line": 17 }
+    }
+  ],
+  "complete_url": "https://shop.example/checkout/complete",
+  "cancel_url": "https://shop.example/cart",
+  "complete_auto_redirect": false,
+  "custom": { "order": "01m5fcgxbnbgcnnbdn8zev1n2d", "nonce": "lw1oG24wTijNyYQf6k0hwvfcKym7pYh5" },
+  "links": { "checkout": "https://pay.tebex.io/ckt-8d2f9c1ab43e" }
+}

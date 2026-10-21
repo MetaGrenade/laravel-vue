@@ -5,6 +5,7 @@ namespace App\Http\Requests\Commerce;
 use App\Models\Address;
 use App\Models\Cart;
 use App\Models\TaxRate;
+use App\Payments\Tebex\TebexSelling;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\AddressData;
 use App\Support\Commerce\AddressRules;
@@ -198,8 +199,8 @@ class CheckoutRequest extends FormRequest
      */
     private function needsBillingAddress(): bool
     {
-        // Tebex works out the tax of its packages, and asks for what it needs when the customer pays.
-        if (CartManager::kind($this->cart()) === CartManager::PACKAGES) {
+        // Tebex works out the tax of what it takes the payment for, and asks for what it needs when the customer pays.
+        if (TebexSelling::paidThroughTebex($this->cart())) {
             return false;
         }
 

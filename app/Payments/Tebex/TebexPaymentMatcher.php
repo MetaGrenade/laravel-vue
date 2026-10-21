@@ -3,9 +3,11 @@
 namespace App\Payments\Tebex;
 
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\ProviderSubscription;
 use App\Payments\Providers\TebexProvider;
+use App\Support\Commerce\Money;
 
 /**
  * Which payment of the shop's a delivery from Tebex is about. Matching is the one thing that must never be guessed
@@ -92,6 +94,71 @@ class TebexPaymentMatcher
         ksort($packages);
 
         return $packages === [] ? null : $packages;
+    }
+
+    /**
+     * Whether the order is of the shop's own products, which Tebex took the payment for through its Checkout API, rather
+     * than of Tebex's packages.
+     */
+    public function soldAsProducts(Order $order): bool
+    {
+        $order->loadMissing('items');
+
+        return $order->items->contains(fn (OrderItem $item) => $item->product_id !== null);
+    }
+
+    /**
+     * Why a payment is not for exactly what the order holds, or null if it is. Tebex warns that a webhook holds what was
+     * actually bought, so an order that the shop priced itself is only settled by a payment for **the same lines**, each
+     * in the quantity ordered and at the price ordered.
+     *
+     * The price is Tebex's `base_price` of the product, in the order's currency, and **it must be there**. Whether it is for
+     * one unit or for the whole row is not in Tebex's documentation (its example has a quantity of one), so a price is
+     * accepted if it is either; one that is neither, one that is missing and one in another currency are not.
+     */
+    public function linesProblem(Order $order, TebexEvent $event): ?string
+    {
+        $order->loadMissing('items');
+
+        $bought = $event->purchasedLines();
+
+        if ($bought === null) {
+            return 'the payment does not say which of the order\'s lines each item is for';
+        }
+
+        $ordered = $order->items->sortBy('id')->keyBy('id');
+
+        if (array_keys($bought) !== $ordered->keys()->all()) {
+            return 'it lists lines the order does not hold, or leaves some of its lines out';
+        }
+
+        foreach ($ordered as $id => $item) {
+            $line = $bought[$id];
+
+            if ($line['quantity'] !== $item->quantity) {
+                return "line {$id}: {$line['quantity']} bought, {$item->quantity} ordered";
+            }
+
+            // A price that is missing, or cannot be read, does not match. The total paid is allowed to differ from the order's
+            // (Tebex adds the tax and applies its own codes), so the price of each line is what says the basket was not changed
+            // after the shop made it: a payment must not settle the order by naming the right lines and leaving the price out.
+            // (The price is null whenever its currency is: see {@see TebexEvent::purchasedLines()}.)
+            if ($line['price'] === null) {
+                return "line {$id}: no readable price before tax was reported";
+            }
+
+            if ($line['currency'] !== strtoupper($order->currency)) {
+                return "line {$id}: priced in {$line['currency']}, not {$order->currency}";
+            }
+
+            $unit = Money::parse($item->unit_price, $order->currency);
+
+            if ($line['price'] !== $unit->toDecimal() && $line['price'] !== $unit->multiply($item->quantity)->toDecimal()) {
+                return "line {$id}: {$line['price']} reported before tax, {$unit->toDecimal()} each ordered";
+            }
+        }
+
+        return null;
     }
 
     /**

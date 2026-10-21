@@ -46,6 +46,28 @@ return [
     ],
 
     /*
+    | The Checkout API (https://docs.tebex.io/developers/checkout-api): EXPERIMENTAL, and off.
+    |
+    | With the Headless API above, Tebex keeps the catalogue and the shop sells its packages. With the Checkout API the
+    | catalogue is the shop's own: its products (the ones that need no shipping) are priced by the shop and Tebex only
+    | takes the payment, as merchant of record, so the two are alternatives and this switches the Tebex provider from one
+    | to the other. It needs Tebex's approval (their compliance team), which is not given to every creator (FiveM and
+    | RedM are excluded), and has only been tested against Tebex's documentation, never a live account.
+    |
+    | It authenticates differently from the Headless API: HTTP Basic with the PROJECT ID (not the public token) and the
+    | private key above, both from the Tebex panel: Developers -> API Keys. Prices are sent in the store's own currency,
+    | which Tebex does not let the shop ask for, so COMMERCE_CURRENCY must be it.
+    */
+
+    'checkout_api' => [
+        'enabled' => (bool) env('TEBEX_CHECKOUT_API_ENABLED', false),
+        'project_id' => env('TEBEX_PROJECT_ID'),
+        'url' => env('TEBEX_CHECKOUT_API_URL', 'https://checkout.tebex.io/api'),
+        // Where the buyer pays when Tebex's answer does not name an address: the basket's identifier follows it.
+        'pay_url' => 'https://pay.tebex.io',
+    ],
+
+    /*
     | Webhooks: how Tebex tells the shop a payment happened. Without them an order is never marked paid.
     |
     | The secret is shown once when the endpoint is added in the Tebex panel (Developers -> Webhooks -> Endpoints) and

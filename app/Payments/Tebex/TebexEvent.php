@@ -247,6 +247,53 @@ final class TebexEvent
     }
 
     /**
+     * What a payment for the shop's own products (the Checkout API) lists, by the order line each product is for: the
+     * line's id => how many, and the price Tebex reports before tax with its currency (null when Tebex reports none, or one
+     * that cannot be read; the price is always null when the currency is).
+     *
+     * A product is for a line by the `line` the shop put in its custom data when it made the basket. Null if there are
+     * no products, if any cannot be read or carries no line, or if a line is listed twice: nothing may be taken on trust.
+     * (Tebex does not say whether a product's `base_price` is for one or for all of them: see {@see TebexPaymentMatcher},
+     * which also refuses a line whose price is missing.)
+     *
+     * @return array<int, array{quantity: int, price: string|null, currency: string|null}>|null
+     */
+    public function purchasedLines(): ?array
+    {
+        $products = Arr::get($this->subject, 'products');
+
+        if (! is_array($products) || $products === []) {
+            return null;
+        }
+
+        $bought = [];
+
+        foreach ($products as $product) {
+            $line = is_array($product) ? Arr::get($product, 'custom.line') : null;
+            $quantity = is_array($product) ? ($product['quantity'] ?? null) : null;
+
+            if ((! is_int($line) && ! (is_string($line) && ctype_digit($line))) || (! is_int($quantity) && ! (is_string($quantity) && ctype_digit($quantity))) || (int) $quantity < 0 || isset($bought[(int) $line])) {
+                return null;
+            }
+
+            $amount = Arr::get($product, 'base_price.amount');
+            $currency = Arr::get($product, 'base_price.currency');
+            // No currency is assumed: a price in an unknown one is not a price the shop can compare.
+            $currency = is_string($currency) && strlen(trim($currency)) === 3 ? strtoupper(trim($currency)) : null;
+
+            $bought[(int) $line] = [
+                'quantity' => (int) $quantity,
+                'price' => is_numeric($amount) && $currency !== null ? Money::parse($amount, $currency)->toDecimal() : null,
+                'currency' => $currency,
+            ];
+        }
+
+        ksort($bought);
+
+        return $bought;
+    }
+
+    /**
      * The order and nonce the basket was made with (see {@see TebexProvider::startCheckout()}).
      *
      * Tebex says only that a basket's custom data is "included with webhook responses". The one place its documented

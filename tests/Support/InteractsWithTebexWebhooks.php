@@ -59,6 +59,30 @@ trait InteractsWithTebexWebhooks
     }
 
     /**
+     * A delivery for the payment of an order of the shop's own products (the Checkout API): complete, for what the order cost,
+     * each product carrying the order line it is for (`custom.line`), with ids of Tebex's own making.
+     *
+     * @param  array<string, mixed>  $subject  Changes to the payment (replacing whole keys).
+     * @return array<string, mixed>
+     */
+    protected function tebexProductPaymentFor(Order $order, Payment $payment, array $subject = []): array
+    {
+        $base = $this->tebexPaymentFor($order, $payment);
+
+        $base['products'] = $order->items->sortBy('id')->map(fn ($item) => [
+            ...$base['products'][0],
+            'id' => 880000 + $item->id,
+            'name' => $item->description,
+            'quantity' => $item->quantity,
+            'base_price' => ['amount' => (float) $item->unit_price, 'currency' => $order->currency],
+            'paid_price' => ['amount' => (float) $item->subtotal, 'currency' => $order->currency],
+            'custom' => ['order' => $order->public_id, 'nonce' => $payment->raw['nonce'] ?? null, 'line' => $item->id],
+        ])->values()->all();
+
+        return array_replace($base, $subject);
+    }
+
+    /**
      * A recurring payment for an order: active, with the order's payment as its first (and last) payment, shaped like
      * the documentation's example (`tests/Fixtures/tebex/recurring-payment.json`).
      *
