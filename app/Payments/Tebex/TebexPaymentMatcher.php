@@ -112,8 +112,9 @@ class TebexPaymentMatcher
      * actually bought, so an order that the shop priced itself is only settled by a payment for **the same lines**, each
      * in the quantity ordered and at the price ordered.
      *
-     * The price is Tebex's `base_price` of the product. Whether that is for one unit or for the whole row is not in its
-     * documentation (its example has a quantity of one), so a price is accepted if it is either; one that is neither is not.
+     * The price is Tebex's `base_price` of the product, in the order's currency, and **it must be there**. Whether it is for
+     * one unit or for the whole row is not in Tebex's documentation (its example has a quantity of one), so a price is
+     * accepted if it is either; one that is neither, one that is missing and one in another currency are not.
      */
     public function linesProblem(Order $order, TebexEvent $event): ?string
     {
@@ -138,8 +139,16 @@ class TebexPaymentMatcher
                 return "line {$id}: {$line['quantity']} bought, {$item->quantity} ordered";
             }
 
+            // A price that is missing, or cannot be read, does not match. The total paid is allowed to differ from the order's
+            // (Tebex adds the tax and applies its own codes), so the price of each line is what says the basket was not changed
+            // after the shop made it: a payment must not settle the order by naming the right lines and leaving the price out.
+            // (The price is null whenever its currency is: see {@see TebexEvent::purchasedLines()}.)
             if ($line['price'] === null) {
-                continue;
+                return "line {$id}: no readable price before tax was reported";
+            }
+
+            if ($line['currency'] !== strtoupper($order->currency)) {
+                return "line {$id}: priced in {$line['currency']}, not {$order->currency}";
             }
 
             $unit = Money::parse($item->unit_price, $order->currency);

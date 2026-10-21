@@ -695,18 +695,95 @@ class TebexCheckoutApiTest extends TestCase
     }
 
     #[Test]
-    public function a_payment_that_reports_no_price_is_still_checked_by_line_and_quantity(): void
+    public function a_payment_whose_products_report_no_usable_price_is_held_not_settled(): void
     {
         [$order, $payment] = $this->placeTwoLineOrder();
-        $subject = $this->tebexProductPaymentFor($order, $payment);
 
-        foreach ($subject['products'] as $index => $product) {
-            unset($subject['products'][$index]['base_price']);
+        // The total paid may differ from the order's (Tebex adds the tax), so the price of each line is what says the
+        // basket was not changed: naming the right lines and leaving the price out must not settle the order.
+        $cases = [
+            'no price on any product' => [function (array $s) {
+                unset($s['products'][0]['base_price'], $s['products'][1]['base_price']);
+
+                return $s;
+            }, 'no readable price'],
+            'no price on one product' => [function (array $s) {
+                unset($s['products'][1]['base_price']);
+
+                return $s;
+            }, 'no readable price'],
+            'an amount that is not a number' => [function (array $s) {
+                $s['products'][0]['base_price']['amount'] = 'free';
+
+                return $s;
+            }, 'no readable price'],
+            'no amount' => [function (array $s) {
+                unset($s['products'][0]['base_price']['amount']);
+
+                return $s;
+            }, 'no readable price'],
+            'no currency' => [function (array $s) {
+                unset($s['products'][0]['base_price']['currency']);
+
+                return $s;
+            }, 'no readable price'],
+            'a currency that is not the order\'s' => [function (array $s) {
+                $s['products'][0]['base_price']['currency'] = 'EUR';
+
+                return $s;
+            }, 'priced in EUR, not USD'],
+        ];
+
+        foreach ($cases as $name => [$change, $why]) {
+            $payment->forceFill(['status' => PaymentStatus::Pending, 'provider_payment_id' => null])->save();
+
+            $this->deliver('payment.completed', $change($this->tebexProductPaymentFor($order, $payment)))->assertOk();
+
+            $this->assertSame(OrderPaymentStatus::Unpaid, $order->fresh()->payment_status, $name);
+            $this->assertSame(PaymentStatus::Review, $payment->fresh()->status, $name);
+            $this->assertStringContainsString($why, (string) BillingWebhookCall::query()->latest('id')->first()->error, $name);
         }
+    }
 
-        $this->deliver('payment.completed', $subject)->assertOk();
+    #[Test]
+    public function the_cart_page_offers_checkout_for_free_products_even_when_tebex_is_not_set_up(): void
+    {
+        config(['tebex.webhook.secret' => null]);
+        $this->assertFalse(app(TebexProvider::class)->isConfigured());
 
-        $this->assertSame(OrderPaymentStatus::Paid, $order->fresh()->payment_status);
+        $this->inCart($this->product('0.00', 'Free sample'), 1);
+
+        // Nothing to pay needs no provider, here as for any other.
+        $this->get(route('shop.cart'))->assertInertia(fn (Assert $page) => $page
+            ->where('tebex', true)
+            ->where('coupon', null)
+            ->where('giftCardsEnabled', false)
+            ->where('checkoutAvailable', true));
+    }
+
+    #[Test]
+    public function the_cart_page_does_not_offer_checkout_for_products_that_cost_something_while_tebex_is_not_set_up(): void
+    {
+        config(['tebex.webhook.secret' => null]);
+
+        $this->inCart($this->product('4.50'), 1);
+
+        $this->get(route('shop.cart'))->assertInertia(fn (Assert $page) => $page->where('tebex', true)->where('checkoutAvailable', false));
+    }
+
+    #[Test]
+    public function free_products_are_paid_on_the_spot_without_asking_tebex(): void
+    {
+        config(['tebex.webhook.secret' => null]);
+        $this->inCart($this->product('0.00', 'Free sample'), 1);
+
+        $this->checkout()->assertRedirect();
+
+        $order = Order::query()->sole();
+        $this->assertSame(OrderPaymentStatus::Paid, $order->payment_status);
+        $this->assertSame('0.00', $order->grand_total);
+        $this->assertSame([], $this->api->requests, 'no basket is made for an order that costs nothing');
+        $this->assertSame(0, Payment::query()->count());
     }
 
     #[Test]
