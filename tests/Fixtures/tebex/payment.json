@@ -1,0 +1,72 @@
+{
+    "transaction_id": "tbx-4a1b2c3d4e5f",
+    "status": {
+        "id": 1,
+        "description": "Complete"
+    },
+    "payment_sequence": "oneoff",
+    "created_at": "2021-08-19T13:03:30.000000Z",
+    "price": {
+        "amount": 22.5,
+        "currency": "USD"
+    },
+    "price_paid": {
+        "amount": 22.5,
+        "currency": "USD"
+    },
+    "payment_method": {
+        "name": "PayPal",
+        "refundable": true
+    },
+    "fees": {
+        "tax": {
+            "amount": 0,
+            "currency": "USD"
+        },
+        "gateway": {
+            "amount": 0.73,
+            "currency": "USD"
+        }
+    },
+    "customer": {
+        "first_name": "Ada",
+        "last_name": "Buyer",
+        "email": "ada.private@example.test",
+        "ip": "203.0.113.7",
+        "username": {
+            "id": "1234",
+            "username": "ProGamer"
+        },
+        "marketing_consent": true,
+        "country": "GB",
+        "postal_code": "TE57 1NG"
+    },
+    "products": [
+        {
+            "id": 4,
+            "name": "Vip Rank",
+            "quantity": 1,
+            "base_price": {
+                "amount": 22.5,
+                "currency": "USD"
+            },
+            "paid_price": {
+                "amount": 22.5,
+                "currency": "USD"
+            },
+            "variables": [],
+            "expires_at": null,
+            "custom": null,
+            "username": {
+                "id": "1234",
+                "username": "ProGamer"
+            }
+        }
+    ],
+    "coupons": [],
+    "gift_cards": [],
+    "recurring_payment_reference": null,
+    "decline_reason": null,
+    "creator_code": null,
+    "settled_at": "2021-08-21T13:03:30.000000Z"
+}

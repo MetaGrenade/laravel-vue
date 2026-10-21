@@ -2,6 +2,7 @@
 
 namespace App\Payments\Providers;
 
+use App\Models\BillingWebhookCall;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Refund;
@@ -16,8 +17,12 @@ use App\Payments\Exceptions\BuyerIdentityRejected;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\Tebex\TebexBasketBuilder;
 use App\Payments\Tebex\TebexClient;
+use App\Payments\Tebex\TebexEvent;
+use App\Payments\Tebex\TebexPayments;
 use App\Payments\Tebex\TebexSignIn;
 use App\Payments\Tebex\TebexStoreProfile;
+use App\Payments\Tebex\TebexWebhookVerifier;
+use App\Payments\Webhooks\WebhookReceiver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -26,12 +31,13 @@ use Illuminate\Support\Str;
  *
  * Tebex is the merchant of record. It works out tax, applies its own coupons, creator codes and gift cards, and takes
  * the payment, so what the buyer pays can differ from what the shop quoted; the order carries the shop's quote (the
- * packages at their price before tax), and the payment Tebex's own figures once it reports them.
+ * packages at their price before tax), and once Tebex reports the payment the order and the payment say what was really
+ * charged.
  *
- * **Settling an order is not built yet.** Tebex tells the shop a payment happened by webhook, and the endpoint that
- * receives it (and the refunds, disputes and recurring payments that follow) is the next slice. Until then an order
- * placed through this provider stays pending and expires, so the provider is registered only when
- * `TEBEX_CHECKOUT_PREVIEW` is set (see docs/tebex.md), for trying a basket against a real store, never for taking money.
+ * **Settling an order is the webhook's job.** Tebex does not report a payment's outcome when asked, only by webhook
+ * (`POST /webhooks/tebex`, see {@see TebexPayments} for what each delivery does), so an order is never marked paid from
+ * anything else: not the buyer coming back to the shop, and not Tebex.js in the browser. That is why this provider says
+ * it is not configured until the webhook's secret is set. Recurring payments are a later slice.
  */
 class TebexProvider implements PaymentProvider
 {
@@ -42,6 +48,9 @@ class TebexProvider implements PaymentProvider
         private readonly TebexStoreProfile $profile,
         private readonly TebexBasketBuilder $baskets,
         private readonly TebexSignIn $signIn,
+        private readonly TebexWebhookVerifier $webhooks,
+        private readonly TebexPayments $payments,
+        private readonly WebhookReceiver $receiver,
     ) {}
 
     public function key(): string
@@ -63,11 +72,12 @@ class TebexProvider implements PaymentProvider
     }
 
     /**
-     * There is a token, and the store is one the shop can sell for (see {@see TebexStoreProfile}).
+     * There is a token, the store is one the shop can sell for (see {@see TebexStoreProfile}), and the webhook has a
+     * secret, since a payment Tebex took could never be applied without it.
      */
     public function isConfigured(): bool
     {
-        return $this->client->isConfigured() && $this->profile->isSupported();
+        return $this->client->isConfigured() && $this->profile->isSupported() && $this->webhooks->isConfigured();
     }
 
     /**
@@ -199,16 +209,50 @@ class TebexProvider implements PaymentProvider
 
     /**
      * Nothing to ask: Tebex does not report a payment's outcome when asked, only by webhook, and an order is never
-     * settled from anything else.
+     * settled from anything else. (A late or lost delivery is made up for by Tebex retrying it.)
      */
     public function reconcile(Payment $payment): void
     {
         // Intentionally empty. See the class comment.
     }
 
+    /**
+     * Check a delivery is Tebex's and apply it. The endpoint has already refused senders at other addresses.
+     *
+     * Tebex first sends a validation delivery, and will not send anything else until it is answered with the delivery's
+     * own id. Everything after that is applied once: deliveries are kept under Tebex's id for them, so a retry changes
+     * nothing.
+     */
     public function handleWebhook(Request $request): WebhookOutcome
     {
-        throw new PaymentException('The shop does not handle Tebex webhooks yet.');
+        if (! $this->webhooks->isConfigured()) {
+            return WebhookOutcome::failed('Webhook secret not configured');
+        }
+
+        if (! $this->webhooks->isSigned($request)) {
+            return WebhookOutcome::rejected('Invalid signature');
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $event = is_array($data) ? TebexEvent::fromArray($data) : null;
+
+        if ($event === null) {
+            return WebhookOutcome::rejected('Malformed payload');
+        }
+
+        if ($event->type === TebexEvent::VALIDATION) {
+            return WebhookOutcome::answered(['id' => $event->id]);
+        }
+
+        return $this->processEvent($event);
+    }
+
+    /**
+     * Apply a delivery whose signature has already been checked.
+     */
+    public function processEvent(TebexEvent $event): WebhookOutcome
+    {
+        return $this->receiver->receive(self::KEY, $event->id, $event->type, $event->redacted(), fn (BillingWebhookCall $call) => $this->payments->apply($event, $call));
     }
 
     public function refund(Refund $refund): RefundOutcome
@@ -218,7 +262,8 @@ class TebexProvider implements PaymentProvider
 
     public function syncRefunds(Payment $payment): void
     {
-        // Intentionally empty: refunds made in the Tebex panel are not read back yet.
+        // Intentionally empty: Tebex does not list a payment's refunds when asked; a refund made in the Tebex panel
+        // arrives as a `payment.refunded` delivery.
     }
 
     public function paymentUrl(Payment $payment): ?string

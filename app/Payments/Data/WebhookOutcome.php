@@ -8,11 +8,25 @@ namespace App\Payments\Data;
  */
 final readonly class WebhookOutcome
 {
+    /**
+     * @param  array<string, mixed>|null  $body  A JSON answer to send instead of the message, for a provider that asks for one.
+     */
     private function __construct(
         public string $status,
         public int $httpStatus,
         public string $message,
+        public ?array $body = null,
     ) {}
+
+    /**
+     * The provider asked whether this endpoint is really ours to receive its webhooks, and wants this answer.
+     *
+     * @param  array<string, mixed>  $body
+     */
+    public static function answered(array $body): self
+    {
+        return new self('answered', 200, 'Webhook endpoint validated', $body);
+    }
 
     public static function handled(string $message = 'Webhook handled'): self
     {

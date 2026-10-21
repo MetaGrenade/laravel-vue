@@ -16,7 +16,6 @@ use App\Payments\PaymentManager;
 use App\Payments\Providers\TebexProvider;
 use App\Payments\Tebex\TebexException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Support\FakeTebexBaskets;
@@ -107,32 +106,27 @@ class TebexProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_is_configured_when_there_is_a_public_token(): void
+    public function it_is_configured_when_there_is_a_public_token_and_a_webhook_secret(): void
     {
         $this->assertTrue($this->provider()->isConfigured());
 
         config(['tebex.public_token' => null]);
+        $this->assertFalse($this->provider()->isConfigured());
 
+        config(['tebex.public_token' => $this->tebexToken, 'tebex.webhook.secret' => null]);
+        $this->assertFalse($this->provider()->isConfigured(), 'a payment could never be applied without the webhook secret');
+
+        config(['tebex.webhook.secret' => '   ']);
         $this->assertFalse($this->provider()->isConfigured());
     }
 
     #[Test]
-    public function it_is_not_on_offer_unless_the_preview_is_switched_on(): void
+    public function it_is_on_offer_whatever_the_environment(): void
     {
         $registered = require config_path('commerce.php');
 
-        $this->assertSame(['stripe'], array_keys($registered['providers']));
-
-        $_ENV['TEBEX_CHECKOUT_PREVIEW'] = $_SERVER['TEBEX_CHECKOUT_PREVIEW'] = 'true';
-
-        try {
-            $withPreview = require config_path('commerce.php');
-        } finally {
-            unset($_ENV['TEBEX_CHECKOUT_PREVIEW'], $_SERVER['TEBEX_CHECKOUT_PREVIEW']);
-        }
-
-        $this->assertSame(['stripe', 'tebex'], array_keys($withPreview['providers']));
-        $this->assertSame(TebexProvider::class, $withPreview['providers']['tebex']);
+        $this->assertSame(['stripe', 'tebex'], array_keys($registered['providers']));
+        $this->assertSame(TebexProvider::class, $registered['providers']['tebex']);
     }
 
     // --- Starting a checkout ----------------------------------------------------------------------------------
@@ -328,18 +322,13 @@ class TebexProviderTest extends TestCase
     }
 
     #[Test]
-    public function webhooks_and_refunds_are_not_handled_yet_and_say_so(): void
+    public function the_shop_cannot_ask_tebex_to_refund_and_says_so(): void
     {
-        foreach ([
-            fn () => $this->provider()->handleWebhook(Request::create('/webhooks/tebex', 'POST')),
-            fn () => $this->provider()->refund(new Refund),
-        ] as $call) {
-            try {
-                $call();
-                $this->fail('Something that is not built answered.');
-            } catch (PaymentException $exception) {
-                $this->assertStringContainsString('yet', $exception->getMessage());
-            }
+        try {
+            $this->provider()->refund(new Refund);
+            $this->fail('Something that is not built answered.');
+        } catch (PaymentException $exception) {
+            $this->assertStringContainsString('yet', $exception->getMessage());
         }
     }
 }

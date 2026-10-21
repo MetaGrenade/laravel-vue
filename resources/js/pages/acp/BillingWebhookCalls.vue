@@ -29,7 +29,13 @@ interface WebhookUser {
 interface WebhookCall {
     id: number;
     stripe_id: string | null;
+    /** Who sent it: "stripe" or "tebex". */
+    provider: string | null;
+    /** The sender's id for the delivery. */
+    external_id: string | null;
     type: string;
+    /** Why it needs a look: understood but not acted on, or failed and waiting to be sent again. */
+    error: string | null;
     user: WebhookUser | null;
     processed_at: string | null;
     created_at: string | null;
@@ -46,6 +52,7 @@ interface FiltersPayload {
     search?: string | null;
     type?: string | null;
     processed?: string | null;
+    provider?: string | null;
     per_page?: number | null;
 }
 
@@ -57,6 +64,7 @@ interface Props {
     };
     filters?: FiltersPayload | null;
     availableTypes: string[];
+    availableProviders: string[];
 }
 
 const props = defineProps<Props>();
@@ -70,6 +78,7 @@ const filterState = reactive({
     search: props.filters?.search ?? '',
     type: props.filters?.type ?? '',
     processed: props.filters?.processed ?? '',
+    provider: props.filters?.provider ?? '',
     per_page: props.filters?.per_page ?? props.calls.meta?.per_page ?? 25,
 });
 
@@ -79,6 +88,7 @@ watch(
         filterState.search = filters?.search ?? '';
         filterState.type = filters?.type ?? '';
         filterState.processed = filters?.processed ?? '';
+        filterState.provider = filters?.provider ?? '';
 
         if (typeof filters?.per_page === 'number' && filters.per_page > 0) {
             filterState.per_page = filters.per_page;
@@ -144,6 +154,7 @@ function buildQuery(overrides: QueryParams = {}) {
         search: filterState.search,
         type: filterState.type,
         processed: filterState.processed,
+        provider: filterState.provider,
         ...overrides,
     });
 }
@@ -162,10 +173,13 @@ const resetFilters = () => {
     filterState.search = '';
     filterState.type = '';
     filterState.processed = '';
+    filterState.provider = '';
     filterState.per_page = 25;
 
     applyFilters();
 };
+
+const providerLabel = (provider: string) => (provider === 'tebex' ? 'Tebex' : provider === 'stripe' ? 'Stripe' : provider);
 
 const formatDateTime = (value: string | null) => {
     if (!value) {
@@ -189,17 +203,31 @@ const formatDateTime = (value: string | null) => {
         <AdminLayout>
             <section class="flex w-full flex-col space-y-6">
                 <HeadingSmall
-                    title="Stripe webhook archive"
-                    description="Audit historical webhook deliveries and reprocess payloads when billing gets out of sync."
+                    title="Webhook archive"
+                    description="Audit the webhook deliveries from Stripe and Tebex, and reprocess one that failed. A delivery that needs a look is one the shop understood but could not act on, or that failed and is waiting to be sent again."
                 />
 
                 <form
-                    class="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-xs md:grid-cols-4 md:items-end"
+                    class="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-xs md:grid-cols-3 md:items-end lg:grid-cols-5"
                     @submit.prevent="applyFilters()"
                 >
                     <div class="flex flex-col gap-2">
                         <label for="search" class="text-sm font-medium text-foreground">Search</label>
-                        <Input id="search" v-model="filterState.search" type="search" placeholder="Search by Stripe ID or type" />
+                        <Input id="search" v-model="filterState.search" type="search" placeholder="Search by delivery ID or type" />
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label for="provider" class="text-sm font-medium text-foreground">Sent by</label>
+                        <select
+                            id="provider"
+                            v-model="filterState.provider"
+                            class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:outline-hidden"
+                        >
+                            <option value="">Everyone</option>
+                            <option v-for="provider in props.availableProviders" :key="provider" :value="provider">
+                                {{ providerLabel(provider) }}
+                            </option>
+                        </select>
                     </div>
 
                     <div class="flex flex-col gap-2">
@@ -224,6 +252,7 @@ const formatDateTime = (value: string | null) => {
                             <option value="">All</option>
                             <option value="processed">Processed</option>
                             <option value="pending">Pending</option>
+                            <option value="attention">Needs a look</option>
                         </select>
                     </div>
 
@@ -238,7 +267,7 @@ const formatDateTime = (value: string | null) => {
                         </select>
                     </div>
 
-                    <div class="flex flex-col gap-2 md:col-span-4 md:flex-row md:justify-end">
+                    <div class="flex flex-col gap-2 md:col-span-3 md:flex-row md:justify-end lg:col-span-5">
                         <div class="flex gap-2">
                             <Button type="submit">Apply filters</Button>
                             <Button type="button" variant="outline" @click="resetFilters">Reset</Button>
@@ -250,7 +279,7 @@ const formatDateTime = (value: string | null) => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Stripe ID</TableHead>
+                                <TableHead>Delivery ID</TableHead>
                                 <TableHead>Type</TableHead>
                                 <TableHead>User</TableHead>
                                 <TableHead>Recorded</TableHead>
@@ -263,8 +292,13 @@ const formatDateTime = (value: string | null) => {
                                 <TableCell colspan="6" class="text-center text-sm text-muted-foreground"> No webhook calls archived yet. </TableCell>
                             </TableRow>
                             <TableRow v-for="call in calls" :key="call.id">
-                                <TableCell class="font-mono text-xs">{{ call.stripe_id ?? '—' }}</TableCell>
-                                <TableCell class="text-sm">{{ call.type }}</TableCell>
+                                <TableCell class="font-mono text-xs">{{ call.external_id ?? call.stripe_id ?? '—' }}</TableCell>
+                                <TableCell class="text-sm">
+                                    <div class="flex flex-col">
+                                        <span>{{ call.type }}</span>
+                                        <span v-if="call.provider" class="text-xs text-muted-foreground">{{ providerLabel(call.provider) }}</span>
+                                    </div>
+                                </TableCell>
                                 <TableCell>
                                     <div v-if="call.user" class="flex flex-col text-sm">
                                         <span class="font-medium">{{ call.user.nickname }}</span>
@@ -274,8 +308,11 @@ const formatDateTime = (value: string | null) => {
                                 </TableCell>
                                 <TableCell class="text-sm">{{ formatDateTime(call.created_at) }}</TableCell>
                                 <TableCell class="text-sm">
-                                    <span v-if="call.processed_at">{{ formatDateTime(call.processed_at) }}</span>
-                                    <span v-else class="text-xs font-medium tracking-wide text-warning uppercase">Pending</span>
+                                    <div class="flex flex-col gap-1">
+                                        <span v-if="call.processed_at">{{ formatDateTime(call.processed_at) }}</span>
+                                        <span v-else class="text-xs font-medium tracking-wide text-warning uppercase">Pending</span>
+                                        <span v-if="call.error" class="text-xs font-medium tracking-wide text-warning uppercase">Needs a look</span>
+                                    </div>
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <Button variant="outline" size="sm" as-child>

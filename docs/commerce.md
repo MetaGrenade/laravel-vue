@@ -350,7 +350,7 @@ A payment that arrives for an order that was already cancelled is honoured: the 
 - The **store-level provider** is `COMMERCE_PROVIDER` (default `stripe`) and can be changed in the ACP under System settings. Every order records the provider it was placed with, and webhooks and reconciliation use that recorded provider, so switching never strands an in-flight payment.
 - Providers declare `capabilities()` (one-time payments, subscriptions, refunds, hosted checkout, ...) and the shop checks those rather than the provider's name.
 - To add a provider: implement the contract, register it under `commerce.providers`, and route its webhooks through `WebhookReceiver` (below).
-- **Tebex** is the second provider. Its connection, catalogue, storefront, cart and basket are built, but not its webhooks, so an order paid through it is never marked paid: it is registered under `commerce.providers` only when `TEBEX_CHECKOUT_PREVIEW` is set, for trying baskets, never for a shop that takes money. See [tebex.md](tebex.md).
+- **Tebex** is the second provider. Its connection, catalogue, storefront, cart, basket and webhook are built: a package is paid for on Tebex's hosted checkout and the order is settled by Tebex's webhook (`/webhooks/tebex`), which also records refunds and disputes made at Tebex. It says it is not configured until the webhook has a secret, since a payment could not be applied without it. Recurring payments, an embedded checkout and the Checkout API mode are later slices. See [tebex.md](tebex.md).
 
 ### Stripe
 
@@ -380,7 +380,7 @@ How the Stripe integration protects the order:
 
 `App\Payments\Webhooks\WebhookReceiver` is the pattern every provider's webhook follows. Each delivery is stored in `billing_webhook_calls` under `(provider, external_id)`. If that event was already processed the delivery is acknowledged and nothing runs again, so a provider's retries are harmless. The work runs in a transaction: an event is fully applied or not at all. If processing fails, the error and attempt count are stored on the call and a `500` is returned so the provider redelivers.
 
-`/stripe/webhook` stays registered even if the shop section is switched off in the ACP, so payments in flight still settle. The customer's receipt link also keeps working.
+`/stripe/webhook` and `/webhooks/tebex` stay registered even if the shop section is switched off in the ACP, so payments in flight still settle. The customer's receipt link also keeps working. A delivery that was understood but could not be acted on (a Tebex payment that matches no order) is kept with a note in `error`, which the archive under Billing → Webhooks shows as "Needs a look"; `Replay webhook` retries one that failed. Stripe's archive and Tebex's share the table and the page; see [tebex.md](tebex.md#payments-the-webhook) for what Tebex's deliveries do.
 
 ## Rate limits
 
@@ -425,6 +425,6 @@ The header cart previously showed an estimated 7% tax and a flat shipping charge
 
 ## Not built yet
 
-The shop part of the roadmap is complete. Tebex arrives in M2 behind the same provider contract: its catalogue is copied already, buying through it is not built (see [tebex.md](tebex.md)).
+The shop part of the roadmap is complete. Tebex arrives in M2 behind the same provider contract: buying a one-off package through it is built and settled by its webhook; an embedded checkout, recurring payments and the Checkout API mode are not (see [tebex.md](tebex.md)).
 
 Wishlists have no guest version, no sharing and no back-in-stock alerts. Reviews have no photos, no reply from the shop, no "was this helpful" votes, no way for readers to report one (staff reject or delete from the ACP) and no email to staff when one arrives (the overview counts what is waiting).

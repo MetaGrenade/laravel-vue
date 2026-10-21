@@ -46,6 +46,21 @@ return [
     ],
 
     /*
+    | Webhooks: how Tebex tells the shop a payment happened. Without them an order is never marked paid.
+    |
+    | The secret is shown once when the endpoint is added in the Tebex panel (Developers -> Webhooks -> Endpoints) and
+    | signs every delivery. Tebex sends only from the two addresses below; a request from anywhere else is answered with
+    | a 404. Switch the check off only when a proxy hides the sender's address and cannot be told to pass it on (the
+    | signature is still checked).
+    */
+
+    'webhook' => [
+        'secret' => env('TEBEX_WEBHOOK_SECRET'),
+        'check_ip' => (bool) env('TEBEX_WEBHOOK_CHECK_IP', true),
+        'ips' => ['18.209.80.3', '54.87.231.232'],
+    ],
+
+    /*
     | A basket is changed by one request at a time. Adding a package at Tebex ADDS to what the basket holds, so two
     | requests that both found it empty and both filled it (a buyer opening the sign-in link in two tabs) would put every
     | package in twice and send the buyer to pay double. A request that finds the basket in use waits this many seconds,

@@ -31,6 +31,7 @@ use App\Http\Controllers\SupportAttachmentController;
 use App\Http\Controllers\SupportCenterController;
 use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
+use App\Http\Controllers\Webhooks\TebexWebhookController;
 use App\Http\Controllers\WebManifestController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
@@ -302,3 +303,8 @@ Route::post('stripe/webhook', StripeWebhookController::class)
         PreventRequestForgery::class,
         VerifyWebhookSignature::class,
     ]);
+
+// Tebex: checked by the sender's address and the body's signature, not by a session or a token.
+Route::post('webhooks/tebex', TebexWebhookController::class)
+    ->name('tebex.webhook')
+    ->withoutMiddleware([PreventRequestForgery::class]);

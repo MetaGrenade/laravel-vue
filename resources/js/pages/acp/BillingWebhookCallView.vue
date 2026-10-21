@@ -16,6 +16,13 @@ interface WebhookUser {
 interface WebhookCallDetail {
     id: number;
     stripe_id: string | null;
+    /** Who sent it: "stripe" or "tebex". */
+    provider: string | null;
+    /** The sender's id for the delivery. */
+    external_id: string | null;
+    attempts: number;
+    /** Why it needs a look: understood but not acted on, or failed and waiting to be sent again. */
+    error: string | null;
     type: string;
     user: WebhookUser | null;
     processed_at: string | null;
@@ -30,15 +37,21 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const deliveryId = computed(() => props.call.external_id ?? props.call.stripe_id);
+
+const providerName = computed(() =>
+    props.call.provider === 'tebex' ? 'Tebex' : props.call.provider === 'stripe' ? 'Stripe' : (props.call.provider ?? 'The sender'),
+);
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Billing webhooks', href: route('acp.billing.webhooks.index') },
     {
-        title: props.call.stripe_id ?? `Webhook #${props.call.id}`,
+        title: deliveryId.value ?? `Webhook #${props.call.id}`,
         href: route('acp.billing.webhooks.show', props.call.id),
     },
 ];
 
-const pageTitle = computed(() => (props.call.stripe_id ? `Webhook ${props.call.stripe_id}` : `Webhook #${props.call.id}`));
+const pageTitle = computed(() => (deliveryId.value ? `Webhook ${deliveryId.value}` : `Webhook #${props.call.id}`));
 
 const replaying = ref(false);
 
@@ -132,7 +145,12 @@ onBeforeUnmount(() => {
 
         <AdminLayout>
             <section class="flex w-full flex-col space-y-6">
-                <HeadingSmall :title="pageTitle" description="Inspect the raw Stripe payload and metadata persisted when the webhook was received." />
+                <HeadingSmall :title="pageTitle" description="Inspect the payload and metadata kept when the webhook was received." />
+
+                <div v-if="props.call.error" class="rounded-lg border border-warning/50 bg-warning/10 p-4 text-sm" role="alert">
+                    <p class="font-medium">This delivery needs a look</p>
+                    <p class="mt-1 text-muted-foreground">{{ props.call.error }}</p>
+                </div>
 
                 <div class="flex flex-wrap gap-2">
                     <Button variant="outline" as-child>
@@ -152,8 +170,12 @@ onBeforeUnmount(() => {
                 <div class="rounded-lg border border-border bg-card p-6 shadow-xs">
                     <dl class="grid gap-4 md:grid-cols-2">
                         <div class="space-y-1">
-                            <dt class="text-sm font-medium text-muted-foreground">Stripe event ID</dt>
-                            <dd class="font-mono text-sm">{{ props.call.stripe_id ?? '—' }}</dd>
+                            <dt class="text-sm font-medium text-muted-foreground">{{ providerName }} delivery ID</dt>
+                            <dd class="font-mono text-sm">{{ deliveryId ?? '—' }}</dd>
+                        </div>
+                        <div class="space-y-1">
+                            <dt class="text-sm font-medium text-muted-foreground">Attempts</dt>
+                            <dd class="text-sm">{{ props.call.attempts }}</dd>
                         </div>
                         <div class="space-y-1">
                             <dt class="text-sm font-medium text-muted-foreground">Webhook type</dt>

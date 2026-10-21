@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BillingWebhookCall;
+use App\Payments\Providers\TebexProvider;
+use App\Payments\Tebex\TebexEvent;
 use App\Support\Billing\BillingWebhookProcessor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,6 +33,7 @@ class BillingWebhookCallController extends Controller
         if ($search !== '') {
             $query->where(function ($innerQuery) use ($search) {
                 $innerQuery->whereLike('stripe_id', "%{$search}%")
+                    ->orWhereLike('external_id', "%{$search}%")
                     ->orWhereLike('type', "%{$search}%");
             });
         }
@@ -40,11 +43,19 @@ class BillingWebhookCallController extends Controller
             $query->where('type', $typeFilter);
         }
 
+        $providerFilter = trim((string) $request->query('provider', ''));
+        if ($providerFilter !== '') {
+            $query->where('provider', $providerFilter);
+        }
+
         $processedFilter = trim((string) $request->query('processed', ''));
         if ($processedFilter === 'processed') {
             $query->whereNotNull('processed_at');
         } elseif ($processedFilter === 'pending') {
             $query->whereNull('processed_at');
+        } elseif ($processedFilter === 'attention') {
+            // Understood but not acted on, or failed and waiting for a retry: a payment that matched no order.
+            $query->whereNotNull('error');
         }
 
         $calls = $query
@@ -55,7 +66,10 @@ class BillingWebhookCallController extends Controller
                 return [
                     'id' => $call->id,
                     'stripe_id' => $call->stripe_id,
+                    'provider' => $call->provider,
+                    'external_id' => $call->external_id,
                     'type' => $call->type,
+                    'error' => $call->error,
                     'user' => $call->user ? [
                         'id' => $call->user->id,
                         'nickname' => $call->user->nickname,
@@ -84,9 +98,11 @@ class BillingWebhookCallController extends Controller
                 'search' => $search,
                 'type' => $typeFilter,
                 'processed' => $processedFilter,
+                'provider' => $providerFilter,
                 'per_page' => $perPage,
             ],
             'availableTypes' => $availableTypes,
+            'availableProviders' => BillingWebhookCall::query()->whereNotNull('provider')->distinct()->orderBy('provider')->pluck('provider')->all(),
         ]);
     }
 
@@ -100,6 +116,10 @@ class BillingWebhookCallController extends Controller
             'call' => [
                 'id' => $billingWebhookCall->id,
                 'stripe_id' => $billingWebhookCall->stripe_id,
+                'provider' => $billingWebhookCall->provider,
+                'external_id' => $billingWebhookCall->external_id,
+                'attempts' => $billingWebhookCall->attempts,
+                'error' => $billingWebhookCall->error,
                 'type' => $billingWebhookCall->type,
                 'user' => $billingWebhookCall->user ? [
                     'id' => $billingWebhookCall->user->id,
@@ -114,9 +134,13 @@ class BillingWebhookCallController extends Controller
         ]);
     }
 
-    public function replay(Request $request, BillingWebhookCall $billingWebhookCall): RedirectResponse
+    public function replay(Request $request, BillingWebhookCall $billingWebhookCall, TebexProvider $tebex): RedirectResponse
     {
         abort_unless($request->user()->can('billing.acp.view'), 403);
+
+        if ($billingWebhookCall->provider === TebexProvider::KEY) {
+            return $this->replayTebex($billingWebhookCall, $tebex);
+        }
 
         try {
             $this->processor->replay($billingWebhookCall);
@@ -131,5 +155,26 @@ class BillingWebhookCallController extends Controller
         return redirect()
             ->route('acp.billing.webhooks.show', $billingWebhookCall)
             ->with('success', 'Webhook replay dispatched.');
+    }
+
+    /**
+     * A Tebex delivery is applied again by Tebex's own handler, which does nothing for one that was already applied:
+     * what a replay can do is retry one that failed.
+     */
+    private function replayTebex(BillingWebhookCall $call, TebexProvider $tebex): RedirectResponse
+    {
+        $event = TebexEvent::fromArray($call->payload);
+
+        if ($event === null) {
+            return back()->with('error', 'Failed to replay webhook: its payload is missing or malformed.');
+        }
+
+        $outcome = $tebex->processEvent($event);
+
+        return redirect()->route('acp.billing.webhooks.show', $call)->with(match ($outcome->status) {
+            'failed' => ['error' => 'Failed to replay webhook: it failed again. The error is on this page.'],
+            'duplicate' => ['info' => 'This delivery was already processed, so nothing was applied again.'],
+            default => ['success' => 'Webhook replayed.'],
+        });
     }
 }
