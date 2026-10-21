@@ -18,6 +18,7 @@ use App\Support\Commerce\GuestCarryOver;
 use App\Support\Commerce\OrderRefunder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
@@ -843,5 +844,117 @@ class TebexRecurringTest extends TestCase
             ->where('subscriptions.0.state', 'ended')
             ->where('subscriptions.0.state_label', 'Expired')
             ->where('subscriptions.0.next_payment_at', null));
+    }
+
+    // --- A renewal the shop never recorded, given back -----------------------------------------------------------------
+
+    #[Test]
+    public function a_refund_of_a_renewal_the_shop_never_recorded_is_not_taken_for_the_orders_own_payment(): void
+    {
+        [$order, $payment] = $this->start();
+
+        // However the delivery points at the order (its basket's custom data, the recurring payment it belongs to, or
+        // both), it is about a transaction the shop has no payment for.
+        $shapes = [
+            'both' => fn (array $subject) => $subject,
+            'only the recurring payment' => function (array $subject) {
+                $subject['products'][0]['custom'] = null;
+
+                return $subject;
+            },
+            'only the basket' => function (array $subject) {
+                unset($subject['recurring_payment_reference']);
+
+                return $subject;
+            },
+        ];
+
+        foreach ($shapes as $shape) {
+            $this->deliver('payment.refunded', $shape($this->renewal($order, $payment, 'tbx-never-recorded', ['status' => ['id' => 2, 'description' => 'Refund']])))->assertOk();
+        }
+
+        $order->refresh();
+        $this->assertSame(0, Refund::query()->count());
+        $this->assertSame(OrderPaymentStatus::Paid, $order->payment_status);
+        $this->assertSame('0.00', $order->refunded_total);
+        $this->assertSame(OrderStatus::Completed, $order->status);
+        $this->assertSame(PaymentStatus::Succeeded, $payment->fresh()->status);
+
+        $calls = BillingWebhookCall::query()->where('type', 'payment.refunded')->get();
+        $this->assertCount(3, $calls);
+        foreach ($calls as $call) {
+            $this->assertStringContainsString('has no record of', (string) $call->error);
+        }
+    }
+
+    #[Test]
+    public function a_dispute_over_a_renewal_the_shop_never_recorded_is_not_put_on_the_orders_own_payment(): void
+    {
+        [$order, $payment] = $this->start();
+
+        foreach (['payment.dispute.opened', 'payment.dispute.lost'] as $type) {
+            $this->deliver($type, $this->renewal($order, $payment, 'tbx-never-recorded', ['status' => ['id' => 3, 'description' => 'Chargeback']]))->assertOk();
+        }
+
+        $this->assertSame(0, Refund::query()->count());
+        $this->assertSame(OrderPaymentStatus::Paid, $order->fresh()->payment_status);
+        $this->assertSame([], $this->notes($order), 'a dispute over another payment is not a note on this one');
+        $this->assertSame(2, BillingWebhookCall::query()->where('error', 'like', '%has no record of%')->count());
+    }
+
+    // --- Renewals that are held, counted and ordered ---------------------------------------------------------------------
+
+    #[Test]
+    public function a_renewal_held_for_its_currency_shows_the_currency_tebex_took_it_in(): void
+    {
+        [$order, $payment] = $this->start();
+        $noAmount = $this->renewal($order, $payment, 'tbx-renewal-none');
+        unset($noAmount['price_paid'], $noAmount['price']);
+
+        $this->deliver('payment.completed', $this->renewal($order, $payment, 'tbx-renewal-gbp', ['price_paid' => ['amount' => 4.5, 'currency' => 'GBP']]))->assertOk();
+        $this->deliver('payment.completed', $noAmount)->assertOk();
+
+        $pounds = Payment::query()->where('provider_reference', 'tbx-renewal-gbp')->sole();
+        $this->assertSame(PaymentStatus::Review, $pounds->status);
+        $this->assertSame('4.50', $pounds->amount);
+        $this->assertSame('GBP', $pounds->currency, 'staff look at it to decide what to do: it must say what was taken');
+
+        $none = Payment::query()->where('provider_reference', 'tbx-renewal-none')->sole();
+        $this->assertSame(PaymentStatus::Review, $none->status);
+        $this->assertSame('0.00', $none->amount);
+        $this->assertSame('USD', $none->currency, 'with no amount reported there is no other currency to show');
+    }
+
+    #[Test]
+    public function a_renewal_is_counted_in_the_database_so_two_processed_at_once_are_both_counted(): void
+    {
+        [$order, $payment] = $this->start();
+
+        // Another request counts a renewal just after this one has read the recurring payment (the receiver only locks
+        // the delivery's own row, so nothing makes the two wait for each other).
+        $counted = false;
+        ProviderSubscription::retrieved(function (ProviderSubscription $subscription) use (&$counted): void {
+            if (! $counted) {
+                $counted = true;
+                DB::table('provider_subscriptions')->where('id', $subscription->id)->increment('renewals_count');
+            }
+        });
+
+        $this->deliver('payment.completed', $this->renewal($order, $payment))->assertOk();
+
+        $this->assertTrue($counted, 'the other request had its turn');
+        $this->assertSame(2, $this->subscription()->renewals_count);
+    }
+
+    #[Test]
+    public function the_last_payment_is_the_newest_renewal_whatever_order_they_arrive_in(): void
+    {
+        [$order, $payment] = $this->start();
+
+        $this->deliver('payment.completed', $this->renewal($order, $payment, 'tbx-renewal-late', ['settled_at' => '2026-12-05T10:00:00.000000Z']))->assertOk();
+        $this->deliver('payment.completed', $this->renewal($order, $payment, 'tbx-renewal-early', ['settled_at' => '2026-11-05T10:00:00.000000Z']))->assertOk();
+
+        $this->assertSame(2, $this->subscription()->renewals_count);
+        $this->assertSame('2026-12-05', $this->subscription()->last_payment_at->format('Y-m-d'), 'the older one, arriving late, does not move it back');
     }
 }

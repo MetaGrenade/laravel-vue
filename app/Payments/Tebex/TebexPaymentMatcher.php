@@ -19,10 +19,18 @@ use App\Payments\Providers\TebexProvider;
  * - **By the recurring payment.** A renewal is a payment of its own that Tebex makes long after the basket, and names
  *   the recurring payment it belongs to. If the shop already knows that recurring payment, the order that started it is
  *   the order the renewal is for.
+ *
+ * The last two lead to the order's *first* payment, which is right for a payment that is arriving but wrong for one that
+ * is being given back: a refund is about one transaction, and a renewal whose payment the shop never recorded must not
+ * be taken for the order's first. So a refund or a dispute is found by its transaction only ({@see self::find()}).
  */
 class TebexPaymentMatcher
 {
-    public function find(TebexEvent $event): ?Payment
+    /**
+     * @param  bool  $recordedOnly  Only a payment already recorded under this delivery's transaction id, not the one the
+     *                              basket or the recurring payment points to. For refunds and disputes.
+     */
+    public function find(TebexEvent $event, bool $recordedOnly = false): ?Payment
     {
         $transaction = $event->transactionId();
 
@@ -35,6 +43,10 @@ class TebexPaymentMatcher
             if ($known !== null && $known->order !== null) {
                 return $known;
             }
+        }
+
+        if ($recordedOnly) {
+            return null;
         }
 
         $custom = $event->basketCustom();

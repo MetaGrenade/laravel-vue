@@ -172,7 +172,9 @@ class TebexPayments
             return WebhookOutcome::ignored('Not a refund Tebex has made');
         }
 
-        $payment = $this->matcher->find($event);
+        // Found by its transaction only: a refund of a payment the shop never recorded (a renewal whose payment did not
+        // arrive) must not be taken for the order's first payment.
+        $payment = $this->matcher->find($event, recordedOnly: true);
 
         if ($payment === null) {
             return $this->flag($call, 'Tebex refunded a payment the shop has no record of.', WebhookOutcome::ignored('Unknown payment'));
@@ -187,7 +189,8 @@ class TebexPayments
      */
     private function dispute(TebexEvent $event, BillingWebhookCall $call): WebhookOutcome
     {
-        $payment = $this->matcher->find($event);
+        // By its transaction only, as for a refund: nothing is noted on, or taken back from, a payment this is not about.
+        $payment = $this->matcher->find($event, recordedOnly: true);
 
         if ($payment === null) {
             return $this->flag($call, 'Tebex reported a dispute on a payment the shop has no record of.', WebhookOutcome::ignored('Unknown payment'));

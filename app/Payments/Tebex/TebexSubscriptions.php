@@ -154,8 +154,10 @@ class TebexSubscriptions
             'provider_reference' => $transaction,
             'provider_payment_id' => $transaction,
             'status' => $problem === null ? PaymentStatus::Succeeded : PaymentStatus::Review,
+            // What Tebex took, in the currency it took it in: a renewal held for review because of its currency must show
+            // that currency, not the order's. (With no amount reported there is nothing to say, so the order's.)
             'amount' => $paid?->toDecimal() ?? '0.00',
-            'currency' => strtoupper($order->currency),
+            'currency' => $paid->currency ?? strtoupper($order->currency),
             'paid_at' => $problem === null ? $moment : null,
             'raw' => array_filter([
                 'renewal' => true,
@@ -181,9 +183,14 @@ class TebexSubscriptions
         if ($reference !== null) {
             $subscription = $this->find($reference) ?? $this->make($reference);
             $this->attach($subscription, $order, $event);
-            $subscription->renewals_count++;
-            $subscription->last_payment_at = $moment;
             $subscription->save();
+
+            // Counted by the database, not by reading the count and writing it back: the receiver only locks the delivery's
+            // own row, so two renewals processed at once would both read the same count and both write the next one. And
+            // the last payment is the newest, however the deliveries arrive.
+            $query = ProviderSubscription::query()->whereKey($subscription->getKey());
+            $query->clone()->increment('renewals_count');
+            $query->clone()->where(fn ($newer) => $newer->whereNull('last_payment_at')->orWhere('last_payment_at', '<', $moment))->update(['last_payment_at' => $moment]);
         }
 
         OrderEvent::record($order, OrderEvent::NOTE, "A renewal payment of {$row->amount} {$row->currency} was received through Tebex.", array_filter(['tebex_transaction' => $transaction, 'tebex_recurring_payment' => $reference]));
