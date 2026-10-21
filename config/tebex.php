@@ -61,6 +61,20 @@ return [
     ],
 
     /*
+    | Where the buyer pays: "redirect" (Tebex's own page, the default and the fallback), "popup" (Tebex.js opens the
+    | checkout over the shop's page) or "inline" (Tebex.js puts it inside the page). Anything else is "redirect".
+    | The embedded modes let Tebex.js's frame in, which the Content Security Policy must allow: frame_sources are added
+    | to its frame-src only while one of them is on. The theme is Tebex.js's own: auto, default (the store's setting),
+    | light or dark.
+    */
+
+    'checkout' => [
+        'mode' => env('TEBEX_CHECKOUT_MODE', 'redirect'),
+        'theme' => env('TEBEX_CHECKOUT_THEME', 'default'),
+        'frame_sources' => ['https://pay.tebex.io'],
+    ],
+
+    /*
     | A basket is changed by one request at a time. Adding a package at Tebex ADDS to what the basket holds, so two
     | requests that both found it empty and both filled it (a buyer opening the sign-in link in two tabs) would put every
     | package in twice and send the buyer to pay double. A request that finds the basket in use waits this many seconds,

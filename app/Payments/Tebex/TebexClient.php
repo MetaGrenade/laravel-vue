@@ -101,15 +101,19 @@ class TebexClient
      *
      * @param  array<string, scalar>|null  $variableData  What the package needs to be delivered to the right person
      *                                                    (a game account's `username_id`, a Discord id, a server).
+     * @param  array<string, scalar>|null  $custom  Data of the shop's own that Tebex hands back in the webhooks about the
+     *                                              payment (documented as returned on each product), which is how a payment
+     *                                              is matched to the order it is for.
      *
      * @throws TebexException
      */
-    public function addPackage(string $basketIdent, string $packageIdent, int $quantity, ?array $variableData = null): TebexBasket
+    public function addPackage(string $basketIdent, string $packageIdent, int $quantity, ?array $variableData = null, ?array $custom = null): TebexBasket
     {
         return $this->basketFrom($this->post('/baskets/'.rawurlencode($basketIdent).'/packages', array_filter([
             'package_id' => $packageIdent,
             'quantity' => $quantity,
             'variable_data' => $variableData === null || $variableData === [] ? null : (object) $variableData,
+            'custom' => $custom === null || $custom === [] ? null : (object) $custom,
         ], fn ($value) => $value !== null)));
     }
 

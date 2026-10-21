@@ -2,7 +2,7 @@
 
 [Tebex](https://tebex.io) is a merchant of record for digital goods (game servers and communities above all): it keeps the catalogue, takes the payment, handles tax and chargebacks, and tells the shop when someone has paid. MetaForge supports it as the second payment provider, behind the same contract Stripe uses (see [Payment providers](commerce.md#payment-providers)).
 
-> **Status: a one-off package can be sold and paid for, and the order is settled by Tebex's webhook.** Tebex is built as slices (M2a, built and tested against fixtures, no Tebex account needed). Done: the connection, the local copy of the catalogue and the ACP page; the storefront, the cart, the order and the basket at Tebex; **selling for the games** (a username for Minecraft and Overwolf, signing in for Discord, FiveM, Rust and the other Steam-based games, as well as Universal (No Auth)); and **the webhook** (a payment marks the order paid, and refunds and disputes made at Tebex are recorded). Still to come, each as its own change: an **embedded checkout** (Tebex.js: the buyer pays without leaving the shop), recurring payments and entitlements, and the experimental Checkout API mode. **Not checked against a real Tebex store yet** (M2b, before a release candidate): see [Checked against a real store](#checked-against-a-real-store) for what the webhook assumes. See [the roadmap](ROADMAP-v1.0.0.md) (M2).
+> **Status: a one-off package can be sold and paid for, and the order is settled by Tebex's webhook.** Tebex is built as slices (M2a, built and tested against fixtures, no Tebex account needed). Done: the connection, the local copy of the catalogue and the ACP page; the storefront, the cart, the order and the basket at Tebex; **selling for the games** (a username for Minecraft and Overwolf, signing in for Discord, FiveM, Rust and the other Steam-based games, as well as Universal (No Auth)); **the webhook** (a payment marks the order paid, and refunds and disputes made at Tebex are recorded); and an **embedded checkout** (Tebex.js: the buyer pays on a page of the shop's, in a popup or inside it, instead of being sent to Tebex; off by default). Still to come, each as its own change: recurring payments and entitlements, and the experimental Checkout API mode. **Not checked against a real Tebex store yet** (M2b, before a release candidate): see [Checked against a real store](#checked-against-a-real-store) for what the webhook and the embedded checkout assume. See [the roadmap](ROADMAP-v1.0.0.md) (M2).
 
 ## How it fits
 
@@ -75,6 +75,27 @@ After either kind, the payment keeps who Tebex says the buyer is (`payments.raw.
 
 A call that changes something at Tebex (making a basket, adding a package) is not repeated after a failure that may have got through, only after a 429, since doing it twice would put two of a package in a basket. If any step fails the order is cancelled and the buyer told to try again; a half-made basket at Tebex is harmless.
 
+### Paying on the shop's own page (Tebex.js)
+
+By default the buyer is sent to Tebex's hosted page to pay. `TEBEX_CHECKOUT_MODE` keeps them on the shop's own page instead, with [Tebex.js](https://docs.tebex.io/developers/tebex.js/overview):
+
+| `TEBEX_CHECKOUT_MODE` | What the buyer sees |
+|-----------------------|---------------------|
+| `redirect` (the default, and what anything it does not know means) | Tebex's own page, as always. |
+| `popup` | A page of the shop's ("Pay for order ...") with a **Pay now** button, which opens Tebex's checkout over the page (on a phone, Tebex.js opens it in a new tab). If they close it, the page offers **Continue to pay**. |
+| `inline` | The same page with Tebex's checkout inside it. |
+
+`TEBEX_CHECKOUT_THEME` is Tebex.js's own colour theme (`default`, the store's setting, or `auto`, `light`, `dark`).
+
+How it works:
+
+- At checkout the buyer is sent to the shop's own link (`/checkout/tebex/{order}`, the same signed link a sign-in store uses), which reads the basket from Tebex, makes sure it holds what the order does and shows the payment page with the basket's identifier. A store that asks buyers to sign in still does that first, then pays on the page.
+- **Nothing the browser says settles anything.** When Tebex.js reports `payment:complete` the page only takes the buyer to the order's page, which waits for Tebex's webhook like it always has (Tebex itself says not to trust the event). A `payment:error` shows a message and leaves the order as it was; closing the checkout leaves it open to pay.
+- **A way out is always there.** Tebex.js is fetched only on this page (it is bundled with the shop from the `@tebexio/tebex.js` package, pinned in `package-lock.json`, so no script is loaded from another site, and it is a separate file no other page loads). If it cannot be used (a blocker, a failed download, Tebex.js refusing to start) the page says so and offers **Pay on Tebex**, which is the hosted page for the same basket; "Rather pay on Tebex's own page?" is on the page whatever happens.
+- **The content security policy** lets Tebex's frame in (`frame-src https://pay.tebex.io`, from `tebex.checkout.frame_sources`) only while the mode is `popup` or `inline`; a shop that redirects lets no Tebex frame in. Nothing else about the policy changes: the script is the shop's own. If Tebex's checkout does not appear, look in the browser console for a policy violation (set `CSP_REPORT_ONLY=true` to trial a change).
+- The order's address to pay at must be a secure web address (`https://`), which is also what the hosted fallback link uses.
+- Tebex.js adds eight small packages to the front end (`@tebexio/tebex.js` is MIT; it brings `zoid` and its helpers, Apache-2.0, and `nanoevents`, MIT). Note them for the licence audit.
+
 ### Starting again, and running out of time
 
 Tebex has no call that cancels a basket, so a checkout the shop is done with (the buyer starts again, or the order's window passes) is closed by **taking the packages out of it**: a basket with nothing in it has nothing to pay for. The shop asks Tebex for the basket, and only calls it closed if, after taking everything out, Tebex says it is empty and unpaid. A basket that is already paid is not touched, and is reported as not settled, so the buyer is told their earlier payment is still being confirmed rather than being offered a second basket to pay. If Tebex cannot be asked, or will not empty the basket, nothing is replaced.
@@ -134,7 +155,8 @@ The Tebex page in the ACP shows the endpoint, whether the secret is set, whether
 
 The webhook is tested against deliveries written from Tebex's documentation, which is not the same as seeing Tebex send one. Before a release candidate the live check (M2b, against a store in Test Mode) must confirm, and the shop should be adjusted where it differs:
 
-- **Where the basket's custom data comes back.** Tebex's documentation says a basket's `custom` object is "included with webhook responses" but its example payment only has a `custom` on each product. The shop looks at the top of the payment and at each product, and uses whichever holds its order and nonce. If neither does, every payment would arrive as "names no order" and no order would ever be settled, which is why that note exists on the delivery. The fallback would be to ask Tebex for the basket.
+- **Where the order's custom data comes back.** Tebex's guide on custom data says the `custom` set when a package is added to a basket is "returned to you in associated Webhooks" and the example payment carries a `custom` on each product, so the shop sets `{order, nonce}` on **every package it adds** (as well as on the basket, which the OpenAPI schema says is "included with webhook responses"), and looks for it at the top of the payment and on each product. That makes the product-level place the expected one, but a real payment has not been seen. If it is nowhere, every payment would arrive as "names no order" and no order would ever be settled, which is why that note exists on the delivery. The fallback would be to ask Tebex for the basket.
+- **Tebex.js against the real store.** That the popup and the inline frame open for the store's own baskets (the shop has been seen to load Tebex.js and have Tebex's frame appear, and answer "a basket with that identifier does not exist" for a basket that was not real), that `payment:complete` fires when a payment is taken, that **inline checkout on a phone** stays inside the page (the shop asks Tebex.js not to open a new tab there), that payment methods that need a top-level window (a bank's page, 3-D Secure) work from inside the frame and the popup (the shop sends `Cross-Origin-Opener-Policy: same-origin-allow-popups`), whether Tebex needs the shop's address registered anywhere, and that `https://pay.tebex.io` is the only address its frame uses. A strict policy that blocks something else shows in the console.
 - **That a payment's `products[].id` is the package id the catalogue gives** (the id the shop keeps as `tebex_id`) and `quantity` the number bought. The shop holds any payment whose products differ from the order's, so if Tebex numbers them differently every payment would be held for review rather than settled: safe, but nothing would sell.
 - That `price_paid` is what the buyer paid including tax and after codes, that a refund is always of the whole payment, the shape of a dispute's subject (the documentation gives none; the shop looks for a payment in it), and that `basket.abandoned` (an event the SDK knows and the documentation does not) carries nothing the shop needs.
 - That the validation delivery is signed (the shop requires it).
@@ -175,6 +197,8 @@ Prices are kept to the cent. Tebex sends them as floating-point numbers, so they
 | `TEBEX_HTTP_TIMEOUT` | `10` | Seconds to wait for an answer. |
 | `TEBEX_HTTP_CONNECT_TIMEOUT` | `5` | Seconds to wait for a connection. |
 | `TEBEX_BASKET_LOCK_WAIT` | `10` | Seconds a request waits for another to finish with a basket before giving up. |
+| `TEBEX_CHECKOUT_MODE` | `redirect` | Where the buyer pays: `redirect` (Tebex's page), `popup` or `inline` (Tebex.js on the shop's page). |
+| `TEBEX_CHECKOUT_THEME` | `default` | Tebex.js's colour theme: `default` (the store's), `auto`, `light` or `dark`. |
 | `TEBEX_SYNC_EVERY_MINUTES` | `60` | How often the scheduler refreshes the copy; `0` is never. |
 | `TEBEX_WEBHOOK_SECRET` | none | The secret of the webhook endpoint added in the Tebex panel. Tebex is not ready to sell without it. |
 | `TEBEX_WEBHOOK_CHECK_IP` | `true` | Answer only Tebex's two addresses. Set `false` only when a proxy hides the sender's address. |
@@ -194,6 +218,8 @@ The page needs `commerce.acp.view`. **Test connection** and **Refresh catalogue*
 | "This Tebex store is set up for ..., a platform the shop does not know how to take a buyer through yet" | The store's platform is not one the shop knows (CurseForge, or a game Tebex added after this was written). Checking again after changing the platform in the Tebex panel: **Test connection** or **Refresh catalogue**. |
 | "Tebex did not recognise that Minecraft username" | The buyer typed a name Tebex has no account for. They correct it on the form. |
 | The buyer is sent back to the cart with "Tebex did not offer a way to sign in" | Tebex returned no sign-in links for the basket. Check the store's platform and that sign-in is enabled for it in the Tebex panel. |
+| The payment page says "The payment could not be shown here" | Tebex.js could not be used: a blocker or extension, a failed download, or the browser refused Tebex's frame. **Pay on Tebex** on that page is the hosted page for the same basket. If it happens to everyone, open the browser console: a content security policy message means `frame-src` does not allow Tebex's frame (see `tebex.checkout.frame_sources`). |
+| The popup or inline checkout says "A basket with that identifier does not exist" | Tebex does not know the basket: the store's token is for another store, or the basket is from a test double. Check `TEBEX_PUBLIC_TOKEN` and that the catalogue is the live one. |
 | The buyer is sent back to the cart with "already being prepared" | Another request (a second tab, a double click) still had the basket after `TEBEX_BASKET_LOCK_WAIT` seconds, or died holding it (the lock lapses after two minutes). Trying again is safe. |
 | The buyer is sent back to the cart with "We could not start the payment" | Tebex answered with a basket the shop will not sell on: no place to pay, or priced in another currency than the order's (the log has which). Starting the checkout again makes a new basket. |
 | "What is in your cart is not sold the way this shop takes payment now" | The store's provider changed while a cart of the other kind was waiting. Empty it and add something again. |

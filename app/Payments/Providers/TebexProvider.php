@@ -16,6 +16,7 @@ use App\Payments\Data\WebhookOutcome;
 use App\Payments\Exceptions\BuyerIdentityRejected;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\Tebex\TebexBasketBuilder;
+use App\Payments\Tebex\TebexCheckoutMode;
 use App\Payments\Tebex\TebexClient;
 use App\Payments\Tebex\TebexEvent;
 use App\Payments\Tebex\TebexPayments;
@@ -151,7 +152,7 @@ class TebexProvider implements PaymentProvider
             );
         }
 
-        $basket = $this->baskets->fill($order, $basket);
+        $basket = $this->baskets->fill($order, $basket, $nonce);
 
         if ($basket->checkoutUrl === null) {
             throw new PaymentException("Tebex did not say where to pay for order {$order->number}.");
@@ -164,7 +165,9 @@ class TebexProvider implements PaymentProvider
         return new CheckoutSession(
             provider: self::KEY,
             reference: $basket->ident,
-            redirectUrl: $basket->checkoutUrl,
+            // Tebex's own page, or (when the checkout is embedded) the shop's link, which shows Tebex.js on the shop's page and
+            // is also where the buyer comes back to if they leave. Its checkout address is read again there.
+            redirectUrl: TebexCheckoutMode::current()->isEmbedded() ? $this->signIn->linkFor($order) : $basket->checkoutUrl,
             expiresAt: $context->expiresAt,
             raw: [
                 'nonce' => $nonce,

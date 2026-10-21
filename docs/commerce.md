@@ -425,6 +425,6 @@ The header cart previously showed an estimated 7% tax and a flat shipping charge
 
 ## Not built yet
 
-The shop part of the roadmap is complete. Tebex arrives in M2 behind the same provider contract: buying a one-off package through it is built and settled by its webhook; an embedded checkout, recurring payments and the Checkout API mode are not (see [tebex.md](tebex.md)).
+The shop part of the roadmap is complete. Tebex arrives in M2 behind the same provider contract: buying a one-off package through it is built and settled by its webhook; recurring payments and the Checkout API mode are not (an embedded checkout, with Tebex.js on the shop's own page, is built and off by default) (see [tebex.md](tebex.md)).
 
 Wishlists have no guest version, no sharing and no back-in-stock alerts. Reviews have no photos, no reply from the shop, no "was this helpful" votes, no way for readers to report one (staff reject or delete from the ACP) and no email to staff when one arrives (the overview counts what is waiting).

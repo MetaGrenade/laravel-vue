@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Payments\Exceptions\PaymentException;
 use App\Payments\Providers\TebexProvider;
 use App\Payments\Tebex\SignInStep;
+use App\Payments\Tebex\TebexCheckoutMode;
 use App\Payments\Tebex\TebexException;
 use App\Payments\Tebex\TebexSignIn;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +20,8 @@ use Inertia\Response;
 /**
  * Where a buyer of a store that makes them sign in (Discord, FiveM, Rust...) is sent from checkout, and where they come
  * back to after signing in: it works out how far they have got from the basket at Tebex, and sends them on to sign in
- * or, once they have, to pay (see {@see TebexSignIn}).
+ * or, once they have, to pay (see {@see TebexSignIn}). When the checkout is embedded (`TEBEX_CHECKOUT_MODE`) it is also
+ * where a buyer of any store pays, on a page of the shop's with Tebex.js in it, instead of being sent to Tebex's.
  *
  * The link is signed, so it can be opened by a guest and by no one who was not given it, and it is safe to open again.
  */
@@ -63,7 +65,29 @@ class TebexContinueController extends Controller
                 'order' => $order->number,
                 'cancel' => route('shop.cart'),
             ]),
+            SignInStep::PAY => Inertia::render('commerce/TebexPay', [
+                'mode' => TebexCheckoutMode::current()->value,
+                'ident' => $step->ident,
+                // Tebex's own page for the basket: where to pay if Tebex.js cannot be used.
+                'hostedUrl' => $step->url,
+                // Where Tebex.js sends the buyer when it says the payment is complete. That page waits for the webhook,
+                // which is what settles the order; nothing here does.
+                'completeUrl' => URL::signedRoute('shop.checkout.complete', ['order' => $order->public_id]),
+                'cancelUrl' => route('shop.cart'),
+                'theme' => $this->theme(),
+                'order' => ['number' => $order->number, 'total' => $order->grand_total, 'currency' => $order->currency],
+            ]),
             default => redirect()->route('shop.cart')->with('error', (string) $step->message),
         };
+    }
+
+    /**
+     * Tebex.js's colour theme: one it has, otherwise the store's own setting.
+     */
+    private function theme(): string
+    {
+        $theme = strtolower(trim((string) config('tebex.checkout.theme', 'default')));
+
+        return in_array($theme, ['auto', 'default', 'light', 'dark'], true) ? $theme : 'default';
     }
 }

@@ -13,6 +13,7 @@ use App\Models\ProductFile;
 use App\Models\TaxRate;
 use App\Models\User;
 use App\Payments\PaymentManager;
+use App\Payments\Tebex\TebexCheckoutMode;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\AddressBook;
 use App\Support\Commerce\CartManager;
@@ -76,6 +77,8 @@ class CheckoutController extends Controller
             ],
             'isGuest' => $user === null,
             'tebex' => $tebex,
+            // The buyer pays on a page of the shop's (Tebex.js) rather than being sent to Tebex's.
+            'tebexEmbedded' => $tebex && TebexCheckoutMode::current()->isEmbedded(),
             // What a Tebex store wants of its buyer before they can pay: nothing, a username, or signing in (Discord and
             // the Steam-based games, on the next step).
             'identity' => $tebex ? [

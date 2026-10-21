@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Payments\Tebex\TebexCheckoutMode;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Vite;
@@ -79,7 +80,7 @@ class SecurityHeaders
 
     /**
      * Sources that depend on the environment: the Vite dev server during
-     * development and a self-hosted broadcasting server (Reverb, Soketi).
+     * development, a self-hosted broadcasting server (Reverb, Soketi) and, when the checkout is embedded, Tebex's.
      *
      * @return array<string, list<string>>
      */
@@ -106,6 +107,12 @@ class SecurityHeaders
             $sources['connect-src'][] = "wss://{$authority}";
             $sources['connect-src'][] = "ws://{$authority}";
             $sources['connect-src'][] = "https://{$authority}";
+        }
+
+        // Tebex.js puts Tebex's checkout in a frame on the shop's own page. A shop that sends buyers to Tebex's page
+        // instead lets no Tebex frame in.
+        if (TebexCheckoutMode::current()->isEmbedded()) {
+            $sources['frame-src'] = array_values(array_filter((array) config('tebex.checkout.frame_sources', []), is_string(...)));
         }
 
         return $sources;

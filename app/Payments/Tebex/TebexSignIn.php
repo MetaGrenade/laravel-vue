@@ -20,6 +20,7 @@ class TebexSignIn
     public function __construct(
         private readonly TebexClient $client,
         private readonly TebexBasketBuilder $baskets,
+        private readonly TebexStoreProfile $profile,
     ) {}
 
     /**
@@ -56,7 +57,9 @@ class TebexSignIn
             return SignInStep::redirect(URL::signedRoute('shop.checkout.complete', ['order' => $order->public_id]));
         }
 
-        if (! $basket->isAuthorised()) {
+        // Only a store whose buyers sign in makes them do it here. (This link is also where a buyer of any other store is
+        // taken to pay when the checkout is embedded, and those baskets are ready as they are.)
+        if ($this->profile->needsSignIn() && ! $basket->isAuthorised()) {
             $options = $this->client->signInOptions($basket->ident, $this->linkFor($order));
 
             return match (count($options)) {
@@ -66,9 +69,10 @@ class TebexSignIn
             };
         }
 
-        $basket = $this->baskets->fill($order, $basket);
+        $basket = $this->baskets->fill($order, $basket, is_string($payment->raw['nonce'] ?? null) ? $payment->raw['nonce'] : null);
 
-        if ($basket->checkoutUrl === null) {
+        // Where to pay is Tebex's address, which the buyer is sent to or offered as a link, so only a secure web address will do.
+        if ($basket->checkoutUrl === null || preg_match('#^https://#i', $basket->checkoutUrl) !== 1) {
             throw new PaymentException("Tebex did not say where to pay for order {$order->number}.");
         }
 
@@ -83,6 +87,9 @@ class TebexSignIn
             'buyer' => $this->baskets->buyer($basket),
         ]])->save();
 
-        return SignInStep::redirect($basket->checkoutUrl);
+        // On the shop's own page with Tebex.js, or on Tebex's.
+        return TebexCheckoutMode::current()->isEmbedded()
+            ? SignInStep::pay($basket->ident, $basket->checkoutUrl)
+            : SignInStep::redirect($basket->checkoutUrl);
     }
 }
