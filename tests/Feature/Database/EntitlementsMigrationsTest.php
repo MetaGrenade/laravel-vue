@@ -36,6 +36,11 @@ class EntitlementsMigrationsTest extends TestCase
         $this->assertTrue(Schema::hasColumns('tebex_package_entitlements', ['tebex_package_id', 'entitlement_id', 'value']));
         $this->assertTrue(Schema::hasColumns('user_entitlements', ['owner_type', 'owner_id', 'entitlement_id', 'source', 'order_id', 'order_item_id', 'value', 'expires_at', 'revoked_at', 'revoked_reason']));
 
+        // What plans give points at the entitlements, so it lets go first and takes hold last (MySQL refuses to drop a table
+        // something still refers to).
+        $plans = require database_path('migrations/2026_10_23_000000_create_subscription_plan_entitlements_table.php');
+
+        $plans->down();
         $this->migration()->down();
 
         $this->assertFalse(Schema::hasTable('user_entitlements'));
@@ -43,8 +48,10 @@ class EntitlementsMigrationsTest extends TestCase
         $this->assertFalse(Schema::hasTable('entitlements'));
 
         $this->migration()->up();
+        $plans->up();
 
         $this->assertTrue(Schema::hasTable('user_entitlements'));
+        $this->assertTrue(Schema::hasTable('subscription_plan_entitlements'));
     }
 
     #[Test]

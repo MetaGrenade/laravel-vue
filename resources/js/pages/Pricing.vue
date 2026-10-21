@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Check, ShieldCheck } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { describeGiven } from '@/lib/entitlements';
+import type { PlanGiven } from '@/types/entitlements';
 
 interface Plan {
     id: number;
@@ -18,6 +20,7 @@ interface Plan {
     interval: string;
     currency: string;
     features: string[];
+    entitlements: PlanGiven[];
     stripe_price_id: string;
 }
 
@@ -339,11 +342,17 @@ onBeforeUnmount(() => {
                             </CardHeader>
                             <CardContent class="flex-1">
                                 <ul class="space-y-2.5 text-sm">
+                                    <li v-for="given in plan.entitlements" :key="given.key" class="flex items-start gap-2">
+                                        <Check class="mt-0.5 size-4 shrink-0 text-primary" />
+                                        <span class="font-medium">{{ describeGiven(given) }}</span>
+                                    </li>
                                     <li v-for="feature in plan.features" :key="feature" class="flex items-start gap-2">
                                         <Check class="mt-0.5 size-4 shrink-0 text-primary" />
                                         <span>{{ feature }}</span>
                                     </li>
-                                    <li v-if="!plan.features.length" class="text-muted-foreground">Includes the basics you need to launch.</li>
+                                    <li v-if="!plan.features.length && !plan.entitlements.length" class="text-muted-foreground">
+                                        Includes the basics you need to launch.
+                                    </li>
                                 </ul>
                             </CardContent>
                             <CardFooter class="flex flex-col gap-2">

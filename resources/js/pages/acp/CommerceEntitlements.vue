@@ -87,9 +87,11 @@ const remove = () => {
                 <div>
                     <h2 class="flex items-center gap-2 text-xl font-semibold tracking-tight"><BadgeCheck class="size-5" /> Entitlements</h2>
                     <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-                        What a purchase can give an account: a feature switched on, or a limit raised. You choose which packages give which on the
-                        <Link :href="route('acp.commerce.tebex.index')" class="underline">Tebex page</Link>. They are given when the order is paid,
-                        and taken back if it is refunded in full, a dispute over it is lost, or the recurring payment it came with ends.
+                        What a purchase or a plan can give an account: a feature switched on, or a limit raised. You choose which packages give which
+                        on the <Link :href="route('acp.commerce.tebex.index')" class="underline">Tebex page</Link>, and which plans on
+                        <Link :href="route('acp.billing.plans.index')" class="underline">Subscription plans</Link>. A purchase gives them when the
+                        order is paid, and takes them back if it is refunded in full, a dispute over it is lost, or the recurring payment it came with
+                        ends. A plan gives them while the subscription is live.
                     </p>
                 </div>
 
@@ -114,8 +116,9 @@ const remove = () => {
                                     <p class="truncate font-mono text-xs text-muted-foreground">{{ entitlement.key }}</p>
                                     <p v-if="entitlement.description" class="mt-0.5 text-sm text-muted-foreground">{{ entitlement.description }}</p>
                                     <p class="mt-0.5 text-xs text-muted-foreground">
-                                        Given by {{ entitlement.packages_count }} {{ entitlement.packages_count === 1 ? 'package' : 'packages' }} ·
-                                        held through {{ entitlement.grants_count }} {{ entitlement.grants_count === 1 ? 'purchase' : 'purchases' }}
+                                        Given by {{ entitlement.packages_count }} {{ entitlement.packages_count === 1 ? 'package' : 'packages' }} and
+                                        {{ entitlement.plans_count }} {{ entitlement.plans_count === 1 ? 'plan' : 'plans' }} · held through
+                                        {{ entitlement.grants_count }} {{ entitlement.grants_count === 1 ? 'purchase' : 'purchases' }}
                                     </p>
                                 </div>
                                 <div v-if="can.edit || can.delete" class="flex shrink-0 gap-1">

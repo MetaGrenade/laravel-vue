@@ -44,7 +44,9 @@ class TebexMigrationsTest extends TestCase
         $lines = require database_path('migrations/2026_10_20_000000_add_tebex_packages_to_cart_and_order_items.php');
         $subscriptions = require database_path('migrations/2026_10_21_000000_create_provider_subscriptions_table.php');
         $entitlements = require database_path('migrations/2026_10_22_000000_create_entitlements_tables.php');
+        $planEntitlements = require database_path('migrations/2026_10_23_000000_create_subscription_plan_entitlements_table.php');
 
+        $planEntitlements->down();
         $entitlements->down();
         $subscriptions->down();
         $lines->down();
@@ -58,6 +60,7 @@ class TebexMigrationsTest extends TestCase
         $lines->up();
         $subscriptions->up();
         $entitlements->up();
+        $planEntitlements->up();
 
         $this->assertTrue(Schema::hasTable('tebex_packages'));
         $this->assertTrue(Schema::hasTable('user_entitlements'));

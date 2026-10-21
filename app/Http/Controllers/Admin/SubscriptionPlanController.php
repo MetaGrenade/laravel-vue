@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SubscriptionPlanRequest;
+use App\Models\Entitlement;
 use App\Models\SubscriptionPlan;
 use App\Support\Localization\DateFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,6 +23,7 @@ class SubscriptionPlanController extends Controller
 
         $plans = SubscriptionPlan::query()
             ->withCount('invoices')
+            ->with('entitlementLinks.entitlement')
             ->orderBy('price')
             ->get()
             ->map(function (SubscriptionPlan $plan) use ($formatter) {
@@ -38,6 +41,17 @@ class SubscriptionPlanController extends Controller
                     'created_at' => $formatter->iso($plan->created_at),
                     'updated_at' => $formatter->iso($plan->updated_at),
                     'invoices_count' => $plan->invoices_count,
+                    'entitlements' => $plan->entitlementLinks
+                        ->sortBy(fn ($link) => mb_strtolower($link->entitlement->label))
+                        ->map(fn ($link) => [
+                            'id' => $link->entitlement->id,
+                            'key' => $link->entitlement->key,
+                            'label' => $link->entitlement->label,
+                            'type' => $link->entitlement->type->value,
+                            'value' => $link->value,
+                        ])
+                        ->values()
+                        ->all(),
                 ];
             })
             ->values()
@@ -45,6 +59,16 @@ class SubscriptionPlanController extends Controller
 
         return Inertia::render('acp/BillingPlans', [
             'plans' => $plans,
+            // Everything a plan can be set to give.
+            'entitlements' => Entitlement::query()->orderBy('label')->get()
+                ->map(fn (Entitlement $entitlement) => [
+                    'id' => $entitlement->id,
+                    'key' => $entitlement->key,
+                    'label' => $entitlement->label,
+                    'type' => $entitlement->type->value,
+                ])
+                ->all(),
+            'can' => ['edit_entitlements' => $request->user()->can('billing.acp.edit')],
         ]);
     }
 
@@ -112,6 +136,14 @@ class SubscriptionPlanController extends Controller
     {
         $validated = $request->validated();
 
+        // The Stripe price is what ties a subscription to its plan, and so to what the plan gives: pointing the plan
+        // somewhere else would leave the people on it with nothing.
+        if ($validated['stripe_price_id'] !== $plan->stripe_price_id && $plan->hasLiveSubscribers()) {
+            throw ValidationException::withMessages([
+                'stripe_price_id' => 'People are subscribed at this price now, and would lose what the plan gives. Make a new plan for the new price instead.',
+            ]);
+        }
+
         $plan->forceFill([
             'name' => $validated['name'],
             'slug' => $validated['slug'] ?? null,
@@ -132,6 +164,10 @@ class SubscriptionPlanController extends Controller
     public function destroy(Request $request, SubscriptionPlan $plan): RedirectResponse
     {
         abort_unless($request->user()?->can('billing.acp.view'), 403);
+
+        if ($plan->hasLiveSubscribers()) {
+            return back()->with('error', "People are subscribed to {$plan->name} now, and would lose what it gives. Switch the plan off instead: it stops being offered and keeps serving the people already on it.");
+        }
 
         $plan->delete();
 
