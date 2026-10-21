@@ -13,7 +13,7 @@
         "types:check": "vue-tsc --noEmit"
     },
     "dependencies": {
-        "@inertiajs/vue3": "^3.8.0",
+        "@inertiajs/vue3": "^3.9.1",
         "@lucide/vue": "^1.52.0",
         "@tebexio/tebex.js": "^1.11.1",
         "@tiptap/core": "^3.31.4",
@@ -37,16 +37,16 @@
         "reka-ui": "^2.11.0",
         "tailwind-merge": "^3.7.0",
         "tippy.js": "^6.3.7",
-        "vue": "^3.5.43",
+        "vue": "^3.5.44",
         "vue-sonner": "^2.0.9",
         "ziggy-js": "^2.6.5"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@inertiajs/vite": "^3.8.0",
+        "@inertiajs/vite": "^3.9.1",
         "@tailwindcss/vite": "^4.3.3",
         "@types/node": "^24.19.2",
-        "@vitejs/plugin-vue": "^6.0.9",
+        "@vitejs/plugin-vue": "^6.0.10",
         "@vue/eslint-config-typescript": "^14.9.0",
         "concurrently": "^10.0.6",
         "eslint": "^10.13.0",
@@ -62,7 +62,7 @@
         "typescript": "~6.0.2",
         "typescript-eslint": "^8.71.2",
         "vite": "^8.3.2",
-        "vue-tsc": "^3.3.12"
+        "vue-tsc": "^3.3.13"
     },
     "optionalDependencies": {
         "@rollup/rollup-linux-x64-gnu": "^4.9.5",
