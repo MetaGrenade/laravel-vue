@@ -6,12 +6,15 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import EntitlementPickerDialog from '@/components/commerce/admin/EntitlementPickerDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { Layers, Pencil, PlusCircle, Trash2 } from '@lucide/vue';
+import { KeyRound, Layers, Pencil, PlusCircle, Trash2 } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { describeGiven } from '@/lib/entitlements';
+import type { EntitlementChoice, PackageEntitlement } from '@/types/entitlements';
 
 interface PlanSummary {
     id: number;
@@ -27,10 +30,14 @@ interface PlanSummary {
     invoices_count: number;
     created_at: string | null;
     updated_at: string | null;
+    entitlements: PackageEntitlement[];
 }
 
 interface Props {
     plans: PlanSummary[];
+    /** Everything a plan can be set to give. */
+    entitlements: EntitlementChoice[];
+    can: { edit_entitlements: boolean };
 }
 
 const props = defineProps<Props>();
@@ -42,6 +49,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const hasPlans = computed(() => props.plans.length > 0);
 const { formatDate } = useUserTimezone();
+
+/** The plan whose entitlements are being edited. */
+const editingId = ref<number | null>(null);
+const editing = computed(() => props.plans.find((plan) => plan.id === editingId.value) ?? null);
 
 const deleteDialogOpen = ref(false);
 const pendingPlan = ref<PlanSummary | null>(null);
@@ -138,6 +149,7 @@ const confirmDeletePlan = () => {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead class="w-1/3">Plan</TableHead>
+                                    <TableHead class="w-1/5">Gives</TableHead>
                                     <TableHead class="w-24">Price</TableHead>
                                     <TableHead class="w-24">Interval</TableHead>
                                     <TableHead class="w-1/5">Stripe price ID</TableHead>
@@ -168,6 +180,24 @@ const confirmDeletePlan = () => {
                                             >
                                                 {{ plan.is_active ? 'Active' : 'Inactive' }}
                                             </span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell class="min-w-40">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <ul v-if="plan.entitlements.length" class="space-y-0.5 text-sm">
+                                                <li v-for="given in plan.entitlements" :key="given.id">{{ describeGiven(given) }}</li>
+                                            </ul>
+                                            <span v-else class="text-sm text-muted-foreground">Nothing</span>
+                                            <Button
+                                                v-if="can.edit_entitlements"
+                                                variant="ghost"
+                                                size="icon"
+                                                class="size-7 shrink-0"
+                                                :aria-label="`Change what ${plan.name} gives`"
+                                                @click="editingId = plan.id"
+                                            >
+                                                <KeyRound class="size-4" />
+                                            </Button>
                                         </div>
                                     </TableCell>
                                     <TableCell class="whitespace-nowrap">
@@ -203,6 +233,18 @@ const confirmDeletePlan = () => {
                     </div>
                 </CardContent>
             </Card>
+
+            <EntitlementPickerDialog
+                :open="editing !== null"
+                :title="`What ${editing?.name} gives`"
+                description="What an account is given while it is subscribed to this plan. It reaches everyone on the plan at once, and is taken back when their subscription ends."
+                :given="editing?.entitlements ?? []"
+                :choices="entitlements"
+                :url="editing ? route('acp.billing.plans.entitlements.update', { plan: editing.id }) : null"
+                amount-before="gives"
+                :amount-label="(choice) => `How much of ${choice.label} the plan gives`"
+                @close="editingId = null"
+            />
 
             <ConfirmDialog
                 v-model:open="deleteDialogOpen"

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\EntitlementRequest;
 use App\Models\Entitlement;
+use App\Models\SubscriptionPlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,6 +25,7 @@ class EntitlementController extends Controller
             'entitlements' => Entitlement::query()
                 ->withCount([
                     'packageLinks as packages_count',
+                    'planLinks as plans_count',
                     'grants as grants_count' => fn ($query) => $query->active(),
                 ])
                 ->orderBy('label')
@@ -36,6 +38,7 @@ class EntitlementController extends Controller
                     'type' => $entitlement->type->value,
                     'type_label' => $entitlement->type->label(),
                     'packages_count' => (int) $entitlement->getAttribute('packages_count'),
+                    'plans_count' => (int) $entitlement->getAttribute('plans_count'),
                     // Grants that count now, not people: one account holds one per line it bought.
                     'grants_count' => (int) $entitlement->getAttribute('grants_count'),
                 ])
@@ -88,6 +91,15 @@ class EntitlementController extends Controller
 
         if ($held > 0) {
             return back()->with('error', "{$entitlement->label} is held through {$held} ".($held === 1 ? 'purchase' : 'purchases').' and cannot be deleted. Take it off the packages that give it, and it stops being given from now on.');
+        }
+
+        // A plan gives it to everyone on the plan right now, so taking it away is not something a delete should do quietly.
+        $plans = $entitlement->planLinks()->with('plan')->get()
+            ->map(fn ($link) => $link->plan)
+            ->filter(fn (SubscriptionPlan $plan) => $plan->hasLiveSubscribers());
+
+        if ($plans->isNotEmpty()) {
+            return back()->with('error', "{$entitlement->label} is given by ".$plans->pluck('name')->join(', ', ' and ').', which people are subscribed to now, and cannot be deleted. Take it off the plan first.');
         }
 
         $entitlement->delete();

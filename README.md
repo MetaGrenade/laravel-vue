@@ -4,7 +4,7 @@ A batteries-included boilerplate for building SaaS products, online shops and la
 
 ![Forum Page Example](https://i.imgur.com/gYNFkFl.png)
 
-> **Status: pre-1.0.** The shop now works end to end (catalogue, cart, discount codes and gift cards, shipping and tax, Stripe checkout, orders, refunds, digital downloads and licence keys, wishlists and reviews). Tebex purchases are in as a preview (not yet checked against a real store), and plan entitlements and search at scale are still ahead; the road to a stable 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md). Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+> **Status: pre-1.0.** The shop now works end to end (catalogue, cart, discount codes and gift cards, shipping and tax, Stripe checkout, orders, refunds, digital downloads and licence keys, wishlists and reviews). Tebex purchases are in as a preview (not yet checked against a real store), subscription plans give entitlements (a feature, a limit), and the rest of the SaaS work and search at scale are still ahead; the road to a stable 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md). Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Contents
 - [Stack Highlights](#stack-highlights) · [Application Modules](#application-modules) · [Project Structure](#project-structure)
@@ -39,7 +39,7 @@ A batteries-included boilerplate for building SaaS products, online shops and la
   - **Wishlists & reviews**: customers save products to a private wishlist and review what they bought (1 to 5 stars, plain text, "Verified purchase" for buyers); staff choose which reviews wait for approval and publish, reject or delete them in the ACP. Ratings show on product cards, the product page and its structured data.
   - **Tebex (in progress)**: connect a Tebex store with its public token and the shop keeps a local copy of its categories and packages (`php artisan tebex:sync`, on a schedule, or from the ACP), shows them as its own storefront, holds them in the cart and, at checkout, makes a basket at Tebex and sends the buyer there. It sells for the games as well as for universal stores: a Minecraft or Overwolf buyer types their username, and a Discord, FiveM, Rust (and other Steam-based game) buyer signs in through Tebex before paying. Tebex works out the tax and takes its own codes and gift cards, and tells the shop by webhook when a payment is made, refunded or disputed (set `TEBEX_WEBHOOK_SECRET`). Buyers pay on Tebex's own page, or with `TEBEX_CHECKOUT_MODE=popup` or `inline` on a page of the shop's with Tebex.js. A recurring package's renewals are recorded as payments and where the recurring payment stands is kept and shown (Tebex charges and ends it). What a purchase gives the buyer's account (a feature, a limit) is set per package, given when the order is paid and taken back with a refund, a lost dispute or the end of a recurring payment ([docs/entitlements.md](docs/entitlements.md)). An **experimental** mode (`TEBEX_CHECKOUT_API_ENABLED`, for stores Tebex has approved for its Checkout API) sells the shop's own products through Tebex instead; it refunds through the API too. **Not finished:** a check against a real store (M2b), so treat it as a preview until then. See [docs/tebex.md](docs/tebex.md).
   - **Admin**: Commerce, Products, Orders, Reviews, Brands and tags, Shipping, Tax rates, Discount codes, Gift cards and Tebex in the ACP.
-  - **Not built yet**: selling gift cards as a product, and entitlements from Stripe plans and the shop's own products (on the roadmap).
+  - **Not built yet**: selling gift cards as a product, and entitlements from the shop's own products (on the roadmap; Stripe plans give them already).
 - **Polls & Surveys**: Polls with admin management, voting and an API.
 - **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics (database search today; Meilisearch is planned for 1.0).
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
@@ -447,7 +447,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 
 ## Documentation
 - [docs/commerce.md](docs/commerce.md): how the shop works (flow, orders, pricing, shipping, tax, discounts, digital goods, refunds, webhooks, configuration and upgrade notes).
-- [docs/entitlements.md](docs/entitlements.md): what a purchase gives an account (features and limits), when it is given and taken back, and how code asks for it.
+- [docs/entitlements.md](docs/entitlements.md): what a purchase or a subscription plan gives an account (features and limits), when it is given and taken back, and how code asks for it.
 - [docs/i18n.md](docs/i18n.md): how translations, locale selection and the completeness check fit together.
 - [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md): the plan and milestones to 1.0.0.
 - [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).

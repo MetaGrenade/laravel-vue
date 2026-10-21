@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\ShippingRateController;
 use App\Http\Controllers\Admin\ShippingZoneController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
+use App\Http\Controllers\Admin\SubscriptionPlanEntitlementController;
 use App\Http\Controllers\Admin\SupportAssignmentRuleController;
 use App\Http\Controllers\Admin\SupportController;
 use App\Http\Controllers\Admin\SupportTicketCategoryController;
@@ -576,4 +577,8 @@ Route::middleware(['auth', 'can:billing.acp.view'])
         Route::get('plans/{plan}/edit', [SubscriptionPlanController::class, 'edit'])->name('plans.edit');
         Route::put('plans/{plan}', [SubscriptionPlanController::class, 'update'])->name('plans.update');
         Route::delete('plans/{plan}', [SubscriptionPlanController::class, 'destroy'])->name('plans.destroy');
+        // What being on a plan gives the account (the people already on it too, at once).
+        Route::put('plans/{plan}/entitlements', [SubscriptionPlanEntitlementController::class, 'update'])
+            ->middleware('can:billing.acp.edit')
+            ->name('plans.entitlements.update');
     });

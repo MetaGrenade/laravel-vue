@@ -45,6 +45,16 @@ class Entitlement extends Model
     }
 
     /**
+     * The subscription plans that give it, each with how much (for a limit).
+     *
+     * @return HasMany<SubscriptionPlanEntitlement, $this>
+     */
+    public function planLinks(): HasMany
+    {
+        return $this->hasMany(SubscriptionPlanEntitlement::class);
+    }
+
+    /**
      * @return HasMany<UserEntitlement, $this>
      */
     public function grants(): HasMany

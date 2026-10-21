@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Support\Billing\PlanPresenter;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\Commerce\GuestCarryOver;
 use App\Support\Seo\Seo;
@@ -30,18 +31,11 @@ class PricingController extends Controller
     {
         $plans = SubscriptionPlan::query()
             ->active()
+            ->with('entitlementLinks.entitlement')
             ->orderBy('price')
             ->get()
-            ->map(fn (SubscriptionPlan $plan) => [
-                'id' => $plan->id,
-                'name' => $plan->name,
-                'slug' => $plan->slug,
-                'price' => $plan->price,
-                'currency' => $plan->currency,
-                'interval' => $plan->interval,
-                'features' => $plan->features ?? [],
-                'stripe_price_id' => $plan->stripe_price_id,
-            ])->values();
+            ->map(fn (SubscriptionPlan $plan) => PlanPresenter::forPage($plan))
+            ->values();
 
         app(Seo::class)
             ->title('Pricing')

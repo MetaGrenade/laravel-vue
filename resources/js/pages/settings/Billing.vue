@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { describeGiven } from '@/lib/entitlements';
 import { stripeAppearance, useStripeAppearanceSync } from '@/lib/stripeAppearance';
+import type { PlanGiven } from '@/types/entitlements';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -22,6 +24,7 @@ interface Plan {
     interval: string;
     currency: string;
     features: string[];
+    entitlements: PlanGiven[];
     stripe_price_id: string;
 }
 
@@ -403,6 +406,10 @@ onBeforeUnmount(() => {
                         </CardHeader>
                         <CardContent>
                             <ul class="space-y-2 text-sm text-muted-foreground">
+                                <li v-for="given in plan.entitlements" :key="given.key" class="flex items-start gap-2">
+                                    <span class="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
+                                    <span class="font-medium text-foreground">{{ describeGiven(given) }}</span>
+                                </li>
                                 <li v-for="feature in plan.features" :key="feature" class="flex items-start gap-2">
                                     <span class="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
                                     <span>{{ feature }}</span>

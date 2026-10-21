@@ -58,9 +58,10 @@ const canReview = (order: CustomerOrder) => ['paid', 'partially_refunded'].inclu
 
             <Card v-if="props.entitlements.length">
                 <CardHeader>
-                    <CardTitle>What your purchases give you</CardTitle>
+                    <CardTitle>What your plan and purchases give you</CardTitle>
                     <CardDescription>
-                        Added to your account when an order is paid, and taken back if it is refunded or a recurring payment ends.
+                        Your plan gives them while your subscription is live. A purchase adds them to your account when the order is paid, and takes
+                        them back if it is refunded or a recurring payment ends.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

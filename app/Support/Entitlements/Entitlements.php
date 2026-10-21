@@ -3,21 +3,26 @@
 namespace App\Support\Entitlements;
 
 use App\Enums\EntitlementType;
+use App\Models\Entitlement;
 use App\Models\User;
 use App\Models\UserEntitlement;
 use App\Support\Ownership;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * What an owner has been given, from every source (a Tebex purchase today; Stripe plans and the shop's own products when
- * they are wired in). Asked for an owner, not a user: in 1.0 a person's only owner is themselves, and 1.1 adds teams.
+ * What an owner has been given, from every source: purchases (grants written when an order is paid, see
+ * {@see OrderEntitlements}) and the subscription plans they are on right now ({@see PlanEntitlements}). The shop's own
+ * products will be another. Asked for an owner, not a user: in 1.0 a person's only owner is themselves, and 1.1 adds teams.
  *
- * Every call reads the database (one indexed query per owner) and nothing is remembered, so what it says is never older
- * than the last grant, in a request or in a test. Ask once and keep the set when several things depend on it:
+ * Every call reads the database (a query for the grants, one for the owner's subscriptions, and one more for the plans of
+ * those that are live) and nothing is remembered, so what it says is never older than the last change, in a request or in a
+ * test. Ask once and keep the set when several things depend on it:
  * `$held = $user->entitlementSet(); $held->has('reports'); $held->limit('seats');`.
  */
 class Entitlements
 {
+    public function __construct(private readonly PlanEntitlements $plans) {}
+
     /**
      * Everything one owner holds right now.
      */
@@ -52,9 +57,13 @@ class Entitlements
         foreach (Ownership::ownersFor($user) as $owner) {
             $grants = UserEntitlement::query()->ownedBy($owner)->active()->with('entitlement')->get();
 
-            foreach ($grants as $grant) {
-                $entitlement = $grant->entitlement;
+            // Each is an entitlement and what it is worth: a purchase's grant, or what a live plan gives.
+            $given = [
+                ...$grants->map(fn (UserEntitlement $grant) => [$grant->entitlement, $grant->value])->all(),
+                ...$this->plans->gives($owner)->map(fn ($link) => [$link->entitlement, $link->value])->all(),
+            ];
 
+            foreach ($given as [$entitlement, $value]) {
                 $rows[$entitlement->key] ??= [
                     'key' => $entitlement->key,
                     'label' => $entitlement->label,
@@ -64,7 +73,7 @@ class Entitlements
                 ];
 
                 if ($entitlement->isLimit()) {
-                    $rows[$entitlement->key]['value'] += (int) $grant->value;
+                    $rows[$entitlement->key]['value'] += (int) $value;
                 }
             }
         }
@@ -82,11 +91,14 @@ class Entitlements
 
         $grants = UserEntitlement::query()->ownedBy($owner)->active()->with('entitlement:id,key,type')->get();
 
-        foreach ($grants as $grant) {
-            $entitlement = $grant->entitlement;
+        $given = [
+            ...$grants->map(fn (UserEntitlement $grant) => [$grant->entitlement, $grant->value])->all(),
+            ...$this->plans->gives($owner)->map(fn ($link) => [$link->entitlement, $link->value])->all(),
+        ];
 
+        foreach ($given as [$entitlement, $value]) {
             if ($entitlement->type === EntitlementType::Limit) {
-                $limits[$entitlement->key] = ($limits[$entitlement->key] ?? 0) + (int) $grant->value;
+                $limits[$entitlement->key] = ($limits[$entitlement->key] ?? 0) + (int) $value;
             } else {
                 $features[$entitlement->key] = $entitlement->key;
             }
