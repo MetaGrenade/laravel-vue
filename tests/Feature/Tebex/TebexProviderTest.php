@@ -149,7 +149,8 @@ class TebexProviderTest extends TestCase
 
         $custom = $this->tebex->calls('create')[0]['body']['custom'];
         $this->assertSame(['order' => $order->public_id, 'nonce' => $session->raw['nonce']], $custom);
-        $this->assertSame([['package_id' => 'vip-rank', 'quantity' => 2], ['package_id' => 'pet-cat', 'quantity' => 1]], array_column($this->tebex->calls('add'), 'body'));
+        $package = ['order' => $order->public_id, 'nonce' => $session->raw['nonce']];
+        $this->assertSame([['package_id' => 'vip-rank', 'quantity' => 2, 'custom' => $package], ['package_id' => 'pet-cat', 'quantity' => 1, 'custom' => $package]], array_column($this->tebex->calls('add'), 'body'));
     }
 
     #[Test]

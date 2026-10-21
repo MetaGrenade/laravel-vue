@@ -37,6 +37,8 @@ interface Props {
     giftCardsEnabled: boolean;
     /** The cart holds Tebex packages: Tebex works out the tax and takes any codes or gift cards when the customer pays. */
     tebex: boolean;
+    /** The buyer pays on a page of the shop's (Tebex.js) instead of being sent to Tebex's own. */
+    tebexEmbedded: boolean;
     /** What a Tebex store wants of its buyer: nothing, a username (Minecraft, Overwolf), or signing in (Discord, the Steam games). */
     identity: { kind: 'none' | 'username' | 'sign-in'; username_label: string | null; platform: string | null };
 }
@@ -461,7 +463,7 @@ const submit = () => {
                             <Lock v-else-if="!isFree" class="size-4" />
                             <template v-if="form.processing">{{ isFree ? 'Placing your order…' : 'Redirecting…' }}</template>
                             <template v-else-if="isFree">Place your order</template>
-                            <template v-else-if="props.tebex">Continue to Tebex</template>
+                            <template v-else-if="props.tebex">{{ props.tebexEmbedded ? 'Continue to payment' : 'Continue to Tebex' }}</template>
                             <template v-else>Pay {{ money(amountDue ?? props.cart.subtotal) }}</template>
                         </Button>
                         <p v-if="isFree" class="text-center text-xs text-muted-foreground">

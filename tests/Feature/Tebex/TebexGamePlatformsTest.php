@@ -330,7 +330,7 @@ class TebexGamePlatformsTest extends TestCase
 
         $adds = $this->tebex->calls('add');
         $this->assertCount(1, $adds);
-        $this->assertSame(['package_id' => 'vip-rank', 'quantity' => 2, 'variable_data' => ['username_id' => 76561198000000042]], $adds[0]['body']);
+        $this->assertSame(['package_id' => 'vip-rank', 'quantity' => 2, 'variable_data' => ['username_id' => 76561198000000042], 'custom' => ['order' => $order->public_id, 'nonce' => $payment->raw['nonce']]], $adds[0]['body']);
         $payment->refresh();
         $this->assertSame(['username' => 'ProGamer', 'username_id' => 76561198000000042], $payment->raw['buyer']);
         $this->assertSame('19.98', $payment->raw['quoted']['base_price']);

@@ -60,6 +60,9 @@ class FakeTebexBaskets
     /** When true, Tebex answers a basket with packages in it but no place to pay (links.checkout missing). */
     public bool $withoutCheckoutLink = false;
 
+    /** Where the checkout links Tebex gives are (the address of the page a basket is paid on). */
+    public string $checkoutBase = 'https://pay.tebex.io';
+
     /**
      * Fail the next `$times` calls of an action ('create', 'add', 'remove', 'get') with this status.
      */
@@ -274,7 +277,7 @@ class FakeTebexBaskets
             'links' => match (true) {
                 $basket['complete'] => ['payment' => "https://pay.tebex.io/{$ident}/payment"],
                 $this->withoutCheckoutLink && $basket['lines'] !== [] => [],
-                default => ['checkout' => "https://pay.tebex.io/{$ident}"],
+                default => ['checkout' => "{$this->checkoutBase}/{$ident}"],
             },
         ];
     }

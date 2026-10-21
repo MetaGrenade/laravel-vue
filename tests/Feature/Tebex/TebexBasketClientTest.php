@@ -335,4 +335,21 @@ class TebexBasketClientTest extends TestCase
 
         Http::assertNothingSent();
     }
+
+    #[Test]
+    public function the_shops_own_data_goes_in_with_each_package_so_tebex_hands_it_back_in_the_payments_webhook(): void
+    {
+        $this->vip();
+        $tebex = $this->fakeTebexBaskets();
+        $ident = $this->tebexClient()->createBasket('https://shop.test/done', 'https://shop.test/cart', [], null)->ident;
+
+        $this->tebexClient()->addPackage($ident, 'vip-rank', 2, null, ['order' => '01ABC', 'nonce' => 'n-1']);
+        $this->tebexClient()->addPackage($ident, 'vip-rank', 1, null, []);
+        $this->tebexClient()->addPackage($ident, 'vip-rank', 1);
+
+        [$with, $empty, $without] = array_column($tebex->calls('add'), 'body');
+        $this->assertSame(['package_id' => 'vip-rank', 'quantity' => 2, 'custom' => ['order' => '01ABC', 'nonce' => 'n-1']], $with);
+        $this->assertSame(['package_id' => 'vip-rank', 'quantity' => 1], $empty, 'nothing is sent when there is nothing to say');
+        $this->assertSame(['package_id' => 'vip-rank', 'quantity' => 1], $without);
+    }
 }

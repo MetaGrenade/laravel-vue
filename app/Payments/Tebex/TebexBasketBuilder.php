@@ -60,9 +60,12 @@ class TebexBasketBuilder
      * Not safe to run twice at once on one basket: wrap the reading of the basket and this in {@see self::exclusively()}
      * wherever two requests could reach it together.
      *
+     * @param  string|null  $nonce  The nonce kept on the order's payment. Each package is added with it and the order's id as
+     *                              its `custom` data, which Tebex returns on the product in the payment's webhook.
+     *
      * @throws TebexException
      */
-    public function fill(Order $order, TebexBasket $basket): TebexBasket
+    public function fill(Order $order, TebexBasket $basket, ?string $nonce = null): TebexBasket
     {
         $lines = $this->lines($order);
 
@@ -81,7 +84,7 @@ class TebexBasketBuilder
         }
 
         foreach ($lines as $item) {
-            $basket = $this->client->addPackage($basket->ident, (string) $item->tebexPackage?->ident, $item->quantity, $this->variableData($basket));
+            $basket = $this->client->addPackage($basket->ident, (string) $item->tebexPackage?->ident, $item->quantity, $this->variableData($basket), $nonce === null ? null : ['order' => $order->public_id, 'nonce' => $nonce]);
         }
 
         return $basket;

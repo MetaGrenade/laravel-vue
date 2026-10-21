@@ -13,6 +13,9 @@ final readonly class SignInStep
 
     public const FAILED = 'failed';
 
+    /** The basket is ready to be paid and the buyer pays on the shop's own page (Tebex.js), not Tebex's. */
+    public const PAY = 'pay';
+
     /**
      * @param  list<array{name: string, url: string}>  $options
      */
@@ -21,7 +24,17 @@ final readonly class SignInStep
         public ?string $url = null,
         public array $options = [],
         public ?string $message = null,
+        public ?string $ident = null,
     ) {}
+
+    /**
+     * Show the buyer the shop's own payment page for this basket. The address is Tebex's own page for it, kept as the
+     * way to pay if Tebex.js cannot be used.
+     */
+    public static function pay(string $ident, string $hostedUrl): self
+    {
+        return new self(self::PAY, url: $hostedUrl, ident: $ident);
+    }
 
     /**
      * Send the buyer on: to sign in, or (once they have) to pay.

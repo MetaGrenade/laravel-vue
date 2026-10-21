@@ -147,7 +147,8 @@ class TebexCheckoutTest extends TestCase
         $this->assertTrue($body['complete_auto_redirect']);
 
         $adds = $this->tebex->calls('add');
-        $this->assertSame([['package_id' => 'vip-rank', 'quantity' => 2], ['package_id' => 'pet-cat', 'quantity' => 1]], array_column($adds, 'body'));
+        $custom = ['order' => $order->public_id, 'nonce' => $payment->raw['nonce']];
+        $this->assertSame([['package_id' => 'vip-rank', 'quantity' => 2, 'custom' => $custom], ['package_id' => 'pet-cat', 'quantity' => 1, 'custom' => $custom]], array_column($adds, 'body'), 'each package carries what its payment webhook is matched by');
         $this->assertSame("/api/baskets/{$payment->provider_reference}/packages", $adds[0]['path']);
     }
 
