@@ -15,5 +15,6 @@ final readonly class CustomerDetails
         public ?string $name = null,
         public ?User $user = null,
         public ?string $ip = null,
+        public ?string $gameUsername = null,
     ) {}
 }

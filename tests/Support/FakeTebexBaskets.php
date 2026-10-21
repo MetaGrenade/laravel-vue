@@ -3,6 +3,7 @@
 namespace Tests\Support;
 
 use App\Models\TebexPackage;
+use Closure;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -20,7 +21,7 @@ class FakeTebexBaskets
     /** @var array<string, array<string, mixed>> Baskets by ident. */
     public array $baskets = [];
 
-    /** @var list<array{method: string, path: string, body: array<string, mixed>, headers: array<string, mixed>}> */
+    /** @var list<array{method: string, path: string, url: string, body: array<string, mixed>, headers: array<string, mixed>}> */
     public array $requests = [];
 
     /** @var array<string, array{status: int, times: int}> What to fail with, by action. */
@@ -39,6 +40,26 @@ class FakeTebexBaskets
     /** @var array<int, float> What Tebex charges for a package (by its id) when that is not the copy's price. */
     public array $prices = [];
 
+    /** When true, Tebex will not take a package into a basket nobody has signed in to or named a user for (a game store). */
+    public bool $requiresIdentity = false;
+
+    /** @var list<string> Usernames Tebex does not recognise (the basket comes back with no username id). */
+    public array $unknownUsernames = [];
+
+    /** @var list<array{name: string, url: string}> The ways Tebex offers to sign in. */
+    public array $signInOptions = [['name' => 'Steam', 'url' => 'https://auth.tebex.test/steam']];
+
+    /**
+     * Called with the action ('add', 'get'...) as Tebex receives a call and before it does anything, so a test can have
+     * something else happen in that moment (a second request arriving while the first is part way through).
+     *
+     * @var (Closure(string): void)|null
+     */
+    public ?Closure $whenAsked = null;
+
+    /** When true, Tebex answers a basket with packages in it but no place to pay (links.checkout missing). */
+    public bool $withoutCheckoutLink = false;
+
     /**
      * Fail the next `$times` calls of an action ('create', 'add', 'remove', 'get') with this status.
      */
@@ -47,6 +68,15 @@ class FakeTebexBaskets
         $this->failures[$action] = ['status' => $status, 'times' => $times];
 
         return $this;
+    }
+
+    /**
+     * What Tebex does when the buyer has signed in and come back: the basket belongs to someone it knows.
+     */
+    public function authorise(string $ident, int $usernameId = 76561198000000001, ?string $username = 'ProGamer'): void
+    {
+        $this->baskets[$ident]['username_id'] = $usernameId;
+        $this->baskets[$ident]['username'] = $username;
     }
 
     /**
@@ -60,7 +90,7 @@ class FakeTebexBaskets
     /**
      * The calls made, by action.
      *
-     * @return list<array{method: string, path: string, body: array<string, mixed>, headers: array<string, mixed>}>
+     * @return list<array{method: string, path: string, url: string, body: array<string, mixed>, headers: array<string, mixed>}>
      */
     public function calls(string $action): array
     {
@@ -75,7 +105,11 @@ class FakeTebexBaskets
         // As it went over the wire: an object the client built is an array here, as it is to Tebex.
         $body = (array) json_decode((string) json_encode($request->data()), true);
 
-        $this->requests[] = ['method' => $method, 'path' => $path, 'body' => $body, 'headers' => $request->headers()];
+        $this->requests[] = ['method' => $method, 'path' => $path, 'url' => $request->url(), 'body' => $body, 'headers' => $request->headers()];
+
+        if ($this->whenAsked !== null && $action !== null) {
+            ($this->whenAsked)($action);
+        }
 
         if ($action !== null && isset($this->failures[$action]) && $this->failures[$action]['times'] > 0) {
             $this->failures[$action]['times']--;
@@ -88,6 +122,7 @@ class FakeTebexBaskets
             'add' => $this->add($this->identIn($path), $body),
             'remove' => $this->remove($this->identIn($path), $body),
             'get' => $this->show($this->identIn($path)),
+            'auth' => Http::response($this->signInOptions),
             default => Http::response(['title' => 'Not found', 'status' => 404], 404),
         };
     }
@@ -98,6 +133,7 @@ class FakeTebexBaskets
             $method === 'POST' && preg_match('#^/api/accounts/[^/]+/baskets$#', $path) === 1 => 'create',
             $method === 'POST' && preg_match('#^/api/baskets/[^/]+/packages$#', $path) === 1 => 'add',
             $method === 'POST' && preg_match('#^/api/baskets/[^/]+/packages/remove$#', $path) === 1 => 'remove',
+            $method === 'GET' && preg_match('#^/api/accounts/[^/]+/baskets/[^/]+/auth$#', $path) === 1 => 'auth',
             $method === 'GET' && preg_match('#^/api/accounts/[^/]+/baskets/[^/]+$#', $path) === 1 => 'get',
             default => null,
         };
@@ -126,6 +162,8 @@ class FakeTebexBaskets
             'complete_auto_redirect' => (bool) ($body['complete_auto_redirect'] ?? false),
             'ip' => $body['ip_address'] ?? null,
             'custom' => $body['custom'] ?? [],
+            'username' => $body['username'] ?? null,
+            'username_id' => isset($body['username']) && ! in_array($body['username'], $this->unknownUsernames, true) ? 700000 + (crc32((string) $body['username']) % 99999) : 0,
             'lines' => [],
         ];
 
@@ -141,6 +179,10 @@ class FakeTebexBaskets
             return Http::response(['title' => 'No such basket', 'status' => 404], 404);
         }
 
+        if ($this->requiresIdentity && $this->baskets[$ident]['username_id'] === 0) {
+            return Http::response(['title' => 'Forbidden', 'detail' => 'The basket has not been authorised.', 'status' => 403], 403);
+        }
+
         $reference = (string) ($body['package_id'] ?? '');
         $package = TebexPackage::query()->where('ident', $reference)->orWhere('tebex_id', ctype_digit($reference) ? (int) $reference : 0)->first();
 
@@ -150,7 +192,7 @@ class FakeTebexBaskets
 
         $quantity = (int) ($body['quantity'] ?? 1);
         $line = &$this->baskets[$ident]['lines'][$package->tebex_id];
-        $line = ['package' => $package, 'quantity' => ($line['quantity'] ?? 0) + $quantity];
+        $line = ['package' => $package, 'quantity' => ($line['quantity'] ?? 0) + $quantity, 'variable_data' => $body['variable_data'] ?? null];
         unset($line);
 
         return Http::response(['data' => $this->payload($ident)]);
@@ -213,7 +255,7 @@ class FakeTebexBaskets
             'ident' => $ident,
             'complete' => $basket['complete'],
             'email' => null,
-            'username' => null,
+            'username' => $basket['username'],
             'coupons' => [],
             'giftcards' => [],
             'creator_code' => '',
@@ -222,16 +264,18 @@ class FakeTebexBaskets
             'complete_auto_redirect' => $basket['complete_auto_redirect'],
             'country' => 'US',
             'ip' => $basket['ip'],
-            'username_id' => 0,
+            'username_id' => $basket['username_id'],
             'base_price' => $base,
             'sales_tax' => $tax,
             'total_price' => $base + $tax,
             'currency' => $this->currency,
             'packages' => $packages,
             'custom' => $basket['custom'],
-            'links' => $basket['complete']
-                ? ['payment' => "https://pay.tebex.io/{$ident}/payment"]
-                : ['checkout' => "https://pay.tebex.io/{$ident}"],
+            'links' => match (true) {
+                $basket['complete'] => ['payment' => "https://pay.tebex.io/{$ident}/payment"],
+                $this->withoutCheckoutLink && $basket['lines'] !== [] => [],
+                default => ['checkout' => "https://pay.tebex.io/{$ident}"],
+            },
         ];
     }
 }

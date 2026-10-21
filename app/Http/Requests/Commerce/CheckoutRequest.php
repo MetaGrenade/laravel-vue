@@ -5,6 +5,7 @@ namespace App\Http\Requests\Commerce;
 use App\Models\Address;
 use App\Models\Cart;
 use App\Models\TaxRate;
+use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\AddressData;
 use App\Support\Commerce\AddressRules;
 use App\Support\Commerce\CartManager;
@@ -70,6 +71,11 @@ class CheckoutRequest extends FormRequest
             'save_addresses' => ['sometimes', 'boolean'],
         ];
 
+        // A Tebex store for Minecraft or Overwolf asks who to deliver to.
+        if ($this->asksForGameUsername()) {
+            $rules['game_username'] = ['required', 'string', 'max:64', 'regex:/^[^\x00-\x1F\x7F]+$/u'];
+        }
+
         if ($this->mustTypeShippingAddress()) {
             $rules += AddressRules::for('shipping_address', $this->input('shipping_address.country'));
         }
@@ -94,7 +100,40 @@ class CheckoutRequest extends FormRequest
             'shipping_address_id' => 'saved address',
             'billing_address_id' => 'saved address',
             'shipping_rate_id' => 'shipping method',
+            'game_username' => strtolower((string) app(TebexStoreProfile::class)->usernameLabel() ?: 'username'),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        $label = strtolower((string) app(TebexStoreProfile::class)->usernameLabel() ?: 'username');
+
+        return [
+            'game_username.required' => "Enter your {$label}.",
+            'game_username.max' => "That {$label} is too long.",
+            'game_username.regex' => "That {$label} has characters it cannot have.",
+        ];
+    }
+
+    /**
+     * The username to deliver to (a Minecraft or Overwolf store) as typed, or null when none was asked for.
+     */
+    public function gameUsername(): ?string
+    {
+        $username = $this->asksForGameUsername() ? $this->validated('game_username') : null;
+
+        return is_string($username) && trim($username) !== '' ? $username : null;
+    }
+
+    /**
+     * Whether the cart is of Tebex packages from a store that wants a username to deliver them to.
+     */
+    private function asksForGameUsername(): bool
+    {
+        return CartManager::kind($this->cart()) === CartManager::PACKAGES && app(TebexStoreProfile::class)->needsUsername();
     }
 
     public function withValidator(Validator $validator): void

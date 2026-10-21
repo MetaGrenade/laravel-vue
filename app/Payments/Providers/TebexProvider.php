@@ -12,11 +12,13 @@ use App\Payments\Data\CheckoutContext;
 use App\Payments\Data\CheckoutSession;
 use App\Payments\Data\RefundOutcome;
 use App\Payments\Data\WebhookOutcome;
+use App\Payments\Exceptions\BuyerIdentityRejected;
 use App\Payments\Exceptions\PaymentException;
+use App\Payments\Tebex\TebexBasketBuilder;
 use App\Payments\Tebex\TebexClient;
+use App\Payments\Tebex\TebexSignIn;
 use App\Payments\Tebex\TebexStoreProfile;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -38,6 +40,8 @@ class TebexProvider implements PaymentProvider
     public function __construct(
         private readonly TebexClient $client,
         private readonly TebexStoreProfile $profile,
+        private readonly TebexBasketBuilder $baskets,
+        private readonly TebexSignIn $signIn,
     ) {}
 
     public function key(): string
@@ -67,30 +71,48 @@ class TebexProvider implements PaymentProvider
     }
 
     /**
-     * Make a basket for the order, put its packages in it and say where to pay.
+     * Make a basket for the order and say where the buyer goes next.
      *
      * The basket carries the order's public id and a random value (the nonce, kept on the payment), which is what the
-     * payment's webhook will be matched to the order by.
+     * payment's webhook will be matched to the order by. What happens next depends on how the store identifies buyers
+     * (see {@see TebexStoreProfile}):
+     *
+     * - **Nobody is asked anything:** the packages go in, and the buyer goes to pay.
+     * - **A username is asked for:** it goes into the basket as it is made, Tebex says whether it recognised it (if not,
+     *   the buyer is told on the form), then the packages go in and the buyer goes to pay.
+     * - **The buyer signs in:** Tebex will not take a package before they have, so the buyer is sent to the shop's own
+     *   link ({@see TebexSignIn}), which sends them to sign in and, when they are back, fills the basket and sends them to
+     *   pay. That link is the payment's checkout URL, so starting again from the same order comes back to it.
+     *
+     * @throws BuyerIdentityRejected When Tebex does not recognise the username the buyer gave.
      */
     public function startCheckout(Order $order, CheckoutContext $context): CheckoutSession
     {
-        // Whatever the page said, no basket is made for a store whose buyers have to sign in first.
+        // Whatever the page said, no basket is made for a store whose buyers the shop does not know how to take through.
         if ($reason = $this->profile->unsupportedReason()) {
             throw new PaymentException($reason);
         }
 
         $order->loadMissing('items.tebexPackage');
 
-        // In the order they were placed in (a relation has none of its own), so a basket is always built the same way.
-        $items = $order->items->sortBy('id')->values();
-
-        if ($items->isEmpty()) {
+        if ($order->items->isEmpty()) {
             throw new PaymentException("Order {$order->number} has nothing in it to sell.");
         }
 
-        foreach ($items as $item) {
+        foreach ($order->items as $item) {
             if (blank($item->tebexPackage?->ident)) {
                 throw new PaymentException("Order {$order->number} has a line that is not a Tebex package the shop can put in a basket.");
+            }
+        }
+
+        $identity = $this->profile->identity();
+        $username = null;
+
+        if ($identity === TebexStoreProfile::USERNAME) {
+            $username = trim((string) $context->buyerUsername);
+
+            if ($username === '') {
+                throw new BuyerIdentityRejected('Enter your '.strtolower((string) $this->profile->usernameLabel()).'.');
             }
         }
 
@@ -101,11 +123,25 @@ class TebexProvider implements PaymentProvider
             $context->cancelUrl,
             ['order' => $order->public_id, 'nonce' => $nonce],
             $context->ipAddress,
+            $username,
         );
 
-        foreach ($items as $item) {
-            $basket = $this->client->addPackage($basket->ident, (string) $item->tebexPackage?->ident, $item->quantity);
+        if ($identity === TebexStoreProfile::USERNAME && ! $basket->isAuthorised()) {
+            throw new BuyerIdentityRejected('Tebex did not recognise that '.strtolower((string) $this->profile->usernameLabel()).'. Please check it and try again.');
         }
+
+        if ($identity === TebexStoreProfile::SIGN_IN) {
+            // The packages go in once they are signed in; what Tebex quotes is kept then.
+            return new CheckoutSession(
+                provider: self::KEY,
+                reference: $basket->ident,
+                redirectUrl: $this->signIn->linkFor($order),
+                expiresAt: $context->expiresAt,
+                raw: ['nonce' => $nonce, 'sign_in' => true],
+            );
+        }
+
+        $basket = $this->baskets->fill($order, $basket);
 
         if ($basket->checkoutUrl === null) {
             throw new PaymentException("Tebex did not say where to pay for order {$order->number}.");
@@ -115,18 +151,6 @@ class TebexProvider implements PaymentProvider
             throw new PaymentException("Tebex priced order {$order->number} in {$basket->currency}, not {$order->currency}.");
         }
 
-        $differs = $basket->basePrice->toDecimal() !== number_format((float) $order->subtotal, 2, '.', '');
-
-        if ($differs) {
-            // The shop priced the order from its copy of the catalogue, and Tebex's price has moved since. The
-            // customer pays what Tebex charges; this is for whoever reconciles the payment.
-            Log::warning('Tebex quoted a different price than the shop did for an order.', [
-                'order' => $order->number,
-                'shop' => $order->subtotal,
-                'tebex' => $basket->basePrice->toDecimal(),
-            ]);
-        }
-
         return new CheckoutSession(
             provider: self::KEY,
             reference: $basket->ident,
@@ -134,13 +158,8 @@ class TebexProvider implements PaymentProvider
             expiresAt: $context->expiresAt,
             raw: [
                 'nonce' => $nonce,
-                'quoted' => [
-                    'currency' => $basket->currency,
-                    'base_price' => $basket->basePrice->toDecimal(),
-                    'sales_tax' => $basket->salesTax->toDecimal(),
-                    'total_price' => $basket->totalPrice->toDecimal(),
-                ],
-                'price_differs' => $differs,
+                ...$this->baskets->quote($order, $basket),
+                'buyer' => $this->baskets->buyer($basket),
             ],
         );
     }
@@ -150,25 +169,32 @@ class TebexProvider implements PaymentProvider
      *
      * Tebex has no call that cancels a basket, so the packages are taken out of it: a basket with nothing in it has
      * nothing to pay for. A basket that is already paid cannot be closed, and is left for the webhook to settle.
+     *
+     * Done while nobody else is filling the basket (a buyer coming back from signing in as the checkout is replaced),
+     * since packages put in after it was emptied would make a closed checkout payable again.
+     *
+     * @throws PaymentException When Tebex cannot be asked, or the basket is in use by another request (nothing is done).
      */
     public function closeCheckout(Payment $payment): CheckoutClosure
     {
-        $basket = $this->client->basket($payment->provider_reference);
+        return $this->baskets->exclusively($payment->provider_reference, function () use ($payment): CheckoutClosure {
+            $basket = $this->client->basket($payment->provider_reference);
 
-        if ($basket->isPaid()) {
-            return CheckoutClosure::Unresolved;
-        }
+            if ($basket->isPaid()) {
+                return CheckoutClosure::Unresolved;
+            }
 
-        foreach ($basket->packages as $package) {
-            $basket = $this->client->removePackage($basket->ident, (string) $package['id']);
-        }
+            foreach ($basket->packages as $package) {
+                $basket = $this->client->removePackage($basket->ident, (string) $package['id']);
+            }
 
-        // Asked again rather than trusted: what counts is that Tebex says it is empty and unpaid.
-        $basket = $this->client->basket($payment->provider_reference);
+            // Asked again rather than trusted: what counts is that Tebex says it is empty and unpaid.
+            $basket = $this->client->basket($payment->provider_reference);
 
-        return ! $basket->isPaid() && $basket->packages === []
-            ? CheckoutClosure::Closed
-            : CheckoutClosure::Unresolved;
+            return ! $basket->isPaid() && $basket->packages === []
+                ? CheckoutClosure::Closed
+                : CheckoutClosure::Unresolved;
+        });
     }
 
     /**

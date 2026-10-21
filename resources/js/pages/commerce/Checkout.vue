@@ -37,6 +37,8 @@ interface Props {
     giftCardsEnabled: boolean;
     /** The cart holds Tebex packages: Tebex works out the tax and takes any codes or gift cards when the customer pays. */
     tebex: boolean;
+    /** What a Tebex store wants of its buyer: nothing, a username (Minecraft, Overwolf), or signing in (Discord, the Steam games). */
+    identity: { kind: 'none' | 'username' | 'sign-in'; username_label: string | null; platform: string | null };
 }
 
 const props = defineProps<Props>();
@@ -48,6 +50,8 @@ const form = useForm({
     email: props.customer.email ?? '',
     name: props.customer.name ?? '',
     token: props.token,
+    // Who a Tebex package is delivered to, when the store asks for a username.
+    game_username: '',
     // A saved address picked from the address book, or null to type a new one.
     shipping_address_id: (defaultSaved?.id ?? null) as number | null,
     shipping_address: emptyAddress(onlyCountry),
@@ -184,6 +188,11 @@ const submit = () => {
             save_addresses: data.save_addresses && savesAnAddress.value,
         };
 
+        // Who a Tebex package is delivered to, when the store asks for a username.
+        if (props.tebex && props.identity.kind === 'username') {
+            payload.game_username = data.game_username;
+        }
+
         if (props.needsShipping) {
             if (data.shipping_address_id) {
                 payload.shipping_address_id = data.shipping_address_id;
@@ -251,6 +260,26 @@ const submit = () => {
                                 <Input id="name" v-model="form.name" type="text" autocomplete="name" />
                                 <InputError :message="form.errors.name" />
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card v-if="props.tebex && props.identity.kind !== 'none'">
+                        <CardHeader>
+                            <CardTitle>Who is it for?</CardTitle>
+                        </CardHeader>
+                        <CardContent class="space-y-2">
+                            <template v-if="props.identity.kind === 'username'">
+                                <Label for="game_username">{{ props.identity.username_label }}</Label>
+                                <Input id="game_username" v-model="form.game_username" type="text" autocomplete="off" maxlength="64" required />
+                                <p class="text-xs text-muted-foreground">
+                                    Exactly as it appears in the game: this is the account your purchase is delivered to.
+                                </p>
+                                <InputError :message="form.errors.game_username" />
+                            </template>
+                            <p v-else class="text-sm text-muted-foreground">
+                                Next you'll sign in with the account the purchase is for, so the store knows where to deliver it, and then you'll go
+                                on to pay.
+                            </p>
                         </CardContent>
                     </Card>
 

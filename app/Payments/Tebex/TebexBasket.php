@@ -27,6 +27,8 @@ final readonly class TebexBasket
         public ?string $paymentUrl,
         public array $packages,
         public array $custom,
+        public ?int $usernameId = null,
+        public ?string $username = null,
     ) {}
 
     /**
@@ -67,7 +69,19 @@ final readonly class TebexBasket
             paymentUrl: is_string($links['payment'] ?? null) && $links['payment'] !== '' ? $links['payment'] : null,
             packages: $packages,
             custom: is_array($data['custom'] ?? null) ? $data['custom'] : [],
+            // Tebex says 0 for a basket nobody has signed in to.
+            usernameId: (int) ($data['username_id'] ?? 0) > 0 ? (int) $data['username_id'] : null,
+            username: is_string($data['username'] ?? null) && $data['username'] !== '' ? $data['username'] : null,
         );
+    }
+
+    /**
+     * Whether the basket belongs to someone Tebex knows: a username it recognised, or an account the buyer signed in
+     * with. A store that identifies its buyers will not take a package into a basket until it does.
+     */
+    public function isAuthorised(): bool
+    {
+        return $this->usernameId !== null;
     }
 
     /**
