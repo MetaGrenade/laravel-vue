@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\SubscriptionStatus;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Models\BillingWebhookCall;
+use App\Models\ProviderSubscription;
 use App\Models\TebexCategory;
 use App\Models\TebexPackage;
 use App\Models\TebexSync;
@@ -103,6 +105,8 @@ class TebexController extends Controller
                 'runs' => TebexSync::query()->with('user:id,nickname')->latest('started_at')->latest('id')->limit(10)->get()
                     ->map(fn (TebexSync $run) => $this->run($run))->values()->all(),
             ],
+            // Where the recurring payments the shop has been told about stand (Tebex charges and ends them).
+            'recurring' => $this->recurring(),
             'counts' => [
                 'categories' => TebexCategory::query()->listed()->count(),
                 'packages' => TebexPackage::query()->listed()->count(),
@@ -182,6 +186,22 @@ class TebexController extends Controller
             (int) ($packages['updated'] ?? 0),
             (int) ($packages['removed'] ?? 0),
         ));
+    }
+
+    /**
+     * @return array{running: int, overdue: int, ending: int, ended: int}
+     */
+    private function recurring(): array
+    {
+        $running = ProviderSubscription::query()->where('provider', TebexProvider::KEY)->whereNull('ended_at')->whereIn('status', [SubscriptionStatus::Active->value, SubscriptionStatus::Overdue->value]);
+
+        return [
+            'running' => (clone $running)->count(),
+            'overdue' => (clone $running)->where('status', SubscriptionStatus::Overdue->value)->count(),
+            // Still running, but they have asked for it to stop at the end of the period.
+            'ending' => (clone $running)->whereNotNull('cancellation_requested_at')->count(),
+            'ended' => ProviderSubscription::query()->where('provider', TebexProvider::KEY)->where(fn ($query) => $query->whereNotNull('ended_at')->orWhereIn('status', [SubscriptionStatus::Expired->value, SubscriptionStatus::Cancelled->value]))->count(),
+        ];
     }
 
     private function lastOk(): ?TebexSync

@@ -14,12 +14,14 @@ use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Models\Payment;
 use App\Models\ProductFile;
+use App\Models\ProviderSubscription;
 use App\Models\Refund;
 use App\Payments\Capability;
 use App\Payments\PaymentManager;
 use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\OrderLifecycle;
 use App\Support\Commerce\OrderRefunder;
+use App\Support\Commerce\ProviderSubscriptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,6 +44,7 @@ class CommerceOrderController extends Controller
         private readonly OrderRefunder $refunder,
         private readonly PaymentManager $payments,
         private readonly LicenceKeys $keys,
+        private readonly ProviderSubscriptions $subscriptions,
     ) {}
 
     public function index(Request $request): Response
@@ -164,9 +167,13 @@ class CommerceOrderController extends Controller
             ],
             'downloads' => $this->downloads($order),
             'licence_keys' => $licenceKeys,
+            // The recurring payments this order started (Tebex's recurring packages), and what Tebex has said about them.
+            'subscriptions' => $this->subscriptions->present(ProviderSubscription::query()->with(['order', 'package'])->where('order_id', $order->id)->orderBy('id')->get(), forStaff: true),
             'payments' => $order->payments->map(fn (Payment $payment) => [
                 'id' => $payment->id,
                 'provider' => $payment->provider,
+                // A payment Tebex took for a recurring package after the first: money in, not the order being paid again.
+                'renewal' => ($payment->raw['renewal'] ?? false) === true,
                 'status' => $payment->status->value,
                 'amount' => $payment->amount,
                 'currency' => $payment->currency,

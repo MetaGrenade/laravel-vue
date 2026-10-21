@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RecurringPayments from '@/components/commerce/RecurringPayments.vue';
 import OrderDigitalBadges from '@/components/dashboard/OrderDigitalBadges.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/money';
 import { paymentStatusVariant } from '@/lib/orderStatus';
+import type { RecurringPayment } from '@/types/commerce';
 import type { CustomerOrder } from '@/types/dashboard';
 import { Head, Link } from '@inertiajs/vue3';
 
@@ -19,6 +21,8 @@ interface Props {
         prev_page_url: string | null;
         next_page_url: string | null;
     };
+    /** Their recurring payments (Tebex's recurring packages), newest first. */
+    subscriptions: RecurringPayment[];
 }
 
 const props = defineProps<Props>();
@@ -38,6 +42,16 @@ const canReview = (order: CustomerOrder) => ['paid', 'partially_refunded'].inclu
                 <p class="text-sm text-muted-foreground uppercase">Orders</p>
                 <h1 class="text-3xl font-bold tracking-tight">Order history</h1>
             </div>
+
+            <Card v-if="props.subscriptions.length">
+                <CardHeader>
+                    <CardTitle>Your recurring payments</CardTitle>
+                    <CardDescription> Tebex takes these every period until they end. </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <RecurringPayments :payments="props.subscriptions" />
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RecurringPayments from '@/components/commerce/RecurringPayments.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { addressLines } from '@/lib/address';
 import { formatBytes } from '@/lib/bytes';
 import { formatMoney } from '@/lib/money';
 import { hasReceivedPayment, paymentStatusVariant } from '@/lib/orderStatus';
-import type { AddressFormValue, OrderDownload, OrderLicenceKeys, TaxLineQuote } from '@/types/commerce';
+import type { AddressFormValue, OrderDownload, OrderLicenceKeys, RecurringPayment, TaxLineQuote } from '@/types/commerce';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Check, CircleAlert, CircleCheck, Clock, Copy, Download, ExternalLink, KeyRound, Undo2, UserPlus } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -56,6 +57,8 @@ const props = defineProps<{
     downloadsPending: boolean;
     licenceKeys: OrderLicenceKeys[];
     licenceKeysPending: boolean;
+    /** The recurring payments this order started (a Tebex recurring package) and where each stands. */
+    subscriptions: RecurringPayment[];
     /** Set for a guest looking at their own guest order: the address an account would need to keep it. */
     claim: { email: string } | null;
 }>();
@@ -133,7 +136,7 @@ const scheduleCheck = (attempt: number) => {
 
     timer = setTimeout(() => {
         router.reload({
-            only: ['order', 'downloads', 'downloadsPending', 'licenceKeys', 'licenceKeysPending'],
+            only: ['order', 'downloads', 'downloadsPending', 'licenceKeys', 'licenceKeysPending', 'subscriptions'],
             onFinish: () => scheduleCheck(attempt + 1),
         });
     }, CHECK_DELAYS_MS[attempt]);
@@ -234,6 +237,15 @@ onBeforeUnmount(() => {
                         Keep your keys private: anyone who has one can use it. This page is only shown to you, so open it again whenever you need
                         them.
                     </p>
+                </CardContent>
+            </Card>
+
+            <Card v-if="props.subscriptions.length">
+                <CardHeader>
+                    <CardTitle>Recurring payment</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <RecurringPayments :payments="props.subscriptions" :show-order="false" />
                 </CardContent>
             </Card>
 

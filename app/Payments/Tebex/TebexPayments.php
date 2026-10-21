@@ -39,6 +39,8 @@ class TebexPayments
     public function __construct(
         private readonly OrderLifecycle $lifecycle,
         private readonly OrderRefunder $refunds,
+        private readonly TebexPaymentMatcher $matcher,
+        private readonly TebexSubscriptions $subscriptions,
     ) {}
 
     public function apply(TebexEvent $event, BillingWebhookCall $call): WebhookOutcome
@@ -48,8 +50,8 @@ class TebexPayments
             $event->type === TebexEvent::PAYMENT_DECLINED => $this->declined($event),
             $event->type === TebexEvent::PAYMENT_REFUNDED => $this->refunded($event, $call),
             $event->isDispute() => $this->dispute($event, $call),
-            // Recurring payments (and what they entitle the buyer to) are their own slice.
-            $event->isRecurring() => WebhookOutcome::ignored('Recurring payments are not handled yet'),
+            // A recurring payment: what Tebex says about it is mirrored, and each renewal is a payment of its own.
+            $event->isRecurring() => $this->subscriptions->apply($event, $call),
             default => WebhookOutcome::ignored(),
         };
     }
@@ -57,7 +59,7 @@ class TebexPayments
     private function completed(TebexEvent $event, BillingWebhookCall $call): WebhookOutcome
     {
         $transaction = $event->transactionId();
-        $payment = $this->find($event);
+        $payment = $this->matcher->find($event);
 
         if ($transaction === null) {
             return $this->flag($call, 'The payment has no transaction id, so it was not applied.');
@@ -79,8 +81,14 @@ class TebexPayments
             return WebhookOutcome::duplicate();
         }
 
-        // The basket already settled under another transaction: a renewal of a recurring package, or a second payment
-        // for the same basket. The order is never applied twice, and the payment row keeps describing the first.
+        // A renewal of a recurring payment is a payment of its own, recorded as one. (One that was held for review and has
+        // come again is looked at again the same way, not taken for the order's own payment.)
+        if ($this->subscriptions->isRenewal($payment) || ($event->recurringReference() !== null && filled($payment->provider_payment_id) && $payment->provider_payment_id !== $transaction)) {
+            return $this->subscriptions->renew($payment, $event, $call);
+        }
+
+        // The basket already settled under another transaction: a second payment for the same basket. The order is never
+        // applied twice, and the payment row keeps describing the first.
         if (filled($payment->provider_payment_id) && $payment->provider_payment_id !== $transaction) {
             Log::warning('Tebex reported another payment for a basket the shop had already settled.', [
                 'order' => $order->number,
@@ -88,7 +96,7 @@ class TebexPayments
                 'reported' => $transaction,
             ]);
 
-            return $this->flag($call, "Another payment ({$transaction}) was made for an order already paid with {$payment->provider_payment_id}. If it is a renewal of a recurring package, that is not handled yet; otherwise it may need refunding.");
+            return $this->flag($call, "Another payment ({$transaction}) was made for an order already paid with {$payment->provider_payment_id}, and it is not a renewal of a recurring payment, so it was not applied and may need refunding.");
         }
 
         $paid = $event->paid();
@@ -105,7 +113,7 @@ class TebexPayments
         // What was bought must be what was ordered. The basket is addressable by anyone who has its identifier (it is in
         // the address the buyer pays at), so its contents can be changed before payment while it still carries the
         // order's id and nonce: a cheaper package paid for would otherwise complete an order for a dearer one.
-        $expected = $this->ordered($order);
+        $expected = $this->matcher->ordered($order);
         $bought = $event->purchased();
 
         if ($expected === null || $bought !== $expected) {
@@ -123,6 +131,9 @@ class TebexPayments
             'raw' => $this->raw($payment, $event),
         ]);
 
+        // The first payment of a recurring package starts a recurring payment: the shop keeps track of it from here.
+        $this->subscriptions->started($payment->fresh() ?? $payment, $event);
+
         return WebhookOutcome::handled();
     }
 
@@ -132,7 +143,7 @@ class TebexPayments
      */
     private function declined(TebexEvent $event): WebhookOutcome
     {
-        $payment = $this->find($event);
+        $payment = $this->matcher->find($event);
 
         if ($payment === null || $payment->order->isPaid()) {
             return WebhookOutcome::ignored();
@@ -161,7 +172,7 @@ class TebexPayments
             return WebhookOutcome::ignored('Not a refund Tebex has made');
         }
 
-        $payment = $this->find($event);
+        $payment = $this->matcher->find($event);
 
         if ($payment === null) {
             return $this->flag($call, 'Tebex refunded a payment the shop has no record of.', WebhookOutcome::ignored('Unknown payment'));
@@ -176,7 +187,7 @@ class TebexPayments
      */
     private function dispute(TebexEvent $event, BillingWebhookCall $call): WebhookOutcome
     {
-        $payment = $this->find($event);
+        $payment = $this->matcher->find($event);
 
         if ($payment === null) {
             return $this->flag($call, 'Tebex reported a dispute on a payment the shop has no record of.', WebhookOutcome::ignored('Unknown payment'));
@@ -215,6 +226,16 @@ class TebexPayments
             return $this->flag($call, "Tebex returned a payment ({$event->transactionId()}) that the shop does not have as paid, so nothing was changed.", WebhookOutcome::ignored('Payment was not applied'));
         }
 
+        // A renewal is a payment of its own, not part of what the order took in: giving it back is a fact to note (and for
+        // whoever answers to the customer to know), not a refund of the order.
+        if ($this->subscriptions->isRenewal($payment)) {
+            return $this->subscriptions->returned($payment, $event, match (true) {
+                $event->isDispute() => 'was taken back in a dispute that was lost',
+                $status === RefundStatus::Pending => 'is being refunded',
+                default => 'was refunded',
+            });
+        }
+
         $known = Refund::query()->where('provider', TebexProvider::KEY)->where('provider_reference', $reference)->first();
         $amount = Money::parse($payment->amount, $payment->currency);
 
@@ -242,42 +263,6 @@ class TebexPayments
         ]);
 
         return WebhookOutcome::handled();
-    }
-
-    /**
-     * The payment this delivery is about, or null. See the class comment for how.
-     */
-    private function find(TebexEvent $event): ?Payment
-    {
-        $transaction = $event->transactionId();
-
-        if ($transaction !== null) {
-            $known = Payment::query()->with('order')
-                ->where('provider', TebexProvider::KEY)
-                ->where('provider_payment_id', $transaction)
-                ->first();
-
-            if ($known !== null && $known->order !== null) {
-                return $known;
-            }
-        }
-
-        $custom = $event->basketCustom();
-
-        if ($custom === null) {
-            return null;
-        }
-
-        $order = Order::query()->where('public_id', $custom['order'])->first();
-
-        if ($order === null) {
-            return null;
-        }
-
-        return $order->payments()->with('order')
-            ->where('provider', TebexProvider::KEY)
-            ->get()
-            ->first(fn (Payment $payment) => is_string($payment->raw['nonce'] ?? null) && hash_equals($payment->raw['nonce'], $custom['nonce']));
     }
 
     /**
@@ -365,31 +350,6 @@ class TebexPayments
         ]);
 
         return $this->flag($call, $why, WebhookOutcome::handled('Payment needs review'));
-    }
-
-    /**
-     * The packages an order holds, as Tebex's package id => how many, or null when a line cannot be tied to a package
-     * (its copy was deleted), in which case nothing can be checked against it.
-     *
-     * @return array<int, int>|null
-     */
-    private function ordered(Order $order): ?array
-    {
-        $order->loadMissing('items.tebexPackage');
-
-        $packages = [];
-
-        foreach ($order->items as $item) {
-            if ($item->tebexPackage === null) {
-                return null;
-            }
-
-            $packages[$item->tebexPackage->tebex_id] = ($packages[$item->tebexPackage->tebex_id] ?? 0) + $item->quantity;
-        }
-
-        ksort($packages);
-
-        return $packages === [] ? null : $packages;
     }
 
     /**

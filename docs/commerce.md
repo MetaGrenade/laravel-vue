@@ -287,7 +287,7 @@ An order whose total is zero is **paid on the spot**: a free product (a price of
 
 ## Managing orders
 
-**Commerce → Orders** in the ACP lists every order, newest first, with tabs for each status (and how many are in it), a search by order number, name or email, and a filter by payment state. Opening an order shows its items and totals, customer, addresses, payments (with a link to the payment in the provider's dashboard), refunds and its history.
+**Commerce → Orders** in the ACP lists every order, newest first, with tabs for each status (and how many are in it), a search by order number, name or email, and a filter by payment state. Opening an order shows its items and totals, customer, addresses, payments (with a link to the payment in the provider's dashboard), refunds and its history, and for a Tebex recurring package where its recurring payment stands.
 
 | Action | What it does | Permission |
 |--------|--------------|------------|
@@ -350,7 +350,7 @@ A payment that arrives for an order that was already cancelled is honoured: the 
 - The **store-level provider** is `COMMERCE_PROVIDER` (default `stripe`) and can be changed in the ACP under System settings. Every order records the provider it was placed with, and webhooks and reconciliation use that recorded provider, so switching never strands an in-flight payment.
 - Providers declare `capabilities()` (one-time payments, subscriptions, refunds, hosted checkout, ...) and the shop checks those rather than the provider's name.
 - To add a provider: implement the contract, register it under `commerce.providers`, and route its webhooks through `WebhookReceiver` (below).
-- **Tebex** is the second provider. Its connection, catalogue, storefront, cart, basket and webhook are built: a package is paid for on Tebex's hosted checkout and the order is settled by Tebex's webhook (`/webhooks/tebex`), which also records refunds and disputes made at Tebex. It says it is not configured until the webhook has a secret, since a payment could not be applied without it. Recurring payments, an embedded checkout and the Checkout API mode are later slices. See [tebex.md](tebex.md).
+- **Tebex** is the second provider. Its connection, catalogue, storefront, cart, basket and webhook are built: a package is paid for on Tebex's hosted checkout and the order is settled by Tebex's webhook (`/webhooks/tebex`), which also records refunds and disputes made at Tebex. It says it is not configured until the webhook has a secret, since a payment could not be applied without it. A recurring package's renewals are recorded as payments of the order that started it, and where the recurring payment stands is kept (`provider_subscriptions`, any provider's, with an owner like orders and payments). An embedded checkout (Tebex.js) is built and off by default. Entitlements and the Checkout API mode are later slices. See [tebex.md](tebex.md).
 
 ### Stripe
 
@@ -425,6 +425,6 @@ The header cart previously showed an estimated 7% tax and a flat shipping charge
 
 ## Not built yet
 
-The shop part of the roadmap is complete. Tebex arrives in M2 behind the same provider contract: buying a one-off package through it is built and settled by its webhook; recurring payments and the Checkout API mode are not (an embedded checkout, with Tebex.js on the shop's own page, is built and off by default) (see [tebex.md](tebex.md)).
+The shop part of the roadmap is complete. Tebex arrives in M2 behind the same provider contract: buying a package through it is built and settled by its webhook, and a recurring package's renewals are recorded; entitlements and the Checkout API mode are not (an embedded checkout, with Tebex.js on the shop's own page, is built and off by default) (see [tebex.md](tebex.md)).
 
 Wishlists have no guest version, no sharing and no back-in-stock alerts. Reviews have no photos, no reply from the shop, no "was this helpful" votes, no way for readers to report one (staff reject or delete from the ACP) and no email to staff when one arrives (the overview counts what is waiting).

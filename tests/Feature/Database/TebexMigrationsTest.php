@@ -4,6 +4,7 @@ namespace Tests\Feature\Database;
 
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\ProviderSubscription;
 use App\Models\TebexCategory;
 use App\Models\TebexPackage;
 use App\Models\TebexSync;
@@ -144,5 +145,77 @@ class TebexMigrationsTest extends TestCase
         $this->assertSame('https://x.test/a.png', $package->media[0]['url']);
         $this->assertTrue($package->hasVariables());
         $this->assertNull($package->options);
+    }
+
+    #[Test]
+    public function the_recurring_payment_mirror_rolls_back_and_forward_cleanly(): void
+    {
+        $migration = require database_path('migrations/2026_10_21_000000_create_provider_subscriptions_table.php');
+
+        $this->assertTrue(Schema::hasColumns('provider_subscriptions', [
+            'owner_type', 'owner_id', 'order_id', 'tebex_package_id', 'provider', 'reference', 'package_name', 'status', 'provider_status',
+            'amount', 'currency', 'renewals_count', 'fail_count', 'started_at', 'last_payment_at', 'next_payment_at',
+            'cancellation_requested_at', 'cancelled_at', 'cancel_reason', 'ended_at', 'last_event_at', 'raw',
+        ]));
+
+        $migration->down();
+
+        $this->assertFalse(Schema::hasTable('provider_subscriptions'));
+
+        $migration->up();
+
+        $this->assertTrue(Schema::hasTable('provider_subscriptions'));
+    }
+
+    #[Test]
+    public function a_provider_has_a_recurring_payment_once_but_two_providers_may_share_a_reference(): void
+    {
+        ProviderSubscription::factory()->create(['reference' => 'ref-1']);
+        ProviderSubscription::factory()->create(['provider' => 'other', 'reference' => 'ref-1']);
+
+        try {
+            DB::transaction(fn () => ProviderSubscription::factory()->create(['reference' => 'ref-1']));
+            $this->fail('A second recurring payment with the same provider and reference was accepted.');
+        } catch (QueryException) {
+            $this->addToAssertionCount(1);
+        }
+
+        $this->assertSame(2, ProviderSubscription::query()->count());
+    }
+
+    #[Test]
+    public function a_recurring_payment_outlives_its_order_and_its_package_and_needs_no_owner(): void
+    {
+        $package = TebexPackage::factory()->subscription()->create();
+        $order = Order::factory()->create();
+        $subscription = ProviderSubscription::factory()->create(['order_id' => $order->id, 'tebex_package_id' => $package->id]);
+
+        $this->assertNull($subscription->owner_type, 'a guest\'s has no owner until the order is claimed');
+        $this->assertSame($order->id, $subscription->order->id);
+        $this->assertSame($package->id, $subscription->package->id);
+
+        $package->delete();
+        $order->delete();
+
+        $subscription = $subscription->fresh();
+        $this->assertNotNull($subscription, 'it is the provider\'s record, not the order\'s');
+        $this->assertNull($subscription->order_id);
+        $this->assertNull($subscription->tebex_package_id);
+        $this->assertSame('MVP (monthly)', $subscription->package_name, 'what it was bought as is kept');
+    }
+
+    #[Test]
+    public function a_recurring_payment_keeps_its_cents_its_dates_and_hides_what_the_provider_sent(): void
+    {
+        $subscription = ProviderSubscription::factory()->create([
+            'amount' => '4.5',
+            'raw' => ['reference' => 'tbx-r-1', 'price' => ['amount' => 4.5]],
+            'ended_at' => '2026-12-01 10:00:00',
+        ])->fresh();
+
+        $this->assertSame('4.50', $subscription->amount);
+        $this->assertSame('2026-12-01', $subscription->ended_at->format('Y-m-d'));
+        $this->assertSame('tbx-r-1', $subscription->makeVisible('raw')->raw['reference']);
+        $this->assertArrayNotHasKey('raw', $subscription->fresh()->toArray(), 'the webhook body is for staff\'s eyes at most, never serialised by accident');
     }
 }

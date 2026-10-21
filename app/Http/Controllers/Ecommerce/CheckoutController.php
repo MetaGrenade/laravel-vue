@@ -10,6 +10,7 @@ use App\Models\Address;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\ProductFile;
+use App\Models\ProviderSubscription;
 use App\Models\TaxRate;
 use App\Models\User;
 use App\Payments\PaymentManager;
@@ -28,6 +29,7 @@ use App\Support\Commerce\GiftCards\GiftCards;
 use App\Support\Commerce\InvalidCheckoutInput;
 use App\Support\Commerce\OrderAlreadyPaidException;
 use App\Support\Commerce\OrderPricer;
+use App\Support\Commerce\ProviderSubscriptions;
 use App\Support\Commerce\ShippingCalculator;
 use App\Support\Seo\Seo;
 use Illuminate\Http\RedirectResponse;
@@ -155,7 +157,7 @@ class CheckoutController extends Controller
      * Where the customer lands after paying. Anyone holding the signed link
      * (a guest) or an owner of the order may open it.
      */
-    public function complete(Request $request, Order $order, PaymentManager $payments, DownloadDelivery $delivery, LicenceKeys $keys): SymfonyResponse
+    public function complete(Request $request, Order $order, PaymentManager $payments, DownloadDelivery $delivery, LicenceKeys $keys, ProviderSubscriptions $subscriptions): SymfonyResponse
     {
         abort_unless($request->hasValidSignature() || Gate::allows('view', $order), 403);
 
@@ -197,6 +199,8 @@ class CheckoutController extends Controller
             // Not paid yet, but something in it will deliver files: say where they will appear.
             'downloadsPending' => $downloads === [] && $order->status === OrderStatus::Pending
                 && ProductFile::query()->whereIn('product_id', $order->items->pluck('product_id')->filter()->all())->exists(),
+            // The recurring payments this order started (a Tebex recurring package): where each stands.
+            'subscriptions' => $subscriptions->present(ProviderSubscription::query()->with(['order', 'package'])->where('order_id', $order->id)->orderBy('id')->get()),
             'order' => [
                 'number' => $order->number,
                 'status' => $order->status->value,
