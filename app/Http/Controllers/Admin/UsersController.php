@@ -8,6 +8,8 @@ use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Billing\SubscriptionCancellationFailed;
+use App\Support\Billing\SubscriptionManager;
 use App\Support\Localization\DateFormatter;
 use App\Support\OAuth\OAuthProviders;
 use Carbon\CarbonInterface;
@@ -220,11 +222,15 @@ class UsersController extends Controller
     }
 
     /**
-     * Delete a user.
+     * Delete a user, after ending any subscription they have so that it cannot go on charging them.
      */
-    public function destroy(User $user)
+    public function destroy(User $user, SubscriptionManager $subscriptions)
     {
-        $user->delete();
+        Gate::authorize('users.acp.delete');
+
+        if (! $this->deleteEndingSubscriptions($user, $subscriptions)) {
+            return back()->with('error', "{$user->nickname} was not deleted: their subscription could not be cancelled at Stripe, so it may still be charging them. Nothing was changed; try again in a few minutes.");
+        }
 
         return redirect()->route('acp.users.index')
             ->with('success', 'User deleted.');
@@ -273,7 +279,7 @@ class UsersController extends Controller
             ->with('success', 'User unbanned.');
     }
 
-    public function bulkUpdate(Request $request): RedirectResponse
+    public function bulkUpdate(Request $request, SubscriptionManager $subscriptions): RedirectResponse
     {
         $validated = $request->validate([
             'action' => ['required', Rule::in(['verify', 'ban', 'unban', 'delete'])],
@@ -302,6 +308,7 @@ class UsersController extends Controller
         $actorId = (int) $request->user()->id;
         $now = now();
         $updatedCount = 0;
+        $notDeleted = [];
 
         foreach ($users as $user) {
             $changed = false;
@@ -340,8 +347,13 @@ class UsersController extends Controller
                     break;
 
                 case 'delete':
-                    $user->delete();
-                    $changed = true;
+                    // One user whose subscription cannot be cancelled is left alone; it does not stop the others.
+                    if ($this->deleteEndingSubscriptions($user, $subscriptions)) {
+                        $changed = true;
+                    } else {
+                        $notDeleted[] = $user->nickname;
+                    }
+
                     break;
             }
 
@@ -373,7 +385,31 @@ class UsersController extends Controller
             },
         };
 
-        return back()->with('success', $message);
+        $response = back()->with('success', $message);
+
+        if ($notDeleted !== []) {
+            $names = collect($notDeleted)->take(5)->implode(', ');
+            $more = count($notDeleted) > 5 ? ' and '.(count($notDeleted) - 5).' more' : '';
+
+            $response->with('error', 'Not deleted, because their subscription could not be cancelled at Stripe and may still be charging them: '.$names.$more.'. Nothing was changed for them; try again in a few minutes.');
+        }
+
+        return $response;
+    }
+
+    /**
+     * Delete a user once any subscription they have is ended at Stripe. False means it could not be ended, and then
+     * the user is left exactly as they were: deleting them would leave the subscription renewing with nobody to ask.
+     */
+    private function deleteEndingSubscriptions(User $user, SubscriptionManager $subscriptions): bool
+    {
+        try {
+            $subscriptions->deleteUser($user);
+        } catch (SubscriptionCancellationFailed) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

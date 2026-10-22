@@ -9,6 +9,17 @@ return [
     ],
 
     /*
+    | Starting a subscription and deleting an account are never done at the same time for one user (a subscription started
+    | while the account is being deleted would be missed by the cancelling and go on charging). Whichever comes second waits
+    | up to `wait` seconds for the first; `ttl` is how long the lock lasts if the process holding it dies. Needs a cache
+    | store that supports locks (every one but `null`).
+    */
+    'locks' => [
+        'wait' => 15,
+        'ttl' => 300,
+    ],
+
+    /*
     | What the example plans below can give. Seeded (never overwritten) next to the plans; replace them with your own, or
     | manage the real ones in Commerce → Entitlements. Code asks for a key: `$user->canUse('priority-support')`,
     | `$user->limitOf('projects')`, `entitled:priority-support` on a route. See docs/entitlements.md.
