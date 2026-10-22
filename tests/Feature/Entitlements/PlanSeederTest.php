@@ -56,6 +56,23 @@ class PlanSeederTest extends TestCase
     }
 
     #[Test]
+    public function a_trial_in_the_config_is_seeded_and_a_trial_staff_set_is_not_reset_by_seeding_again(): void
+    {
+        config(['billing.plans.1.trial_days' => 14]);
+
+        $this->seed(SubscriptionPlanSeeder::class);
+
+        $this->assertNull(SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail()->trial_days, 'a plan whose config says nothing has no trial');
+        $this->assertSame(14, SubscriptionPlan::query()->where('slug', 'pro')->firstOrFail()->trial_days);
+
+        // Staff give Starter a trial in the ACP; seeding again, with the config still silent about it, leaves it be.
+        SubscriptionPlan::query()->where('slug', 'starter')->update(['trial_days' => 30]);
+        $this->seed(SubscriptionPlanSeeder::class);
+
+        $this->assertSame(30, SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail()->trial_days);
+    }
+
+    #[Test]
     public function seeding_again_repeats_nothing_and_leaves_what_staff_changed(): void
     {
         $this->seed(SubscriptionPlanSeeder::class);

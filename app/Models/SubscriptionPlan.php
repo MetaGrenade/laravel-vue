@@ -22,12 +22,14 @@ class SubscriptionPlan extends Model
         'description',
         'features',
         'is_active',
+        'trial_days',
     ];
 
     protected $casts = [
         'price' => 'integer',
         'features' => 'array',
         'is_active' => 'boolean',
+        'trial_days' => 'integer',
     ];
 
     protected static function booted(): void

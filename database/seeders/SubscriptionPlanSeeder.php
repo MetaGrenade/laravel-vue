@@ -39,6 +39,8 @@ class SubscriptionPlanSeeder extends Seeder
                     'description' => Arr::get($plan, 'description'),
                     'features' => Arr::get($plan, 'features', []),
                     'is_active' => Arr::get($plan, 'is_active', true),
+                    // Only when the config says: a plan whose trial staff set is not reset to none by seeding again.
+                    ...(array_key_exists('trial_days', $plan) ? ['trial_days' => $plan['trial_days']] : []),
                 ]
             );
 

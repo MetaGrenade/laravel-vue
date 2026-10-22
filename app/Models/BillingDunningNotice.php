@@ -18,6 +18,8 @@ class BillingDunningNotice extends Model
 
     public const CANCELLED = 'cancelled';
 
+    public const TRIAL_ENDING = 'trial_ending';
+
     protected $fillable = [
         'user_id',
         'kind',

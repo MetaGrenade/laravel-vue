@@ -30,7 +30,9 @@ return [
     ],
 
     /*
-    | `entitlements` is what being on the plan gives: a feature (`true`) or a limit (an amount), by the keys above.
+    | `entitlements` is what being on the plan gives: a feature (`true`) or a limit (an amount), by the keys above. A plan may
+    | also have `'trial_days' => 14`, the free days a new customer gets before the first payment (none by default, so a fresh
+    | install gives nothing away; it can be set per plan in the ACP, too).
     */
     'plans' => [
         [

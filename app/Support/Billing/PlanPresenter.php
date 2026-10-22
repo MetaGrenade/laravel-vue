@@ -10,7 +10,7 @@ use App\Models\SubscriptionPlan;
 final class PlanPresenter
 {
     /**
-     * @return array{id: int, name: string, slug: string, price: int, currency: string, interval: string, features: list<string>, entitlements: list<array{key: string, label: string, type: string, value: int|null}>, stripe_price_id: string}
+     * @return array{id: int, name: string, slug: string, price: int, currency: string, interval: string, features: list<string>, entitlements: list<array{key: string, label: string, type: string, value: int|null}>, stripe_price_id: string, trial_days: int|null}
      */
     public static function forPage(SubscriptionPlan $plan): array
     {
@@ -26,6 +26,8 @@ final class PlanPresenter
             // What it really gives: the features it switches on and the limits it raises.
             'entitlements' => self::entitlements($plan),
             'stripe_price_id' => $plan->stripe_price_id,
+            // Free days a new customer gets before the first payment (whether this customer is eligible is for the page to say).
+            'trial_days' => $plan->trial_days,
         ];
     }
 

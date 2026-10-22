@@ -44,6 +44,7 @@ const form = useForm({
     currency: props.default_currency ?? 'USD',
     description: '',
     features_text: '',
+    trial_days: '',
     is_active: true,
 });
 
@@ -93,6 +94,7 @@ const handleSubmit = () => {
             currency: (data.currency || props.default_currency || 'USD').toUpperCase(),
             description: data.description || null,
             features,
+            trial_days: data.trial_days === '' ? null : Number(data.trial_days),
             is_active: Boolean(data.is_active),
         };
     });
@@ -216,6 +218,25 @@ const handleSubmit = () => {
                                 />
                                 <InputError :message="form.errors.description" />
                             </div>
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="trial_days">Free trial (days)</Label>
+                            <Input
+                                id="trial_days"
+                                v-model="form.trial_days"
+                                type="number"
+                                min="1"
+                                max="730"
+                                inputmode="numeric"
+                                placeholder="No trial"
+                            />
+                            <p class="text-xs text-muted-foreground">
+                                New customers get this many days free, with their card on file, before the first payment. Leave it empty for no trial.
+                                A customer gets one trial: someone who has had a subscription before is charged from the start. It applies to people
+                                who subscribe from now on.
+                            </p>
+                            <InputError :message="form.errors.trial_days" />
                         </div>
 
                         <div class="grid gap-2">

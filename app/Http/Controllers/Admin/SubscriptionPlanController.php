@@ -42,6 +42,7 @@ class SubscriptionPlanController extends Controller
                     'description' => $plan->description,
                     'features' => $plan->features ?? [],
                     'is_active' => $plan->is_active,
+                    'trial_days' => $plan->trial_days,
                     'created_at' => $formatter->iso($plan->created_at),
                     'updated_at' => $formatter->iso($plan->updated_at),
                     'invoices_count' => $plan->invoices_count,
@@ -103,6 +104,7 @@ class SubscriptionPlanController extends Controller
             'description' => $validated['description'] ?? null,
             'features' => $this->normalizeFeatures($validated['features'] ?? []),
             'is_active' => $validated['is_active'],
+            'trial_days' => $validated['trial_days'] ?? null,
         ]);
 
         return redirect()
@@ -128,6 +130,7 @@ class SubscriptionPlanController extends Controller
                 'description' => $plan->description,
                 'features' => $plan->features ?? [],
                 'is_active' => $plan->is_active,
+                'trial_days' => $plan->trial_days,
                 'created_at' => $formatter->iso($plan->created_at),
                 'updated_at' => $formatter->iso($plan->updated_at),
                 'invoices_count' => $plan->invoices_count,
@@ -159,6 +162,7 @@ class SubscriptionPlanController extends Controller
             'description' => $validated['description'] ?? null,
             'features' => $this->normalizeFeatures($validated['features'] ?? []),
             'is_active' => $validated['is_active'],
+            'trial_days' => $validated['trial_days'] ?? null,
         ])->save();
 
         return redirect()
