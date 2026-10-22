@@ -25,6 +25,8 @@ class SubscriptionPaymentFailed extends Notification implements ShouldQueue
         public readonly BillingInvoice $invoice,
         public readonly int $attempt,
         public readonly ?CarbonInterface $nextAttempt,
+        /** What Stripe tried to take, in the invoice's currency's minor units. */
+        public readonly int $amount,
     ) {}
 
     /**
@@ -43,7 +45,7 @@ class SubscriptionPaymentFailed extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $plan = $this->invoice->plan?->name;
-        $amount = Money::ofMinor($this->invoice->total, $this->invoice->currency)->toDecimal().' '.$this->invoice->currency;
+        $amount = Money::ofMinor($this->amount, $this->invoice->currency)->toDecimal().' '.$this->invoice->currency;
         $first = $this->attempt <= 1;
 
         $message = (new MailMessage)
@@ -51,8 +53,9 @@ class SubscriptionPaymentFailed extends Notification implements ShouldQueue
             ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
             ->line(($first ? "We couldn't take your payment of {$amount}" : "We tried again and still couldn't take your payment of {$amount}").($plan ? " for {$plan}." : '.'));
 
-        // Cashier ends access at the first failed payment unless the app says otherwise.
-        $message->line(Cashier::$deactivatePastDue
+        // Cashier ends access at the first failed payment unless the app says otherwise. Either way it ends when Stripe gives up
+        // (the subscription is then unpaid or cancelled), which is when there is no next attempt.
+        $message->line(Cashier::$deactivatePastDue || $this->nextAttempt === null
             ? 'Until it goes through, what your plan gives you is paused.'
             : 'Your plan stays active while we keep trying.');
 

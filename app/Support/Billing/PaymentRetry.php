@@ -19,6 +19,9 @@ final readonly class PaymentRetry
     /** There was nothing overdue to pay. */
     public const NOTHING_DUE = 'nothing_due';
 
+    /** Stripe took the request but the payment is not through yet (a bank debit takes days), so the plan is not back yet. */
+    public const PENDING = 'pending';
+
     /** Stripe could not be reached, so nothing was tried. */
     public const UNAVAILABLE = 'unavailable';
 
@@ -46,6 +49,11 @@ final readonly class PaymentRetry
     public static function nothingDue(): self
     {
         return new self(self::NOTHING_DUE);
+    }
+
+    public static function pending(): self
+    {
+        return new self(self::PENDING);
     }
 
     public static function unavailable(): self

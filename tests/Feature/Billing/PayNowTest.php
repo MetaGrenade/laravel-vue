@@ -134,6 +134,73 @@ class PayNowTest extends TestCase
         $this->assertSame('active', $this->subscription->fresh()->stripe_status);
     }
 
+    // --- Stripe took the request, the money has not arrived ---------------------------------------------------------------------------------
+
+    #[Test]
+    public function a_payment_that_is_still_processing_is_not_called_received(): void
+    {
+        $this->stripeAnswers([$this->stripeSubscription('past_due'), $this->stripeInvoice(['status' => 'open']), $this->stripeSubscription('past_due')]);
+
+        $result = $this->retry();
+
+        $this->assertSame(PaymentRetry::PENDING, $result->status);
+        $this->assertSame('past_due', $this->subscription->fresh()->stripe_status);
+        $this->assertFalse($this->user->fresh()->canUse('reports'), 'the plan does not come back before the money does');
+    }
+
+    #[Test]
+    public function a_paid_invoice_on_a_subscription_stripe_still_calls_past_due_is_not_called_recovered_either(): void
+    {
+        $this->stripeAnswers([$this->stripeSubscription('past_due'), $this->stripeInvoice(), $this->stripeSubscription('past_due')]);
+
+        $this->assertSame(PaymentRetry::PENDING, $this->retry()->status);
+    }
+
+    #[Test]
+    public function a_subscription_that_is_no_longer_behind_but_not_live_either_is_not_called_recovered(): void
+    {
+        // The subscription lapsed while the payment went through: Stripe's word for it is not a status that is behind, yet it
+        // gives the customer nothing.
+        $this->stripeAnswers([$this->stripeSubscription('past_due'), $this->stripeInvoice(), $this->stripeSubscription('incomplete_expired')]);
+
+        $this->assertSame(PaymentRetry::PENDING, $this->retry()->status);
+        $this->assertFalse($this->subscription->fresh()->valid());
+    }
+
+    #[Test]
+    public function with_past_due_kept_active_a_subscription_that_is_still_behind_is_not_called_recovered(): void
+    {
+        // The subscription counts as live while it is past due, so being live is not what says the payment came through.
+        Cashier::keepPastDueSubscriptionsActive();
+        $this->stripeAnswers([$this->stripeSubscription('past_due'), $this->stripeInvoice(), $this->stripeSubscription('past_due')]);
+
+        $this->assertTrue($this->subscription->fresh()->valid());
+        $this->assertSame(PaymentRetry::PENDING, $this->retry()->status);
+    }
+
+    #[Test]
+    public function an_invoice_stripe_took_meanwhile_is_not_called_paid_while_the_subscription_is_still_behind(): void
+    {
+        Cashier::keepPastDueSubscriptionsActive();
+        $this->stripeAnswers([
+            $this->stripeSubscription('past_due'),
+            [400, ['error' => ['message' => 'Invoice is already paid.', 'type' => 'invalid_request_error']]],
+            $this->stripeSubscription('past_due'),
+        ]);
+
+        $this->assertSame(PaymentRetry::NOTHING_DUE, $this->retry()->status);
+    }
+
+    #[Test]
+    public function the_button_says_when_the_payment_is_still_being_processed(): void
+    {
+        $this->stripeAnswers([$this->stripeSubscription('past_due'), $this->stripeInvoice(['status' => 'open']), $this->stripeSubscription('past_due')]);
+
+        $this->actingAs($this->user)->post(route('settings.billing.retry-payment'))
+            ->assertRedirect(route('settings.billing.index'))
+            ->assertSessionHas('info', "Your payment is being processed. Your plan will be active again as soon as it's confirmed.");
+    }
+
     // --- It does not go through -------------------------------------------------------------------------------------------------------
 
     #[Test]
@@ -355,9 +422,15 @@ class PayNowTest extends TestCase
             ->where('subscription.access_paused', false));
 
         $this->subscription->forceFill(['stripe_status' => 'active'])->save();
-        $page()->assertInertia(fn (Assert $page) => $page->where('subscription.needs_payment', false));
+        $page()->assertInertia(fn (Assert $page) => $page
+            ->where('subscription.needs_payment', false)
+            ->where('subscription.access_paused', false));
 
+        // Unpaid is never live, whatever is decided about past due: what the plan gives is paused, and the page says so.
         $this->subscription->forceFill(['stripe_status' => 'unpaid'])->save();
-        $page()->assertInertia(fn (Assert $page) => $page->where('subscription.needs_payment', true));
+        $page()->assertInertia(fn (Assert $page) => $page
+            ->where('subscription.needs_payment', true)
+            ->where('subscription.access_paused', true));
+        $this->assertFalse($this->user->fresh()->canUse('reports'), 'and it is');
     }
 }

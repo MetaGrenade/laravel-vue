@@ -18,7 +18,6 @@ use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Exceptions\IncompletePayment;
-use Stripe\Subscription as StripeSubscription;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
@@ -66,9 +65,10 @@ class SubscriptionController extends Controller
                 'cancelled' => $subscription->canceled(),
                 'ends_at' => optional($subscription->ends_at)?->toIso8601String(),
                 // Behind on payment: the page says so and offers to pay now.
-                'needs_payment' => $subscription->pastDue() || $subscription->stripe_status === StripeSubscription::STATUS_UNPAID,
-                // Whether being behind takes the plan's features away (Cashier's default), which is what the page then says.
-                'access_paused' => Cashier::$deactivatePastDue,
+                'needs_payment' => $this->subscriptions->behindOnPayment($subscription),
+                // Whether what the plan gives is paused right now: its features follow the subscription being live, so this is that
+                // (a past-due subscription is not live by Cashier's default, an unpaid one never is).
+                'access_paused' => ! $subscription->valid(),
             ] : null,
             'invoices' => $invoices,
         ]);
@@ -135,6 +135,7 @@ class SubscriptionController extends Controller
             PaymentRetry::PAID => to_route('settings.billing.index')->with('success', 'Payment received. Your plan is active again.'),
             PaymentRetry::ACTION_REQUIRED => Inertia::location((string) $result->url),
             PaymentRetry::DECLINED => to_route('settings.billing.index')->with('error', $result->message),
+            PaymentRetry::PENDING => to_route('settings.billing.index')->with('info', "Your payment is being processed. Your plan will be active again as soon as it's confirmed."),
             PaymentRetry::UNAVAILABLE => to_route('settings.billing.index')->with('error', "We couldn't reach Stripe just now. Please try again in a minute."),
             default => to_route('settings.billing.index')->with('info', 'There is nothing to pay right now.'),
         };

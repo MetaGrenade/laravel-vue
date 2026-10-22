@@ -16,7 +16,10 @@ class SubscriptionPaymentRecovered extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public readonly BillingInvoice $invoice) {}
+    /**
+     * @param  int  $amount  What was paid, in the invoice's currency's minor units.
+     */
+    public function __construct(public readonly BillingInvoice $invoice, public readonly int $amount) {}
 
     /**
      * @return list<string>
@@ -34,7 +37,7 @@ class SubscriptionPaymentRecovered extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $plan = $this->invoice->plan?->name;
-        $amount = Money::ofMinor($this->invoice->total, $this->invoice->currency)->toDecimal().' '.$this->invoice->currency;
+        $amount = Money::ofMinor($this->amount, $this->invoice->currency)->toDecimal().' '.$this->invoice->currency;
 
         return (new MailMessage)
             ->subject('Payment received, thank you')

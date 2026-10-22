@@ -77,7 +77,7 @@ class SubscriptionManager
     {
         $subscription = $user->subscription($this->subscriptionName());
 
-        if ($subscription === null || ! ($subscription->pastDue() || $subscription->stripe_status === StripeSubscription::STATUS_UNPAID)) {
+        if ($subscription === null || ! $this->behindOnPayment($subscription)) {
             return PaymentRetry::nothingDue();
         }
 
@@ -117,13 +117,32 @@ class SubscriptionManager
             // Not payable any more (Stripe took it meanwhile, or voided it): what Stripe says now is what counts.
             $subscription->syncStripeStatus();
 
-            return $subscription->valid() ? PaymentRetry::paid() : PaymentRetry::nothingDue();
+            return $this->recovered($subscription) ? PaymentRetry::paid() : PaymentRetry::nothingDue();
         }
 
         // The webhook says so too, but the customer should not have to wait for it to get their plan back.
         $subscription->syncStripeStatus();
 
-        return PaymentRetry::paid();
+        // Stripe taking the request is not the money arriving: a bank debit is still processing, and the subscription may not
+        // have caught up. Say the plan is back only when the subscription, as Stripe now says, is no longer behind.
+        return $this->recovered($subscription) ? PaymentRetry::paid() : PaymentRetry::pending();
+    }
+
+    /**
+     * Whether a subscription is behind on its payment: past due, or unpaid. The billing page says so and offers to pay, and this
+     * is what there is to pay for.
+     */
+    public function behindOnPayment(Subscription $subscription): bool
+    {
+        return $subscription->pastDue() || $subscription->stripe_status === StripeSubscription::STATUS_UNPAID;
+    }
+
+    /**
+     * Whether a subscription, as Stripe last said, is back: not behind, and live (what its plan gives follows `valid()`).
+     */
+    private function recovered(Subscription $subscription): bool
+    {
+        return ! $this->behindOnPayment($subscription) && $subscription->valid();
     }
 
     protected function subscriptionName(): string

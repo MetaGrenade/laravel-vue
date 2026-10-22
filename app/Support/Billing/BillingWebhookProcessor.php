@@ -20,13 +20,26 @@ class BillingWebhookProcessor
     {
         $invoice = $this->storeInvoice($payload, 'paid');
 
-        $this->dunning->paymentSucceeded($invoice);
+        $this->dunning->paymentSucceeded($invoice, $payload);
 
         $this->storeWebhook($payload, $invoice?->user_id ?? $fallbackUserId);
     }
 
     public function handleInvoicePaymentFailed(array $payload, ?int $fallbackUserId = null): void
     {
+        // Stripe does not promise to deliver events in order. A failure that turns up after the invoice was paid is stale: it must
+        // not mark the paid invoice failed, and the customer, who has paid, must not be chased for it.
+        $paid = BillingInvoice::query()
+            ->where('stripe_id', (string) Arr::get($payload, 'data.object.id'))
+            ->where('status', 'paid')
+            ->first();
+
+        if ($paid !== null) {
+            $this->storeWebhook($payload, $paid->user_id ?? $fallbackUserId);
+
+            return;
+        }
+
         $invoice = $this->storeInvoice($payload, 'failed');
 
         $this->dunning->paymentFailed($invoice, $payload);

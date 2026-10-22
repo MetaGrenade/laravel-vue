@@ -40,6 +40,11 @@ class Dunning
 
         $stripeInvoice = (array) Arr::get($payload, 'data.object', []);
 
+        // Only a subscription's invoice is about a plan: a manual or one-off invoice failing is not this email's business.
+        if (! $this->belongsToSubscription($stripeInvoice)) {
+            return;
+        }
+
         // The first payment of a new subscription is taken while the customer is on the page that asked for it, which says so.
         if (Arr::get($stripeInvoice, 'billing_reason') === 'subscription_create') {
             return;
@@ -53,14 +58,22 @@ class Dunning
             BillingDunningNotice::FAILED,
             $invoice->stripe_id,
             $attempt,
-            new SubscriptionPaymentFailed($invoice, $attempt, is_numeric($next) ? Carbon::createFromTimestamp((int) $next) : null),
+            new SubscriptionPaymentFailed(
+                $invoice,
+                $attempt,
+                is_numeric($next) ? Carbon::createFromTimestamp((int) $next) : null,
+                // What Stripe tried to take, which is less than the invoice's total when a credit or balance came off first.
+                (int) Arr::get($stripeInvoice, 'amount_due', $invoice->total),
+            ),
         );
     }
 
     /**
      * An invoice was paid: if the customer was told it had failed, tell them it has gone through.
+     *
+     * @param  array<string, mixed>  $payload  The Stripe event.
      */
-    public function paymentSucceeded(?BillingInvoice $invoice): void
+    public function paymentSucceeded(?BillingInvoice $invoice, array $payload): void
     {
         $user = $invoice?->user;
 
@@ -77,7 +90,10 @@ class Dunning
             return;
         }
 
-        $this->tell($user, BillingDunningNotice::RECOVERED, $invoice->stripe_id, 0, new SubscriptionPaymentRecovered($invoice));
+        // What was paid, not the invoice's total: a credit or balance may have covered part of it.
+        $paid = (int) Arr::get($payload, 'data.object.amount_paid', $invoice->total);
+
+        $this->tell($user, BillingDunningNotice::RECOVERED, $invoice->stripe_id, 0, new SubscriptionPaymentRecovered($invoice, $paid));
     }
 
     /**
@@ -100,6 +116,19 @@ class Dunning
         $plan = SubscriptionPlan::query()->where('stripe_price_id', $subscription->stripe_price)->value('name');
 
         $this->tell($user, BillingDunningNotice::CANCELLED, $subscription->stripe_id, 0, new SubscriptionCancelledForNonPayment($plan));
+    }
+
+    /**
+     * Whether a Stripe invoice is a subscription's. The invoice names its subscription where the API version of the webhook
+     * endpoint puts it: `parent.subscription_details.subscription` now, a top-level `subscription` on older versions.
+     *
+     * @param  array<string, mixed>  $invoice
+     */
+    private function belongsToSubscription(array $invoice): bool
+    {
+        $subscription = Arr::get($invoice, 'parent.subscription_details.subscription') ?? Arr::get($invoice, 'subscription');
+
+        return is_string($subscription) && $subscription !== '';
     }
 
     /**

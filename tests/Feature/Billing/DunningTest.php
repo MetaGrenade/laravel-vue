@@ -66,6 +66,7 @@ class DunningTest extends TestCase
                 'total' => 2900,
                 'customer' => 'cus_dun1',
                 'currency' => 'usd',
+                'subscription' => 'sub_dun1',
                 'lines' => ['data' => [['price' => ['id' => 'price_dun_pro']]]],
                 ...$invoice,
             ]],
@@ -85,7 +86,7 @@ class DunningTest extends TestCase
      */
     private function succeeded(string $eventId = 'evt_dun_s1'): array
     {
-        return $this->event('invoice.payment_succeeded', $eventId, ['status' => 'paid', 'status_transitions' => ['paid_at' => 1893456100]]);
+        return $this->event('invoice.payment_succeeded', $eventId, ['status' => 'paid', 'amount_paid' => 2900, 'status_transitions' => ['paid_at' => 1893456100]]);
     }
 
     /**
@@ -239,6 +240,113 @@ class DunningTest extends TestCase
         Notification::assertNothingSent();
         $this->assertSame(0, BillingDunningNotice::query()->count());
         $this->assertSame(1, BillingInvoice::query()->count(), 'the invoice is still recorded');
+    }
+
+    #[Test]
+    public function an_invoice_that_is_not_a_subscriptions_is_not_chased(): void
+    {
+        Notification::fake();
+
+        // A manual invoice for the same customer: it names no subscription.
+        $this->process($this->failed(extra: ['subscription' => null, 'billing_reason' => 'manual']));
+
+        Notification::assertNothingSent();
+        $this->assertSame(0, BillingDunningNotice::query()->count());
+        $this->assertSame(1, BillingInvoice::query()->count(), 'the invoice is still recorded');
+    }
+
+    #[Test]
+    public function the_subscription_is_found_wherever_the_webhooks_api_version_puts_it(): void
+    {
+        Notification::fake();
+
+        // Newer API versions name it under parent.subscription_details, and have no top-level subscription at all.
+        $this->process($this->failed(extra: [
+            'subscription' => null,
+            'parent' => ['type' => 'subscription_details', 'subscription_details' => ['subscription' => 'sub_dun1']],
+        ]));
+
+        Notification::assertSentToTimes($this->user, SubscriptionPaymentFailed::class, 1);
+    }
+
+    #[Test]
+    public function a_failure_that_arrives_after_the_payment_went_through_is_ignored(): void
+    {
+        Notification::fake();
+
+        $this->process($this->failed(attempt: 1, eventId: 'evt_f1'));
+        $this->process($this->succeeded());
+        $this->process($this->failed(attempt: 2, eventId: 'evt_f2_late'));
+
+        Notification::assertSentToTimes($this->user, SubscriptionPaymentFailed::class, 1);
+        Notification::assertSentToTimes($this->user, SubscriptionPaymentRecovered::class, 1);
+        $this->assertSame('paid', BillingInvoice::query()->where('stripe_id', 'in_dun1')->firstOrFail()->status, 'a stale failure does not mark a paid invoice failed');
+        $this->assertSame(0, BillingDunningNotice::query()->where('kind', 'failed')->where('attempt', 2)->count());
+        $this->assertNotNull(BillingWebhookCall::query()->where('stripe_id', 'evt_f2_late')->first(), 'it is still kept in the archive');
+    }
+
+    #[Test]
+    public function a_failure_delivered_after_the_success_that_beat_it_says_nothing_at_all(): void
+    {
+        Notification::fake();
+
+        $this->process($this->succeeded());
+        $this->process($this->failed());
+
+        Notification::assertNothingSent();
+        $this->assertSame('paid', BillingInvoice::query()->firstOrFail()->status);
+        $this->assertSame(0, BillingDunningNotice::query()->count());
+    }
+
+    #[Test]
+    public function the_emails_report_what_was_due_and_what_was_paid_not_the_invoices_total(): void
+    {
+        Notification::fake();
+
+        // A credit took 21.00 off a 50.00 invoice before Stripe tried the card.
+        $this->process($this->failed(extra: ['total' => 5000, 'amount_due' => 2900]));
+        $this->process($this->event('invoice.payment_succeeded', 'evt_dun_s9', [
+            'status' => 'paid',
+            'total' => 5000,
+            'amount_due' => 0,
+            'amount_paid' => 2900,
+            'status_transitions' => ['paid_at' => 1893456100],
+        ]));
+
+        Notification::assertSentTo($this->user, SubscriptionPaymentFailed::class, function (SubscriptionPaymentFailed $notification) {
+            $text = implode(' ', $notification->toMail($this->user)->introLines);
+
+            $this->assertStringContainsString('29.00 USD', $text);
+            $this->assertStringNotContainsString('50.00', $text);
+
+            return true;
+        });
+        Notification::assertSentTo($this->user, SubscriptionPaymentRecovered::class, function (SubscriptionPaymentRecovered $notification) {
+            $text = implode(' ', $notification->toMail($this->user)->introLines);
+
+            $this->assertStringContainsString('29.00 USD', $text);
+            $this->assertStringNotContainsString('50.00', $text);
+
+            return true;
+        });
+    }
+
+    #[Test]
+    public function when_stripe_gives_up_the_plan_is_paused_whatever_the_past_due_setting(): void
+    {
+        Notification::fake();
+        Cashier::keepPastDueSubscriptionsActive();
+
+        $this->process($this->failed(attempt: 4, next: null));
+
+        Notification::assertSentTo($this->user, SubscriptionPaymentFailed::class, function (SubscriptionPaymentFailed $notification) {
+            $text = implode(' ', $notification->toMail($this->user)->introLines);
+
+            $this->assertStringContainsString('paused', $text, 'with nothing left to try, the subscription goes unpaid or is cancelled');
+            $this->assertStringNotContainsString('stays active', $text);
+
+            return true;
+        });
     }
 
     // --- It goes through after failing ---------------------------------------------------------------------------------------------
