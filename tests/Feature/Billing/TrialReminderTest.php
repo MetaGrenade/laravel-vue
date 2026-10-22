@@ -30,6 +30,9 @@ class TrialReminderTest extends TestCase
     {
         parent::setUp();
 
+        // The trial ends exactly three days from now in the event, the stored subscription and every date the tests compare it with.
+        $this->freezeTime();
+
         $this->user = User::factory()->create(['stripe_id' => 'cus_rem1']);
 
         SubscriptionPlan::factory()->create(['name' => 'Pro', 'stripe_price_id' => 'price_rem_pro', 'price' => 2900, 'currency' => 'USD', 'interval' => 'month']);
@@ -87,7 +90,8 @@ class TrialReminderTest extends TestCase
 
             $this->assertSame('Your free trial ends soon', $mail->subject);
             $this->assertStringContainsString('free trial of Pro ends on '.now()->addDays(3)->format('F j, Y'), $text);
-            $this->assertStringContainsString('29.00 USD per month', $text);
+            $this->assertStringContainsString('regular price of 29.00 USD per month', $text);
+            $this->assertStringContainsString('charged to the card you added', $text);
             $this->assertStringContainsString('cancel before then', $text);
             $this->assertSame(route('settings.billing.index'), $mail->actionUrl);
 
@@ -123,7 +127,30 @@ class TrialReminderTest extends TestCase
 
             $this->assertStringContainsString('Your free trial ends on', $text);
             $this->assertStringNotContainsString(' of ', explode(' ends on', $text)[0]);
-            $this->assertStringContainsString('the card you added is charged', $text);
+            $this->assertStringContainsString('anything due is charged to the card you added', $text);
+
+            return true;
+        });
+    }
+
+    #[Test]
+    public function the_price_is_the_plans_regular_price_and_a_discount_on_the_subscription_is_not_ignored(): void
+    {
+        Notification::fake();
+
+        // A coupon on the subscription: Stripe's invoice will be less than the plan's price (or nothing at all).
+        $this->process($this->event([
+            'discount' => ['coupon' => ['id' => 'HALF', 'percent_off' => 50]],
+            'discounts' => [['coupon' => ['id' => 'HALF', 'percent_off' => 50]]],
+        ]));
+
+        Notification::assertSentTo($this->user, SubscriptionTrialEnding::class, function (SubscriptionTrialEnding $notification) {
+            $text = implode(' ', $notification->toMail($this->user)->introLines);
+
+            $this->assertStringContainsString('regular price of 29.00 USD per month', $text);
+            $this->assertStringContainsString('Any discount on your subscription is taken off', $text);
+            $this->assertStringNotContainsString('costs', $text);
+            $this->assertStringNotContainsString('taken from the card', $text);
 
             return true;
         });
@@ -134,16 +161,53 @@ class TrialReminderTest extends TestCase
     {
         Notification::fake();
 
-        // Stripe says so itself.
+        // Stripe says so itself: at the end of the period, which for a trial is the end of the trial.
         $this->process($this->event(['cancel_at_period_end' => true], 'evt_a'));
+
+        // Or on the day the trial ends, or before it.
         $this->process($this->event(['cancel_at' => now()->addDays(3)->timestamp], 'evt_b'));
+        $this->process($this->event(['cancel_at' => now()->addDay()->timestamp], 'evt_c'));
 
         // The shop has it as cancelled (Cashier ends a cancelled trial where it would have ended).
         $this->subscription->forceFill(['ends_at' => now()->addDays(3)])->save();
-        $this->process($this->event(eventId: 'evt_c'));
+        $this->process($this->event(eventId: 'evt_d'));
+
+        // Or the shop alone knows of a cancellation before it ends.
+        $this->subscription->forceFill(['ends_at' => now()->addDay()])->save();
+        $this->process($this->event(eventId: 'evt_e'));
 
         Notification::assertNothingSent();
         $this->assertSame(0, BillingDunningNotice::query()->count());
+    }
+
+    #[Test]
+    public function a_subscription_set_to_end_after_the_trial_is_still_warned_about(): void
+    {
+        Notification::fake();
+
+        // Cancelling after the trial and a first payment or two (a Stripe-side schedule): the customer is charged when the trial ends.
+        $later = now()->addDays(3)->addMonths(2);
+        $this->subscription->forceFill(['ends_at' => $later])->save();
+
+        $this->process($this->event(['cancel_at' => $later->timestamp]));
+
+        Notification::assertSentToTimes($this->user, SubscriptionTrialEnding::class, 1);
+    }
+
+    #[Test]
+    public function a_later_cancellation_the_shop_has_not_heard_of_yet_still_gets_a_warning(): void
+    {
+        Notification::fake();
+
+        // Stripe's date is after the trial's end and the shop has nothing stored; the other way round likewise.
+        $this->process($this->event(['cancel_at' => now()->addDays(3)->addDay()->timestamp], 'evt_a'));
+        $this->assertSame(1, BillingDunningNotice::query()->count());
+
+        BillingDunningNotice::query()->delete();
+        $this->subscription->forceFill(['ends_at' => now()->addDays(3)->addDay()])->save();
+        $this->process($this->event(eventId: 'evt_b'));
+
+        Notification::assertSentToTimes($this->user, SubscriptionTrialEnding::class, 2);
     }
 
     #[Test]

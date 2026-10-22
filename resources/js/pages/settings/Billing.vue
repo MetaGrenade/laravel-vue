@@ -141,6 +141,8 @@ const initialPlanId = props.subscription
 const selectedPlanId = ref<number | null>(initialPlanId);
 /** The days of free trial the chosen plan gives this customer (none if they are not eligible). */
 const trialDays = computed(() => (props.trial_eligible ? (props.plans.find((plan) => plan.id === selectedPlanId.value)?.trial_days ?? null) : null));
+/** What starting a subscription changes here: the subscription, its invoices, and whether the free trial is still on offer (it is not once there is one). */
+const subscriptionProps = ['subscription', 'invoices', 'trial_eligible'];
 
 const currentPlan = computed(() => {
     if (!props.subscription) {
@@ -305,7 +307,7 @@ const subscribe = async () => {
 
             successMessage.value = 'Payment confirmed! Refreshing your subscription details.';
             await router.reload({
-                only: ['subscription', 'invoices'],
+                only: subscriptionProps,
             });
             await fetchSetupIntent();
             coupon.value = '';
@@ -322,7 +324,7 @@ const subscribe = async () => {
         coupon.value = '';
 
         await router.reload({
-            only: ['subscription', 'invoices'],
+            only: subscriptionProps,
         });
 
         await fetchSetupIntent();

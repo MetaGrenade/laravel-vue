@@ -11,14 +11,14 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Tells a subscriber that their free trial ends soon, what the plan costs after it, and that they can cancel before then.
+ * Tells a subscriber that their free trial ends soon, the plan's regular price after it, and that they can cancel before then.
  */
 class SubscriptionTrialEnding extends Notification implements ShouldQueue
 {
     use Queueable;
 
     /**
-     * @param  int|null  $price  What the plan costs each period, in the currency's minor units (null when the plan is not known).
+     * @param  int|null  $price  The plan's regular price each period, in the currency's minor units (null when the plan is not known).
      */
     public function __construct(
         public readonly ?string $planName,
@@ -50,10 +50,11 @@ class SubscriptionTrialEnding extends Notification implements ShouldQueue
             ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
             ->line('Your free trial'.($this->planName ? " of {$this->planName}" : '')." ends on {$date}.");
 
+        // The plan's price, never "you will be charged X": a discount on the subscription (or tax) changes what the invoice comes to.
         if ($this->price !== null && $this->currency !== null) {
-            $message->line('After that your plan costs '.Money::ofMinor($this->price, $this->currency)->toDecimal().' '.$this->currency.($this->interval ? " per {$this->interval}" : '').', taken from the card you added.');
+            $message->line('After that your plan continues at its regular price of '.Money::ofMinor($this->price, $this->currency)->toDecimal().' '.$this->currency.($this->interval ? " per {$this->interval}" : '').'. Any discount on your subscription is taken off, and anything left to pay is charged to the card you added.');
         } else {
-            $message->line('After that your subscription continues and the card you added is charged.');
+            $message->line('After that your subscription continues, and anything due is charged to the card you added.');
         }
 
         return $message

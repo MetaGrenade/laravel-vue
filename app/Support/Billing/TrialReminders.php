@@ -26,19 +26,16 @@ class TrialReminders
     {
         $stripeSubscription = (array) Arr::get($payload, 'data.object', []);
 
-        // A trial that was cancelled will not become a charge, so there is nothing to warn about.
-        if ($subscription->canceled()
-            || Arr::get($stripeSubscription, 'cancel_at_period_end') === true
-            || Arr::get($stripeSubscription, 'cancel_at') !== null) {
-            return;
-        }
-
         $trialEnd = Arr::get($stripeSubscription, 'trial_end');
         $end = is_numeric($trialEnd) ? Carbon::createFromTimestamp((int) $trialEnd) : null;
 
         // A reminder for a trial that has already ended (a delivery that was held up, or replayed) is no use to anyone, and one
         // for a trial with no end has nothing to say.
         if ($end === null || $end->isPast()) {
+            return;
+        }
+
+        if ($this->endsWithTheTrial($subscription, $stripeSubscription, $end)) {
             return;
         }
 
@@ -57,5 +54,30 @@ class TrialReminders
             0,
             new SubscriptionTrialEnding($plan?->name, $end, $plan?->price, $plan?->currency, $plan?->interval),
         );
+    }
+
+    /**
+     * Whether the subscription is set to finish by the time the trial does, so that it will never become a charge. One that is
+     * set to end later (after a payment or two) will, and its owner still needs to hear about it.
+     *
+     * @param  array<string, mixed>  $stripeSubscription
+     */
+    private function endsWithTheTrial(Subscription $subscription, array $stripeSubscription, Carbon $trialEnd): bool
+    {
+        // The period of a trial is the trial, so "at the end of the period" is the end of the trial.
+        if (Arr::get($stripeSubscription, 'cancel_at_period_end') === true) {
+            return true;
+        }
+
+        $cancelAt = Arr::get($stripeSubscription, 'cancel_at');
+
+        // Stripe's own date, and the one the shop has stored from earlier events (Cashier keeps a cancelled trial's end there).
+        foreach ([is_numeric($cancelAt) ? Carbon::createFromTimestamp((int) $cancelAt) : null, $subscription->ends_at] as $endsAt) {
+            if ($endsAt !== null && $endsAt->lte($trialEnd)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

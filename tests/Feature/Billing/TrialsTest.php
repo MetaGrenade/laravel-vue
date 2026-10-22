@@ -277,6 +277,35 @@ class TrialsTest extends TestCase
     }
 
     #[Test]
+    public function the_reload_after_subscribing_carries_the_new_eligibility(): void
+    {
+        $plan = $this->plan(14);
+        $user = $this->user();
+
+        // What the page asks for once a subscription has started: a partial reload of just these props, which keeps all the others
+        // (so a stale "eligible" would keep the trial badges up for someone who is no longer).
+        $version = null;
+        $this->actingAs($user)->get(route('settings.billing.index'))->assertInertia(function (Assert $page) use (&$version) {
+            $version = $page->toArray()['version'];
+
+            $page->where('trial_eligible', true);
+        });
+
+        Subscription::create(['user_id' => $user->id, 'type' => 'default', 'stripe_id' => 'sub_started', 'stripe_status' => 'trialing', 'stripe_price' => $plan->stripe_price_id, 'quantity' => 1, 'trial_ends_at' => now()->addDays(14)]);
+
+        $this->actingAs($user->fresh())->get(route('settings.billing.index'), [
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => (string) $version,
+            'X-Inertia-Partial-Component' => 'settings/Billing',
+            'X-Inertia-Partial-Data' => 'subscription,invoices,trial_eligible',
+        ])
+            ->assertOk()
+            ->assertJsonPath('props.trial_eligible', false)
+            ->assertJsonPath('props.subscription.on_trial', true)
+            ->assertJsonMissingPath('props.plans');
+    }
+
+    #[Test]
     public function a_subscription_that_is_not_on_a_trial_says_so(): void
     {
         $user = $this->user();
