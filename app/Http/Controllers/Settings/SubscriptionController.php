@@ -8,6 +8,7 @@ use App\Models\BillingInvoice;
 use App\Models\SubscriptionPlan;
 use App\Support\Billing\PaymentRetry;
 use App\Support\Billing\PlanPresenter;
+use App\Support\Billing\PromotionCodes;
 use App\Support\Billing\SubscriptionManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -91,20 +92,35 @@ class SubscriptionController extends Controller
         ]);
     }
 
+    /**
+     * What a promotion code the customer has typed takes off the plan they have chosen, or why it cannot be used. Nothing is
+     * started or charged; starting the subscription looks the code up again.
+     */
+    public function promotionCode(Request $request, PromotionCodes $codes): JsonResponse
+    {
+        $data = Validator::make($request->all(), [
+            'plan_id' => ['required', 'exists:subscription_plans,id'],
+            'promotion_code' => ['required', 'string', 'max:64'],
+        ])->validate();
+
+        $plan = SubscriptionPlan::query()->active()->findOrFail($data['plan_id']);
+
+        return response()->json($codes->find($request->user(), $plan, $data['promotion_code'])->toArray());
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = Validator::make($request->all(), [
             'plan_id' => ['required', 'exists:subscription_plans,id'],
             'payment_method' => ['required', 'string'],
-            'coupon' => ['nullable', 'string'],
+            'promotion_code' => ['nullable', 'string', 'max:64'],
         ])->validate();
 
-        /** @var SubscriptionPlan $plan */
-        $plan = SubscriptionPlan::findOrFail($data['plan_id']);
+        $plan = SubscriptionPlan::query()->active()->findOrFail($data['plan_id']);
 
         try {
             $subscription = $this->subscriptions->create($request->user(), $plan, $data['payment_method'], [
-                'coupon' => $data['coupon'] ?? null,
+                'promotion_code' => $data['promotion_code'] ?? null,
             ]);
         } catch (IncompletePayment $exception) {
             $paymentIntent = $this->extractPaymentIntent($exception);

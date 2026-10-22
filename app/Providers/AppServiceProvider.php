@@ -46,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(SubscriptionManager::class, fn () => new SubscriptionManager);
+        $this->app->singleton(SubscriptionManager::class);
         $this->app->singleton(HtmlSanitizer::class);
         $this->app->singleton(PaymentManager::class);
         $this->app->singleton(TebexStoreProfile::class);
@@ -172,6 +172,15 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(10)->by('coupons:'.$byUserOrIp($request)),
             Limit::perHour(60)->by('coupons-hourly:'.$byUserOrIp($request)),
         ]);
+
+        // Trying promotion codes on a subscription: every attempt counts, right or wrong, and each one is a question put to Stripe.
+        // It is for any request that carries a code (checking one, or starting a subscription with one, which looks it up as well),
+        // and they share the allowance, so a code cannot be guessed through whichever of them is open. A request with no code is not
+        // counted: that is only starting a subscription, which has its own limit.
+        RateLimiter::for('promotion-codes', fn (Request $request) => filled($request->input('promotion_code')) ? [
+            Limit::perMinute(10)->by('promotion-codes:'.$byUserOrIp($request)),
+            Limit::perHour(60)->by('promotion-codes-hourly:'.$byUserOrIp($request)),
+        ] : Limit::none());
 
         // The page a customer lands on after paying re-checks the payment while it is pending. It has its
         // own allowance, per order, so waiting on a slow payment never competes with starting a checkout.
