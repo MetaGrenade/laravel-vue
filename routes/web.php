@@ -53,6 +53,9 @@ Route::get('/search/results', SearchResultsController::class)->middleware('throt
 Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
 Route::middleware('throttle:billing')->group(function () {
     Route::post('/pricing/setup-intent', [PricingController::class, 'intent'])->name('pricing.intent');
+    Route::post('/pricing/promotion-code', [PricingController::class, 'promotionCode'])
+        ->middleware('throttle:promotion-codes')
+        ->name('pricing.promotion-code');
     Route::post('/pricing/subscribe', [PricingController::class, 'subscribe'])->name('pricing.subscribe');
 });
 

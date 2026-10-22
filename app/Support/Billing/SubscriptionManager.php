@@ -23,12 +23,19 @@ use Symfony\Component\HttpKernel\Exception\LockedHttpException;
 
 class SubscriptionManager
 {
+    public function __construct(private readonly PromotionCodes $promotionCodes) {}
+
     /**
      * Start a subscription. Never at the same time as the user is being deleted (see {@see deleteUser()}): the two take
      * the same lock, and once this one has it, it looks for the user again, since the account may have gone while it waited.
      *
+     * @param  array{promotion_code?: string|null}  $options  `promotion_code` is a code the customer typed; it is looked up here, whatever
+     *                                                        the page checked before, and the subscription is not started with a
+     *                                                        code that cannot be used
+     *
      * @throws AuthenticationException the account no longer exists
      * @throws LockedHttpException the account is being deleted, or another subscription is being started, and did not finish in time
+     * @throws PromotionCodeRejected the promotion code cannot be used (nothing was started or charged)
      */
     public function create(User $user, SubscriptionPlan $plan, string $paymentMethod, array $options = []): ?Subscription
     {
@@ -134,8 +141,13 @@ class SubscriptionManager
 
         $builder = $user->newSubscription($this->subscriptionName(), $plan->stripe_price_id);
 
-        if ($coupon = Arr::get($options, 'coupon')) {
-            $builder->withCoupon($coupon);
+        // Before the card is touched: a code that will not do is said so while nothing has happened yet.
+        $offer = null;
+
+        if (filled($code = Arr::get($options, 'promotion_code'))) {
+            $offer = $this->promotionCodes->find($user, $plan, (string) $code);
+
+            $builder->withPromotionCode($offer->id);
         }
 
         $trialDays = $this->trialDaysFor($user, $plan);
@@ -146,11 +158,31 @@ class SubscriptionManager
 
         $user->updateDefaultPaymentMethod($paymentMethod);
 
-        return $builder->create($paymentMethod, [
-            'metadata' => [
-                'plan_id' => $plan->getKey(),
-            ],
-        ]);
+        try {
+            return $builder->create($paymentMethod, [
+                'metadata' => [
+                    'plan_id' => $plan->getKey(),
+                ],
+            ]);
+        } catch (InvalidRequestException $exception) {
+            // Stripe holds a code to more than can be seen beforehand (first-time customers only, a minimum payment).
+            if ($offer === null || ! $this->aboutPromotionCode($exception)) {
+                throw $exception;
+            }
+
+            Log::info('Stripe refused a promotion code when a subscription was started.', [
+                'user_id' => $user->getKey(),
+                'error' => $exception->getMessage(),
+            ]);
+
+            throw PromotionCodeRejected::refusedByStripe();
+        }
+    }
+
+    private function aboutPromotionCode(InvalidRequestException $exception): bool
+    {
+        return str_contains((string) $exception->getError()?->param, 'promotion_code')
+            || preg_match('/promotion code|coupon/i', $exception->getMessage()) === 1;
     }
 
     /**

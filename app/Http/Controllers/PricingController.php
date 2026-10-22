@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Support\Billing\PlanPresenter;
+use App\Support\Billing\PromotionCodes;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\Commerce\GuestCarryOver;
 use App\Support\Seo\Seo;
@@ -93,6 +94,30 @@ class PricingController extends Controller
         ]);
     }
 
+    /**
+     * What a promotion code takes off the chosen plan, or why it cannot be used. It comes after {@see intent()}, which is what
+     * gives a new visitor their account, so there is somebody to check it for.
+     */
+    public function promotionCode(Request $request, PromotionCodes $codes): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'You need an account before using a code.',
+            ], 401);
+        }
+
+        $data = Validator::make($request->all(), [
+            'plan_id' => ['required', 'exists:subscription_plans,id'],
+            'promotion_code' => ['required', 'string', 'max:64'],
+        ])->validate();
+
+        $plan = SubscriptionPlan::query()->active()->findOrFail($data['plan_id']);
+
+        return response()->json($codes->find($user, $plan, $data['promotion_code'])->toArray());
+    }
+
     public function subscribe(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -106,7 +131,7 @@ class PricingController extends Controller
         $data = Validator::make($request->all(), [
             'plan_id' => ['required', 'exists:subscription_plans,id'],
             'payment_method' => ['required', 'string'],
-            'coupon' => ['nullable', 'string'],
+            'promotion_code' => ['nullable', 'string', 'max:64'],
         ])->validate();
 
         /** @var SubscriptionPlan $plan */
@@ -114,7 +139,7 @@ class PricingController extends Controller
 
         try {
             $subscription = $this->subscriptions->create($user, $plan, $data['payment_method'], [
-                'coupon' => $data['coupon'] ?? null,
+                'promotion_code' => $data['promotion_code'] ?? null,
             ]);
         } catch (IncompletePayment $exception) {
             $paymentIntent = $this->extractPaymentIntent($exception);

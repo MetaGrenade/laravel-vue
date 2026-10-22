@@ -46,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(SubscriptionManager::class, fn () => new SubscriptionManager);
+        $this->app->singleton(SubscriptionManager::class);
         $this->app->singleton(HtmlSanitizer::class);
         $this->app->singleton(PaymentManager::class);
         $this->app->singleton(TebexStoreProfile::class);
@@ -171,6 +171,12 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('coupons', fn (Request $request) => [
             Limit::perMinute(10)->by('coupons:'.$byUserOrIp($request)),
             Limit::perHour(60)->by('coupons-hourly:'.$byUserOrIp($request)),
+        ]);
+
+        // Trying promotion codes on a subscription: every attempt counts, right or wrong, and each one is a question put to Stripe.
+        RateLimiter::for('promotion-codes', fn (Request $request) => [
+            Limit::perMinute(10)->by('promotion-codes:'.$byUserOrIp($request)),
+            Limit::perHour(60)->by('promotion-codes-hourly:'.$byUserOrIp($request)),
         ]);
 
         // The page a customer lands on after paying re-checks the payment while it is pending. It has its

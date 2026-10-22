@@ -71,7 +71,7 @@ class BillingSettingsTest extends TestCase
         $manager = Mockery::mock(SubscriptionManager::class);
         $manager->shouldReceive('create')
             ->once()
-            ->with($user, Mockery::on(fn ($argument) => $argument->is($plan)), 'pm_test', ['coupon' => 'PROMO'])
+            ->with($user, Mockery::on(fn ($argument) => $argument->is($plan)), 'pm_test', ['promotion_code' => 'PROMO'])
             ->andReturnNull();
         $manager->shouldReceive('cancel')->once()->with($user);
         $manager->shouldReceive('resume')->once()->with($user);
@@ -82,7 +82,7 @@ class BillingSettingsTest extends TestCase
             ->postJson(route('settings.billing.subscribe'), [
                 'plan_id' => $plan->id,
                 'payment_method' => 'pm_test',
-                'coupon' => 'PROMO',
+                'promotion_code' => 'PROMO',
             ])
             ->assertOk()
             ->assertJson([

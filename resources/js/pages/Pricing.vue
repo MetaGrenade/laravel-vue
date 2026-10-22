@@ -2,6 +2,7 @@
 import { stripeAppearance, useStripeAppearanceSync } from '@/lib/stripeAppearance';
 import { computed, onBeforeUnmount, ref, shallowRef } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
+import PromotionCodeField from '@/components/PromotionCodeField.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,9 @@ const stripeKey = computed(() => page.props.billing?.stripeKey ?? null);
 const isStripeConfigured = computed(() => Boolean(stripeKey.value));
 
 const email = ref(page.props.auth.user?.email ?? '');
+/** Whether there is an account to check a code for: a visitor gets one when the payment form is loaded. */
+const hasAccount = ref(page.props.auth.user !== null);
+const promotionCode = ref('');
 const selectedPlanId = ref<number | null>(props.plans[0]?.id ?? null);
 /** The days of free trial the chosen plan gives this visitor (none if they are not eligible). */
 const trialDays = computed(() => (props.trial_eligible ? (props.plans.find((plan) => plan.id === selectedPlanId.value)?.trial_days ?? null) : null));
@@ -205,6 +209,7 @@ const startCheckout = async () => {
             return;
         }
 
+        hasAccount.value = true;
         setupIntentSecret.value = payload?.client_secret ?? null;
 
         if (setupIntentSecret.value) {
@@ -268,6 +273,7 @@ const subscribe = async () => {
             body: JSON.stringify({
                 plan_id: selectedPlanId.value,
                 payment_method: paymentMethodId,
+                promotion_code: promotionCode.value.trim() || null,
             }),
         });
 
@@ -407,6 +413,13 @@ onBeforeUnmount(() => {
                                     Load the payment form to continue.
                                 </p>
                             </div>
+                            <PromotionCodeField
+                                v-if="hasAccount"
+                                id="pricing-promotion-code"
+                                v-model="promotionCode"
+                                :plan-id="selectedPlanId"
+                                :check-url="route('pricing.promotion-code')"
+                            />
                             <p v-if="trialDays" class="text-sm text-muted-foreground">
                                 Your card is not charged for {{ trialDays }} days. Cancel before then and you pay nothing.
                             </p>

@@ -7,8 +7,8 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
+import PromotionCodeField from '@/components/PromotionCodeField.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
@@ -65,7 +65,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const coupon = ref('');
+const promotionCode = ref('');
 const subscribing = ref(false);
 const paying = ref(false);
 const canceling = ref(false);
@@ -289,7 +289,7 @@ const subscribe = async () => {
             body: JSON.stringify({
                 plan_id: selectedPlanId.value,
                 payment_method: paymentMethodId,
-                coupon: coupon.value || null,
+                promotion_code: promotionCode.value.trim() || null,
             }),
         });
 
@@ -310,7 +310,7 @@ const subscribe = async () => {
                 only: subscriptionProps,
             });
             await fetchSetupIntent();
-            coupon.value = '';
+            promotionCode.value = '';
             return;
         }
 
@@ -321,7 +321,7 @@ const subscribe = async () => {
         }
 
         successMessage.value = 'Subscription activated successfully.';
-        coupon.value = '';
+        promotionCode.value = '';
 
         await router.reload({
             only: subscriptionProps,
@@ -500,10 +500,11 @@ onBeforeUnmount(() => {
                                 <div id="payment-element" class="rounded-lg border border-border bg-card p-4 shadow-xs" />
                                 <p v-if="!paymentElementReady" class="text-sm text-muted-foreground">Loading the secure payment form…</p>
                             </div>
-                            <div class="grid gap-2">
-                                <label class="text-sm font-medium" for="coupon">Coupon (optional)</label>
-                                <Input id="coupon" v-model="coupon" placeholder="PROMO2025" class="w-full" />
-                            </div>
+                            <PromotionCodeField
+                                v-model="promotionCode"
+                                :plan-id="selectedPlanId"
+                                :check-url="route('settings.billing.promotion-code')"
+                            />
                             <div class="flex flex-wrap items-center gap-3">
                                 <Button :disabled="subscribing || !paymentElementReady || confirmingPayment" @click="subscribe">
                                     <span v-if="subscribing">Activating...</span>
