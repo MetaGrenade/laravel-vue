@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { ExternalLink } from '@lucide/vue';
 type StripeInstance = any;
 type StripeElementsInstance = any;
 type StripePaymentElementInstance = any;
@@ -59,6 +60,8 @@ interface Props {
     plans: Plan[];
     /** Whether the trials the plans offer are for this customer: they get one, and only if they have never had a subscription. */
     trial_eligible: boolean;
+    /** Whether to offer the way into Stripe's billing portal: it is switched on, and this customer has an account at Stripe. */
+    portal: boolean;
     subscription: SubscriptionPayload | null;
     invoices: InvoicePayload[];
 }
@@ -68,6 +71,7 @@ const props = defineProps<Props>();
 const promotionCode = ref('');
 const subscribing = ref(false);
 const paying = ref(false);
+const openingPortal = ref(false);
 const canceling = ref(false);
 const resuming = ref(false);
 const setupLoading = ref(false);
@@ -141,8 +145,11 @@ const initialPlanId = props.subscription
 const selectedPlanId = ref<number | null>(initialPlanId);
 /** The days of free trial the chosen plan gives this customer (none if they are not eligible). */
 const trialDays = computed(() => (props.trial_eligible ? (props.plans.find((plan) => plan.id === selectedPlanId.value)?.trial_days ?? null) : null));
-/** What starting a subscription changes here: the subscription, its invoices, and whether the free trial is still on offer (it is not once there is one). */
-const subscriptionProps = ['subscription', 'invoices', 'trial_eligible'];
+/**
+ * What starting a subscription changes here: the subscription, its invoices, whether the free trial is still on offer (it is not
+ * once there is one), and whether there is a billing account to open the portal for (there is, now).
+ */
+const subscriptionProps = ['subscription', 'invoices', 'trial_eligible', 'portal'];
 
 const currentPlan = computed(() => {
     if (!props.subscription) {
@@ -344,6 +351,20 @@ const payNow = () => {
             preserveScroll: true,
             onFinish: () => {
                 paying.value = false;
+            },
+        },
+    );
+};
+
+/** Go to Stripe's billing portal; it comes back to this page. The server answers with where to go, or says why it could not. */
+const openPortal = () => {
+    openingPortal.value = true;
+    router.post(
+        route('settings.billing.portal'),
+        {},
+        {
+            onFinish: () => {
+                openingPortal.value = false;
             },
         },
     );
@@ -570,6 +591,16 @@ onBeforeUnmount(() => {
                                 <span v-else>Resume subscription</span>
                             </Button>
                             <p v-else class="text-xs text-muted-foreground">Activate a plan to unlock community billing perks.</p>
+                        </div>
+                        <div v-if="props.portal" class="mt-4 space-y-2 border-t border-border pt-4">
+                            <p class="text-xs text-muted-foreground">
+                                Update your card, see your invoices or manage your subscription on Stripe's secure billing page.
+                            </p>
+                            <Button variant="outline" class="w-full" :disabled="openingPortal" @click="openPortal">
+                                <ExternalLink class="size-4" aria-hidden="true" />
+                                <span v-if="openingPortal">Opening…</span>
+                                <span v-else>Manage billing in Stripe</span>
+                            </Button>
                         </div>
                     </div>
                 </div>

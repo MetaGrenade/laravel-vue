@@ -9,6 +9,17 @@ return [
     ],
 
     /*
+    | The button on the billing page that sends a customer to Stripe's hosted billing portal (cards, invoices, and whatever else you
+    | allow there). What it offers is set in the Stripe Dashboard under Settings → Billing → Customer portal, which has to be saved
+    | once in each mode before Stripe will open a portal at all. `configuration` is the id of one of several portal configurations
+    | (`bpc_...`) and is only needed if you made more than one.
+    */
+    'portal' => [
+        'enabled' => env('BILLING_PORTAL_ENABLED', true),
+        'configuration' => env('STRIPE_PORTAL_CONFIGURATION'),
+    ],
+
+    /*
     | Starting a subscription and deleting an account are never done at the same time for one user (a subscription started
     | while the account is being deleted would be missed by the cancelling and go on charging). Whichever comes second waits
     | up to `wait` seconds for the first; `ttl` is how long the lock lasts if the process holding it dies. Needs a cache

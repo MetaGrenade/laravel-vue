@@ -404,7 +404,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 ### M3. SaaS essentials (10–14 days)
 
 - Entitlements (section 8.6) wired to Stripe plans and the pricing page (**done**, first slice: see [entitlements.md](entitlements.md#subscription-plans)). Decided in the build: a plan's entitlements are read from the account's live Cashier subscriptions each time rather than copied into grants, so a plan change reaches the people on it at once
-- Trials (**done**, see [billing.md](billing.md#free-trials)), coupons on subscriptions (**done** as promotion codes, see [billing.md](billing.md#promotion-codes)), dunning emails (**done**, see [billing.md](billing.md#when-a-payment-fails)), customer portal links
+- Trials (**done**, see [billing.md](billing.md#free-trials)), coupons on subscriptions (**done** as promotion codes, see [billing.md](billing.md#promotion-codes)), dunning emails (**done**, see [billing.md](billing.md#when-a-payment-fails)), customer portal links (**done**, see [billing.md](billing.md#customer-portal))
 - Metered usage example with reporting
 - Self-service API keys page with scopes and expiry
 - Admin audit log and read-only impersonation
