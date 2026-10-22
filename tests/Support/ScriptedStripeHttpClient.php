@@ -42,9 +42,9 @@ class ScriptedStripeHttpClient implements ClientInterface
      * @param  list<array<string, mixed>>  $items
      * @return array{0: int, 1: array<string, mixed>}
      */
-    public static function page(array $items, bool $hasMore): array
+    public static function page(array $items, bool $hasMore, string $url = '/v1/refunds'): array
     {
-        return [200, ['object' => 'list', 'data' => $items, 'has_more' => $hasMore, 'url' => '/v1/refunds']];
+        return [200, ['object' => 'list', 'data' => $items, 'has_more' => $hasMore, 'url' => $url]];
     }
 
     /**
@@ -66,8 +66,33 @@ class ScriptedStripeHttpClient implements ClientInterface
     /**
      * @return array{0: int, 1: array<string, mixed>}
      */
-    public static function error(int $status, string $message, string $type = 'invalid_request_error'): array
+    public static function error(int $status, string $message, string $type = 'invalid_request_error', ?string $code = null): array
     {
-        return [$status, ['error' => ['message' => $message, 'type' => $type]]];
+        return [$status, ['error' => array_filter(['message' => $message, 'type' => $type, 'code' => $code])]];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function subscription(string $id, string $status = 'active', bool $cancelAtPeriodEnd = false): array
+    {
+        return [
+            'id' => $id,
+            'object' => 'subscription',
+            'customer' => 'cus_deleted',
+            'status' => $status,
+            'cancel_at_period_end' => $cancelAtPeriodEnd,
+        ];
+    }
+
+    /**
+     * A page of subscriptions, as Stripe lists them for a customer.
+     *
+     * @param  list<array<string, mixed>>  $items
+     * @return array{0: int, 1: array<string, mixed>}
+     */
+    public static function subscriptions(array $items, bool $hasMore = false): array
+    {
+        return self::page($items, $hasMore, '/v1/subscriptions');
     }
 }

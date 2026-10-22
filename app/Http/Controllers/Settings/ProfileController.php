@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Support\Billing\SubscriptionCancellationFailed;
+use App\Support\Billing\SubscriptionManager;
 use App\Support\EmailVerification;
 use App\Support\Localization\PreferenceOptions;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -53,15 +55,22 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete the user's profile.
+     * Delete the user's profile, after ending any subscription they have so that it cannot go on charging them.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, SubscriptionManager $subscriptions): RedirectResponse
     {
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);
 
         $user = $request->user();
+
+        // Before signing out, so that when Stripe cannot be reached the account is left as it was, still signed in.
+        try {
+            $subscriptions->cancelAllNow($user);
+        } catch (SubscriptionCancellationFailed) {
+            return back()->with('error', 'We could not cancel your subscription with our payment provider, so your account has not been deleted. Please try again in a few minutes.');
+        }
 
         Auth::logout();
 
