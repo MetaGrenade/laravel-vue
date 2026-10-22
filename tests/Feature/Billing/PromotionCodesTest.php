@@ -252,6 +252,84 @@ class PromotionCodesTest extends TestCase
         $this->assertSame('promo_everybody', $this->find()->id);
     }
 
+    /**
+     * The same code made for a hundred other customers, which fills a page, and Stripe's answer to asking for one customer's.
+     *
+     * @param  array<string, mixed>|null  $theirs  What Stripe has for the customer asked about (nothing, if null).
+     */
+    private function manyCodesMadeForOthers(?array $theirs = null, bool $hasMore = true): RoutedStripeHttpClient
+    {
+        $others = array_map(fn (int $n) => $this->promotion(['id' => "promo_other_{$n}", 'customer' => "cus_other_{$n}"]), range(1, 100));
+
+        return $this->stripe(extra: [
+            'GET /v1/promotion_codes' => fn (array $params) => isset($params['customer'])
+                ? ScriptedStripeHttpClient::page($theirs === null ? [] : [$theirs], false, '/v1/promotion_codes')
+                : ScriptedStripeHttpClient::page($others, $hasMore, '/v1/promotion_codes'),
+        ]);
+    }
+
+    #[Test]
+    public function this_customers_code_is_found_even_when_it_is_not_on_the_first_page(): void
+    {
+        $client = $this->manyCodesMadeForOthers($this->promotion(['id' => 'promo_mine', 'customer' => 'cus_me']));
+
+        $this->assertSame('promo_mine', $this->find()->id);
+
+        // Not paged through: asked for by customer, and for the same code.
+        $calls = $client->callsTo('GET /v1/promotion_codes');
+        $this->assertCount(2, $calls);
+        $this->assertSame('cus_me', $calls[1]['params']['customer']);
+        $this->assertSame('SPRING20', $calls[1]['params']['code']);
+        $this->assertSame('true', $calls[1]['params']['active']);
+    }
+
+    #[Test]
+    public function with_more_than_a_page_and_none_this_customers_the_code_is_refused(): void
+    {
+        $client = $this->manyCodesMadeForOthers();
+
+        $this->assertSame("That code isn't valid, or it has expired.", $this->rejection());
+        $this->assertCount(2, $client->callsTo('GET /v1/promotion_codes'));
+    }
+
+    #[Test]
+    public function there_is_no_second_question_when_the_first_page_is_all_there_is(): void
+    {
+        $client = $this->manyCodesMadeForOthers($this->promotion(['id' => 'promo_mine', 'customer' => 'cus_me']), hasMore: false);
+
+        $this->assertSame("That code isn't valid, or it has expired.", $this->rejection());
+        $this->assertCount(1, $client->callsTo('GET /v1/promotion_codes'));
+    }
+
+    #[Test]
+    public function there_is_no_second_question_when_the_code_was_on_the_first_page(): void
+    {
+        $client = $this->stripe(extra: [
+            'GET /v1/promotion_codes' => ScriptedStripeHttpClient::page([$this->promotion(['id' => 'promo_everybody'])], true, '/v1/promotion_codes'),
+        ]);
+
+        $this->assertSame('promo_everybody', $this->find()->id);
+        $this->assertCount(1, $client->callsTo('GET /v1/promotion_codes'));
+    }
+
+    #[Test]
+    public function a_customer_stripe_does_not_know_cannot_be_asked_about(): void
+    {
+        $this->user->forceFill(['stripe_id' => null])->save();
+        $client = $this->manyCodesMadeForOthers($this->promotion(['id' => 'promo_mine', 'customer' => 'cus_me']));
+
+        $this->assertSame("That code isn't valid, or it has expired.", $this->rejection());
+        $this->assertCount(1, $client->callsTo('GET /v1/promotion_codes'));
+    }
+
+    #[Test]
+    public function what_stripe_answers_for_a_customer_is_checked_to_be_theirs(): void
+    {
+        $this->manyCodesMadeForOthers($this->promotion(['id' => 'promo_not_mine', 'customer' => 'cus_someone_else']));
+
+        $this->assertSame("That code isn't valid, or it has expired.", $this->rejection());
+    }
+
     #[Test]
     public function a_customer_stripe_does_not_know_yet_cannot_use_a_code_made_for_a_customer(): void
     {

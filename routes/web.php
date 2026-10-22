@@ -56,7 +56,9 @@ Route::middleware('throttle:billing')->group(function () {
     Route::post('/pricing/promotion-code', [PricingController::class, 'promotionCode'])
         ->middleware('throttle:promotion-codes')
         ->name('pricing.promotion-code');
-    Route::post('/pricing/subscribe', [PricingController::class, 'subscribe'])->name('pricing.subscribe');
+    Route::post('/pricing/subscribe', [PricingController::class, 'subscribe'])
+        ->middleware('throttle:promotion-codes')
+        ->name('pricing.subscribe');
 });
 
 Route::middleware('section.enabled:commerce')->group(function () {

@@ -6,10 +6,12 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Support\Billing\PromotionCodeRejected;
 use App\Support\Billing\SubscriptionManager;
+use Illuminate\Cache\RateLimiting\Unlimited;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Cashier\Subscription;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Stripe\ApiRequestor;
 use Stripe\Exception\InvalidRequestException;
@@ -304,9 +306,16 @@ class PromotionCodeSubscribingTest extends TestCase
     #[Test]
     public function the_allowance_for_trying_codes_is_ten_a_minute_and_sixty_an_hour(): void
     {
-        $limits = RateLimiter::limiter('promotion-codes')(Request::create('/'));
+        $limiter = RateLimiter::limiter('promotion-codes');
+
+        $limits = $limiter(Request::create('/', 'POST', ['promotion_code' => 'SPRING20']));
 
         $this->assertSame([[10, 60], [60, 3600]], collect($limits)->map(fn ($limit) => [$limit->maxAttempts, $limit->decaySeconds])->all());
+
+        // A request that carries no code is not a try at one.
+        foreach ([[], ['promotion_code' => null], ['promotion_code' => ''], ['promotion_code' => '   ']] as $input) {
+            $this->assertInstanceOf(Unlimited::class, $limiter(Request::create('/', 'POST', $input)));
+        }
     }
 
     #[Test]
@@ -322,17 +331,46 @@ class PromotionCodeSubscribingTest extends TestCase
         $this->assertSame([], $client->requests);
     }
 
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function subscribeRoutes(): array
+    {
+        return ['the billing page' => ['settings.billing.subscribe'], 'the pricing page' => ['pricing.subscribe']];
+    }
+
     #[Test]
-    public function starting_a_subscription_is_slowed_down_as_well_since_it_looks_the_code_up(): void
+    #[DataProvider('subscribeRoutes')]
+    public function starting_a_subscription_with_a_code_counts_against_the_allowance_for_trying_codes(string $route): void
     {
         $client = $this->stripe();
+        $body = ['plan_id' => $this->plan->id, 'payment_method' => 'pm_card'];
 
-        for ($attempt = 1; $attempt <= 10; $attempt++) {
-            $this->actingAs($this->user)->postJson(route('settings.billing.subscribe'), ['plan_id' => $this->plan->id, 'payment_method' => 'pm_card', 'promotion_code' => 'not a code'])->assertStatus(422);
+        // Ten a minute, a minute apart: never over the per-minute limit, which is what a guesser would stay under, and sixty in the hour.
+        for ($minute = 1; $minute <= 6; $minute++) {
+            for ($attempt = 1; $attempt <= 10; $attempt++) {
+                $this->actingAs($this->user)->postJson(route($route), [...$body, 'promotion_code' => 'not a code'])->assertStatus(422);
+            }
+
+            $this->travel(61)->seconds();
         }
 
-        $this->actingAs($this->user)->postJson(route('settings.billing.subscribe'), ['plan_id' => $this->plan->id, 'payment_method' => 'pm_card', 'promotion_code' => 'SPRING20'])->assertTooManyRequests();
+        $this->actingAs($this->user)->postJson(route($route), [...$body, 'promotion_code' => 'SPRING20'])->assertTooManyRequests();
+        $this->assertSame([], $client->callsTo('GET /v1/promotion_codes'), 'Stripe is not asked');
         $this->assertSame([], $client->callsTo('POST /v1/subscriptions'));
+
+        // Starting a subscription with no code is not a guess at one, so it is not held up by them.
+        $this->actingAs($this->user)->postJson(route($route), $body)->assertOk();
+    }
+
+    #[Test]
+    public function the_billing_pages_subscribe_requests_are_limited_per_minute_whatever_they_carry(): void
+    {
+        for ($attempt = 1; $attempt <= 10; $attempt++) {
+            $this->actingAs($this->user)->postJson(route('settings.billing.subscribe'), ['plan_id' => $this->plan->id])->assertStatus(422);
+        }
+
+        $this->actingAs($this->user)->postJson(route('settings.billing.subscribe'), ['plan_id' => $this->plan->id])->assertTooManyRequests();
     }
 
     #[Test]

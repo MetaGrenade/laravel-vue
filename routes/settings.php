@@ -53,9 +53,10 @@ Route::middleware('auth')->group(function () {
     Route::post('settings/billing/promotion-code', [SubscriptionController::class, 'promotionCode'])
         ->middleware('throttle:promotion-codes')
         ->name('settings.billing.promotion-code');
-    // Limited like the pricing page's, since starting a subscription looks a promotion code up too.
+    // Limited like the pricing page's. Starting a subscription looks a promotion code up too, so a request with one also counts
+    // against the allowance for trying them.
     Route::post('settings/billing/subscribe', [SubscriptionController::class, 'store'])
-        ->middleware('throttle:billing')
+        ->middleware(['throttle:billing', 'throttle:promotion-codes'])
         ->name('settings.billing.subscribe');
     Route::post('settings/billing/retry-payment', [SubscriptionController::class, 'retryPayment'])
         ->middleware('throttle:6,1')

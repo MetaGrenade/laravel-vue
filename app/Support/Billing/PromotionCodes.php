@@ -41,8 +41,7 @@ class PromotionCodes
         try {
             $stripe = Cashier::stripe();
 
-            // Case-insensitive at Stripe, and only the ones that can still be redeemed (not expired, used up or archived).
-            $promotion = $this->forThisCustomer($user, $stripe->promotionCodes->all(['code' => $code, 'active' => true, 'limit' => 100])->data);
+            $promotion = $this->named($stripe, $user, $code);
 
             if ($promotion === null) {
                 throw PromotionCodeRejected::notValid();
@@ -62,6 +61,31 @@ class PromotionCodes
 
             throw PromotionCodeRejected::cannotBeChecked();
         }
+    }
+
+    /**
+     * The live promotion code of that name that this customer may use, if there is one. Stripe matches the name without regard to
+     * case, and lists only the codes that can still be redeemed (not expired, used up or archived).
+     */
+    private function named(StripeClient $stripe, User $user, string $code): ?PromotionCode
+    {
+        $page = $stripe->promotionCodes->all(['code' => $code, 'active' => true, 'limit' => 100]);
+
+        $promotion = $this->forThisCustomer($user, $page->data);
+
+        // Stripe allows the same code to be made for any number of particular customers, so there can be more than a page of them
+        // and this customer's may be on a later one. It is asked for by customer instead of paging through everybody's. A code that
+        // anybody may use is never on a later page: Stripe does not allow another live code of that name beside it.
+        if ($promotion === null && $page->has_more && is_string($user->stripe_id) && $user->stripe_id !== '') {
+            $promotion = $this->forThisCustomer($user, $stripe->promotionCodes->all([
+                'code' => $code,
+                'active' => true,
+                'customer' => $user->stripe_id,
+                'limit' => 1,
+            ])->data);
+        }
+
+        return $promotion;
     }
 
     /**

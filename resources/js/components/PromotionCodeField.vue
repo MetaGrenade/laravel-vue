@@ -36,12 +36,20 @@ const checkedFor = ref('');
 const error = ref<string | null>(null);
 const checking = ref(false);
 
+/**
+ * Which check is the current one. Changing the code or the plan while one is on its way makes it out of date, and its answer is
+ * dropped when it arrives: it is about something else by then.
+ */
+let current = 0;
+
 const apply = async () => {
     const typed = code.value.trim();
 
     if (checking.value || typed === '' || props.planId === null) {
         return;
     }
+
+    const check = ++current;
 
     checking.value = true;
     error.value = null;
@@ -61,6 +69,10 @@ const apply = async () => {
 
         const payload = await response.json().catch(() => ({}));
 
+        if (check !== current) {
+            return;
+        }
+
         if (response.ok) {
             offer.value = payload as Offer;
             checkedFor.value = typed;
@@ -72,31 +84,43 @@ const apply = async () => {
                 ? 'Too many tries. Please wait a minute and try again.'
                 : (payload?.errors?.promotion_code?.[0] ?? payload?.message ?? "We couldn't check that code just now.");
     } catch {
-        error.value = "We couldn't check that code just now.";
+        if (check === current) {
+            error.value = "We couldn't check that code just now.";
+        }
     } finally {
-        checking.value = false;
+        if (check === current) {
+            checking.value = false;
+        }
     }
+};
+
+// What was being asked is not wanted any more: its answer is dropped, and the box is free for the next question.
+const withdraw = () => {
+    current++;
+    checking.value = false;
+    error.value = null;
 };
 
 // Changing the code (or clearing it after a subscription was started) withdraws what was said about the old one.
 watch(code, (typed) => {
-    error.value = null;
+    withdraw();
 
     if (offer.value && typed.trim() !== checkedFor.value) {
         offer.value = null;
     }
 });
 
-// What a code takes off depends on the plan, so a code that was fine for one is checked again for the next.
+// What a code takes off depends on the plan, so a code that was fine for one is checked again for the next, and so is one that was
+// still being checked.
 watch(
     () => props.planId,
     () => {
-        const wasApplied = offer.value !== null;
+        const wasAsked = offer.value !== null || checking.value;
 
+        withdraw();
         offer.value = null;
-        error.value = null;
 
-        if (wasApplied) {
+        if (wasAsked) {
             void apply();
         }
     },
