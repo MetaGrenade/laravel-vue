@@ -48,7 +48,7 @@ class SubscriptionPlanManagementTest extends TestCase
     public function test_staff_can_create_subscription_plan(): void
     {
         $user = User::factory()->create();
-        $user->givePermissionTo('billing.acp.view');
+        $user->givePermissionTo(['billing.acp.view', 'billing.acp.create']);
 
         $response = $this->actingAs($user)->post(route('acp.billing.plans.store'), [
             'name' => 'Pro',
@@ -79,7 +79,7 @@ class SubscriptionPlanManagementTest extends TestCase
     public function test_decimal_price_strings_are_converted_to_cents(): void
     {
         $user = User::factory()->create();
-        $user->givePermissionTo('billing.acp.view');
+        $user->givePermissionTo(['billing.acp.view', 'billing.acp.create']);
 
         $response = $this->actingAs($user)->post(route('acp.billing.plans.store'), [
             'name' => 'Enterprise',
@@ -105,7 +105,7 @@ class SubscriptionPlanManagementTest extends TestCase
     public function test_staff_can_update_subscription_plan(): void
     {
         $user = User::factory()->create();
-        $user->givePermissionTo('billing.acp.view');
+        $user->givePermissionTo(['billing.acp.view', 'billing.acp.edit']);
 
         $plan = SubscriptionPlan::factory()->create([
             'name' => 'Starter',
@@ -144,7 +144,7 @@ class SubscriptionPlanManagementTest extends TestCase
     public function test_staff_can_delete_subscription_plan(): void
     {
         $user = User::factory()->create();
-        $user->givePermissionTo('billing.acp.view');
+        $user->givePermissionTo(['billing.acp.view', 'billing.acp.delete']);
 
         $plan = SubscriptionPlan::factory()->create();
 

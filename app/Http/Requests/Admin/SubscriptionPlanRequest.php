@@ -8,10 +8,12 @@ use Illuminate\Validation\Rule;
 
 class SubscriptionPlanRequest extends FormRequest
 {
+    /**
+     * The routes decide (`billing.acp.create` to make a plan, `billing.acp.edit` to change one), as for the other ACP forms.
+     */
     public function authorize(): bool
     {
-        return $this->user()?->can('billing.acp.view')
-            || $this->user()?->hasAnyRole(['admin', 'editor', 'moderator']);
+        return true;
     }
 
     public function rules(): array

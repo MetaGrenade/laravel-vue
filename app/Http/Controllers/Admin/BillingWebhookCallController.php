@@ -131,13 +131,15 @@ class BillingWebhookCallController extends Controller
                 'updated_at' => optional($billingWebhookCall->updated_at)?->toIso8601String(),
                 'payload' => $billingWebhookCall->payload,
             ],
+            'can' => ['replay' => $request->user()->can('billing.acp.edit')],
         ]);
     }
 
-    public function replay(Request $request, BillingWebhookCall $billingWebhookCall, TebexProvider $tebex): RedirectResponse
+    /**
+     * Run a delivery again. The route asks for `billing.acp.edit`: unlike looking at one, this makes it do what it does.
+     */
+    public function replay(BillingWebhookCall $billingWebhookCall, TebexProvider $tebex): RedirectResponse
     {
-        abort_unless($request->user()->can('billing.acp.view'), 403);
-
         if ($billingWebhookCall->provider === TebexProvider::KEY) {
             return $this->replayTebex($billingWebhookCall, $tebex);
         }

@@ -33,6 +33,7 @@ interface WebhookCallDetail {
 
 interface Props {
     call: WebhookCallDetail;
+    can: { replay: boolean };
 }
 
 const props = defineProps<Props>();
@@ -156,7 +157,7 @@ onBeforeUnmount(() => {
                     <Button variant="outline" as-child>
                         <Link :href="route('acp.billing.webhooks.index')">Back to archive</Link>
                     </Button>
-                    <Button :disabled="replaying" @click="replayWebhook">
+                    <Button v-if="props.can.replay" :disabled="replaying" @click="replayWebhook">
                         <span v-if="replaying">Replaying…</span>
                         <span v-else>Replay webhook</span>
                     </Button>
