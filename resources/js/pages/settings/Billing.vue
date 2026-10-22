@@ -8,6 +8,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import PromotionCodeField from '@/components/PromotionCodeField.vue';
+import UsageMeterCard from '@/components/UsageMeterCard.vue';
+import type { UsageSummary } from '@/types/usage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -62,6 +64,8 @@ interface Props {
     trial_eligible: boolean;
     /** Whether to offer the way into Stripe's billing portal: it is switched on, and this customer has an account at Stripe. */
     portal: boolean;
+    /** What the account has used of each metered thing this month, and what its plan allows. */
+    usage: UsageSummary[];
     subscription: SubscriptionPayload | null;
     invoices: InvoicePayload[];
 }
@@ -147,9 +151,10 @@ const selectedPlanId = ref<number | null>(initialPlanId);
 const trialDays = computed(() => (props.trial_eligible ? (props.plans.find((plan) => plan.id === selectedPlanId.value)?.trial_days ?? null) : null));
 /**
  * What starting a subscription changes here: the subscription, its invoices, whether the free trial is still on offer (it is not
- * once there is one), and whether there is a billing account to open the portal for (there is, now).
+ * once there is one), whether there is a billing account to open the portal for (there is, now), and what the new plan allows of
+ * each metered thing.
  */
-const subscriptionProps = ['subscription', 'invoices', 'trial_eligible', 'portal'];
+const subscriptionProps = ['subscription', 'invoices', 'trial_eligible', 'portal', 'usage'];
 
 const currentPlan = computed(() => {
     if (!props.subscription) {
@@ -605,6 +610,17 @@ onBeforeUnmount(() => {
                     </div>
                 </div>
             </section>
+
+            <template v-if="props.usage.length">
+                <Separator />
+
+                <section class="space-y-4">
+                    <HeadingSmall title="Usage this month" description="What you have used, and what your plan includes." />
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <UsageMeterCard v-for="meter in props.usage" :key="meter.meter" :meter="meter" />
+                    </div>
+                </section>
+            </template>
 
             <Separator />
 

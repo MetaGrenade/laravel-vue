@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureWebsiteSectionIsEnabled;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
+use App\Http\Middleware\MeterUsage;
 use App\Http\Middleware\PreventBannedUser;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
@@ -16,6 +17,7 @@ use App\Jobs\AggregateSearchQueryStats;
 use App\Jobs\ExpirePendingOrders;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneSearchQueryLogs;
+use App\Jobs\PruneUsageEvents;
 use App\Jobs\SyncTebexCatalogue;
 use App\Payments\Tebex\TebexCatalogue;
 use Illuminate\Console\Scheduling\Schedule;
@@ -67,6 +69,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => EnsureEmailIsVerifiedIfRequired::class,
             'token.throttle' => ThrottleTokenUsage::class,
             'token.activity' => LogTokenActivity::class,
+            'usage' => MeterUsage::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
@@ -78,6 +81,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();
         $schedule->job(new AggregateSearchQueryStats)->dailyAt('00:30');
         $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
+        $schedule->job(new PruneUsageEvents)->dailyAt('01:30');
         $schedule->job(new ExpirePendingOrders)->everyFiveMinutes();
         // Looked at every five minutes; runs when the copy of the Tebex catalogue is older than the configured interval.
         $schedule->job(new SyncTebexCatalogue)->everyFiveMinutes()->when(fn () => app(TebexCatalogue::class)->isDue());

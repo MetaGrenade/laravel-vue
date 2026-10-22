@@ -12,6 +12,7 @@ use App\Support\Billing\PlanPresenter;
 use App\Support\Billing\PortalUnavailable;
 use App\Support\Billing\PromotionCodes;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Usage\Usage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class SubscriptionController extends Controller
 {
     use InteractsWithStripe;
 
-    public function __construct(protected SubscriptionManager $subscriptions, protected CustomerPortal $portal) {}
+    public function __construct(protected SubscriptionManager $subscriptions, protected CustomerPortal $portal, protected Usage $usage) {}
 
     public function index(Request $request): InertiaResponse
     {
@@ -64,6 +65,8 @@ class SubscriptionController extends Controller
             'trial_eligible' => $this->subscriptions->eligibleForTrial($user),
             // Whether to offer the button to Stripe's billing portal: it is on, Stripe is set up, and this customer has an account there.
             'portal' => $this->portal->availableTo($user),
+            // What this account has used of each meter this month, and what it may (what its plans give, so it changes with the plan).
+            'usage' => $this->usage->summary($user),
             'subscription' => $subscription ? [
                 'name' => $subscription->name,
                 'stripe_status' => $subscription->stripe_status,

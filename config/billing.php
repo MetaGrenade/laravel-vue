@@ -38,6 +38,29 @@ return [
     'entitlements' => [
         'projects' => ['label' => 'Projects', 'type' => 'limit', 'description' => 'How many projects an account may have.'],
         'priority-support' => ['label' => 'Priority support', 'type' => 'feature', 'description' => 'Questions are answered first.'],
+        'api-calls' => ['label' => 'API calls', 'type' => 'limit', 'description' => 'How many API calls an account may make each month (see `usage` below).'],
+    ],
+
+    /*
+    | Metered usage (docs/usage.md). A meter counts something a customer does; every use is a row in the `usage_events` ledger,
+    | and the uses are added up per calendar month. For each meter:
+    |   entitlement    the LIMIT entitlement whose amount, given by an account's plans, is what it may use each month;
+    |   free_allowance what an account whose plans give none may use (null: no limit, it is only counted);
+    |   overage        what happens at the allowance: 'block' refuses the request (429), 'allow' carries on counting (for when you
+    |                  bill the extra yourself).
+    | `api-calls` counts every request made with an API token (see routes/api.php). `retention_months` is how long events are kept.
+    */
+    'usage' => [
+        'retention_months' => (int) env('BILLING_USAGE_RETENTION_MONTHS', 13),
+        'meters' => [
+            'api-calls' => [
+                'label' => 'API calls',
+                'unit' => 'call',
+                'entitlement' => 'api-calls',
+                'free_allowance' => env('BILLING_API_FREE_ALLOWANCE'),
+                'overage' => env('BILLING_API_OVERAGE', 'block'),
+            ],
+        ],
     ],
 
     /*
@@ -57,7 +80,7 @@ return [
                 'Monthly office hours',
                 'Priority email support',
             ],
-            'entitlements' => ['projects' => 3],
+            'entitlements' => ['projects' => 3, 'api-calls' => 1000],
         ],
         [
             'name' => 'Pro',
@@ -70,7 +93,7 @@ return [
                 'Weekly strategy sessions',
                 'Dedicated success manager',
             ],
-            'entitlements' => ['projects' => 25, 'priority-support' => true],
+            'entitlements' => ['projects' => 25, 'priority-support' => true, 'api-calls' => 10000],
         ],
     ],
 ];

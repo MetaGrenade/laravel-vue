@@ -405,7 +405,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 
 - Entitlements (section 8.6) wired to Stripe plans and the pricing page (**done**, first slice: see [entitlements.md](entitlements.md#subscription-plans)). Decided in the build: a plan's entitlements are read from the account's live Cashier subscriptions each time rather than copied into grants, so a plan change reaches the people on it at once
 - Trials (**done**, see [billing.md](billing.md#free-trials)), coupons on subscriptions (**done** as promotion codes, see [billing.md](billing.md#promotion-codes)), dunning emails (**done**, see [billing.md](billing.md#when-a-payment-fails)), customer portal links (**done**, see [billing.md](billing.md#customer-portal))
-- Metered usage example with reporting
+- Metered usage example with reporting (**done**, see [usage.md](usage.md); billing the overage through Stripe is not built)
 - Self-service API keys page with scopes and expiry
 - Admin audit log and read-only impersonation
 - Onboarding checklist; branded email layout

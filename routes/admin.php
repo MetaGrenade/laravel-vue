@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ACLController as AdminACLController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BillingController;
+use App\Http\Controllers\Admin\BillingUsageController;
 use App\Http\Controllers\Admin\BillingWebhookCallController;
 use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogCommentController as AdminBlogCommentController;
@@ -564,6 +565,7 @@ Route::middleware(['auth', 'can:billing.acp.view'])
     ->name('acp.billing.')
     ->group(function () {
         Route::get('invoices', [BillingController::class, 'invoices'])->name('invoices.index');
+        Route::get('usage', [BillingUsageController::class, 'index'])->name('usage.index');
 
         Route::get('webhooks', [BillingWebhookCallController::class, 'index'])->name('webhooks.index');
         Route::get('webhooks/{billingWebhookCall}', [BillingWebhookCallController::class, 'show'])
