@@ -42,7 +42,7 @@ A batteries-included boilerplate for building SaaS products, online shops and la
   - **Not built yet**: selling gift cards as a product, and entitlements from the shop's own products (on the roadmap; Stripe plans give them already).
 - **Polls & Surveys**: Polls with admin management, voting and an API.
 - **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics (database search today; Meilisearch is planned for 1.0).
-- **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility.
+- **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility. Plans give entitlements, and a failed renewal is followed up: the customer is emailed once for each attempt (and when it goes through, or the subscription ends), and can press **Pay now** after fixing their card ([docs/billing.md](docs/billing.md)).
 - **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, support assignment rules, team membership, the shop, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
 - **Authentication & Authorization**: Starter-kit authentication (registration, login, password reset, email verification, TOTP two-factor and social login) plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
 - **Customer Dashboard**: after sign-in, a customer sees their newest orders and a shortcut to the order pages where their licence keys and downloads are found (when the shop is enabled), their plan, their account security and shortcuts, plus their tickets, forum activity and recommended reading. Areas an administrator has switched off are left off it.
@@ -447,6 +447,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 
 ## Documentation
 - [docs/commerce.md](docs/commerce.md): how the shop works (flow, orders, pricing, shipping, tax, discounts, digital goods, refunds, webhooks, configuration and upgrade notes).
+- [docs/billing.md](docs/billing.md): subscriptions, what a customer is told and can do when a payment fails, and the Stripe events the shop needs.
 - [docs/entitlements.md](docs/entitlements.md): what a purchase or a subscription plan gives an account (features and limits), when it is given and taken back, and how code asks for it.
 - [docs/i18n.md](docs/i18n.md): how translations, locale selection and the completeness check fit together.
 - [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md): the plan and milestones to 1.0.0.

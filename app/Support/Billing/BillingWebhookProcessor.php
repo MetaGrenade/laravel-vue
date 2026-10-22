@@ -14,9 +14,13 @@ use RuntimeException;
 
 class BillingWebhookProcessor
 {
+    public function __construct(private readonly Dunning $dunning) {}
+
     public function handleInvoicePaymentSucceeded(array $payload, ?int $fallbackUserId = null): void
     {
         $invoice = $this->storeInvoice($payload, 'paid');
+
+        $this->dunning->paymentSucceeded($invoice);
 
         $this->storeWebhook($payload, $invoice?->user_id ?? $fallbackUserId);
     }
@@ -24,6 +28,8 @@ class BillingWebhookProcessor
     public function handleInvoicePaymentFailed(array $payload, ?int $fallbackUserId = null): void
     {
         $invoice = $this->storeInvoice($payload, 'failed');
+
+        $this->dunning->paymentFailed($invoice, $payload);
 
         $this->storeWebhook($payload, $invoice?->user_id ?? $fallbackUserId);
     }
@@ -42,6 +48,8 @@ class BillingWebhookProcessor
                 'stripe_status' => 'canceled',
                 'ends_at' => is_numeric($endedAt) ? Carbon::createFromTimestamp((int) $endedAt) : now(),
             ])->save();
+
+            $this->dunning->subscriptionEnded($subscription, $payload);
         }
 
         $this->storeWebhook($payload, $subscription?->user_id ?? $fallbackUserId);
@@ -126,6 +134,12 @@ class BillingWebhookProcessor
     {
         if (! config('billing.webhooks.store_payloads', true)) {
             return;
+        }
+
+        // A subscription can outlive its user (it has no foreign key), and a delivery about one must still be kept rather than
+        // fail on the user that is not there, which would make Stripe send it again for ever.
+        if ($userId !== null && ! User::query()->whereKey($userId)->exists()) {
+            $userId = null;
         }
 
         BillingWebhookCall::updateOrCreate(
