@@ -6,8 +6,10 @@ use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Http\Controllers\Controller;
 use App\Models\BillingInvoice;
 use App\Models\SubscriptionPlan;
+use App\Support\Billing\CustomerPortal;
 use App\Support\Billing\PaymentRetry;
 use App\Support\Billing\PlanPresenter;
+use App\Support\Billing\PortalUnavailable;
 use App\Support\Billing\PromotionCodes;
 use App\Support\Billing\SubscriptionManager;
 use Illuminate\Http\JsonResponse;
@@ -26,7 +28,7 @@ class SubscriptionController extends Controller
 {
     use InteractsWithStripe;
 
-    public function __construct(protected SubscriptionManager $subscriptions) {}
+    public function __construct(protected SubscriptionManager $subscriptions, protected CustomerPortal $portal) {}
 
     public function index(Request $request): InertiaResponse
     {
@@ -60,6 +62,8 @@ class SubscriptionController extends Controller
             'plans' => $plans,
             // Whether the trials the plans offer are for this customer: they get one, and only if they have never had a subscription.
             'trial_eligible' => $this->subscriptions->eligibleForTrial($user),
+            // Whether to offer the button to Stripe's billing portal: it is on, Stripe is set up, and this customer has an account there.
+            'portal' => $this->portal->availableTo($user),
             'subscription' => $subscription ? [
                 'name' => $subscription->name,
                 'stripe_status' => $subscription->stripe_status,
@@ -159,6 +163,23 @@ class SubscriptionController extends Controller
             PaymentRetry::UNAVAILABLE => to_route('settings.billing.index')->with('error', "We couldn't reach Stripe just now. Please try again in a minute."),
             default => to_route('settings.billing.index')->with('info', 'There is nothing to pay right now.'),
         };
+    }
+
+    /**
+     * Send the customer to Stripe's billing portal. A POST, since it makes a session at Stripe each time, and it always comes back to
+     * the billing page.
+     */
+    public function portal(Request $request): RedirectResponse|SymfonyResponse
+    {
+        abort_unless($this->portal->enabled(), 404);
+
+        try {
+            $url = $this->portal->urlFor($request->user());
+        } catch (PortalUnavailable $exception) {
+            return to_route('settings.billing.index')->with($exception->level, $exception->getMessage());
+        }
+
+        return Inertia::location($url);
     }
 
     public function cancel(Request $request): RedirectResponse
