@@ -36,7 +36,7 @@ A **subscription plan** (Stripe, billed through Cashier) gives its entitlements 
 | Ended (cancelled and past its end date) | No. |
 | **Past due**, incomplete, incomplete and expired, unpaid | No. |
 
-Past due is the one to decide on: by Cashier's default access stops at the first failed payment. To keep it while Stripe retries, call `Cashier::keepPastDueSubscriptionsActive()` in a service provider (dunning emails and retry handling are the next slice of the SaaS milestone).
+Past due is a decision that was made: by Cashier's default access stops at the first failed payment, and the shop keeps it that way. The customer is emailed and can pay again at once (see [billing.md](billing.md#when-a-payment-fails)). To keep access while Stripe retries instead, call `Cashier::keepPastDueSubscriptionsActive()` in a service provider.
 
 A subscription is matched to its plan by **Stripe price**, as the billing page and the dashboard do, so a subscription to a price no plan carries gives nothing, and neither does one with several prices. A plan switched off on the pricing page (**Active** off) still serves the people already on it. Two live subscriptions each give what their plan gives.
 
