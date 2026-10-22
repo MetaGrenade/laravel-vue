@@ -25,6 +25,7 @@ interface PlanPayload {
     currency: string;
     description: string | null;
     features: string[];
+    trial_days: number | null;
     is_active: boolean;
     created_at: string | null;
     updated_at: string | null;
@@ -58,6 +59,7 @@ const form = useForm({
     currency: props.plan.currency ?? props.default_currency ?? 'USD',
     description: props.plan.description ?? '',
     features_text: props.plan.features.join('\n'),
+    trial_days: props.plan.trial_days != null ? String(props.plan.trial_days) : '',
     is_active: props.plan.is_active,
 });
 
@@ -108,6 +110,7 @@ const handleSubmit = () => {
             currency: (data.currency || props.default_currency || 'USD').toUpperCase(),
             description: data.description || null,
             features,
+            trial_days: data.trial_days === '' ? null : Number(data.trial_days),
             is_active: Boolean(data.is_active),
         };
     });
@@ -215,6 +218,25 @@ const handleSubmit = () => {
                                 />
                                 <InputError :message="form.errors.description" />
                             </div>
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="trial_days">Free trial (days)</Label>
+                            <Input
+                                id="trial_days"
+                                v-model="form.trial_days"
+                                type="number"
+                                min="1"
+                                max="730"
+                                inputmode="numeric"
+                                placeholder="No trial"
+                            />
+                            <p class="text-xs text-muted-foreground">
+                                New customers get this many days free, with their card on file, before the first payment. Leave it empty for no trial.
+                                A customer gets one trial: someone who has had a subscription before is charged from the start. It applies to people
+                                who subscribe from now on.
+                            </p>
+                            <InputError :message="form.errors.trial_days" />
                         </div>
 
                         <div class="grid gap-2">

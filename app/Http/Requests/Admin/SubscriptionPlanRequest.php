@@ -40,6 +40,8 @@ class SubscriptionPlanRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:255'],
             'features' => ['nullable', 'array', 'max:50'],
             'features.*' => ['string', 'max:255'],
+            // Stripe allows up to two years. Empty is no trial.
+            'trial_days' => ['nullable', 'integer', 'min:1', 'max:730'],
             'is_active' => ['required', 'boolean'],
         ];
     }

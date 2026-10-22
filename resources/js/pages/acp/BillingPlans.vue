@@ -26,6 +26,7 @@ interface PlanSummary {
     currency: string;
     description: string | null;
     features: string[];
+    trial_days: number | null;
     is_active: boolean;
     invoices_count: number;
     created_at: string | null;
@@ -168,6 +169,9 @@ const confirmDeletePlan = () => {
                                             </div>
                                             <div v-if="plan.description" class="text-xs text-muted-foreground">
                                                 {{ plan.description }}
+                                            </div>
+                                            <div v-if="plan.trial_days" class="text-xs font-medium text-primary">
+                                                {{ plan.trial_days }}-day free trial
                                             </div>
                                             <ul v-if="plan.features.length" class="ml-4 list-disc space-y-1 text-xs text-muted-foreground">
                                                 <li v-for="(feature, index) in plan.features" :key="`${plan.id}-feature-${index}`">{{ feature }}</li>

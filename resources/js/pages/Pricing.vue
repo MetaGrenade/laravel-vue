@@ -22,10 +22,14 @@ interface Plan {
     features: string[];
     entitlements: PlanGiven[];
     stripe_price_id: string;
+    /** Free days before the first payment, for a customer who is eligible. */
+    trial_days: number | null;
 }
 
 interface Props {
     plans: Plan[];
+    /** Whether the trials are for this visitor: a customer gets one, and a visitor has had none. */
+    trial_eligible: boolean;
 }
 
 type StripeInstance = any;
@@ -40,6 +44,8 @@ const isStripeConfigured = computed(() => Boolean(stripeKey.value));
 
 const email = ref(page.props.auth.user?.email ?? '');
 const selectedPlanId = ref<number | null>(props.plans[0]?.id ?? null);
+/** The days of free trial the chosen plan gives this visitor (none if they are not eligible). */
+const trialDays = computed(() => (props.trial_eligible ? (props.plans.find((plan) => plan.id === selectedPlanId.value)?.trial_days ?? null) : null));
 const setupIntentSecret = ref<string | null>(null);
 const paymentError = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
@@ -336,6 +342,9 @@ onBeforeUnmount(() => {
                                     }}</span>
                                     <span class="text-sm text-muted-foreground"> / {{ plan.interval }}</span>
                                 </p>
+                                <p v-if="props.trial_eligible && plan.trial_days" class="text-sm font-medium text-primary">
+                                    {{ plan.trial_days }}-day free trial
+                                </p>
                                 <CardDescription>
                                     {{ plan.features[0] ?? 'Built for engaged members.' }}
                                 </CardDescription>
@@ -398,6 +407,9 @@ onBeforeUnmount(() => {
                                     Load the payment form to continue.
                                 </p>
                             </div>
+                            <p v-if="trialDays" class="text-sm text-muted-foreground">
+                                Your card is not charged for {{ trialDays }} days. Cancel before then and you pay nothing.
+                            </p>
                             <div class="flex flex-col gap-2">
                                 <Button :disabled="setupLoading" variant="outline" @click="startCheckout">
                                     <span v-if="setupLoading">Preparing checkout…</span>
@@ -406,7 +418,7 @@ onBeforeUnmount(() => {
                                 <Button :disabled="subscribing || !paymentElementReady || confirmingPayment" @click="subscribe">
                                     <span v-if="subscribing">Activating…</span>
                                     <span v-else-if="confirmingPayment">Confirming…</span>
-                                    <span v-else>Start subscription</span>
+                                    <span v-else>{{ trialDays ? 'Start free trial' : 'Start subscription' }}</span>
                                 </Button>
                             </div>
                             <p

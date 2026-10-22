@@ -27,7 +27,7 @@ class PricingController extends Controller
 
     public function __construct(protected SubscriptionManager $subscriptions) {}
 
-    public function index(): InertiaResponse
+    public function index(Request $request): InertiaResponse
     {
         $plans = SubscriptionPlan::query()
             ->active()
@@ -43,6 +43,8 @@ class PricingController extends Controller
 
         return Inertia::render('Pricing', [
             'plans' => $plans,
+            // Whether the trials the plans offer are for this visitor: a customer gets one, and a visitor has had none.
+            'trial_eligible' => $this->subscriptions->eligibleForTrial($request->user()),
         ]);
     }
 

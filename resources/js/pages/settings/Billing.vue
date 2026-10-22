@@ -26,6 +26,8 @@ interface Plan {
     features: string[];
     entitlements: PlanGiven[];
     stripe_price_id: string;
+    /** Free days before the first payment, for a customer who is eligible. */
+    trial_days: number | null;
 }
 
 interface SubscriptionPayload {
@@ -35,6 +37,8 @@ interface SubscriptionPayload {
     on_grace_period: boolean;
     cancelled: boolean;
     ends_at: string | null;
+    on_trial: boolean;
+    trial_ends_at: string | null;
     /** Behind on payment: the page says so and offers to pay now. */
     needs_payment: boolean;
     /** Whether being behind takes the plan's features away. */
@@ -53,6 +57,8 @@ interface InvoicePayload {
 
 interface Props {
     plans: Plan[];
+    /** Whether the trials the plans offer are for this customer: they get one, and only if they have never had a subscription. */
+    trial_eligible: boolean;
     subscription: SubscriptionPayload | null;
     invoices: InvoicePayload[];
 }
@@ -133,6 +139,10 @@ const initialPlanId = props.subscription
     : (props.plans[0]?.id ?? null);
 
 const selectedPlanId = ref<number | null>(initialPlanId);
+/** The days of free trial the chosen plan gives this customer (none if they are not eligible). */
+const trialDays = computed(() => (props.trial_eligible ? (props.plans.find((plan) => plan.id === selectedPlanId.value)?.trial_days ?? null) : null));
+/** What starting a subscription changes here: the subscription, its invoices, and whether the free trial is still on offer (it is not once there is one). */
+const subscriptionProps = ['subscription', 'invoices', 'trial_eligible'];
 
 const currentPlan = computed(() => {
     if (!props.subscription) {
@@ -297,7 +307,7 @@ const subscribe = async () => {
 
             successMessage.value = 'Payment confirmed! Refreshing your subscription details.';
             await router.reload({
-                only: ['subscription', 'invoices'],
+                only: subscriptionProps,
             });
             await fetchSetupIntent();
             coupon.value = '';
@@ -314,7 +324,7 @@ const subscribe = async () => {
         coupon.value = '';
 
         await router.reload({
-            only: ['subscription', 'invoices'],
+            only: subscriptionProps,
         });
 
         await fetchSetupIntent();
@@ -446,6 +456,9 @@ onBeforeUnmount(() => {
                             <CardDescription>
                                 {{ plan.features[0] ?? 'Built for engaged members.' }}
                             </CardDescription>
+                            <p v-if="props.trial_eligible && plan.trial_days" class="text-sm font-medium text-primary">
+                                {{ plan.trial_days }}-day free trial
+                            </p>
                         </CardHeader>
                         <CardContent>
                             <ul class="space-y-2 text-sm text-muted-foreground">
@@ -495,7 +508,7 @@ onBeforeUnmount(() => {
                                 <Button :disabled="subscribing || !paymentElementReady || confirmingPayment" @click="subscribe">
                                     <span v-if="subscribing">Activating...</span>
                                     <span v-else-if="confirmingPayment">Confirming…</span>
-                                    <span v-else>Activate subscription</span>
+                                    <span v-else>{{ trialDays ? 'Start free trial' : 'Activate subscription' }}</span>
                                 </Button>
                                 <Button variant="outline" :disabled="setupLoading || subscribing" @click="fetchSetupIntent">
                                     <span v-if="setupLoading">Refreshing…</span>
@@ -530,6 +543,9 @@ onBeforeUnmount(() => {
                                 {{ props.subscription?.stripe_status ?? 'inactive' }}
                             </span>
                         </p>
+                        <p v-if="props.subscription?.on_trial && props.subscription.trial_ends_at" class="mt-2 text-sm text-muted-foreground">
+                            Free trial until {{ new Date(props.subscription.trial_ends_at).toLocaleDateString() }}
+                        </p>
                         <p v-if="props.subscription?.ends_at" class="mt-2 text-sm text-muted-foreground">
                             Scheduled to end on {{ new Date(props.subscription.ends_at).toLocaleString() }}
                         </p>
@@ -541,7 +557,7 @@ onBeforeUnmount(() => {
                                 @click="cancel"
                             >
                                 <span v-if="canceling">Canceling...</span>
-                                <span v-else>Cancel at period end</span>
+                                <span v-else>{{ props.subscription?.on_trial ? 'Cancel trial' : 'Cancel at period end' }}</span>
                             </Button>
                             <Button
                                 v-else-if="props.subscription && props.subscription.cancelled"

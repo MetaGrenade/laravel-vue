@@ -2,7 +2,7 @@
 
 How subscriptions to a plan are billed, and what happens when a payment does not go through. Subscriptions use **Laravel Cashier** and Stripe; the shop's orders (products, gift cards) are a separate flow described in [commerce.md](commerce.md), and what a plan gives an account is in [entitlements.md](entitlements.md#subscription-plans).
 
-> **Status:** plans, subscribing, cancelling and resuming, invoices and the webhook archive have been there since the start. Added for 1.0: plans that give entitlements, and (this page) what a customer is told and can do when a payment fails. **Still to come in the SaaS milestone:** trials, promotion codes on subscriptions, a metered-usage example and a link to Stripe's customer portal.
+> **Status:** plans, subscribing, cancelling and resuming, invoices and the webhook archive have been there since the start. Added for 1.0: plans that give entitlements, what a customer is told and can do when a payment fails, and free trials. **Still to come in the SaaS milestone:** promotion codes on subscriptions, a metered-usage example and a link to Stripe's customer portal.
 
 ## When a payment fails
 
@@ -26,18 +26,30 @@ Each notice is **claimed before it is sent**, in `billing_dunning_notices` (one 
 
 **What the customer can do.** The billing settings show a red notice while a payment is behind, with **Update payment method** and **Pay now**. Stripe does *not* try again when a card is changed, only on its schedule, so without **Pay now** a customer who had put their card right would wait, with their plan paused, for the next attempt. It asks Stripe to pay the subscription's latest invoice with the card on file and, if that works, brings the plan back at once rather than waiting for the webhook. It says the plan is back only when the subscription, as Stripe then reports it, is no longer behind and is live. If Stripe took the request but the money has not arrived (a bank debit takes days) they are told the payment is being processed, and the plan comes back when Stripe confirms it. If the card is declined the page says why (Stripe's own message). If the bank wants the customer (3-D Secure) they are sent to Stripe's page for the invoice. If Stripe cannot be reached they are asked to try again, and the error is reported. It is limited to six presses a minute.
 
+## Free trials
+
+A plan can give a new customer **free days before the first payment**: **Billing → Plans**, the *Free trial (days)* field (empty is no trial; up to 730, which is Stripe's limit; none by default). It applies to people who subscribe from then on.
+
+- **The card is taken up front.** The customer adds a card as for any subscription. Stripe charges nothing until the trial ends and then takes the first payment; if that payment fails it is followed up like any other (see above).
+- **One trial per customer.** Someone who has ever had a subscription of any kind (running, cancelled or ended) is charged from the start, so cancelling and coming back is not a way to another trial. A visitor with no account yet is eligible. (Someone who deletes their account and signs up again is a new customer, which cannot be told apart.) The check is made while the subscription is being started, under the per-user lock that deleting the account also takes, so two sign-ups at once cannot both get a trial.
+- **The plan works from the first day.** A trial counts as live, so what the plan gives (its entitlements) is given for the whole of it.
+- **The pages say so.** The pricing page and Billing settings show *N-day free trial* on the plan, *Start free trial* instead of *Start subscription*, and that the card is not charged until it ends, but only to someone who is eligible. Billing settings show *Free trial until* a date, and *Cancel trial*.
+- **Cancelling during the trial** ends it on the day it would have ended, and nothing is ever charged.
+- **A reminder before it ends.** Stripe sends `customer.subscription.trial_will_end` three days before the trial ends; the subscriber is emailed *Your free trial ends soon*: the date, the plan's **regular price** after it, and that they can cancel before then. The email does not promise a final amount, because only Stripe's invoice knows it (a discount on the subscription, or tax, changes it): it says that any discount is taken off and that anything left to pay is charged to the card. Sent once (the same claim table as the payment emails), and not for a trial that has been cancelled to end by the time it does, or that has already ended. A subscription set to be cancelled *later* (after the trial and a payment or two) is still warned, since the first payment is still taken. A trial shorter than three days is warned about at once, by Stripe.
+
 ## Webhook events
 
-One endpoint, `POST /stripe/webhook`, signed with `STRIPE_WEBHOOK_SECRET`, for subscriptions and for shop orders. The subscription side needs these events switched on in Stripe: `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted` (Cashier keeps the local subscription in step with them), and `invoice.payment_succeeded` and `invoice.payment_failed` (invoices, and the emails above).
+One endpoint, `POST /stripe/webhook`, signed with `STRIPE_WEBHOOK_SECRET`, for subscriptions and for shop orders. The subscription side needs these events switched on in Stripe: `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted` (Cashier keeps the local subscription in step with them), `customer.subscription.trial_will_end` (the trial reminder), and `invoice.payment_succeeded` and `invoice.payment_failed` (invoices, and the emails above).
 
 ## What is stored
 
 | Table | |
 |---|---|
-| `subscriptions`, `subscription_items` | Cashier's copy of each subscription. A subscription has no foreign key to its user, so deleting a user leaves it behind (the webhook archive copes: an event about one is kept without the user). |
+| `subscription_plans` | The plans, with their Stripe price, what they give and the days of free trial they offer (`trial_days`). |
+| `subscriptions`, `subscription_items` | Cashier's copy of each subscription. A subscription has no foreign key to its user, so one can outlive its user (deleting an account ends its Stripe subscriptions first, but the row can stay; the webhook archive copes: an event about one is kept without the user). |
 | `billing_invoices` | One row per Stripe invoice, written from the invoice webhooks. |
 | `billing_webhook_calls` | The archive of every delivery, replayable from the ACP. |
-| `billing_dunning_notices` | Which payment emails were sent, so that each is sent once. |
+| `billing_dunning_notices` | Which payment and trial emails were sent, so that each is sent once (`kind`: `failed`, `recovered`, `cancelled`, `trial_ending`). |
 
 Needs `php artisan migrate`; no new permission.
 
@@ -46,6 +58,8 @@ Needs `php artisan migrate`; no new permission.
 | What you see | What it means |
 |---|---|
 | A customer says they got no email about a failed payment | Check **Billing → Webhooks** for the `invoice.payment_failed` delivery: if it is missing, the event is not switched on in Stripe or the endpoint is not reaching the shop. If it is there, the mail queue (`mail`) may not be running. Replaying it does not resend an email that was already sent. |
+| A customer was not offered the trial | They have had a subscription before (a trial is for first-time subscribers), or the plan has no trial days. The pages show the trial only to someone eligible. |
+| A customer got no trial reminder | `customer.subscription.trial_will_end` is not switched on in Stripe, or the trial was cancelled to end with it (one set to end later is still warned) or had already ended, or it was shorter than three days (Stripe then warns at once, when it starts). Check **Billing → Webhooks** for the delivery; replaying it does not resend a reminder that was sent. |
 | A customer got no email for the first payment of a new subscription | By design: they are on the checkout page, which says so. |
 | A customer's plan is paused though their card is fine | Their subscription is still past due: the card was updated but nothing asked Stripe to pay, so they should press **Pay now** (or wait for Stripe's next attempt). |
 | **Pay now** says the payment is being processed | Stripe accepted the request but the payment is not confirmed yet (a bank debit, or Stripe has not updated the subscription). The plan comes back when the webhook says so; nothing more to do. |
@@ -54,4 +68,4 @@ Needs `php artisan migrate`; no new permission.
 
 ## Testing
 
-`tests/Feature/Billing/DunningTest.php` covers the three emails (the wording, once each, replays, the attempts, the first payment, unknown customers, a failure to send). `tests/Feature/Billing/PayNowTest.php` covers **Pay now** through the real Stripe SDK with the network replaced by scripted answers (`tests/Support/ScriptedStripeHttpClient.php`): paid, declined, 3-D Secure, an invoice Stripe already took, nothing to pay, Stripe unreachable, and the button and the page. `tests/Feature/Database/BillingDunningNoticesMigrationTest.php` covers the table.
+`tests/Feature/Billing/DunningTest.php` covers the three emails (the wording, once each, replays, the attempts, the first payment, unknown customers, a failure to send). `tests/Feature/Billing/PayNowTest.php` covers **Pay now** through the real Stripe SDK with the network replaced by scripted answers (`tests/Support/ScriptedStripeHttpClient.php`): paid, declined, 3-D Secure, an invoice Stripe already took, nothing to pay, Stripe unreachable, and the button and the page. `tests/Feature/Database/BillingDunningNoticesMigrationTest.php` covers the table. `tests/Feature/Billing/TrialsTest.php` covers who gets a trial and starting one through the real Stripe SDK with scripted answers, `TrialReminderTest.php` the reminder, `tests/Feature/Admin/SubscriptionPlanTrialTest.php` choosing the days in the ACP, and `tests/Feature/Database/PlanTrialDaysMigrationTest.php` the column.

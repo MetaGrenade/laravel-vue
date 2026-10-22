@@ -56,6 +56,13 @@ class StripeWebhookController extends CashierWebhookController
         return new Response('Webhook handled', 200);
     }
 
+    protected function handleCustomerSubscriptionTrialWillEnd(array $payload): Response
+    {
+        $this->processor->handleCustomerSubscriptionTrialWillEnd($payload);
+
+        return new Response('Webhook handled', 200);
+    }
+
     protected function handleCheckoutSessionCompleted(array $payload): Response
     {
         return $this->forwardToCommerce($payload);

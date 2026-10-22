@@ -57,6 +57,8 @@ class SubscriptionController extends Controller
 
         return Inertia::render('settings/Billing', [
             'plans' => $plans,
+            // Whether the trials the plans offer are for this customer: they get one, and only if they have never had a subscription.
+            'trial_eligible' => $this->subscriptions->eligibleForTrial($user),
             'subscription' => $subscription ? [
                 'name' => $subscription->name,
                 'stripe_status' => $subscription->stripe_status,
@@ -64,6 +66,8 @@ class SubscriptionController extends Controller
                 'on_grace_period' => $subscription->onGracePeriod(),
                 'cancelled' => $subscription->canceled(),
                 'ends_at' => optional($subscription->ends_at)?->toIso8601String(),
+                'on_trial' => $subscription->onTrial(),
+                'trial_ends_at' => optional($subscription->trial_ends_at)?->toIso8601String(),
                 // Behind on payment: the page says so and offers to pay now.
                 'needs_payment' => $this->subscriptions->behindOnPayment($subscription),
                 // Whether what the plan gives is paused right now: its features follow the subscription being live, so this is that

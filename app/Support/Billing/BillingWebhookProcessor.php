@@ -14,7 +14,10 @@ use RuntimeException;
 
 class BillingWebhookProcessor
 {
-    public function __construct(private readonly Dunning $dunning) {}
+    public function __construct(
+        private readonly Dunning $dunning,
+        private readonly TrialReminders $trials,
+    ) {}
 
     public function handleInvoicePaymentSucceeded(array $payload, ?int $fallbackUserId = null): void
     {
@@ -66,6 +69,18 @@ class BillingWebhookProcessor
         }
 
         $this->storeWebhook($payload, $subscription?->user_id ?? $fallbackUserId);
+    }
+
+    public function handleCustomerSubscriptionTrialWillEnd(array $payload, ?int $fallbackUserId = null): void
+    {
+        $subscriptionId = Arr::get($payload, 'data.object.id');
+        $subscription = $subscriptionId ? Subscription::where('stripe_id', $subscriptionId)->first() : null;
+
+        if ($subscription) {
+            $this->trials->trialEnding($subscription, $payload);
+        }
+
+        $this->storeWebhook($payload, $subscription->user_id ?? $fallbackUserId);
     }
 
     public function replay(BillingWebhookCall $call): void

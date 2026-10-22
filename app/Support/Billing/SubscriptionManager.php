@@ -49,6 +49,24 @@ class SubscriptionManager
         }
     }
 
+    /**
+     * The days of free trial this customer gets on this plan: the plan's, if they are eligible, otherwise none.
+     */
+    public function trialDaysFor(?User $user, SubscriptionPlan $plan): int
+    {
+        return $plan->trial_days !== null && $this->eligibleForTrial($user) ? $plan->trial_days : 0;
+    }
+
+    /**
+     * Whether a customer may still have a free trial. A customer gets **one**: someone who has ever had a subscription (running,
+     * cancelled or ended) is charged from the start, or a trial could be had again and again by cancelling and coming back. A
+     * visitor with no account yet is eligible, as the account they are about to make will have none.
+     */
+    public function eligibleForTrial(?User $user): bool
+    {
+        return $user === null || ! Subscription::query()->where($user->getForeignKey(), $user->getKey())->exists();
+    }
+
     public function cancel(User $user): void
     {
         $subscription = $user->subscription($this->subscriptionName());
@@ -120,8 +138,10 @@ class SubscriptionManager
             $builder->withCoupon($coupon);
         }
 
-        if ($trialDays = Arr::get($options, 'trial_days')) {
-            $builder->trialDays((int) $trialDays);
+        $trialDays = $this->trialDaysFor($user, $plan);
+
+        if ($trialDays > 0) {
+            $builder->trialDays($trialDays);
         }
 
         $user->updateDefaultPaymentMethod($paymentMethod);
