@@ -158,7 +158,7 @@ class AccountDeletionSubscriptionsTest extends TestCase
             [200, Stripe::subscription('sub_1', 'canceled')],
         ]);
 
-        app(SubscriptionManager::class)->cancelAllNow($user);
+        app(SubscriptionManager::class)->deleteUser($user);
 
         $this->assertSame(['GET /v1/subscriptions', 'DELETE /v1/subscriptions/sub_1'], $this->calls($client));
         $this->assertTrue(Subscription::query()->where('stripe_id', 'sub_1')->firstOrFail()->ends_at->lte(now()), 'the end date moves up to now');
@@ -174,7 +174,7 @@ class AccountDeletionSubscriptionsTest extends TestCase
             ...array_fill(0, 6, [200, Stripe::subscription('sub_x', 'canceled')]),
         ]);
 
-        app(SubscriptionManager::class)->cancelAllNow($user);
+        app(SubscriptionManager::class)->deleteUser($user);
 
         $this->assertSame([
             'GET /v1/subscriptions',
@@ -198,7 +198,7 @@ class AccountDeletionSubscriptionsTest extends TestCase
             [200, Stripe::subscription('sub_unrecorded', 'canceled')],
         ]);
 
-        app(SubscriptionManager::class)->cancelAllNow($user);
+        app(SubscriptionManager::class)->deleteUser($user);
 
         $this->assertSame(['GET /v1/subscriptions', 'DELETE /v1/subscriptions/sub_unrecorded'], $this->calls($client));
         $this->assertSame('active', $this->localStatus('sub_stale'), 'a row Stripe does not list is not touched');
@@ -216,7 +216,7 @@ class AccountDeletionSubscriptionsTest extends TestCase
             ...array_fill(0, 101, [200, Stripe::subscription('sub_x', 'canceled')]),
         ]);
 
-        app(SubscriptionManager::class)->cancelAllNow($user);
+        app(SubscriptionManager::class)->deleteUser($user);
 
         $calls = $this->calls($client);
         $this->assertCount(103, $calls);
@@ -369,7 +369,7 @@ class AccountDeletionSubscriptionsTest extends TestCase
             [200, Stripe::subscription('sub_2', 'canceled')],
         ]);
 
-        app(SubscriptionManager::class)->cancelAllNow($user);
+        app(SubscriptionManager::class)->deleteUser($user);
 
         $this->assertSame(['GET /v1/subscriptions', 'DELETE /v1/subscriptions/sub_1', 'DELETE /v1/subscriptions/sub_2'], $this->calls($client));
         $this->assertSame('canceled', $this->localStatus('sub_1'));
@@ -384,7 +384,7 @@ class AccountDeletionSubscriptionsTest extends TestCase
         $this->stripeAnswers([Stripe::error(500, 'Something went wrong on our end.', 'api_error')]);
 
         try {
-            app(SubscriptionManager::class)->cancelAllNow($user);
+            app(SubscriptionManager::class)->deleteUser($user);
             $this->fail('A failure to end a subscription must not pass silently.');
         } catch (SubscriptionCancellationFailed $exception) {
             $this->assertStringContainsString('Something went wrong on our end.', $exception->getPrevious()?->getMessage() ?? '');

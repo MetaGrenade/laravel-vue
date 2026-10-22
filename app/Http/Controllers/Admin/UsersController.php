@@ -404,12 +404,10 @@ class UsersController extends Controller
     private function deleteEndingSubscriptions(User $user, SubscriptionManager $subscriptions): bool
     {
         try {
-            $subscriptions->cancelAllNow($user);
+            $subscriptions->deleteUser($user);
         } catch (SubscriptionCancellationFailed) {
             return false;
         }
-
-        $user->delete();
 
         return true;
     }

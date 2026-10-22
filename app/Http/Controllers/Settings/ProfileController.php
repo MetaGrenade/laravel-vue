@@ -65,16 +65,13 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        // Before signing out, so that when Stripe cannot be reached the account is left as it was, still signed in.
+        // The person is signed out only once the subscriptions are ended, so that when Stripe cannot be reached the
+        // account is left as it was, still signed in.
         try {
-            $subscriptions->cancelAllNow($user);
+            $subscriptions->deleteUser($user, fn () => Auth::logout());
         } catch (SubscriptionCancellationFailed) {
             return back()->with('error', 'We could not cancel your subscription with our payment provider, so your account has not been deleted. Please try again in a few minutes.');
         }
-
-        Auth::logout();
-
-        $user->delete();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
