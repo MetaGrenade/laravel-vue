@@ -14,16 +14,35 @@ use RuntimeException;
 
 class BillingWebhookProcessor
 {
+    public function __construct(private readonly Dunning $dunning) {}
+
     public function handleInvoicePaymentSucceeded(array $payload, ?int $fallbackUserId = null): void
     {
         $invoice = $this->storeInvoice($payload, 'paid');
+
+        $this->dunning->paymentSucceeded($invoice, $payload);
 
         $this->storeWebhook($payload, $invoice?->user_id ?? $fallbackUserId);
     }
 
     public function handleInvoicePaymentFailed(array $payload, ?int $fallbackUserId = null): void
     {
+        // Stripe does not promise to deliver events in order. A failure that turns up after the invoice was paid is stale: it must
+        // not mark the paid invoice failed, and the customer, who has paid, must not be chased for it.
+        $paid = BillingInvoice::query()
+            ->where('stripe_id', (string) Arr::get($payload, 'data.object.id'))
+            ->where('status', 'paid')
+            ->first();
+
+        if ($paid !== null) {
+            $this->storeWebhook($payload, $paid->user_id ?? $fallbackUserId);
+
+            return;
+        }
+
         $invoice = $this->storeInvoice($payload, 'failed');
+
+        $this->dunning->paymentFailed($invoice, $payload);
 
         $this->storeWebhook($payload, $invoice?->user_id ?? $fallbackUserId);
     }
@@ -42,6 +61,8 @@ class BillingWebhookProcessor
                 'stripe_status' => 'canceled',
                 'ends_at' => is_numeric($endedAt) ? Carbon::createFromTimestamp((int) $endedAt) : now(),
             ])->save();
+
+            $this->dunning->subscriptionEnded($subscription, $payload);
         }
 
         $this->storeWebhook($payload, $subscription?->user_id ?? $fallbackUserId);
@@ -126,6 +147,12 @@ class BillingWebhookProcessor
     {
         if (! config('billing.webhooks.store_payloads', true)) {
             return;
+        }
+
+        // A subscription can outlive its user (it has no foreign key), and a delivery about one must still be kept rather than
+        // fail on the user that is not there, which would make Stripe send it again for ever.
+        if ($userId !== null && ! User::query()->whereKey($userId)->exists()) {
+            $userId = null;
         }
 
         BillingWebhookCall::updateOrCreate(

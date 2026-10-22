@@ -3,7 +3,7 @@ import { describeGiven } from '@/lib/entitlements';
 import { stripeAppearance, useStripeAppearanceSync } from '@/lib/stripeAppearance';
 import type { PlanGiven } from '@/types/entitlements';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -35,6 +35,10 @@ interface SubscriptionPayload {
     on_grace_period: boolean;
     cancelled: boolean;
     ends_at: string | null;
+    /** Behind on payment: the page says so and offers to pay now. */
+    needs_payment: boolean;
+    /** Whether being behind takes the plan's features away. */
+    access_paused: boolean;
 }
 
 interface InvoicePayload {
@@ -57,6 +61,7 @@ const props = defineProps<Props>();
 
 const coupon = ref('');
 const subscribing = ref(false);
+const paying = ref(false);
 const canceling = ref(false);
 const resuming = ref(false);
 const setupLoading = ref(false);
@@ -318,6 +323,22 @@ const subscribe = async () => {
     }
 };
 
+/** Ask Stripe to take the overdue payment now, with the card on file. */
+const payNow = () => {
+    paying.value = true;
+    paymentError.value = null;
+    router.post(
+        route('settings.billing.retry-payment'),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                paying.value = false;
+            },
+        },
+    );
+};
+
 const cancel = () => {
     canceling.value = true;
     paymentError.value = null;
@@ -384,6 +405,28 @@ onBeforeUnmount(() => {
         <Head title="Billing" />
 
         <SettingsLayout>
+            <div
+                v-if="props.subscription?.needs_payment"
+                class="mb-6 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm"
+                role="alert"
+            >
+                <p class="font-medium text-destructive">We couldn't take your last payment</p>
+                <p class="mt-1 text-muted-foreground">
+                    <template v-if="props.subscription.access_paused">What your plan gives you is paused until it goes through.</template>
+                    <template v-else>Your plan stays active while we keep trying.</template>
+                    If your card needs changing, update it first, then pay now.
+                </p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <Button variant="outline" as-child>
+                        <Link :href="route('settings.billing.payment-methods.index')">Update payment method</Link>
+                    </Button>
+                    <Button :disabled="paying" @click="payNow">
+                        <span v-if="paying">Paying...</span>
+                        <span v-else>Pay now</span>
+                    </Button>
+                </div>
+            </div>
+
             <section class="space-y-6">
                 <HeadingSmall title="Subscription plans" description="Choose the plan that fits your community involvement." />
 

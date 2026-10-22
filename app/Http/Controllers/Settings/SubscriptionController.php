@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Http\Controllers\Controller;
 use App\Models\BillingInvoice;
 use App\Models\SubscriptionPlan;
+use App\Support\Billing\PaymentRetry;
 use App\Support\Billing\PlanPresenter;
 use App\Support\Billing\SubscriptionManager;
 use Illuminate\Http\JsonResponse;
@@ -15,8 +16,10 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class SubscriptionController extends Controller
 {
@@ -61,6 +64,11 @@ class SubscriptionController extends Controller
                 'on_grace_period' => $subscription->onGracePeriod(),
                 'cancelled' => $subscription->canceled(),
                 'ends_at' => optional($subscription->ends_at)?->toIso8601String(),
+                // Behind on payment: the page says so and offers to pay now.
+                'needs_payment' => $this->subscriptions->behindOnPayment($subscription),
+                // Whether what the plan gives is paused right now: its features follow the subscription being live, so this is that
+                // (a past-due subscription is not live by Cashier's default, an unpaid one never is).
+                'access_paused' => ! $subscription->valid(),
             ] : null,
             'invoices' => $invoices,
         ]);
@@ -113,6 +121,24 @@ class SubscriptionController extends Controller
                 'stripe_id' => $subscription->stripe_id,
             ] : null,
         ]);
+    }
+
+    /**
+     * Pay what a subscription is behind on, now, with the card on file (the customer has just put it right, or is about to
+     * find out it still does not work).
+     */
+    public function retryPayment(Request $request): RedirectResponse|SymfonyResponse
+    {
+        $result = $this->subscriptions->retryPayment($request->user());
+
+        return match ($result->status) {
+            PaymentRetry::PAID => to_route('settings.billing.index')->with('success', 'Payment received. Your plan is active again.'),
+            PaymentRetry::ACTION_REQUIRED => Inertia::location((string) $result->url),
+            PaymentRetry::DECLINED => to_route('settings.billing.index')->with('error', $result->message),
+            PaymentRetry::PENDING => to_route('settings.billing.index')->with('info', "Your payment is being processed. Your plan will be active again as soon as it's confirmed."),
+            PaymentRetry::UNAVAILABLE => to_route('settings.billing.index')->with('error', "We couldn't reach Stripe just now. Please try again in a minute."),
+            default => to_route('settings.billing.index')->with('info', 'There is nothing to pay right now.'),
+        };
     }
 
     public function cancel(Request $request): RedirectResponse

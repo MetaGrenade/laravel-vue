@@ -51,6 +51,9 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/billing', [SubscriptionController::class, 'index'])->name('settings.billing.index');
     Route::post('settings/billing/setup-intent', [SubscriptionController::class, 'setupIntent'])->name('settings.billing.intent');
     Route::post('settings/billing/subscribe', [SubscriptionController::class, 'store'])->name('settings.billing.subscribe');
+    Route::post('settings/billing/retry-payment', [SubscriptionController::class, 'retryPayment'])
+        ->middleware('throttle:6,1')
+        ->name('settings.billing.retry-payment');
     Route::post('settings/billing/cancel', [SubscriptionController::class, 'cancel'])->name('settings.billing.cancel');
     Route::post('settings/billing/resume', [SubscriptionController::class, 'resume'])->name('settings.billing.resume');
 
