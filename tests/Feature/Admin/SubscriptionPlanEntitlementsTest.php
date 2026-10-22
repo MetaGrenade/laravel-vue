@@ -153,7 +153,7 @@ class SubscriptionPlanEntitlementsTest extends TestCase
 
         $this->actingAs($this->staff())->get(route('acp.billing.plans.index'))->assertInertia(fn (Assert $page) => $page
             ->component('acp/BillingPlans')
-            ->where('can.edit_entitlements', true)
+            ->where('can.edit', true)
             ->has('entitlements', 2)
             ->where('plans.0.entitlements', [
                 ['id' => $projects->id, 'key' => 'projects', 'label' => 'Projects', 'type' => 'limit', 'value' => 12],
@@ -161,7 +161,7 @@ class SubscriptionPlanEntitlementsTest extends TestCase
             ]));
 
         $this->actingAs($this->staff('billing.acp.view'))->get(route('acp.billing.plans.index'))
-            ->assertInertia(fn (Assert $page) => $page->where('can.edit_entitlements', false));
+            ->assertInertia(fn (Assert $page) => $page->where('can.edit', false));
     }
 
     // --- Not taking something away from the people on a plan -----------------------------------------------------------------------

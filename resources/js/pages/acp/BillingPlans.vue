@@ -37,7 +37,7 @@ interface Props {
     plans: PlanSummary[];
     /** Everything a plan can be set to give. */
     entitlements: EntitlementChoice[];
-    can: { edit_entitlements: boolean };
+    can: { create: boolean; edit: boolean; delete: boolean };
 }
 
 const props = defineProps<Props>();
@@ -128,7 +128,7 @@ const confirmDeletePlan = () => {
                             </CardTitle>
                             <CardDescription> Configure the plans your community can subscribe to without touching config files. </CardDescription>
                         </div>
-                        <Button variant="secondary" as-child>
+                        <Button v-if="can.create" variant="secondary" as-child>
                             <Link :href="route('acp.billing.plans.create')">
                                 <PlusCircle class="h-4 w-4" />
                                 Create plan
@@ -189,7 +189,7 @@ const confirmDeletePlan = () => {
                                             </ul>
                                             <span v-else class="text-sm text-muted-foreground">Nothing</span>
                                             <Button
-                                                v-if="can.edit_entitlements"
+                                                v-if="can.edit"
                                                 variant="ghost"
                                                 size="icon"
                                                 class="size-7 shrink-0"
@@ -216,13 +216,19 @@ const confirmDeletePlan = () => {
                                         {{ plan.updated_at ? formatDate(plan.updated_at, 'MMM D, YYYY h:mm A') : '—' }}
                                     </TableCell>
                                     <TableCell class="flex justify-end gap-2">
-                                        <Button variant="outline" size="sm" as-child>
+                                        <Button v-if="can.edit" variant="outline" size="sm" as-child>
                                             <Link :href="route('acp.billing.plans.edit', { plan: plan.id })">
                                                 <Pencil class="h-4 w-4" />
                                                 Edit
                                             </Link>
                                         </Button>
-                                        <Button variant="destructive" size="sm" :disabled="deletingPlanId === plan.id" @click="deletePlan(plan)">
+                                        <Button
+                                            v-if="can.delete"
+                                            variant="destructive"
+                                            size="sm"
+                                            :disabled="deletingPlanId === plan.id"
+                                            @click="deletePlan(plan)"
+                                        >
                                             <Trash2 class="h-4 w-4" />
                                             Delete
                                         </Button>

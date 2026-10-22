@@ -568,15 +568,28 @@ Route::middleware(['auth', 'can:billing.acp.view'])
         Route::get('webhooks', [BillingWebhookCallController::class, 'index'])->name('webhooks.index');
         Route::get('webhooks/{billingWebhookCall}', [BillingWebhookCallController::class, 'show'])
             ->name('webhooks.show');
+        // Running a delivery again makes it do what it does (mark an order paid, end a subscription): more than looking.
         Route::post('webhooks/{billingWebhookCall}/replay', [BillingWebhookCallController::class, 'replay'])
+            ->middleware('can:billing.acp.edit')
             ->name('webhooks.replay');
 
+        // Looking needs billing.acp.view; changing a plan needs the permission for what is done, as everywhere else.
         Route::get('plans', [SubscriptionPlanController::class, 'index'])->name('plans.index');
-        Route::get('plans/create', [SubscriptionPlanController::class, 'create'])->name('plans.create');
-        Route::post('plans', [SubscriptionPlanController::class, 'store'])->name('plans.store');
-        Route::get('plans/{plan}/edit', [SubscriptionPlanController::class, 'edit'])->name('plans.edit');
-        Route::put('plans/{plan}', [SubscriptionPlanController::class, 'update'])->name('plans.update');
-        Route::delete('plans/{plan}', [SubscriptionPlanController::class, 'destroy'])->name('plans.destroy');
+        Route::get('plans/create', [SubscriptionPlanController::class, 'create'])
+            ->middleware('can:billing.acp.create')
+            ->name('plans.create');
+        Route::post('plans', [SubscriptionPlanController::class, 'store'])
+            ->middleware('can:billing.acp.create')
+            ->name('plans.store');
+        Route::get('plans/{plan}/edit', [SubscriptionPlanController::class, 'edit'])
+            ->middleware('can:billing.acp.edit')
+            ->name('plans.edit');
+        Route::put('plans/{plan}', [SubscriptionPlanController::class, 'update'])
+            ->middleware('can:billing.acp.edit')
+            ->name('plans.update');
+        Route::delete('plans/{plan}', [SubscriptionPlanController::class, 'destroy'])
+            ->middleware('can:billing.acp.delete')
+            ->name('plans.destroy');
         // What being on a plan gives the account (the people already on it too, at once).
         Route::put('plans/{plan}/entitlements', [SubscriptionPlanEntitlementController::class, 'update'])
             ->middleware('can:billing.acp.edit')

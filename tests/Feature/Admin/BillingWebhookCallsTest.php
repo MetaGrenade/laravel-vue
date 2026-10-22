@@ -87,7 +87,7 @@ class BillingWebhookCallsTest extends TestCase
         $this->seed(RolePermissionSeeder::class);
 
         $user = User::factory()->create();
-        $user->givePermissionTo('billing.acp.view');
+        $user->givePermissionTo(['billing.acp.view', 'billing.acp.edit']);
 
         $call = BillingWebhookCall::factory()->create([
             'stripe_id' => 'evt_replay123',

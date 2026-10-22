@@ -794,7 +794,8 @@ class TebexWebhookTest extends TestCase
     {
         $this->seed(RolePermissionSeeder::class);
         $staff = User::factory()->create();
-        $staff->givePermissionTo('billing.acp.view');
+        // Looking at a delivery needs view; running it again needs edit.
+        $staff->givePermissionTo(['billing.acp.view', 'billing.acp.edit']);
 
         return $staff;
     }
@@ -898,12 +899,17 @@ class TebexWebhookTest extends TestCase
     }
 
     #[Test]
-    public function only_staff_who_may_see_billing_can_replay(): void
+    public function only_staff_who_may_edit_billing_can_replay(): void
     {
         $this->seed(RolePermissionSeeder::class);
         $call = BillingWebhookCall::query()->create(['provider' => 'tebex', 'external_id' => 'evt-1', 'type' => 'basket.abandoned', 'payload' => ['id' => 'evt-1', 'type' => 'basket.abandoned', 'subject' => []]]);
 
         $this->actingAs(User::factory()->create())->post(route('acp.billing.webhooks.replay', $call))->assertForbidden();
+
+        // Being let in to look is not enough: running a delivery again makes it do what it does.
+        $viewer = User::factory()->create();
+        $viewer->givePermissionTo('billing.acp.view');
+        $this->actingAs($viewer)->post(route('acp.billing.webhooks.replay', $call))->assertForbidden();
     }
 
     // --- A payment that must not be believed -------------------------------------------------------------

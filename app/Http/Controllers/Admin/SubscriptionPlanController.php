@@ -13,6 +13,10 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * The subscription plans. The routes decide who may do what: `billing.acp.view` to look, and `billing.acp.create`, `edit` or
+ * `delete` for the matching action.
+ */
 class SubscriptionPlanController extends Controller
 {
     public function index(Request $request): Response
@@ -68,14 +72,17 @@ class SubscriptionPlanController extends Controller
                     'type' => $entitlement->type->value,
                 ])
                 ->all(),
-            'can' => ['edit_entitlements' => $request->user()->can('billing.acp.edit')],
+            // What the buttons on the page offer: each action has its own permission.
+            'can' => [
+                'create' => $request->user()->can('billing.acp.create'),
+                'edit' => $request->user()->can('billing.acp.edit'),
+                'delete' => $request->user()->can('billing.acp.delete'),
+            ],
         ]);
     }
 
-    public function create(Request $request): Response
+    public function create(): Response
     {
-        abort_unless($request->user()?->can('billing.acp.view'), 403);
-
         return Inertia::render('acp/BillingPlanCreate', [
             'intervals' => $this->intervalOptions(),
             'default_currency' => strtoupper((string) config('billing.currency', 'USD')),
@@ -105,8 +112,6 @@ class SubscriptionPlanController extends Controller
 
     public function edit(Request $request, SubscriptionPlan $plan): Response
     {
-        abort_unless($request->user()?->can('billing.acp.view'), 403);
-
         $formatter = DateFormatter::for($request->user());
 
         $plan->loadCount('invoices');
@@ -161,10 +166,8 @@ class SubscriptionPlanController extends Controller
             ->with('success', 'Subscription plan updated successfully.');
     }
 
-    public function destroy(Request $request, SubscriptionPlan $plan): RedirectResponse
+    public function destroy(SubscriptionPlan $plan): RedirectResponse
     {
-        abort_unless($request->user()?->can('billing.acp.view'), 403);
-
         if ($plan->hasLiveSubscribers()) {
             return back()->with('error', "People are subscribed to {$plan->name} now, and would lose what it gives. Switch the plan off instead: it stops being offered and keeps serving the people already on it.");
         }
