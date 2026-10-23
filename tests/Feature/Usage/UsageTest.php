@@ -12,6 +12,7 @@ use App\Support\Usage\Usage;
 use App\Support\Usage\UsagePeriod;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
@@ -164,6 +165,26 @@ class UsageTest extends TestCase
         $this->onAPlanGiving($user, 1000);
 
         $this->assertSame(1000, $this->usage->allowance($user, 'api-calls'));
+    }
+
+    #[Test]
+    public function working_out_what_an_account_may_use_goes_through_its_entitlements_once(): void
+    {
+        $user = User::factory()->create();
+        $this->onAPlanGiving($user, 1000);
+
+        // Each pass over an account's entitlements reads its subscriptions once; this is asked on every API request.
+        $subscriptionReads = function (callable $work): int {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $work();
+            DB::disableQueryLog();
+
+            return collect(DB::getQueryLog())->filter(fn (array $query) => preg_match('/from [`"]?subscriptions[`"]? /', $query['query']) === 1)->count();
+        };
+
+        $this->assertSame(1, $subscriptionReads(fn () => $this->usage->allowance($user, 'api-calls')));
+        $this->assertSame(1, $subscriptionReads(fn () => $this->usage->status($user, 'api-calls')));
     }
 
     #[Test]

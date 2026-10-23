@@ -14,11 +14,15 @@ use Throwable;
 
 /**
  * Counts a request as one use of a meter, `usage:api-calls`, and holds the account to what it may use each month (see docs/usage.md).
- * Put it after the middleware that signs the caller in; a request with nobody signed in is not counted.
+ * A request with nobody signed in is not counted.
+ *
+ * Where a route group lists it does not matter: it is in the middleware priority list (bootstrap/app.php) ahead of SubstituteBindings, so
+ * it runs after authentication and the rate limits and before Laravel looks up what the address names. A request for something that
+ * is not there is therefore still a use (the caller's mistake), and an account at its limit is refused, not told "not found".
  *
  * - Over the allowance, and the meter's `overage` is `block`: the request is refused with a 429 and is not counted.
- * - Otherwise it runs, and is counted unless it failed on the server's side (a 5xx, or an exception) or was told to slow down (a 429
- *   from a rate limit further in): neither was the caller's use.
+ * - Otherwise it runs, and is counted unless it failed on the server's side (a 5xx, or an exception) or was told to slow down (a 429,
+ *   such as a token's own quota, which is checked after the meter): neither was the caller's use.
  * - An account with an allowance is told where it stands in `X-Usage-Limit`, `X-Usage-Remaining` and `X-Usage-Resets-At`.
  *
  * It is a soft limit: two requests at the same moment can both pass when one use is left.

@@ -280,6 +280,17 @@ class GenerateUserDataExport implements ShouldQueue
             ]);
         }
 
+        // A row a day and meter, as in the JSON: the day is when it was used, and there is nothing to say it changed.
+        foreach ($payload['usage'] as $day) {
+            fputcsv($handle, [
+                'usage',
+                $day['meter'].':'.$day['date'],
+                $day['units'].' '.$day['meter'].' used',
+                $day['date'],
+                $day['date'],
+            ]);
+        }
+
         rewind($handle);
 
         $contents = stream_get_contents($handle);

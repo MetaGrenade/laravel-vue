@@ -20,10 +20,10 @@ A **meter** counts something a customer does, a month at a time, and holds them 
 
 ## The example: API calls
 
-The middleware `usage:api-calls` is the **last** in each authenticated API route group in `routes/api.php`. It:
+The middleware `usage:api-calls` is on every authenticated API route group in `routes/api.php`. Laravel runs it **after authentication and the rate limits and before it looks up what the address names** (it is in the middleware priority list in `bootstrap/app.php`, so it does not matter where a group lists it). It:
 
-- **counts** a request unless it failed on the server's side (a 5xx, or an exception) or was told to slow down (a 429 from a rate limit further in): neither was the caller's use. A request the caller got wrong (a 404, a 422) is a use.
-- **refuses** a request when the account has used all it may and the meter blocks: a **429** with `{"message", "meter", "limit", "used", "resets_at"}`, a `Retry-After` in seconds, and the headers below. A refusal is not counted, and the request never reaches what it asked for.
+- **counts** a request unless it failed on the server's side (a 5xx, or an exception) or was told to slow down (a 429: a route's own rate limit stops the request before the meter, a token's own quota after it): neither was the caller's use. A request the caller got wrong **is** a use: a 404 for something that is not there (the meter runs before it is looked up), a 422, a 403.
+- **refuses** a request when the account has used all it may and the meter blocks: a **429** with `{"message", "meter", "limit", "used", "resets_at"}`, a `Retry-After` in seconds, and the headers below. A refusal is not counted, and the request never reaches what it asked for: an account at its limit gets the 429 even for something that does not exist, not a 404. (It is also not in the token activity log, which comes after the meter, as a token's own quota refusal is not.)
 - **tells** an account that has an allowance where it stands on every response: `X-Usage-Limit`, `X-Usage-Remaining` and `X-Usage-Resets-At` (ISO 8601). An account with no limit gets no such headers.
 - **does not count** a request with nobody signed in. Public read routes are not metered.
 
@@ -73,7 +73,7 @@ Usage is added up per **calendar month in the application's time zone** (`APP_TI
 ## Privacy and retention
 
 - A use belongs to an account and **goes with it** when the account is deleted.
-- It is in the account's **data export**, as a row a day and meter (not a row a use: an API user has thousands).
+- It is in the account's **data export**, as a row a day and meter (not a row a use: an API user has thousands), in both files of the archive: `export.json` and, as rows of type `usage`, `export.csv`.
 - Events are kept for **`BILLING_USAGE_RETENTION_MONTHS`** months (13 by default, in whole months; 0 keeps everything). `PruneUsageEvents` runs daily at 01:30 and needs the scheduler, like the other scheduled jobs. Every API call is a row; if you expect a very high volume, count into a cache counter and write one row a minute (`record()` takes a quantity).
 
 ## Billing the overage in Stripe (not built)
@@ -94,4 +94,4 @@ The hook is there: `App\Events\UsageRecorded` is dispatched for every use that i
 
 ## Testing
 
-`tests/Feature/Usage/UsageTest.php` covers counting, adding up, the month, allowances, the status and the pruning; `MeterUsageTest.php` the middleware (what counts, the refusal and its headers, the new month, overage, a failing ledger, every token route being metered); `UsageScreensTest.php` the billing page and the staff report; `UsageExportTest.php` the data export; and `tests/Feature/Database/UsageEventsMigrationTest.php` the table on every database.
+`tests/Feature/Usage/UsageTest.php` covers counting, adding up, the month, allowances, the status and the pruning; `MeterUsageTest.php` the middleware (what counts, a request for something that is not there, the refusal and its headers, the new month, overage, a failing ledger, every token route being metered and the order it runs in); `UsageScreensTest.php` the billing page and the staff report; `UsageExportTest.php` the data export; and `tests/Feature/Database/UsageEventsMigrationTest.php` the table on every database.

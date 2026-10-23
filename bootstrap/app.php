@@ -25,6 +25,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -76,6 +77,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'section.enabled' => EnsureWebsiteSectionIsEnabled::class,
             'entitled' => EnsureEntitled::class,
         ]);
+
+        // The usage meter has to see a request before Laravel looks up what its address names (SubstituteBindings, which the api group
+        // runs): a request for something that is not there is still a use, and an account at its limit is refused rather than told "not
+        // found". It still comes after authentication, which is earlier in the list, since it needs to know whose use it is.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: MeterUsage::class);
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();

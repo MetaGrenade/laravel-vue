@@ -2,18 +2,23 @@
 
 namespace Tests\Feature\Usage;
 
+use App\Http\Middleware\MeterUsage;
 use App\Models\UsageEvent;
 use App\Models\User;
 use App\Support\Usage\Meters;
 use App\Support\Usage\Usage;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use InvalidArgumentException;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\Support\GivesUsageAllowance;
@@ -115,6 +120,95 @@ class MeterUsageTest extends TestCase
         $this->get('/__usage/missing')->assertNotFound();
         $this->get('/__usage/invalid')->assertStatus(422);
         $this->assertSame(2, $this->uses($user));
+    }
+
+    /**
+     * Authenticated API routes whose address names something (a poll, a blog and its comment, a ticket) that Laravel looks up before
+     * the request reaches its controller, with a name that is not there.
+     *
+     * @return array<string, array{string, string, array<string, string|int>}>
+     */
+    public static function routesWithAMissingResource(): array
+    {
+        return [
+            'a poll' => ['post', 'api.v1.polls.vote', ['poll' => 'no-such-poll']],
+            'a blog comment' => ['patch', 'api.v1.blogs.comments.update', ['blog' => 'no-such-blog', 'comment' => 1]],
+            'a support ticket' => ['get', 'api.v1.support.tickets.show', ['ticket' => 999999]],
+        ];
+    }
+
+    /**
+     * @param  array<string, string|int>  $parameters
+     */
+    #[Test]
+    #[DataProvider('routesWithAMissingResource')]
+    public function a_request_for_something_that_is_not_there_is_still_a_use(string $method, string $route, array $parameters): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user, ['*']);
+
+        $this->{$method.'Json'}(route($route, $parameters))->assertNotFound();
+
+        // Laravel looks the thing up before the controller runs, and a 404 is the caller's mistake, which is a use.
+        $this->assertSame(1, $this->uses($user));
+    }
+
+    /**
+     * @param  array<string, string|int>  $parameters
+     */
+    #[Test]
+    #[DataProvider('routesWithAMissingResource')]
+    public function an_account_at_its_limit_is_refused_before_what_it_asks_for_is_looked_up(string $method, string $route, array $parameters): void
+    {
+        $user = User::factory()->create();
+        $this->onAPlanGiving($user, 1);
+        Sanctum::actingAs($user, ['*']);
+
+        $this->{$method.'Json'}(route($route, $parameters))->assertNotFound();
+
+        // Used up: a 429, not the 404 that looking the thing up would have given.
+        $this->{$method.'Json'}(route($route, $parameters))->assertStatus(429);
+        $this->assertSame(1, $this->uses($user));
+    }
+
+    #[Test]
+    public function somebody_not_signed_in_is_told_so_and_not_that_what_they_asked_for_is_missing(): void
+    {
+        // Authentication stays ahead of the meter (which needs to know whose use it is), and so ahead of looking anything up.
+        $this->postJson(route('api.v1.polls.vote', ['poll' => 'no-such-poll']))->assertUnauthorized();
+
+        $this->assertSame(0, UsageEvent::query()->count());
+    }
+
+    #[Test]
+    public function the_meter_runs_after_authentication_and_the_rate_limits_and_before_the_lookup_of_what_a_route_names(): void
+    {
+        $router = app('router');
+        $checked = 0;
+
+        foreach (Route::getRoutes()->getRoutes() as $route) {
+            if (! in_array('usage:api-calls', $route->gatherMiddleware(), true)) {
+                continue;
+            }
+
+            // The order the middleware really runs in: Laravel sorts it by its priority list, not by how the group is written.
+            $order = array_map(fn ($middleware) => is_string($middleware) ? head(explode(':', $middleware)) : '', $router->gatherRouteMiddleware($route));
+            $at = fn (string $class) => array_search($class, $order, true);
+
+            $this->assertNotFalse($at(MeterUsage::class), $route->uri());
+            $this->assertLessThan($at(MeterUsage::class), $at(Authenticate::class), $route->uri().': signed in before it is counted');
+            $this->assertLessThan($at(SubstituteBindings::class), $at(MeterUsage::class), $route->uri().': counted before what it names is looked up');
+
+            foreach ($order as $position => $class) {
+                if ($class === ThrottleRequests::class) {
+                    $this->assertLessThan($at(MeterUsage::class), $position, $route->uri().': a rate limit stops a request before it is counted');
+                }
+            }
+
+            $checked++;
+        }
+
+        $this->assertGreaterThan(10, $checked);
     }
 
     #[Test]
@@ -304,17 +398,32 @@ class MeterUsageTest extends TestCase
     }
 
     #[Test]
-    public function a_request_a_rate_limit_stops_is_not_a_use_wherever_that_limit_sits(): void
+    public function a_request_a_rate_limit_stops_is_not_a_use(): void
     {
         $user = User::factory()->create();
         Sanctum::actingAs($user, ['*']);
 
-        // The limit is further in than the meter (as `throttle:blog-comments` is on the comment route), so the meter sees its 429.
+        // A route's own rate limit is sorted ahead of the meter, so the meter never sees what it stops.
         Route::middleware(['auth:sanctum', 'usage:api-calls'])->get('/__usage/limited', fn () => 'ok')->middleware('throttle:1,1');
 
         $this->get('/__usage/limited')->assertOk();
         $this->get('/__usage/limited')->assertStatus(429);
         $this->get('/__usage/limited')->assertStatus(429);
+
+        $this->assertSame(1, $this->uses($user));
+    }
+
+    #[Test]
+    public function a_request_a_tokens_own_quota_stops_is_not_a_use_either(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('quota');
+        $token->accessToken->forceFill(['hourly_quota' => 1])->save();
+
+        // The token's quota is checked after the meter has let the request through, so the meter sees its 429 and must not count it.
+        $this->withToken($token->plainTextToken)->getJson(route('api.v1.profile.show'))->assertOk();
+        $this->withToken($token->plainTextToken)->getJson(route('api.v1.profile.show'))->assertStatus(429)->assertJsonPath('message', 'API quota exceeded for this token.');
+        $this->withToken($token->plainTextToken)->getJson(route('api.v1.profile.show'))->assertStatus(429);
 
         $this->assertSame(1, $this->uses($user));
     }

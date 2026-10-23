@@ -85,8 +85,13 @@ class Usage
     {
         $definition = $this->meters->get($meter);
 
-        if ($definition->entitlement !== null && $user->canUse($definition->entitlement)) {
-            return $user->limitOf($definition->entitlement);
+        if ($definition->entitlement !== null) {
+            // Worked out once: it takes queries for the account's grants, subscriptions and plans, and this is asked on every API request.
+            $held = $user->entitlementSet();
+
+            if ($held->has($definition->entitlement)) {
+                return $held->limit($definition->entitlement);
+            }
         }
 
         return $definition->freeAllowance;
