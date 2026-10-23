@@ -329,6 +329,73 @@ class AuthTokenTest extends TestCase
         $this->signInAs($user, ['email' => 'Jane@Example.com'])->assertStatus(429);
     }
 
+    public function test_one_place_cannot_guess_passwords_across_many_addresses(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 1; $i <= 20; $i++) {
+            $this->postJson('/api/v1/auth/token', ['email' => "guess{$i}@example.com", 'password' => 'wrong'])->assertUnprocessable();
+        }
+
+        $response = $this->postJson('/api/v1/auth/token', ['email' => 'one-more@example.com', 'password' => 'wrong']);
+
+        $response->assertStatus(429)->assertHeader('Retry-After');
+        $this->assertGreaterThan(0, (int) $response->headers->get('Retry-After'));
+        $this->assertLessThanOrEqual(60, (int) $response->headers->get('Retry-After'));
+
+        // Nobody signs in from there for the rest of the minute, with the right password either.
+        $this->signInAs($user)->assertStatus(429);
+        $this->assertSame(0, $user->tokens()->count());
+    }
+
+    public function test_the_limit_on_a_place_is_that_places_own_and_ends_after_a_minute(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 1; $i <= 20; $i++) {
+            $this->postJson('/api/v1/auth/token', ['email' => "guess{$i}@example.com", 'password' => 'wrong'])->assertUnprocessable();
+        }
+
+        $this->signInAs($user)->assertStatus(429);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.20']);
+        $this->signInAs($user)->assertCreated();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1']);
+        $this->travel(61)->seconds();
+        $this->signInAs($user)->assertCreated();
+    }
+
+    public function test_an_address_that_is_refused_does_not_use_up_the_places_allowance(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->signInAs($user, ['password' => 'wrong'])->assertUnprocessable();
+        }
+
+        // Ten more tries at the same address are all turned away by its own limit first, so they cost the place nothing.
+        for ($i = 0; $i < 10; $i++) {
+            $this->signInAs($user)->assertStatus(429);
+        }
+
+        // That leaves 15 of the place's 20 for everybody else.
+        for ($i = 1; $i <= 15; $i++) {
+            $this->postJson('/api/v1/auth/token', ['email' => "guess{$i}@example.com", 'password' => 'wrong'])->assertUnprocessable();
+        }
+
+        $this->postJson('/api/v1/auth/token', ['email' => 'one-more@example.com', 'password' => 'wrong'])->assertStatus(429);
+    }
+
+    public function test_an_email_that_is_not_text_is_a_validation_error_not_a_server_error(): void
+    {
+        $this->postJson('/api/v1/auth/token', ['email' => ['jane@example.com'], 'password' => 'password'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('email');
+
+        $this->assertSame(0, PersonalAccessToken::query()->count());
+    }
+
     public function test_giving_back_a_key_leaves_the_others_alone(): void
     {
         $user = User::factory()->create();

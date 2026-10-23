@@ -106,7 +106,7 @@ The lifetimes offered, and whether "never" is among them, are set in `config/api
 | `keys.rotation_grace_hours` | How long the old key may keep working after a rotation, in hours (0 for not at all): 0, 1, 24, 168. | |
 | `keys.default_rotation_grace_hours` | The one chosen to begin with (24). | |
 
-Making keys is also **rate limited** (5 a minute and 20 an hour, the `api-keys` limiter: counted for the person on the page, and for an email address from one place when signing in over the API), and needs a **verified email address** where the site asks for one (taking a key away never does).
+Making keys is also **rate limited** (5 a minute and 20 an hour, the `api-keys` limiter: counted for the person on the page, and for an email address from one place when signing in over the API, where 20 a minute from one place is the limit as well, see [below](#keys-made-over-the-api)), and needs a **verified email address** where the site asks for one (taking a key away never does).
 
 Sanctum's own `sanctum.expiration` (in minutes, `null` by default) still applies on top of a key's own end, if you set it. Expired keys are not deleted by themselves: `php artisan sanctum:prune-expired --hours=24` does it, if you schedule it.
 
@@ -123,6 +123,7 @@ Revoking in the ACP now really revokes. **Restoring** a revoked token (clearing 
 - **The limit on keys** (`API_KEYS_MAX`) counts the keys made this way too. Past it the answer is a `422` with the message under `errors.limit`; give a key back (`DELETE /api/v1/auth/token`) or revoke one in Settings to make room.
 - **A verified address** is needed where the site asks for one (a `422` under `errors.email`).
 - **The `api-keys` rate limit** applies, counting failed attempts as well as successful ones, for each email address (without regard to its case) from each place; one address does not use up the allowance of others behind the same IP.
+- **The `api-sign-in` rate limit** applies as well: 20 requests a minute from one place, whatever addresses they name, counting every request, right or wrong. It is what stops one place trying passwords against address after address. An address that is already over its own limit is turned away first and does not use up the place's 20. Past either limit the answer is a `429` with a `Retry-After` header (the seconds to wait).
 - **The owner is emailed**, as for any key.
 
 **What a key gets when the request does not say.** Least privilege, and an end:

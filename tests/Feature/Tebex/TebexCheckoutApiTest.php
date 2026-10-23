@@ -9,6 +9,7 @@ use App\Models\BillingWebhookCall;
 use App\Models\DownloadGrant;
 use App\Models\GiftCard;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductFile;
@@ -104,6 +105,31 @@ class TebexCheckoutApiTest extends TestCase
         $order = Order::query()->latest('id')->firstOrFail();
 
         return [$order, $order->payments()->firstOrFail()];
+    }
+
+    /**
+     * The line of {@see placeTwoLineOrder()} that was ordered twice (the ebook). A test must find it by what it is: the order's lines
+     * are made in the order the cart's rows come back, which PostgreSQL does not keep as they were added, so which one is first varies.
+     */
+    private function lineOrderedTwice(Order $order): OrderItem
+    {
+        return $order->items->firstWhere('quantity', 2) ?? $this->fail('The order has no line of two.');
+    }
+
+    /**
+     * Where a line sits in the products of a Tebex payment made by tebexProductPaymentFor() (they are listed by the line's id).
+     *
+     * @param  array<string, mixed>  $subject
+     */
+    private function positionOf(array $subject, OrderItem $line): int
+    {
+        foreach ($subject['products'] as $position => $product) {
+            if ((int) $product['custom']['line'] === $line->id) {
+                return $position;
+            }
+        }
+
+        $this->fail("The payment lists no product for line {$line->id}.");
     }
 
     private function deliver(string $type, array $subject)
@@ -578,13 +604,13 @@ class TebexCheckoutApiTest extends TestCase
     public function a_payment_that_is_not_for_what_was_ordered_is_held_for_a_person(): void
     {
         [$order, $payment] = $this->placeTwoLineOrder();
-        [$ebook, $poster] = $order->items->sortBy('id')->values()->all();
+        $ebook = $this->lineOrderedTwice($order);
 
         $subject = fn (callable $change) => $change($this->tebexProductPaymentFor($order, $payment));
 
         $cases = [
-            'one fewer of a line' => $subject(function (array $s) {
-                $s['products'][0]['quantity'] = 1;
+            'one fewer of a line' => $subject(function (array $s) use ($ebook) {
+                $s['products'][$this->positionOf($s, $ebook)]['quantity'] = 1;
 
                 return $s;
             }),
@@ -633,9 +659,6 @@ class TebexCheckoutApiTest extends TestCase
             $this->assertSame(OrderPaymentStatus::Unpaid, $order->fresh()->payment_status, $name);
             $this->assertSame(PaymentStatus::Review, $payment->fresh()->status, $name);
         }
-
-        $this->assertNotNull($ebook);
-        $this->assertNotNull($poster);
     }
 
     #[Test]
@@ -687,7 +710,7 @@ class TebexCheckoutApiTest extends TestCase
         $subject = $this->tebexProductPaymentFor($order, $payment);
 
         // Tebex's documentation does not say which `base_price` is; the ebook was ordered twice at 9.99.
-        $subject['products'][0]['base_price']['amount'] = 19.98;
+        $subject['products'][$this->positionOf($subject, $this->lineOrderedTwice($order))]['base_price']['amount'] = 19.98;
 
         $this->deliver('payment.completed', $subject)->assertOk();
 
@@ -791,7 +814,8 @@ class TebexCheckoutApiTest extends TestCase
     {
         [$order, $payment] = $this->placeTwoLineOrder();
         $subject = $this->tebexProductPaymentFor($order, $payment);
-        $subject['products'][0]['quantity'] = 1;
+        $ebook = $this->lineOrderedTwice($order);
+        $subject['products'][$this->positionOf($subject, $ebook)]['quantity'] = 1;
 
         $this->deliver('payment.completed', $subject)->assertOk();
 
@@ -799,8 +823,7 @@ class TebexCheckoutApiTest extends TestCase
         $this->assertStringContainsString('items that are not what order', (string) $call->error);
         $this->assertStringContainsString('1 bought, 2 ordered', (string) $call->error);
 
-        $first = $order->items->sortBy('id')->first();
-        $kept = $payment->fresh()->raw['purchased_lines'][$first->id];
+        $kept = $payment->fresh()->raw['purchased_lines'][$ebook->id];
         $this->assertSame(1, $kept['quantity'], 'what Tebex listed is kept, for whoever decides what to do');
         $this->assertSame('9.99', $kept['price']);
     }

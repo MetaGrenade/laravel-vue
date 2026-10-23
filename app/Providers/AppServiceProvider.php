@@ -135,9 +135,17 @@ class AppServiceProvider extends ServiceProvider
     {
         $byUserOrIp = fn (Request $request) => $request->user()?->getAuthIdentifier() ?? $request->ip();
 
+        // The email a request names, in lower case, for a limiter's key. Limiters run before validation does, so it may not be text
+        // (email[]=x): that is the form's validation error to give, and all such requests share one bucket (the empty email).
+        $emailOf = function (Request $request): string {
+            $email = $request->input('email');
+
+            return is_string($email) ? Str::lower($email) : '';
+        };
+
         // Account creation and password reset emails.
         RateLimiter::for('auth', fn (Request $request) => [
-            Limit::perMinute(5)->by('auth:'.$request->ip().'|'.Str::lower((string) $request->input('email'))),
+            Limit::perMinute(5)->by('auth:'.$request->ip().'|'.$emailOf($request)),
             Limit::perMinute(20)->by('auth-ip:'.$request->ip()),
         ]);
 
@@ -164,15 +172,20 @@ class AppServiceProvider extends ServiceProvider
 
         // Making API keys: each one is a new credential, so a stolen session cannot be used to mint them by the hundred. A person
         // signed in is counted as themselves; one signing in over the API, as that address from that place (guessing passwords
-        // there is the business of another limit, and one address should not use up the allowance of everybody behind the same IP).
-        RateLimiter::for('api-keys', function (Request $request) {
-            $who = $request->user()?->getAuthIdentifier() ?? $request->ip().'|'.Str::lower((string) $request->input('email'));
+        // there is the business of 'api-sign-in', and one address should not use up the allowance of everybody behind the same IP).
+        RateLimiter::for('api-keys', function (Request $request) use ($emailOf) {
+            $who = $request->user()?->getAuthIdentifier() ?? $request->ip().'|'.$emailOf($request);
 
             return [
                 Limit::perMinute(5)->by('api-keys:'.$who),
                 Limit::perHour(20)->by('api-keys-hourly:'.$who),
             ];
         });
+
+        // Signing in over the API: every request counts, right or wrong, so one place cannot try passwords against address after
+        // address (the limit above is per address). It sits after 'api-keys' on the route, so a request that address has already
+        // used up is turned away first and costs the place nothing.
+        RateLimiter::for('api-sign-in', fn (Request $request) => Limit::perMinute(20)->by('api-sign-in-ip:'.$request->ip()));
 
         // Files are big: a purchased download is limited per order and address, not just per person.
         RateLimiter::for('downloads', function (Request $request) use ($byUserOrIp) {
