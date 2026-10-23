@@ -36,7 +36,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::post('/auth/token', [AuthTokenController::class, 'store'])
         ->name('auth.token.store');
 
-    Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity'])->group(function () {
+    Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'usage:api-calls'])->group(function () {
         Route::delete('/auth/token', [AuthTokenController::class, 'destroy'])
             ->name('auth.token.destroy');
         Route::get('/profile', UserProfileController::class)
@@ -52,7 +52,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::prefix('/blogs/{blog:slug}/comments')->group(function () use ($blogCommentThrottle) {
             Route::get('/', [ApiBlogCommentController::class, 'index'])->name('blogs.comments.index');
 
-            Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', $blogCommentThrottle])->group(function () {
+            Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', $blogCommentThrottle, 'usage:api-calls'])->group(function () {
                 Route::post('/', [ApiBlogCommentController::class, 'store'])
                     ->middleware('throttle:blog-comments')
                     ->name('blogs.comments.store');
@@ -80,7 +80,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/polls', [PollController::class, 'index'])->name('polls.index');
     Route::get('/polls/{poll:slug}', [PollController::class, 'show'])->name('polls.show');
 
-    Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1'])->group(function () {
+    Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1', 'usage:api-calls'])->group(function () {
         Route::post('/polls/{poll:slug}/vote', [PollVoteController::class, 'store'])->name('polls.vote');
     });
 
@@ -90,7 +90,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/forum/threads/{thread:slug}', [ForumThreadController::class, 'show'])
             ->name('forum.threads.show');
 
-        Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:30,1'])->group(function () {
+        Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:30,1', 'usage:api-calls'])->group(function () {
             Route::post('/forum/boards/{board:slug}/threads', [ForumThreadCommandController::class, 'store'])
                 ->name('forum.threads.store');
 
@@ -108,7 +108,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->name('forum.threads.update');
         });
 
-        Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1', 'role:admin|editor|moderator'])
+        Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1', 'role:admin|editor|moderator', 'usage:api-calls'])
             ->group(function () {
                 Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}/publish', [ApiForumThreadModerationController::class, 'publish'])
                     ->name('forum.threads.publish');
@@ -132,7 +132,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     $ticketReadThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:30,1';
     $ticketRatingThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:5,1';
 
-    Route::middleware(['section.enabled:support', 'auth:sanctum', 'token.throttle', 'token.activity', $supportThrottle])
+    Route::middleware(['section.enabled:support', 'auth:sanctum', 'token.throttle', 'token.activity', $supportThrottle, 'usage:api-calls'])
         ->prefix('support')
         ->as('support.')
         ->group(function () use ($ticketWriteThrottle, $ticketReadThrottle, $ticketRatingThrottle) {
@@ -164,6 +164,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 });
 
-Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity'])
+Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'usage:api-calls'])
     ->get('/user', UserProfileController::class)
     ->name('api.user.show');

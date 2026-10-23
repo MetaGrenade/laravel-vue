@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\DataExport;
+use App\Models\UsageEvent;
 use App\Models\User;
 use App\Notifications\UserDataExportReady;
 use Illuminate\Bus\Queueable;
@@ -175,6 +176,22 @@ class GenerateUserDataExport implements ShouldQueue
             ])
             ->all();
 
+        // What the account used of each metered thing, a row a day and meter (not a row a use: an API user has thousands).
+        $usage = UsageEvent::query()
+            ->where('user_id', $user->id)
+            ->selectRaw('meter, DATE(occurred_at) as day, SUM(quantity) as units')
+            ->groupBy('meter')
+            ->groupByRaw('DATE(occurred_at)')
+            ->orderBy('day')
+            ->orderBy('meter')
+            ->get()
+            ->map(fn ($row) => [
+                'meter' => $row->getAttribute('meter'),
+                'date' => substr((string) $row->getAttribute('day'), 0, 10),
+                'units' => (int) $row->getAttribute('units'),
+            ])
+            ->all();
+
         return [
             'user' => [
                 'id' => $user->id,
@@ -196,6 +213,7 @@ class GenerateUserDataExport implements ShouldQueue
             'support_tickets' => $supportTickets,
             'wishlist' => $wishlist,
             'product_reviews' => $productReviews,
+            'usage' => $usage,
         ];
     }
 
@@ -259,6 +277,17 @@ class GenerateUserDataExport implements ShouldQueue
                 Str::limit($review['rating'].'/5 '.($review['product'] ?? '').': '.($review['title'] ?: $review['body']), 120),
                 $review['created_at'],
                 $review['updated_at'],
+            ]);
+        }
+
+        // A row a day and meter, as in the JSON: the day is when it was used, and there is nothing to say it changed.
+        foreach ($payload['usage'] as $day) {
+            fputcsv($handle, [
+                'usage',
+                $day['meter'].':'.$day['date'],
+                $day['units'].' '.$day['meter'].' used',
+                $day['date'],
+                $day['date'],
             ]);
         }
 

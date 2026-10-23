@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureWebsiteSectionIsEnabled;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogTokenActivity;
+use App\Http\Middleware\MeterUsage;
 use App\Http\Middleware\PreventBannedUser;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
@@ -16,6 +17,7 @@ use App\Jobs\AggregateSearchQueryStats;
 use App\Jobs\ExpirePendingOrders;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneSearchQueryLogs;
+use App\Jobs\PruneUsageEvents;
 use App\Jobs\SyncTebexCatalogue;
 use App\Payments\Tebex\TebexCatalogue;
 use Illuminate\Console\Scheduling\Schedule;
@@ -23,6 +25,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -67,17 +70,24 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => EnsureEmailIsVerifiedIfRequired::class,
             'token.throttle' => ThrottleTokenUsage::class,
             'token.activity' => LogTokenActivity::class,
+            'usage' => MeterUsage::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'section.enabled' => EnsureWebsiteSectionIsEnabled::class,
             'entitled' => EnsureEntitled::class,
         ]);
+
+        // The usage meter has to see a request before Laravel looks up what its address names (SubstituteBindings, which the api group
+        // runs): a request for something that is not there is still a use, and an account at its limit is refused rather than told "not
+        // found". It still comes after authentication, which is earlier in the list, since it needs to know whose use it is.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: MeterUsage::class);
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();
         $schedule->job(new AggregateSearchQueryStats)->dailyAt('00:30');
         $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
+        $schedule->job(new PruneUsageEvents)->dailyAt('01:30');
         $schedule->job(new ExpirePendingOrders)->everyFiveMinutes();
         // Looked at every five minutes; runs when the copy of the Tebex catalogue is older than the configured interval.
         $schedule->job(new SyncTebexCatalogue)->everyFiveMinutes()->when(fn () => app(TebexCatalogue::class)->isDue());

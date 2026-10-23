@@ -40,6 +40,7 @@ class BillingPermissionsTest extends TestCase
         return [
             'list the plans' => ['billing.acp.view', 'get', 'acp.billing.plans.index', null],
             'list the invoices' => ['billing.acp.view', 'get', 'acp.billing.invoices.index', null],
+            'look at the metered usage' => ['billing.acp.view', 'get', 'acp.billing.usage.index', null],
             'list the webhook deliveries' => ['billing.acp.view', 'get', 'acp.billing.webhooks.index', null],
             'open a webhook delivery' => ['billing.acp.view', 'get', 'acp.billing.webhooks.show', 'call'],
             'open the form for a new plan' => ['billing.acp.create', 'get', 'acp.billing.plans.create', null],
