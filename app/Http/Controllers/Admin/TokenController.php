@@ -9,6 +9,8 @@ use App\Http\Requests\Admin\UpdateTokenRequest;
 use App\Models\PersonalAccessToken;
 use App\Models\TokenLog;
 use App\Models\User;
+use App\Support\Api\Scope;
+use App\Support\Api\Scopes;
 use App\Support\Localization\DateFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -24,7 +26,7 @@ class TokenController extends Controller
     /**
      * Show list of tokens + stats.
      */
-    public function index(Request $request): Response
+    public function index(Request $request, Scopes $scopes): Response
     {
         $perPage = (int) $request->get('per_page', 10);
 
@@ -158,6 +160,7 @@ class TokenController extends Controller
             ], $this->inertiaPagination($tokens)),
             'tokenStats' => $tokenStats,
             'userList' => $userList,
+            'scopes' => array_values(array_map(fn (Scope $scope) => $scope->toArray(), $scopes->all())),
             'tokenLogs' => array_merge([
                 'data' => $tokenLogItems,
             ], $this->inertiaPagination($tokenLogs)),
@@ -182,7 +185,7 @@ class TokenController extends Controller
 
         $newToken = $user->createToken(
             $data['name'],
-            $data['abilities'] ?? ['*'],
+            array_values(array_unique($data['abilities'])),
             $data['expires_at'] ? Carbon::parse($data['expires_at']) : null
         );
 
@@ -205,7 +208,7 @@ class TokenController extends Controller
 
         $token->forceFill([
             'name' => $data['name'],
-            'abilities' => $data['abilities'] ?? [],
+            'abilities' => array_values(array_unique($data['abilities'])),
             'expires_at' => $data['expires_at'] ? Carbon::parse($data['expires_at']) : null,
             'hourly_quota' => $data['hourly_quota'] ?? null,
             'daily_quota' => $data['daily_quota'] ?? null,

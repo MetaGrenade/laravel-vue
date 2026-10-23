@@ -63,7 +63,7 @@ On a route, `usage:exports` does what `usage:api-calls` does. An unknown meter n
 
 ## What customers and staff see
 
-- **Customers:** **Settings → Billing → Usage this month** shows each meter with a bar when there is a limit, what is left and when the count starts again, in the viewer's own time zone.
+- **Customers:** **Settings → Billing → Usage this month** shows each meter with a bar when there is a limit, what is left and when the count starts again, in the viewer's own time zone. **Settings → API keys** shows the API calls meter too, and how many of the month's calls each of the person's keys made (the `token_id` of each use; a key that is removed leaves its calls in the account's total).
 - **Staff:** **Billing → Metered usage** in the ACP (it needs `billing.acp.view`): a month picker, the totals, a chart of use each day, and the 25 accounts that used the most, with a flag for those at their limit. What an account may use is shown for the current month only, since an earlier month's allowance is not what it has now.
 
 ## The month

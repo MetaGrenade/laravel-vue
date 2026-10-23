@@ -80,6 +80,9 @@ class AppServiceProvider extends ServiceProvider
 
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 
+        // Sanctum turns a key away once it has expired but knows nothing of `revoked_at`, so without this a revoked key kept working.
+        Sanctum::authenticateAccessTokensUsing(fn (PersonalAccessToken $key, bool $valid): bool => $valid && ! $key->isRevoked());
+
         $this->configureDefaults();
         $this->configureRateLimiting();
 
@@ -158,6 +161,12 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('search', fn (Request $request) => Limit::perMinute(60)->by('search:'.$byUserOrIp($request)));
 
         RateLimiter::for('billing', fn (Request $request) => Limit::perMinute(10)->by('billing:'.$byUserOrIp($request)));
+
+        // Making API keys: each one is a new credential, so a stolen session cannot be used to mint them by the hundred.
+        RateLimiter::for('api-keys', fn (Request $request) => [
+            Limit::perMinute(5)->by('api-keys:'.$byUserOrIp($request)),
+            Limit::perHour(20)->by('api-keys-hourly:'.$byUserOrIp($request)),
+        ]);
 
         // Files are big: a purchased download is limited per order and address, not just per person.
         RateLimiter::for('downloads', function (Request $request) use ($byUserOrIp) {

@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Models\User;
+use App\Support\Api\Scopes;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreTokenRequest extends FormRequest
 {
@@ -18,8 +20,8 @@ class StoreTokenRequest extends FormRequest
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
             'device_name' => ['nullable', 'string', 'max:191'],
-            'abilities' => ['nullable', 'array'],
-            'abilities.*' => ['string'],
+            'abilities' => ['nullable', 'array', 'min:1'],
+            'abilities.*' => ['string', Rule::in([Scopes::FULL, ...app(Scopes::class)->keys()])],
         ];
     }
 

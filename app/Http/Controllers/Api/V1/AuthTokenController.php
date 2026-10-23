@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreTokenRequest;
+use App\Models\PersonalAccessToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -38,12 +40,14 @@ class AuthTokenController extends Controller
         ], 201);
     }
 
-    public function destroy(Request $request): JsonResponse
+    public function destroy(Request $request): Response
     {
-        $token = $request->user()?->currentAccessToken();
+        $key = $request->user()?->currentAccessToken();
 
-        if ($token) {
-            $token->delete();
+        // Revoked, not deleted: the request is still logged against the key once this returns, and a key that is gone has no row to log
+        // to. It stays in Settings → API keys as revoked, where it can be removed.
+        if ($key instanceof PersonalAccessToken && ! $key->isRevoked()) {
+            $key->forceFill(['revoked_at' => now()])->save();
         }
 
         return response()->noContent();

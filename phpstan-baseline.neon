@@ -709,12 +709,6 @@ parameters:
 			path: app/Http/Controllers/Api/V1/AuthTokenController.php
 
 		-
-			message: '#^Method App\\Http\\Controllers\\Api\\V1\\AuthTokenController\:\:destroy\(\) should return Illuminate\\Http\\JsonResponse but returns Illuminate\\Http\\Response\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/AuthTokenController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
 			identifier: property.notFound
 			count: 1

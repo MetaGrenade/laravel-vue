@@ -176,6 +176,22 @@ class GenerateUserDataExport implements ShouldQueue
             ])
             ->all();
 
+        // The API keys the account has made, revoked and expired ones too. Never the secret: it is shown once, and only a hash is kept.
+        $apiKeys = $user->tokens()
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($key) => [
+                'id' => $key->id,
+                'name' => $key->name,
+                'scopes' => (array) $key->abilities,
+                'created_at' => $key->created_at?->toIso8601String(),
+                'last_used_at' => $key->last_used_at?->toIso8601String(),
+                'expires_at' => $key->expires_at?->toIso8601String(),
+                'revoked_at' => $key->revoked_at?->toIso8601String(),
+            ])
+            ->all();
+
         // What the account used of each metered thing, a row a day and meter (not a row a use: an API user has thousands).
         $usage = UsageEvent::query()
             ->where('user_id', $user->id)
@@ -213,6 +229,7 @@ class GenerateUserDataExport implements ShouldQueue
             'support_tickets' => $supportTickets,
             'wishlist' => $wishlist,
             'product_reviews' => $productReviews,
+            'api_keys' => $apiKeys,
             'usage' => $usage,
         ];
     }
@@ -277,6 +294,17 @@ class GenerateUserDataExport implements ShouldQueue
                 Str::limit($review['rating'].'/5 '.($review['product'] ?? '').': '.($review['title'] ?: $review['body']), 120),
                 $review['created_at'],
                 $review['updated_at'],
+            ]);
+        }
+
+        // The last thing that happened to a key stands for when it was changed: it was revoked, or else last used.
+        foreach ($payload['api_keys'] as $key) {
+            fputcsv($handle, [
+                'api_key',
+                $key['id'],
+                Str::limit($key['name'].': '.implode(' ', $key['scopes']), 120),
+                $key['created_at'],
+                $key['revoked_at'] ?? $key['last_used_at'] ?? $key['created_at'],
             ]);
         }
 

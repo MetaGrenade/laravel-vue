@@ -24,6 +24,8 @@ import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff, B
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import InputError from '@/components/InputError.vue';
+import ApiScopePicker from '@/components/ApiScopePicker.vue';
+import type { ApiScopeOption } from '@/types/api-keys';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -126,6 +128,8 @@ const props = defineProps<{
         nickname: string;
         email: string;
     }>;
+    /** What a token can be limited to; `*` (full access) is offered on top of these. */
+    scopes: ApiScopeOption[];
     tokenLogs: {
         data: TokenLog[];
         meta?: PaginationMeta | null;
@@ -464,13 +468,12 @@ const createTokenForm = useForm({
     hourly_quota: null as number | null,
     daily_quota: null as number | null,
 });
-const abilityInput = ref('');
 
 const resetCreateTokenForm = () => {
     createTokenForm.reset();
+    createTokenForm.abilities = [];
     createTokenForm.hourly_quota = null;
     createTokenForm.daily_quota = null;
-    abilityInput.value = '';
     createTokenForm.clearErrors();
 };
 
@@ -481,11 +484,6 @@ watch(createDialogOpen, (open) => {
 });
 
 const submitCreateToken = () => {
-    createTokenForm.abilities = abilityInput.value
-        .split(',')
-        .map((ability) => ability.trim())
-        .filter(Boolean);
-
     createTokenForm.hourly_quota = normalizeQuotaValue(createTokenForm.hourly_quota);
     createTokenForm.daily_quota = normalizeQuotaValue(createTokenForm.daily_quota);
 
@@ -508,7 +506,9 @@ const editTokenForm = useForm({
     hourly_quota: null as number | null,
     daily_quota: null as number | null,
 });
-const editAbilityInput = ref('');
+
+/** Abilities a token was given before they were a list the site chooses from. They do nothing, and are dropped when it is saved. */
+const droppedAbilities = ref<string[]>([]);
 
 const resetEditTokenForm = () => {
     editTokenForm.reset();
@@ -517,7 +517,7 @@ const resetEditTokenForm = () => {
     editTokenForm.hourly_quota = null;
     editTokenForm.daily_quota = null;
     editTokenForm.clearErrors();
-    editAbilityInput.value = '';
+    droppedAbilities.value = [];
     editingTokenId.value = null;
     editingToken.value = null;
 };
@@ -536,7 +536,9 @@ const openEditDialog = (token: Token) => {
     editTokenForm.clear_revocation = false;
     editTokenForm.hourly_quota = token.hourly_quota ?? null;
     editTokenForm.daily_quota = token.daily_quota ?? null;
-    editAbilityInput.value = (token.abilities ?? []).join(', ');
+    const known = (ability: string) => ability === '*' || props.scopes.some((scope) => scope.key === ability);
+    editTokenForm.abilities = (token.abilities ?? []).filter(known);
+    droppedAbilities.value = (token.abilities ?? []).filter((ability) => !known(ability));
     editTokenForm.clearErrors();
     editDialogOpen.value = true;
 };
@@ -545,11 +547,6 @@ const submitEditToken = () => {
     if (!editingTokenId.value) {
         return;
     }
-
-    editTokenForm.abilities = editAbilityInput.value
-        .split(',')
-        .map((ability) => ability.trim())
-        .filter(Boolean);
 
     editTokenForm.hourly_quota = normalizeQuotaValue(editTokenForm.hourly_quota);
     editTokenForm.daily_quota = normalizeQuotaValue(editTokenForm.daily_quota);
@@ -766,14 +763,8 @@ const lastUsedDisplay = (value?: string | null) => {
                                             </div>
 
                                             <div class="space-y-2">
-                                                <Label for="token-abilities">Abilities</Label>
-                                                <Textarea
-                                                    id="token-abilities"
-                                                    v-model="abilityInput"
-                                                    rows="3"
-                                                    placeholder="Comma separated abilities (leave blank for full access)"
-                                                />
-                                                <p class="text-xs text-muted-foreground">Leave empty to grant full access. Example: read,update</p>
+                                                <Label>Abilities</Label>
+                                                <ApiScopePicker v-model="createTokenForm.abilities" :scopes="scopes" allow-full />
                                                 <InputError :message="createTokenForm.errors.abilities" />
                                             </div>
 
@@ -845,14 +836,12 @@ const lastUsedDisplay = (value?: string | null) => {
                                             </div>
 
                                             <div class="space-y-2">
-                                                <Label for="edit-token-abilities">Abilities</Label>
-                                                <Textarea
-                                                    id="edit-token-abilities"
-                                                    v-model="editAbilityInput"
-                                                    rows="3"
-                                                    placeholder="Comma separated abilities (leave blank for full access)"
-                                                />
-                                                <p class="text-xs text-muted-foreground">Leave empty to grant full access. Example: read,update</p>
+                                                <Label>Abilities</Label>
+                                                <ApiScopePicker v-model="editTokenForm.abilities" :scopes="scopes" allow-full />
+                                                <p v-if="droppedAbilities.length" class="text-xs text-muted-foreground">
+                                                    This token also holds abilities the site does not have ({{ droppedAbilities.join(', ') }}). They
+                                                    do nothing, and are dropped when you save.
+                                                </p>
                                                 <InputError :message="editTokenForm.errors.abilities" />
                                             </div>
 

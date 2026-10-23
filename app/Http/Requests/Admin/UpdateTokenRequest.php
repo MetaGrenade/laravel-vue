@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\Api\Scopes;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateTokenRequest extends FormRequest
 {
@@ -15,12 +17,23 @@ class UpdateTokenRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'abilities' => ['nullable', 'array'],
-            'abilities.*' => ['string', 'max:255'],
+            'abilities' => ['required', 'array'],
+            'abilities.*' => ['string', Rule::in([Scopes::FULL, ...app(Scopes::class)->keys()])],
             'expires_at' => ['nullable', 'date'],
             'clear_revocation' => ['sometimes', 'boolean'],
             'hourly_quota' => ['nullable', 'integer', 'min:1'],
             'daily_quota' => ['nullable', 'integer', 'min:1'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'abilities.required' => 'Choose what the token can do.',
+            'abilities.*.in' => 'That is not an ability the site has. Choose from the list.',
         ];
     }
 

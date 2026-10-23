@@ -64,7 +64,7 @@ Plan: eight milestones (M0–M7) in section 9, roughly **70–100 developer-days
 | Trials, coupons, proration, dunning | **Partial.** Cashier supports trials and proration; no UI, no coupon model, no dunning emails. |
 | Usage-based billing | **Partial.** Cashier meter migrations exist; no meters or reporting wired up. |
 | Tax | **Missing.** `tax_total` exists on orders but nothing computes it; Stripe Tax not enabled. |
-| Customer-facing API keys | **Partial.** Tokens are managed by admins in the ACP; no self-service page in user settings. |
+| Customer-facing API keys | **Done** (M3): a self-service page with scopes, expiry and revoke, and scopes the API enforces; see [api-keys.md](api-keys.md). |
 | Outbound webhooks for customers | **Missing.** |
 | Admin impersonation, admin audit log | **Missing.** Only support tickets have an audit trail. |
 | Onboarding flow, in-app changelog/status | **Missing.** |
@@ -124,7 +124,7 @@ Strong already. Remaining gaps, in priority order:
 - [ ] Private storage and authorised downloads for all user uploads
 - [ ] Upload pipeline: MIME sniffing, extension allow-list, size caps, image re-encode
 - [ ] Admin audit log
-- [ ] Token abilities default, expiry, rate limits
+- [ ] Token abilities default, expiry, rate limits (**partly done in M3**: scopes are enforced on every API route, keys made on the settings page expire and are limited in number, and revoking really revokes; left: a least-privilege default and an expiry for keys made through `POST /api/v1/auth/token`, see [api-keys.md](api-keys.md#not-built))
 - [ ] Per-route authorisation review: every ACP route behind a named permission (currently 166 admin routes; **To verify** that none rely on role only)
 - [ ] Policies for orders, tickets, products (only 3 policies exist today)
 - [ ] Webhook idempotency and replay protection for all providers
@@ -406,7 +406,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Entitlements (section 8.6) wired to Stripe plans and the pricing page (**done**, first slice: see [entitlements.md](entitlements.md#subscription-plans)). Decided in the build: a plan's entitlements are read from the account's live Cashier subscriptions each time rather than copied into grants, so a plan change reaches the people on it at once
 - Trials (**done**, see [billing.md](billing.md#free-trials)), coupons on subscriptions (**done** as promotion codes, see [billing.md](billing.md#promotion-codes)), dunning emails (**done**, see [billing.md](billing.md#when-a-payment-fails)), customer portal links (**done**, see [billing.md](billing.md#customer-portal))
 - Metered usage example with reporting (**done**, see [usage.md](usage.md); billing the overage through Stripe is not built)
-- Self-service API keys page with scopes and expiry
+- Self-service API keys page with scopes and expiry (**done**, see [api-keys.md](api-keys.md); it also made scopes real: every API route that takes a key names the scope it needs, and a revoked key is refused, which `revoked_at` never did before)
 - Admin audit log and read-only impersonation
 - Onboarding checklist; branded email layout
 - Tests asserting that policies resolve through the owner, so teams can be added in 1.1 (section 7.4)

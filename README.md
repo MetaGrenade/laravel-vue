@@ -276,8 +276,11 @@ dispatch but nothing will be pushed to clients. To enable realtime notifications
 ## HTTP API & Swagger Docs
 - **Versioned endpoints** live under `/api/v1`. Public consumers can fetch published blog posts and forum threads, while
   authenticated clients may create personal access tokens and retrieve their profile details.
-- **Token management**: exchange valid web credentials for a Sanctum token using `POST /api/v1/auth/token`, then include the
-  resulting bearer token in the `Authorization` header for protected routes (`GET /api/v1/profile`, `DELETE /api/v1/auth/token`).
+- **API keys**: anyone signed in can make their own in **Settings → API keys**, limited to the scopes they tick and expiring when they
+  say, then send it as a bearer token in the `Authorization` header. A key that lacks the scope a route needs is refused with a 403
+  that names it, and a revoked or expired key with a 401 ([docs/api-keys.md](docs/api-keys.md)). Staff manage keys in **Admin → Tokens**.
+- **Signing in over the API**: exchange valid web credentials for a key with `POST /api/v1/auth/token` (optionally asking for fewer
+  scopes), and give it back with `DELETE /api/v1/auth/token`, which revokes it.
 - **Interactive documentation** is available at [`/api/docs`](http://localhost:8000/api/docs) once the Laravel server is
   running. The page embeds Swagger UI and reads the generated OpenAPI schema from `/api/docs/openapi.json`.
 - **Generate or refresh the OpenAPI schema** with `php artisan api:docs`. The command writes the latest description to

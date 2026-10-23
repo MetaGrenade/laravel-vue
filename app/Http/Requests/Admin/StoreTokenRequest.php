@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\Api\Scopes;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreTokenRequest extends FormRequest
 {
@@ -16,12 +18,24 @@ class StoreTokenRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'abilities' => ['nullable', 'array'],
-            'abilities.*' => ['string', 'max:255'],
+            // What the token can do is chosen from the site's scopes, or full access: free text meant nothing, and now a token is held to it.
+            'abilities' => ['required', 'array'],
+            'abilities.*' => ['string', Rule::in([Scopes::FULL, ...app(Scopes::class)->keys()])],
             'expires_at' => ['nullable', 'date', 'after:now'],
             'user_id' => ['required', 'exists:users,id'],
             'hourly_quota' => ['nullable', 'integer', 'min:1'],
             'daily_quota' => ['nullable', 'integer', 'min:1'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'abilities.required' => 'Choose what the token can do.',
+            'abilities.*.in' => 'That is not an ability the site has. Choose from the list.',
         ];
     }
 
