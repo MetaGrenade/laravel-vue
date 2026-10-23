@@ -54,10 +54,10 @@ class ThrottleTokenUsage
             return null;
         }
 
-        /** @var PersonalAccessToken|null $token */
         $token = $user->currentAccessToken();
 
-        return $token;
+        // A person signed in with a session (the site's own pages) has a transient token: there is no key to limit.
+        return $token instanceof PersonalAccessToken ? $token : null;
     }
 
     private function detectQuotaBreach(PersonalAccessToken $token): ?JsonResponse

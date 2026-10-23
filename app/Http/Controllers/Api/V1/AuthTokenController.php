@@ -4,13 +4,19 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreTokenRequest;
+use App\Models\PersonalAccessToken;
+use App\Notifications\ApiKeyCreated;
+use App\Support\Api\ApiKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthTokenController extends Controller
 {
+    public function __construct(private readonly ApiKeys $keys) {}
+
     public function store(StoreTokenRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -22,14 +28,21 @@ class AuthTokenController extends Controller
             ]);
         }
 
-        $token = $user->createToken(
+        // The same way a key is made in Settings: the same limit on how many, the same need for a verified address, and the owner is
+        // told. Asked for no scopes it gets the site's default ones (api.sign_in.scopes), and it lasts as long as the site says
+        // (api.sign_in.expiry_days).
+        $token = $this->keys->create(
+            $user,
             $data['device_name'] ?? 'api',
-            $data['abilities'] ?? ['*']
+            $data['abilities'] ?? $this->keys->signInScopes(),
+            $this->keys->signInLifetime(),
+            how: ApiKeyCreated::SIGN_IN,
         );
 
         return response()->json([
             'token' => $token->plainTextToken,
-            'expires_at' => optional($token->accessToken)->expires_at,
+            'abilities' => $token->accessToken->abilities,
+            'expires_at' => $token->accessToken->expires_at,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -38,12 +51,14 @@ class AuthTokenController extends Controller
         ], 201);
     }
 
-    public function destroy(Request $request): JsonResponse
+    public function destroy(Request $request): Response
     {
-        $token = $request->user()?->currentAccessToken();
+        $key = $request->user()?->currentAccessToken();
 
-        if ($token) {
-            $token->delete();
+        // Revoked, not deleted: the request is still logged against the key once this returns, and a key that is gone has no row to log
+        // to. It stays in Settings → API keys as revoked, where it can be removed.
+        if ($key instanceof PersonalAccessToken && ! $key->isRevoked()) {
+            $key->forceFill(['revoked_at' => now()])->save();
         }
 
         return response()->noContent();

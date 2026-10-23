@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\AddressController;
+use App\Http\Controllers\Settings\ApiKeyController;
 use App\Http\Controllers\Settings\DataErasureRequestController;
 use App\Http\Controllers\Settings\DataExportController;
 use App\Http\Controllers\Settings\LinkedSocialAccountController;
@@ -38,6 +39,26 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
 
     Route::get('settings/privacy', PrivacyController::class)->name('privacy.index');
+
+    Route::get('settings/api-keys', [ApiKeyController::class, 'index'])->name('settings.api-keys.index');
+    // Making a key needs a verified address where the site asks for one; taking one away never does.
+    Route::post('settings/api-keys', [ApiKeyController::class, 'store'])
+        ->middleware(['verified', 'throttle:api-keys'])
+        ->name('settings.api-keys.store');
+    // Rotating makes a new key, so it is held to the same rules as making one.
+    Route::post('settings/api-keys/{key}/rotate', [ApiKeyController::class, 'rotate'])
+        ->middleware(['verified', 'throttle:api-keys'])
+        ->whereNumber('key')
+        ->name('settings.api-keys.rotate');
+    Route::patch('settings/api-keys/{key}/limits', [ApiKeyController::class, 'limits'])
+        ->whereNumber('key')
+        ->name('settings.api-keys.limits');
+    Route::post('settings/api-keys/{key}/revoke', [ApiKeyController::class, 'revoke'])
+        ->whereNumber('key')
+        ->name('settings.api-keys.revoke');
+    Route::delete('settings/api-keys/{key}', [ApiKeyController::class, 'destroy'])
+        ->whereNumber('key')
+        ->name('settings.api-keys.destroy');
 
     // The address book belongs to the shop, so it goes away with it.
     Route::middleware('section.enabled:commerce')->group(function () {

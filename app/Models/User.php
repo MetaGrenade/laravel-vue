@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\Notification as BaseNotification;
@@ -80,6 +81,16 @@ class User extends Authenticatable implements MustVerifyEmail
             'reputation_points' => 'integer',
             'trial_ends_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The API keys the person has made: Sanctum's relation, but typed as the site's own model of a key.
+     *
+     * @return MorphMany<PersonalAccessToken, $this>
+     */
+    public function tokens(): MorphMany
+    {
+        return $this->morphMany(PersonalAccessToken::class, 'tokenable');
     }
 
     public function forumThreads(): HasMany

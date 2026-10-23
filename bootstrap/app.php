@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureEmailIsVerifiedIfRequired;
 use App\Http\Middleware\EnsureEntitled;
 use App\Http\Middleware\EnsureSiteIsAvailable;
+use App\Http\Middleware\EnsureTokenScope;
 use App\Http\Middleware\EnsureWebsiteSectionIsEnabled;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -71,6 +72,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'token.throttle' => ThrottleTokenUsage::class,
             'token.activity' => LogTokenActivity::class,
             'usage' => MeterUsage::class,
+            'scope' => EnsureTokenScope::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
@@ -82,6 +84,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // runs): a request for something that is not there is still a use, and an account at its limit is refused rather than told "not
         // found". It still comes after authentication, which is earlier in the list, since it needs to know whose use it is.
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: MeterUsage::class);
+
+        // The same goes for a key's scopes, so a key that may not read tickets is told so whether or not the ticket it asked for exists,
+        // and cannot find out which ticket numbers are there. Added second, it lands right after the meter.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsureTokenScope::class);
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();

@@ -9,6 +9,10 @@ use App\Http\Requests\Admin\UpdateTokenRequest;
 use App\Models\PersonalAccessToken;
 use App\Models\TokenLog;
 use App\Models\User;
+use App\Notifications\ApiKeyCreated;
+use App\Support\Api\ApiKeys;
+use App\Support\Api\Scope;
+use App\Support\Api\Scopes;
 use App\Support\Localization\DateFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -24,7 +28,7 @@ class TokenController extends Controller
     /**
      * Show list of tokens + stats.
      */
-    public function index(Request $request): Response
+    public function index(Request $request, Scopes $scopes): Response
     {
         $perPage = (int) $request->get('per_page', 10);
 
@@ -158,6 +162,7 @@ class TokenController extends Controller
             ], $this->inertiaPagination($tokens)),
             'tokenStats' => $tokenStats,
             'userList' => $userList,
+            'scopes' => array_values(array_map(fn (Scope $scope) => $scope->toArray(), $scopes->all())),
             'tokenLogs' => array_merge([
                 'data' => $tokenLogItems,
             ], $this->inertiaPagination($tokenLogs)),
@@ -182,14 +187,19 @@ class TokenController extends Controller
 
         $newToken = $user->createToken(
             $data['name'],
-            $data['abilities'] ?? ['*'],
+            array_values(array_unique($data['abilities'])),
             $data['expires_at'] ? Carbon::parse($data['expires_at']) : null
         );
 
+        // Limits staff set are staff's: the owner cannot change them (see ApiKeys::setLimits()).
         $newToken->accessToken->forceFill([
             'hourly_quota' => $data['hourly_quota'] ?? null,
             'daily_quota' => $data['daily_quota'] ?? null,
+            'limits_set_by_staff_at' => isset($data['hourly_quota']) || isset($data['daily_quota']) ? now() : null,
         ])->save();
+
+        // A new credential on somebody's account is something they should hear about.
+        app(ApiKeys::class)->announce($user, $newToken->accessToken, ApiKeyCreated::STAFF);
 
         return redirect()->route('acp.tokens.index')
             ->with('success', 'Token created.')
@@ -205,11 +215,17 @@ class TokenController extends Controller
 
         $token->forceFill([
             'name' => $data['name'],
-            'abilities' => $data['abilities'] ?? [],
+            'abilities' => array_values(array_unique($data['abilities'])),
             'expires_at' => $data['expires_at'] ? Carbon::parse($data['expires_at']) : null,
             'hourly_quota' => $data['hourly_quota'] ?? null,
             'daily_quota' => $data['daily_quota'] ?? null,
         ]);
+
+        // Saving the form as it was must not take the owner's own limits away from them: only a change is staff's doing. Setting a
+        // limit makes it staff's; clearing both hands the key back to its owner.
+        if ($token->isDirty(['hourly_quota', 'daily_quota'])) {
+            $token->limits_set_by_staff_at = isset($data['hourly_quota']) || isset($data['daily_quota']) ? now() : null;
+        }
 
         if ($data['clear_revocation'] ?? false) {
             $token->revoked_at = null;

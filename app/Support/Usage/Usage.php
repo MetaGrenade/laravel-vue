@@ -79,6 +79,31 @@ class Usage
     }
 
     /**
+     * How much of a meter each of the account's API tokens used in a month (this one, if none is given), by token id. A token that used
+     * none is not in it, and neither are uses made without a token.
+     *
+     * @return array<int, int>
+     */
+    public function usedByToken(User $user, string $meter, ?UsagePeriod $period = null): array
+    {
+        $this->meters->get($meter);
+
+        $period ??= UsagePeriod::monthOf();
+
+        return UsageEvent::query()
+            ->where('user_id', $user->getKey())
+            ->where('meter', $meter)
+            ->whereNotNull('token_id')
+            ->where('occurred_at', '>=', $period->start)
+            ->where('occurred_at', '<', $period->end)
+            ->selectRaw('token_id, SUM(quantity) as units')
+            ->groupBy('token_id')
+            ->get()
+            ->mapWithKeys(fn (UsageEvent $row) => [(int) $row->getAttribute('token_id') => (int) $row->getAttribute('units')])
+            ->all();
+    }
+
+    /**
      * How much of a meter the account may use each month: what its plans give, otherwise the meter's free allowance. Null means no limit.
      */
     public function allowance(User $user, string $meter): ?int
