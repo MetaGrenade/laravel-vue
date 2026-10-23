@@ -135,9 +135,17 @@ class AppServiceProvider extends ServiceProvider
     {
         $byUserOrIp = fn (Request $request) => $request->user()?->getAuthIdentifier() ?? $request->ip();
 
+        // The email a request names, in lower case, for a limiter's key. Limiters run before validation does, so it may not be text
+        // (email[]=x): that is the form's validation error to give, and all such requests share one bucket (the empty email).
+        $emailOf = function (Request $request): string {
+            $email = $request->input('email');
+
+            return is_string($email) ? Str::lower($email) : '';
+        };
+
         // Account creation and password reset emails.
         RateLimiter::for('auth', fn (Request $request) => [
-            Limit::perMinute(5)->by('auth:'.$request->ip().'|'.Str::lower((string) $request->input('email'))),
+            Limit::perMinute(5)->by('auth:'.$request->ip().'|'.$emailOf($request)),
             Limit::perMinute(20)->by('auth-ip:'.$request->ip()),
         ]);
 
@@ -165,10 +173,8 @@ class AppServiceProvider extends ServiceProvider
         // Making API keys: each one is a new credential, so a stolen session cannot be used to mint them by the hundred. A person
         // signed in is counted as themselves; one signing in over the API, as that address from that place (guessing passwords
         // there is the business of 'api-sign-in', and one address should not use up the allowance of everybody behind the same IP).
-        // An email that is not text (a validation error anyway) must not break the limiter, which runs before validation does.
-        RateLimiter::for('api-keys', function (Request $request) {
-            $email = $request->input('email');
-            $who = $request->user()?->getAuthIdentifier() ?? $request->ip().'|'.Str::lower(is_string($email) ? $email : '');
+        RateLimiter::for('api-keys', function (Request $request) use ($emailOf) {
+            $who = $request->user()?->getAuthIdentifier() ?? $request->ip().'|'.$emailOf($request);
 
             return [
                 Limit::perMinute(5)->by('api-keys:'.$who),
