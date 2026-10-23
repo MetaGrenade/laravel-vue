@@ -88,6 +88,7 @@ class Specification
             '/v1/auth/token' => [
                 'post' => [
                     'summary' => 'Create an API token',
+                    'description' => static::signInDescription(),
                     'tags' => ['Authentication'],
                     'requestBody' => [
                         'required' => true,
@@ -1262,6 +1263,7 @@ class Specification
                 'type' => 'object',
                 'properties' => [
                     'token' => ['type' => 'string', 'example' => '1|abc123'],
+                    'abilities' => ['type' => 'array', 'items' => ['type' => 'string'], 'example' => ['profile:read']],
                     'expires_at' => ['type' => 'string', 'format' => 'date-time', 'nullable' => true],
                     'user' => static::schemaRef('User'),
                 ],
@@ -1671,6 +1673,20 @@ class Specification
                 ],
             ],
         ];
+    }
+
+    /**
+     * What a key made by signing in over the API gets when the request does not say, from the site's configuration (config/api.php).
+     */
+    protected static function signInDescription(): string
+    {
+        $scopes = array_values(array_filter(array_map('strval', (array) config('api.sign_in.scopes', []))));
+        $days = config('api.sign_in.expiry_days');
+
+        return 'Signs in with an email address and password and makes an API key. Send `abilities` to choose what the key can do; without it the key gets '
+            .($scopes === [] ? '`profile:read`' : implode(', ', array_map(fn (string $scope) => $scope === '*' ? 'every scope (`*`)' : "`{$scope}`", $scopes)))
+            .' and lasts '.(is_numeric($days) && (int) $days > 0 ? (int) $days.' days' : 'until it is revoked (where the site allows that)')
+            .'. It counts toward the limit on how many keys a person may have, is rate limited, needs a verified address where the site asks for one, and the owner is told by email.';
     }
 
     /**

@@ -32,6 +32,8 @@ class StoreApiKeyRequest extends FormRequest
             'scopes' => ['required', 'array'],
             'scopes.*' => ['string', Rule::in($offered)],
             'expires_in' => ['required', 'string', Rule::in($lifetimes)],
+            'hourly_quota' => ApiKeys::LIMIT_RULES,
+            'daily_quota' => ApiKeys::LIMIT_RULES,
         ];
     }
 
@@ -46,6 +48,7 @@ class StoreApiKeyRequest extends FormRequest
             'scopes.*.in' => 'That is not something a key can be limited to.',
             'expires_in.required' => 'Choose how long the key should last.',
             'expires_in.in' => 'Choose how long the key should last from the list.',
+            ...ApiKeys::limitMessages(),
         ];
     }
 
@@ -57,6 +60,20 @@ class StoreApiKeyRequest extends FormRequest
         $value = $this->validated('expires_in');
 
         return $value === 'never' ? null : (int) $value;
+    }
+
+    public function hourlyLimit(): ?int
+    {
+        $value = $this->validated('hourly_quota');
+
+        return $value === null ? null : (int) $value;
+    }
+
+    public function dailyLimit(): ?int
+    {
+        $value = $this->validated('daily_quota');
+
+        return $value === null ? null : (int) $value;
     }
 
     /**

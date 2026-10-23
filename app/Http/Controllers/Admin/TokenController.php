@@ -9,6 +9,8 @@ use App\Http\Requests\Admin\UpdateTokenRequest;
 use App\Models\PersonalAccessToken;
 use App\Models\TokenLog;
 use App\Models\User;
+use App\Notifications\ApiKeyCreated;
+use App\Support\Api\ApiKeys;
 use App\Support\Api\Scope;
 use App\Support\Api\Scopes;
 use App\Support\Localization\DateFormatter;
@@ -189,10 +191,15 @@ class TokenController extends Controller
             $data['expires_at'] ? Carbon::parse($data['expires_at']) : null
         );
 
+        // Limits staff set are staff's: the owner cannot change them (see ApiKeys::setLimits()).
         $newToken->accessToken->forceFill([
             'hourly_quota' => $data['hourly_quota'] ?? null,
             'daily_quota' => $data['daily_quota'] ?? null,
+            'limits_set_by_staff_at' => isset($data['hourly_quota']) || isset($data['daily_quota']) ? now() : null,
         ])->save();
+
+        // A new credential on somebody's account is something they should hear about.
+        app(ApiKeys::class)->announce($user, $newToken->accessToken, ApiKeyCreated::STAFF);
 
         return redirect()->route('acp.tokens.index')
             ->with('success', 'Token created.')
@@ -213,6 +220,12 @@ class TokenController extends Controller
             'hourly_quota' => $data['hourly_quota'] ?? null,
             'daily_quota' => $data['daily_quota'] ?? null,
         ]);
+
+        // Saving the form as it was must not take the owner's own limits away from them: only a change is staff's doing. Setting a
+        // limit makes it staff's; clearing both hands the key back to its owner.
+        if ($token->isDirty(['hourly_quota', 'daily_quota'])) {
+            $token->limits_set_by_staff_at = isset($data['hourly_quota']) || isset($data['daily_quota']) ? now() : null;
+        }
 
         if ($data['clear_revocation'] ?? false) {
             $token->revoked_at = null;

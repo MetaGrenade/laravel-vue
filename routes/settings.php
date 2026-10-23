@@ -45,6 +45,14 @@ Route::middleware('auth')->group(function () {
     Route::post('settings/api-keys', [ApiKeyController::class, 'store'])
         ->middleware(['verified', 'throttle:api-keys'])
         ->name('settings.api-keys.store');
+    // Rotating makes a new key, so it is held to the same rules as making one.
+    Route::post('settings/api-keys/{key}/rotate', [ApiKeyController::class, 'rotate'])
+        ->middleware(['verified', 'throttle:api-keys'])
+        ->whereNumber('key')
+        ->name('settings.api-keys.rotate');
+    Route::patch('settings/api-keys/{key}/limits', [ApiKeyController::class, 'limits'])
+        ->whereNumber('key')
+        ->name('settings.api-keys.limits');
     Route::post('settings/api-keys/{key}/revoke', [ApiKeyController::class, 'revoke'])
         ->whereNumber('key')
         ->name('settings.api-keys.revoke');

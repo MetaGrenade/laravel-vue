@@ -90,6 +90,31 @@ class OpenApiScopesTest extends TestCase
     }
 
     #[Test]
+    public function the_sign_in_operation_says_what_a_key_gets_when_the_request_does_not_say(): void
+    {
+        config(['api.sign_in.scopes' => ['profile:read', 'polls:vote'], 'api.sign_in.expiry_days' => 30]);
+
+        $description = Specification::toArray()['paths']['/v1/auth/token']['post']['description'];
+
+        $this->assertStringContainsString('without it the key gets `profile:read`, `polls:vote` and lasts 30 days', $description);
+        $this->assertStringContainsString('the owner is told by email', $description);
+
+        config(['api.sign_in.scopes' => ['*'], 'api.sign_in.expiry_days' => null]);
+
+        $description = Specification::toArray()['paths']['/v1/auth/token']['post']['description'];
+
+        $this->assertStringContainsString('the key gets every scope (`*`) and lasts until it is revoked', $description);
+    }
+
+    #[Test]
+    public function the_token_response_lists_the_abilities_of_the_key(): void
+    {
+        $schema = Specification::toArray()['components']['schemas']['TokenResponse'];
+
+        $this->assertSame('array', $schema['properties']['abilities']['type']);
+    }
+
+    #[Test]
     public function the_scheme_explains_the_keys(): void
     {
         $scheme = Specification::toArray()['components']['securitySchemes']['sanctum'];

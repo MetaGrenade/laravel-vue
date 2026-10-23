@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreTokenRequest;
 use App\Models\PersonalAccessToken;
+use App\Notifications\ApiKeyCreated;
 use App\Support\Api\ApiKeys;
-use App\Support\Api\Scopes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -28,13 +28,21 @@ class AuthTokenController extends Controller
             ]);
         }
 
-        // The same way a key is made in Settings: the same limit on how many, the same need for a verified address, and a lifetime
-        // where the site does not allow a key that never ends. Left without abilities, it can do everything, as it always could.
-        $token = $this->keys->create($user, $data['device_name'] ?? 'api', $data['abilities'] ?? [Scopes::FULL], null);
+        // The same way a key is made in Settings: the same limit on how many, the same need for a verified address, and the owner is
+        // told. Asked for no scopes it gets the site's default ones (api.sign_in.scopes), and it lasts as long as the site says
+        // (api.sign_in.expiry_days).
+        $token = $this->keys->create(
+            $user,
+            $data['device_name'] ?? 'api',
+            $data['abilities'] ?? $this->keys->signInScopes(),
+            $this->keys->signInLifetime(),
+            how: ApiKeyCreated::SIGN_IN,
+        );
 
         return response()->json([
             'token' => $token->plainTextToken,
-            'expires_at' => optional($token->accessToken)->expires_at,
+            'abilities' => $token->accessToken->abilities,
+            'expires_at' => $token->accessToken->expires_at,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

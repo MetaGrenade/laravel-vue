@@ -34,11 +34,90 @@ class AuthTokenTest extends TestCase
         return $this->postJson('/api/v1/auth/token', ['email' => $user->email, 'password' => 'password', 'device_name' => 'phone', ...$extra]);
     }
 
-    public function test_signing_in_gives_a_key_with_every_scope_unless_it_asks_for_fewer(): void
+    public function test_signing_in_gives_a_key_that_can_only_read_the_profile_unless_it_asks_for_more(): void
     {
-        $this->signIn()->assertCreated()->assertJsonStructure(['token', 'expires_at', 'user']);
+        $this->signIn()
+            ->assertCreated()
+            ->assertJsonStructure(['token', 'abilities', 'expires_at', 'user'])
+            ->assertJson(['abilities' => ['profile:read']]);
+
+        $this->assertSame(['profile:read'], PersonalAccessToken::query()->sole()->abilities);
+    }
+
+    public function test_the_site_chooses_what_a_key_made_by_signing_in_can_do_when_it_is_not_asked(): void
+    {
+        config(['api.sign_in.scopes' => ['profile:read', 'polls:vote']]);
+
+        $this->signIn()->assertCreated()->assertJson(['abilities' => ['profile:read', 'polls:vote']]);
+    }
+
+    public function test_a_site_can_give_keys_made_by_signing_in_every_scope_as_it_used_to(): void
+    {
+        config(['api.sign_in.scopes' => ['*']]);
+
+        $this->signIn()->assertCreated()->assertJson(['abilities' => ['*']]);
 
         $this->assertSame(['*'], PersonalAccessToken::query()->sole()->abilities);
+    }
+
+    public function test_a_site_that_sets_no_default_scope_still_gives_the_least_there_is(): void
+    {
+        config(['api.sign_in.scopes' => []]);
+
+        $this->signIn()->assertCreated()->assertJson(['abilities' => ['profile:read']]);
+    }
+
+    public function test_the_default_scopes_are_only_for_a_request_that_does_not_ask(): void
+    {
+        config(['api.sign_in.scopes' => ['profile:read']]);
+
+        $this->signIn(['abilities' => ['polls:vote', 'support:read']])->assertCreated()->assertJson(['abilities' => ['polls:vote', 'support:read']]);
+    }
+
+    public function test_a_key_made_by_signing_in_cannot_do_what_it_was_not_given(): void
+    {
+        $secret = $this->signIn()->assertCreated()->json('token');
+
+        $this->app['auth']->forgetGuards();
+        $this->withToken($secret)->getJson('/api/user')->assertOk();
+
+        $this->app['auth']->forgetGuards();
+        $this->withToken($secret)->postJson('/api/v1/polls/1/vote')->assertForbidden()->assertJson(['scope' => 'polls:vote']);
+    }
+
+    public function test_a_key_made_by_signing_in_lasts_ninety_days_unless_the_site_says_otherwise(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-15 12:00:00'));
+
+        $this->signIn()->assertCreated();
+
+        $this->assertTrue(PersonalAccessToken::query()->sole()->expires_at->equalTo(now()->addDays(90)));
+    }
+
+    public function test_the_site_chooses_how_long_a_key_made_by_signing_in_lasts(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-15 12:00:00'));
+        config(['api.sign_in.expiry_days' => 7]);
+
+        $response = $this->signIn()->assertCreated();
+
+        $this->assertTrue(PersonalAccessToken::query()->sole()->expires_at->equalTo(now()->addDays(7)));
+        $this->assertSame('2026-10-22', substr((string) $response->json('expires_at'), 0, 10));
+    }
+
+    public function test_a_site_can_have_keys_made_by_signing_in_that_never_end(): void
+    {
+        foreach ([null, 0, '', '0'] as $setting) {
+            PersonalAccessToken::query()->delete();
+            $this->app['auth']->forgetGuards();
+            config(['api.sign_in.expiry_days' => $setting, 'api.keys.allow_no_expiry' => true]);
+
+            $this->signIn()->assertCreated()->assertJson(['expires_at' => null]);
+
+            $this->assertNull(PersonalAccessToken::query()->sole()->expires_at, 'a setting of '.var_export($setting, true));
+
+            User::query()->delete();
+        }
     }
 
     public function test_a_key_can_ask_for_some_scopes(): void
@@ -171,19 +250,10 @@ class AuthTokenTest extends TestCase
         $this->signInAs(User::factory()->unverified()->create())->assertCreated();
     }
 
-    public function test_a_key_made_by_signing_in_never_ends_where_the_site_allows_that(): void
-    {
-        config(['api.keys.allow_no_expiry' => true]);
-
-        $this->signIn()->assertCreated()->assertJson(['expires_at' => null]);
-
-        $this->assertNull(PersonalAccessToken::query()->sole()->expires_at);
-    }
-
     public function test_a_key_made_by_signing_in_ends_where_the_site_does_not_allow_one_that_never_does(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-15 12:00:00'));
-        config(['api.keys.allow_no_expiry' => false, 'api.keys.default_expiry_days' => 30]);
+        config(['api.sign_in.expiry_days' => null, 'api.keys.allow_no_expiry' => false, 'api.keys.default_expiry_days' => 30]);
 
         $secret = $this->signIn()->assertCreated()->json('token');
 
