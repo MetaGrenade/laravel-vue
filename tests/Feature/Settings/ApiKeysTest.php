@@ -431,14 +431,31 @@ class ApiKeysTest extends TestCase
         $user = User::factory()->create();
 
         for ($i = 0; $i < 5; $i++) {
-            $this->attempt($user, ['name' => "Key {$i}"])->assertSessionHasNoErrors();
+            $this->attempt($user, ['name' => "Key {$i}"])->assertRedirect(route('settings.api-keys.index'));
         }
 
         $this->attempt($user, ['name' => 'Sixth in a minute'])->assertStatus(429);
 
         $this->travel(61)->seconds();
 
-        $this->attempt($user, ['name' => 'A minute later'])->assertSessionHasNoErrors();
+        $this->attempt($user, ['name' => 'A minute later'])->assertRedirect(route('settings.api-keys.index'));
+    }
+
+    #[Test]
+    public function making_keys_is_limited_for_each_person_not_for_each_place(): void
+    {
+        config(['api.keys.max_active' => 1000]);
+        $busy = User::factory()->create();
+        $other = User::factory()->create();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->attempt($busy, ['name' => "Key {$i}"])->assertSessionHasNoErrors();
+        }
+
+        $this->attempt($busy, ['name' => 'One too many'])->assertStatus(429);
+
+        // Somebody else, from the same address (an office, a phone network), is not held up by it.
+        $this->attempt($other)->assertRedirect(route('settings.api-keys.index'));
     }
 
     #[Test]
@@ -449,7 +466,7 @@ class ApiKeysTest extends TestCase
 
         for ($round = 0; $round < 4; $round++) {
             for ($i = 0; $i < 5; $i++) {
-                $this->attempt($user, ['name' => "Key {$round}-{$i}"])->assertSessionHasNoErrors();
+                $this->attempt($user, ['name' => "Key {$round}-{$i}"])->assertRedirect(route('settings.api-keys.index'));
             }
 
             $this->travel(61)->seconds();
@@ -624,6 +641,50 @@ class ApiKeysTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
         app(ApiKeys::class)->create($user, 'Typo', ['profile:read', 'profile-read'], null);
+    }
+
+    #[Test]
+    public function the_service_accepts_the_scope_that_is_everything_though_the_page_never_offers_it(): void
+    {
+        $key = app(ApiKeys::class)->create(User::factory()->create(), 'Everything', ['*'], 30);
+
+        $this->assertSame(['*'], $key->accessToken->abilities);
+    }
+
+    #[Test]
+    public function the_service_makes_no_key_for_somebody_who_has_not_verified_their_address_where_the_site_asks_for_it(): void
+    {
+        SystemSetting::set('email_verification_required', true);
+        $user = User::factory()->unverified()->create();
+
+        try {
+            app(ApiKeys::class)->create($user, 'Early', ['profile:read'], 30);
+            $this->fail('the key should have been refused');
+        } catch (ApiKeyRejected $rejected) {
+            $this->assertSame(['email'], array_keys($rejected->errors()));
+        }
+
+        $this->assertSame(0, $user->tokens()->count());
+    }
+
+    #[Test]
+    public function the_service_gives_the_default_lifetime_instead_of_none_where_a_key_must_end(): void
+    {
+        config(['api.keys.allow_no_expiry' => false, 'api.keys.default_expiry_days' => 90]);
+
+        $key = app(ApiKeys::class)->create(User::factory()->create(), 'Must end', ['profile:read'], null);
+
+        $this->assertTrue($key->accessToken->expires_at->equalTo(now()->addDays(90)));
+    }
+
+    #[Test]
+    public function the_service_still_lets_a_key_last_where_the_site_offers_no_lifetime_at_all(): void
+    {
+        config(['api.keys.allow_no_expiry' => false, 'api.keys.expiry_days' => []]);
+
+        $key = app(ApiKeys::class)->create(User::factory()->create(), 'No choice', ['profile:read'], null);
+
+        $this->assertNull($key->accessToken->expires_at);
     }
 
     #[Test]

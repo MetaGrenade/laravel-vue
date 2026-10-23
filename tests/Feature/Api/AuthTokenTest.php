@@ -3,8 +3,11 @@
 namespace Tests\Feature\Api;
 
 use App\Models\PersonalAccessToken;
+use App\Models\SystemSetting;
 use App\Models\TokenLog;
 use App\Models\User;
+use App\Support\Api\ApiKeys;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -19,6 +22,14 @@ class AuthTokenTest extends TestCase
     private function signIn(array $extra = []): TestResponse
     {
         $user = User::factory()->create(['email' => 'jane@example.com']);
+
+        return $this->postJson('/api/v1/auth/token', ['email' => $user->email, 'password' => 'password', 'device_name' => 'phone', ...$extra]);
+    }
+
+    /** Sign in as somebody who already exists (a second time, or as the owner of other keys). */
+    private function signInAs(User $user, array $extra = []): TestResponse
+    {
+        $this->app['auth']->forgetGuards();
 
         return $this->postJson('/api/v1/auth/token', ['email' => $user->email, 'password' => 'password', 'device_name' => 'phone', ...$extra]);
     }
@@ -86,6 +97,166 @@ class AuthTokenTest extends TestCase
             'status' => 'success',
         ]);
         $this->assertSame(1, TokenLog::query()->count());
+    }
+
+    // --- The same limits as a key made in Settings --------------------------------------------------------------------------------------
+
+    public function test_a_key_made_by_signing_in_counts_toward_the_limit_on_keys(): void
+    {
+        config(['api.keys.max_active' => 2]);
+        $user = User::factory()->create();
+
+        $this->signInAs($user)->assertCreated();
+        $this->signInAs($user)->assertCreated();
+        $this->signInAs($user)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['limit' => 'You already have 2 API keys you can use. Revoke one you no longer need, then make another.']);
+
+        $this->assertSame(2, $user->tokens()->count());
+    }
+
+    public function test_keys_made_in_settings_and_by_signing_in_share_the_limit(): void
+    {
+        config(['api.keys.max_active' => 2]);
+        $user = User::factory()->create();
+
+        app(ApiKeys::class)->create($user, 'From settings', ['profile:read'], 30);
+        app(ApiKeys::class)->create($user, 'From settings too', ['profile:read'], 30);
+
+        $this->signInAs($user)->assertUnprocessable()->assertJsonValidationErrors('limit');
+
+        $this->assertSame(2, $user->tokens()->count());
+    }
+
+    public function test_the_limit_is_each_persons_own(): void
+    {
+        config(['api.keys.max_active' => 1]);
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+
+        $this->signInAs($first)->assertCreated();
+        $this->signInAs($second)->assertCreated();
+    }
+
+    public function test_giving_a_key_back_makes_room_for_another(): void
+    {
+        config(['api.keys.max_active' => 1]);
+        $user = User::factory()->create();
+
+        $secret = $this->signInAs($user)->assertCreated()->json('token');
+        $this->signInAs($user)->assertUnprocessable();
+
+        $this->app['auth']->forgetGuards();
+        $this->withToken($secret)->deleteJson('/api/v1/auth/token')->assertNoContent();
+
+        $this->signInAs($user)->assertCreated();
+    }
+
+    public function test_where_the_site_asks_for_a_verified_address_an_unverified_person_gets_no_key(): void
+    {
+        SystemSetting::set('email_verification_required', true);
+        $unverified = User::factory()->unverified()->create();
+        $verified = User::factory()->create();
+
+        $this->signInAs($unverified)->assertUnprocessable()->assertJsonValidationErrors(['email' => 'Verify your email address first: API keys can only be made once it is verified.']);
+        $this->assertSame(0, PersonalAccessToken::query()->count());
+
+        $this->signInAs($verified)->assertCreated();
+    }
+
+    public function test_an_unverified_person_gets_a_key_where_the_site_does_not_ask(): void
+    {
+        SystemSetting::set('email_verification_required', false);
+
+        $this->signInAs(User::factory()->unverified()->create())->assertCreated();
+    }
+
+    public function test_a_key_made_by_signing_in_never_ends_where_the_site_allows_that(): void
+    {
+        config(['api.keys.allow_no_expiry' => true]);
+
+        $this->signIn()->assertCreated()->assertJson(['expires_at' => null]);
+
+        $this->assertNull(PersonalAccessToken::query()->sole()->expires_at);
+    }
+
+    public function test_a_key_made_by_signing_in_ends_where_the_site_does_not_allow_one_that_never_does(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-15 12:00:00'));
+        config(['api.keys.allow_no_expiry' => false, 'api.keys.default_expiry_days' => 30]);
+
+        $secret = $this->signIn()->assertCreated()->json('token');
+
+        $key = PersonalAccessToken::query()->sole();
+        $this->assertTrue($key->expires_at->equalTo(now()->addDays(30)));
+
+        $this->app['auth']->forgetGuards();
+        $this->withToken($secret)->getJson('/api/user')->assertOk();
+
+        $this->travel(31)->days();
+        $this->app['auth']->forgetGuards();
+        $this->withToken($secret)->getJson('/api/user')->assertUnauthorized();
+    }
+
+    public function test_signing_in_is_rate_limited_per_address_and_place(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->signInAs($user, ['password' => 'wrong'])->assertUnprocessable();
+        }
+
+        $this->signInAs($user)->assertStatus(429);
+        $this->signInAs($other)->assertCreated();
+
+        $this->travel(61)->seconds();
+
+        $this->signInAs($user)->assertCreated();
+    }
+
+    public function test_signing_in_is_limited_by_the_hour_as_well(): void
+    {
+        config(['api.keys.max_active' => 1000]);
+        $user = User::factory()->create();
+
+        for ($round = 0; $round < 4; $round++) {
+            for ($i = 0; $i < 5; $i++) {
+                $this->signInAs($user)->assertCreated();
+            }
+
+            $this->travel(61)->seconds();
+        }
+
+        $this->signInAs($user)->assertStatus(429);
+    }
+
+    public function test_the_same_address_from_somewhere_else_has_its_own_allowance(): void
+    {
+        $user = User::factory()->create();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10']);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->signInAs($user, ['password' => 'wrong'])->assertUnprocessable();
+        }
+
+        $this->signInAs($user)->assertStatus(429);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.20']);
+
+        $this->signInAs($user)->assertCreated();
+    }
+
+    public function test_an_address_is_counted_whatever_the_case_it_is_typed_in(): void
+    {
+        $user = User::factory()->create(['email' => 'jane@example.com']);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->signInAs($user, ['email' => $i % 2 ? 'JANE@example.com' : 'jane@example.com', 'password' => 'wrong'])->assertUnprocessable();
+        }
+
+        $this->signInAs($user, ['email' => 'Jane@Example.com'])->assertStatus(429);
     }
 
     public function test_giving_back_a_key_leaves_the_others_alone(): void

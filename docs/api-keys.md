@@ -70,12 +70,12 @@ The lifetimes offered, and whether "never" is among them, are set in `config/api
 
 | Setting | What it is | Environment |
 |---|---|---|
-| `keys.max_active` | How many keys that can still be used a person may have at once (revoked and expired keys do not count). Making one past it is refused with a message. Counted under a lock on the person's row, so two requests at the limit cannot both make the last key. | `API_KEYS_MAX` (10) |
+| `keys.max_active` | How many keys that can still be used a person may have at once, however they were made (on the page or by signing in over the API; revoked and expired keys do not count). Making one past it is refused with a message. Counted under a lock on the person's row, so two requests at the limit cannot both make the last key. | `API_KEYS_MAX` (10) |
 | `keys.expiry_days` | The lifetimes offered, in days (30, 90, 365). | |
 | `keys.default_expiry_days` | The one chosen to begin with (90). | |
 | `keys.allow_no_expiry` | Whether "never" is offered. A site that offers no lifetime at all must allow it, or nobody could make a key. | `API_KEYS_ALLOW_NO_EXPIRY` (true) |
 
-Making keys is also **rate limited** (5 a minute and 20 an hour per person, the `api-keys` limiter), and needs a **verified email address** where the site asks for one (taking a key away never does).
+Making keys is also **rate limited** (5 a minute and 20 an hour, the `api-keys` limiter: counted for the person on the page, and for an email address from one place when signing in over the API), and needs a **verified email address** where the site asks for one (taking a key away never does).
 
 Sanctum's own `sanctum.expiration` (in minutes, `null` by default) still applies on top of a key's own end, if you set it. Expired keys are not deleted by themselves: `php artisan sanctum:prune-expired --hours=24` does it, if you schedule it.
 
@@ -87,7 +87,14 @@ Revoking in the ACP now really revokes. **Restoring** a revoked token (clearing 
 
 ## Keys made over the API
 
-`POST /api/v1/auth/token` (email, password, optional `device_name` and `abilities`) still makes a key, and it appears on the person's page. What changed:
+`POST /api/v1/auth/token` (email, password, optional `device_name` and `abilities`) still makes a key, and it appears on the person's page. It goes through the same `ApiKeys::create()` as the page, so it has the same limits and nobody can get around them by using it instead:
+
+- **The limit on keys** (`API_KEYS_MAX`) counts the keys made this way too. Past it the answer is a `422` with the message under `errors.limit`; give a key back (`DELETE /api/v1/auth/token`) or revoke one in Settings to make room.
+- **A verified address** is needed where the site asks for one (a `422` under `errors.email`).
+- **The `api-keys` rate limit** applies, counting failed attempts as well as successful ones, for each email address (without regard to its case) from each place; one address does not use up the allowance of others behind the same IP.
+- **A lifetime** where the site does not allow a key that never ends (`API_KEYS_ALLOW_NO_EXPIRY=false`): the key lasts `default_expiry_days`. Where it does allow one, a key made this way still never expires, as before.
+
+What else changed:
 
 - `abilities`, if sent, must be scopes the site has (or `*`), and must not be empty. Anything else is a `422`. Left out, the key has `*`, as before.
 - `DELETE /api/v1/auth/token` now **revokes** the key instead of deleting it (it used to answer `500` after deleting it, because of a wrong return type, and the request could not be logged against a key that was gone). It stays on the person's page as revoked, where they can remove it.
@@ -111,7 +118,7 @@ Run `php artisan api:docs` after deploying, so the generated OpenAPI document (c
 - **An email when a key is made.** A new credential is a good moment to tell the person; the audit log (next in M3) is where staff will see it.
 - **Rotating a key** in one step (make the new one, revoke the old one after a grace period). Today it is two steps.
 - **A customer setting their own hourly or daily limit** on a key. The columns exist and the ACP sets them.
-- **A least-privilege default and an expiry for keys made through `POST /api/v1/auth/token`.** Both would change what existing clients get, so they are left for a deliberate decision.
+- **A least-privilege default for keys made through `POST /api/v1/auth/token`, and an expiry for them where the site allows keys that never end.** Both would change what existing clients get, so they are left for a deliberate decision. A client that signs in at every start and never gives the key back will meet the limit on keys: it should reuse its key or call `DELETE /api/v1/auth/token`.
 - **IP allow-lists** and **prefixes** for secret scanning (`SANCTUM_TOKEN_PREFIX` is available in `config/sanctum.php`; a distinctive prefix lets GitHub's secret scanning recognise a leaked key).
 
 ## Testing

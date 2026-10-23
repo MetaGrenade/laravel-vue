@@ -34,6 +34,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::post('/auth/token', [AuthTokenController::class, 'store'])
+        ->middleware('throttle:api-keys')
         ->name('auth.token.store');
 
     Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'usage:api-calls'])->group(function () {

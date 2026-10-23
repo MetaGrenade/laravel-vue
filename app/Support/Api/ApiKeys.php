@@ -4,13 +4,15 @@ namespace App\Support\Api;
 
 use App\Models\PersonalAccessToken;
 use App\Models\User;
+use App\Support\EmailVerification;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Laravel\Sanctum\NewAccessToken;
 
 /**
- * The API keys people make for themselves in Settings → API keys (see docs/api-keys.md): a Sanctum token that is limited to some
- * scopes, expires, and can be revoked. Staff make keys of their own kind in Admin → Tokens.
+ * The API keys people make for themselves, in Settings → API keys and by signing in over the API (`POST /api/v1/auth/token`); see
+ * docs/api-keys.md: a Sanctum token that is limited to some scopes, expires, and can be revoked. Both ways come through `create()`, so
+ * they have the same limits. Staff make keys of their own kind in Admin → Tokens.
  */
 class ApiKeys
 {
@@ -58,10 +60,12 @@ class ApiKeys
     /**
      * Make a key. The secret is in the result and nowhere else: it is shown once, and only a hash of it is kept.
      *
-     * @param  list<string>  $scopes  What it is limited to (each one a scope the site has).
-     * @param  int|null  $expiresInDays  How long it lasts, or null for as long as it is not revoked.
+     * @param  list<string>  $scopes  What it is limited to (each one a scope the site has, or `*` for all of them).
+     * @param  int|null  $expiresInDays  How long it lasts, or null for as long as it is not revoked. Where the site does not allow a key
+     *                                   that never ends, null is the default lifetime instead.
      *
-     * @throws ApiKeyRejected the person already has as many as they may
+     * @throws ApiKeyRejected the person has not verified their address (where the site asks for it), or already has as many keys as
+     *                        they may
      * @throws InvalidArgumentException a scope the site does not have (a mistake in the code, not something a person did)
      */
     public function create(User $user, string $name, array $scopes, ?int $expiresInDays): NewAccessToken
@@ -69,7 +73,18 @@ class ApiKeys
         $scopes = array_values(array_unique($scopes));
 
         foreach ($scopes as $scope) {
-            $this->scopes->get($scope);
+            if ($scope !== Scopes::FULL) {
+                $this->scopes->get($scope);
+            }
+        }
+
+        if (EmailVerification::isRequired() && ! $user->hasVerifiedEmail()) {
+            throw ApiKeyRejected::unverified();
+        }
+
+        if ($expiresInDays === null) {
+            $choices = $this->expiryChoices();
+            $expiresInDays = $choices['never'] ? null : $choices['default'];
         }
 
         return DB::transaction(function () use ($user, $name, $scopes, $expiresInDays) {

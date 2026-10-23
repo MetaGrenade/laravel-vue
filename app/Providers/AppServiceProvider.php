@@ -162,11 +162,17 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('billing', fn (Request $request) => Limit::perMinute(10)->by('billing:'.$byUserOrIp($request)));
 
-        // Making API keys: each one is a new credential, so a stolen session cannot be used to mint them by the hundred.
-        RateLimiter::for('api-keys', fn (Request $request) => [
-            Limit::perMinute(5)->by('api-keys:'.$byUserOrIp($request)),
-            Limit::perHour(20)->by('api-keys-hourly:'.$byUserOrIp($request)),
-        ]);
+        // Making API keys: each one is a new credential, so a stolen session cannot be used to mint them by the hundred. A person
+        // signed in is counted as themselves; one signing in over the API, as that address from that place (guessing passwords
+        // there is the business of another limit, and one address should not use up the allowance of everybody behind the same IP).
+        RateLimiter::for('api-keys', function (Request $request) {
+            $who = $request->user()?->getAuthIdentifier() ?? $request->ip().'|'.Str::lower((string) $request->input('email'));
+
+            return [
+                Limit::perMinute(5)->by('api-keys:'.$who),
+                Limit::perHour(20)->by('api-keys-hourly:'.$who),
+            ];
+        });
 
         // Files are big: a purchased download is limited per order and address, not just per person.
         RateLimiter::for('downloads', function (Request $request) use ($byUserOrIp) {
