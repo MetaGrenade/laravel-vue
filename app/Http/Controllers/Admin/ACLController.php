@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\StorePermissionRequest;
 use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdatePermissionRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
+use App\Support\Audit\Audit;
 use App\Support\Localization\DateFormatter;
 use Illuminate\Http\Request;
 use Inertia\Response;
@@ -107,8 +108,8 @@ class ACLController extends Controller
      */
     public function storeRole(StoreRoleRequest $request)
     {
-        $role = Role::create($request->validated());
-        $role->syncPermissions($request->permissions ?? []);
+        $role = Role::query()->create($request->validated());
+        app(Audit::class)->tracking($role, 'permissions', fn () => $role->syncPermissions($request->permissions ?? []));
 
         return redirect()->route('acp.acl.index')->with('success', 'Role created.');
     }
@@ -119,7 +120,7 @@ class ACLController extends Controller
     public function updateRole(UpdateRoleRequest $request, Role $role)
     {
         $role->update($request->validated());
-        $role->syncPermissions($request->permissions ?? []);
+        app(Audit::class)->tracking($role, 'permissions', fn () => $role->syncPermissions($request->permissions ?? []));
 
         return back()->with('success', 'Role updated.');
     }

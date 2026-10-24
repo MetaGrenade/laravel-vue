@@ -74,6 +74,9 @@ class RolePermissionSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission.'.acp.delete']);
         }
 
+        // The audit log is only looked at: nothing in it is created, edited or deleted from the admin area.
+        Permission::firstOrCreate(['name' => 'audit.acp.view']);
+
         // Optionally assign all permissions to admin
         $adminRole->syncPermissions(Permission::all());
 

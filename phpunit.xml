@@ -18,6 +18,9 @@
         </include>
     </source>
     <php>
+        <!-- The whole suite runs in one process whose memory grows with every test, and a few tests (a picture with too many pixels)
+             allocate a lot at once, so a php.ini that allows 256M no longer holds the run. -->
+        <ini name="memory_limit" value="512M"/>
         <env name="BROADCAST_CONNECTION" value="log"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>

@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Audit\Audit;
 use App\Support\Billing\SubscriptionCancellationFailed;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\Localization\DateFormatter;
@@ -203,7 +204,7 @@ class UsersController extends Controller
     public function store(StoreUserRequest $request)
     {
         $user = User::create($request->validated());
-        $user->syncRoles($request->roles ?? []);
+        app(Audit::class)->tracking($user, 'roles', fn () => $user->syncRoles($request->roles ?? []));
 
         return redirect()->route('acp.users.index')
             ->with('success', 'User created.');
@@ -215,7 +216,7 @@ class UsersController extends Controller
     public function update(UpdateUserRequest $request, User $user)
     {
         $user->update($request->validated());
-        $user->syncRoles($request->roles ?? []);
+        app(Audit::class)->tracking($user, 'roles', fn () => $user->syncRoles($request->roles ?? []));
 
         return redirect()->route('acp.users.index')
             ->with('success', 'User updated.');

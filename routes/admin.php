@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BillingController;
 use App\Http\Controllers\Admin\BillingUsageController;
@@ -541,6 +542,11 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::delete('acp/polls/{poll}', [PollController::class, 'destroy'])
         ->middleware('can:polls.acp.delete')
         ->name('acp.polls.destroy');
+
+    // What has been done in the admin area (only looking: the log cannot be changed from here).
+    Route::get('acp/audit-log', [AuditLogController::class, 'index'])
+        ->middleware('can:audit.acp.view')
+        ->name('acp.audit-log.index');
 
     // Tokens
     Route::get('acp/tokens', [TokenController::class, 'index'])->name('acp.tokens.index');
