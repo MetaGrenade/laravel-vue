@@ -23,6 +23,7 @@ use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -78,6 +79,18 @@ class AuditLogTest extends TestCase
     private function entry(): AuditLog
     {
         return AuditLog::query()->sole();
+    }
+
+    /**
+     * The accounts an entry concerns, as `[type, id]`, in a fixed order.
+     *
+     * @return list<array{0: string, 1: int}>
+     */
+    private function accountsOf(AuditLog $entry): array
+    {
+        return $entry->accounts()->orderBy('owner_type')->orderBy('owner_id')->get()
+            ->map(fn ($account) => [(string) $account->getAttribute('owner_type'), (int) $account->getAttribute('owner_id')])
+            ->all();
     }
 
     // --- The log itself -------------------------------------------------------------------------------------------------------------
@@ -137,8 +150,7 @@ class AuditLogTest extends TestCase
         $this->assertSame(User::class, $entry->subject_type);
         $this->assertSame($target->id, $entry->subject_id);
         $this->assertSame('Troublemaker', $entry->subject_label);
-        $this->assertSame(User::class, $entry->owner_type);
-        $this->assertSame($target->id, $entry->owner_id, 'it is about their account');
+        $this->assertSame([[User::class, $target->id]], $this->accountsOf($entry), 'it is about their account');
         $this->assertSame('198.51.100.20', $entry->ip_address);
         $this->assertSame('TestBrowser/1.0', $entry->user_agent);
         $this->assertTrue($entry->created_at->equalTo(now()));
@@ -610,7 +622,7 @@ class AuditLogTest extends TestCase
         $this->assertSame('[hidden]', $created['new']['token']);
         $this->assertSame($owner->id, $created['new']['tokenable_id'], 'whose it is is not hidden');
         $this->assertSame($admin->id, $entry->actor_id);
-        $this->assertSame($owner->id, $entry->owner_id, 'it is on their account');
+        $this->assertSame([[User::class, $owner->id]], $this->accountsOf($entry), 'it is on their account');
         $this->assertStringNotContainsString(explode('|', session('plain_text_token'))[1], json_encode($entry->toArray()));
     }
 
@@ -682,7 +694,7 @@ class AuditLogTest extends TestCase
     }
 
     #[Test]
-    public function the_account_an_entry_is_about_is_the_one_named_not_the_first_one_to_change(): void
+    public function an_entry_concerns_the_account_it_names_and_every_account_that_changed(): void
     {
         $admin = $this->signInAdmin();
         $named = User::factory()->create();
@@ -694,12 +706,12 @@ class AuditLogTest extends TestCase
         $other->update(['nickname' => 'Changed on the way']);
         $entry = $audit->finish(request(), 200);
 
-        $this->assertSame($named->id, $entry->owner_id);
         $this->assertSame($named->id, $entry->subject_id);
+        $this->assertEqualsCanonicalizing([[User::class, $named->id], [User::class, $other->id]], $this->accountsOf($entry));
     }
 
     #[Test]
-    public function the_account_is_the_first_one_to_change_when_the_address_names_nothing(): void
+    public function an_entry_concerns_the_account_that_changed_when_the_address_names_nothing(): void
     {
         $admin = $this->signInAdmin();
         $other = User::factory()->create();
@@ -710,7 +722,158 @@ class AuditLogTest extends TestCase
         $entry = $audit->finish(request(), 200);
 
         $this->assertNull($entry->subject_type);
-        $this->assertSame($other->id, $entry->owner_id);
+        $this->assertSame([[User::class, $other->id]], $this->accountsOf($entry));
+    }
+
+    #[Test]
+    public function a_bulk_action_concerns_every_account_it_touched(): void
+    {
+        $this->signInAdmin();
+        $users = User::factory()->count(4)->create();
+
+        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all()])->assertSessionHasNoErrors();
+
+        $entry = $this->entry();
+
+        $this->assertNull($entry->subject_type, 'the address names nobody');
+        $this->assertEqualsCanonicalizing($users->map(fn (User $user) => [User::class, $user->id])->all(), $this->accountsOf($entry));
+    }
+
+    #[Test]
+    public function every_account_is_concerned_even_where_the_detail_of_the_changes_is_cut_short(): void
+    {
+        config(['audit.max_changes' => 2]);
+        $this->signInAdmin();
+        $users = User::factory()->count(6)->create();
+
+        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all()])->assertSessionHasNoErrors();
+
+        $entry = $this->entry();
+
+        $this->assertCount(2, $entry->changes, 'the detail stops at two');
+        $this->assertSame(4, $entry->meta['changes_not_kept']);
+        $this->assertCount(6, $this->accountsOf($entry), 'but the log of each of the six shows it');
+        $this->assertEqualsCanonicalizing($users->pluck('id')->all(), array_column($this->accountsOf($entry), 1));
+    }
+
+    #[Test]
+    public function a_bulk_action_over_more_accounts_than_one_insert_holds_concerns_them_all(): void
+    {
+        config(['audit.max_changes' => 1]);
+        $this->signInAdmin();
+        $users = User::factory()->count(501)->create();
+
+        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all()])->assertSessionHasNoErrors();
+
+        $entry = $this->entry();
+
+        // The accounts are written 500 at a time: the last one is in the second.
+        $this->assertSame(501, $entry->accounts()->count());
+        $this->assertTrue($entry->accounts()->where('owner_id', $users->last()->id)->exists());
+    }
+
+    #[Test]
+    public function a_bulk_verify_and_a_bulk_unban_concern_the_accounts_that_changed_and_not_those_that_did_not(): void
+    {
+        $this->signInAdmin();
+        $unverified = User::factory()->unverified()->count(2)->create();
+        $alreadyVerified = User::factory()->create();
+
+        $this->patch(route('acp.users.bulk-update'), ['action' => 'verify', 'ids' => [...$unverified->pluck('id')->all(), $alreadyVerified->id]])->assertSessionHasNoErrors();
+
+        $this->assertEqualsCanonicalizing($unverified->map(fn (User $user) => [User::class, $user->id])->all(), $this->accountsOf($this->entry()), 'nothing changed on the one who was verified');
+    }
+
+    #[Test]
+    public function a_bulk_delete_concerns_the_accounts_it_deleted_though_they_are_gone(): void
+    {
+        $this->signInAdmin();
+        $users = User::factory()->count(3)->create();
+        $ids = $users->pluck('id')->all();
+
+        $this->patch(route('acp.users.bulk-update'), ['action' => 'delete', 'ids' => $ids])->assertSessionHasNoErrors();
+
+        $this->assertSame(0, User::query()->whereIn('id', $ids)->count());
+        $this->assertEqualsCanonicalizing($ids, array_column($this->accountsOf($this->entry()), 1), 'the log keeps who they were');
+    }
+
+    #[Test]
+    public function an_account_is_concerned_once_however_many_times_it_changed(): void
+    {
+        $admin = $this->signInAdmin();
+        Role::findOrCreate('editor');
+        $target = User::factory()->create();
+        $audit = app(Audit::class);
+
+        $audit->begin($admin);
+        $audit->subject($target);
+        $target->update(['nickname' => 'First']);
+        $target->update(['nickname' => 'Second']);
+        $audit->tracking($target, 'roles', fn () => $target->assignRole('editor'));
+        $entry = $audit->finish(request(), 200);
+
+        $this->assertGreaterThan(1, count($entry->changes));
+        $this->assertSame([[User::class, $target->id]], $this->accountsOf($entry));
+    }
+
+    #[Test]
+    public function an_entry_for_a_record_that_belongs_to_nobody_concerns_no_account(): void
+    {
+        $this->signInAdmin();
+        $role = Role::findOrCreate('temporary');
+
+        $this->delete(route('acp.acl.roles.destroy', $role->id))->assertRedirect();
+
+        $this->assertSame([], $this->accountsOf($this->entry()));
+    }
+
+    #[Test]
+    public function an_entry_made_by_code_concerns_the_account_it_is_about(): void
+    {
+        $admin = $this->signInAdmin();
+        $target = User::factory()->create();
+        $audit = app(Audit::class);
+
+        $this->assertSame([[User::class, $target->id]], $this->accountsOf($audit->record('impersonation.started', $admin, $target)));
+        $this->assertSame([], $this->accountsOf($audit->record('system.update', $admin)), 'about nobody');
+    }
+
+    #[Test]
+    public function the_accounts_of_one_request_are_not_carried_into_the_next_entry(): void
+    {
+        $admin = $this->signInAdmin();
+        [$first, $second] = User::factory()->count(2)->create()->all();
+        $audit = app(Audit::class);
+
+        $audit->begin($admin);
+        $first->update(['nickname' => 'First']);
+        $audit->finish(request(), 200);
+
+        $audit->begin($admin);
+        $second->update(['nickname' => 'Second']);
+        $entry = $audit->finish(request(), 200);
+
+        $this->assertSame([[User::class, $second->id]], $this->accountsOf($entry), 'the first request is not in the second');
+    }
+
+    #[Test]
+    public function the_entry_and_the_accounts_it_concerns_are_written_together(): void
+    {
+        $this->signInAdmin();
+        $target = User::factory()->create();
+        $before = DB::transactionLevel();
+        $levels = [];
+
+        DB::listen(function ($query) use (&$levels) {
+            if (str_starts_with(strtolower($query->sql), 'insert into "audit_log') || str_starts_with(strtolower($query->sql), 'insert into `audit_log')) {
+                $levels[] = DB::transactionLevel();
+            }
+        });
+
+        $this->put(route('acp.users.ban', $target->id))->assertRedirect();
+
+        $this->assertCount(2, $levels, 'the entry, then its account');
+        $this->assertSame([$before + 1, $before + 1], $levels, 'both inside one transaction, so neither is written without the other');
     }
 
     #[Test]

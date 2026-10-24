@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\AuditLog;
+use App\Models\AuditLogAccount;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -26,6 +28,18 @@ class AuditLogFactory extends Factory
             'user_agent' => 'Mozilla/5.0',
             'created_at' => now(),
         ];
+    }
+
+    /**
+     * Concerning these accounts, as an entry about their accounts is.
+     */
+    public function about(User ...$users): static
+    {
+        return $this->afterCreating(function (AuditLog $log) use ($users) {
+            foreach ($users as $user) {
+                AuditLogAccount::query()->create(['audit_log_id' => $log->id, 'owner_type' => User::class, 'owner_id' => $user->id]);
+            }
+        });
     }
 
     public function failed(): static

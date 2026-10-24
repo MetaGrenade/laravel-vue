@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
 /**
@@ -38,6 +40,30 @@ class AuditLog extends Model
         static::deleting(function (): never {
             throw new LogicException('The audit log is append-only: an entry is never deleted (PruneAuditLogs removes old ones, at the table).');
         });
+    }
+
+    /**
+     * The accounts it concerns: more than one when a bulk action touched several people.
+     *
+     * @return HasMany<AuditLogAccount, $this>
+     */
+    public function accounts(): HasMany
+    {
+        return $this->hasMany(AuditLogAccount::class);
+    }
+
+    /**
+     * Entries that concern an account, as one of those they touched.
+     *
+     * @param  Builder<AuditLog>  $query
+     * @return Builder<AuditLog>
+     */
+    public function scopeConcerning(Builder $query, string $type, int $id): Builder
+    {
+        return $query->whereIn(
+            $this->qualifyColumn('id'),
+            AuditLogAccount::query()->select('audit_log_id')->where('owner_type', $type)->where('owner_id', $id),
+        );
     }
 
     /**

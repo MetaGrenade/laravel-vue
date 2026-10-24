@@ -3,12 +3,14 @@
 namespace App\Support\Audit;
 
 use App\Models\AuditLog;
+use App\Models\AuditLogAccount;
 use App\Models\User;
 use BackedEnum;
 use DateTimeInterface;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\ViewErrorBag;
 use Stringable;
@@ -18,9 +20,13 @@ use Throwable;
  * The admin audit log (see docs/audit-log.md): one entry for each change somebody makes in the admin area.
  *
  * `AuditAdminActions` opens an entry when such a request starts (`begin()`) and writes it when it ends (`finish()`). While it is open,
- * the models listed in `config/audit.php` (through `AuditObserver`) and permission changes (through `RecordPermissionChanges`) add what
+ * the models listed in `config/audit.php` (through `AuditObserver`) and role and permission changes (through `tracking()`) add what
  * they changed to it, so the entry says what a request did and not only that it was made. Nothing is written for a change made when
  * no entry is open, so people signing up, webhooks and queued jobs are not "admin actions".
+ *
+ * The entry also keeps every account it concerns, so a bulk action shows in the log of each person it touched. Those are collected
+ * from the records that changed as they change, apart from the detail kept of each change, which stops at `max_changes`: a bulk action
+ * over a thousand people is in all thousand logs, though it describes only the first hundred changes.
  *
  * It is bound once for each request (`scoped`), but is reset by `begin()` and `finish()` as well, because a test, a queue worker or
  * Octane serves several in one process.
@@ -40,6 +46,13 @@ class Audit
     private array $changes = [];
 
     private int $dropped = 0;
+
+    /**
+     * The accounts the entry concerns, as type and id, once each (keyed by both, so a second change to one adds nothing).
+     *
+     * @var array<string, array{0: string, 1: int}>
+     */
+    private array $accounts = [];
 
     /** @var array<string, mixed> */
     private array $meta = [];
@@ -183,8 +196,10 @@ class Audit
             $subject = $this->subject ?? collect((array) $route?->parameters())->first(fn ($parameter) => $parameter instanceof Model);
             $subject = $subject instanceof Model ? $subject : null;
 
-            // Whose account it was about: the subject's, or if the address names no record, that of the first record that changed.
-            $owner = ($subject !== null ? self::ownerOf($subject) : null) ?? ($this->changes[0]['owner'] ?? null);
+            // Every account it concerns: the one the address names, then each that a record changed on (a bulk action names none, and
+            // changes many).
+            $subjectAccount = $subject !== null ? self::ownerOf($subject) : null;
+            $accounts = $subjectAccount !== null ? [self::accountKey($subjectAccount) => $subjectAccount] + $this->accounts : $this->accounts;
 
             $meta = [
                 'route' => $route?->getName(),
@@ -207,8 +222,8 @@ class Audit
                 outcome: $this->outcomeOf($request, $status),
                 actor: $this->actor,
                 subject: $subject,
-                owner: $owner,
-                changes: array_map(fn (array $change) => array_diff_key($change, ['owner' => true]), $this->changes),
+                accounts: array_values($accounts),
+                changes: $this->changes,
                 meta: $meta + $this->meta,
                 ip: $request->ip(),
                 userAgent: $request->userAgent(),
@@ -233,12 +248,14 @@ class Audit
      */
     public function record(string $event, ?Authenticatable $actor, ?Model $subject = null, array $changes = [], array $meta = [], string $outcome = AuditLog::SUCCEEDED, ?Request $request = null): AuditLog
     {
+        $account = $subject !== null ? self::ownerOf($subject) : null;
+
         return $this->write(
             event: $event,
             outcome: $outcome,
             actor: $actor instanceof User ? ['id' => $actor->getKey(), 'label' => self::actorLabel($actor)] : null,
             subject: $subject,
-            owner: $subject !== null ? self::ownerOf($subject) : null,
+            accounts: $account !== null ? [$account] : [],
             changes: $changes,
             meta: $meta,
             ip: $request?->ip(),
@@ -302,6 +319,16 @@ class Audit
     }
 
     /**
+     * An account as a key to hold it once: its type and its id.
+     *
+     * @param  array{0: string, 1: int}  $account
+     */
+    private static function accountKey(array $account): string
+    {
+        return $account[0].':'.$account[1];
+    }
+
+    /**
      * What a request did, as the log names it: the route's name without `acp.` (`acp.users.ban` is `users.ban`).
      */
     public static function eventFor(Request $request): string
@@ -355,16 +382,21 @@ class Audit
             return;
         }
 
+        // Whose account it is, whether or not the detail of this change is kept below: the log of each person has to show the entry, even
+        // when the request touched more records than an entry describes.
+        $account = self::ownerOf($model);
+
+        if ($account !== null) {
+            $this->accounts[self::accountKey($account)] ??= $account;
+        }
+
         if (count($this->changes) >= (int) config('audit.max_changes', 100)) {
             $this->dropped++;
 
             return;
         }
 
-        $owner = self::ownerOf($model);
-
-        // Kept beside the change until the entry is written, to say whose account the request was about when it names no record.
-        $this->changes[] = $change + ['owner' => $owner];
+        $this->changes[] = $change;
     }
 
     /**
@@ -405,27 +437,39 @@ class Audit
 
     /**
      * @param  array{id: int|string, label: string}|null  $actor
-     * @param  array{0: string, 1: int}|null  $owner
+     * @param  list<array{0: string, 1: int}>  $accounts  Every account it concerns.
      * @param  list<array<string, mixed>>  $changes
      * @param  array<string, mixed>  $meta
      */
-    private function write(string $event, string $outcome, ?array $actor, ?Model $subject, ?array $owner, array $changes, array $meta, ?string $ip, ?string $userAgent): AuditLog
+    private function write(string $event, string $outcome, ?array $actor, ?Model $subject, array $accounts, array $changes, array $meta, ?string $ip, ?string $userAgent): AuditLog
     {
-        return AuditLog::query()->create([
-            'actor_id' => $actor['id'] ?? null,
-            'actor_label' => $actor['label'] ?? null,
-            'event' => Str::limit($event, 120, ''),
-            'outcome' => $outcome,
-            'subject_type' => $subject !== null ? $subject::class : null,
-            'subject_id' => $subject !== null && is_numeric($subject->getKey()) ? (int) $subject->getKey() : null,
-            'subject_label' => $subject !== null ? self::labelFor($subject) : null,
-            'owner_type' => $owner[0] ?? null,
-            'owner_id' => $owner[1] ?? null,
-            'changes' => $changes === [] ? null : $changes,
-            'meta' => $meta === [] ? null : $meta,
-            'ip_address' => $ip,
-            'user_agent' => $userAgent !== null ? Str::limit($userAgent, 500, '') : null,
-        ]);
+        // The entry and the accounts it concerns are written together or not at all: an entry that the log of the people it touched
+        // cannot see is the thing this is for preventing.
+        return DB::transaction(function () use ($event, $outcome, $actor, $subject, $accounts, $changes, $meta, $ip, $userAgent) {
+            $log = AuditLog::query()->create([
+                'actor_id' => $actor['id'] ?? null,
+                'actor_label' => $actor['label'] ?? null,
+                'event' => Str::limit($event, 120, ''),
+                'outcome' => $outcome,
+                'subject_type' => $subject !== null ? $subject::class : null,
+                'subject_id' => $subject !== null && is_numeric($subject->getKey()) ? (int) $subject->getKey() : null,
+                'subject_label' => $subject !== null ? self::labelFor($subject) : null,
+                'changes' => $changes === [] ? null : $changes,
+                'meta' => $meta === [] ? null : $meta,
+                'ip_address' => $ip,
+                'user_agent' => $userAgent !== null ? Str::limit($userAgent, 500, '') : null,
+            ]);
+
+            // In chunks: a bulk action can concern thousands of accounts.
+            foreach (array_chunk($accounts, 500) as $chunk) {
+                AuditLogAccount::query()->insert(array_map(
+                    fn (array $account) => ['audit_log_id' => $log->id, 'owner_type' => $account[0], 'owner_id' => $account[1]],
+                    $chunk,
+                ));
+            }
+
+            return $log;
+        });
     }
 
     private function reset(): void
@@ -436,6 +480,7 @@ class Audit
         $this->subject = null;
         $this->changes = [];
         $this->dropped = 0;
+        $this->accounts = [];
         $this->meta = [];
     }
 }

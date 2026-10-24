@@ -22,7 +22,7 @@ A **POST, PUT, PATCH or DELETE to an address under `acp/`**, by somebody who is 
 | `event` | What was done, from the route's name without `acp.`: `users.ban`, `commerce.orders.refunds.store`. Plain names for the common ones are in `config/audit.php`. |
 | `outcome` | `succeeded`; `failed` (it did not validate, ended with an error to read, or crashed: a `4xx` or `5xx`, or a redirect back with errors); `denied` (a `403`). Only what *this* request flashed counts: an error flashed by the request before says nothing about this one. |
 | `subject_type`, `subject_id`, `subject_label` | What it was done to: the first record the address names, and what it was called then. |
-| `owner_type`, `owner_id` | Whose account that is (the person themselves, the owner of an order, the person a token is on). This is what **Admin → Users → Audit log** filters on: everything done on one person's account. |
+| accounts (`audit_log_accounts`) | **Every** account it concerns, one row each (the person themselves, the owner of an order, the person a token is on): the account the address names, and the owner of each record that changed. A bulk action that bans fifty people concerns fifty accounts. This is what **Admin → Users → Audit log** filters on: everything done on one person's account, including as one of a bulk action. It does not stop at `max_changes`: the entry *describes* the first hundred changes but is in all fifty histories. |
 | `changes` | What changed, see below. |
 | `meta` | The route, method, path and status; the **names** (never the values) of the fields the request sent; the records its address names; how many changes were not kept. |
 | `ip_address`, `user_agent` | Where from. |
@@ -41,7 +41,7 @@ While an entry is open, the models listed under `models` in `config/audit.php` a
 - **Values are read the way the model reads them** (a yes or no is a yes or no, not `1`), so before and after can be compared. A value is cut to `max_value_length` (300) characters.
 - **A change to nothing but a timestamp is not an entry** (`ignore` lists what is not worth one, such as `last_activity_at`).
 - **Secrets are hidden**, not written down: `password`, `two_factor_secret`, `two_factor_recovery_codes`, an API token's `token`, a gift card's `code_hash`. The change is still recorded (`"[hidden]"` both ways), just not the values. An attribute is also hidden by what it is called, whatever the model says: `token`, anything ending `_token`, and anything containing `password`, `secret`, `api_key` or `recovery_code`, so a secret added later is never written down. (`tokenable_id`, which says whose token it is, is not hidden.)
-- **A request that changes a great deal** (a bulk action) keeps the first `max_changes` (100) and says how many it did not (`changes_not_kept`).
+- **A request that changes a great deal** (a bulk action) keeps the first `max_changes` (100) and says how many it did not (`changes_not_kept`). The accounts it concerns are all kept, whether or not their change is among those described, so nobody's history leaves it out.
 - **Nothing is recorded for a change made when no entry is open,** so the same model changed by a customer or a job is not an "admin action".
 
 Listed by default: accounts (`User`), `Role`, `Permission`, `SystemSetting`, subscription plans, entitlements, coupons, gift cards, orders, refunds and API tokens. To add another, add its class to `models`.
@@ -56,7 +56,7 @@ Giving somebody a role, or a role a permission, is not a change to a model, so i
 
 ## The viewer
 
-**Admin → Audit log** (`audit.acp.view`) lists entries newest first, and nothing in it can change one: there is no route that does. Filters: search (who, what it was done to, the action, the address), the action, who did it, the result, a range of days (in the viewer's own time zone, both ends included), and rows per page. Each row opens to show **what changed** as a table of before and after, and the request (method, path, route, address, the field names it sent, the browser). **Admin → Users → Edit → Audit log** opens it for one account.
+**Admin → Audit log** (`audit.acp.view`) lists entries newest first, and nothing in it can change one: there is no route that does. Filters: search (who, what it was done to, the action, the address), the action, who did it, the result, a range of days (in the viewer's own time zone, both ends included), and rows per page. Each row opens to show **what changed** as a table of before and after, and the request (method, path, route, address, the field names it sent, the browser). **Admin → Users → Edit → Audit log** opens it for one account, with every entry that concerns that account, bulk actions included (an entry that concerned several says how many).
 
 The permission is **view only**: `audit.acp.view` is the only one made, because nothing in the log is created, edited or deleted from the admin area. Admins have it (and reach the page without it); to give it to somebody else, give them `audit.acp.view`.
 

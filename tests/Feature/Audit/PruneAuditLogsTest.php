@@ -4,6 +4,8 @@ namespace Tests\Feature\Audit;
 
 use App\Jobs\PruneAuditLogs;
 use App\Models\AuditLog;
+use App\Models\AuditLogAccount;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -53,6 +55,21 @@ class PruneAuditLogsTest extends TestCase
         $this->assertModelExists($edge);
         $this->assertModelExists($exactly, 'an entry exactly as old as the retention is not older than it');
         $this->assertModelExists($recent);
+    }
+
+    #[Test]
+    public function the_accounts_an_entry_concerned_go_with_it(): void
+    {
+        config(['audit.retention_days' => 30]);
+        $person = User::factory()->create();
+        $old = AuditLog::factory()->about($person)->create(['created_at' => now()->subDays(60)]);
+        $recent = AuditLog::factory()->about($person)->create(['created_at' => now()->subDay()]);
+
+        (new PruneAuditLogs)->handle();
+
+        $this->assertModelMissing($old);
+        $this->assertSame(0, AuditLogAccount::query()->where('audit_log_id', $old->id)->count(), 'no orphans');
+        $this->assertSame(1, AuditLogAccount::query()->where('audit_log_id', $recent->id)->count());
     }
 
     #[Test]

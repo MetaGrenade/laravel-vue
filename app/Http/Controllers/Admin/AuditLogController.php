@@ -58,9 +58,9 @@ class AuditLogController extends Controller
             $query->where('actor_id', (int) $actor);
         }
 
-        // Everything done on one person's account: to them, or to something of theirs.
+        // Everything done on one person's account: to them, or to something of theirs, on its own or as one of many (a bulk action).
         if (is_numeric($account)) {
-            $query->where('owner_type', User::class)->where('owner_id', (int) $account);
+            $query->concerning(User::class, (int) $account);
         }
 
         if ($from !== null) {
@@ -71,7 +71,7 @@ class AuditLogController extends Controller
             $query->where('created_at', '<=', $to);
         }
 
-        $entries = $query->orderByDesc('created_at')->orderByDesc('id')->paginate($perPage)->withQueryString();
+        $entries = $query->withCount('accounts')->orderByDesc('created_at')->orderByDesc('id')->paginate($perPage)->withQueryString();
 
         $accountUser = is_numeric($account) ? User::query()->find((int) $account, ['id', 'nickname', 'email']) : null;
 
@@ -89,6 +89,8 @@ class AuditLogController extends Controller
                         'id' => $entry->subject_id,
                         'label' => $entry->subject_label,
                     ],
+                    // How many accounts it concerns (a bulk action: several), which the changes below may not all show.
+                    'accounts_count' => (int) $entry->getAttribute('accounts_count'),
                     'ip_address' => $entry->ip_address,
                     'user_agent' => $entry->user_agent,
                     'changes' => $entry->changes ?? [],

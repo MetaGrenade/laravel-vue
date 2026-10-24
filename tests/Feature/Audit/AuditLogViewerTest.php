@@ -3,6 +3,7 @@
 namespace Tests\Feature\Audit;
 
 use App\Models\AuditLog;
+use App\Models\AuditLogAccount;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
@@ -239,10 +240,11 @@ class AuditLogViewerTest extends TestCase
         $admin = $this->signInAdmin();
         $person = User::factory()->create(['nickname' => 'Pat', 'email' => 'pat@example.com']);
         $other = User::factory()->create();
-        $this->entry(['event' => 'users.ban', 'owner_type' => User::class, 'owner_id' => $person->id]);
-        $this->entry(['event' => 'tokens.store', 'owner_type' => User::class, 'owner_id' => $person->id]);
-        $this->entry(['event' => 'users.ban', 'owner_type' => User::class, 'owner_id' => $other->id]);
-        $this->entry(['event' => 'orders.update', 'owner_type' => 'App\Models\Team', 'owner_id' => $person->id]); // a team that happens to have the same number
+        AuditLog::factory()->about($person)->create(['event' => 'users.ban']);
+        AuditLog::factory()->about($person)->create(['event' => 'tokens.store']);
+        AuditLog::factory()->about($other)->create(['event' => 'users.ban']);
+        $team = $this->entry(['event' => 'orders.update']); // a team that happens to have the same number
+        AuditLogAccount::query()->create(['audit_log_id' => $team->id, 'owner_type' => 'App\Models\Team', 'owner_id' => $person->id]);
         $this->entry(['event' => 'system.update']);
 
         $this->page(['account' => $person->id])->assertInertia(fn (Assert $page) => $page
@@ -252,6 +254,39 @@ class AuditLogViewerTest extends TestCase
 
         $this->page()->assertInertia(fn (Assert $page) => $page->where('account', null)->where('entries.meta.total', 5));
         $this->assertNotNull($admin);
+    }
+
+    #[Test]
+    public function a_bulk_action_is_in_the_log_of_every_account_it_touched(): void
+    {
+        $this->signInAdmin();
+        [$first, $second, $third] = User::factory()->count(3)->create()->all();
+        $untouched = User::factory()->create();
+        $bulk = AuditLog::factory()->about($first, $second, $third)->create(['event' => 'users.bulk-update']);
+        AuditLog::factory()->about($second)->create(['event' => 'users.ban']);
+
+        foreach ([$first, $second, $third] as $user) {
+            $this->page(['account' => $user->id])->assertInertia(fn (Assert $page) => $page
+                ->where('entries.data', fn ($data) => collect($data)->pluck('id')->contains($bulk->id))
+                ->where('entries.meta.total', $user->is($second) ? 2 : 1));
+        }
+
+        $this->page(['account' => $untouched->id])->assertInertia(fn (Assert $page) => $page->where('entries.meta.total', 0));
+    }
+
+    #[Test]
+    public function an_entry_says_how_many_accounts_it_concerns(): void
+    {
+        $this->signInAdmin();
+        [$first, $second] = User::factory()->count(2)->create()->all();
+        AuditLog::factory()->about($first, $second)->create(['created_at' => now()]);
+        AuditLog::factory()->about($first)->create(['created_at' => now()->subMinute()]);
+        AuditLog::factory()->create(['created_at' => now()->subMinutes(2)]);
+
+        $this->page()->assertInertia(fn (Assert $page) => $page
+            ->where('entries.data.0.accounts_count', 2)
+            ->where('entries.data.1.accounts_count', 1)
+            ->where('entries.data.2.accounts_count', 0));
     }
 
     #[Test]

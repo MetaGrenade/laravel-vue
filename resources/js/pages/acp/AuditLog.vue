@@ -370,6 +370,10 @@ const formatDateTime = (value: string | null) => {
                                                 }}
                                             </p>
 
+                                            <p v-if="entry.accounts_count > 1" class="text-xs text-muted-foreground">
+                                                This concerned {{ entry.accounts_count }} accounts, and is in the history of each of them.
+                                            </p>
+
                                             <div v-if="entry.changes.length" class="space-y-3">
                                                 <h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">What changed</h3>
                                                 <div v-for="(change, index) in entry.changes" :key="index" class="space-y-1.5">

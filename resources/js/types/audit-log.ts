@@ -35,6 +35,8 @@ export interface AuditEntry {
     event_label: string;
     outcome: 'succeeded' | 'failed' | 'denied';
     subject: { type: string; id: number | null; label: string | null } | null;
+    /** How many accounts it concerns: several for a bulk action, which `changes` may not all describe. */
+    accounts_count: number;
     ip_address: string | null;
     user_agent: string | null;
     changes: AuditChange[];
