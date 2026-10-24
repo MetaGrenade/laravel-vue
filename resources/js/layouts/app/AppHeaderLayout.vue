@@ -3,6 +3,7 @@ import AppContent from '@/components/AppContent.vue';
 import AppFooter from '@/components/AppFooter.vue';
 import AppHeader from '@/components/AppHeader.vue';
 import AppShell from '@/components/AppShell.vue';
+import ImpersonationBanner from '@/components/ImpersonationBanner.vue';
 import { useI18n } from '@/composables/useI18n';
 import type { BreadcrumbItemType } from '@/types';
 
@@ -27,6 +28,7 @@ const { t } = useI18n();
         >
             {{ t('ui.nav.skip_to_content') }}
         </a>
+        <ImpersonationBanner />
         <AppHeader :breadcrumbs="breadcrumbs" />
         <AppContent :full-width="fullWidth">
             <slot />

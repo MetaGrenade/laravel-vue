@@ -101,6 +101,17 @@ export interface CartSummary {
     items: CartItemSummary[];
 }
 
+/** Set while staff are viewing the site as this customer, read only (docs/impersonation.md). */
+export interface Impersonation {
+    user: { id: number; nickname: string; email: string };
+    /** The staff member's own nickname. */
+    by: string | null;
+    reason: string;
+    /** When the view ends by itself (ISO 8601). */
+    expires_at: string;
+    stop_url: string;
+}
+
 export interface SharedData extends PageProps {
     name: string;
     /** Active interface language (see config/i18n.php). */
@@ -110,6 +121,7 @@ export interface SharedData extends PageProps {
     translations: Record<string, string>;
     quote: { message: string; author: string };
     auth: Auth;
+    impersonation: Impersonation | null;
     notifications: NotificationBag;
     /** `routes` is only present when the route map must be (re)loaded; see HandleInertiaRequests::ziggy(). */
     ziggy: Partial<Config> & { location: string; group: 'public' | 'staff' };

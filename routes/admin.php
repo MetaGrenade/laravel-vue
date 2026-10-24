@@ -33,6 +33,7 @@ use App\Http\Controllers\Admin\ForumBoardController;
 use App\Http\Controllers\Admin\ForumCategoryController;
 use App\Http\Controllers\Admin\ForumReportController;
 use App\Http\Controllers\Admin\GiftCardController;
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\PollController;
 use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\ShippingRateController;
@@ -75,6 +76,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/users/{user}/ban', [AdminUserController::class, 'ban'])->name('acp.users.ban');
     Route::put('acp/users/{user}/unban', [AdminUserController::class, 'unban'])->name('acp.users.unban');
     Route::patch('acp/users/bulk', [AdminUserController::class, 'bulkUpdate'])->name('acp.users.bulk-update');
+    // See the site as a customer sees it, read only (docs/impersonation.md). Its own permission: it shows what the customer sees.
+    Route::post('acp/users/{user}/impersonate', [ImpersonationController::class, 'store'])
+        ->middleware('can:users.acp.impersonate')
+        ->name('acp.users.impersonate');
     Route::post('acp/users/{user}/social-accounts', [UserSocialAccountController::class, 'store'])
         ->name('acp.users.social-accounts.store');
     Route::delete('acp/users/{user}/social-accounts/{socialAccount}', [UserSocialAccountController::class, 'destroy'])

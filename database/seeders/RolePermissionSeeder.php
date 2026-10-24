@@ -62,6 +62,9 @@ class RolePermissionSeeder extends Seeder
             if ($permission == 'users') {
                 Permission::firstOrCreate(['name' => $permission.'.acp.verify']);
                 Permission::firstOrCreate(['name' => $permission.'.acp.ban']);
+                // Seeing the site as a customer sees it (read only, and written to the audit log): shows what the customer sees, so it
+                // is granted on its own.
+                Permission::firstOrCreate(['name' => $permission.'.acp.impersonate']);
             }
             if ($permission == 'support') {
                 Permission::firstOrCreate(['name' => $permission.'.acp.assign']);

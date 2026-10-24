@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Support\Audit\Audit;
 use App\Support\Billing\SubscriptionCancellationFailed;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Impersonation\Impersonation;
 use App\Support\Localization\DateFormatter;
 use App\Support\OAuth\OAuthProviders;
 use Carbon\CarbonInterface;
@@ -143,9 +144,10 @@ class UsersController extends Controller
     /**
      * Show the form for editing the specified user.
      */
-    public function edit(Request $request, User $user)
+    public function edit(Request $request, User $user, Impersonation $impersonation)
     {
         $formatter = DateFormatter::for($request->user());
+        $admin = $request->user();
 
         $user->loadMissing(['roles', 'socialAccounts']);
 
@@ -195,6 +197,12 @@ class UsersController extends Controller
             'user' => $userData,
             'allRoles' => Role::all(),
             'availableSocialProviders' => $providers,
+            // Viewing as this person (docs/impersonation.md): whether the staff member may, and if this person cannot be viewed as, why.
+            'impersonation' => [
+                'can' => $admin instanceof User && $admin->can('users.acp.impersonate'),
+                'refusal' => $admin instanceof User ? $impersonation->refusal($admin, $user) : null,
+                'minutes' => (int) config('impersonation.minutes', 30),
+            ],
         ]);
     }
 

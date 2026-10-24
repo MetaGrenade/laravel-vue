@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ApplyImpersonation;
 use App\Http\Middleware\AuditAdminActions;
 use App\Http\Middleware\EnsureEmailIsVerifiedIfRequired;
 use App\Http\Middleware\EnsureEntitled;
@@ -24,6 +25,7 @@ use App\Jobs\PruneUsageEvents;
 use App\Jobs\SyncTebexCatalogue;
 use App\Payments\Tebex\TebexCatalogue;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -51,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ],
             append: [
                 PreventBannedUser::class,
+                ApplyImpersonation::class,
             ]
         );
 
@@ -67,6 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 AddLinkHeadersForPreloadedAssets::class,
                 UpdateLastActivity::class,
                 AuditAdminActions::class,
+                ApplyImpersonation::class,
             ]
         );
 
@@ -97,6 +101,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // log heard of them, and a refusal is exactly what it is for. It still comes after authentication, which is earlier in the list:
         // somebody who is not signed in is not recorded.
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: AuditAdminActions::class);
+
+        // A read-only view as a customer makes the request the customer's, so everything after it (the sign-in check, throttles that
+        // are per person, the route bindings, the pages) sees the customer: it goes right before authentication, which is the first
+        // thing that asks who is signed in. It is after the session starts, which it reads.
+        $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: ApplyImpersonation::class);
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();

@@ -66,7 +66,7 @@ Plan: eight milestones (M0–M7) in section 9, roughly **70–100 developer-days
 | Tax | **Missing.** `tax_total` exists on orders but nothing computes it; Stripe Tax not enabled. |
 | Customer-facing API keys | **Done** (M3): a self-service page with scopes, expiry and revoke, and scopes the API enforces; see [api-keys.md](api-keys.md). |
 | Outbound webhooks for customers | **Missing.** |
-| Admin impersonation, admin audit log | **Audit log done** (M3, [audit-log.md](audit-log.md)); impersonation is the next slice. |
+| Admin impersonation, admin audit log | **Both done** (M3): [audit-log.md](audit-log.md), and read-only "view as" in [impersonation.md](impersonation.md). |
 | Onboarding flow, in-app changelog/status | **Missing.** |
 | Transactional email design | **Partial.** 8 notifications use the default Laravel mail templates; no branded layout. |
 
@@ -124,6 +124,7 @@ Strong already. Remaining gaps, in priority order:
 - [ ] Private storage and authorised downloads for all user uploads
 - [ ] Upload pipeline: MIME sniffing, extension allow-list, size caps, image re-encode
 - [x] Admin audit log (**done in M3**: an append-only `audit_logs` table written for every change under `acp/`, with before and after for the records that matter, a viewer, and retention; see [audit-log.md](audit-log.md))
+- [x] Admin impersonation, read-only (**done in M3**: staff see the site as one customer sees it, for 30 minutes, with a reason, nothing can be changed, a few pages stay closed, and every page opened is in the audit log; see [impersonation.md](impersonation.md))
 - [x] Token abilities default, expiry, rate limits (**done in M3**: scopes are enforced on every API route, keys made on the settings page or by signing in over the API are least-privilege by default, expire, are limited in number and can be limited in calls, and revoking really revokes; see [api-keys.md](api-keys.md))
 - [ ] Per-route authorisation review: every ACP route behind a named permission (currently 166 admin routes; **To verify** that none rely on role only)
 - [ ] Policies for orders, tickets, products (only 3 policies exist today)
@@ -407,7 +408,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Trials (**done**, see [billing.md](billing.md#free-trials)), coupons on subscriptions (**done** as promotion codes, see [billing.md](billing.md#promotion-codes)), dunning emails (**done**, see [billing.md](billing.md#when-a-payment-fails)), customer portal links (**done**, see [billing.md](billing.md#customer-portal))
 - Metered usage example with reporting (**done**, see [usage.md](usage.md); billing the overage through Stripe is not built)
 - Self-service API keys page with scopes and expiry (**done**, see [api-keys.md](api-keys.md); it also made scopes real: every API route that takes a key names the scope it needs, and a revoked key is refused, which `revoked_at` never did before; with an email when a key is made, one-step rotation, limits an owner sets, and least-privilege defaults for keys made by signing in over the API)
-- Admin audit log (**done**, see [audit-log.md](audit-log.md)) and read-only impersonation
+- Admin audit log (**done**, see [audit-log.md](audit-log.md)) and read-only impersonation (**done**, see [impersonation.md](impersonation.md))
 - Onboarding checklist; branded email layout
 - Tests asserting that policies resolve through the owner, so teams can be added in 1.1 (section 7.4)
 - **Exit:** a plan change visibly changes what a user can do; limits are enforced; audit log records admin actions.
