@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuditAdminActions;
 use App\Http\Middleware\EnsureEmailIsVerifiedIfRequired;
 use App\Http\Middleware\EnsureEntitled;
 use App\Http\Middleware\EnsureSiteIsAvailable;
@@ -17,6 +18,7 @@ use App\Http\Middleware\UpdateLastActivity;
 use App\Jobs\AggregateSearchQueryStats;
 use App\Jobs\ExpirePendingOrders;
 use App\Jobs\MonitorSupportTicketSlas;
+use App\Jobs\PruneAuditLogs;
 use App\Jobs\PruneSearchQueryLogs;
 use App\Jobs\PruneUsageEvents;
 use App\Jobs\SyncTebexCatalogue;
@@ -64,6 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 HandleInertiaRequests::class,
                 AddLinkHeadersForPreloadedAssets::class,
                 UpdateLastActivity::class,
+                AuditAdminActions::class,
             ]
         );
 
@@ -88,12 +91,19 @@ return Application::configure(basePath: dirname(__DIR__))
         // The same goes for a key's scopes, so a key that may not read tickets is told so whether or not the ticket it asked for exists,
         // and cannot find out which ticket numbers are there. Added second, it lands right after the meter.
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsureTokenScope::class);
+
+        // The audit log has to see an admin request that is refused by a route's `can:` (Authorize) or that names a record that is not
+        // there (SubstituteBindings): both run before anything not in this list, so without this they would be turned away before the
+        // log heard of them, and a refusal is exactly what it is for. It still comes after authentication, which is earlier in the list:
+        // somebody who is not signed in is not recorded.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: AuditAdminActions::class);
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();
         $schedule->job(new AggregateSearchQueryStats)->dailyAt('00:30');
         $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
         $schedule->job(new PruneUsageEvents)->dailyAt('01:30');
+        $schedule->job(new PruneAuditLogs)->dailyAt('02:00');
         $schedule->job(new ExpirePendingOrders)->everyFiveMinutes();
         // Looked at every five minutes; runs when the copy of the Tebex catalogue is older than the configured interval.
         $schedule->job(new SyncTebexCatalogue)->everyFiveMinutes()->when(fn () => app(TebexCatalogue::class)->isDue());

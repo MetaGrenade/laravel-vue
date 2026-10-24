@@ -22,6 +22,8 @@ use App\Policies\BlogCommentPolicy;
 use App\Policies\BlogPolicy;
 use App\Policies\ForumPostPolicy;
 use App\Policies\OrderPolicy;
+use App\Support\Audit\Audit;
+use App\Support\Audit\AuditObserver;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
@@ -52,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TebexStoreProfile::class);
         $this->app->bind(StripeGateway::class, CashierStripeGateway::class);
         $this->app->scoped(Seo::class);
+        $this->app->scoped(Audit::class);
     }
 
     /**
@@ -91,6 +94,13 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute($attempts)->by(optional($request->user())->id ?? $request->ip());
         });
+
+        // What changes while an admin request is open is written into its audit entry (see docs/audit-log.md).
+        foreach (array_keys((array) config('audit.models', [])) as $model) {
+            if (is_a($model, Model::class, true)) {
+                $model::observe(AuditObserver::class);
+            }
+        }
 
         $cacheObserver = $this->app->make(ForumIndexCacheObserver::class);
 

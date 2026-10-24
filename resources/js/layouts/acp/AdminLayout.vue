@@ -20,6 +20,7 @@ import {
     Package,
     Percent,
     ReceiptText,
+    ScrollText,
     Search,
     Settings,
     Shield,
@@ -140,6 +141,7 @@ const navGroups = computed<AdminNavGroup[]>(() => {
             items: [
                 { title: 'Access tokens', href: '/acp/tokens', icon: Key, visible: can('tokens.acp.view') },
                 { title: 'System settings', href: '/acp/system', icon: Settings, visible: can('system.acp.view') },
+                { title: 'Audit log', href: '/acp/audit-log', icon: ScrollText, visible: can('audit.acp.view') },
             ],
         },
     ];

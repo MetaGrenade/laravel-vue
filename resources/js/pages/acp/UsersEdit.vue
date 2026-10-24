@@ -92,6 +92,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const { hasPermission } = usePermissions();
 const canDeleteUsers = computed(() => hasPermission('users.acp.delete'));
 const canVerifyUsers = computed(() => hasPermission('users.acp.verify'));
+const canViewAuditLog = computed(() => hasPermission('audit.acp.view'));
 
 const form = useForm<UserForm>({
     nickname: props.user.nickname,
@@ -252,6 +253,9 @@ const removeSocialLink = (index: number) => {
                     <div class="flex flex-wrap gap-2">
                         <Button variant="outline" as-child>
                             <Link :href="route('acp.users.index')">Back to users</Link>
+                        </Button>
+                        <Button v-if="canViewAuditLog" variant="outline" as-child>
+                            <Link :href="route('acp.audit-log.index', { account: props.user.id })">Audit log</Link>
                         </Button>
                         <Button type="submit" :disabled="form.processing">Save changes</Button>
                     </div>
