@@ -959,18 +959,31 @@ class ImpersonationTest extends TestCase
         $banned = $this->customer(['email' => 'banned@example.com', 'is_banned' => true]);
 
         $this->actingAs($admin)->get(route('acp.users.edit', $customer))->assertInertia(fn (Assert $page) => $page
-            ->where('impersonation.can', true)
-            ->where('impersonation.refusal', null)
-            ->where('impersonation.minutes', 30));
+            ->where('viewAs.can', true)
+            ->where('viewAs.refusal', null)
+            ->where('viewAs.minutes', 30));
 
         $this->get(route('acp.users.edit', $banned))->assertInertia(fn (Assert $page) => $page
-            ->where('impersonation.can', true)
-            ->where('impersonation.refusal', 'This account is banned, so it cannot be viewed as.'));
+            ->where('viewAs.can', true)
+            ->where('viewAs.refusal', 'This account is banned, so it cannot be viewed as.'));
 
-        $this->get(route('acp.users.edit', $admin))->assertInertia(fn (Assert $page) => $page->where('impersonation.refusal', 'You cannot view as yourself.'));
+        $this->get(route('acp.users.edit', $admin))->assertInertia(fn (Assert $page) => $page->where('viewAs.refusal', 'You cannot view as yourself.'));
 
         config(['impersonation.minutes' => 10]);
-        $this->get(route('acp.users.edit', $customer))->assertInertia(fn (Assert $page) => $page->where('impersonation.minutes', 10));
+        $this->get(route('acp.users.edit', $customer))->assertInertia(fn (Assert $page) => $page->where('viewAs.minutes', 10));
+    }
+
+    #[Test]
+    public function the_users_page_leaves_the_shared_bar_prop_alone(): void
+    {
+        // A page prop of the same name replaces a shared one. The bar at the top of every page reads `impersonation`, and takes anything
+        // there for a view in progress: the users page has to leave it null when there is none.
+        $admin = $this->admin();
+        $customer = $this->customer();
+
+        $this->actingAs($admin)->get(route('acp.users.edit', $customer))->assertInertia(fn (Assert $page) => $page
+            ->where('impersonation', null)
+            ->has('viewAs'));
     }
 
     #[Test]
@@ -980,7 +993,7 @@ class ImpersonationTest extends TestCase
         $editor->assignRole(Role::findOrCreate('editor'));
         $editor->givePermissionTo(Permission::findOrCreate('users.acp.edit'));
 
-        $this->actingAs($editor)->get(route('acp.users.edit', $this->customer()))->assertInertia(fn (Assert $page) => $page->where('impersonation.can', false));
+        $this->actingAs($editor)->get(route('acp.users.edit', $this->customer()))->assertInertia(fn (Assert $page) => $page->where('viewAs.can', false));
     }
 
     #[Test]

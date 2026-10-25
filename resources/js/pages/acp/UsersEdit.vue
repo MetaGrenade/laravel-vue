@@ -84,7 +84,7 @@ const props = defineProps<{
     allRoles: Role[];
     availableSocialProviders: SocialProviderOption[];
     /** Viewing as this person, read only: whether the staff member may, why not if this person cannot be viewed as, and for how long. */
-    impersonation: { can: boolean; refusal: string | null; minutes: number };
+    viewAs: { can: boolean; refusal: string | null; minutes: number };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -541,10 +541,10 @@ const removeSocialLink = (index: number) => {
                         </Card>
 
                         <ImpersonateUserCard
-                            v-if="props.impersonation.can"
+                            v-if="props.viewAs.can"
                             :user="{ id: props.user.id, nickname: props.user.nickname }"
-                            :refusal="props.impersonation.refusal"
-                            :minutes="props.impersonation.minutes"
+                            :refusal="props.viewAs.refusal"
+                            :minutes="props.viewAs.minutes"
                         />
 
                         <Card v-if="canDeleteUsers">

@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\TebexPackage;
+use App\Support\Impersonation\Impersonation;
 use Illuminate\Http\Request;
 
 class CartManager
@@ -55,8 +56,15 @@ class CartManager
      */
     public static function forRequest(Request $request, bool $create = false): ?Cart
     {
-        $sessionId = $request->session()->getId();
+        // Not by the browser session while a member of staff is viewing as this customer (docs/impersonation.md): the session is
+        // theirs, and a cart tied to it is theirs, not the customer's.
+        $sessionId = Impersonation::isActive($request) ? null : $request->session()->getId();
         $userId = $request->user()?->id;
+
+        // Nobody to find a cart for (and a search with no conditions would find anybody's).
+        if (! $userId && $sessionId === null) {
+            return null;
+        }
 
         $cart = Cart::query()
             ->with(['items.product', 'items.variant', 'items.tebexPackage'])
@@ -66,7 +74,9 @@ class CartManager
                     $query->where('user_id', $userId);
                 }
 
-                $query->orWhere('session_id', $sessionId);
+                if ($sessionId !== null) {
+                    $query->orWhere('session_id', $sessionId);
+                }
             })
             ->latest('id')
             ->first();

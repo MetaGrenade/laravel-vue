@@ -22,6 +22,9 @@ class Impersonation
 {
     public const SESSION_KEY = 'impersonation';
 
+    /** Set on a request while it is being made as a customer: see `isActive()`. */
+    public const ATTRIBUTE = 'impersonating';
+
     /**
      * The view in progress, or null. Anything in the session that is not a view this class made is no view.
      *
@@ -53,6 +56,18 @@ class Impersonation
             'expires_at' => $state['expires_at'],
             'views' => is_int($state['views'] ?? null) ? $state['views'] : 0,
         ];
+    }
+
+    /**
+     * Whether this request is being made as a customer by a member of staff, rather than by the customer.
+     *
+     * The signed-in person is the customer, but the browser session is the staff member's. Anything that finds something by the
+     * session instead of the person (a guest's cart) must leave it alone, or it would show the staff member's own things as the
+     * customer's.
+     */
+    public static function isActive(Request $request): bool
+    {
+        return $request->attributes->get(self::ATTRIBUTE) === true;
     }
 
     /**

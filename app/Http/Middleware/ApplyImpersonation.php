@@ -58,10 +58,13 @@ class ApplyImpersonation
         }
 
         $guard->setUser($target);
+        $request->attributes->set(Impersonation::ATTRIBUTE, true);
 
         try {
             return $this->serve($request, $next, $admin, $target);
         } finally {
+            $request->attributes->remove(Impersonation::ATTRIBUTE);
+
             // Before the session is saved, which records who it belongs to.
             $guard->setUser($admin);
         }

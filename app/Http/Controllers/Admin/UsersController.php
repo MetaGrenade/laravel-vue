@@ -197,8 +197,10 @@ class UsersController extends Controller
             'user' => $userData,
             'allRoles' => Role::all(),
             'availableSocialProviders' => $providers,
-            // Viewing as this person (docs/impersonation.md): whether the staff member may, and if this person cannot be viewed as, why.
-            'impersonation' => [
+            // The "view as this user" card (docs/impersonation.md): whether the staff member may, and if this person cannot be viewed
+            // as, why. Not called `impersonation`: that is the shared prop the bar at the top of a view reads, which a page prop of the
+            // same name replaces.
+            'viewAs' => [
                 'can' => $admin instanceof User && $admin->can('users.acp.impersonate'),
                 'refusal' => $admin instanceof User ? $impersonation->refusal($admin, $user) : null,
                 'minutes' => (int) config('impersonation.minutes', 30),
