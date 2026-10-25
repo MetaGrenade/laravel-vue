@@ -35,7 +35,7 @@ import {
     PaginationNext,
     PaginationPrev,
 } from '@/components/ui/pagination';
-import { Users as UsersIcon, UserPlus, UserX, UserCheck, Activity, Ellipsis, Pencil, Trash2, MailCheck } from '@lucide/vue';
+import { Users as UsersIcon, UserPlus, UserX, UserCheck, Activity, Ellipsis, Pencil, Trash2, MailCheck, Eraser } from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
@@ -50,6 +50,8 @@ const editUsers = computed(() => hasPermission('users.acp.edit'));
 const deleteUsers = computed(() => hasPermission('users.acp.delete'));
 const verifyUsers = computed(() => hasPermission('users.acp.verify'));
 const banUsers = computed(() => hasPermission('users.acp.ban'));
+// Taking down what they posted: with a ban, or on its own (docs/moderation.md).
+const cleanupUsers = computed(() => hasPermission('users.acp.cleanup'));
 // The member's moderation page: where a warning or a ban is given, with the reason it needs (docs/moderation.md).
 const moderateUsers = computed(() => hasPermission('users.acp.ban') || hasPermission('users.acp.warn'));
 
@@ -345,7 +347,7 @@ const stats = [
 const userItems = computed(() => props.users.data ?? []);
 
 type CheckboxState = CheckboxRootProps['modelValue'];
-type BulkAction = 'verify' | 'ban' | 'unban' | 'delete';
+type BulkAction = 'verify' | 'ban' | 'unban' | 'cleanup' | 'delete';
 
 const selectedUserIds = ref<number[]>([]);
 
@@ -383,16 +385,18 @@ const userSelectionLabel = computed(() => {
     return count === 1 ? '1 user selected.' : `${count} users selected.`;
 });
 
-// A ban says why, as a single one does, and may end on a date (docs/moderation.md).
-const bulkActionForm = useForm<{ ids: number[]; action: BulkAction; reason: string; until: string; notify: boolean }>({
+// A ban says why, as a single one does, and may end on a date; `cleanup` takes down what they posted as well (docs/moderation.md).
+const bulkActionForm = useForm<{ ids: number[]; action: BulkAction; reason: string; until: string; notify: boolean; cleanup: boolean }>({
     ids: [],
     action: 'verify',
     reason: '',
     until: '',
     notify: true,
+    cleanup: false,
 });
 
 const banDialogOpen = ref(false);
+const cleanupDialogOpen = ref(false);
 
 const updateUserSelection = (userId: number, checked: boolean | 'indeterminate') => {
     if (checked === true) {
@@ -431,12 +435,13 @@ const submitBulkAction = (action: BulkAction) => {
         onSuccess: () => {
             selectedUserIds.value = [];
             banDialogOpen.value = false;
-            bulkActionForm.reset('reason', 'until', 'notify');
+            cleanupDialogOpen.value = false;
+            bulkActionForm.reset('reason', 'until', 'notify', 'cleanup');
         },
     });
 };
 
-const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || deleteUsers.value);
+const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || cleanupUsers.value || deleteUsers.value);
 </script>
 
 <template>
@@ -538,7 +543,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                     <MailCheck class="mr-2 h-4 w-4" />
                                     <span>Verify email</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator v-if="verifyUsers && (banUsers || deleteUsers)" />
+                                <DropdownMenuSeparator v-if="verifyUsers && (banUsers || cleanupUsers || deleteUsers)" />
                                 <DropdownMenuItem v-if="banUsers" :disabled="bulkActionForm.processing" @select="banDialogOpen = true">
                                     <UserX class="mr-2 h-4 w-4" />
                                     <span>Ban users</span>
@@ -547,7 +552,11 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                     <UserCheck class="mr-2 h-4 w-4" />
                                     <span>Unban users</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator v-if="deleteUsers && (verifyUsers || banUsers)" />
+                                <DropdownMenuItem v-if="cleanupUsers" :disabled="bulkActionForm.processing" @select="cleanupDialogOpen = true">
+                                    <Eraser class="mr-2 h-4 w-4" />
+                                    <span>Take down their posts</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator v-if="deleteUsers && (verifyUsers || banUsers || cleanupUsers)" />
                                 <DropdownMenuItem
                                     v-if="deleteUsers"
                                     class="text-destructive"
@@ -756,9 +765,50 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                             />
                             <Label for="bulk-ban-notify" class="font-normal">Email them (leave it off for spam accounts)</Label>
                         </div>
+                        <div v-if="cleanupUsers" class="flex items-start gap-2">
+                            <Checkbox
+                                id="bulk-ban-cleanup"
+                                class="mt-0.5"
+                                :model-value="bulkActionForm.cleanup"
+                                @update:model-value="(value) => (bulkActionForm.cleanup = value === true)"
+                            />
+                            <Label for="bulk-ban-cleanup" class="font-normal">
+                                Also take down what they posted: threads are unpublished, replies deleted, comments and reviews rejected. Nothing is
+                                deleted for good, and they are not told.
+                            </Label>
+                        </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" @click="banDialogOpen = false">Cancel</Button>
-                            <Button type="submit" variant="destructive" :disabled="bulkActionForm.processing">Ban</Button>
+                            <Button type="submit" variant="destructive" :disabled="bulkActionForm.processing">
+                                {{ bulkActionForm.cleanup ? 'Ban and take down' : 'Ban' }}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog v-model:open="cleanupDialogOpen">
+                <DialogContent>
+                    <form class="space-y-4" @submit.prevent="submitBulkAction('cleanup')">
+                        <DialogHeader>
+                            <DialogTitle>
+                                Take down what {{ selectedUserIds.length }} {{ selectedUserIds.length === 1 ? 'user' : 'users' }}
+                                {{ selectedUserIds.length === 1 ? 'has' : 'have' }} posted
+                            </DialogTitle>
+                            <DialogDescription>
+                                Their threads are unpublished (with the replies other members made in them), their replies in other threads are
+                                deleted, and their blog comments and product reviews are rejected. What is waiting in the review queue is rejected.
+                                Nobody is told. Staff, administrators and yourself are skipped, and the page says who.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div class="space-y-2">
+                            <Label for="bulk-cleanup-reason">Why? (kept in each of their histories)</Label>
+                            <Textarea id="bulk-cleanup-reason" v-model="bulkActionForm.reason" rows="3" maxlength="1000" required />
+                            <InputError :message="bulkActionForm.errors.reason" />
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" @click="cleanupDialogOpen = false">Cancel</Button>
+                            <Button type="submit" variant="destructive" :disabled="bulkActionForm.processing">Take it all down</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

@@ -62,6 +62,16 @@ class Blog extends Model
         return $this->hasMany(BlogComment::class);
     }
 
+    /**
+     * The comments that are shown: not the ones a moderator has rejected or that are waiting to be approved.
+     *
+     * @return HasMany<BlogComment, $this>
+     */
+    public function approvedComments(): HasMany
+    {
+        return $this->comments()->where('status', BlogComment::STATUS_APPROVED);
+    }
+
     public function views(): HasMany
     {
         return $this->hasMany(BlogView::class);

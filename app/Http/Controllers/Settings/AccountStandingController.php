@@ -25,7 +25,9 @@ class AccountStandingController extends Controller
         $formatter = DateFormatter::for($user);
 
         return Inertia::render('settings/AccountStanding', [
+            // What they were told. Taking their posts down is staff's business and is not among it.
             'notices' => $user->moderationActions()
+                ->whereIn('type', ModerationAction::TOLD_TO_MEMBER)
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
                 ->get()

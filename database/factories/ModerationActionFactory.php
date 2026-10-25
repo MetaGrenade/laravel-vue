@@ -33,4 +33,13 @@ class ModerationActionFactory extends Factory
     {
         return $this->state(fn () => ['type' => ModerationAction::UNBAN]);
     }
+
+    public function removal(): static
+    {
+        return $this->state(fn () => [
+            'type' => ModerationAction::REMOVAL,
+            'notified' => false,
+            'details' => ['threads_hidden' => 1, 'threads_rejected' => 0, 'replies' => 2, 'comments' => 0, 'reviews' => 0, 'reports' => 0],
+        ]);
+    }
 }

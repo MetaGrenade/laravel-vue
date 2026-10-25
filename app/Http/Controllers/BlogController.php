@@ -77,7 +77,7 @@ class BlogController extends Controller
         }
 
         if ($sortMode === 'popular') {
-            $blogsQuery->withCount('comments')
+            $blogsQuery->withCount('approvedComments as comments_count')
                 ->orderByDesc('comments_count')
                 ->orderByDesc('published_at')
                 ->orderByDesc('created_at');
@@ -280,7 +280,8 @@ class BlogController extends Controller
 
         $this->registerBlogView($request, $blog);
 
-        $comments = $blog->comments()
+        // The ones a moderator has rejected are not shown, here as in the list that pages through them (BlogCommentController).
+        $comments = $blog->approvedComments()
             ->with([
                 'user:id,nickname,avatar_url,profile_bio',
                 'reactions' => function ($query) use ($request) {
@@ -392,7 +393,7 @@ class BlogController extends Controller
             $relatedPosts = Blog::query()
                 ->where('id', '!=', $blog->id)
                 ->where('status', 'published')
-                ->withCount('comments')
+                ->withCount('approvedComments as comments_count')
                 ->orderByDesc('comments_count')
                 ->orderByDesc('published_at')
                 ->orderByDesc('created_at')

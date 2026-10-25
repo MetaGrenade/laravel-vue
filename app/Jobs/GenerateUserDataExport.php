@@ -212,6 +212,7 @@ class GenerateUserDataExport implements ShouldQueue
         // What moderators have told the member: the reason and when, as they can read it in their account. The note for staff and who they
         // were are not the member's to have.
         $moderation = $user->moderationActions()
+            ->whereIn('type', ModerationAction::TOLD_TO_MEMBER)
             ->orderBy('id')
             ->get()
             ->map(fn (ModerationAction $action) => [

@@ -10,6 +10,17 @@ export interface ModerationMember {
     last_activity_at: string | null;
     forum_threads: number;
     forum_posts: number;
+    /** What taking down what they posted would take down now (docs/moderation.md). */
+    showing: ContentShowing;
+}
+
+export interface ContentShowing {
+    /** Threads they started that are published or waiting for review. */
+    threads: number;
+    /** Their replies in other people's threads, held ones too. */
+    replies: number;
+    comments: number;
+    reviews: number;
 }
 
 export interface ModerationStanding {
@@ -21,11 +32,13 @@ export interface ModerationStanding {
     banned_by: string | null;
 }
 
-/** One thing that was done: a warning, a ban or the lifting of one. Rows are never changed afterwards. */
+/** One thing that was done: a warning, a ban, the lifting of one, or taking down what they posted. Rows are never changed afterwards. */
 export interface ModerationAction {
     id: number;
-    type: 'warning' | 'ban' | 'unban';
+    type: 'warning' | 'ban' | 'unban' | 'removal';
     reason: string | null;
+    /** For a removal, what came down in words ("hid 3 threads and removed 14 replies"); null for the rest. */
+    summary: string | null;
     /** For staff only: never shown to the member. */
     note: string | null;
     /** Who did it; null when the system did (a suspension that ran out). */

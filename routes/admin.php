@@ -88,6 +88,11 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/users/{user}/unban', [UserModerationController::class, 'unban'])
         ->middleware('can:users.acp.ban')
         ->name('acp.users.unban');
+    // Taking down what a member posted (their threads, replies, comments and reviews). It reaches the forum, the blog and the shop, so it
+    // is its own permission.
+    Route::post('acp/users/{user}/cleanup', [UserModerationController::class, 'cleanup'])
+        ->middleware('can:users.acp.cleanup')
+        ->name('acp.users.cleanup');
     Route::patch('acp/users/bulk', [AdminUserController::class, 'bulkUpdate'])->name('acp.users.bulk-update');
     // See the site as a customer sees it, read only (docs/impersonation.md). Its own permission: it shows what the customer sees.
     Route::post('acp/users/{user}/impersonate', [ImpersonationController::class, 'store'])

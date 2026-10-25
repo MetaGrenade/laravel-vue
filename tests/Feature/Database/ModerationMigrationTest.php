@@ -49,6 +49,34 @@ class ModerationMigrationTest extends TestCase
     }
 
     #[Test]
+    public function the_details_of_a_clean_up_roll_back_and_forward_cleanly_and_are_kept_by_key(): void
+    {
+        $migration = fn () => require database_path('migrations/2026_11_02_000000_add_details_to_moderation_actions.php');
+
+        $this->assertTrue(Schema::hasColumn('moderation_actions', 'details'));
+
+        $details = ['threads_hidden' => 1, 'threads_rejected' => 0, 'replies' => 14, 'comments' => 0, 'reviews' => 0, 'reports' => 3];
+        $action = ModerationAction::factory()->removal()->create(['details' => $details]);
+        // Compared by key: MySQL hands the keys of a JSON object back in an order of its own.
+        $this->assertEquals($details, $action->fresh()->details);
+        $this->assertNull(ModerationAction::factory()->create()->fresh()->details, 'a warning has none');
+
+        try {
+            ModerationAction::query()->delete();
+            $migration()->down();
+            $this->assertFalse(Schema::hasColumn('moderation_actions', 'details'));
+            $this->assertTrue(Schema::hasColumns('moderation_actions', ['note', 'expires_at']), 'the rest is as it was');
+
+            $migration()->up();
+            $this->assertTrue(Schema::hasColumn('moderation_actions', 'details'));
+        } finally {
+            if (! Schema::hasColumn('moderation_actions', 'details')) {
+                $migration()->up();
+            }
+        }
+    }
+
+    #[Test]
     public function a_date_far_ahead_is_kept_as_it_was_written(): void
     {
         // A date, not a timestamp: a ban of a few decades is not cut off at 2038.

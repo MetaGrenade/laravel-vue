@@ -6,23 +6,26 @@ use App\Http\Controllers\Controller;
 use App\Models\ModerationAction;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
+use App\Support\Moderation\ContentTakenDown;
+use App\Support\Moderation\MemberContent;
 use App\Support\Moderation\Moderation;
 use App\Support\Moderation\ModerationRefused;
 use App\Support\Moderation\ModerationSubject;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * What moderators do to one member: see where they stand and what has been done, warn them, ban them, lift a ban (docs/moderation.md).
- * Who may is the route's `can:` (warning needs `users.acp.warn`, a ban or lifting one `users.acp.ban`); who may be moderated is
- * {@see Moderation::refusal()}.
+ * What moderators do to one member: see where they stand and what has been done, warn them, ban them, lift a ban, take down what they
+ * posted (docs/moderation.md). Who may is the route's `can:` (warning needs `users.acp.warn`, a ban or lifting one `users.acp.ban`,
+ * taking their posts down `users.acp.cleanup`); who may be moderated is {@see Moderation::refusal()}.
  */
 class UserModerationController extends Controller
 {
-    public function show(Request $request, User $user, Moderation $moderation): Response
+    public function show(Request $request, User $user, Moderation $moderation, MemberContent $content): Response
     {
         /** @var User $moderator */
         $moderator = $request->user();
@@ -43,6 +46,8 @@ class UserModerationController extends Controller
                 'last_activity_at' => $formatter->iso($user->getAttribute('last_activity_at')),
                 'forum_threads' => $user->forumThreads()->count(),
                 'forum_posts' => $user->forumPosts()->count(),
+                // What taking down their posts would take down now.
+                'showing' => $content->showing($user),
             ],
             'standing' => [
                 'banned' => (bool) $user->is_banned,
@@ -59,6 +64,7 @@ class UserModerationController extends Controller
                 'actor' => $action->actor?->nickname,
                 'expires_at' => $formatter->iso($action->expires_at),
                 'notified' => $action->notified,
+                'summary' => $action->type === ModerationAction::REMOVAL ? ContentTakenDown::fromDetails($action->details)->summary() : null,
                 'subject' => $action->subject_label !== null ? [
                     'label' => $action->subject_label,
                     'url' => ModerationSubject::url($action->subject_type, $action->subject_id),
@@ -74,12 +80,14 @@ class UserModerationController extends Controller
             'can' => [
                 'warn' => $moderator->can('users.acp.warn'),
                 'ban' => $moderator->can('users.acp.ban'),
+                'cleanup' => $moderator->can('users.acp.cleanup'),
             ],
             // Why this moderator may not do each, when they may not (oneself, staff, an administrator).
             'refusal' => [
                 'warn' => $moderation->refusal($moderator, $user, 'warn'),
                 'ban' => $moderation->refusal($moderator, $user, 'ban'),
                 'unban' => $moderation->refusal($moderator, $user, 'unban'),
+                'cleanup' => $moderation->refusal($moderator, $user, 'cleanup'),
             ],
             'contact' => filled(config('moderation.contact')),
         ]);
@@ -110,7 +118,7 @@ class UserModerationController extends Controller
         return redirect()->route('acp.users.moderation.show', $user)->with('success', "{$user->nickname} has been warned.");
     }
 
-    public function ban(Request $request, User $user, Moderation $moderation): RedirectResponse
+    public function ban(Request $request, User $user, Moderation $moderation, MemberContent $content): RedirectResponse
     {
         $validated = $request->validate([
             'reason' => ['required', 'string', 'min:5', 'max:1000'],
@@ -118,7 +126,14 @@ class UserModerationController extends Controller
             'until' => ['nullable', 'date_format:Y-m-d'],
             'notify' => ['sometimes', 'boolean'],
             'subject' => ['nullable', 'string', 'max:64'],
+            // Take down what they posted as well: a spammer is banned and cleared out in one go.
+            'cleanup' => ['sometimes', 'boolean'],
         ]);
+
+        // Before anything is done, so that a moderator who may ban but not clear out is refused whole and not half way.
+        if ($request->boolean('cleanup')) {
+            Gate::authorize('users.acp.cleanup');
+        }
 
         try {
             $moderation->ban(
@@ -134,7 +149,39 @@ class UserModerationController extends Controller
             return back()->with('error', $refused->getMessage());
         }
 
-        return redirect()->route('acp.users.moderation.show', $user)->with('success', "{$user->nickname} has been banned.");
+        $message = "{$user->nickname} has been banned.";
+
+        if ($request->boolean('cleanup')) {
+            try {
+                $taken = $content->takeDown($user, $request->user(), $validated['reason'], $validated['note'] ?? null);
+            } catch (ModerationRefused $refused) {
+                return redirect()->route('acp.users.moderation.show', $user)->with('success', $message)->with('error', $refused->getMessage());
+            }
+
+            $message .= $taken->isEmpty() ? ' Nothing of theirs was showing.' : " Their posts are down: {$taken->summary()}.";
+        }
+
+        return redirect()->route('acp.users.moderation.show', $user)->with('success', $message);
+    }
+
+    public function cleanup(Request $request, User $user, MemberContent $content): RedirectResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:1000'],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $taken = $content->takeDown($user, $request->user(), $validated['reason'], $validated['note'] ?? null);
+        } catch (ModerationRefused $refused) {
+            return back()->with('error', $refused->getMessage());
+        }
+
+        $back = redirect()->route('acp.users.moderation.show', $user);
+
+        return $taken->isEmpty()
+            ? $back->with('info', "Nothing of {$user->nickname}'s was showing, so nothing was taken down.")
+            : $back->with('success', "Took down what {$user->nickname} posted: {$taken->summary()}.");
     }
 
     public function unban(Request $request, User $user, Moderation $moderation): RedirectResponse

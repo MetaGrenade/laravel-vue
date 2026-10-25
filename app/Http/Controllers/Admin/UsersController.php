@@ -13,6 +13,8 @@ use App\Support\Billing\SubscriptionCancellationFailed;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\Impersonation\Impersonation;
 use App\Support\Localization\DateFormatter;
+use App\Support\Moderation\ContentTakenDown;
+use App\Support\Moderation\MemberContent;
 use App\Support\Moderation\Moderation;
 use App\Support\Moderation\ModerationRefused;
 use App\Support\OAuth\OAuthProviders;
@@ -264,25 +266,34 @@ class UsersController extends Controller
             ->with('success', 'User verified.');
     }
 
-    public function bulkUpdate(Request $request, SubscriptionManager $subscriptions, Moderation $moderation): RedirectResponse
+    public function bulkUpdate(Request $request, SubscriptionManager $subscriptions, Moderation $moderation, MemberContent $content): RedirectResponse
     {
         $validated = $request->validate([
-            'action' => ['required', Rule::in(['verify', 'ban', 'unban', 'delete'])],
+            'action' => ['required', Rule::in(['verify', 'ban', 'unban', 'cleanup', 'delete'])],
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'distinct', 'exists:users,id'],
-            // A ban says why, as a single one does (docs/moderation.md); lifting one may.
-            'reason' => [Rule::requiredIf($request->input('action') === 'ban'), 'nullable', 'string', 'min:5', 'max:1000'],
+            // A ban says why, as a single one does (docs/moderation.md), and so does taking down what they posted; lifting a ban may.
+            'reason' => [Rule::requiredIf(in_array($request->input('action'), ['ban', 'cleanup'], true)), 'nullable', 'string', 'min:5', 'max:1000'],
             'until' => ['nullable', 'date_format:Y-m-d'],
             'notify' => ['sometimes', 'boolean'],
+            // With a ban: take down what they posted as well.
+            'cleanup' => ['sometimes', 'boolean'],
         ]);
 
         $action = $validated['action'];
+        $takeDown = $action === 'cleanup' || ($action === 'ban' && $request->boolean('cleanup'));
 
         match ($action) {
             'verify' => Gate::authorize('users.acp.verify'),
             'ban', 'unban' => Gate::authorize('users.acp.ban'),
+            'cleanup' => null,
             'delete' => Gate::authorize('users.acp.delete'),
         };
+
+        // Whether it is asked for alone or with a ban, before anything is done.
+        if ($takeDown) {
+            Gate::authorize('users.acp.cleanup');
+        }
 
         $ids = array_values(array_unique(array_map('intval', $validated['ids'])));
 
@@ -297,8 +308,10 @@ class UsersController extends Controller
         $now = now();
         $updatedCount = 0;
         $notDeleted = [];
-        // Members a moderator may not ban or unban (themselves, staff, an administrator), with why.
+        // Members a moderator may not ban, unban or clear out (themselves, staff, an administrator), with why.
         $refused = [];
+        // What came down, for all of them.
+        $taken = new ContentTakenDown;
         $until = isset($validated['until'])
             ? Carbon::createFromFormat('Y-m-d', $validated['until'], DateFormatter::for($request->user())->timezone())->endOfDay()
             : null;
@@ -323,6 +336,27 @@ class UsersController extends Controller
                         } catch (ModerationRefused $exception) {
                             $refused[] = "{$user->nickname} ({$exception->getMessage()})";
                         }
+                    }
+
+                    // A ban and a clear-out in one go; for somebody who was banned already, the clear-out alone.
+                    if ($takeDown && $user->is_banned) {
+                        try {
+                            $removed = $content->takeDown($user, $request->user(), $validated['reason'], null);
+                            $taken = $taken->plus($removed);
+                        } catch (ModerationRefused $exception) {
+                            $refused[] = "{$user->nickname} ({$exception->getMessage()})";
+                        }
+                    }
+
+                    break;
+
+                case 'cleanup':
+                    try {
+                        $removed = $content->takeDown($user, $request->user(), $validated['reason'], null);
+                        $taken = $taken->plus($removed);
+                        $changed = ! $removed->isEmpty();
+                    } catch (ModerationRefused $exception) {
+                        $refused[] = "{$user->nickname} ({$exception->getMessage()})";
                     }
 
                     break;
@@ -371,12 +405,21 @@ class UsersController extends Controller
                 1 => 'Unbanned 1 user.',
                 default => "Unbanned {$updatedCount} users.",
             },
+            'cleanup' => match ($updatedCount) {
+                0 => 'Nothing of theirs was showing, so nothing was taken down.',
+                1 => "Took down what 1 user posted: {$taken->summary()}.",
+                default => "Took down what {$updatedCount} users posted: {$taken->summary()}.",
+            },
             'delete' => match ($updatedCount) {
                 0 => 'No users were deleted.',
                 1 => 'Deleted 1 user.',
                 default => "Deleted {$updatedCount} users.",
             },
         };
+
+        if ($action === 'ban' && ! $taken->isEmpty()) {
+            $message .= " What they posted is down: {$taken->summary()}.";
+        }
 
         $response = back()->with('success', $message);
         $problems = [];
@@ -391,7 +434,13 @@ class UsersController extends Controller
         if ($refused !== []) {
             $more = count($refused) > 5 ? ' and '.(count($refused) - 5).' more' : '';
 
-            $problems[] = 'Not '.($action === 'ban' ? 'banned' : 'unbanned').': '.collect($refused)->take(5)->implode(', ').$more.'.';
+            $what = match ($action) {
+                'ban' => $takeDown ? 'banned or cleared out' : 'banned',
+                'cleanup' => 'cleared out',
+                default => 'unbanned',
+            };
+
+            $problems[] = "Not {$what}: ".collect($refused)->take(5)->implode(', ').$more.'.';
         }
 
         if ($problems !== []) {

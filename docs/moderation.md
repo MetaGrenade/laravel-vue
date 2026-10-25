@@ -1,8 +1,8 @@
 # Warnings and bans
 
-A moderator can **warn** a member, **ban** them (for good, or until a date), and **lift** a ban, all from the admin area. Every one of them is kept in the member's history, the member is told, and they can read what they were told in their account.
+A moderator can **warn** a member, **ban** them (for good, or until a date), **lift** a ban, and **take down what they posted**, all from the admin area. Every one of them is kept in the member's history. The member is told of a warning or a ban, and can read what they were told in their account; they are not told that their posts were taken down.
 
-> **Status:** built: warnings, bans with a reason and an optional end date, lifting a ban, the history, telling the member (email and an account page), the page for a moderator, a link from forum reports, and banning several at once. **Not built:** see [below](#not-built). Automatic rules and the review queue are in [automod.md](automod.md); clearing out what a spammer posted is the next slice of the community milestone.
+> **Status:** built: warnings, bans with a reason and an optional end date, lifting a ban, taking down everything a member posted (alone, with a ban, and for several members at once), the history, telling the member (email and an account page), the page for a moderator, a link from forum reports, and banning several at once. **Not built:** see [below](#not-built). Automatic rules and the review queue are in [automod.md](automod.md).
 
 ## Using it
 
@@ -17,6 +17,28 @@ A moderator can **warn** a member, **ban** them (for good, or until a date), and
 Each form has a **note for staff** (never shown to the member) and **Email them** (leave it off for a spam account). Reasons are 5 to 1000 characters; the member is told them in the words they were written.
 
 To ban several at once, select them on **Admin → Users** and choose **Bulk actions → Ban users**: one reason (and optional end date) is given for all of them, each is banned by the same rules, and the page says who was skipped and why.
+
+## Taking down what a member posted
+
+For a spam wave, or a member who broke the rules, a moderator can take down **everything of theirs that is showing** in one go. The moderation page has a **What they have posted** card that says how much there is (threads, forum replies, blog comments, product reviews) and a **Take it all down** button. The same can be asked for:
+
+- **with a ban**: tick *Also take down what they posted* on the ban form of the moderation page or of **Bulk actions → Ban users** (a spammer is banned and cleared out together; a member who was banned already is only cleared out);
+- **for several members, without a ban**: **Bulk actions → Take down their posts**.
+
+A reason is required (it is kept in each member's history, for staff), with an optional note for staff. **The member is not told.**
+
+| Their… | …is |
+|---|---|
+| **Thread**, showing | **Unpublished.** The replies other members made in it go out of sight with it. A moderator can publish it again (*Forums → the thread → Publish*) and everything is back. |
+| **Thread** waiting in the [review queue](automod.md) | **Rejected**, as the queue does: it was never public, and it is gone. |
+| **Reply** in somebody else's thread (a held one too) | **Deleted**, as a moderator deletes a single reply: the row is kept, out of sight. |
+| **Reply** in a thread they started | Left as it is: it is out of sight with the thread. |
+| **Blog comment** | **Rejected** (the status a moderator gives one). It is no longer shown on the post or counted towards how popular it is. |
+| **Product review** | **Rejected**, and marked as moderated by the moderator. It can be approved again in *Commerce → Reviews*. |
+
+Nothing of anybody else's is touched, and what a moderator had already hidden, deleted or rejected is left as it was. The **reports** about what came down that were still waiting are marked as reviewed (by the moderator); a report somebody already dismissed stays dismissed. If there is nothing of theirs showing, nothing is done and nothing is written to the history.
+
+It reaches the forum, the blog and the shop, so it is its **own permission**, `users.acp.cleanup`. The same rules apply as for a warning: nobody does it to themselves, and only an administrator does it to a member of staff (an administrator's posts can be taken down, unlike an administrator's account, which cannot be banned).
 
 ## What a ban does
 
@@ -38,7 +60,9 @@ Nobody can moderate themselves. **An administrator cannot be banned at all** (ta
 
 ## What is kept
 
-`moderation_actions` has a row for each warning, ban and lifting: who, to whom, the reason, the note, the end date, what it was about (a copy of the title, so it still says when the post is gone), whether the member was emailed, and when. **Rows are written once and never changed.** They go when the member's account is deleted, and outlive the moderator who wrote them (shown as "A deleted account").
+`moderation_actions` has a row for each warning, ban, lifting and clean-up: who, to whom, the reason, the note, the end date, what it was about (a copy of the title, so it still says when the post is gone), whether the member was emailed, and when. A clean-up (`removal`) also keeps `details`, how many threads, replies, comments and reviews came down and how many reports were closed; the history reads "hid 3 threads, removed 14 replies and rejected 2 comments". **Rows are written once and never changed.** They go when the member's account is deleted, and outlive the moderator who wrote them (shown as "A deleted account").
+
+A clean-up is staff's business: it is **not** on the member's *Account standing* page and not in their data export, which have only what they were told (warnings, bans and their lifting).
 
 The member's own row says where they stand now (`is_banned`, `banned_until`, `ban_reason`...), because everything that enforces a ban reads that.
 
@@ -51,12 +75,13 @@ Each request a moderator makes (the warning, the ban, the lifting) is also in th
 | `users.acp.view` | Open the Users list and a member's moderation page. |
 | `users.acp.warn` | Warn (new). |
 | `users.acp.ban` | Ban, lift a ban, and ban several at once. |
+| `users.acp.cleanup` | Take down what a member posted, alone, with a ban and for several members (new). A ban with *Also take down what they posted* needs both. |
 
-Running `php artisan db:seed --class=RolePermissionSeeder` creates `users.acp.warn` and **gives the `moderator` role** `users.acp.view`, `users.acp.warn` and `users.acp.ban` (it had none of them). Administrators can do everything. Take them off a role in **Admin → Access control** if you do not want moderators to ban.
+Running `php artisan db:seed --class=RolePermissionSeeder` creates `users.acp.warn` and `users.acp.cleanup` and **gives the `moderator` role** `users.acp.view`, `users.acp.warn`, `users.acp.ban` and `users.acp.cleanup`. Administrators can do everything. Take them off a role in **Admin → Access control** if you do not want moderators to ban or to clear out members.
 
 ## Setting it up
 
-1. `php artisan migrate` (a table for the history, and three columns on `users`).
+1. `php artisan migrate` (a table for the history, three columns on `users`, and a `details` column on the history for clean-ups).
 2. `php artisan db:seed --class=RolePermissionSeeder`.
 3. The scheduler (`php artisan schedule:run` every minute) and a queue worker, for the job and the emails.
 4. Optionally `MODERATION_CONTACT` in `.env`.
@@ -76,7 +101,12 @@ Running `php artisan db:seed --class=RolePermissionSeeder` creates `users.acp.wa
 - **Banning an email address or an IP address**, or a mute or a "can read but not post" state.
 - **Warning several members at once.**
 - **Reason templates** for the usual rules.
+- **A button to undo a clean-up.** Nothing is destroyed for good (a thread is published again from the forum, a review approved again in *Commerce → Reviews*), but there is no screen that puts a whole clean-up back, and no list of exactly which items it touched. A rejected blog comment (the blog's comment screen lists only comments that have been reported) and a deleted reply are rows a developer can restore, not something a moderator can bring back from a screen.
+- **Choosing what to take down.** It is everything showing, or nothing: by kind or item by item is not offered (a single reply or thread is still deleted, hidden or rejected from its own page).
+- **Taking back reputation.** The points a member earned for what came down stay, as they do when a moderator deletes one reply.
+- **Their signature, avatar and profile.** Only what they posted is taken down; the account's own fields are edited in **Edit account**.
+- **Other kinds of content.** Support tickets are private and stay with the support team; polls, orders and wishlists are not posts.
 
 ## Testing
 
-`tests/Feature/Moderation/ModerationTest.php`: what a warning does and does not do, a ban (for good and until a date, in whole seconds and UTC), what a banned member is told and when (not to somebody guessing at a password), a ban that lifts itself on sign-in, on a request, and by the job, the old copy of a member that must not lift a newer ban, lifting, who may moderate whom, what a warning is about, the page, the routes and their permissions, bulk bans, the link from reports, what the member can read, and the export. `tests/Feature/Mail/MailTextTest.php`: what a moderator typed in an email, against links, tags and formatting.
+`tests/Feature/Moderation/ModerationTest.php`: what a warning does and does not do, a ban (for good and until a date, in whole seconds and UTC), what a banned member is told and when (not to somebody guessing at a password), a ban that lifts itself on sign-in, on a request, and by the job, the old copy of a member that must not lift a newer ban, lifting, who may moderate whom, what a warning is about, the page, the routes and their permissions, bulk bans, the link from reports, what the member can read, and the export. `tests/Feature/Mail/MailTextTest.php`: what a moderator typed in an email, against links, tags and formatting. `tests/Feature/Moderation/ContentCleanupTest.php`: what comes down and what is left alone (other people's, what was already down, a reply in their own thread), that a thread comes back when it is published again, the forum's cache, the reports, the history, that the member is not told (account page and data export), who may and who may not, the routes and their permissions, a ban with a clean-up, several members at once and the audit log. `tests/Feature/Moderation/ContentTakenDownTest.php`: the wording and the numbers.
