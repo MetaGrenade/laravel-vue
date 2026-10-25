@@ -43,5 +43,7 @@ return [
         'no_replies' => 'No public replies yet.',
         'view_public' => 'View public profile',
         'open_profile' => 'View :name\'s profile',
+        'ignore' => 'Ignore',
+        'stop_ignoring' => 'Stop ignoring',
     ],
 ];

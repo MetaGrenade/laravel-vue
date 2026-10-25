@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, SharedData } from '@/types';
 
 interface DataExportResource {
     id: number;
@@ -26,13 +26,26 @@ interface ErasureRequestResource {
     processed_at?: string | null;
 }
 
+interface IgnoredMember {
+    id: number;
+    nickname: string;
+    banned: boolean;
+}
+
 interface Props {
     exports: DataExportResource[];
     erasureRequest: ErasureRequestResource | null;
     status?: string;
+    ignored: IgnoredMember[] | null;
 }
 
 const props = defineProps<Props>();
+const page = usePage<SharedData>();
+const viewingAs = computed(() => page.props.impersonation !== null);
+
+const stopIgnoring = (member: IgnoredMember) => {
+    router.delete(route('forum.ignores.destroy', member.id), { preserveScroll: true });
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -130,6 +143,22 @@ const formatDateTime = (value?: string | null) => {
 
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
+                <div v-if="ignored !== null" class="space-y-4">
+                    <HeadingSmall
+                        title="Ignored members"
+                        description="Their posts are hidden on threads, and you are not told when they reply or mention you."
+                    />
+                    <p v-if="ignored.length === 0" class="text-sm text-muted-foreground">You are not ignoring anyone.</p>
+                    <ul v-else class="divide-y rounded-lg border">
+                        <li v-for="member in ignored" :key="member.id" class="flex items-center justify-between gap-3 px-4 py-3">
+                            <Link v-if="!member.banned" :href="route('members.show', member.id)" class="text-sm font-medium hover:underline">
+                                {{ member.nickname }}
+                            </Link>
+                            <span v-else class="text-sm font-medium">{{ member.nickname }}</span>
+                            <Button v-if="!viewingAs" variant="outline" size="sm" type="button" @click="stopIgnoring(member)"> Stop ignoring </Button>
+                        </li>
+                    </ul>
+                </div>
                 <div class="space-y-4">
                     <HeadingSmall title="Data export" description="Request a portable copy of your content and account history." />
 

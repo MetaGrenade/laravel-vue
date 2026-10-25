@@ -122,6 +122,7 @@ interface PostPermissions {
     canEdit: boolean;
     canDelete: boolean;
     canModerate: boolean;
+    canIgnore: boolean;
 }
 
 interface PostMention {
@@ -142,6 +143,7 @@ interface ThreadPost {
     held?: boolean;
     /** Which rule, and why: for moderators only. */
     held_reason?: string | null;
+    ignored: boolean;
     author: PostAuthor;
     permissions: PostPermissions;
     mentions: PostMention[];
@@ -188,10 +190,13 @@ const props = defineProps<{
     posts: PostsPayload;
     reportReasons: ReportReasonOption[];
     prefixes: ForumPrefixLabel[];
+    ignoredUserIds: number[];
 }>();
 
 const page = usePage<SharedData>();
 const authUser = computed(() => page.props.auth.user as User | null);
+const viewingAs = computed(() => page.props.impersonation !== null);
+const revealedPostIds = ref<number[]>([]);
 const { getInitials } = useInitials();
 
 const presenceMembers = ref<ThreadPresenceMember[]>([]);
@@ -310,12 +315,38 @@ const joinThreadPresence = async () => {
                 return;
             }
 
+            if (event.post.author?.id && props.ignoredUserIds.includes(event.post.author.id)) {
+                return;
+            }
+
             liveReplyNotice.value = event;
         });
 };
 
 const dismissLiveReplyNotice = () => {
     liveReplyNotice.value = null;
+};
+
+const revealPost = (postId: number) => {
+    if (!revealedPostIds.value.includes(postId)) {
+        revealedPostIds.value = [...revealedPostIds.value, postId];
+    }
+};
+
+const ignoreAuthor = (post: ThreadPost) => {
+    if (!post.author.id) {
+        return;
+    }
+
+    router.put(route('forum.ignores.store', post.author.id), {}, { preserveScroll: true });
+};
+
+const stopIgnoring = (post: ThreadPost) => {
+    if (!post.author.id) {
+        return;
+    }
+
+    router.delete(route('forum.ignores.destroy', post.author.id), { preserveScroll: true });
 };
 
 const viewLiveReply = () => {
@@ -1752,175 +1783,211 @@ const submitReply = () => {
                     class="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-xs md:flex-row"
                     :class="props.thread.solution?.post_id === post.id ? 'border-emerald-500/50' : ''"
                 >
-                    <!-- Left Side: User Info -->
-                    <div class="w-full shrink-0 border-r pr-4 md:w-1/5">
-                        <Link v-if="post.author.id" :href="route('members.show', post.author.id)" class="block w-fit">
-                            <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
-                                <AvatarImage
-                                    v-if="post.author.avatar_url"
-                                    :src="post.author.avatar_url"
-                                    :alt="post.author.nickname ?? 'Forum user'"
-                                />
-                                <AvatarFallback
-                                    class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground uppercase"
-                                >
-                                    {{ getInitials(post.author.nickname ?? 'Member') }}
-                                </AvatarFallback>
-                            </Avatar>
-                            <span class="text-lg font-bold hover:underline">{{ post.author.nickname ?? 'Unknown' }}</span>
-                        </Link>
-                        <template v-else>
-                            <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
-                                <AvatarImage
-                                    v-if="post.author.avatar_url"
-                                    :src="post.author.avatar_url"
-                                    :alt="post.author.nickname ?? 'Forum user'"
-                                />
-                                <AvatarFallback
-                                    class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground uppercase"
-                                >
-                                    {{ getInitials(post.author.nickname ?? 'Member') }}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div class="text-lg font-bold">{{ post.author.nickname ?? 'Unknown' }}</div>
-                        </template>
-                        <div class="text-sm text-muted-foreground">{{ post.author.primary_role ?? 'Member' }}</div>
-                        <div class="mt-2 text-xs text-muted-foreground">
-                            Joined: <span class="font-medium">{{ post.author.joined_at ?? '—' }}</span>
-                        </div>
-                        <div class="mt-1 text-xs text-muted-foreground">
-                            Posts: <span class="font-medium">{{ post.author.forum_posts_count }}</span>
-                        </div>
-                        <div class="mt-1 text-xs text-muted-foreground">
-                            Reputation: <span class="font-medium">{{ post.author.reputation_points }}</span>
-                        </div>
-                        <div v-if="post.author.badges.length > 0" class="mt-3 flex flex-wrap gap-2">
-                            <span
-                                v-for="badge in post.author.badges"
-                                :key="badge.id"
-                                class="inline-flex items-center rounded-full border border-muted-foreground/20 bg-muted px-2 py-1 text-xs text-muted-foreground"
-                                :title="badge.description ?? undefined"
-                            >
-                                {{ badge.name }}
-                            </span>
+                    <div v-if="post.ignored && !revealedPostIds.includes(post.id)" class="flex flex-1 flex-wrap items-center justify-between gap-3">
+                        <p class="text-sm text-muted-foreground">You are ignoring {{ post.author.nickname ?? 'this member' }}.</p>
+                        <div class="flex items-center gap-2">
+                            <Button variant="outline" size="sm" type="button" @click="revealPost(post.id)">Show</Button>
+                            <Button v-if="!viewingAs" variant="outline" size="sm" type="button" @click="stopIgnoring(post)">Stop ignoring</Button>
                         </div>
                     </div>
-
-                    <!-- Right Side: Post Content -->
-                    <div class="flex-1">
-                        <div class="mb-4 flex items-center justify-between border-b pb-2">
-                            <div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                                {{ post.created_at }}
+                    <template v-else>
+                        <!-- Left Side: User Info -->
+                        <div class="w-full shrink-0 border-r pr-4 md:w-1/5">
+                            <Link v-if="post.author.id" :href="route('members.show', post.author.id)" class="block w-fit">
+                                <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
+                                    <AvatarImage
+                                        v-if="post.author.avatar_url"
+                                        :src="post.author.avatar_url"
+                                        :alt="post.author.nickname ?? 'Forum user'"
+                                    />
+                                    <AvatarFallback
+                                        class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground uppercase"
+                                    >
+                                        {{ getInitials(post.author.nickname ?? 'Member') }}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <span class="text-lg font-bold hover:underline">{{ post.author.nickname ?? 'Unknown' }}</span>
+                            </Link>
+                            <template v-else>
+                                <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
+                                    <AvatarImage
+                                        v-if="post.author.avatar_url"
+                                        :src="post.author.avatar_url"
+                                        :alt="post.author.nickname ?? 'Forum user'"
+                                    />
+                                    <AvatarFallback
+                                        class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground uppercase"
+                                    >
+                                        {{ getInitials(post.author.nickname ?? 'Member') }}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div class="text-lg font-bold">{{ post.author.nickname ?? 'Unknown' }}</div>
+                            </template>
+                            <div class="text-sm text-muted-foreground">{{ post.author.primary_role ?? 'Member' }}</div>
+                            <div class="mt-2 text-xs text-muted-foreground">
+                                Joined: <span class="font-medium">{{ post.author.joined_at ?? '—' }}</span>
+                            </div>
+                            <div class="mt-1 text-xs text-muted-foreground">
+                                Posts: <span class="font-medium">{{ post.author.forum_posts_count }}</span>
+                            </div>
+                            <div class="mt-1 text-xs text-muted-foreground">
+                                Reputation: <span class="font-medium">{{ post.author.reputation_points }}</span>
+                            </div>
+                            <div v-if="post.author.badges.length > 0" class="mt-3 flex flex-wrap gap-2">
                                 <span
-                                    v-if="post.held"
-                                    class="inline-flex items-center rounded-full border border-highlight/40 bg-highlight/10 px-2 py-0.5 text-xs font-medium text-highlight"
-                                    :title="post.held_reason ?? undefined"
-                                    >Awaiting review</span
+                                    v-for="badge in post.author.badges"
+                                    :key="badge.id"
+                                    class="inline-flex items-center rounded-full border border-muted-foreground/20 bg-muted px-2 py-1 text-xs text-muted-foreground"
+                                    :title="badge.description ?? undefined"
                                 >
-                                <ForumSolvedBadge v-if="props.thread.solution?.post_id === post.id" />
+                                    {{ badge.name }}
+                                </span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <div class="text-sm font-medium text-muted-foreground">#{{ post.number }}</div>
-                                <DropdownMenu
-                                    v-if="
-                                        canMarkPost(post) ||
-                                        threadPermissions.canReply ||
-                                        post.permissions.canReport ||
-                                        post.permissions.canEdit ||
-                                        post.permissions.canDelete
-                                    "
-                                >
-                                    <DropdownMenuTrigger as-child>
-                                        <Button variant="ghost" size="icon" class="h-8 w-8">
-                                            <Ellipsis class="h-5 w-5" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuLabel>Post Actions</DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            v-if="canMarkPost(post)"
-                                            class="text-emerald-700 dark:text-emerald-300"
-                                            :disabled="activePostActionId === post.id"
-                                            @select="markSolution(post)"
-                                        >
-                                            <CircleCheck class="h-4 w-4" />
-                                            <span>{{ props.thread.solution?.post_id === post.id ? 'Unmark solution' : 'Mark as solution' }}</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator
-                                            v-if="
-                                                canMarkPost(post) &&
-                                                (threadPermissions.canReply ||
-                                                    post.permissions.canReport ||
-                                                    post.permissions.canEdit ||
-                                                    post.permissions.canDelete ||
-                                                    post.permissions.canModerate)
-                                            "
-                                        />
-                                        <DropdownMenuGroup v-if="threadPermissions.canReply">
-                                            <DropdownMenuItem class="text-success" :disabled="!threadPermissions.canReply" @select="quotePost(post)">
-                                                <Quote class="h-4 w-4" />
-                                                <span>Quote</span>
-                                            </DropdownMenuItem>
-                                        </DropdownMenuGroup>
-                                        <DropdownMenuSeparator
-                                            v-if="
-                                                threadPermissions.canReply &&
-                                                (post.permissions.canReport || post.permissions.canEdit || post.permissions.canDelete)
-                                            "
-                                        />
-                                        <DropdownMenuGroup v-if="post.permissions.canReport">
+                        </div>
+
+                        <!-- Right Side: Post Content -->
+                        <div class="flex-1">
+                            <div class="mb-4 flex items-center justify-between border-b pb-2">
+                                <div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                    {{ post.created_at }}
+                                    <span
+                                        v-if="post.held"
+                                        class="inline-flex items-center rounded-full border border-highlight/40 bg-highlight/10 px-2 py-0.5 text-xs font-medium text-highlight"
+                                        :title="post.held_reason ?? undefined"
+                                        >Awaiting review</span
+                                    >
+                                    <ForumSolvedBadge v-if="props.thread.solution?.post_id === post.id" />
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="text-sm font-medium text-muted-foreground">#{{ post.number }}</div>
+                                    <DropdownMenu
+                                        v-if="
+                                            canMarkPost(post) ||
+                                            threadPermissions.canReply ||
+                                            post.permissions.canReport ||
+                                            post.permissions.canEdit ||
+                                            post.permissions.canDelete ||
+                                            post.permissions.canIgnore ||
+                                            post.ignored
+                                        "
+                                    >
+                                        <DropdownMenuTrigger as-child>
+                                            <Button variant="ghost" size="icon" class="h-8 w-8">
+                                                <Ellipsis class="h-5 w-5" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuLabel>Post Actions</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
                                             <DropdownMenuItem
-                                                class="text-orange-500"
-                                                :disabled="activePostActionId === post.id || postReportForm.processing || !hasReportReasons"
-                                                @select="openPostReportDialog(post)"
+                                                v-if="canMarkPost(post)"
+                                                class="text-emerald-700 dark:text-emerald-300"
+                                                :disabled="activePostActionId === post.id"
+                                                @select="markSolution(post)"
                                             >
-                                                <Flag class="h-4 w-4" />
-                                                <span>Report</span>
+                                                <CircleCheck class="h-4 w-4" />
+                                                <span>{{ props.thread.solution?.post_id === post.id ? 'Unmark solution' : 'Mark as solution' }}</span>
                                             </DropdownMenuItem>
-                                        </DropdownMenuGroup>
-                                        <DropdownMenuGroup v-if="post.permissions.canEdit">
-                                            <DropdownMenuItem class="text-info" :disabled="activePostActionId === post.id" @select="editPost(post)">
-                                                <Pencil class="h-4 w-4" />
-                                                <span>Edit</span>
+                                            <DropdownMenuSeparator
+                                                v-if="
+                                                    canMarkPost(post) &&
+                                                    (threadPermissions.canReply ||
+                                                        post.permissions.canReport ||
+                                                        post.permissions.canEdit ||
+                                                        post.permissions.canDelete ||
+                                                        post.permissions.canModerate)
+                                                "
+                                            />
+                                            <DropdownMenuGroup v-if="threadPermissions.canReply">
+                                                <DropdownMenuItem
+                                                    class="text-success"
+                                                    :disabled="!threadPermissions.canReply"
+                                                    @select="quotePost(post)"
+                                                >
+                                                    <Quote class="h-4 w-4" />
+                                                    <span>Quote</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuGroup>
+                                            <DropdownMenuSeparator
+                                                v-if="
+                                                    threadPermissions.canReply &&
+                                                    (post.permissions.canReport || post.permissions.canEdit || post.permissions.canDelete)
+                                                "
+                                            />
+                                            <DropdownMenuGroup v-if="post.permissions.canReport">
+                                                <DropdownMenuItem
+                                                    class="text-orange-500"
+                                                    :disabled="activePostActionId === post.id || postReportForm.processing || !hasReportReasons"
+                                                    @select="openPostReportDialog(post)"
+                                                >
+                                                    <Flag class="h-4 w-4" />
+                                                    <span>Report</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuGroup>
+                                            <DropdownMenuGroup v-if="post.permissions.canEdit">
+                                                <DropdownMenuItem
+                                                    class="text-info"
+                                                    :disabled="activePostActionId === post.id"
+                                                    @select="editPost(post)"
+                                                >
+                                                    <Pencil class="h-4 w-4" />
+                                                    <span>Edit</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuGroup>
+                                            <DropdownMenuSeparator
+                                                v-if="post.permissions.canDelete && (post.permissions.canReport || post.permissions.canEdit)"
+                                            />
+                                            <DropdownMenuItem
+                                                v-if="post.permissions.canDelete"
+                                                class="text-destructive"
+                                                :disabled="activePostActionId === post.id"
+                                                @select="deletePost(post)"
+                                            >
+                                                <Trash2 class="h-4 w-4" />
+                                                <span>Delete</span>
                                             </DropdownMenuItem>
-                                        </DropdownMenuGroup>
-                                        <DropdownMenuSeparator
-                                            v-if="post.permissions.canDelete && (post.permissions.canReport || post.permissions.canEdit)"
-                                        />
-                                        <DropdownMenuItem
-                                            v-if="post.permissions.canDelete"
-                                            class="text-destructive"
-                                            :disabled="activePostActionId === post.id"
-                                            @select="deletePost(post)"
-                                        >
-                                            <Trash2 class="h-4 w-4" />
-                                            <span>Delete</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator
-                                            v-if="
-                                                post.permissions.canModerate &&
-                                                (threadPermissions.canReply ||
-                                                    post.permissions.canReport ||
-                                                    post.permissions.canEdit ||
-                                                    post.permissions.canDelete)
-                                            "
-                                        />
-                                        <DropdownMenuItem v-if="post.permissions.canModerate" class="text-purple-500" @select="viewPostHistory(post)">
-                                            <RotateCcw class="h-4 w-4" />
-                                            <span>View Post History</span>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                            <DropdownMenuSeparator
+                                                v-if="
+                                                    post.permissions.canModerate &&
+                                                    (threadPermissions.canReply ||
+                                                        post.permissions.canReport ||
+                                                        post.permissions.canEdit ||
+                                                        post.permissions.canDelete)
+                                                "
+                                            />
+                                            <DropdownMenuItem
+                                                v-if="post.permissions.canModerate"
+                                                class="text-purple-500"
+                                                @select="viewPostHistory(post)"
+                                            >
+                                                <RotateCcw class="h-4 w-4" />
+                                                <span>View Post History</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator v-if="!viewingAs && (post.permissions.canIgnore || post.ignored)" />
+                                            <DropdownMenuItem
+                                                v-if="!viewingAs && post.permissions.canIgnore && !post.ignored"
+                                                :disabled="activePostActionId === post.id"
+                                                @select="ignoreAuthor(post)"
+                                            >
+                                                <EyeOff class="h-4 w-4" />
+                                                <span>Ignore</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem v-if="!viewingAs && post.ignored" @select="stopIgnoring(post)">
+                                                <Eye class="h-4 w-4" />
+                                                <span>Stop ignoring</span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </div>
+                            <!-- Post Body -->
+                            <div class="tiptap ProseMirror prose prose-sm dark:prose-invert max-w-none" v-html="renderPostBody(post)"></div>
+                            <!-- Forum Signature -->
+                            <div v-if="post.author.forum_signature" class="mt-4 border-t pt-2 text-xs whitespace-pre-line text-muted-foreground">
+                                {{ post.author.forum_signature }}
                             </div>
                         </div>
-                        <!-- Post Body -->
-                        <div class="tiptap ProseMirror prose prose-sm dark:prose-invert max-w-none" v-html="renderPostBody(post)"></div>
-                        <!-- Forum Signature -->
-                        <div v-if="post.author.forum_signature" class="mt-4 border-t pt-2 text-xs whitespace-pre-line text-muted-foreground">
-                            {{ post.author.forum_signature }}
-                        </div>
-                    </div>
+                    </template>
                 </div>
             </div>
 

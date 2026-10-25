@@ -23,7 +23,7 @@ Deleting the reply clears the solution, including when a moderator takes down a 
 - **An email, or reputation,** for the person whose reply was chosen, and a record of who marked it.
 - **More than one solution** on a thread.
 - **A filter on search or the home page**, and a sitemap entry for a filtered board page.
-- **An ignore list, attachments and pictures in a post, and RSS.**
+- **Attachments and pictures in a post, and RSS.** Ignoring a member is separate ([forum-ignores.md](forum-ignores.md)).
 
 ## Testing
 

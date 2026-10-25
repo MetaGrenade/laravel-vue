@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\DataExport;
+use App\Support\Forum\IgnoredMembers;
+use App\Support\WebsiteSections;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
@@ -11,7 +13,7 @@ use Inertia\Response;
 
 class PrivacyController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, IgnoredMembers $ignored): Response
     {
         $user = $request->user();
 
@@ -47,6 +49,9 @@ class PrivacyController extends Controller
                 'created_at' => $latestErasureRequest->created_at?->toIso8601String(),
             ] : null,
             'status' => $request->session()->get('status'),
+            'ignored' => $user !== null && WebsiteSections::isEnabled(WebsiteSections::FORUM)
+                ? $ignored->listing($user)
+                : null,
         ]);
     }
 }

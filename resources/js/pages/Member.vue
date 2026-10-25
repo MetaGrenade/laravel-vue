@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { getInitials } from '@/composables/useInitials';
 import { useI18n } from '@/composables/useI18n';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 interface MemberLink {
@@ -52,11 +53,29 @@ interface MemberProfile {
     };
 }
 
+interface IgnoreState {
+    can: boolean;
+    ignoring: boolean;
+}
+
 const props = defineProps<{
     member: MemberProfile;
+    ignore: IgnoreState | null;
 }>();
 
 const { t } = useI18n();
+const page = usePage<SharedData>();
+const viewingAs = computed(() => page.props.impersonation !== null);
+
+const toggleIgnore = () => {
+    if (props.ignore?.ignoring) {
+        router.delete(route('forum.ignores.destroy', props.member.id), { preserveScroll: true });
+
+        return;
+    }
+
+    router.put(route('forum.ignores.store', props.member.id), {}, { preserveScroll: true });
+};
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     { title: t('members.directory.title'), href: route('members.index') },
@@ -83,6 +102,10 @@ const role = computed(() => props.member.role ?? t('members.profile.role_member'
                             <p class="text-sm text-muted-foreground">{{ role }}</p>
                         </div>
                     </div>
+
+                    <Button v-if="ignore?.can && !viewingAs" class="mt-4" variant="outline" size="sm" type="button" @click="toggleIgnore">
+                        {{ ignore?.ignoring ? t('members.profile.stop_ignoring') : t('members.profile.ignore') }}
+                    </Button>
 
                     <p v-if="member.joined_at" class="mt-5 text-sm text-muted-foreground">
                         {{ t('members.profile.member_since', { date: member.joined_at }) }}
