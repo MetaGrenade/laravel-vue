@@ -45,5 +45,23 @@ return [
         'open_profile' => 'View :name\'s profile',
         'ignore' => 'Ignore',
         'stop_ignoring' => 'Stop ignoring',
+        'follow' => 'Follow',
+        'stop_following' => 'Stop following',
+    ],
+
+    'following' => [
+        'title' => 'Following',
+        'menu' => 'Following',
+        'meta' => 'Threads and replies from people you follow.',
+        'description' => 'Public posts from people you follow. Posts from someone you ignore stay off this page.',
+        'empty_people' => 'You are not following anyone.',
+        'find_members' => 'Find members',
+        'empty_posts' => 'Nothing new from the people you follow.',
+        'people' => 'People you follow',
+        'stop' => 'Stop following',
+        'posted_in' => ':name posted in :thread',
+        'previous' => 'Previous page',
+        'next' => 'Next page',
+        'page' => 'Page :current of :last',
     ],
 ];

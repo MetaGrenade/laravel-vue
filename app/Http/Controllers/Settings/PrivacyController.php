@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\DataExport;
+use App\Support\Forum\FollowedMembers;
 use App\Support\Forum\IgnoredMembers;
 use App\Support\WebsiteSections;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ use Inertia\Response;
 
 class PrivacyController extends Controller
 {
-    public function __invoke(Request $request, IgnoredMembers $ignored): Response
+    public function __invoke(Request $request, IgnoredMembers $ignored, FollowedMembers $follows): Response
     {
         $user = $request->user();
 
@@ -51,6 +52,9 @@ class PrivacyController extends Controller
             'status' => $request->session()->get('status'),
             'ignored' => $user !== null && WebsiteSections::isEnabled(WebsiteSections::FORUM)
                 ? $ignored->listing($user)
+                : null,
+            'following' => $user !== null && WebsiteSections::isEnabled(WebsiteSections::FORUM)
+                ? $follows->listing($user)
                 : null,
         ]);
     }

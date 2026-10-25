@@ -28,6 +28,7 @@ use App\Http\Controllers\ForumThreadSolutionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImpersonationStopController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberFollowController;
 use App\Http\Controllers\OnboardingDismissController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\SearchController;
@@ -206,6 +207,8 @@ Route::middleware('section.enabled:forum')->group(function () {
     Route::get('forum/attachments/{attachment}', [ForumAttachmentController::class, 'show'])
         ->whereNumber('attachment')
         ->name('forum.attachments.show');
+    Route::middleware('auth')->get('forum/following', [MemberFollowController::class, 'index'])
+        ->name('forum.following');
     Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
     Route::middleware(['auth', 'throttle:search'])->get('forum/mentions', [ForumController::class, 'mentionSuggestions'])
         ->name('forum.mentions.index');
@@ -219,6 +222,12 @@ Route::middleware('section.enabled:forum')->group(function () {
         Route::delete('forum/ignores/{user}', [ForumIgnoreController::class, 'destroy'])
             ->whereNumber('user')
             ->name('forum.ignores.destroy');
+        Route::put('forum/follows/{user}', [MemberFollowController::class, 'store'])
+            ->whereNumber('user')
+            ->name('forum.follows.store');
+        Route::delete('forum/follows/{user}', [MemberFollowController::class, 'destroy'])
+            ->whereNumber('user')
+            ->name('forum.follows.destroy');
         Route::get('forum/{board:slug}/threads/create', [ForumController::class, 'createThread'])
             ->name('forum.threads.create');
         Route::post('forum/{board:slug}/threads', [ForumController::class, 'storeThread'])
