@@ -80,6 +80,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'two_factor_confirmed_at' => 'datetime',
             'reputation_points' => 'integer',
             'trial_ends_at' => 'datetime',
+            'onboarding_dismissed_at' => 'datetime',
         ];
     }
 

@@ -115,4 +115,41 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Settings
+    |--------------------------------------------------------------------------
+    |
+    | Every notification is sent in the layout in resources/views/vendor/mail
+    | and the theme in resources/views/mail/brand.blade.php, which take their
+    | name, colour and logo from the brand settings below (docs/email.md).
+    |
+    */
+
+    'markdown' => [
+        'theme' => 'brand',
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Brand
+    |--------------------------------------------------------------------------
+    |
+    | How the emails look. The name is the application's name. The colour is
+    | the one of buttons and links (a hex colour, #4f46e5 if it is not one),
+    | the logo the address of an image (the application's name in a coloured
+    | badge if there is none) and the footer a line under every email, such as
+    | a company name and address.
+    |
+    */
+
+    'brand' => [
+        'color' => env('MAIL_BRAND_COLOR', '#4f46e5'),
+        'logo' => env('MAIL_LOGO_URL'),
+        'footer' => env('MAIL_FOOTER'),
+    ],
+
 ];

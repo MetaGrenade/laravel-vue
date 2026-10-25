@@ -72,6 +72,22 @@ export interface DashboardPlan {
     ends_at: string | null;
 }
 
+/** One thing on the "Get started" checklist. What it says is `ui.onboarding.steps.<key>` in the language files. */
+export interface OnboardingStep {
+    key: string;
+    done: boolean;
+    /** Where to go to do it. */
+    url: string;
+}
+
+/** The "Get started" checklist; the dashboard gets null when there is none to show (docs/onboarding.md). */
+export interface DashboardOnboarding {
+    steps: OnboardingStep[];
+    done: number;
+    total: number;
+    dismiss_url: string;
+}
+
 export interface DashboardAccount {
     two_factor_enabled: boolean;
     reputation: number;

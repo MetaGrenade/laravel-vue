@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AccountCard from '@/components/dashboard/AccountCard.vue';
 import DigitalPurchasesCard from '@/components/dashboard/DigitalPurchasesCard.vue';
+import OnboardingCard from '@/components/dashboard/OnboardingCard.vue';
 import PlanCard from '@/components/dashboard/PlanCard.vue';
 import RecentOrdersCard from '@/components/dashboard/RecentOrdersCard.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LineChart } from '@/components/ui/chart-line';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import type { DashboardAccount, DashboardPlan, DashboardShop } from '@/types/dashboard';
+import type { DashboardAccount, DashboardOnboarding, DashboardPlan, DashboardShop } from '@/types/dashboard';
 import { Head, usePage } from '@inertiajs/vue3';
 import { Activity, CheckCircle2, FileText, KeyRound, LifeBuoy, MessageSquare, ShoppingBag } from '@lucide/vue';
 import { computed } from 'vue';
@@ -72,6 +73,8 @@ interface DashboardProps {
     /** The subscription; null when no plans are offered and the user has none. */
     plan: DashboardPlan | null;
     account: DashboardAccount | null;
+    /** The "Get started" checklist; null once it is done or hidden. */
+    onboarding: DashboardOnboarding | null;
 }
 
 const props = withDefaults(defineProps<DashboardProps>(), {
@@ -86,6 +89,7 @@ const props = withDefaults(defineProps<DashboardProps>(), {
     shop: null,
     plan: null,
     account: null,
+    onboarding: null,
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -239,6 +243,8 @@ const alertState = computed(() => {
         <Head title="Dashboard" />
 
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+            <OnboardingCard v-if="onboarding" :onboarding="onboarding" />
+
             <Alert :variant="alertState.variant">
                 <component :is="alertState.icon" class="h-5 w-5" />
                 <AlertTitle>{{ alertState.title }}</AlertTitle>
