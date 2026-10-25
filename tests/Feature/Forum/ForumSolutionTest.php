@@ -141,6 +141,36 @@ class ForumSolutionTest extends TestCase
         $this->assertNull($thread->fresh()->solved_post_id);
     }
 
+    public function test_deleting_the_opening_post_does_not_make_the_next_reply_the_opener(): void
+    {
+        $author = User::factory()->create();
+        $thread = $this->thread($author, 'How do I plant a tree');
+        $opener = $this->reply($thread, $author, 'The question');
+        $first = $this->reply($thread, $author, 'The first reply');
+
+        $this->actingAs($author)
+            ->delete(route('forum.posts.destroy', [$this->board, $thread, $opener]))
+            ->assertRedirect();
+
+        $this->assertSoftDeleted($opener);
+
+        $this->actingAs($author)
+            ->put(route('forum.threads.solution', [$this->board, $thread]), [
+                'post_id' => $first->id,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Reply marked as the solution.');
+
+        $this->actingAs($author)
+            ->get(route('forum.threads.show', [$this->board, $thread]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('thread.opener_post_id', $opener->id)
+                ->where('thread.solution.post_id', $first->id)
+                ->where('thread.permissions.canMarkSolution', true)
+            );
+    }
+
     public function test_a_stranger_cannot_mark_one_and_a_moderator_can_clear_it(): void
     {
         $author = User::factory()->create();

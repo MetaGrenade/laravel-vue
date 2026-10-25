@@ -57,7 +57,9 @@ class ThreadSolutions
             ]);
         }
 
+        // Include a deleted opening post. Leaving it out would make the next reply the opener, so it could no longer be the solution.
         $openerId = ForumPost::query()
+            ->withTrashed()
             ->withoutGlobalScope(ForumPost::VISIBLE)
             ->where('forum_thread_id', $thread->id)
             ->orderBy('id')

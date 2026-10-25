@@ -405,7 +405,9 @@ class ForumController extends Controller
             }
         }
 
+        // The same post as ThreadSolutions: a deleted opening post still counts, so the next reply can be marked or unmarked.
         $openerId = ForumPost::query()
+            ->withTrashed()
             ->withoutGlobalScope(ForumPost::VISIBLE)
             ->where('forum_thread_id', $thread->id)
             ->orderBy('id')
