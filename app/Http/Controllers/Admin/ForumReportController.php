@@ -46,7 +46,7 @@ class ForumReportController extends Controller
 
         $threadQuery = ForumThreadReport::query()
             ->with([
-                'thread:id,forum_board_id,title,slug,is_locked,is_published',
+                'thread:id,forum_board_id,user_id,title,slug,is_locked,is_published',
                 'thread.board:id,title,slug,forum_category_id',
                 'reporter:id,nickname,email',
                 'reviewer:id,nickname,email',
@@ -98,16 +98,24 @@ class ForumReportController extends Controller
 
         $formatter = DateFormatter::for($request->user());
 
+        // Where a moderator goes to warn or ban the author of what was reported (docs/moderation.md); none for somebody who may do neither.
+        $moderate = fn (?int $authorId, string $subject) => $authorId !== null
+            && $authorId !== $request->user()?->id
+            && ($request->user()?->can('users.acp.warn') || $request->user()?->can('users.acp.ban'))
+            ? route('acp.users.moderation.show', ['user' => $authorId, 'subject' => $subject])
+            : null;
+
         $reports = collect();
 
         if ($type === 'all' || $type === 'thread') {
             $reports = $reports->merge(
-                $threadQuery->get()->map(function (ForumThreadReport $report) use ($formatter) {
+                $threadQuery->get()->map(function (ForumThreadReport $report) use ($formatter, $moderate) {
                     $thread = $report->thread;
 
                     return [
                         'id' => $report->id,
                         'type' => 'thread',
+                        'moderate_url' => $thread ? $moderate($thread->getAttribute('user_id'), 'forum_thread:'.$thread->getKey()) : null,
                         'status' => $report->status,
                         'reason_category' => $report->reason_category,
                         'reason' => $report->reason,
@@ -143,13 +151,14 @@ class ForumReportController extends Controller
 
         if ($type === 'all' || $type === 'post') {
             $reports = $reports->merge(
-                $postQuery->get()->map(function (ForumPostReport $report) use ($formatter) {
+                $postQuery->get()->map(function (ForumPostReport $report) use ($formatter, $moderate) {
                     $post = $report->post;
                     $thread = $post?->thread;
 
                     return [
                         'id' => $report->id,
                         'type' => 'post',
+                        'moderate_url' => $post ? $moderate($post->getAttribute('user_id'), 'forum_post:'.$post->getKey()) : null,
                         'status' => $report->status,
                         'reason_category' => $report->reason_category,
                         'reason' => $report->reason,

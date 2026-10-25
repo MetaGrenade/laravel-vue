@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\DataExport;
+use App\Models\ModerationAction;
 use App\Models\UsageEvent;
 use App\Models\User;
 use App\Notifications\UserDataExportReady;
@@ -208,6 +209,21 @@ class GenerateUserDataExport implements ShouldQueue
             ])
             ->all();
 
+        // What moderators have told the member: the reason and when, as they can read it in their account. The note for staff and who they
+        // were are not the member's to have.
+        $moderation = $user->moderationActions()
+            ->orderBy('id')
+            ->get()
+            ->map(fn (ModerationAction $action) => [
+                'id' => $action->id,
+                'type' => $action->type,
+                'reason' => $action->reason,
+                'about' => $action->subject_label,
+                'ends_at' => $action->expires_at?->toIso8601String(),
+                'created_at' => $action->created_at->toIso8601String(),
+            ])
+            ->all();
+
         return [
             'user' => [
                 'id' => $user->id,
@@ -231,6 +247,7 @@ class GenerateUserDataExport implements ShouldQueue
             'product_reviews' => $productReviews,
             'api_keys' => $apiKeys,
             'usage' => $usage,
+            'moderation' => $moderation,
         ];
     }
 
@@ -316,6 +333,17 @@ class GenerateUserDataExport implements ShouldQueue
                 $day['units'].' '.$day['meter'].' used',
                 $day['date'],
                 $day['date'],
+            ]);
+        }
+
+        // A warning, a ban or the lifting of one, as the member was told.
+        foreach ($payload['moderation'] as $action) {
+            fputcsv($handle, [
+                'moderation_'.$action['type'],
+                $action['id'],
+                Str::limit((string) $action['reason'], 120),
+                $action['created_at'],
+                $action['created_at'],
             ]);
         }
 

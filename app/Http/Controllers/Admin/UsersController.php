@@ -13,7 +13,10 @@ use App\Support\Billing\SubscriptionCancellationFailed;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\Impersonation\Impersonation;
 use App\Support\Localization\DateFormatter;
+use App\Support\Moderation\Moderation;
+use App\Support\Moderation\ModerationRefused;
 use App\Support\OAuth\OAuthProviders;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\RedirectResponse;
@@ -109,6 +112,7 @@ class UsersController extends Controller
                     'last_activity_at' => $formatter->iso($user->last_activity_at),
                     'is_banned' => $user->is_banned,
                     'banned_at' => $formatter->iso($user->banned_at),
+                    'banned_until' => $formatter->iso($user->banned_until),
                     'banned_by' => $user->bannedBy?->only(['id', 'nickname']),
                     'created_at' => $formatter->iso($user->created_at),
                     'roles' => $user->roles
@@ -260,44 +264,16 @@ class UsersController extends Controller
             ->with('success', 'User verified.');
     }
 
-    public function ban(Request $request, User $user): RedirectResponse
-    {
-        Gate::authorize('users.acp.ban');
-
-        if (! $user->is_banned) {
-            $user->forceFill([
-                'is_banned' => true,
-                'banned_at' => now(),
-                'banned_by_id' => $request->user()->id,
-            ])->save();
-        }
-
-        return redirect()->route('acp.users.index')
-            ->with('success', 'User banned.');
-    }
-
-    public function unban(Request $request, User $user): RedirectResponse
-    {
-        Gate::authorize('users.acp.ban');
-
-        if ($user->is_banned) {
-            $user->forceFill([
-                'is_banned' => false,
-                'banned_at' => null,
-                'banned_by_id' => null,
-            ])->save();
-        }
-
-        return redirect()->route('acp.users.index')
-            ->with('success', 'User unbanned.');
-    }
-
-    public function bulkUpdate(Request $request, SubscriptionManager $subscriptions): RedirectResponse
+    public function bulkUpdate(Request $request, SubscriptionManager $subscriptions, Moderation $moderation): RedirectResponse
     {
         $validated = $request->validate([
             'action' => ['required', Rule::in(['verify', 'ban', 'unban', 'delete'])],
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'distinct', 'exists:users,id'],
+            // A ban says why, as a single one does (docs/moderation.md); lifting one may.
+            'reason' => [Rule::requiredIf($request->input('action') === 'ban'), 'nullable', 'string', 'min:5', 'max:1000'],
+            'until' => ['nullable', 'date_format:Y-m-d'],
+            'notify' => ['sometimes', 'boolean'],
         ]);
 
         $action = $validated['action'];
@@ -318,10 +294,14 @@ class UsersController extends Controller
             return back()->with('success', 'No users required updates.');
         }
 
-        $actorId = (int) $request->user()->id;
         $now = now();
         $updatedCount = 0;
         $notDeleted = [];
+        // Members a moderator may not ban or unban (themselves, staff, an administrator), with why.
+        $refused = [];
+        $until = isset($validated['until'])
+            ? Carbon::createFromFormat('Y-m-d', $validated['until'], DateFormatter::for($request->user())->timezone())->endOfDay()
+            : null;
 
         foreach ($users as $user) {
             $changed = false;
@@ -337,24 +317,24 @@ class UsersController extends Controller
 
                 case 'ban':
                     if (! $user->is_banned) {
-                        $user->forceFill([
-                            'is_banned' => true,
-                            'banned_at' => $now,
-                            'banned_by_id' => $actorId,
-                        ])->save();
-                        $changed = true;
+                        try {
+                            $moderation->ban($user, $request->user(), $validated['reason'], $until, null, null, $request->boolean('notify', true));
+                            $changed = true;
+                        } catch (ModerationRefused $exception) {
+                            $refused[] = "{$user->nickname} ({$exception->getMessage()})";
+                        }
                     }
 
                     break;
 
                 case 'unban':
                     if ($user->is_banned) {
-                        $user->forceFill([
-                            'is_banned' => false,
-                            'banned_at' => null,
-                            'banned_by_id' => null,
-                        ])->save();
-                        $changed = true;
+                        try {
+                            $moderation->unban($user, $request->user(), $validated['reason'] ?? null, $request->boolean('notify', true));
+                            $changed = true;
+                        } catch (ModerationRefused $exception) {
+                            $refused[] = "{$user->nickname} ({$exception->getMessage()})";
+                        }
                     }
 
                     break;
@@ -399,12 +379,23 @@ class UsersController extends Controller
         };
 
         $response = back()->with('success', $message);
+        $problems = [];
 
         if ($notDeleted !== []) {
             $names = collect($notDeleted)->take(5)->implode(', ');
             $more = count($notDeleted) > 5 ? ' and '.(count($notDeleted) - 5).' more' : '';
 
-            $response->with('error', 'Not deleted, because their subscription could not be cancelled at Stripe and may still be charging them: '.$names.$more.'. Nothing was changed for them; try again in a few minutes.');
+            $problems[] = 'Not deleted, because their subscription could not be cancelled at Stripe and may still be charging them: '.$names.$more.'. Nothing was changed for them; try again in a few minutes.';
+        }
+
+        if ($refused !== []) {
+            $more = count($refused) > 5 ? ' and '.(count($refused) - 5).' more' : '';
+
+            $problems[] = 'Not '.($action === 'ban' ? 'banned' : 'unbanned').': '.collect($refused)->take(5)->implode(', ').$more.'.';
+        }
+
+        if ($problems !== []) {
+            $response->with('error', implode(' ', $problems));
         }
 
         return $response;

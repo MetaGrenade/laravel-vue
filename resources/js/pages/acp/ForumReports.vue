@@ -33,6 +33,8 @@ const props = defineProps<{
             id: number;
             type: 'thread' | 'post';
             status: 'pending' | 'reviewed' | 'dismissed';
+            /** The moderation page of whoever wrote what was reported, with it attached; null when you may not warn or ban. */
+            moderate_url: string | null;
             reason_category: string | null;
             reason: string | null;
             evidence_url: string | null;
@@ -704,6 +706,12 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                                         <DropdownMenuItem @select="openModerationDialog(report, 'dismissed')">
                                                             <ShieldX class="h-4 w-4" />
                                                             <span>Dismiss</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem v-if="report.moderate_url" as-child>
+                                                            <Link :href="report.moderate_url">
+                                                                <ShieldAlert class="h-4 w-4" />
+                                                                <span>Warn or ban the author</span>
+                                                            </Link>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>

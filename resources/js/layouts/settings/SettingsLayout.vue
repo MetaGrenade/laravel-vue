@@ -2,7 +2,7 @@
 import { cn } from '@/lib/utils';
 import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Bell, CreditCard, KeyRound, KeySquare, Lock, MapPin, Palette, Receipt, ShieldCheck, User, Wallet } from '@lucide/vue';
+import { Bell, CreditCard, KeyRound, KeySquare, Lock, MapPin, Palette, Receipt, ShieldAlert, ShieldCheck, User, Wallet } from '@lucide/vue';
 import { computed, type Component } from 'vue';
 
 interface SettingsNavItem {
@@ -23,6 +23,7 @@ const allNavGroups: { title: string; items: SettingsNavItem[] }[] = [
             { title: 'API keys', href: '/settings/api-keys', icon: KeySquare },
             { title: 'Notifications', href: '/settings/notifications', icon: Bell },
             { title: 'Privacy', href: '/settings/privacy', icon: Lock },
+            { title: 'Account standing', href: '/settings/account-standing', icon: ShieldAlert },
             { title: 'Appearance', href: '/settings/appearance', icon: Palette },
         ],
     },

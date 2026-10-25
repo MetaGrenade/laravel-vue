@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\Entitlements\Entitlements;
 use App\Support\Entitlements\EntitlementSet;
+use Carbon\CarbonInterface;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,6 +19,12 @@ use Laravel\Cashier\Billable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * @property CarbonInterface|null $banned_at
+ * @property CarbonInterface|null $banned_until
+ * @property string|null $ban_reason
+ * @property CarbonInterface|null $last_activity_at
+ */
 class User extends Authenticatable implements MustVerifyEmail
 {
     use Billable, HasApiTokens, HasFactory, HasRoles, MustVerifyEmailTrait, Notifiable;
@@ -76,6 +83,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_banned' => 'boolean',
             'last_activity_at' => 'datetime',
             'banned_at' => 'datetime',
+            'banned_until' => 'datetime',
             'social_links' => 'array',
             'two_factor_confirmed_at' => 'datetime',
             'reputation_points' => 'integer',
@@ -167,6 +175,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(BlogComment::class);
     }
 
+    /**
+     * What moderators have done to this member (docs/moderation.md).
+     *
+     * @return HasMany<ModerationAction, $this>
+     */
+    public function moderationActions(): HasMany
+    {
+        return $this->hasMany(ModerationAction::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function bannedBy(): BelongsTo
     {
         return $this->belongsTo(self::class, 'banned_by_id');

@@ -22,6 +22,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import InputError from '@/components/InputError.vue';
 import {
     Pagination,
     PaginationEllipsis,
@@ -47,6 +50,8 @@ const editUsers = computed(() => hasPermission('users.acp.edit'));
 const deleteUsers = computed(() => hasPermission('users.acp.delete'));
 const verifyUsers = computed(() => hasPermission('users.acp.verify'));
 const banUsers = computed(() => hasPermission('users.acp.ban'));
+// The member's moderation page: where a warning or a ban is given, with the reason it needs (docs/moderation.md).
+const moderateUsers = computed(() => hasPermission('users.acp.ban') || hasPermission('users.acp.warn'));
 
 // Expect that the admin controller passes a "users" (paginated collection) & "userStats" prop
 type PaginationLinks = {
@@ -68,6 +73,7 @@ const props = defineProps<{
             created_at: string | null;
             is_banned: boolean;
             banned_at: string | null;
+            banned_until: string | null;
             banned_by: { id: number; nickname: string } | null;
         }>;
         meta?: PaginationMeta | null;
@@ -279,28 +285,6 @@ watch(activityFilter, () => {
     applyFilters({ page: 1 });
 });
 
-const banUser = (userId: number) => {
-    router.put(
-        route('acp.users.ban', { user: userId }),
-        {},
-        {
-            preserveScroll: true,
-            preserveState: false,
-        },
-    );
-};
-
-const unbanUser = (userId: number) => {
-    router.put(
-        route('acp.users.unban', { user: userId }),
-        {},
-        {
-            preserveScroll: true,
-            preserveState: false,
-        },
-    );
-};
-
 const destroyUser = (userId: number) => {
     router.delete(route('acp.users.destroy', { user: userId }), {
         preserveScroll: true,
@@ -399,10 +383,16 @@ const userSelectionLabel = computed(() => {
     return count === 1 ? '1 user selected.' : `${count} users selected.`;
 });
 
-const bulkActionForm = useForm<{ ids: number[]; action: BulkAction }>({
+// A ban says why, as a single one does, and may end on a date (docs/moderation.md).
+const bulkActionForm = useForm<{ ids: number[]; action: BulkAction; reason: string; until: string; notify: boolean }>({
     ids: [],
     action: 'verify',
+    reason: '',
+    until: '',
+    notify: true,
 });
+
+const banDialogOpen = ref(false);
 
 const updateUserSelection = (userId: number, checked: boolean | 'indeterminate') => {
     if (checked === true) {
@@ -440,6 +430,8 @@ const submitBulkAction = (action: BulkAction) => {
         preserveScroll: true,
         onSuccess: () => {
             selectedUserIds.value = [];
+            banDialogOpen.value = false;
+            bulkActionForm.reset('reason', 'until', 'notify');
         },
     });
 };
@@ -547,7 +539,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                     <span>Verify email</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator v-if="verifyUsers && (banUsers || deleteUsers)" />
-                                <DropdownMenuItem v-if="banUsers" :disabled="bulkActionForm.processing" @select="submitBulkAction('ban')">
+                                <DropdownMenuItem v-if="banUsers" :disabled="bulkActionForm.processing" @select="banDialogOpen = true">
                                     <UserX class="mr-2 h-4 w-4" />
                                     <span>Ban users</span>
                                 </DropdownMenuItem>
@@ -634,7 +626,11 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                             v-if="user.is_banned"
                                             class="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"
                                         >
-                                            Banned
+                                            {{
+                                                user.banned_until
+                                                    ? `Until ${new Date(user.banned_until).toLocaleDateString(undefined, { dateStyle: 'medium' })}`
+                                                    : 'Banned'
+                                            }}
                                         </span>
                                         <span
                                             v-else
@@ -664,35 +660,9 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                                                     >
                                                         <MailCheck class="mr-2" /> Verify
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        v-if="banUsers && !user.is_banned"
-                                                        class="text-warning"
-                                                        @click="
-                                                            openConfirmDialog({
-                                                                title: `Ban ${user.nickname}`,
-                                                                description: `Banning ${user.nickname} will immediately revoke their access.`,
-                                                                confirmLabel: 'Ban user',
-                                                                onConfirm: () => banUser(user.id),
-                                                            })
-                                                        "
-                                                    >
-                                                        <UserX class="mr-2" /> Ban
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        v-if="banUsers && user.is_banned"
-                                                        class="text-success"
-                                                        @click="
-                                                            openConfirmDialog({
-                                                                title: `Unban ${user.nickname}`,
-                                                                description: `Unbanning ${user.nickname} will restore their access.`,
-                                                                confirmLabel: 'Unban user',
-                                                                confirmVariant: 'default',
-                                                                onConfirm: () => unbanUser(user.id),
-                                                            })
-                                                        "
-                                                    >
-                                                        <UserCheck class="mr-2" /> Unban
-                                                    </DropdownMenuItem>
+                                                    <Link v-if="moderateUsers" :href="route('acp.users.moderation.show', { user: user.id })">
+                                                        <DropdownMenuItem> <UserX class="mr-2" /> Moderate </DropdownMenuItem>
+                                                    </Link>
                                                     <DropdownMenuSeparator v-if="deleteUsers" />
                                                     <DropdownMenuItem
                                                         v-if="deleteUsers"
@@ -757,6 +727,43 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || del
                     </Pagination>
                 </div>
             </div>
+            <Dialog v-model:open="banDialogOpen">
+                <DialogContent>
+                    <form class="space-y-4" @submit.prevent="submitBulkAction('ban')">
+                        <DialogHeader>
+                            <DialogTitle>Ban {{ selectedUserIds.length }} {{ selectedUserIds.length === 1 ? 'user' : 'users' }}</DialogTitle>
+                            <DialogDescription>
+                                They are signed out and cannot sign in. Staff, administrators and yourself are skipped, and the page says who.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div class="space-y-2">
+                            <Label for="bulk-ban-reason">Why are they being banned?</Label>
+                            <Textarea id="bulk-ban-reason" v-model="bulkActionForm.reason" rows="3" maxlength="1000" required />
+                            <p class="text-xs text-muted-foreground">Each of them is told this, in these words, when they try to sign in.</p>
+                            <InputError :message="bulkActionForm.errors.reason" />
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="bulk-ban-until">Until (optional)</Label>
+                            <Input id="bulk-ban-until" v-model="bulkActionForm.until" type="date" />
+                            <p class="text-xs text-muted-foreground">With no date it lasts until a moderator lifts it.</p>
+                            <InputError :message="bulkActionForm.errors.until" />
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Checkbox
+                                id="bulk-ban-notify"
+                                :model-value="bulkActionForm.notify"
+                                @update:model-value="(value) => (bulkActionForm.notify = value === true)"
+                            />
+                            <Label for="bulk-ban-notify" class="font-normal">Email them (leave it off for spam accounts)</Label>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" @click="banDialogOpen = false">Cancel</Button>
+                            <Button type="submit" variant="destructive" :disabled="bulkActionForm.processing">Ban</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
             <ConfirmDialog
                 v-model:open="confirmDialogState.open"
                 :title="confirmDialogState.title"
