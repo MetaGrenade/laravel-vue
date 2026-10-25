@@ -13,8 +13,10 @@ use App\Support\Notifications\RecordsForDigest;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Inertia\Testing\AssertableInertia as Assert;
+use ReflectionProperty;
 use Tests\TestCase;
 
 /**
@@ -225,6 +227,48 @@ class EmailDigestTest extends TestCase
         ]);
         $gone->delete();
         $this->assertSame(0, EmailDigestItem::query()->where('user_id', $gone->id)->count());
+    }
+
+    public function test_a_run_that_loses_the_claim_does_not_send_those_lines(): void
+    {
+        NotificationFacade::fake();
+
+        $recipient = User::factory()->create();
+        $item = EmailDigestItem::query()->create([
+            'user_id' => $recipient->id,
+            'category' => 'forums',
+            'title' => 'Still waiting',
+            'excerpt' => null,
+            'url' => route('forum.index'),
+        ]);
+
+        $steal = true;
+        $connection = DB::connection();
+        $connection->beforeExecuting(function (string $query) use (&$steal, $recipient): void {
+            if (! $steal || ! str_contains(strtolower($query), 'delete') || ! str_contains($query, 'email_digest_items')) {
+                return;
+            }
+
+            $steal = false;
+            EmailDigestItem::query()->where('user_id', $recipient->id)->delete();
+        });
+
+        try {
+            (new SendEmailDigests)->handle(app(EmailDigest::class));
+
+            NotificationFacade::assertNothingSent();
+            $this->assertModelExists($item);
+
+            (new SendEmailDigests)->handle(app(EmailDigest::class));
+        } finally {
+            $callbacks = new ReflectionProperty($connection, 'beforeExecutingCallbacks');
+            $registered = $callbacks->getValue($connection);
+            array_pop($registered);
+            $callbacks->setValue($connection, $registered);
+        }
+
+        NotificationFacade::assertSentToTimes($recipient, DailyDigest::class, 1);
+        $this->assertModelMissing($item);
     }
 
     public function test_the_choice_is_saved_from_the_notification_settings(): void

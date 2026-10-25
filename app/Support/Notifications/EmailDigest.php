@@ -5,6 +5,7 @@ namespace App\Support\Notifications;
 use App\Models\EmailDigestItem;
 use App\Models\User;
 use App\Notifications\DailyDigest;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -68,72 +69,97 @@ class EmailDigest
         $userIds = EmailDigestItem::query()->distinct()->orderBy('user_id')->pluck('user_id');
 
         foreach ($userIds as $userId) {
-            $user = User::query()->find($userId);
-
-            if (! $user instanceof User) {
-                EmailDigestItem::query()->where('user_id', $userId)->delete();
-
-                continue;
+            if ($this->deliver((int) $userId)) {
+                $sent++;
             }
-
-            if ($user->is_banned) {
-                EmailDigestItem::query()->where('user_id', $user->id)->delete();
-
-                continue;
-            }
-
-            if (! $user->hasVerifiedEmail()) {
-                EmailDigestItem::query()
-                    ->where('user_id', $user->id)
-                    ->where('created_at', '<', now()->subDays(14))
-                    ->delete();
-
-                continue;
-            }
-
-            $items = EmailDigestItem::query()
-                ->where('user_id', $user->id)
-                ->orderBy('id')
-                ->get();
-
-            $lines = [];
-            $drop = [];
-
-            foreach ($items as $item) {
-                $channels = $user->preferredNotificationChannelsFor($item->category, ['mail']);
-
-                if (! in_array('mail', $channels, true)) {
-                    $drop[] = $item->id;
-
-                    continue;
-                }
-
-                $lines[] = [
-                    'category' => $item->category,
-                    'title' => $item->title,
-                    'excerpt' => $item->excerpt,
-                    'url' => $item->url,
-                ];
-                $drop[] = $item->id;
-            }
-
-            if ($lines === []) {
-                if ($drop !== []) {
-                    EmailDigestItem::query()->whereIn('id', $drop)->delete();
-                }
-
-                continue;
-            }
-
-            DB::transaction(function () use ($user, $lines, $drop): void {
-                $user->notify(new DailyDigest($lines));
-                EmailDigestItem::query()->whereIn('id', $drop)->delete();
-            });
-
-            $sent++;
         }
 
         return $sent;
+    }
+
+    /**
+     * Claim this member's waiting lines and queue their email. A second run finds nothing left to send.
+     */
+    private function deliver(int $userId): bool
+    {
+        try {
+            return DB::transaction(function () use ($userId): bool {
+                // The lock is taken before the email is queued. Two jobs then cannot both send the same lines.
+                $items = EmailDigestItem::query()
+                    ->where('user_id', $userId)
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                $user = User::query()->find($userId);
+
+                if (! $user instanceof User || $user->is_banned) {
+                    $this->deleteClaimed($items);
+
+                    return false;
+                }
+
+                if (! $user->hasVerifiedEmail()) {
+                    EmailDigestItem::query()
+                        ->where('user_id', $user->id)
+                        ->where('created_at', '<', now()->subDays(14))
+                        ->delete();
+
+                    return false;
+                }
+
+                $lines = [];
+                $drop = [];
+
+                foreach ($items as $item) {
+                    $channels = $user->preferredNotificationChannelsFor($item->category, ['mail']);
+
+                    if (! in_array('mail', $channels, true)) {
+                        $drop[] = $item->id;
+
+                        continue;
+                    }
+
+                    $lines[] = [
+                        'category' => $item->category,
+                        'title' => $item->title,
+                        'excerpt' => $item->excerpt,
+                        'url' => $item->url,
+                    ];
+                    $drop[] = $item->id;
+                }
+
+                if ($drop === []) {
+                    return false;
+                }
+
+                $deleted = EmailDigestItem::query()->whereIn('id', $drop)->delete();
+
+                if ($deleted !== count($drop)) {
+                    throw new EmailDigestClaimMissed;
+                }
+
+                if ($lines !== []) {
+                    $user->notify(new DailyDigest($lines));
+                }
+
+                return $lines !== [];
+            });
+        } catch (EmailDigestClaimMissed) {
+            return false;
+        }
+    }
+
+    /**
+     * @param  Collection<int, EmailDigestItem>  $items
+     */
+    private function deleteClaimed(Collection $items): void
+    {
+        if ($items->isEmpty()) {
+            return;
+        }
+
+        EmailDigestItem::query()->whereKey($items->modelKeys())->delete();
     }
 
     private function acceptableUrl(string $url): ?string
@@ -165,3 +191,8 @@ class EmailDigest
         return $url;
     }
 }
+
+/**
+ * Another morning job already took these lines, so this attempt must not queue an email.
+ */
+final class EmailDigestClaimMissed extends \RuntimeException {}

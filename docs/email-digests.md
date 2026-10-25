@@ -16,7 +16,7 @@ Turning the digest off does not throw away what is already waiting: the next mor
 
 Support, billing, security, and privacy emails are not part of this. They are still sent when they happen.
 
-The schedule is `SendEmailDigests`, daily at 08:00. It needs the scheduler running, as the other daily jobs do.
+The schedule is `SendEmailDigests`, daily at 08:00. It needs the scheduler running, as the other daily jobs do. If that job runs twice, each waiting line is still sent only once.
 
 ## Not built
 
@@ -27,4 +27,4 @@ The schedule is `SendEmailDigests`, daily at 08:00. It needs the scheduler runni
 
 ## Testing
 
-`tests/Feature/Notifications/EmailDigestTest.php`: with the choice off, a message is emailed at once; with it on, that email waits and the in-site notice does not, the morning job sends one email and then the line is gone, the latest twenty lines of an area are listed and an earlier one is only counted, a title that looks like a link is not one, a waiting line is dropped when email is off or the account is banned, an unverified address keeps a fresh line and drops one older than fourteen days, an address outside the site is emailed at once, a hundred waiting lines are the most an area holds, support email is not held, deleting the account drops the lines, the setting is saved from the notification page, and the job is scheduled at 08:00.
+`tests/Feature/Notifications/EmailDigestTest.php`: with the choice off, a message is emailed at once; with it on, that email waits and the in-site notice does not, the morning job sends one email and then the line is gone, the latest twenty lines of an area are listed and an earlier one is only counted, a title that looks like a link is not one, a waiting line is dropped when email is off or the account is banned, an unverified address keeps a fresh line and drops one older than fourteen days, an address outside the site is emailed at once, a hundred waiting lines are the most an area holds, support email is not held, deleting the account drops the lines, a run that loses the claim sends nothing and a later run still sends the line, the setting is saved from the notification page, and the job is scheduled at 08:00.
