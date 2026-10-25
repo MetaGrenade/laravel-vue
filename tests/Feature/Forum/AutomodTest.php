@@ -642,13 +642,17 @@ class AutomodTest extends TestCase
             $this->actingAs($viewer)->get(route('forum.threads.show', [$this->board, $this->thread]))->viewData('page')['props']['posts']['data'],
         )->firstWhere('held', $held)['permissions'];
 
-        $none = ['canReport' => false, 'canEdit' => false, 'canDelete' => false, 'canModerate' => false];
+        $none = ['canReport' => false, 'canEdit' => false, 'canDelete' => false, 'canModerate' => false, 'canIgnore' => false];
 
         $this->assertSame($none, $permissions($author, true), 'its author');
-        $this->assertSame($none, $permissions($this->staff(), true), 'a moderator');
+        $this->assertSame(
+            ['canReport' => false, 'canEdit' => false, 'canDelete' => false, 'canModerate' => false, 'canIgnore' => true],
+            $permissions($this->staff(), true),
+            'a moderator',
+        );
 
-        $this->assertSame(['canReport' => false, 'canEdit' => true, 'canDelete' => true, 'canModerate' => false], $permissions($author, false), 'its author, once it is out');
-        $this->assertSame(['canReport' => true, 'canEdit' => true, 'canDelete' => true, 'canModerate' => true], $permissions($this->staff(), false), 'a moderator, once it is out');
+        $this->assertSame(['canReport' => false, 'canEdit' => true, 'canDelete' => true, 'canModerate' => false, 'canIgnore' => false], $permissions($author, false), 'its author, once it is out');
+        $this->assertSame(['canReport' => true, 'canEdit' => true, 'canDelete' => true, 'canModerate' => true, 'canIgnore' => true], $permissions($this->staff(), false), 'a moderator, once it is out');
     }
 
     #[Test]
