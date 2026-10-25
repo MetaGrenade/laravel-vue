@@ -3,6 +3,13 @@
 return [
     'index_cache_ttl' => env('FORUM_INDEX_CACHE_TTL', 300),
 
+    'attachments' => [
+        'disk' => env('FORUM_ATTACHMENT_DISK', 'local'),
+        'directory' => 'forum-attachments',
+        'max_files' => 5,
+        'max_kilobytes' => 4096,
+    ],
+
     'report_reasons' => [
         'spam' => [
             'label' => 'Spam or advertising',

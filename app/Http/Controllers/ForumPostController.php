@@ -7,6 +7,7 @@ use App\Models\ForumPost;
 use App\Models\ForumPostReport;
 use App\Models\ForumThread;
 use App\Models\User;
+use App\Support\Forum\ForumAttachments;
 use App\Support\Forum\ForumPublisher;
 use App\Support\Forum\ForumSubmissions;
 use App\Support\Security\HtmlSanitizer;
@@ -21,7 +22,7 @@ class ForumPostController extends Controller
 {
     public function __construct(private readonly ForumPublisher $publisher) {}
 
-    public function store(Request $request, ForumBoard $board, ForumThread $thread, ForumSubmissions $submissions): RedirectResponse
+    public function store(Request $request, ForumBoard $board, ForumThread $thread, ForumSubmissions $submissions, ForumAttachments $attachments): RedirectResponse
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
 
@@ -36,7 +37,10 @@ class ForumPostController extends Controller
 
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:5000'],
+            ...$attachments->rules(),
         ]);
+
+        $prepared = $attachments->prepare($attachments->files($request->file('attachments')));
 
         $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
@@ -48,6 +52,7 @@ class ForumPostController extends Controller
         }
 
         $submission = $submissions->reply($user, $thread, $body);
+        $attachments->sync($submission->post, $user, $prepared);
 
         // Caught by a rule: kept for a moderator, and the author is told so rather than shown a post that nobody else can see.
         if ($submission->held) {
@@ -76,7 +81,7 @@ class ForumPostController extends Controller
             ->with('success', 'Reply posted successfully.');
     }
 
-    public function update(Request $request, ForumBoard $board, ForumThread $thread, ForumPost $post): RedirectResponse
+    public function update(Request $request, ForumBoard $board, ForumThread $thread, ForumPost $post, ForumAttachments $attachments): RedirectResponse
     {
         $this->ensureHierarchy($board, $thread, $post);
 
@@ -92,7 +97,11 @@ class ForumPostController extends Controller
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:5000'],
             'page' => ['nullable', 'integer', 'min:1'],
+            ...$attachments->rules(),
+            ...$attachments->removalRules(),
         ]);
+
+        $prepared = $attachments->prepare($attachments->files($request->file('attachments')));
 
         $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
@@ -102,6 +111,12 @@ class ForumPostController extends Controller
                 'body' => 'Post content cannot be empty.',
             ]);
         }
+
+        $remove = $validated['remove_attachments'] ?? [];
+        $removeIds = is_array($remove) ? $remove : [];
+
+        // The combined count has to fail before the body, its revision, or a mention notice is saved.
+        $attachments->ensureCapacity($post, count($prepared), $removeIds);
 
         $previousMentionIds = $post->mentions()->pluck('users.id');
 
@@ -128,6 +143,8 @@ class ForumPostController extends Controller
             $thread->loadMissing('board');
             $this->publisher->notifyMentionedUsers($newlyMentionedUsers, $thread, $post);
         }
+
+        $attachments->sync($post, $user, $prepared, $removeIds);
 
         return $this->redirectToThread($board, $thread, $validated['page'] ?? null, 'Post updated successfully.');
     }

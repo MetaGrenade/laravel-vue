@@ -17,6 +17,7 @@ use App\Http\Controllers\Ecommerce\ProductReviewController;
 use App\Http\Controllers\Ecommerce\TebexContinueController;
 use App\Http\Controllers\Ecommerce\TebexStorefrontController;
 use App\Http\Controllers\Ecommerce\WishlistController;
+use App\Http\Controllers\ForumAttachmentController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumIgnoreController;
 use App\Http\Controllers\ForumPostController;
@@ -202,6 +203,9 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware('section.enabled:forum')->group(function () {
+    Route::get('forum/attachments/{attachment}', [ForumAttachmentController::class, 'show'])
+        ->whereNumber('attachment')
+        ->name('forum.attachments.show');
     Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
     Route::middleware(['auth', 'throttle:search'])->get('forum/mentions', [ForumController::class, 'mentionSuggestions'])
         ->name('forum.mentions.index');

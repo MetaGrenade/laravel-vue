@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/pagination';
 import { Textarea } from '@/components/ui/textarea';
 import RichTextEditor from '@/components/editor/RichTextEditor.vue';
+import ForumAttachmentField from '@/components/forum/ForumAttachmentField.vue';
 import { useInitials } from '@/composables/useInitials';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -125,6 +126,14 @@ interface PostPermissions {
     canIgnore: boolean;
 }
 
+interface PostAttachment {
+    id: number;
+    name: string;
+    size: string;
+    image: boolean;
+    url: string;
+}
+
 interface PostMention {
     id: number;
     nickname: string;
@@ -145,6 +154,7 @@ interface ThreadPost {
     held_reason?: string | null;
     ignored: boolean;
     author: PostAuthor;
+    attachments: PostAttachment[];
     permissions: PostPermissions;
     mentions: PostMention[];
 }
@@ -1056,7 +1066,15 @@ const postEditDialogOpen = ref(false);
 const postEditTarget = ref<ThreadPost | null>(null);
 const postEditForm = useForm({
     body: '',
+    attachments: [] as File[],
+    remove_attachments: [] as number[],
 });
+
+const attachmentError = (errors: Record<string, string | undefined>): string => {
+    const found = Object.entries(errors).find(([key]) => key === 'attachments' || key.startsWith('attachments.'));
+
+    return found?.[1] ?? '';
+};
 
 const richTextToPlainText = (html: string) =>
     html
@@ -1070,7 +1088,7 @@ const hasRichTextContent = (html: string) => richTextToPlainText(html) !== '';
 watch(postEditDialogOpen, (open) => {
     if (!open) {
         postEditTarget.value = null;
-        postEditForm.reset('body');
+        postEditForm.reset('body', 'attachments', 'remove_attachments');
         postEditForm.clearErrors('body');
     }
 });
@@ -1091,6 +1109,8 @@ const editPost = (post: ThreadPost) => {
 
     postEditTarget.value = post;
     postEditForm.body = post.body_raw;
+    postEditForm.attachments = [];
+    postEditForm.remove_attachments = [];
     postEditForm.clearErrors('body');
     postEditDialogOpen.value = true;
 };
@@ -1110,8 +1130,9 @@ const submitPostEdit = () => {
     }
 
     const normalisedBody = currentBody.trim();
+    const filesUnchanged = postEditForm.attachments.length === 0 && postEditForm.remove_attachments.length === 0;
 
-    if (normalisedBody === target.body_raw?.trim()) {
+    if (normalisedBody === target.body_raw?.trim() && filesUnchanged) {
         postEditDialogOpen.value = false;
         return;
     }
@@ -1120,11 +1141,14 @@ const submitPostEdit = () => {
     activePostActionId.value = target.id;
 
     postEditForm
-        .transform(() => ({
+        .transform((data) => ({
             body: normalisedBody,
             page: postsMeta.value.current_page,
+            attachments: data.attachments,
+            remove_attachments: data.remove_attachments,
         }))
         .put(route('forum.posts.update', { board: props.board.slug, thread: props.thread.slug, post: target.id }), {
+            forceFormData: true,
             preserveScroll: true,
             preserveState: false,
             replace: true,
@@ -1235,6 +1259,7 @@ const quotePost = (post: ThreadPost) => {
 const replyForm = useForm({
     body: '',
     honeypot: '',
+    attachments: [] as File[],
 });
 
 const replyDraftStorageKey = computed(() => `forum:thread:${props.thread.id}:reply`);
@@ -1280,8 +1305,9 @@ const submitReply = () => {
 
     replyForm.post(route('forum.posts.store', { board: props.board.slug, thread: props.thread.slug }), {
         preserveScroll: false,
+        forceFormData: true,
         onSuccess: () => {
-            replyForm.reset('body');
+            replyForm.reset('body', 'attachments');
             replyForm.clearErrors();
 
             if (replyDraftStorageKey.value && typeof window !== 'undefined') {
@@ -1407,6 +1433,18 @@ const submitReply = () => {
                             {{ postEditForm.errors.body }}
                         </p>
                     </div>
+                    <div v-if="postEditTarget && postEditTarget.attachments.length > 0" class="space-y-2">
+                        <p class="text-sm font-medium">Already attached</p>
+                        <label v-for="file in postEditTarget.attachments" :key="file.id" class="flex items-center gap-2 text-sm">
+                            <input v-model="postEditForm.remove_attachments" type="checkbox" :value="file.id" />
+                            Remove {{ file.name }}
+                        </label>
+                    </div>
+                    <ForumAttachmentField
+                        id="post_edit_files"
+                        v-model="postEditForm.attachments"
+                        :error="attachmentError(postEditForm.errors as Record<string, string | undefined>)"
+                    />
                     <DialogFooter class="gap-2 sm:gap-3">
                         <Button type="button" variant="outline" :disabled="postEditForm.processing" @click="postEditDialogOpen = false">
                             Cancel
@@ -1982,6 +2020,17 @@ const submitReply = () => {
                             </div>
                             <!-- Post Body -->
                             <div class="tiptap ProseMirror prose prose-sm dark:prose-invert max-w-none" v-html="renderPostBody(post)"></div>
+                            <div v-if="post.attachments.length > 0" class="mt-4 space-y-3">
+                                <template v-for="file in post.attachments" :key="file.id">
+                                    <a v-if="file.image" :href="file.url" class="block w-fit">
+                                        <img :src="file.url" :alt="file.name" class="max-h-96 max-w-full rounded-md border" />
+                                    </a>
+                                    <a v-else :href="file.url" class="inline-flex items-center gap-2 text-sm font-medium underline">
+                                        {{ file.name }}
+                                        <span class="font-normal text-muted-foreground">{{ file.size }}</span>
+                                    </a>
+                                </template>
+                            </div>
                             <!-- Forum Signature -->
                             <div v-if="post.author.forum_signature" class="mt-4 border-t pt-2 text-xs whitespace-pre-line text-muted-foreground">
                                 {{ post.author.forum_signature }}
@@ -2050,6 +2099,11 @@ const submitReply = () => {
                         v-model="replyForm.body"
                         :placeholder="'Write your reply here...'"
                         :storage-key="replyDraftStorageKey"
+                    />
+                    <ForumAttachmentField
+                        id="thread_reply_files"
+                        v-model="replyForm.attachments"
+                        :error="attachmentError(replyForm.errors as Record<string, string | undefined>)"
                     />
                     <input
                         v-model="replyForm.honeypot"

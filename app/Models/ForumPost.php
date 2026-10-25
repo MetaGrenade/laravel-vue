@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\SanitizedHtml;
+use App\Support\Forum\ForumAttachments;
 use App\Support\Forum\ThreadSolutions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -47,6 +48,7 @@ class ForumPost extends Model
         // A soft delete does not clear the thread's foreign key. A query delete skips this and has to call forget() itself.
         static::deleting(function (ForumPost $post): void {
             app(ThreadSolutions::class)->forget([$post->id]);
+            app(ForumAttachments::class)->forget([$post->id]);
         });
     }
 
@@ -80,5 +82,13 @@ class ForumPost extends Model
     public function revisions(): HasMany
     {
         return $this->hasMany(ForumPostRevision::class, 'forum_post_id');
+    }
+
+    /**
+     * @return HasMany<ForumAttachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ForumAttachment::class)->orderBy('id');
     }
 }

@@ -12,6 +12,7 @@ use App\Models\ForumThreadReport;
 use App\Models\ModerationAction;
 use App\Models\ProductReview;
 use App\Models\User;
+use App\Support\Forum\ForumAttachments;
 use App\Support\Forum\ForumIndexCache;
 use App\Support\Forum\ForumReview;
 use App\Support\Forum\ThreadSolutions;
@@ -33,6 +34,7 @@ class MemberContent
         private readonly ForumReview $review,
         private readonly ForumIndexCache $cache,
         private readonly ThreadSolutions $solutions,
+        private readonly ForumAttachments $attachments,
     ) {}
 
     /**
@@ -83,6 +85,7 @@ class MemberContent
 
             // The delete below is a query, so the reply's deleting event (which would clear a solution) does not run.
             $this->solutions->forget($replyIds);
+            $this->attachments->forget($replyIds);
 
             $taken = new ContentTakenDown(
                 threadsHidden: $threadIds === [] ? 0 : ForumThread::query()->whereKey($threadIds)->update(['is_published' => false]),
