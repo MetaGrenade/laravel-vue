@@ -12,7 +12,7 @@ You cannot follow yourself. You cannot follow a banned member. You can follow a 
 
 **Following** lists their public forum posts, newest first: a new thread and a reply, in a thread that is published. A post that is held for review is not listed, and neither is a post in a thread that is not published. A member you are ignoring stays on the list of people, but their posts stay off the page, the same as a member who has since been banned.
 
-You are told, in the site and by email when you allow it, when someone you follow posts. The link opens the page that post is on, which is a later page once the thread has more than ten posts. You are not told again when that post already tells you another way: a reply in a thread you follow, or a post that mentions you. You are not told when you ignore them. A post that is held tells nobody until a moderator approves it, and then it tells them as a normal post would.
+You are told, in the site and by email when you allow it, when someone you follow posts. The email can be a daily digest ([email-digests.md](email-digests.md)). The link opens the page that post is on, which is a later page once the thread has more than ten posts. You are not told again when that post already tells you another way: a reply in a thread you follow, or a post that mentions you. You are not told when you ignore them. A post that is held tells nobody until a moderator approves it, and then it tells them as a normal post would.
 
 Deleting the account, on either side, drops the row.
 

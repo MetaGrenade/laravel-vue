@@ -23,6 +23,7 @@ use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneAuditLogs;
 use App\Jobs\PruneSearchQueryLogs;
 use App\Jobs\PruneUsageEvents;
+use App\Jobs\SendEmailDigests;
 use App\Jobs\SyncTebexCatalogue;
 use App\Payments\Tebex\TebexCatalogue;
 use Illuminate\Console\Scheduling\Schedule;
@@ -114,6 +115,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
         $schedule->job(new PruneUsageEvents)->dailyAt('01:30');
         $schedule->job(new PruneAuditLogs)->dailyAt('02:00');
+        // Community email that a member asked to receive once a day, instead of once per update.
+        $schedule->job(new SendEmailDigests)->dailyAt('08:00');
         // A ban with an end date lifts itself when the member next tries to sign in or make a request; this is for the lists of members.
         $schedule->job(new LiftRunOutBans)->everyMinute();
         $schedule->job(new ExpirePendingOrders)->everyFiveMinutes();

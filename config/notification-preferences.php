@@ -23,16 +23,37 @@ return [
             'label' => 'Blog activity',
             'description' => 'Comments and replies on blogs you follow or author.',
             'channels' => ['mail', 'push', 'database'],
+            'options' => [
+                'daily_digest' => [
+                    'label' => 'Daily digest',
+                    'description' => 'One email a day, instead of an email for each update, when email is on. In the site and in the browser you are still told at once.',
+                    'default' => false,
+                ],
+            ],
         ],
         'forums' => [
             'label' => 'Forum updates',
             'description' => 'Mentions and thread activity in the forums.',
             'channels' => ['mail', 'push', 'database'],
+            'options' => [
+                'daily_digest' => [
+                    'label' => 'Daily digest',
+                    'description' => 'One email a day, instead of an email for each update, when email is on. In the site and in the browser you are still told at once.',
+                    'default' => false,
+                ],
+            ],
         ],
         'messages' => [
             'label' => 'Direct messages',
             'description' => 'Messages other members send you.',
             'channels' => ['mail', 'push', 'database'],
+            'options' => [
+                'daily_digest' => [
+                    'label' => 'Daily digest',
+                    'description' => 'One email a day, instead of an email for each update, when email is on. In the site and in the browser you are still told at once.',
+                    'default' => false,
+                ],
+            ],
         ],
         'support' => [
             'label' => 'Support desk',

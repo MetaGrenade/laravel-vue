@@ -94,7 +94,7 @@ Strong already. Remaining gaps, in priority order:
 2. **Moderation depth.** Reports exist. Warnings and ban history are **done** ([moderation.md](moderation.md)), and so are automod rules, the review queue and a spam guard on the forum's forms ([automod.md](automod.md)), and taking down everything a spammer posted, alone, with a ban or for several members at once ([moderation.md](moderation.md#taking-down-what-a-member-posted)).
 3. **Thread features:** prefixes are **done** ([forum-prefixes.md](forum-prefixes.md)): one staff-defined label per thread, offered per board, optional or required when starting a thread. Solved answers are **done** ([forum-solutions.md](forum-solutions.md)): one reply marked as the answer. An ignore list is **done** ([forum-ignores.md](forum-ignores.md)): a member can hide another member's posts and stop hearing from them. Pictures and files are **done** ([forum-attachments.md](forum-attachments.md)): a post can carry a re-encoded picture or a PDF, text file or zip, served only while the post can be seen.
 4. **Direct messages and following.** Following is **done** ([member-follows.md](member-follows.md)): a member can follow another member, read their public posts, and be told when they post. Direct messages are **done** ([direct-messages.md](direct-messages.md)): a member can write to another member, and an ignore stops messages in both directions.
-5. **Email digests** and notification batching.
+5. **Email digests** and notification batching. **Done** (tenth slice, see [email-digests.md](email-digests.md)): forum, blog, and direct-message email can be one message a day. In-app and browser alerts stay immediate.
 6. **Forum RSS** (blog has it).
 7. **Leaderboards / activity feed** (reputation data already exists).
 
@@ -418,7 +418,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Public member profiles and a directory (**done**, third slice, see [members.md](members.md)); following a member (**done**, eighth slice, see [member-follows.md](member-follows.md)); direct messages (**done**, ninth slice, see [direct-messages.md](direct-messages.md))
 - Forum: thread prefixes (**done**, fourth slice, see [forum-prefixes.md](forum-prefixes.md)); solved answers (**done**, fifth slice, see [forum-solutions.md](forum-solutions.md)); an ignore list (**done**, sixth slice, see [forum-ignores.md](forum-ignores.md)); pictures and files (**done**, seventh slice, see [forum-attachments.md](forum-attachments.md)); RSS is not built
 - Moderation: infractions and ban history (**done**, first slice, see [moderation.md](moderation.md)), automod rules and the spam guard extended to forum posts (**done**, second slice: see [automod.md](automod.md), and [moderation.md](moderation.md#taking-down-what-a-member-posted) for clearing out a spammer's posts)
-- Email digests
+- Email digests (**done**, tenth slice, see [email-digests.md](email-digests.md))
 - Break up the largest controllers while touching them
 - **Exit:** a moderator can handle a spam wave and a rule-breaking member entirely from the ACP.
 
