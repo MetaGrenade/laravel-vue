@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ForumPrefixBadge, { type ForumPrefixLabel } from '@/components/forum/ForumPrefixBadge.vue';
+import ForumSolvedBadge from '@/components/forum/ForumSolvedBadge.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
 
@@ -45,6 +46,7 @@ import {
     Lock,
     LockOpen,
     Flag,
+    CircleCheck,
     MessageSquareLock,
     Bell,
     BellOff,
@@ -70,6 +72,7 @@ interface ThreadPermissions {
     canEdit: boolean;
     canReport: boolean;
     canReply: boolean;
+    canMarkSolution: boolean;
 }
 
 interface ThreadSummary {
@@ -85,6 +88,11 @@ interface ThreadSummary {
     is_subscribed: boolean;
     subscribers_count: number;
     prefix: ForumPrefixLabel | null;
+    opener_post_id: number | null;
+    solution: {
+        post_id: number;
+        page: number;
+    } | null;
     permissions: ThreadPermissions;
 }
 
@@ -565,6 +573,27 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
 });
 
 const threadPermissions = computed(() => props.thread.permissions);
+
+const canMarkPost = (post: ThreadPost) => threadPermissions.value.canMarkSolution && post.id !== props.thread.opener_post_id && !post.held;
+
+const solutionHref = computed(() => {
+    const solution = props.thread.solution;
+
+    if (!solution) {
+        return route('forum.threads.show', { board: props.board.slug, thread: props.thread.slug });
+    }
+
+    const parameters: Record<string, string | number> = {
+        board: props.board.slug,
+        thread: props.thread.slug,
+    };
+
+    if (solution.page > 1) {
+        parameters.page = solution.page;
+    }
+
+    return `${route('forum.threads.show', parameters)}#post-${solution.post_id}`;
+});
 const reportReasons = computed(() => props.reportReasons ?? []);
 const defaultReportReason = computed(() => reportReasons.value[0]?.value ?? '');
 const hasReportReasons = computed(() => reportReasons.value.length > 0);
@@ -1125,6 +1154,25 @@ const cancelDeletePost = () => {
     deletePostDialogOpen.value = false;
 };
 
+const markSolution = (post: ThreadPost) => {
+    if (!canMarkPost(post) || activePostActionId.value === post.id) {
+        return;
+    }
+
+    activePostActionId.value = post.id;
+
+    router.put(
+        route('forum.threads.solution', { board: props.board.slug, thread: props.thread.slug }),
+        { post_id: props.thread.solution?.post_id === post.id ? null : post.id },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                activePostActionId.value = null;
+            },
+        },
+    );
+};
+
 const quotePost = (post: ThreadPost) => {
     if (!threadPermissions.value?.canReply) {
         return;
@@ -1517,6 +1565,7 @@ const submitReply = () => {
                 <h1 id="thread_title" class="text-2xl font-semibold tracking-tight">
                     <Pin v-if="props.thread.is_pinned" class="mr-2 inline-block h-8 w-8" />
                     <ForumPrefixBadge v-if="props.thread.prefix" :prefix="props.thread.prefix" class="mr-2 align-middle" />
+                    <ForumSolvedBadge v-if="props.thread.solution" class="mr-2 align-middle" />
                     {{ props.thread.title }}
                     <Lock v-if="props.thread.is_locked" class="ml-2 inline-block h-8 w-8 text-muted-foreground" />
                 </h1>
@@ -1684,6 +1733,16 @@ const submitReply = () => {
                 </Pagination>
             </div>
 
+            <div v-if="props.thread.solution">
+                <Link
+                    :href="solutionHref"
+                    class="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-500/15 dark:text-emerald-200"
+                >
+                    <ForumSolvedBadge />
+                    Jump to the reply
+                </Link>
+            </div>
+
             <!-- Posts List -->
             <div class="space-y-6">
                 <div
@@ -1691,6 +1750,7 @@ const submitReply = () => {
                     :key="post.id"
                     :id="`post-${post.id}`"
                     class="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-xs md:flex-row"
+                    :class="props.thread.solution?.post_id === post.id ? 'border-emerald-500/50' : ''"
                 >
                     <!-- Left Side: User Info -->
                     <div class="w-full shrink-0 border-r pr-4 md:w-1/5">
@@ -1757,11 +1817,13 @@ const submitReply = () => {
                                     :title="post.held_reason ?? undefined"
                                     >Awaiting review</span
                                 >
+                                <ForumSolvedBadge v-if="props.thread.solution?.post_id === post.id" />
                             </div>
                             <div class="flex items-center gap-2">
                                 <div class="text-sm font-medium text-muted-foreground">#{{ post.number }}</div>
                                 <DropdownMenu
                                     v-if="
+                                        canMarkPost(post) ||
                                         threadPermissions.canReply ||
                                         post.permissions.canReport ||
                                         post.permissions.canEdit ||
@@ -1776,6 +1838,25 @@ const submitReply = () => {
                                     <DropdownMenuContent>
                                         <DropdownMenuLabel>Post Actions</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            v-if="canMarkPost(post)"
+                                            class="text-emerald-700 dark:text-emerald-300"
+                                            :disabled="activePostActionId === post.id"
+                                            @select="markSolution(post)"
+                                        >
+                                            <CircleCheck class="h-4 w-4" />
+                                            <span>{{ props.thread.solution?.post_id === post.id ? 'Unmark solution' : 'Mark as solution' }}</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator
+                                            v-if="
+                                                canMarkPost(post) &&
+                                                (threadPermissions.canReply ||
+                                                    post.permissions.canReport ||
+                                                    post.permissions.canEdit ||
+                                                    post.permissions.canDelete ||
+                                                    post.permissions.canModerate)
+                                            "
+                                        />
                                         <DropdownMenuGroup v-if="threadPermissions.canReply">
                                             <DropdownMenuItem class="text-success" :disabled="!threadPermissions.canReply" @select="quotePost(post)">
                                                 <Quote class="h-4 w-4" />

@@ -125,6 +125,7 @@ class ForumThreadActionController extends Controller
             'page' => ['nullable', 'integer', 'min:1'],
             'search' => ['nullable', 'string', 'max:100'],
             'prefix' => ['nullable', 'string', 'max:255'],
+            'solved' => ['nullable', 'string', 'max:255'],
         ]);
 
         $threads = $board->threads()
@@ -180,6 +181,12 @@ class ForumThreadActionController extends Controller
 
         if ($prefix !== '') {
             $redirectParameters['prefix'] = $prefix;
+        }
+
+        $solved = $validated['solved'] ?? null;
+
+        if ($solved === 'yes' || $solved === 'no') {
+            $redirectParameters['solved'] = $solved;
         }
 
         return redirect()->route('forum.boards.show', $redirectParameters)

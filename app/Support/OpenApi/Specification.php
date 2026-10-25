@@ -756,6 +756,46 @@ class Specification
                     ],
                 ],
             ],
+            '/v1/forum/boards/{board}/threads/{thread}/solution' => [
+                'put' => [
+                    'summary' => 'Mark or clear the reply that answers a thread',
+                    'description' => 'Send the id of a reply in this thread. Null clears the solution. The opening post cannot be chosen, and the thread has to be published. Its author or a moderator may do this.',
+                    'tags' => ['Forum Threads'],
+                    'security' => [['sanctum' => []]],
+                    'parameters' => [
+                        ['name' => 'board', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'string']],
+                        ['name' => 'thread', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'string']],
+                    ],
+                    'requestBody' => [
+                        'required' => true,
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['post_id'],
+                                    'properties' => [
+                                        'post_id' => ['type' => 'integer', 'nullable' => true, 'description' => 'Id of a reply in this thread. Null clears the solution.'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'description' => 'Updated thread',
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => static::schemaRef('ForumThread'),
+                                ],
+                            ],
+                        ],
+                        '401' => static::unauthenticatedResponse(),
+                        '403' => static::forbiddenResponse(),
+                        '404' => static::notFoundResponse(),
+                        '422' => static::validationErrorResponse(),
+                    ],
+                ],
+            ],
             '/v1/forum/boards/{board}/threads/{thread}/posts' => [
                 'post' => [
                     'summary' => 'Create a reply in a thread',
@@ -1413,6 +1453,7 @@ class Specification
                         ],
                         'required' => ['id', 'name', 'slug', 'color'],
                     ],
+                    'solution_post_id' => ['type' => 'integer', 'nullable' => true, 'description' => 'Id of the reply marked as the solution, or null.'],
                     'board' => [
                         'type' => 'object',
                         'properties' => [

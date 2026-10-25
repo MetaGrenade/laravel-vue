@@ -11,8 +11,10 @@ use App\Models\ForumBoard;
 use App\Models\ForumThread;
 use App\Support\Forum\ForumSubmissions;
 use App\Support\Forum\ThreadPrefixes;
+use App\Support\Forum\ThreadSolutions;
 use App\Support\Security\HtmlSanitizer;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class ForumThreadCommandController extends Controller
@@ -92,6 +94,27 @@ class ForumThreadCommandController extends Controller
         if ($changes !== []) {
             $thread->forceFill($changes)->save();
         }
+
+        $thread->loadMissing(['board', 'author', 'prefix', 'latestPost.author']);
+
+        return new ForumThreadResource($thread);
+    }
+
+    public function solution(Request $request, ForumBoard $board, ForumThread $thread, ThreadSolutions $solutions): ForumThreadResource
+    {
+        $this->ensureThreadBelongsToBoard($board, $thread);
+
+        $user = $request->user();
+
+        abort_if($user === null, 401);
+
+        $solutions->authorize($thread, $user);
+
+        $validated = $request->validate([
+            'post_id' => ['present', 'nullable', 'integer'],
+        ]);
+
+        $solutions->apply($thread, $validated['post_id'], $user);
 
         $thread->loadMissing(['board', 'author', 'prefix', 'latestPost.author']);
 

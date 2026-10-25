@@ -55,7 +55,7 @@ class ForumIndexCache
                     $query->where('is_published', true);
                 })
                 ->with([
-                    'thread:id,slug,title,forum_board_id,forum_prefix_id',
+                    'thread:id,slug,title,forum_board_id,forum_prefix_id,solved_post_id',
                     'thread.board:id,slug,title,forum_category_id',
                     'thread.prefix:id,name,slug,color',
                     'author:id,nickname,created_at',

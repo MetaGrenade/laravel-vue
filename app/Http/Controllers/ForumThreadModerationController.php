@@ -171,6 +171,12 @@ class ForumThreadModerationController extends Controller
             }
         }
 
+        $solved = $request->input('list_solved');
+
+        if ($solved === 'yes' || $solved === 'no') {
+            $parameters['solved'] = $solved;
+        }
+
         return redirect()->route('forum.boards.show', $parameters)
             ->with('success', $message);
     }

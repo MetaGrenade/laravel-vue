@@ -45,6 +45,7 @@ class ForumThreadResource extends JsonResource
                     'color' => $this->prefix->color,
                 ];
             }),
+            'solution_post_id' => $this->solved_post_id,
             'latest_post' => $this->whenLoaded('latestPost', function () {
                 $post = $this->latestPost;
 
