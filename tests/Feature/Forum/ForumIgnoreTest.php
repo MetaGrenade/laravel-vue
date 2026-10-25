@@ -4,12 +4,14 @@ namespace Tests\Feature\Forum;
 
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
+use App\Models\ForumIgnore;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
+use App\Support\Forum\IgnoredMembers;
 use App\Support\WebsiteSections;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -187,6 +189,75 @@ class ForumIgnoreTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('posts.data.1.permissions.canIgnore', false)
                 ->where('posts.data.1.ignored', false));
+    }
+
+    public function test_promoting_a_member_stops_an_existing_ignore_while_they_are_staff(): void
+    {
+        Notification::fake();
+
+        $viewer = User::factory()->create();
+        $member = User::factory()->create(['nickname' => 'Later Staff']);
+        $this->reply($member, '<p>Before the promotion</p>');
+        $this->thread->subscribers()->attach($viewer->id);
+
+        $this->actingAs($viewer)
+            ->put(route('forum.ignores.store', $member))
+            ->assertRedirect();
+
+        $member->assignRole('moderator');
+
+        $this->actingAs($viewer)
+            ->get(route('forum.threads.show', [$this->board, $this->thread]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('posts.data.1.ignored', false)
+                ->where('posts.data.1.permissions.canIgnore', false)
+                ->where('ignoredUserIds', []));
+
+        $this->actingAs($viewer)
+            ->get(route('privacy.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('ignored', []));
+
+        $this->actingAs($viewer)
+            ->get(route('members.show', $member))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('ignore.can', false)
+                ->where('ignore.ignoring', false));
+
+        $this->assertDatabaseHas('forum_ignores', [
+            'user_id' => $viewer->id,
+            'ignored_user_id' => $member->id,
+        ]);
+
+        $this->actingAs($member)->post(route('forum.posts.store', [$this->board, $this->thread]), [
+            'body' => '<p>An official warning</p>',
+        ])->assertRedirect();
+
+        Notification::assertSentTo($viewer, ForumThreadUpdated::class);
+
+        $member->removeRole('moderator');
+
+        $this->assertSame([$member->id], app(IgnoredMembers::class)->ids($viewer));
+
+        foreach (['editor', 'admin'] as $role) {
+            $promoted = User::factory()->create();
+            $reader = User::factory()->create();
+
+            ForumIgnore::query()->create([
+                'user_id' => $reader->id,
+                'ignored_user_id' => $promoted->id,
+            ]);
+
+            $promoted->assignRole($role);
+
+            $ignored = app(IgnoredMembers::class);
+
+            $this->assertSame([], $ignored->ids($reader));
+            $this->assertSame([], $ignored->quietFor($promoted));
+            $this->assertFalse($ignored->ignoring($reader, $promoted));
+        }
     }
 
     public function test_someone_who_ignores_the_author_is_not_told_about_a_reply_or_a_mention(): void

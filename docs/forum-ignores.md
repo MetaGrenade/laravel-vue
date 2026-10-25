@@ -8,7 +8,7 @@ A member can choose not to see another member in the forum. It is one way: the o
 
 Signed in, open someone's profile and choose **Ignore**, or the same action on one of their posts. **Settings → Privacy** lists everyone you are ignoring, and each one can be removed.
 
-You cannot ignore yourself. You cannot ignore a moderator (an administrator, an editor, or a moderator): their posts stay visible, including a warning. Ignoring someone and then ignoring them again changes nothing.
+You cannot ignore yourself. You cannot ignore a moderator (an administrator, an editor, or a moderator): their posts stay visible, including a warning. The same is true of someone you were already ignoring who is given one of those roles later. Their posts show again, and you are told when they reply or mention you, for as long as they hold the role. If the role is taken away, the earlier choice applies again. Ignoring someone and then ignoring them again changes nothing.
 
 On a thread, each of their posts is replaced by "You are ignoring {name}", with **Show** for that post and **Stop ignoring**. Showing one post does not show the others. A guest, and anyone who has not ignored them, sees the posts as usual.
 
@@ -25,4 +25,4 @@ Deleting the account, on either side, drops the row.
 
 ## Testing
 
-`tests/Feature/Forum/ForumIgnoreTest.php`: ignoring someone collapses their post and not your own, a guest still sees it, the profile and the privacy page show the choice, stopping clears it, you cannot ignore yourself or a moderator, and a person who ignores the author is not told about a reply or a mention while someone who does not ignore them still is.
+`tests/Feature/Forum/ForumIgnoreTest.php`: ignoring someone collapses their post and not your own, a guest still sees it, the profile and the privacy page show the choice, stopping clears it, you cannot ignore yourself or a moderator, someone already ignored who is made a moderator is visible and still sends a reply notice, and a person who ignores the author is not told about a reply or a mention while someone who does not ignore them still is.
