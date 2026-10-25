@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use App\Support\Notifications\RecordsForDigest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
@@ -12,7 +13,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
-class ForumPostMentioned extends Notification implements ShouldQueue
+class ForumPostMentioned extends Notification implements RecordsForDigest, ShouldQueue
 {
     use Queueable;
     use SendsBroadcastsSynchronously;

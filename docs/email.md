@@ -2,7 +2,7 @@
 
 Every email the site sends (an order confirmation, a failed payment, an API key notice, the "verify your email" and "reset your password" mails Laravel sends itself) comes in **one layout**: the name and colour of the site, a logo or a badge, a footer, a plain-text version, and a dark one for mail apps that are dark.
 
-> **Status:** built: the layout, the theme, the settings, the plain-text version, dark mode, and tests that render real notifications. **Not built:** see [below](#not-built).
+> **Status:** built: the layout, the theme, the settings, the plain-text version, dark mode, tests that render real notifications, and a daily digest of community email ([email-digests.md](email-digests.md)). **Not built:** see [below](#not-built).
 
 ## Setting it up
 

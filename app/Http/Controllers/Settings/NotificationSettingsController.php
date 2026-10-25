@@ -133,6 +133,10 @@ class NotificationSettingsController extends Controller
                 $attributes['team_notifications'] = $optionValues['team_notifications'] ?? false;
             }
 
+            if ($optionKeys->contains('daily_digest')) {
+                $attributes['daily_digest'] = $optionValues['daily_digest'] ?? false;
+            }
+
             $user->notificationSettings()->updateOrCreate(
                 ['category' => $categoryKey],
                 $attributes,

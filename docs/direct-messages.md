@@ -14,7 +14,7 @@ You cannot message yourself. You cannot message a banned member, and a banned me
 
 While you ignore someone, neither of you can send the other a message. The conversation you already have stays. You are told "You are ignoring {name}". They are told only that you cannot be messaged. A moderator, an editor, or an administrator is not ignored, so a message to them still arrives, including when the ignore was saved before the role. If the role is taken away, the earlier choice blocks messages again. See [forum-ignores.md](forum-ignores.md).
 
-You are told, in the site and by email when you allow it, when someone messages you. **Settings → Notifications** calls that **Direct messages**. The link opens the conversation.
+You are told, in the site and by email when you allow it, when someone messages you. **Settings → Notifications** calls that **Direct messages**. The link opens the conversation. The email can be a daily digest ([email-digests.md](email-digests.md)).
 
 Deleting either account drops the conversation and its messages.
 

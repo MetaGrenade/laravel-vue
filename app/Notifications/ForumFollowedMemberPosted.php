@@ -6,6 +6,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\User;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use App\Support\Notifications\RecordsForDigest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,7 +15,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
-class ForumFollowedMemberPosted extends Notification implements ShouldQueue
+class ForumFollowedMemberPosted extends Notification implements RecordsForDigest, ShouldQueue
 {
     use Queueable;
     use SendsBroadcastsSynchronously;

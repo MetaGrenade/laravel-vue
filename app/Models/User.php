@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Support\Entitlements\Entitlements;
 use App\Support\Entitlements\EntitlementSet;
 use App\Support\Forum\ForumAttachments;
+use App\Support\Notifications\EmailDigest;
+use App\Support\Notifications\RecordsForDigest;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -356,6 +358,28 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * The member asked for one email a day for this area, instead of an email for each update (docs/email-digests.md).
+     */
+    public function wantsDailyDigest(string $category): bool
+    {
+        $option = config('notification-preferences.categories.'.$category.'.options.daily_digest');
+
+        if (! is_array($option)) {
+            return false;
+        }
+
+        $this->loadMissing('notificationSettings');
+
+        $settings = $this->notificationSettings->firstWhere('category', $category);
+
+        if (! $settings instanceof UserNotificationSetting) {
+            return (bool) ($option['default'] ?? false);
+        }
+
+        return $settings->isOptionEnabled('daily_digest');
+    }
+
+    /**
      * Send the given notification using the recipient's preferred channels for the category.
      *
      * @param  array<int, string>|null  $candidateChannels
@@ -363,6 +387,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function notifyThroughPreferences(BaseNotification $notification, string $category, ?array $candidateChannels = null): void
     {
         $channels = $this->preferredNotificationChannelsFor($category, $candidateChannels);
+
+        if ($channels === []) {
+            return;
+        }
+
+        // A daily digest keeps the email for the morning batch. The notice in the site, and the browser alert, still go now.
+        if (in_array('mail', $channels, true) && $notification instanceof RecordsForDigest && $this->wantsDailyDigest($category) && app(EmailDigest::class)->hold($this, $category, $notification)) {
+            $channels = array_values(array_diff($channels, ['mail']));
+        }
 
         if ($channels === []) {
             return;

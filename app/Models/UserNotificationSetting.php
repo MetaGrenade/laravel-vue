@@ -16,6 +16,7 @@ class UserNotificationSetting extends Model
         'channel_push',
         'channel_database',
         'team_notifications',
+        'daily_digest',
     ];
 
     protected $casts = [
@@ -23,6 +24,7 @@ class UserNotificationSetting extends Model
         'channel_push' => 'boolean',
         'channel_database' => 'boolean',
         'team_notifications' => 'boolean',
+        'daily_digest' => 'boolean',
     ];
 
     public function isChannelEnabled(string $channel): bool
@@ -39,6 +41,7 @@ class UserNotificationSetting extends Model
     {
         return match ($option) {
             'team_notifications' => $this->team_notifications ?? true,
+            'daily_digest' => (bool) $this->daily_digest,
             default => false,
         };
     }
