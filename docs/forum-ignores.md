@@ -14,6 +14,8 @@ On a thread, each of their posts is replaced by "You are ignoring {name}", with 
 
 You are not emailed or notified in the site when someone you ignore replies to a thread you follow, or when they mention you. The mention is still stored on the post. Anyone else following that thread is told as before.
 
+While you ignore them, neither of you can send the other a direct message ([direct-messages.md](direct-messages.md)). A moderator is not ignored, so a message to them still arrives. If the role is taken away, the earlier choice blocks messages again.
+
 Deleting the account, on either side, drops the row.
 
 ## Not built

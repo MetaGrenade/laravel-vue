@@ -5,6 +5,7 @@ use App\Http\Controllers\BlogCommentController;
 use App\Http\Controllers\BlogCommentSubscriptionController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DirectMessageController;
 use App\Http\Controllers\Ecommerce\CartController;
 use App\Http\Controllers\Ecommerce\CartCouponController;
 use App\Http\Controllers\Ecommerce\CartGiftCardController;
@@ -195,6 +196,14 @@ Route::middleware('section.enabled:blog')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('messages', [DirectMessageController::class, 'index'])->name('messages.index');
+    Route::get('messages/{user}', [DirectMessageController::class, 'show'])
+        ->whereNumber('user')
+        ->name('messages.show');
+    Route::post('messages/{user}', [DirectMessageController::class, 'store'])
+        ->whereNumber('user')
+        ->middleware('throttle:content')
+        ->name('messages.store');
     Route::post('notifications/read-all', [UserNotificationController::class, 'markAllAsRead'])
         ->name('notifications.read-all');
     Route::post('notifications/{notification}/read', [UserNotificationController::class, 'markAsRead'])

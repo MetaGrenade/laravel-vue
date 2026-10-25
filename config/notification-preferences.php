@@ -29,6 +29,11 @@ return [
             'description' => 'Mentions and thread activity in the forums.',
             'channels' => ['mail', 'push', 'database'],
         ],
+        'messages' => [
+            'label' => 'Direct messages',
+            'description' => 'Messages other members send you.',
+            'channels' => ['mail', 'push', 'database'],
+        ],
         'support' => [
             'label' => 'Support desk',
             'description' => 'Updates to tickets you opened or are assigned to.',
