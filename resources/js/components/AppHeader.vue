@@ -26,6 +26,7 @@ import {
     Menu,
     Search,
     MessagesSquare,
+    Users,
     Shield,
     LifeBuoy,
     Bell,
@@ -265,6 +266,7 @@ const baseMainNavItems: SectionAwareNavItem[] = [
     { title: 'ui.nav.dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid, requiresAuth: true },
     { title: 'ui.nav.blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
     { title: 'ui.nav.forum', href: '/forum', target: '_self', icon: MessagesSquare, section: 'forum' },
+    { title: 'ui.nav.members', href: '/members', target: '_self', icon: Users },
 ];
 
 const baseRightNavItems: SectionAwareNavItem[] = [

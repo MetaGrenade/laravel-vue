@@ -14,6 +14,7 @@ return [
         'dashboard' => 'Dashboard',
         'blog' => 'Blog',
         'forum' => 'Forum',
+        'members' => 'Members',
         'admin' => 'Admin',
         'support' => 'Support',
         'repository' => 'Repository',

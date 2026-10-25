@@ -23,6 +23,7 @@ use App\Http\Controllers\ForumPostRevisionController;
 use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumThreadModerationController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ImpersonationStopController;
 use App\Http\Controllers\OnboardingDismissController;
 use App\Http\Controllers\PricingController;
@@ -49,6 +50,9 @@ Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 Route::get('/site.webmanifest', WebManifestController::class)->name('webmanifest');
 
 Route::get('/', HomeController::class)->name('home');
+
+Route::get('members', [MemberController::class, 'index'])->name('members.index');
+Route::get('members/{user}', [MemberController::class, 'show'])->whereNumber('user')->name('members.show');
 
 Route::get('/search', SearchController::class)->middleware('throttle:search')->name('search');
 Route::get('/search/results', SearchResultsController::class)->middleware('throttle:search')->name('search.results');

@@ -24,6 +24,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property CarbonInterface|null $banned_until
  * @property string|null $ban_reason
  * @property CarbonInterface|null $last_activity_at
+ * @property array<array-key, mixed>|null $social_links
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -127,6 +128,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ReputationEvent::class);
     }
 
+    /**
+     * @return BelongsToMany<Badge, $this>
+     */
     public function badges(): BelongsToMany
     {
         return $this->belongsToMany(Badge::class)

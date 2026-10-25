@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { useI18n } from '@/composables/useI18n';
 
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -35,6 +36,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const page = usePage<SharedData>();
 const user = page.props.auth.user as User;
+const { t } = useI18n();
 
 const fallbackTimezone = props.timezoneOptions[0]?.value ?? 'UTC';
 const fallbackLocale = props.localeOptions[0]?.value ?? 'en';
@@ -77,7 +79,12 @@ const removeSocialLink = (index: number) => {
 
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
-                <HeadingSmall title="Profile information" description="Update how you appear across the community." />
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <HeadingSmall title="Profile information" description="Update how you appear across the community." />
+                    <Link :href="route('members.show', user.id)" class="text-sm font-medium text-primary hover:underline">
+                        {{ t('members.profile.view_public') }}
+                    </Link>
+                </div>
 
                 <form @submit.prevent="submit" class="space-y-6">
                     <div class="grid gap-2">
