@@ -470,6 +470,59 @@ class ContentCleanupTest extends TestCase
     }
 
     #[Test]
+    public function reports_about_what_was_already_down_stay_open_when_something_else_comes_down(): void
+    {
+        $this->freezeTime();
+        $spammer = $this->member();
+        $other = $this->member();
+        $moderator = $this->as('moderator');
+        $reporter = $this->member();
+
+        $oldThread = $this->thread($spammer, 'Hidden earlier', ['is_published' => false]);
+        $oldReply = $this->reply($this->thread($other, 'An old question'), $spammer);
+        $oldReply->delete();
+        $oldComment = $this->comment($spammer, BlogComment::STATUS_REJECTED);
+        $deletedAt = $this->reply_trashed($oldReply->id)->deleted_at;
+
+        $oldReports = [
+            ForumThreadReport::create(['forum_thread_id' => $oldThread->id, 'reporter_id' => $reporter->id, 'reason_category' => 'other', 'reason' => 'Odd', 'status' => ForumThreadReport::STATUS_PENDING]),
+            ForumPostReport::create(['forum_post_id' => $oldReply->id, 'reporter_id' => $reporter->id, 'reason_category' => 'spam', 'reason' => 'Advert', 'status' => ForumPostReport::STATUS_PENDING]),
+            BlogCommentReport::create(['blog_comment_id' => $oldComment->id, 'reporter_id' => $reporter->id, 'reason_category' => 'other', 'reason' => 'Odd', 'status' => BlogCommentReport::STATUS_PENDING]),
+        ];
+
+        $this->travel(2)->hours();
+
+        $newThread = $this->thread($spammer, 'Cheap watches');
+        $newReply = $this->reply($this->thread($other, 'A new question'), $spammer);
+        $newComment = $this->comment($spammer, BlogComment::STATUS_APPROVED);
+        $newReports = [
+            ForumThreadReport::create(['forum_thread_id' => $newThread->id, 'reporter_id' => $reporter->id, 'reason_category' => 'spam', 'reason' => 'Advert', 'status' => ForumThreadReport::STATUS_PENDING]),
+            ForumPostReport::create(['forum_post_id' => $newReply->id, 'reporter_id' => $reporter->id, 'reason_category' => 'spam', 'reason' => 'Advert', 'status' => ForumPostReport::STATUS_PENDING]),
+            BlogCommentReport::create(['blog_comment_id' => $newComment->id, 'reporter_id' => $reporter->id, 'reason_category' => 'spam', 'reason' => 'Advert', 'status' => BlogCommentReport::STATUS_PENDING]),
+        ];
+
+        $taken = $this->content()->takeDown($spammer, $moderator, 'Spam wave');
+
+        $this->assertSame(3, $taken->reports);
+        $this->assertSame(3, ModerationAction::query()->sole()->details['reports']);
+        $this->assertTrue($this->reply_trashed($oldReply->id)->deleted_at->equalTo($deletedAt), 'a reply deleted earlier keeps the time it was deleted');
+
+        foreach ($newReports as $report) {
+            $report->refresh();
+            $this->assertSame(ForumPostReport::STATUS_REVIEWED, $report->status);
+            $this->assertSame($moderator->id, $report->reviewed_by);
+            $this->assertNotNull($report->reviewed_at);
+        }
+
+        foreach ($oldReports as $report) {
+            $report->refresh();
+            $this->assertSame(ForumPostReport::STATUS_PENDING, $report->status, get_class($report));
+            $this->assertNull($report->reviewed_by);
+            $this->assertNull($report->reviewed_at);
+        }
+    }
+
+    #[Test]
     public function it_is_written_to_the_history_and_the_member_is_not_told(): void
     {
         $wave = $this->spamWave();

@@ -73,12 +73,19 @@ class MemberContent
                 $rejected += $this->review->rejectThread($held) ? 1 : 0;
             }
 
+            // Taken before the updates. Read afterwards, every deleted reply, unpublished thread and rejected comment of theirs
+            // would include what was already down, and the reports on that would be closed and counted as this clean-up's.
+            $threadIds = $this->ids($this->threads($member)->where('is_published', true));
+            $replyIds = $this->ids($this->replies($member));
+            $commentIds = $this->ids($this->comments($member));
+
             $taken = new ContentTakenDown(
-                threadsHidden: $this->threads($member)->where('is_published', true)->update(['is_published' => false]),
+                threadsHidden: $threadIds === [] ? 0 : ForumThread::query()->whereKey($threadIds)->update(['is_published' => false]),
                 threadsRejected: $rejected,
-                // One UPDATE that sets `deleted_at`, as a moderator's delete does for a single reply.
-                replies: (int) $this->replies($member)->delete(),
-                comments: $this->comments($member)->update(['status' => BlogComment::STATUS_REJECTED]),
+                // One UPDATE that sets `deleted_at`, as a moderator's delete does for a single reply. Held replies are out of the
+                // ordinary queries, so the scope that hides them has to be lifted or they would be left behind.
+                replies: $replyIds === [] ? 0 : (int) ForumPost::query()->withoutGlobalScope(ForumPost::VISIBLE)->whereKey($replyIds)->delete(),
+                comments: $commentIds === [] ? 0 : BlogComment::query()->whereKey($commentIds)->update(['status' => BlogComment::STATUS_REJECTED]),
                 reviews: $this->reviews($member)->update([
                     'status' => ReviewStatus::Rejected->value,
                     'moderated_by' => $moderator->id,
@@ -90,7 +97,7 @@ class MemberContent
                 return $taken;
             }
 
-            $taken = $taken->withReports($this->closeReports($member, $moderator));
+            $taken = $taken->withReports($this->closeReports($threadIds, $replyIds, $commentIds, $moderator));
 
             ModerationAction::query()->create([
                 'user_id' => $member->id,
@@ -159,24 +166,58 @@ class MemberContent
     }
 
     /**
-     * Mark the reports about what is now down as dealt with. Returns how many.
+     * Mark the reports about what this clean-up just took down as dealt with. Returns how many.
+     *
+     * Only those items. A report on something that was already down stays waiting, for whoever deals with it.
+     *
+     * @param  list<int>  $threadIds
+     * @param  list<int>  $replyIds
+     * @param  list<int>  $commentIds
      */
-    private function closeReports(User $member, User $moderator): int
+    private function closeReports(array $threadIds, array $replyIds, array $commentIds, User $moderator): int
     {
         $done = ['status' => ForumPostReport::STATUS_REVIEWED, 'reviewed_at' => now(), 'reviewed_by' => $moderator->id];
+        $closed = 0;
 
-        return ForumPostReport::query()
-            ->where('status', ForumPostReport::STATUS_PENDING)
-            ->whereIn('forum_post_id', ForumPost::query()->withoutGlobalScope(ForumPost::VISIBLE)->onlyTrashed()->where('user_id', $member->id)->select('id'))
-            ->update($done)
-            + ForumThreadReport::query()
-                ->where('status', ForumThreadReport::STATUS_PENDING)
-                ->whereIn('forum_thread_id', ForumThread::query()->where('user_id', $member->id)->where('is_published', false)->select('id'))
-                ->update($done)
-            + BlogCommentReport::query()
-                ->where('status', BlogCommentReport::STATUS_PENDING)
-                ->whereIn('blog_comment_id', BlogComment::query()->where('user_id', $member->id)->where('status', BlogComment::STATUS_REJECTED)->select('id'))
+        if ($replyIds !== []) {
+            $closed += ForumPostReport::query()
+                ->where('status', ForumPostReport::STATUS_PENDING)
+                ->whereIn('forum_post_id', $replyIds)
                 ->update($done);
+        }
+
+        if ($threadIds !== []) {
+            $closed += ForumThreadReport::query()
+                ->where('status', ForumThreadReport::STATUS_PENDING)
+                ->whereIn('forum_thread_id', $threadIds)
+                ->update($done);
+        }
+
+        if ($commentIds !== []) {
+            $closed += BlogCommentReport::query()
+                ->where('status', BlogCommentReport::STATUS_PENDING)
+                ->whereIn('blog_comment_id', $commentIds)
+                ->update($done);
+        }
+
+        return $closed;
+    }
+
+    /**
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return list<int>
+     */
+    private function ids(Builder $query): array
+    {
+        $ids = [];
+
+        foreach ($query->pluck('id') as $id) {
+            $ids[] = (int) $id;
+        }
+
+        return $ids;
     }
 
     private function clean(?string $text): ?string
