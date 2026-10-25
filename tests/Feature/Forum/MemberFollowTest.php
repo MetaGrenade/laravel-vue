@@ -250,6 +250,80 @@ class MemberFollowTest extends TestCase
         Notification::assertNotSentTo($ignorer, ForumFollowedMemberPosted::class);
     }
 
+    public function test_a_notice_opens_the_page_the_reply_is_on(): void
+    {
+        Notification::fake();
+
+        $follower = User::factory()->create();
+        $this->actingAs($follower)->put(route('forum.follows.store', $this->author))->assertRedirect();
+
+        $this->actingAs($this->author)->post(route('forum.posts.store', [$this->board, $this->thread]), [
+            'body' => '<p>Early</p>',
+        ])->assertRedirect();
+
+        $early = ForumPost::query()->where('body', '<p>Early</p>')->firstOrFail();
+        $earlyUrl = route('forum.threads.show', [$this->board, $this->thread]).'#post-'.$early->id;
+        $earlyNotice = Notification::sent($follower, ForumFollowedMemberPosted::class)->first();
+        $this->assertInstanceOf(ForumFollowedMemberPosted::class, $earlyNotice);
+        $this->assertSame($earlyUrl, $earlyNotice->toArray($follower)['url']);
+        $this->assertSame($earlyUrl, $earlyNotice->toMail($follower)->actionUrl);
+
+        $held = ForumPost::create([
+            'forum_thread_id' => $this->thread->id,
+            'user_id' => $this->author->id,
+            'body' => '<p>Held</p>',
+        ]);
+        $held->forceFill(['held_at' => now()])->save();
+
+        $removed = ForumPost::create([
+            'forum_thread_id' => $this->thread->id,
+            'user_id' => $this->author->id,
+            'body' => '<p>Removed</p>',
+        ]);
+        $removed->delete();
+
+        // The opening post and the early reply are already on the first page. Eight more fill it.
+        for ($number = 0; $number < 8; $number++) {
+            ForumPost::create([
+                'forum_thread_id' => $this->thread->id,
+                'user_id' => $this->author->id,
+                'body' => '<p>Filler '.$number.'</p>',
+            ]);
+        }
+
+        $this->actingAs($this->author)->post(route('forum.posts.store', [$this->board, $this->thread]), [
+            'body' => '<p>Later</p>',
+        ])->assertRedirect();
+
+        $later = ForumPost::query()->where('body', '<p>Later</p>')->firstOrFail();
+        $laterUrl = route('forum.threads.show', [
+            'board' => $this->board,
+            'thread' => $this->thread,
+            'page' => 2,
+        ]).'#post-'.$later->id;
+
+        $laterNotice = Notification::sent($follower, ForumFollowedMemberPosted::class)->last();
+        $this->assertInstanceOf(ForumFollowedMemberPosted::class, $laterNotice);
+        $this->assertNotSame($earlyNotice, $laterNotice);
+        $this->assertSame($laterUrl, $laterNotice->toArray($follower)['url']);
+        $this->assertSame($laterUrl, $laterNotice->toMail($follower)->actionUrl);
+
+        $pageOne = collect($this->actingAs($follower)
+            ->get(route('forum.threads.show', [$this->board, $this->thread]))
+            ->viewData('page')['props']['posts']['data'])->pluck('id');
+        $pageTwo = collect($this->actingAs($follower)
+            ->get(route('forum.threads.show', [$this->board, $this->thread, 'page' => 2]))
+            ->viewData('page')['props']['posts']['data'])->pluck('id');
+
+        $this->assertNotContains($later->id, $pageOne->all());
+        $this->assertContains($later->id, $pageTwo->all());
+
+        $this->actingAs($follower)
+            ->get(route('forum.following'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('posts.data.0.url', $laterUrl));
+    }
+
     public function test_you_cannot_follow_yourself_or_a_banned_member_and_the_forum_can_be_off(): void
     {
         $viewer = User::factory()->create();
