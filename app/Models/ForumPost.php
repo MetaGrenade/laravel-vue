@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\SanitizedHtml;
+use App\Support\Forum\ThreadSolutions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -42,6 +43,11 @@ class ForumPost extends Model
     protected static function booted(): void
     {
         static::addGlobalScope(self::VISIBLE, fn (Builder $query) => $query->whereNull($query->getModel()->qualifyColumn('held_at')));
+
+        // A soft delete does not clear the thread's foreign key. A query delete skips this and has to call forget() itself.
+        static::deleting(function (ForumPost $post): void {
+            app(ThreadSolutions::class)->forget([$post->id]);
+        });
     }
 
     public function isHeld(): bool

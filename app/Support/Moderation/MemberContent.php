@@ -14,6 +14,7 @@ use App\Models\ProductReview;
 use App\Models\User;
 use App\Support\Forum\ForumIndexCache;
 use App\Support\Forum\ForumReview;
+use App\Support\Forum\ThreadSolutions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -31,6 +32,7 @@ class MemberContent
         private readonly Moderation $moderation,
         private readonly ForumReview $review,
         private readonly ForumIndexCache $cache,
+        private readonly ThreadSolutions $solutions,
     ) {}
 
     /**
@@ -78,6 +80,9 @@ class MemberContent
             $threadIds = $this->ids($this->threads($member)->where('is_published', true));
             $replyIds = $this->ids($this->replies($member));
             $commentIds = $this->ids($this->comments($member));
+
+            // The delete below is a query, so the reply's deleting event (which would clear a solution) does not run.
+            $this->solutions->forget($replyIds);
 
             $taken = new ContentTakenDown(
                 threadsHidden: $threadIds === [] ? 0 : ForumThread::query()->whereKey($threadIds)->update(['is_published' => false]),

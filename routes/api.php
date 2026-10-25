@@ -109,6 +109,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}', [ForumThreadCommandController::class, 'update'])
                 ->name('forum.threads.update');
+            Route::put('/forum/boards/{board:slug}/threads/{thread:slug}/solution', [ForumThreadCommandController::class, 'solution'])
+                ->name('forum.threads.solution');
         });
 
         Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1', 'role:admin|editor|moderator', 'usage:api-calls', 'scope:forum:moderate'])

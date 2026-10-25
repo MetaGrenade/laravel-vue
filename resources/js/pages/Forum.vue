@@ -5,6 +5,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Clock, Flame, MessageSquare, MessagesSquare, Search } from '@lucide/vue';
 import Input from '@/components/ui/input/Input.vue';
 import ForumPrefixBadge, { type ForumPrefixLabel } from '@/components/forum/ForumPrefixBadge.vue';
+import ForumSolvedBadge from '@/components/forum/ForumSolvedBadge.vue';
 import Button from '@/components/ui/button/Button.vue';
 
 interface ForumBoardSummary {
@@ -23,6 +24,7 @@ interface ForumBoardSummary {
         last_reply_author: string | null;
         last_reply_at: string | null;
         prefix: ForumPrefixLabel | null;
+        solved: boolean;
     } | null;
 }
 
@@ -48,6 +50,7 @@ interface TrendingThreadSummary {
     replies: number;
     last_reply_at: string | null;
     prefix: ForumPrefixLabel | null;
+    solved: boolean;
 }
 
 interface LatestPostSummary {
@@ -60,6 +63,7 @@ interface LatestPostSummary {
     created_at: string;
     thread_id: number;
     prefix: ForumPrefixLabel | null;
+    solved: boolean;
 }
 
 const props = defineProps<{
@@ -146,6 +150,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                                                         :prefix="board.latest_thread.prefix"
                                                         class="mr-1.5"
                                                     />
+                                                    <ForumSolvedBadge v-if="board.latest_thread.solved" class="mr-1.5" />
                                                     {{ board.latest_thread.title }}
                                                 </span>
                                                 <span class="block truncate text-xs text-muted-foreground">
@@ -181,6 +186,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                                 >
                                     <h3 class="text-sm leading-snug font-medium">
                                         <ForumPrefixBadge v-if="thread.prefix" :prefix="thread.prefix" class="mr-1.5" />
+                                        <ForumSolvedBadge v-if="thread.solved" class="mr-1.5" />
                                         {{ thread.title }}
                                     </h3>
                                     <p class="mt-1 text-xs text-muted-foreground">
@@ -210,6 +216,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                                 >
                                     <h3 class="text-sm leading-snug font-medium">
                                         <ForumPrefixBadge v-if="post.prefix" :prefix="post.prefix" class="mr-1.5" />
+                                        <ForumSolvedBadge v-if="post.solved" class="mr-1.5" />
                                         {{ post.title }}
                                     </h3>
                                     <p class="mt-1 text-xs text-muted-foreground">by {{ post.author ?? 'Unknown' }} • {{ post.created_at }}</p>

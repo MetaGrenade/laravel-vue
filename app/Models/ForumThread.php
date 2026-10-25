@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /**
  * A forum thread. One that automatic moderation has caught is *held* (`held_at`, docs/automod.md): it is not published, so it is
  * out of sight of everybody but the moderators, until one approves it.
+ *
+ * @property int|null $solved_post_id
  */
 class ForumThread extends Model
 {
@@ -69,6 +71,16 @@ class ForumThread extends Model
     public function prefix(): BelongsTo
     {
         return $this->belongsTo(ForumPrefix::class, 'forum_prefix_id');
+    }
+
+    /**
+     * The reply that answers this thread, when one has been chosen (docs/forum-solutions.md).
+     *
+     * @return BelongsTo<ForumPost, $this>
+     */
+    public function solution(): BelongsTo
+    {
+        return $this->belongsTo(ForumPost::class, 'solved_post_id');
     }
 
     /**

@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { Pin, Ellipsis, Eye, EyeOff, Pencil, Trash2, Lock, LockOpen, Flag, CheckCircle2 } from '@lucide/vue';
 import ForumPrefixBadge, { type ForumPrefixLabel } from '@/components/forum/ForumPrefixBadge.vue';
+import ForumSolvedBadge from '@/components/forum/ForumSolvedBadge.vue';
 interface BoardSummary {
     id: number;
     title: string;
@@ -61,6 +62,7 @@ interface ThreadSummary {
     is_published: boolean;
     has_unread: boolean;
     prefix: ForumPrefixLabel | null;
+    solved: boolean;
     last_reply_author: string | null;
     last_reply_at: string | null;
     permissions: ThreadPermissions;
@@ -89,6 +91,7 @@ const props = defineProps<{
     filters: {
         search?: string;
         prefix?: string | null;
+        solved?: 'yes' | 'no' | null;
     };
     prefixes: ForumPrefixLabel[];
     permissions: {
@@ -119,10 +122,11 @@ const hasUnreadThreads = computed(() => props.threads.data.some((thread) => thre
 const activeFilters = computed(() => ({
     search: searchQuery.value || undefined,
     prefix: props.filters.prefix || undefined,
+    solved: props.filters.solved || undefined,
 }));
 const boardMarking = ref(false);
 
-const prefixHref = (slug: string | null) => {
+const boardQuery = (extra: { prefix?: string | null; solved?: 'yes' | 'no' | null }) => {
     const query: Record<string, string> = { board: props.board.slug };
 
     const search = searchQuery.value.trim();
@@ -131,12 +135,24 @@ const prefixHref = (slug: string | null) => {
         query.search = search;
     }
 
-    if (slug) {
-        query.prefix = slug;
+    const prefix = extra.prefix !== undefined ? extra.prefix : props.filters.prefix;
+
+    if (prefix) {
+        query.prefix = prefix;
+    }
+
+    const solved = extra.solved !== undefined ? extra.solved : props.filters.solved;
+
+    if (solved === 'yes' || solved === 'no') {
+        query.solved = solved;
     }
 
     return route('forum.boards.show', query);
 };
+
+const prefixHref = (slug: string | null) => boardQuery({ prefix: slug });
+
+const solvedHref = (value: 'yes' | 'no' | null) => boardQuery({ solved: value });
 
 const {
     meta: threadsMeta,
@@ -403,6 +419,10 @@ const submitThreadEdit = () => {
                 payload.list_prefix = props.filters.prefix;
             }
 
+            if (props.filters.solved === 'yes' || props.filters.solved === 'no') {
+                payload.list_solved = props.filters.solved;
+            }
+
             return payload;
         })
         .put(route('forum.threads.update', { board: props.board.slug, thread: target.slug }), {
@@ -478,6 +498,10 @@ const markBoardAsRead = () => {
 
     if (props.filters.prefix) {
         payload.prefix = props.filters.prefix;
+    }
+
+    if (props.filters.solved === 'yes' || props.filters.solved === 'no') {
+        payload.solved = props.filters.solved;
     }
 
     router.post(route('forum.boards.mark-read', { board: props.board.slug }), payload, {
@@ -672,6 +696,42 @@ const markBoardAsRead = () => {
                     <ForumPrefixBadge :prefix="prefix" />
                 </Link>
             </nav>
+
+            <nav class="flex flex-wrap items-center gap-2" aria-label="Filter by solution">
+                <Link
+                    :href="solvedHref(null)"
+                    class="rounded-md px-3 py-1.5 text-sm"
+                    :class="
+                        !filters.solved ? 'bg-primary/10 font-medium text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    "
+                >
+                    All
+                </Link>
+                <Link
+                    :href="solvedHref('yes')"
+                    class="rounded-md px-3 py-1.5 text-sm"
+                    :class="
+                        filters.solved === 'yes'
+                            ? 'bg-primary/10 font-medium text-foreground'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    "
+                    :aria-current="filters.solved === 'yes' ? 'true' : undefined"
+                >
+                    Solved
+                </Link>
+                <Link
+                    :href="solvedHref('no')"
+                    class="rounded-md px-3 py-1.5 text-sm"
+                    :class="
+                        filters.solved === 'no'
+                            ? 'bg-primary/10 font-medium text-foreground'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    "
+                    :aria-current="filters.solved === 'no' ? 'true' : undefined"
+                >
+                    Unsolved
+                </Link>
+            </nav>
             <!-- Top Pagination and Search -->
             <div class="flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row">
                 <div class="text-center text-sm text-muted-foreground md:text-left">
@@ -731,6 +791,7 @@ const markBoardAsRead = () => {
                                     ]"
                                 >
                                     <ForumPrefixBadge v-if="thread.prefix" :prefix="thread.prefix" class="mr-2" />
+                                    <ForumSolvedBadge v-if="thread.solved" class="mr-2" />
                                     {{ thread.title }}
                                     <Pin v-if="thread.is_pinned" class="ml-1 inline-block h-4 w-4 text-primary" />
                                     <Lock v-if="thread.is_locked" class="ml-1 inline-block h-4 w-4 text-muted-foreground" />

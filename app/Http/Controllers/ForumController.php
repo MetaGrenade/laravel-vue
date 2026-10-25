@@ -72,6 +72,7 @@ class ForumController extends Controller
                                 'slug' => $latestThread->slug,
                                 'board_slug' => $board->slug,
                                 'prefix' => $prefix,
+                                'solved' => $latestThread instanceof ForumThread && $latestThread->solved_post_id !== null,
                                 'author' => $latestThread->author?->nickname,
                                 'last_reply_author' => $latestPost?->author?->nickname,
                                 'last_reply_at' => $formatter->dayDateTime($latestPost?->created_at),
@@ -86,6 +87,7 @@ class ForumController extends Controller
                     'title' => $thread->title,
                     'slug' => $thread->slug,
                     'prefix' => $prefixes->payload($thread->prefix),
+                    'solved' => $thread->solved_post_id !== null,
                     'board' => [
                         'slug' => $thread->board->slug,
                         'title' => $thread->board->title,
@@ -102,6 +104,7 @@ class ForumController extends Controller
                     'id' => $post->id,
                     'title' => $post->thread->title,
                     'prefix' => $prefixes->payload($post->thread->prefix),
+                    'solved' => $post->thread->solved_post_id !== null,
                     'thread_slug' => $post->thread->slug,
                     'board_slug' => $post->thread->board->slug,
                     'board_title' => $post->thread->board->title,
@@ -169,6 +172,8 @@ class ForumController extends Controller
         $search = trim((string) $request->query('search', ''));
         $offered = $prefixes->choices($board);
         $prefixSlug = trim((string) $request->query('prefix', ''));
+        $solvedQuery = $request->query('solved');
+        $activeSolved = $solvedQuery === 'yes' || $solvedQuery === 'no' ? $solvedQuery : null;
         $activePrefix = null;
 
         foreach ($offered as $choice) {
@@ -226,6 +231,12 @@ class ForumController extends Controller
             $threadsQuery->where('forum_threads.forum_prefix_id', $activePrefix['id']);
         }
 
+        if ($activeSolved === 'yes') {
+            $threadsQuery->whereNotNull('forum_threads.solved_post_id');
+        } elseif ($activeSolved === 'no') {
+            $threadsQuery->whereNull('forum_threads.solved_post_id');
+        }
+
         $threadsQuery->orderByDesc('forum_threads.is_pinned');
 
         if ($includeReads) {
@@ -251,6 +262,7 @@ class ForumController extends Controller
                 'title' => $thread->title,
                 'slug' => $thread->slug,
                 'prefix' => $prefixes->payload($thread->prefix),
+                'solved' => $thread->solved_post_id !== null,
                 'author' => $thread->author?->nickname,
                 'replies' => max($thread->posts_count - 1, 0),
                 'views' => $thread->views,
@@ -283,7 +295,7 @@ class ForumController extends Controller
             ->description($board->description ?: "Discussions in {$board->title}.")
             ->canonical($this->paginatedCanonical(route('forum.boards.show', $board), $request));
 
-        if ($activePrefix !== null) {
+        if ($activePrefix !== null || $activeSolved !== null) {
             $seo->noindex();
         }
 
@@ -304,6 +316,7 @@ class ForumController extends Controller
             'filters' => [
                 'search' => $search,
                 'prefix' => $activePrefix['slug'] ?? null,
+                'solved' => $activeSolved,
             ],
             'prefixes' => $offered,
             'permissions' => [
@@ -359,12 +372,46 @@ class ForumController extends Controller
 
         // A reply that automatic moderation has held (docs/automod.md) is not on the page for anybody but its author, who is shown it as
         // waiting, and the moderators, who see everything.
-        $posts = $thread->posts()
+        $postsPerPage = 10;
+
+        $visiblePosts = $thread->posts()
             ->withoutGlobalScope(ForumPost::VISIBLE)
             ->when(! $isModerator, fn ($query) => $query->where(function ($visible) use ($user) {
                 $visible->whereNull('forum_posts.held_at')
                     ->when($user !== null, fn ($own) => $own->orWhere('forum_posts.user_id', $user->id));
-            }))
+            }));
+
+        $solutionPost = null;
+        $solution = null;
+
+        if ($thread->solved_post_id !== null) {
+            $candidate = (clone $visiblePosts)->whereKey($thread->solved_post_id)->first();
+
+            if ($candidate instanceof ForumPost) {
+                $solutionPost = $candidate;
+                $before = (clone $visiblePosts)
+                    ->where(function ($query) use ($candidate) {
+                        $query->where('forum_posts.created_at', '<', $candidate->created_at)
+                            ->orWhere(function ($sameMoment) use ($candidate) {
+                                $sameMoment->where('forum_posts.created_at', '=', $candidate->created_at)
+                                    ->where('forum_posts.id', '<', $candidate->id);
+                            });
+                    })
+                    ->count();
+                $solution = [
+                    'post_id' => $candidate->id,
+                    'page' => intdiv($before, $postsPerPage) + 1,
+                ];
+            }
+        }
+
+        $openerId = ForumPost::query()
+            ->withoutGlobalScope(ForumPost::VISIBLE)
+            ->where('forum_thread_id', $thread->id)
+            ->orderBy('id')
+            ->value('id');
+
+        $posts = (clone $visiblePosts)
             ->with(['author' => function ($query) {
                 $query->select('id', 'nickname', 'created_at', 'avatar_url', 'forum_signature', 'reputation_points')
                     ->withCount('forumPosts')
@@ -375,7 +422,8 @@ class ForumController extends Controller
                 $query->select('users.id', 'users.nickname');
             }])
             ->orderBy('created_at')
-            ->paginate(10)
+            ->orderBy('id')
+            ->paginate($postsPerPage)
             ->withQueryString();
 
         $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator, $thread, $formatter) {
@@ -482,6 +530,9 @@ class ForumController extends Controller
         $isSubscribed = $thread->isSubscribedBy($user);
 
         $canModerateThread = (bool) $isModerator;
+        $canMarkSolution = $thread->is_published && $user !== null && (
+            $canModerateThread || $user->id === $thread->user_id
+        );
         $canEditThread = $user !== null && (
             $canModerateThread || (
                 $user->id === $thread->user_id &&
@@ -506,6 +557,10 @@ class ForumController extends Controller
                 'dateModified' => ($thread->last_posted_at ?? $thread->updated_at)?->toAtomString(),
                 'author' => $thread->author ? ['@type' => 'Person', 'name' => $thread->author->nickname] : null,
                 'text' => $opener ? Str::limit(trim(strip_tags($opener->body)), 500) : null,
+                'acceptedAnswer' => $solutionPost instanceof ForumPost ? [
+                    '@type' => 'Answer',
+                    'text' => Str::limit(trim(strip_tags((string) $solutionPost->body)), 500),
+                ] : null,
                 'interactionStatistic' => [
                     '@type' => 'InteractionCounter',
                     'interactionType' => 'https://schema.org/CommentAction',
@@ -527,6 +582,8 @@ class ForumController extends Controller
                 'title' => $thread->title,
                 'slug' => $thread->slug,
                 'prefix' => $prefixes->payload($thread->prefix),
+                'opener_post_id' => is_numeric($openerId) ? (int) $openerId : null,
+                'solution' => $solution,
                 'is_locked' => $thread->is_locked,
                 'is_pinned' => $thread->is_pinned,
                 'is_published' => $thread->is_published,
@@ -540,6 +597,7 @@ class ForumController extends Controller
                     'canEdit' => $canEditThread,
                     'canReport' => $user !== null && $user->id !== $thread->user_id,
                     'canReply' => $user !== null && $thread->is_published && ! $thread->is_locked,
+                    'canMarkSolution' => $canMarkSolution,
                 ],
             ],
             'posts' => array_merge([

@@ -22,6 +22,7 @@ use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumPostRevisionController;
 use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumThreadModerationController;
+use App\Http\Controllers\ForumThreadSolutionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImpersonationStopController;
 use App\Http\Controllers\MemberController;
@@ -225,6 +226,8 @@ Route::middleware('section.enabled:forum')->group(function () {
             ->name('forum.threads.unsubscribe');
         Route::put('forum/{board:slug}/{thread:slug}', [ForumThreadModerationController::class, 'update'])
             ->name('forum.threads.update');
+        Route::put('forum/{board:slug}/{thread:slug}/solution', [ForumThreadSolutionController::class, 'update'])
+            ->name('forum.threads.solution');
 
         Route::post('forum/{board:slug}/{thread:slug}/posts', [ForumPostController::class, 'store'])
             ->middleware('throttle:content')
