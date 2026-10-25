@@ -11,12 +11,12 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
-use App\Support\Database\Transaction;
 use App\Support\Forum\ForumIndexCache;
+use App\Support\Forum\ForumSubmissions;
 use App\Support\Localization\DateFormatter;
-use App\Support\Reputation\ReputationManager;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
+use App\Support\Spam\CommentGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,10 +32,7 @@ class ForumController extends Controller
 {
     use InteractsWithInertiaPagination;
 
-    public function __construct(
-        private readonly ReputationManager $reputation,
-        private readonly ForumIndexCache $forumIndexCache
-    ) {}
+    public function __construct(private readonly ForumIndexCache $forumIndexCache) {}
 
     public function index(Request $request): Response
     {
@@ -199,10 +196,12 @@ class ForumController extends Controller
                     ->orWhereLike('forum_threads.excerpt', $likeTerm)
                     ->orWhereLike('thread_authors.nickname', $likeTerm)
                     ->orWhereExists(function ($postQuery) use ($likeTerm) {
+                        // A table, not the model: the scope that leaves held replies out does not reach it (docs/automod.md).
                         $postQuery->selectRaw('1')
                             ->from('forum_posts')
                             ->whereColumn('forum_posts.forum_thread_id', 'forum_threads.id')
                             ->whereNull('forum_posts.deleted_at')
+                            ->whereNull('forum_posts.held_at')
                             ->whereLike('forum_posts.body', $likeTerm);
                     });
             });
@@ -331,7 +330,14 @@ class ForumController extends Controller
             },
         ])->loadCount('subscriptions');
 
+        // A reply that automatic moderation has held (docs/automod.md) is not on the page for anybody but its author, who is shown it as
+        // waiting, and the moderators, who see everything.
         $posts = $thread->posts()
+            ->withoutGlobalScope(ForumPost::VISIBLE)
+            ->when(! $isModerator, fn ($query) => $query->where(function ($visible) use ($user) {
+                $visible->whereNull('forum_posts.held_at')
+                    ->when($user !== null, fn ($own) => $own->orWhere('forum_posts.user_id', $user->id));
+            }))
             ->with(['author' => function ($query) {
                 $query->select('id', 'nickname', 'created_at', 'avatar_url', 'forum_signature', 'reputation_points')
                     ->withCount('forumPosts')
@@ -348,15 +354,20 @@ class ForumController extends Controller
         $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator, $thread, $formatter) {
             $author = $post->author;
 
-            $canModerate = (bool) $isModerator;
+            // A held reply can be neither edited, deleted, reported nor looked up in the history until it is out: those routes do not find it
+            // (the scope), and a moderator approves or rejects it in the review queue.
+            $held = $post->held_at !== null;
+            $canModerate = (bool) $isModerator && ! $held;
             $canEdit = $canModerate;
 
-            if (! $canEdit && $user !== null && $user->id === $post->user_id && $thread->is_published && ! $thread->is_locked) {
+            if (! $canEdit && ! $held && $user !== null && $user->id === $post->user_id && $thread->is_published && ! $thread->is_locked) {
                 $canEdit = true;
             }
 
             return [
                 'id' => $post->id,
+                'held' => $held,
+                'held_reason' => $isModerator ? $post->held_reason : null,
                 'body' => $post->body,
                 'body_raw' => $post->body,
                 'quote_html' => $this->serialiseQuote($post->body),
@@ -390,9 +401,9 @@ class ForumController extends Controller
                     })->values(),
                 ],
                 'permissions' => [
-                    'canReport' => $user !== null && $user->id !== $post->user_id,
+                    'canReport' => ! $held && $user !== null && $user->id !== $post->user_id,
                     'canEdit' => $canEdit,
-                    'canDelete' => $user !== null && ($user->id === $post->user_id || $canModerate),
+                    'canDelete' => ! $held && $user !== null && ($user->id === $post->user_id || $canModerate),
                     'canModerate' => $canModerate,
                 ],
                 'mentions' => $post->mentions->map(function (User $mentioned) {
@@ -572,11 +583,14 @@ class ForumController extends Controller
         ]);
     }
 
-    public function storeThread(Request $request, ForumBoard $board): RedirectResponse
+    public function storeThread(Request $request, ForumBoard $board, ForumSubmissions $submissions): RedirectResponse
     {
         $user = $request->user();
 
         abort_if($user === null, 403);
+
+        // The field nobody sees: a form that has it filled in was filled in by a script (docs/automod.md).
+        app(CommentGuard::class)->validateHoneypot($request);
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -593,66 +607,18 @@ class ForumController extends Controller
             ]);
         }
 
-        $baseSlug = Str::slug($title);
-        if ($baseSlug === '') {
-            $baseSlug = 'thread';
-        }
+        $submission = $submissions->thread($user, $board, $title, $body);
 
-        $baseSlug = Str::limit($baseSlug, 240, '');
-
-        do {
-            $slug = $baseSlug.'-'.Str::random(6);
-        } while (ForumThread::where('slug', $slug)->exists());
-
-        $thread = null;
-
-        $initialPost = null;
-
-        Transaction::run(function () use ($board, $user, $title, $slug, $body, $bodyText, &$thread, &$initialPost) {
-            $excerptSource = $bodyText;
-
-            $thread = ForumThread::create([
-                'forum_board_id' => $board->id,
-                'user_id' => $user->id,
-                'title' => $title,
-                'slug' => $slug,
-                'excerpt' => Str::limit($excerptSource, 160),
-                'last_posted_at' => now(),
-                'last_post_user_id' => $user->id,
-            ]);
-
-            $initialPost = ForumPost::create([
-                'forum_thread_id' => $thread->id,
-                'user_id' => $user->id,
-                'body' => $body,
-            ]);
-
-            $thread->forceFill([
-                'last_posted_at' => $initialPost->created_at,
-                'last_post_user_id' => $initialPost->user_id,
-            ])->save();
-        });
-
-        if ($initialPost !== null) {
-            ForumThreadRead::updateOrCreate(
-                [
-                    'forum_thread_id' => $thread->id,
-                    'user_id' => $user->id,
-                ],
-                [
-                    'last_read_post_id' => $initialPost->id,
-                    'last_read_at' => $initialPost->created_at ?? now(),
-                ],
-            );
-
-            $this->reputation->record('forum_post_created', $user, $initialPost, [
-                'thread_id' => $thread->id,
-            ]);
+        // Caught by a rule: kept for a moderator, and the author is told so (the thread is not published, so its page is not theirs to open).
+        if ($submission->held) {
+            return redirect()
+                ->route('forum.boards.show', ['board' => $board->slug])
+                ->with('success', 'Your thread has been sent for review. It will appear when a moderator approves it.');
         }
 
         return redirect()->route('forum.threads.show', [
             'board' => $board->slug,
-            'thread' => $thread->slug,
+            'thread' => $submission->thread->slug,
         ])->with('success', 'Thread created successfully.');
     }
 }

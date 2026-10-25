@@ -2,7 +2,7 @@
 
 A moderator can **warn** a member, **ban** them (for good, or until a date), and **lift** a ban, all from the admin area. Every one of them is kept in the member's history, the member is told, and they can read what they were told in their account.
 
-> **Status:** built: warnings, bans with a reason and an optional end date, lifting a ban, the history, telling the member (email and an account page), the page for a moderator, a link from forum reports, and banning several at once. **Not built:** see [below](#not-built). The rest of the moderation work (spam waves, automatic rules) is the next slice of the community milestone.
+> **Status:** built: warnings, bans with a reason and an optional end date, lifting a ban, the history, telling the member (email and an account page), the page for a moderator, a link from forum reports, and banning several at once. **Not built:** see [below](#not-built). Automatic rules and the review queue are in [automod.md](automod.md); clearing out what a spammer posted is the next slice of the community milestone.
 
 ## Using it
 

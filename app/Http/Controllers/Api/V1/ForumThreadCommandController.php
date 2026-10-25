@@ -8,21 +8,15 @@ use App\Http\Requests\Api\V1\Forum\UpdateForumThreadRequest;
 use App\Http\Resources\Api\V1\ForumPostResource;
 use App\Http\Resources\Api\V1\ForumThreadResource;
 use App\Models\ForumBoard;
-use App\Models\ForumPost;
 use App\Models\ForumThread;
-use App\Models\ForumThreadRead;
-use App\Support\Database\Transaction;
-use App\Support\Reputation\ReputationManager;
+use App\Support\Forum\ForumSubmissions;
 use App\Support\Security\HtmlSanitizer;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ForumThreadCommandController extends Controller
 {
-    public function __construct(private readonly ReputationManager $reputation) {}
-
-    public function store(StoreForumThreadRequest $request, ForumBoard $board): JsonResponse
+    public function store(StoreForumThreadRequest $request, ForumBoard $board, ForumSubmissions $submissions): JsonResponse
     {
         $user = $request->user();
 
@@ -40,65 +34,19 @@ class ForumThreadCommandController extends Controller
             ]);
         }
 
-        $baseSlug = Str::slug($title);
-        $baseSlug = $baseSlug === '' ? 'thread' : Str::limit($baseSlug, 240, '');
+        $submission = $submissions->thread($user, $board, $title, $body);
 
-        do {
-            $slug = $baseSlug.'-'.Str::random(6);
-        } while (ForumThread::where('slug', $slug)->exists());
-
-        $thread = null;
-        $initialPost = null;
-
-        Transaction::run(function () use ($board, $user, $title, $slug, $body, $bodyText, &$thread, &$initialPost) {
-            $excerptSource = $bodyText;
-
-            $thread = ForumThread::create([
-                'forum_board_id' => $board->id,
-                'user_id' => $user->id,
-                'title' => $title,
-                'slug' => $slug,
-                'excerpt' => Str::limit($excerptSource, 160),
-                'last_posted_at' => now(),
-                'last_post_user_id' => $user->id,
-            ]);
-
-            $initialPost = ForumPost::create([
-                'forum_thread_id' => $thread->id,
-                'user_id' => $user->id,
-                'body' => $body,
-            ]);
-
-            $thread->forceFill([
-                'last_posted_at' => $initialPost->created_at,
-                'last_post_user_id' => $initialPost->user_id,
-            ])->save();
-        });
-
-        if ($initialPost !== null) {
-            ForumThreadRead::updateOrCreate(
-                [
-                    'forum_thread_id' => $thread->id,
-                    'user_id' => $user->id,
-                ],
-                [
-                    'last_read_post_id' => $initialPost->id,
-                    'last_read_at' => $initialPost->created_at ?? now(),
-                ],
-            );
-
-            $this->reputation->record('forum_post_created', $user, $initialPost, [
-                'thread_id' => $thread->id,
-            ]);
-        }
+        $thread = $submission->thread;
+        $initialPost = $submission->post;
 
         $thread->loadMissing(['board', 'author', 'latestPost.author']);
-        $initialPost?->loadMissing('author');
+        $initialPost->loadMissing('author');
 
+        // 202 when it was received but a rule has held it for a moderator (docs/automod.md): it is not out in the open yet.
         return response()->json([
             'thread' => new ForumThreadResource($thread),
-            'initial_post' => $initialPost ? new ForumPostResource($initialPost) : null,
-        ], 201);
+            'initial_post' => new ForumPostResource($initialPost),
+        ], $submission->held ? 202 : 201);
     }
 
     public function update(UpdateForumThreadRequest $request, ForumBoard $board, ForumThread $thread): ForumThreadResource

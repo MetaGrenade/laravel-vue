@@ -43,3 +43,51 @@ export interface ModerationSubject {
     label: string;
     url: string | null;
 }
+
+/** What a rule of the forum's automatic moderation looks for, by kind (docs/automod.md). */
+export type AutomodRuleType = 'words' | 'links' | 'duplicate' | 'rate';
+
+/** `hold` keeps a post for a moderator; `reject` refuses it. */
+export type AutomodAction = 'hold' | 'reject';
+
+export interface AutomodRule {
+    id: number;
+    name: string;
+    type: AutomodRuleType;
+    settings: {
+        phrases?: string[];
+        whole_words?: boolean;
+        max_links?: number | null;
+        blocked_domains?: string[];
+        minutes?: number;
+        copies?: number;
+        posts?: number;
+    };
+    action: AutomodAction;
+    /** Only for members whose account is younger than this many days; null: for everybody who is not staff. */
+    only_new_days: number | null;
+    is_enabled: boolean;
+    hits: number;
+    last_hit_at: string | null;
+}
+
+/** A rule that would catch the text that was tried. */
+export interface AutomodTried {
+    rule: string;
+    action: AutomodAction;
+    detail: string;
+}
+
+/** One thing in the review queue: a reply or a thread that a rule has held. */
+export interface HeldItem {
+    id: number;
+    kind: 'reply' | 'thread';
+    title: string | null;
+    excerpt: string;
+    reason: string | null;
+    held_at: string | null;
+    board: string | null;
+    url: string | null;
+    author: { id: number; nickname: string; account_created_at: string | null; approved_posts: number } | null;
+    moderate_url: string | null;
+}

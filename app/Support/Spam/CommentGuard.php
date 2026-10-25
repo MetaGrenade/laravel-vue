@@ -29,10 +29,15 @@ class CommentGuard
         return $token;
     }
 
-    public function validate(Request $request): void
+    /**
+     * The trap alone, for a form that has no token to check: a field that people never see and a script fills in.
+     *
+     * @throws ValidationException
+     */
+    public function validateHoneypot(Request $request): void
     {
-        // This runs before the form is validated, so either field may not be text (honeypot[]=x). Nobody fills the trap in with
-        // anything but text, so anything else counts as filled in, and a token that is not text is not the token.
+        // This runs before the form is validated, so the field may not be text (honeypot[]=x). Nobody fills the trap in with anything
+        // but text, so anything else counts as filled in.
         $honeypot = $request->input('honeypot');
 
         if ($honeypot !== null && (! is_string($honeypot) || trim($honeypot) !== '')) {
@@ -40,7 +45,13 @@ class CommentGuard
                 'honeypot' => 'Spam check failed.',
             ]);
         }
+    }
 
+    public function validate(Request $request): void
+    {
+        $this->validateHoneypot($request);
+
+        // A token that is not text is not the token.
         $session = $request->hasSession() ? $request->session() : null;
 
         if ($session === null) {

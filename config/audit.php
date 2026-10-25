@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AutomodRule;
 use App\Models\Coupon;
 use App\Models\Entitlement;
 use App\Models\GiftCard;
@@ -50,6 +51,7 @@ return [
             'hide' => ['password', 'two_factor_secret', 'two_factor_recovery_codes'],
         ],
         Role::class => ['label' => 'name'],
+        AutomodRule::class => ['label' => 'name', 'ignore' => ['updated_at', 'hits', 'last_hit_at']],
         Permission::class => ['label' => 'name'],
         SystemSetting::class => ['label' => 'key'],
         SubscriptionPlan::class => ['label' => 'name'],
@@ -84,6 +86,15 @@ return [
         'users.destroy' => 'Deleted a user',
         'users.verify' => 'Verified a user\'s email address',
         'users.warn' => 'Warned a user',
+        'forums.review.replies.approve' => 'Approved a held reply',
+        'forums.review.replies.reject' => 'Rejected a held reply',
+        'forums.review.threads.approve' => 'Approved a held thread',
+        'forums.review.threads.reject' => 'Rejected a held thread',
+        'forums.review.bulk' => 'Approved or rejected several held posts',
+        'forums.automod.store' => 'Added an automod rule',
+        'forums.automod.update' => 'Changed an automod rule',
+        'forums.automod.enabled' => 'Turned an automod rule on or off',
+        'forums.automod.destroy' => 'Deleted an automod rule',
         'users.ban' => 'Banned a user',
         'users.unban' => 'Lifted a ban',
         'users.bulk-update' => 'Changed several users at once',

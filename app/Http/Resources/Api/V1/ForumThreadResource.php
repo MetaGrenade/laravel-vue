@@ -22,10 +22,13 @@ class ForumThreadResource extends JsonResource
             'is_pinned' => $this->is_pinned,
             'views' => $this->views,
             'last_posted_at' => optional($this->last_posted_at)->toIso8601String(),
+            // Only there when a rule has held it for a moderator (docs/automod.md).
+            'held' => $this->when($this->held_at !== null, true),
             'board' => $this->whenLoaded('board', function () {
                 return [
                     'id' => $this->board->id,
-                    'name' => $this->board->name,
+                    // A board has a `title` and no `name`: this was always null.
+                    'name' => $this->board->title,
                     'slug' => $this->board->slug,
                 ];
             }),

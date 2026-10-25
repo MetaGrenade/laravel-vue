@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Events\ForumPostCreated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Forum\StoreForumPostRequest;
 use App\Http\Requests\Api\V1\Forum\UpdateForumPostRequest;
@@ -10,22 +9,19 @@ use App\Http\Resources\Api\V1\ForumPostResource;
 use App\Models\ForumBoard;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
-use App\Models\ForumThreadRead;
 use App\Models\User;
-use App\Notifications\ForumPostMentioned;
-use App\Notifications\ForumThreadUpdated;
-use App\Support\Reputation\ReputationManager;
+use App\Support\Forum\ForumPublisher;
+use App\Support\Forum\ForumSubmissions;
 use App\Support\Security\HtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class ForumPostCommandController extends Controller
 {
-    public function __construct(private readonly ReputationManager $reputation) {}
+    public function __construct(private readonly ForumPublisher $publisher) {}
 
-    public function store(StoreForumPostRequest $request, ForumBoard $board, ForumThread $thread): JsonResponse
+    public function store(StoreForumPostRequest $request, ForumBoard $board, ForumThread $thread, ForumSubmissions $submissions): JsonResponse
     {
         $this->ensureThreadBelongsToBoard($board, $thread);
 
@@ -45,58 +41,13 @@ class ForumPostCommandController extends Controller
             ]);
         }
 
-        $post = ForumPost::create([
-            'forum_thread_id' => $thread->id,
-            'user_id' => $user->id,
-            'body' => $body,
-        ]);
+        $submission = $submissions->reply($user, $thread, $body);
 
-        $thread->forceFill([
-            'last_posted_at' => Carbon::now(),
-            'last_post_user_id' => $user->id,
-        ])->save();
-
-        ForumThreadRead::updateOrCreate(
-            [
-                'forum_thread_id' => $thread->id,
-                'user_id' => $user->id,
-            ],
-            [
-                'last_read_post_id' => $post->id,
-                'last_read_at' => $post->created_at ?? now(),
-            ],
-        );
-
-        $thread->loadMissing('board');
-
-        $mentionedUsers = $this->resolveMentionedUsers($body, $user->id);
-
-        if ($mentionedUsers->isNotEmpty()) {
-            $post->mentions()->sync($mentionedUsers->pluck('id')->all());
-            $this->notifyMentionedUsers($mentionedUsers, $thread, $post);
-        }
-
-        $subscribers = $thread->subscribers()
-            ->where('users.id', '!=', $user->id)
-            ->get();
-
-        if ($subscribers->isNotEmpty()) {
-            $notification = new ForumThreadUpdated($thread, $post);
-
-            $subscribers->each(function (User $subscriber) use ($notification): void {
-                $subscriber->notifyThroughPreferences($notification, 'forums', ['database', 'mail', 'push']);
-            });
-        }
-
-        ForumPostCreated::dispatch($thread, $post);
-
-        $this->reputation->record('forum_post_created', $user, $post, [
-            'thread_id' => $thread->id,
-        ]);
-
+        $post = $submission->post;
         $post->loadMissing('author');
 
-        return response()->json(new ForumPostResource($post), 201);
+        // 202 when it was received but a rule has held it for a moderator (docs/automod.md): it is not out in the open yet.
+        return response()->json(new ForumPostResource($post), $submission->held ? 202 : 201);
     }
 
     public function update(UpdateForumPostRequest $request, ForumBoard $board, ForumThread $thread, ForumPost $post): ForumPostResource
@@ -138,7 +89,7 @@ class ForumPostCommandController extends Controller
             'edited_at' => Carbon::now(),
         ])->save();
 
-        $mentionedUsers = $this->resolveMentionedUsers($body, $user->id);
+        $mentionedUsers = $this->publisher->resolveMentionedUsers($body, $user->id);
 
         $post->mentions()->sync($mentionedUsers->pluck('id')->all());
 
@@ -146,7 +97,7 @@ class ForumPostCommandController extends Controller
 
         if ($newlyMentionedUsers->isNotEmpty()) {
             $thread->loadMissing('board');
-            $this->notifyMentionedUsers($newlyMentionedUsers, $thread, $post);
+            $this->publisher->notifyMentionedUsers($newlyMentionedUsers, $thread, $post);
         }
 
         $post->loadMissing('author');
@@ -164,56 +115,5 @@ class ForumPostCommandController extends Controller
     protected function ensureThreadBelongsToBoard(ForumBoard $board, ForumThread $thread): void
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
-    }
-
-    /**
-     * @return Collection<int, string>
-     */
-    private function extractMentionNicknames(string $body): Collection
-    {
-        $plainText = html_entity_decode(strip_tags($body));
-
-        preg_match_all('/(?<![\\\w@])@([A-Za-z0-9_.-]{2,50})/u', $plainText, $matches);
-
-        return collect($matches[1] ?? [])
-            ->map(fn (string $nickname) => trim($nickname))
-            ->filter(fn (string $nickname) => $nickname !== '')
-            ->unique(fn (string $nickname) => mb_strtolower($nickname))
-            ->values();
-    }
-
-    /**
-     * @return Collection<int, User>
-     */
-    private function resolveMentionedUsers(string $body, int $authorId): Collection
-    {
-        $nicknames = $this->extractMentionNicknames($body);
-
-        if ($nicknames->isEmpty()) {
-            return collect();
-        }
-
-        return User::query()
-            ->whereIn('nickname', $nicknames)
-            ->where('id', '!=', $authorId)
-            ->get()
-            ->unique('id')
-            ->values();
-    }
-
-    /**
-     * @param  Collection<int, User>  $mentionedUsers
-     */
-    private function notifyMentionedUsers(Collection $mentionedUsers, ForumThread $thread, ForumPost $post): void
-    {
-        if ($mentionedUsers->isEmpty()) {
-            return;
-        }
-
-        $notification = new ForumPostMentioned($thread, $post);
-
-        $mentionedUsers->each(function (User $mentionedUser) use ($notification): void {
-            $mentionedUser->notifyThroughPreferences($notification, 'forums', ['database', 'mail', 'push']);
-        });
     }
 }

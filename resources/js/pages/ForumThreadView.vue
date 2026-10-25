@@ -128,6 +128,10 @@ interface ThreadPost {
     created_at: string;
     edited_at: string | null;
     number: number;
+    /** A rule has held it for a moderator: only its author and the moderators are shown it (docs/automod.md). */
+    held?: boolean;
+    /** Which rule, and why: for moderators only. */
+    held_reason?: string | null;
     author: PostAuthor;
     permissions: PostPermissions;
     mentions: PostMention[];
@@ -1139,8 +1143,10 @@ const quotePost = (post: ThreadPost) => {
     });
 };
 
+// `honeypot` is a field nobody sees, which a script fills in (docs/automod.md).
 const replyForm = useForm({
     body: '',
+    honeypot: '',
 });
 
 const replyDraftStorageKey = computed(() => `forum:thread:${props.thread.id}:reply`);
@@ -1699,7 +1705,15 @@ const submitReply = () => {
                     <!-- Right Side: Post Content -->
                     <div class="flex-1">
                         <div class="mb-4 flex items-center justify-between border-b pb-2">
-                            <div class="text-sm text-muted-foreground">{{ post.created_at }}</div>
+                            <div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                {{ post.created_at }}
+                                <span
+                                    v-if="post.held"
+                                    class="inline-flex items-center rounded-full border border-highlight/40 bg-highlight/10 px-2 py-0.5 text-xs font-medium text-highlight"
+                                    :title="post.held_reason ?? undefined"
+                                    >Awaiting review</span
+                                >
+                            </div>
                             <div class="flex items-center gap-2">
                                 <div class="text-sm font-medium text-muted-foreground">#{{ post.number }}</div>
                                 <DropdownMenu
@@ -1844,6 +1858,15 @@ const submitReply = () => {
                         v-model="replyForm.body"
                         :placeholder="'Write your reply here...'"
                         :storage-key="replyDraftStorageKey"
+                    />
+                    <input
+                        v-model="replyForm.honeypot"
+                        type="text"
+                        name="honeypot"
+                        class="absolute left-[-9999px] h-px w-px opacity-0"
+                        tabindex="-1"
+                        autocomplete="off"
+                        aria-hidden="true"
                     />
                     <p v-if="replyForm.errors.body" class="text-sm text-destructive">
                         {{ replyForm.errors.body }}

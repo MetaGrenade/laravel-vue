@@ -37,9 +37,11 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
     return trail;
 });
 
+// `honeypot` is a field nobody sees, which a script fills in (docs/automod.md).
 const form = useForm({
     title: '',
     body: '',
+    honeypot: '',
 });
 
 const draftStorageKey = computed(() => `forum:thread:draft:${props.board.id}`);
@@ -114,6 +116,15 @@ const submit = () => {
                         v-model="form.body"
                         :placeholder="'Share the details, context, or questions to kickstart the discussion.'"
                         :storage-key="draftStorageKey"
+                    />
+                    <input
+                        v-model="form.honeypot"
+                        type="text"
+                        name="honeypot"
+                        class="absolute left-[-9999px] h-px w-px opacity-0"
+                        tabindex="-1"
+                        autocomplete="off"
+                        aria-hidden="true"
                     />
                     <InputError :message="form.errors.body" />
                 </div>
