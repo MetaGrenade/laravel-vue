@@ -68,6 +68,7 @@ return [
         'forum.index',
         'forum.boards.show',
         'forum.threads.show',
+        'forum.attachments.show',
         'shop.index',
         'shop.packages',
         'shop.packages.show',

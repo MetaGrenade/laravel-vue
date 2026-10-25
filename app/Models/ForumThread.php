@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Forum\ForumAttachments;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +29,23 @@ class ForumThread extends Model
                 $thread->held_reason = null;
                 $thread->held_by_rule_id = null;
             }
+        });
+
+        // Deleting the thread cascades its posts in the database, which does not run their model events, so the files go first.
+        static::deleting(function (ForumThread $thread): void {
+            $ids = [];
+
+            foreach (
+                ForumPost::query()
+                    ->withTrashed()
+                    ->withoutGlobalScope(ForumPost::VISIBLE)
+                    ->where('forum_thread_id', $thread->id)
+                    ->pluck('id') as $id
+            ) {
+                $ids[] = (int) $id;
+            }
+
+            app(ForumAttachments::class)->forget($ids);
         });
     }
 

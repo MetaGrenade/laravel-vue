@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\Entitlements\Entitlements;
 use App\Support\Entitlements\EntitlementSet;
+use App\Support\Forum\ForumAttachments;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -32,6 +33,21 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected static function booted(): void
     {
+        static::deleting(function (User $user): void {
+            $ids = [];
+
+            foreach (
+                ForumPost::query()
+                    ->withTrashed()
+                    ->withoutGlobalScope(ForumPost::VISIBLE)
+                    ->where('user_id', $user->id)
+                    ->pluck('id') as $id
+            ) {
+                $ids[] = (int) $id;
+            }
+
+            app(ForumAttachments::class)->forget($ids);
+        });
         static::saved(fn () => SupportAssignmentRule::flushCache());
         static::deleted(fn () => SupportAssignmentRule::flushCache());
         static::registerModelEvent('forceDeleted', fn () => SupportAssignmentRule::flushCache());

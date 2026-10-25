@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import InputError from '@/components/InputError.vue';
 import { type ForumPrefixLabel } from '@/components/forum/ForumPrefixBadge.vue';
 import RichTextEditor from '@/components/editor/RichTextEditor.vue';
+import ForumAttachmentField from '@/components/forum/ForumAttachmentField.vue';
 
 interface BoardSummary {
     id: number;
@@ -46,7 +47,14 @@ const form = useForm({
     body: '',
     prefix: '',
     honeypot: '',
+    attachments: [] as File[],
 });
+
+const attachmentError = (errors: Record<string, string | undefined>): string => {
+    const found = Object.entries(errors).find(([key]) => key === 'attachments' || key.startsWith('attachments.'));
+
+    return found?.[1] ?? '';
+};
 
 const draftStorageKey = computed(() => `forum:thread:draft:${props.board.id}`);
 
@@ -69,6 +77,7 @@ const submit = () => {
 
     form.post(route('forum.threads.store', { board: props.board.slug }), {
         preserveScroll: true,
+        forceFormData: true,
         onSuccess: () => {
             if (draftStorageKey.value && typeof window !== 'undefined') {
                 window.localStorage.removeItem(draftStorageKey.value);
@@ -146,6 +155,12 @@ const submit = () => {
                     />
                     <InputError :message="form.errors.body" />
                 </div>
+
+                <ForumAttachmentField
+                    id="thread_files"
+                    v-model="form.attachments"
+                    :error="attachmentError(form.errors as Record<string, string | undefined>)"
+                />
 
                 <div v-if="props.board.description" class="rounded-md bg-muted/40 p-4 text-sm text-muted-foreground">
                     <p class="font-medium text-foreground">About {{ props.board.title }}</p>

@@ -11,6 +11,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
+use App\Support\Forum\ForumAttachments;
 use App\Support\Forum\ForumIndexCache;
 use App\Support\Forum\ForumSubmissions;
 use App\Support\Forum\IgnoredMembers;
@@ -327,7 +328,7 @@ class ForumController extends Controller
         ]);
     }
 
-    public function showThread(Request $request, ForumBoard $board, ForumThread $thread, ThreadPrefixes $prefixes, IgnoredMembers $ignoredMembers): Response
+    public function showThread(Request $request, ForumBoard $board, ForumThread $thread, ThreadPrefixes $prefixes, IgnoredMembers $ignoredMembers, ForumAttachments $attachments): Response
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
 
@@ -422,7 +423,7 @@ class ForumController extends Controller
                     ->with(['badges' => function ($badgeQuery) {
                         $badgeQuery->select('badges.id', 'badges.name', 'badges.slug', 'badges.description', 'badges.points_required');
                     }]);
-            }, 'mentions' => function ($query) {
+            }, 'attachments', 'mentions' => function ($query) {
                 $query->select('users.id', 'users.nickname');
             }])
             ->orderBy('created_at')
@@ -433,7 +434,7 @@ class ForumController extends Controller
         $ignoredIds = $ignoredMembers->ids($user);
         $ignoredLookup = array_flip($ignoredIds);
 
-        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator, $thread, $formatter, $ignoredLookup) {
+        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator, $thread, $formatter, $ignoredLookup, $attachments) {
             $author = $post->author;
 
             // A held reply can be neither edited, deleted, reported nor looked up in the history until it is out: those routes do not find it
@@ -495,6 +496,7 @@ class ForumController extends Controller
                     'canModerate' => $canModerate,
                     'canIgnore' => $canIgnore,
                 ],
+                'attachments' => $attachments->present($post),
                 'mentions' => $post->mentions->map(function (User $mentioned) {
                     $profileUrl = null;
 
@@ -688,7 +690,7 @@ class ForumController extends Controller
         ]);
     }
 
-    public function storeThread(Request $request, ForumBoard $board, ForumSubmissions $submissions, ThreadPrefixes $prefixes): RedirectResponse
+    public function storeThread(Request $request, ForumBoard $board, ForumSubmissions $submissions, ThreadPrefixes $prefixes, ForumAttachments $attachments): RedirectResponse
     {
         $user = $request->user();
 
@@ -701,7 +703,10 @@ class ForumController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
             'prefix' => ['nullable', 'string', 'max:255'],
+            ...$attachments->rules(),
         ]);
+
+        $prepared = $attachments->prepare($attachments->files($request->file('attachments')));
 
         $prefix = $prefixes->resolveId($board, $validated['prefix'] ?? null, (bool) $board->prefixes_required);
 
@@ -716,6 +721,7 @@ class ForumController extends Controller
         }
 
         $submission = $submissions->thread($user, $board, $title, $body, $prefix);
+        $attachments->sync($submission->post, $user, $prepared);
 
         // Caught by a rule: kept for a moderator, and the author is told so (the thread is not published, so its page is not theirs to open).
         if ($submission->held) {

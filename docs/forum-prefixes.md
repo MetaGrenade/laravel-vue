@@ -31,7 +31,7 @@ The thread payload includes `prefix` as `{ id, name, slug, color }` or null.
 ## Not built
 
 - **Several labels on one thread**, or a label a member types themselves.
-- **Attachments and pictures in a post.** A solved reply is separate ([forum-solutions.md](forum-solutions.md)). Ignoring a member is separate ([forum-ignores.md](forum-ignores.md)).
+- **A picture placed inside the sentence, and RSS.** A solved reply is separate ([forum-solutions.md](forum-solutions.md)). Ignoring a member is separate ([forum-ignores.md](forum-ignores.md)). A file on a post is separate ([forum-attachments.md](forum-attachments.md)).
 - **Moving a thread to another board.** A prefix that the new board does not offer stays until the prefix's boards are saved again.
 - **A search result or a sitemap entry** for a filtered board page.
 
