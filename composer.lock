@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3139c94b63ca1a8f5c2ae8f31685e207",
+    "content-hash": "35e1a1f2424a4b6c0066c87048f57ab2",
     "packages": [
         {
             "name": "brick/math",
@@ -2482,6 +2482,40 @@
                 "source": "https://github.com/Masterminds/html5-php/tree/2.11.0"
             },
             "time": "2026-08-18T06:18:41+00:00"
+        },
+        {
+            "name": "metagrenade/metaforge-discord",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/MetaGrenade/MetaForge-DiscordBot.git",
+                "reference": "main"
+            },
+            "require": {
+                "illuminate/contracts": "^13.0",
+                "illuminate/http": "^13.0",
+                "illuminate/notifications": "^13.0",
+                "illuminate/routing": "^13.0",
+                "illuminate/support": "^13.0",
+                "php": "^8.4",
+                "spatie/laravel-permission": "^8.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "MetaForge\\Discord\\DiscordServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "MetaForge\\Discord\\": "laravel/src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ]
         },
         {
             "name": "moneyphp/money",
@@ -9674,13 +9708,15 @@
         }
     ],
     "aliases": [],
-    "minimum-stability": "stable",
-    "stability-flags": {},
+    "minimum-stability": "dev",
+    "stability-flags": {
+        "metagrenade/metaforge-discord": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.4"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
