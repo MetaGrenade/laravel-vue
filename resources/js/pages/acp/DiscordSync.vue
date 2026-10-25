@@ -25,10 +25,7 @@ const load = async () => {
     loading.value = true;
 
     try {
-        const [statusResponse, runsResponse] = await Promise.all([
-            discordAdminApi.syncStatus(),
-            discordAdminApi.syncRuns(),
-        ]);
+        const [statusResponse, runsResponse] = await Promise.all([discordAdminApi.syncStatus(), discordAdminApi.syncRuns()]);
 
         status.value = statusResponse;
         runs.value = runsResponse.data ?? [];
@@ -52,13 +49,7 @@ const queueUserSync = async (options: { sync?: boolean; dryRun?: boolean } = {})
 
     try {
         const result = await discordAdminApi.syncUser(id, options);
-        toast.success(
-            typeof result.message === 'string'
-                ? result.message
-                : result.queued
-                  ? `Queued sync for user #${id}.`
-                  : 'Sync requested.',
-        );
+        toast.success(typeof result.message === 'string' ? result.message : result.queued ? `Queued sync for user #${id}.` : 'Sync requested.');
         await load();
     } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Sync failed.');
@@ -113,9 +104,7 @@ onMounted(load);
                         <div class="flex flex-wrap gap-2">
                             <Button :disabled="syncing" @click="queueUserSync()">Queue sync</Button>
                             <Button variant="secondary" :disabled="syncing" @click="queueUserSync({ sync: true })">Run now</Button>
-                            <Button variant="outline" :disabled="syncing" @click="queueUserSync({ sync: true, dryRun: true })">
-                                Dry run
-                            </Button>
+                            <Button variant="outline" :disabled="syncing" @click="queueUserSync({ sync: true, dryRun: true })"> Dry run </Button>
                         </div>
                     </CardContent>
                 </Card>

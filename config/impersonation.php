@@ -38,6 +38,9 @@ return [
         'appearance',
         'settings',
         'settings.notifications.edit',
+        'settings.discord-notifications.edit',
+        // The settings page loads this as it opens. It is the customer's own choices, and saving is a PUT, which is refused.
+        'discord/user/notification-preferences',
         'settings.addresses.index',
         'settings.standing',
         'settings.api-keys.index',
@@ -108,6 +111,12 @@ return [
     'blocked' => [
         // Secrets. The security page sends the recovery codes, a pending two-factor secret and the ids of the other sessions.
         'security.edit',
+
+        // The admin area for Discord. Listing the guild's roles calls Discord, which a rollback does not reach.
+        'discord/admin/role-mappings',
+        'discord/admin/sync/status',
+        'discord/admin/sync/runs',
+        'discord/admin/discord-roles',
 
         // Files. A download is the customer's own data (or what they bought, and it counts against their allowance).
         'privacy.exports.download',

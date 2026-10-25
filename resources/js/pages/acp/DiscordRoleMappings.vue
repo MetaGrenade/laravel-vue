@@ -11,19 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { type BreadcrumbItem } from '@/types';
-import {
-    discordAdminApi,
-    type DiscordGuildRole,
-    type DiscordRoleMapping,
-} from '@/lib/discord-api';
+import { discordAdminApi, type DiscordGuildRole, type DiscordRoleMapping } from '@/lib/discord-api';
 
 const props = defineProps<{
     spatieRoles: string[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Discord role mappings', href: '/acp/discord/role-mappings' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Discord role mappings', href: '/acp/discord/role-mappings' }];
 
 const mappings = ref<DiscordRoleMapping[]>([]);
 const discordRoles = ref<DiscordGuildRole[]>([]);

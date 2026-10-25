@@ -101,9 +101,7 @@ export const discordUserApi = {
     notificationPreferences(): Promise<DiscordNotificationPreferences> {
         return fetch(`${userBase}/notification-preferences`, { headers: jsonHeaders() }).then(parseJson);
     },
-    updateNotificationPreferences(
-        preferences: Record<string, boolean>,
-    ): Promise<{ preferences: Record<string, boolean> }> {
+    updateNotificationPreferences(preferences: Record<string, boolean>): Promise<{ preferences: Record<string, boolean> }> {
         return fetch(`${userBase}/notification-preferences`, {
             method: 'PUT',
             headers: jsonHeaders({ 'Content-Type': 'application/json' }),
