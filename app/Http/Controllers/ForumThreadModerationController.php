@@ -110,7 +110,7 @@ class ForumThreadModerationController extends Controller
         }
 
         if ($request->exists('prefix')) {
-            $prefix = $prefixes->resolve($board, $validated['prefix'] ?? null, false);
+            $prefix = $prefixes->resolveId($board, $validated['prefix'] ?? null, false);
             $prefixId = $prefix?->id;
 
             if ($prefixId !== $thread->forum_prefix_id) {

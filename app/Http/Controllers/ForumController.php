@@ -630,7 +630,7 @@ class ForumController extends Controller
             'prefix' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $prefix = $prefixes->resolve($board, $validated['prefix'] ?? null, (bool) $board->prefixes_required);
+        $prefix = $prefixes->resolveId($board, $validated['prefix'] ?? null, (bool) $board->prefixes_required);
 
         $title = trim((string) $validated['title']);
         $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));

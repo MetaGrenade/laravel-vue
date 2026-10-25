@@ -20,7 +20,7 @@ Taking a prefix off a board takes it off that board's threads. The title stays. 
 
 ## The API
 
-`prefix` on a thread is the prefix's address (its slug), or null.
+`prefix` on a thread is the prefix's address (its slug), or null. The site's forms send the id instead. A slug made only of digits is still a slug, so it is never taken to mean the prefix with that id.
 
 - Creating a thread sends it when the board offers one, and must send it when the board requires one.
 - Updating a thread omits it to leave the current one, and sends null to clear it.
@@ -37,4 +37,4 @@ The thread payload includes `prefix` as `{ id, name, slug, color }` or null.
 
 ## Testing
 
-`tests/Feature/Forum/ForumPrefixTest.php`: staff create a prefix and attach a board, a moderator cannot, a board can require one, a new thread must pick one that board offers, the board list shows it and filters by it, the forum home shows it, the author and a moderator can change it and a locked thread's author cannot, clearing it on edit is allowed, deleting a prefix or taking a board off it clears the thread, and the API accepts a slug and refuses one from another board.
+`tests/Feature/Forum/ForumPrefixTest.php`: staff create a prefix and attach a board, a moderator cannot, a board can require one, a new thread must pick one that board offers, the board list shows it and filters by it, the forum home shows it, the author and a moderator can change it and a locked thread's author cannot, clearing it on edit is allowed, deleting a prefix or taking a board off it clears the thread, the API accepts a slug and refuses one from another board, and a slug of digits selects that slug rather than the prefix whose id it matches.

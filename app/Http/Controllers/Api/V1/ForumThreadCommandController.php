@@ -35,7 +35,7 @@ class ForumThreadCommandController extends Controller
             ]);
         }
 
-        $prefix = $prefixes->resolve($board, $validated['prefix'] ?? null, (bool) $board->prefixes_required);
+        $prefix = $prefixes->resolveSlug($board, $validated['prefix'] ?? null, (bool) $board->prefixes_required);
 
         $submission = $submissions->thread($user, $board, $title, $body, $prefix);
 
@@ -81,7 +81,7 @@ class ForumThreadCommandController extends Controller
         }
 
         if (array_key_exists('prefix', $validated)) {
-            $prefix = $prefixes->resolve($board, $validated['prefix'], false);
+            $prefix = $prefixes->resolveSlug($board, $validated['prefix'], false);
             $prefixId = $prefix?->id;
 
             if ($prefixId !== $thread->forum_prefix_id) {

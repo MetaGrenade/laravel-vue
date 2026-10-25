@@ -319,6 +319,37 @@ class ForumPrefixTest extends TestCase
         $this->assertSame($help->id, ForumPrefix::query()->where('slug', 'help')->value('id'));
     }
 
+    public function test_a_numeric_slug_is_not_taken_for_another_prefix_id(): void
+    {
+        $help = $this->prefix('Help', 'help');
+        $member = User::factory()->create();
+        Sanctum::actingAs($member, ['*']);
+
+        $this->postJson(route('api.v1.forum.threads.store', $this->board), [
+            'title' => 'Digits are a slug',
+            'body' => '<p>Hello</p>',
+            'prefix' => (string) $help->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('prefix');
+
+        $numbered = $this->prefix('One', (string) $help->id);
+
+        $this->postJson(route('api.v1.forum.threads.store', $this->board), [
+            'title' => 'From the API',
+            'body' => '<p>Hello</p>',
+            'prefix' => (string) $help->id,
+        ])->assertCreated()->assertJsonPath('thread.prefix.slug', (string) $help->id);
+
+        $this->assertSame($numbered->id, ForumThread::query()->where('title', 'From the API')->value('forum_prefix_id'));
+
+        $this->actingAs($member)->post(route('forum.threads.store', $this->board), [
+            'title' => 'From the form',
+            'body' => '<p>Hello</p>',
+            'prefix' => (string) $help->id,
+        ])->assertRedirect();
+
+        $this->assertSame($help->id, ForumThread::query()->where('title', 'From the form')->value('forum_prefix_id'));
+    }
+
     private function staff(string $role): User
     {
         $user = User::factory()->create();

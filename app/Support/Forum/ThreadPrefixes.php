@@ -51,12 +51,30 @@ class ThreadPrefixes
     }
 
     /**
-     * The prefix a new or edited thread asked for. An empty value is no prefix. A board that requires one refuses that
+     * The prefix a web form asked for, by its id. An empty value is no prefix. A board that requires one refuses that
      * only when it actually offers some, and only for a thread that is being started.
      *
      * @throws ValidationException
      */
-    public function resolve(ForumBoard $board, mixed $value, bool $required): ?ForumPrefix
+    public function resolveId(ForumBoard $board, mixed $value, bool $required): ?ForumPrefix
+    {
+        return $this->resolve($board, $value, $required, byId: true);
+    }
+
+    /**
+     * The prefix an API request asked for, by its slug. A slug of digits is still a slug: it is never read as an id.
+     *
+     * @throws ValidationException
+     */
+    public function resolveSlug(ForumBoard $board, mixed $value, bool $required): ?ForumPrefix
+    {
+        return $this->resolve($board, $value, $required, byId: false);
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function resolve(ForumBoard $board, mixed $value, bool $required, bool $byId): ?ForumPrefix
     {
         $raw = is_string($value) ? trim($value) : $value;
 
@@ -72,11 +90,11 @@ class ThreadPrefixes
 
         $prefix = null;
 
-        if (is_int($raw) || (is_string($raw) && ctype_digit($raw))) {
+        if ($byId && (is_int($raw) || (is_string($raw) && ctype_digit($raw)))) {
             $prefix = $board->prefixes()->where('forum_prefixes.id', (int) $raw)->first();
         }
 
-        if ($prefix === null && is_string($raw)) {
+        if (! $byId && is_string($raw)) {
             $prefix = $board->prefixes()->where('forum_prefixes.slug', $raw)->first();
         }
 
