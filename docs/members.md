@@ -8,7 +8,7 @@ A public page for each account, and a directory of them.
 
 **Members** in the header opens the directory. It lists everyone who is not banned, newest first, and can be sorted by name or reputation or searched by name. A card shows the picture, the name, when they joined, their reputation and the start of their bio.
 
-A profile shows the same, plus the bio, the links they added, their badges, and (while the forum is on) their signature, how many public threads they have started, how many replies they have made in other people's threads, and the latest few of each. While the blog is on it also says how many of their comments are on published posts. **Settings → Profile** links to the person's own page. A name on a forum post and on a blog comment opens the profile.
+A profile shows the same, plus the bio, the links they added, their badges, and (while the forum is on) their signature, how many public threads they have started, how many replies they have made in other people's threads, and the latest few of each. While the forum is on, a signed-in member can ignore them from the profile ([forum-ignores.md](forum-ignores.md)). While the blog is on it also says how many of their comments are on published posts. **Settings → Profile** links to the person's own page. A name on a forum post and on a blog comment opens the profile.
 
 The address is the account's id (`/members/42`), not the name. A name can change, and it can contain characters that do not belong in an address, so an old link keeps working.
 

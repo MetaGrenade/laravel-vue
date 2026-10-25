@@ -13,6 +13,7 @@ use App\Models\ForumThreadRead;
 use App\Models\User;
 use App\Support\Forum\ForumIndexCache;
 use App\Support\Forum\ForumSubmissions;
+use App\Support\Forum\IgnoredMembers;
 use App\Support\Forum\ThreadPrefixes;
 use App\Support\Localization\DateFormatter;
 use App\Support\Security\HtmlSanitizer;
@@ -326,7 +327,7 @@ class ForumController extends Controller
         ]);
     }
 
-    public function showThread(Request $request, ForumBoard $board, ForumThread $thread, ThreadPrefixes $prefixes): Response
+    public function showThread(Request $request, ForumBoard $board, ForumThread $thread, ThreadPrefixes $prefixes, IgnoredMembers $ignoredMembers): Response
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
 
@@ -416,6 +417,7 @@ class ForumController extends Controller
         $posts = (clone $visiblePosts)
             ->with(['author' => function ($query) {
                 $query->select('id', 'nickname', 'created_at', 'avatar_url', 'forum_signature', 'reputation_points')
+                    ->with('roles')
                     ->withCount('forumPosts')
                     ->with(['badges' => function ($badgeQuery) {
                         $badgeQuery->select('badges.id', 'badges.name', 'badges.slug', 'badges.description', 'badges.points_required');
@@ -428,7 +430,10 @@ class ForumController extends Controller
             ->paginate($postsPerPage)
             ->withQueryString();
 
-        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator, $thread, $formatter) {
+        $ignoredIds = $ignoredMembers->ids($user);
+        $ignoredLookup = array_flip($ignoredIds);
+
+        $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator, $thread, $formatter, $ignoredLookup) {
             $author = $post->author;
 
             // A held reply can be neither edited, deleted, reported nor looked up in the history until it is out: those routes do not find it
@@ -441,8 +446,14 @@ class ForumController extends Controller
                 $canEdit = true;
             }
 
+            $canIgnore = $user !== null
+                && $author !== null
+                && $user->id !== $author->id
+                && ! $author->hasAnyRole(['admin', 'editor', 'moderator']);
+
             return [
                 'id' => $post->id,
+                'ignored' => $author !== null && isset($ignoredLookup[$author->id]),
                 'held' => $held,
                 'held_reason' => $isModerator ? $post->held_reason : null,
                 'body' => $post->body,
@@ -482,6 +493,7 @@ class ForumController extends Controller
                     'canEdit' => $canEdit,
                     'canDelete' => ! $held && $user !== null && ($user->id === $post->user_id || $canModerate),
                     'canModerate' => $canModerate,
+                    'canIgnore' => $canIgnore,
                 ],
                 'mentions' => $post->mentions->map(function (User $mentioned) {
                     $profileUrl = null;
@@ -607,6 +619,7 @@ class ForumController extends Controller
             ], $this->inertiaPagination($posts)),
             'reportReasons' => $reportReasons,
             'prefixes' => $prefixes->choices($board),
+            'ignoredUserIds' => $ignoredIds,
         ]);
     }
 

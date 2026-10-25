@@ -22,7 +22,10 @@ use Illuminate\Support\Collection;
  */
 class ForumPublisher
 {
-    public function __construct(private readonly ReputationManager $reputation) {}
+    public function __construct(
+        private readonly ReputationManager $reputation,
+        private readonly IgnoredMembers $ignored,
+    ) {}
 
     /**
      * A reply is out in the open.
@@ -45,9 +48,13 @@ class ForumPublisher
             $this->notifyMentionedUsers($mentionedUsers, $thread, $post);
         }
 
+        $quiet = array_flip($this->ignored->quietFor($author));
+
         $subscribers = $thread->subscribers()
             ->where('users.id', '!=', $author->id)
-            ->get();
+            ->get()
+            ->reject(fn (User $subscriber): bool => isset($quiet[$subscriber->id]))
+            ->values();
 
         if ($subscribers->isNotEmpty()) {
             $notification = new ForumThreadUpdated($thread, $post);
@@ -102,6 +109,16 @@ class ForumPublisher
      */
     public function notifyMentionedUsers(Collection $mentionedUsers, ForumThread $thread, ForumPost $post): void
     {
+        $post->loadMissing('author');
+        $author = $post->author;
+
+        if ($author instanceof User) {
+            $quiet = array_flip($this->ignored->quietFor($author));
+            $mentionedUsers = $mentionedUsers
+                ->reject(fn (User $mentioned): bool => isset($quiet[$mentioned->id]))
+                ->values();
+        }
+
         if ($mentionedUsers->isEmpty()) {
             return;
         }

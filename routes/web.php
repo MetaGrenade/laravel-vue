@@ -18,6 +18,7 @@ use App\Http\Controllers\Ecommerce\TebexContinueController;
 use App\Http\Controllers\Ecommerce\TebexStorefrontController;
 use App\Http\Controllers\Ecommerce\WishlistController;
 use App\Http\Controllers\ForumController;
+use App\Http\Controllers\ForumIgnoreController;
 use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumPostRevisionController;
 use App\Http\Controllers\ForumThreadActionController;
@@ -208,6 +209,12 @@ Route::middleware('section.enabled:forum')->group(function () {
     Route::get('forum/{board:slug}/{thread:slug}', [ForumController::class, 'showThread'])->name('forum.threads.show');
 
     Route::middleware('auth')->group(function () {
+        Route::put('forum/ignores/{user}', [ForumIgnoreController::class, 'store'])
+            ->whereNumber('user')
+            ->name('forum.ignores.store');
+        Route::delete('forum/ignores/{user}', [ForumIgnoreController::class, 'destroy'])
+            ->whereNumber('user')
+            ->name('forum.ignores.destroy');
         Route::get('forum/{board:slug}/threads/create', [ForumController::class, 'createThread'])
             ->name('forum.threads.create');
         Route::post('forum/{board:slug}/threads', [ForumController::class, 'storeThread'])
