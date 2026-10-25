@@ -63,10 +63,16 @@ interface FollowState {
     following: boolean;
 }
 
+interface MessageState {
+    own: boolean;
+    can: boolean;
+}
+
 const props = defineProps<{
     member: MemberProfile;
     ignore: IgnoreState | null;
     follow: FollowState | null;
+    message: MessageState | null;
 }>();
 
 const { t } = useI18n();
@@ -119,8 +125,13 @@ const role = computed(() => props.member.role ?? t('members.profile.role_member'
                         </div>
                     </div>
 
-                    <div v-if="!viewingAs && (follow || ignore?.can)" class="mt-4 flex flex-wrap gap-2">
-                        <template v-if="follow">
+                    <div v-if="message || (!viewingAs && (follow || ignore?.can))" class="mt-4 flex flex-wrap gap-2">
+                        <Button v-if="message" as-child variant="outline" size="sm">
+                            <Link :href="message.own ? route('messages.index') : route('messages.show', member.id)">
+                                {{ message.own ? t('members.messages.title') : t('members.profile.message') }}
+                            </Link>
+                        </Button>
+                        <template v-if="!viewingAs && follow">
                             <Button v-if="follow.can || follow.following" variant="outline" size="sm" type="button" @click="toggleFollow">
                                 {{ follow.following ? t('members.profile.stop_following') : t('members.profile.follow') }}
                             </Button>
@@ -128,7 +139,7 @@ const role = computed(() => props.member.role ?? t('members.profile.role_member'
                                 <Link :href="route('forum.following')">{{ t('members.following.title') }}</Link>
                             </Button>
                         </template>
-                        <Button v-if="ignore?.can" variant="outline" size="sm" type="button" @click="toggleIgnore">
+                        <Button v-if="!viewingAs && ignore?.can" variant="outline" size="sm" type="button" @click="toggleIgnore">
                             {{ ignore?.ignoring ? t('members.profile.stop_ignoring') : t('members.profile.ignore') }}
                         </Button>
                     </div>

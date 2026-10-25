@@ -5,7 +5,7 @@ import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import type { SharedData, User } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { LogOut, Settings, Users } from '@lucide/vue';
+import { LogOut, Mail, Settings, Users } from '@lucide/vue';
 
 interface Props {
     user: User;
@@ -30,6 +30,12 @@ const forumEnabled = computed(() => page.props.settings.website_sections.forum);
             <Link class="block w-full" :href="route('profile.edit')" as="button">
                 <Settings class="mr-2 h-4 w-4" />
                 Settings
+            </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem :as-child="true">
+            <Link class="block w-full" :href="route('messages.index')" as="button">
+                <Mail class="mr-2 h-4 w-4" />
+                {{ t('members.messages.menu') }}
             </Link>
         </DropdownMenuItem>
         <DropdownMenuItem v-if="forumEnabled" :as-child="true">

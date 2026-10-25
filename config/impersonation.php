@@ -45,6 +45,9 @@ return [
         'settings.billing.invoices.index',
         'settings.billing.payment-methods.index',
         'privacy.index',
+        // The customer's own messages. Sending is a POST, which is refused.
+        'messages.index',
+        'messages.show',
         // What somebody who has not verified their address is sent to, and so what they see (the button on it is a POST, which is refused).
         'verification.notice',
         'shop.orders',

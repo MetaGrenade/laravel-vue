@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\Forum\FollowedMembers;
 use App\Support\Forum\IgnoredMembers;
 use App\Support\Localization\DateFormatter;
+use App\Support\Members\DirectMessages;
 use App\Support\Members\Members;
 use App\Support\Seo\Seo;
 use App\Support\WebsiteSections;
@@ -62,7 +63,7 @@ class MemberController extends Controller
         ]);
     }
 
-    public function show(Request $request, User $user, Members $members, Seo $seo, IgnoredMembers $ignored, FollowedMembers $follows): Response
+    public function show(Request $request, User $user, Members $members, Seo $seo, IgnoredMembers $ignored, FollowedMembers $follows, DirectMessages $messages): Response
     {
         // A banned account's page is how a spam bio would stay on the site. It is not there.
         abort_if($user->is_banned, 404);
@@ -101,6 +102,10 @@ class MemberController extends Controller
                 'can' => $follows->canFollow($viewer, $user),
                 'following' => $follows->following($viewer, $user),
             ] : null,
+            'message' => $viewer === null ? null : [
+                'own' => $viewer->id === $user->id,
+                'can' => $viewer->id !== $user->id && $messages->block($viewer, $user) === null,
+            ],
         ]);
     }
 }

@@ -18,7 +18,6 @@ Deleting the account, on either side, drops the row.
 
 ## Not built
 
-- **Direct messages.**
 - **Blog comments** on the Following page.
 - **The list in a data export**, and an API for it.
 - **A follow that goes both ways.**
