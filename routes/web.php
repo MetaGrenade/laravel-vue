@@ -20,6 +20,7 @@ use App\Http\Controllers\Ecommerce\TebexStorefrontController;
 use App\Http\Controllers\Ecommerce\WishlistController;
 use App\Http\Controllers\ForumAttachmentController;
 use App\Http\Controllers\ForumController;
+use App\Http\Controllers\ForumFeedController;
 use App\Http\Controllers\ForumIgnoreController;
 use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumPostRevisionController;
@@ -218,9 +219,11 @@ Route::middleware('section.enabled:forum')->group(function () {
         ->name('forum.attachments.show');
     Route::middleware('auth')->get('forum/following', [MemberFollowController::class, 'index'])
         ->name('forum.following');
+    Route::get('forum/feed', [ForumFeedController::class, 'index'])->name('forum.feed');
     Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
     Route::middleware(['auth', 'throttle:search'])->get('forum/mentions', [ForumController::class, 'mentionSuggestions'])
         ->name('forum.mentions.index');
+    Route::get('forum/{board:slug}/feed', [ForumFeedController::class, 'board'])->name('forum.boards.feed');
     Route::get('forum/{board:slug}', [ForumController::class, 'showBoard'])->name('forum.boards.show');
     Route::get('forum/{board:slug}/{thread:slug}', [ForumController::class, 'showThread'])->name('forum.threads.show');
 

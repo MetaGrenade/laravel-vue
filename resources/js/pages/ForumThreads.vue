@@ -646,6 +646,15 @@ const markBoardAsRead = () => {
                     <p class="text-sm text-muted-foreground">
                         {{ threadsMeta.total }} {{ threadsMeta.total === 1 ? 'thread' : 'threads' }} in this board
                     </p>
+                    <a
+                        :href="route('forum.boards.feed', { board: props.board.slug })"
+                        rel="alternate"
+                        type="application/atom+xml"
+                        target="_blank"
+                        class="mt-1 inline-block text-sm font-medium text-primary transition hover:text-primary/80"
+                    >
+                        Subscribe via RSS
+                    </a>
                 </div>
                 <div class="flex w-full flex-col gap-2 md:flex-row md:items-center lg:max-w-2xl lg:justify-end">
                     <div class="flex w-full items-center gap-2">

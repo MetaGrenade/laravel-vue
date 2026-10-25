@@ -28,6 +28,7 @@ class WebsiteSectionsTest extends TestCase
         SystemSetting::set('website_sections', $sections);
 
         $this->get('/forum')->assertNotFound();
+        $this->get('/forum/feed')->assertNotFound();
     }
 
     public function test_support_routes_return_not_found_when_section_disabled(): void

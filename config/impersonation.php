@@ -69,6 +69,8 @@ return [
         'blogs.view',
         'blogs.comments.index',
         'forum.index',
+        'forum.feed',
+        'forum.boards.feed',
         'forum.boards.show',
         'forum.threads.show',
         'forum.attachments.show',

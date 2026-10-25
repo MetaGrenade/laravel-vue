@@ -36,6 +36,9 @@
         @if (\App\Support\WebsiteSections::isEnabled('blog'))
             <link rel="alternate" type="application/rss+xml" title="{{ config('seo.site_name') }} Blog" href="{{ route('blogs.feed') }}">
         @endif
+        @if (\App\Support\WebsiteSections::isEnabled('forum'))
+            <link rel="alternate" type="application/rss+xml" title="{{ config('seo.site_name') }} Forum" href="{{ route('forum.feed') }}">
+        @endif
 
         @fonts
 

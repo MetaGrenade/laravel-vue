@@ -23,7 +23,7 @@ Deleting the reply clears the solution, including when a moderator takes down a 
 - **An email, or reputation,** for the person whose reply was chosen, and a record of who marked it.
 - **More than one solution** on a thread.
 - **A filter on search or the home page**, and a sitemap entry for a filtered board page.
-- **RSS.** Ignoring a member is separate ([forum-ignores.md](forum-ignores.md)). A file on a post is separate ([forum-attachments.md](forum-attachments.md)).
+- **The public feed** lists the thread, not the chosen reply ([forum-rss.md](forum-rss.md)). Ignoring a member is separate ([forum-ignores.md](forum-ignores.md)). A file on a post is separate ([forum-attachments.md](forum-attachments.md)).
 
 ## Testing
 
