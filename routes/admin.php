@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ACLController as AdminACLController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\AutomodRuleController;
 use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BillingController;
 use App\Http\Controllers\Admin\BillingUsageController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\ForumBoardController;
 use App\Http\Controllers\Admin\ForumCategoryController;
 use App\Http\Controllers\Admin\ForumReportController;
+use App\Http\Controllers\Admin\ForumReviewController;
 use App\Http\Controllers\Admin\GiftCardController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\PollController;
@@ -147,6 +149,18 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::delete('acp/blog-categories/{category}', [BlogCategoryController::class, 'destroy'])->name('acp.blog-categories.destroy');
 
     Route::get('acp/forums', [ForumCategoryController::class, 'index'])->name('acp.forums.index');
+    // What automatic moderation has held for a moderator, and the rules that hold it (docs/automod.md).
+    Route::get('acp/forums/review', [ForumReviewController::class, 'index'])->name('acp.forums.review.index');
+    Route::post('acp/forums/review/bulk', [ForumReviewController::class, 'bulk'])->name('acp.forums.review.bulk');
+    Route::post('acp/forums/review/replies/{post}/approve', [ForumReviewController::class, 'approveReply'])->whereNumber('post')->name('acp.forums.review.replies.approve');
+    Route::delete('acp/forums/review/replies/{post}', [ForumReviewController::class, 'rejectReply'])->whereNumber('post')->name('acp.forums.review.replies.reject');
+    Route::post('acp/forums/review/threads/{thread:id}/approve', [ForumReviewController::class, 'approveThread'])->whereNumber('thread')->name('acp.forums.review.threads.approve');
+    Route::delete('acp/forums/review/threads/{thread:id}', [ForumReviewController::class, 'rejectThread'])->whereNumber('thread')->name('acp.forums.review.threads.reject');
+    Route::get('acp/forums/automod', [AutomodRuleController::class, 'index'])->name('acp.forums.automod.index');
+    Route::post('acp/forums/automod', [AutomodRuleController::class, 'store'])->name('acp.forums.automod.store');
+    Route::put('acp/forums/automod/{rule}', [AutomodRuleController::class, 'update'])->whereNumber('rule')->name('acp.forums.automod.update');
+    Route::patch('acp/forums/automod/{rule}/enabled', [AutomodRuleController::class, 'enabled'])->whereNumber('rule')->name('acp.forums.automod.enabled');
+    Route::delete('acp/forums/automod/{rule}', [AutomodRuleController::class, 'destroy'])->whereNumber('rule')->name('acp.forums.automod.destroy');
     Route::get('acp/forums/reports', [ForumReportController::class, 'index'])->name('acp.forums.reports.index');
     Route::patch('acp/forums/reports/bulk/status', [ForumReportController::class, 'bulkUpdateStatus'])->name('acp.forums.reports.bulk-status');
     Route::patch('acp/forums/reports/threads/{report}', [ForumReportController::class, 'updateThread'])->name('acp.forums.reports.threads.update');

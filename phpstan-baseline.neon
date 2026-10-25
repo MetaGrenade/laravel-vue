@@ -1,30 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$avatar_url\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Events/ForumPostCreated.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Events/ForumPostCreated.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Events/ForumPostCreated.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Events/ForumPostCreated.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>slug" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
@@ -739,24 +715,6 @@ parameters:
 			path: app/Http/Controllers/Api/V1/BlogController.php
 
 		-
-			message: '#^Method App\\Http\\Controllers\\Api\\V1\\ForumPostCommandController\:\:extractMentionNicknames\(\) should return Illuminate\\Support\\Collection\<int, string\> but returns Illuminate\\Support\\Collection\<int, non\-empty\-string\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/ForumPostCommandController.php
-
-		-
-			message: '#^Offset 1 on array\{list\<string\>, list\<non\-falsy\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Http/Controllers/Api/V1/ForumPostCommandController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:each\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: mixed, Closure\(App\\Models\\User\)\: void given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/ForumPostCommandController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -1057,24 +1015,6 @@ parameters:
 			path: app/Http/Controllers/Concerns/InteractsWithStripe.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$board\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: lowercase\-string&non\-falsy\-string, summary\: non\-falsy\-string, context\: ''Forum reply'', time\: string\|null, url\: non\-falsy\-string\|null, timestamp\: Carbon\\Carbon\|null\}, Closure\(App\\Models\\ForumPost\)\: array\{id\: lowercase\-string&non\-falsy\-string, summary\: non\-falsy\-string, context\: ''Forum reply'', time\: string\|null, url\: non\-falsy\-string\|null, timestamp\: Carbon\\Carbon\|null\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1117,57 +1057,15 @@ parameters:
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$avatar_url\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ForumController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$badges\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ForumController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$board\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/ForumController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$body\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/ForumController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$category\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ForumController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
 			identifier: property.notFound
-			count: 3
-			path: app/Http/Controllers/ForumController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$forum_posts_count\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ForumController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$forum_signature\.$#'
-			identifier: property.notFound
-			count: 1
+			count: 2
 			path: app/Http/Controllers/ForumController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 4
+			count: 2
 			path: app/Http/Controllers/ForumController.php
 
 		-
@@ -1177,49 +1075,25 @@ parameters:
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
-			identifier: property.notFound
-			count: 6
-			path: app/Http/Controllers/ForumController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reputation_points\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ForumController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
 			identifier: property.notFound
-			count: 6
+			count: 4
 			path: app/Http/Controllers/ForumController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
 			identifier: property.notFound
-			count: 6
-			path: app/Http/Controllers/ForumController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getRoleNames\(\)\.$#'
-			identifier: method.notFound
-			count: 1
+			count: 5
 			path: app/Http/Controllers/ForumController.php
 
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
-			count: 3
+			count: 2
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: mixed, thread_slug\: mixed, board_slug\: mixed, board_title\: mixed, author\: mixed, created_at\: string\|null, thread_id\: mixed\}, Closure\(App\\Models\\ForumPost\)\: array\{id\: int\<0, max\>, title\: mixed, thread_slug\: mixed, board_slug\: mixed, board_title\: mixed, author\: mixed, created_at\: string\|null, thread_id\: mixed\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/ForumController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, board\: array\{slug\: mixed, title\: mixed, category_title\: mixed\}, author\: mixed, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, board\: array\{slug\: mixed, title\: mixed, category_title\: mixed\}, author\: mixed, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, board\: array\{slug\: string, title\: string, category_title\: mixed\}, author\: string\|null, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, board\: array\{slug\: string, title\: string, category_title\: mixed\}, author\: string\|null, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php
@@ -1231,14 +1105,14 @@ parameters:
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 3
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, thread_slug\: string, board_slug\: string, board_title\: string, author\: string\|null, created_at\: string\|null, thread_id\: int\<0, max\>\}, Closure\(App\\Models\\ForumPost\)\: array\{id\: int\<0, max\>, title\: string, thread_slug\: string, board_slug\: string, board_title\: string, author\: string\|null, created_at\: string\|null, thread_id\: int\<0, max\>\} given\.$#'
+			identifier: argument.type
+			count: 1
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, body\: string\|null, body_raw\: string\|null, quote_html\: string, created_at\: string\|null, edited_at\: string\|null, number\: int, author\: array\{id\: mixed, nickname\: mixed, joined_at\: string\|null, forum_posts_count\: mixed, primary_role\: mixed, avatar_url\: mixed, forum_signature\: mixed, reputation_points\: mixed, badges\: mixed\}, permissions\: array\{canReport\: bool, canEdit\: bool, canDelete\: bool, canModerate\: bool\}, mentions\: Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, nickname\: string, profile_url\: string\|null\}\>\}, Closure\(App\\Models\\ForumPost, int\)\: array\{id\: int\<0, max\>, body\: string\|null, body_raw\: string\|null, quote_html\: string, created_at\: string\|null, edited_at\: string\|null, number\: int, author\: array\{id\: mixed, nickname\: mixed, joined_at\: string\|null, forum_posts_count\: mixed, primary_role\: mixed, avatar_url\: mixed, forum_signature\: mixed, reputation_points\: mixed, badges\: mixed\}, permissions\: array\{canReport\: bool, canEdit\: bool, canDelete\: bool, canModerate\: bool\}, mentions\: Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, nickname\: string, profile_url\: string\|null\}\>\} given\.$#'
-			identifier: argument.type
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Controllers/ForumController.php
 
@@ -1249,7 +1123,7 @@ parameters:
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, author\: mixed, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, author\: mixed, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, author\: string\|null, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, author\: string\|null, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php
@@ -1277,24 +1151,6 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Http/Controllers/ForumController.php
-
-		-
-			message: '#^Method App\\Http\\Controllers\\ForumPostController\:\:extractMentionNicknames\(\) should return Illuminate\\Support\\Collection\<int, string\> but returns Illuminate\\Support\\Collection\<int, non\-empty\-string\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Http/Controllers/ForumPostController.php
-
-		-
-			message: '#^Offset 1 on array\{list\<string\>, list\<non\-falsy\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Http/Controllers/ForumPostController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:each\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: mixed, Closure\(App\\Models\\User\)\: void given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/ForumPostController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
@@ -1689,18 +1545,6 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 2
-			path: app/Http/Resources/Api/V1/ForumThreadResource.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/Api/V1/ForumThreadResource.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
-			identifier: property.notFound
 			count: 1
 			path: app/Http/Resources/Api/V1/ForumThreadResource.php
 
@@ -1921,22 +1765,10 @@ parameters:
 			path: app/Notifications/BlogCommentPosted.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
-			identifier: property.notFound
-			count: 4
-			path: app/Notifications/ForumPostMentioned.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>slug" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 2
 			path: app/Notifications/ForumPostMentioned.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
-			identifier: property.notFound
-			count: 4
-			path: app/Notifications/ForumThreadUpdated.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>slug" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
@@ -2075,18 +1907,6 @@ parameters:
 			identifier: notIdentical.alwaysTrue
 			count: 1
 			path: app/Support/OAuth/Providers/DiscordProvider.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Support/Search/GlobalSearchService.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Support/Search/GlobalSearchService.php
 
 		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'

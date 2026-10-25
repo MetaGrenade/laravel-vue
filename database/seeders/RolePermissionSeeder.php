@@ -58,6 +58,10 @@ class RolePermissionSeeder extends Seeder
                 Permission::firstOrCreate(['name' => $permission.'.acp.pin']);
                 Permission::firstOrCreate(['name' => $permission.'.acp.migrate']);
                 Permission::firstOrCreate(['name' => $permission.'.acp.permissions']);
+                // What the rules held is for moderators to approve or reject, and the rules are an administrator's: neither is the structure of
+                // the forum, which `create`, `edit` and `delete` guard (docs/automod.md).
+                Permission::firstOrCreate(['name' => $permission.'.acp.review']);
+                Permission::firstOrCreate(['name' => $permission.'.acp.automod']);
             }
             if ($permission == 'users') {
                 Permission::firstOrCreate(['name' => $permission.'.acp.verify']);
@@ -97,6 +101,8 @@ class RolePermissionSeeder extends Seeder
             'users.acp.view',
             'users.acp.warn',
             'users.acp.ban',
+            'forums.acp.view',
+            'forums.acp.review',
         ]);
 
         // Assign the admin role to the user with ID 1, if the user exists

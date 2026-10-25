@@ -59,7 +59,7 @@ final class ModerationSubject
         }
 
         return match ($type) {
-            self::FORUM_POST => self::threadUrl(ForumPost::query()->whereKey($id)->value('forum_thread_id')),
+            self::FORUM_POST => self::threadUrl(ForumPost::query()->withoutGlobalScope(ForumPost::VISIBLE)->whereKey($id)->value('forum_thread_id')),
             self::FORUM_THREAD => self::threadUrl($id),
             self::BLOG_COMMENT => self::blogUrl(BlogComment::query()->whereKey($id)->value('blog_id')),
             default => null,
@@ -83,7 +83,8 @@ final class ModerationSubject
 
     private static function postLabel(int $id, User $member): ?string
     {
-        $threadId = ForumPost::query()->whereKey($id)->where('user_id', $member->id)->value('forum_thread_id');
+        // A reply held for review is one a moderator can be moving to warn somebody about, so it is looked for as well.
+        $threadId = ForumPost::query()->withoutGlobalScope(ForumPost::VISIBLE)->whereKey($id)->where('user_id', $member->id)->value('forum_thread_id');
 
         return $threadId === null ? null : 'Reply in "'.self::shorten(ForumThread::query()->whereKey($threadId)->value('title')).'"';
     }

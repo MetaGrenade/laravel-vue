@@ -9,9 +9,30 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * A forum thread. One that automatic moderation has caught is *held* (`held_at`, docs/automod.md): it is not published, so it is
+ * out of sight of everybody but the moderators, until one approves it.
+ */
 class ForumThread extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        // A thread that is published by any means (the moderators' publish button as much as the review queue) is no longer held.
+        static::saving(function (ForumThread $thread) {
+            if ($thread->is_published && $thread->held_at !== null) {
+                $thread->held_at = null;
+                $thread->held_reason = null;
+                $thread->held_by_rule_id = null;
+            }
+        });
+    }
+
+    public function isHeld(): bool
+    {
+        return $this->held_at !== null;
+    }
 
     protected $fillable = [
         'forum_board_id',
@@ -33,6 +54,7 @@ class ForumThread extends Model
         'is_published' => 'boolean',
         'last_posted_at' => 'datetime',
         'last_read_at' => 'datetime',
+        'held_at' => 'datetime',
     ];
 
     public function getRouteKeyName(): string
@@ -40,11 +62,17 @@ class ForumThread extends Model
         return 'slug';
     }
 
+    /**
+     * @return BelongsTo<ForumBoard, $this>
+     */
     public function board(): BelongsTo
     {
         return $this->belongsTo(ForumBoard::class, 'forum_board_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -55,6 +83,9 @@ class ForumThread extends Model
         return $this->belongsTo(User::class, 'last_post_user_id');
     }
 
+    /**
+     * @return HasMany<ForumPost, $this>
+     */
     public function posts(): HasMany
     {
         return $this->hasMany(ForumPost::class);
@@ -75,6 +106,9 @@ class ForumThread extends Model
         return $this->hasMany(ForumThreadSubscription::class);
     }
 
+    /**
+     * @return BelongsToMany<User, $this>
+     */
     public function subscribers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'forum_thread_subscriptions')->withTimestamps();

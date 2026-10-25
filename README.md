@@ -49,6 +49,7 @@ A batteries-included boilerplate for building SaaS products, online shops and la
 - **Branded emails**: every email the site sends is in one layout with the site's name and colour (or a logo), a footer, a plain-text version and a dark one. Set `MAIL_BRAND_COLOR`, `MAIL_LOGO_URL` and `MAIL_FOOTER`; the words on buttons and the colour of links are chosen so they can be read on any colour ([docs/email.md](docs/email.md)).
 - **"Get started" checklist**: a card on a new customer's dashboard lists what to do first (confirm the email, add a picture or bio, turn on two-factor, choose notifications, choose a plan, make an API key, say hello in the forum). Each step ticks itself from the account, and the card goes when everything is done, when it is hidden, or after 30 days ([docs/onboarding.md](docs/onboarding.md)).
 - **Warnings and bans**: a moderator can warn a member, ban them for good or until a date, and lift a ban, all with a reason; each is kept in the member's history, they are emailed and can read it in their account, and a suspension lifts itself when it ends. A warning is only a notice: nothing happens automatically ([docs/moderation.md](docs/moderation.md)).
+- **Automod and a review queue for the forum**: administrators set rules (phrases, too many links or a blocked domain, the same text again, too many posts too fast, for everybody or only new accounts) and a post that breaks one is held out of sight until a moderator approves it in a queue, or refused. Held posts tell nobody and earn nothing until approved ([docs/automod.md](docs/automod.md)).
 - **Authentication & Authorization**: Starter-kit authentication (registration, login, password reset, email verification, TOTP two-factor and social login) plus Spatie role/permission gating surfaced to the SPA via dedicated composables.
 - **Customer Dashboard**: after sign-in, a customer sees their newest orders and a shortcut to the order pages where their licence keys and downloads are found (when the shop is enabled), their plan, their account security and shortcuts, plus their tickets, forum activity and recommended reading. Areas an administrator has switched off are left off it.
 - **Appearance Management**: System/light/dark modes synced between SSR and the client through a reusable composable.
@@ -136,10 +137,9 @@ compose.yaml                # Optional backing services for local development (D
    php artisan db:seed --class=AcpDashboardDemoSeeder   # a year of users, blog posts and tickets for the ACP dashboard charts
    ```
 6. **Run the App**
-   - Everything in one terminal: `composer dev` (Laravel server, queue worker and Vite)
-   - Or separately: `php artisan serve`, `php artisan queue:listen --tries=1` and `npm run dev`
-   - The **scheduler** is not part of `composer dev`. Run `php artisan schedule:work` in another terminal if you want scheduled work such as releasing the stock of unpaid orders (every five minutes) and support SLA checks.
-   - Under Laravel Herd or Valet the web server is already running; start the queue worker and Vite (`php artisan queue:listen --tries=1` and `npm run dev`).
+   - Everything in one terminal: `composer dev` (Laravel server, queue worker, **scheduler** and Vite). The scheduler does the scheduled work: releasing the stock of unpaid orders (every five minutes), support SLA checks, lifting suspensions that have ended (every minute).
+   - Or separately: `php artisan serve`, `php artisan queue:listen --tries=1`, `php artisan schedule:work` and `npm run dev`
+   - Under Laravel Herd or Valet the web server is already running; start the queue worker, the scheduler and Vite (`php artisan queue:listen --tries=1`, `php artisan schedule:work` and `npm run dev`).
 
 ### Local services with Docker (optional)
 `compose.yaml` provides MySQL, PostgreSQL, Redis, Meilisearch and Mailpit for local development; the application itself still runs on your machine. (Meilisearch is there for the search driver planned for 1.0 and is not used yet.)
@@ -159,7 +159,7 @@ The shop works out of the box for browsing and for orders that cost nothing. Tak
    stripe listen --forward-to http://localhost:8000/stripe/webhook
    ```
    For a real endpoint, enable the shop's events as well as the subscription ones: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, and for refunds `refund.created`, `refund.updated`, `refund.failed` and `charge.refunded`.
-3. **Run a queue worker and the scheduler** (`composer dev` covers the queue; add `php artisan schedule:work`). Unpaid orders expire and release their stock through the scheduler; run `php artisan commerce:expire-orders` to do it by hand.
+3. **Run a queue worker and the scheduler** (`composer dev` runs both; in production see [Production & SSR Builds](#production--ssr-builds) for the queue worker and the cron entry). Unpaid orders expire and release their stock through the scheduler; run `php artisan commerce:expire-orders` to do it by hand.
 4. **Configure the store in the ACP** (**Commerce** in the sidebar). Sign in as an administrator and:
    - set the currency in `.env` (`COMMERCE_CURRENCY`, before you add prices) and, if you like, the payment provider under **System settings**;
    - add **Shipping** zones and rates and **Tax rates**. With no shipping zones, orders ship anywhere for free, and with no active tax rate no tax is charged, which is fine for digital shops;
@@ -339,7 +339,7 @@ The starter ships with first-party integrations for Google, Discord, and Steam b
    const canManageUsers = computed(() => hasPermission('users.acp.manage'));
    ```
 - **Translations**: Use `useI18n()` (`t()` / `tc()`) for new interface text and add the keys to `lang/en`; see [docs/i18n.md](docs/i18n.md). The shop pages still use literal English for now.
-- **Queues & Background Work**: `composer dev` also starts `queue:listen` so job dispatches from forum moderation, notifications or shop emails run instantly during development. Scheduled work needs `php artisan schedule:work` (see Quick Start).
+- **Queues & Background Work**: `composer dev` also starts `queue:listen` so job dispatches from forum moderation, notifications or shop emails run instantly during development. Scheduled work runs from `php artisan schedule:work`, which `composer dev` starts as well.
 
 ## Feature Notes & Endpoints
 - **Forum moderation routes** handle publishing, locking, pinning, reporting, and deletion, guarded by role middleware (`role:admin|editor|moderator`).
@@ -446,7 +446,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 | Command | What it does |
 |---------|--------------|
 | `composer setup` | First-time setup: install dependencies, create `.env`, generate the key, migrate and build assets. |
-| `composer dev` / `composer dev:ssr` | Run the server, queue worker and Vite (the SSR variant builds SSR first and adds log tailing and the SSR server). |
+| `composer dev` / `composer dev:ssr` | Run the server, queue worker, scheduler and Vite (the SSR variant builds SSR first and adds log tailing and the SSR server). |
 | `php artisan commerce:expire-orders` | Cancel unpaid orders past their payment window and release their stock (the scheduler runs this every five minutes). |
 | `php artisan lang:check` | Fail if a language is missing keys the fallback language has. |
 | `php artisan api:docs` | Regenerate the OpenAPI schema used by Swagger UI. |
@@ -458,6 +458,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - [docs/billing.md](docs/billing.md): subscriptions, what a customer is told and can do when a payment fails, and the Stripe events the shop needs.
 - [docs/entitlements.md](docs/entitlements.md): what a purchase or a subscription plan gives an account (features and limits), when it is given and taken back, and how code asks for it.
 - [docs/email.md](docs/email.md): how the emails look, the settings for their name, colour, logo and footer, and how to write a notification that fits.
+- [docs/automod.md](docs/automod.md): the forum's automatic moderation: the rules, what a held post is, the review queue and the API's answers.
 - [docs/moderation.md](docs/moderation.md): warnings and bans, who may moderate whom, what a member is told, and the permissions.
 - [docs/onboarding.md](docs/onboarding.md): the "Get started" checklist on the dashboard, its steps and how to add one.
 - [docs/ownership.md](docs/ownership.md): who a record belongs to, why access goes through the owner and never a user id, how that is tested, and what changes when teams arrive in 1.1.

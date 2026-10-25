@@ -18,6 +18,8 @@ class ForumPostResource extends JsonResource
             'body' => $this->body,
             'created_at' => optional($this->created_at)->toIso8601String(),
             'edited_at' => optional($this->edited_at)->toIso8601String(),
+            // Only there when a rule has held it for a moderator (docs/automod.md).
+            'held' => $this->when($this->held_at !== null, true),
             'author' => new UserSummaryResource($this->whenLoaded('author')),
         ];
     }
