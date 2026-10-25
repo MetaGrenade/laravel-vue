@@ -112,6 +112,12 @@ class ForumPostController extends Controller
             ]);
         }
 
+        $remove = $validated['remove_attachments'] ?? [];
+        $removeIds = is_array($remove) ? $remove : [];
+
+        // The combined count has to fail before the body, its revision, or a mention notice is saved.
+        $attachments->ensureCapacity($post, count($prepared), $removeIds);
+
         $previousMentionIds = $post->mentions()->pluck('users.id');
 
         if ($body !== $post->body) {
@@ -138,8 +144,7 @@ class ForumPostController extends Controller
             $this->publisher->notifyMentionedUsers($newlyMentionedUsers, $thread, $post);
         }
 
-        $remove = $validated['remove_attachments'] ?? [];
-        $attachments->sync($post, $user, $prepared, is_array($remove) ? $remove : []);
+        $attachments->sync($post, $user, $prepared, $removeIds);
 
         return $this->redirectToThread($board, $thread, $validated['page'] ?? null, 'Post updated successfully.');
     }

@@ -20,4 +20,4 @@ Editing a post can add files and can remove one that is already there.
 
 ## Testing
 
-`tests/Feature/Forum/ForumAttachmentTest.php`: a picture is shown and served as WebP, a PDF is downloaded, a document that claims to be a picture is refused, too many files and a file over the size are refused, a held reply's file is not public, a held thread's file is only for a moderator, deleting the post removes the file, editing can remove one, and taking down a member's replies removes theirs.
+`tests/Feature/Forum/ForumAttachmentTest.php`: a picture is shown and served as WebP, a PDF is downloaded, a document that claims to be a picture is refused, too many files and a file over the size are refused, an edit that would exceed five files does not publish, a failed replacement leaves the existing file, a held reply's file is not public, a held thread's file is only for a moderator, deleting the post removes the file, editing can remove one, taking down a member's replies removes theirs, and deleting an account removes files on replies in threads they started.

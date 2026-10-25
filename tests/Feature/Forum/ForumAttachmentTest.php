@@ -9,12 +9,19 @@ use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\User;
+use App\Notifications\ForumPostMentioned;
 use App\Support\Moderation\MemberContent;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
+use League\Flysystem\Config;
+use League\Flysystem\Filesystem;
+use League\Flysystem\Local\LocalFilesystemAdapter;
+use League\Flysystem\UnableToWriteFile;
 use Tests\TestCase;
 
 /**
@@ -243,6 +250,144 @@ class ForumAttachmentTest extends TestCase
         Storage::disk('local')->assertMissing($replyFile->path);
     }
 
+    public function test_an_edit_that_would_pass_five_files_does_not_publish(): void
+    {
+        $files = [];
+
+        for ($i = 0; $i < 5; $i++) {
+            $files[] = UploadedFile::fake()->createWithContent('note-'.$i.'.txt', 'hello');
+        }
+
+        $this->actingAs($this->author)->post(route('forum.posts.store', [$this->board, $this->thread]), [
+            'body' => '<p>Original</p>',
+            'attachments' => $files,
+        ])->assertRedirect();
+
+        $post = ForumPost::query()->first();
+        $this->assertNotNull($post);
+        $this->assertSame(5, $post->attachments()->count());
+        $body = $post->body;
+
+        $mentioned = User::factory()->create(['nickname' => 'Heard']);
+        Notification::fake();
+
+        $this->actingAs($this->author)->put(route('forum.posts.update', [$this->board, $this->thread, $post]), [
+            'body' => '<p>Updated @Heard</p>',
+            'attachments' => [UploadedFile::fake()->createWithContent('extra.txt', 'more')],
+        ])->assertSessionHasErrors([
+            'attachments' => 'A post can have 5 files.',
+        ]);
+
+        $post->refresh();
+        $this->assertSame($body, $post->body);
+        $this->assertNull($post->edited_at);
+        $this->assertSame(0, $post->revisions()->count());
+        $this->assertSame(0, $post->mentions()->count());
+        $this->assertSame(5, ForumAttachment::query()->count());
+        $this->assertDatabaseMissing('forum_attachments', ['name' => 'extra.txt']);
+        Notification::assertNotSentTo($mentioned, ForumPostMentioned::class);
+    }
+
+    public function test_a_failed_replacement_keeps_the_file_it_was_replacing(): void
+    {
+        $this->actingAs($this->author)->post(route('forum.posts.store', [$this->board, $this->thread]), [
+            'body' => '<p>See the file</p>',
+            'attachments' => [UploadedFile::fake()->createWithContent('notes.txt', 'hello')],
+        ])->assertRedirect();
+
+        $post = ForumPost::query()->first();
+        $attachment = ForumAttachment::query()->first();
+        $this->assertNotNull($post);
+        $this->assertNotNull($attachment);
+        $path = $attachment->path;
+
+        $this->useDiskThatCannotStore();
+
+        $this->actingAs($this->author)->put(route('forum.posts.update', [$this->board, $this->thread, $post]), [
+            'body' => '<p>See the file</p>',
+            'attachments' => [UploadedFile::fake()->createWithContent('replacement.txt', 'next')],
+            'remove_attachments' => [$attachment->id],
+        ])->assertSessionHasErrors([
+            'attachments' => 'The file could not be saved.',
+        ]);
+
+        $this->assertDatabaseHas('forum_attachments', ['id' => $attachment->id, 'name' => 'notes.txt']);
+        Storage::disk('local')->assertExists($path);
+        $this->assertSame(1, ForumAttachment::query()->count());
+    }
+
+    public function test_deleting_an_account_removes_files_on_replies_in_threads_they_started(): void
+    {
+        $replyAuthor = User::factory()->create();
+
+        $this->actingAs($replyAuthor)->post(route('forum.posts.store', [$this->board, $this->thread]), [
+            'body' => '<p>A reply</p>',
+            'attachments' => [UploadedFile::fake()->createWithContent('reply.txt', 'hello')],
+        ])->assertRedirect();
+
+        $replyFile = ForumAttachment::query()->first();
+        $this->assertNotNull($replyFile);
+
+        $held = ForumPost::query()->create([
+            'forum_thread_id' => $this->thread->id,
+            'user_id' => $replyAuthor->id,
+            'body' => '<p>Waiting</p>',
+        ]);
+        $held->forceFill(['held_at' => now()])->save();
+        $heldPath = 'forum-attachments/held/note.txt';
+        Storage::disk('local')->put($heldPath, 'held reply');
+        $heldFile = ForumAttachment::query()->create([
+            'forum_post_id' => $held->id,
+            'user_id' => $replyAuthor->id,
+            'disk' => 'local',
+            'path' => $heldPath,
+            'name' => 'note.txt',
+            'mime_type' => 'text/plain',
+            'size' => 10,
+        ]);
+
+        $bystander = User::factory()->create();
+        $theirThread = ForumThread::create([
+            'forum_board_id' => $this->board->id,
+            'user_id' => $bystander->id,
+            'title' => 'Their thread',
+            'slug' => 'their-thread',
+            'excerpt' => null,
+            'is_locked' => false,
+            'is_pinned' => false,
+            'is_published' => true,
+            'views' => 0,
+            'last_posted_at' => now(),
+            'last_post_user_id' => $bystander->id,
+        ]);
+
+        $this->actingAs($this->author)->post(route('forum.posts.store', [$this->board, $theirThread]), [
+            'body' => '<p>Elsewhere</p>',
+            'attachments' => [UploadedFile::fake()->createWithContent('mine.txt', 'hello')],
+        ])->assertRedirect();
+
+        $this->actingAs($bystander)->post(route('forum.posts.store', [$this->board, $theirThread]), [
+            'body' => '<p>Stays</p>',
+            'attachments' => [UploadedFile::fake()->createWithContent('stays.txt', 'hello')],
+        ])->assertRedirect();
+
+        $ownElsewhere = ForumAttachment::query()->where('name', 'mine.txt')->first();
+        $stays = ForumAttachment::query()->where('name', 'stays.txt')->first();
+        $this->assertNotNull($ownElsewhere);
+        $this->assertNotNull($stays);
+
+        $this->author->delete();
+
+        $this->assertDatabaseMissing('forum_attachments', ['id' => $replyFile->id]);
+        $this->assertDatabaseMissing('forum_attachments', ['id' => $heldFile->id]);
+        $this->assertDatabaseMissing('forum_attachments', ['id' => $ownElsewhere->id]);
+        Storage::disk('local')->assertMissing($replyFile->path);
+        Storage::disk('local')->assertMissing($heldPath);
+        Storage::disk('local')->assertMissing($ownElsewhere->path);
+        $this->assertDatabaseHas('forum_attachments', ['id' => $stays->id]);
+        Storage::disk('local')->assertExists($stays->path);
+    }
+
     private function png(string $name): UploadedFile
     {
         $image = imagecreatetruecolor(8, 8);
@@ -260,5 +405,34 @@ class ForumAttachmentTest extends TestCase
         $bytes = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF";
 
         return UploadedFile::fake()->createWithContent('notes.pdf', $bytes);
+    }
+
+    private function useDiskThatCannotStore(): void
+    {
+        config([
+            'filesystems.disks.full' => [
+                'driver' => 'full',
+                'root' => storage_path('framework/testing/disks/full'),
+                'throw' => false,
+            ],
+            'forum.attachments.disk' => 'full',
+        ]);
+
+        Storage::extend('full', function ($app, array $config) {
+            $adapter = new class($config['root']) extends LocalFilesystemAdapter
+            {
+                public function write(string $path, string $contents, Config $config): void
+                {
+                    throw UnableToWriteFile::atLocation($path, 'disk full');
+                }
+
+                public function writeStream(string $path, $contents, Config $config): void
+                {
+                    throw UnableToWriteFile::atLocation($path, 'disk full');
+                }
+            };
+
+            return new FilesystemAdapter(new Filesystem($adapter), $adapter, $config);
+        });
     }
 }

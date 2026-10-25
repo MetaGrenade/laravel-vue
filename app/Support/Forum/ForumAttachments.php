@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\Commerce\Catalogue\ImageProcessor;
 use App\Support\Commerce\Catalogue\ImageRejected;
 use App\Support\Routing\ZiggyRouteGroup;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -91,6 +92,18 @@ class ForumAttachments
     }
 
     /**
+     * The files that stay, plus the ones being added, have to fit. An edit checks this before it saves anything.
+     *
+     * @param  list<int>  $removeIds
+     *
+     * @throws ValidationException
+     */
+    public function ensureCapacity(ForumPost $post, int $incoming, array $removeIds = []): void
+    {
+        $this->guardCapacity($post, $incoming, $this->removals($post, $removeIds)->count());
+    }
+
+    /**
      * @param  list<array{bytes: string, mime: string, extension: string, name: string, width: int|null, height: int|null}>  $prepared
      * @param  list<int>  $removeIds
      *
@@ -98,25 +111,16 @@ class ForumAttachments
      */
     public function sync(ForumPost $post, User $user, array $prepared, array $removeIds = []): void
     {
-        $removeIds = array_values(array_unique(array_map(intval(...), $removeIds)));
-        $removing = $removeIds === []
-            ? collect()
-            : $post->attachments()->whereIn('id', $removeIds)->get();
+        $removing = $this->removals($post, $removeIds);
 
-        $max = max(1, (int) config('forum.attachments.max_files', 5));
-        $kept = $post->attachments()->count() - $removing->count();
+        $this->guardCapacity($post, count($prepared), $removing->count());
 
-        if ($kept + count($prepared) > $max) {
-            throw ValidationException::withMessages([
-                'attachments' => 'A post can have '.$max.' files.',
-            ]);
-        }
+        // Write the replacements first. A failed write then leaves the files already on the post where they were.
+        $this->keep($post, $user, $prepared);
 
         foreach ($removing as $attachment) {
             $attachment->delete();
         }
-
-        $this->keep($post, $user, $prepared);
     }
 
     /**
@@ -273,6 +277,33 @@ class ForumAttachments
         throw ValidationException::withMessages([
             'attachments.'.$index => 'Upload a JPEG, PNG, WebP or GIF picture, or a PDF, text file or zip.',
         ]);
+    }
+
+    /**
+     * @param  list<int>  $removeIds
+     * @return Collection<int, ForumAttachment>
+     */
+    private function removals(ForumPost $post, array $removeIds): Collection
+    {
+        $removeIds = array_values(array_unique(array_map(intval(...), $removeIds)));
+
+        if ($removeIds === []) {
+            return new Collection;
+        }
+
+        return $post->attachments()->whereIn('id', $removeIds)->get();
+    }
+
+    private function guardCapacity(ForumPost $post, int $incoming, int $removing): void
+    {
+        $max = max(1, (int) config('forum.attachments.max_files', 5));
+        $kept = $post->attachments()->count() - $removing;
+
+        if ($kept + $incoming > $max) {
+            throw ValidationException::withMessages([
+                'attachments' => 'A post can have '.$max.' files.',
+            ]);
+        }
     }
 
     /**

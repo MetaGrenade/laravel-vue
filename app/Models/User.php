@@ -8,6 +8,7 @@ use App\Support\Forum\ForumAttachments;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -34,13 +35,21 @@ class User extends Authenticatable implements MustVerifyEmail
     protected static function booted(): void
     {
         static::deleting(function (User $user): void {
+            // The database then removes this account's posts, and every reply in threads they started, without
+            // running the post or thread events that would delete those files.
             $ids = [];
 
             foreach (
                 ForumPost::query()
                     ->withTrashed()
                     ->withoutGlobalScope(ForumPost::VISIBLE)
-                    ->where('user_id', $user->id)
+                    ->where(function (Builder $query) use ($user): void {
+                        $query->where('user_id', $user->id)
+                            ->orWhereIn(
+                                'forum_thread_id',
+                                ForumThread::query()->where('user_id', $user->id)->select('id'),
+                            );
+                    })
                     ->pluck('id') as $id
             ) {
                 $ids[] = (int) $id;
