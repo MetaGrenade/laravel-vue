@@ -23,7 +23,7 @@ class ForumIndexCache
                             $postQuery->where('forum_threads.is_published', true);
                         },
                     ])->with(['latestThread' => function ($threadQuery) {
-                        $threadQuery->with(['author:id,nickname', 'latestPost.author:id,nickname'])
+                        $threadQuery->with(['author:id,nickname', 'latestPost.author:id,nickname', 'prefix:id,name,slug,color'])
                             ->withCount('posts');
                     }]);
                 }])
@@ -37,7 +37,7 @@ class ForumIndexCache
         return $this->remember('trending-threads', function () {
             return ForumThread::query()
                 ->where('is_published', true)
-                ->with(['board:id,slug,title,forum_category_id', 'board.category:id,slug,title', 'author:id,nickname'])
+                ->with(['board:id,slug,title,forum_category_id', 'board.category:id,slug,title', 'author:id,nickname', 'prefix:id,name,slug,color'])
                 ->withCount('posts')
                 ->orderByDesc('is_pinned')
                 ->orderByDesc('views')
@@ -55,8 +55,9 @@ class ForumIndexCache
                     $query->where('is_published', true);
                 })
                 ->with([
-                    'thread:id,slug,title,forum_board_id',
+                    'thread:id,slug,title,forum_board_id,forum_prefix_id',
                     'thread.board:id,slug,title,forum_category_id',
+                    'thread.prefix:id,name,slug,color',
                     'author:id,nickname,created_at',
                 ])
                 ->latest()

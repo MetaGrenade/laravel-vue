@@ -9,6 +9,7 @@ use App\Models\DownloadGrant;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
+use App\Models\ForumPrefix;
 use App\Models\ForumThread;
 use App\Models\Order;
 use App\Models\PersonalAccessToken;
@@ -108,6 +109,7 @@ class AppServiceProvider extends ServiceProvider
         ForumBoard::observe($cacheObserver);
         ForumThread::observe($cacheObserver);
         ForumPost::observe($cacheObserver);
+        ForumPrefix::observe($cacheObserver);
 
     }
 

@@ -13,6 +13,7 @@ use App\Models\ForumThreadRead;
 use App\Models\User;
 use App\Support\Forum\ForumIndexCache;
 use App\Support\Forum\ForumSubmissions;
+use App\Support\Forum\ThreadPrefixes;
 use App\Support\Localization\DateFormatter;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
@@ -34,7 +35,7 @@ class ForumController extends Controller
 
     public function __construct(private readonly ForumIndexCache $forumIndexCache) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request, ThreadPrefixes $prefixes): Response
     {
         $formatter = DateFormatter::for($request->user());
 
@@ -47,15 +48,16 @@ class ForumController extends Controller
             ->description('Join the conversation: ask questions, share ideas and get help from the community.');
 
         return Inertia::render('Forum', [
-            'categories' => $categories->map(function (ForumCategory $category) use ($formatter) {
+            'categories' => $categories->map(function (ForumCategory $category) use ($formatter, $prefixes) {
                 return [
                     'id' => $category->id,
                     'title' => $category->title,
                     'slug' => $category->slug,
                     'description' => $category->description,
-                    'boards' => $category->boards->map(function (ForumBoard $board) use ($formatter) {
+                    'boards' => $category->boards->map(function (ForumBoard $board) use ($formatter, $prefixes) {
                         $latestThread = $board->latestThread;
                         $latestPost = $latestThread?->latestPost;
+                        $prefix = $latestThread instanceof ForumThread ? $prefixes->payload($latestThread->prefix) : null;
 
                         return [
                             'id' => $board->id,
@@ -69,6 +71,7 @@ class ForumController extends Controller
                                 'title' => $latestThread->title,
                                 'slug' => $latestThread->slug,
                                 'board_slug' => $board->slug,
+                                'prefix' => $prefix,
                                 'author' => $latestThread->author?->nickname,
                                 'last_reply_author' => $latestPost?->author?->nickname,
                                 'last_reply_at' => $formatter->dayDateTime($latestPost?->created_at),
@@ -77,11 +80,12 @@ class ForumController extends Controller
                     })->values(),
                 ];
             })->values(),
-            'trendingThreads' => $trendingThreads->map(function (ForumThread $thread) use ($formatter) {
+            'trendingThreads' => $trendingThreads->map(function (ForumThread $thread) use ($formatter, $prefixes) {
                 return [
                     'id' => $thread->id,
                     'title' => $thread->title,
                     'slug' => $thread->slug,
+                    'prefix' => $prefixes->payload($thread->prefix),
                     'board' => [
                         'slug' => $thread->board->slug,
                         'title' => $thread->board->title,
@@ -93,10 +97,11 @@ class ForumController extends Controller
                     'last_reply_at' => $formatter->dayDateTime($thread->last_posted_at),
                 ];
             })->values(),
-            'latestPosts' => $latestPosts->map(function (ForumPost $post) use ($formatter) {
+            'latestPosts' => $latestPosts->map(function (ForumPost $post) use ($formatter, $prefixes) {
                 return [
                     'id' => $post->id,
                     'title' => $post->thread->title,
+                    'prefix' => $prefixes->payload($post->thread->prefix),
                     'thread_slug' => $post->thread->slug,
                     'board_slug' => $post->thread->board->slug,
                     'board_title' => $post->thread->board->title,
@@ -157,11 +162,21 @@ class ForumController extends Controller
         ]);
     }
 
-    public function showBoard(Request $request, ForumBoard $board): Response
+    public function showBoard(Request $request, ForumBoard $board, ThreadPrefixes $prefixes): Response
     {
         $board->load('category');
 
         $search = trim((string) $request->query('search', ''));
+        $offered = $prefixes->choices($board);
+        $prefixSlug = trim((string) $request->query('prefix', ''));
+        $activePrefix = null;
+
+        foreach ($offered as $choice) {
+            if ($choice['slug'] === $prefixSlug) {
+                $activePrefix = $choice;
+                break;
+            }
+        }
         $user = $request->user();
         $isModerator = $user?->hasAnyRole(['admin', 'editor', 'moderator']);
 
@@ -184,7 +199,7 @@ class ForumController extends Controller
                     'thread_reads.last_read_post_id as last_read_post_id',
                 ]);
             })
-            ->with(['author:id,nickname', 'latestPost.author:id,nickname'])
+            ->with(['author:id,nickname', 'prefix:id,name,slug,color', 'latestPost.author:id,nickname'])
             ->withCount('posts');
 
         if ($search !== '') {
@@ -207,6 +222,10 @@ class ForumController extends Controller
             });
         }
 
+        if ($activePrefix !== null) {
+            $threadsQuery->where('forum_threads.forum_prefix_id', $activePrefix['id']);
+        }
+
         $threadsQuery->orderByDesc('forum_threads.is_pinned');
 
         if ($includeReads) {
@@ -220,7 +239,7 @@ class ForumController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $threadItems = $threads->getCollection()->map(function (ForumThread $thread) use ($user, $isModerator, $formatter) {
+        $threadItems = $threads->getCollection()->map(function (ForumThread $thread) use ($user, $isModerator, $formatter, $prefixes) {
             $latestPost = $thread->latestPost;
 
             $hasUnread = $user !== null && $thread->last_posted_at !== null && (
@@ -231,6 +250,7 @@ class ForumController extends Controller
                 'id' => $thread->id,
                 'title' => $thread->title,
                 'slug' => $thread->slug,
+                'prefix' => $prefixes->payload($thread->prefix),
                 'author' => $thread->author?->nickname,
                 'replies' => max($thread->posts_count - 1, 0),
                 'views' => $thread->views,
@@ -258,10 +278,14 @@ class ForumController extends Controller
             })
             ->values();
 
-        app(Seo::class)
+        $seo = app(Seo::class)
             ->title($board->title.' - Forum')
             ->description($board->description ?: "Discussions in {$board->title}.")
             ->canonical($this->paginatedCanonical(route('forum.boards.show', $board), $request));
+
+        if ($activePrefix !== null) {
+            $seo->noindex();
+        }
 
         return Inertia::render('ForumThreads', [
             'board' => [
@@ -279,7 +303,9 @@ class ForumController extends Controller
             ], $this->inertiaPagination($threads)),
             'filters' => [
                 'search' => $search,
+                'prefix' => $activePrefix['slug'] ?? null,
             ],
+            'prefixes' => $offered,
             'permissions' => [
                 'canModerate' => (bool) $isModerator,
             ],
@@ -287,7 +313,7 @@ class ForumController extends Controller
         ]);
     }
 
-    public function showThread(Request $request, ForumBoard $board, ForumThread $thread): Response
+    public function showThread(Request $request, ForumBoard $board, ForumThread $thread, ThreadPrefixes $prefixes): Response
     {
         abort_if($thread->forum_board_id !== $board->id, 404);
 
@@ -324,6 +350,7 @@ class ForumController extends Controller
 
         $thread->load([
             'author:id,nickname,avatar_url,forum_signature',
+            'prefix:id,name,slug,color',
             'board.category:id,title,slug',
             'latestPost' => function ($query) {
                 $query->select('forum_posts.id', 'forum_posts.forum_thread_id', 'forum_posts.created_at');
@@ -499,6 +526,7 @@ class ForumController extends Controller
                 'id' => $thread->id,
                 'title' => $thread->title,
                 'slug' => $thread->slug,
+                'prefix' => $prefixes->payload($thread->prefix),
                 'is_locked' => $thread->is_locked,
                 'is_pinned' => $thread->is_pinned,
                 'is_published' => $thread->is_published,
@@ -518,6 +546,7 @@ class ForumController extends Controller
                 'data' => $postItems,
             ], $this->inertiaPagination($posts)),
             'reportReasons' => $reportReasons,
+            'prefixes' => $prefixes->choices($board),
         ]);
     }
 
@@ -561,13 +590,14 @@ class ForumController extends Controller
         return $page > 1 ? $url.'?'.http_build_query(['page' => $page]) : $url;
     }
 
-    public function createThread(Request $request, ForumBoard $board): Response
+    public function createThread(Request $request, ForumBoard $board, ThreadPrefixes $prefixes): Response
     {
         $user = $request->user();
 
         abort_if($user === null, 403);
 
         $board->load('category');
+        $offered = $prefixes->choices($board);
 
         return Inertia::render('ForumThreadCreate', [
             'board' => [
@@ -580,10 +610,12 @@ class ForumController extends Controller
                     'slug' => $board->category?->slug,
                 ],
             ],
+            'prefixes' => $offered,
+            'prefixesRequired' => $board->prefixes_required && $offered !== [],
         ]);
     }
 
-    public function storeThread(Request $request, ForumBoard $board, ForumSubmissions $submissions): RedirectResponse
+    public function storeThread(Request $request, ForumBoard $board, ForumSubmissions $submissions, ThreadPrefixes $prefixes): RedirectResponse
     {
         $user = $request->user();
 
@@ -595,7 +627,10 @@ class ForumController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
+            'prefix' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $prefix = $prefixes->resolve($board, $validated['prefix'] ?? null, (bool) $board->prefixes_required);
 
         $title = trim((string) $validated['title']);
         $body = trim(app(HtmlSanitizer::class)->forum((string) $validated['body']));
@@ -607,7 +642,7 @@ class ForumController extends Controller
             ]);
         }
 
-        $submission = $submissions->thread($user, $board, $title, $body);
+        $submission = $submissions->thread($user, $board, $title, $body, $prefix);
 
         // Caught by a rule: kept for a moderator, and the author is told so (the thread is not published, so its page is not theirs to open).
         if ($submission->held) {

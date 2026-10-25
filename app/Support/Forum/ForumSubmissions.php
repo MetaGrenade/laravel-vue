@@ -4,6 +4,7 @@ namespace App\Support\Forum;
 
 use App\Models\ForumBoard;
 use App\Models\ForumPost;
+use App\Models\ForumPrefix;
 use App\Models\ForumThread;
 use App\Models\User;
 use App\Support\Database\Transaction;
@@ -63,7 +64,7 @@ class ForumSubmissions
      *
      * @throws ValidationException When a rule refuses it.
      */
-    public function thread(User $author, ForumBoard $board, string $title, string $body): ForumSubmission
+    public function thread(User $author, ForumBoard $board, string $title, string $body, ?ForumPrefix $prefix = null): ForumSubmission
     {
         $verdict = $this->check($author, $title, $body);
         $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
@@ -78,9 +79,10 @@ class ForumSubmissions
         $thread = null;
         $initialPost = null;
 
-        Transaction::run(function () use ($board, $author, $title, $slug, $body, $bodyText, $verdict, &$thread, &$initialPost) {
+        Transaction::run(function () use ($board, $author, $title, $slug, $body, $bodyText, $verdict, $prefix, &$thread, &$initialPost) {
             $thread = new ForumThread([
                 'forum_board_id' => $board->id,
+                'forum_prefix_id' => $prefix?->id,
                 'user_id' => $author->id,
                 'title' => $title,
                 'slug' => $slug,

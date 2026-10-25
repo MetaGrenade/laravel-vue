@@ -15,6 +15,7 @@ class UpdateForumThreadRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:255'],
+            'prefix' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 }

@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { Pin, Ellipsis, Eye, EyeOff, Pencil, Trash2, Lock, LockOpen, Flag, CheckCircle2 } from '@lucide/vue';
+import ForumPrefixBadge, { type ForumPrefixLabel } from '@/components/forum/ForumPrefixBadge.vue';
 interface BoardSummary {
     id: number;
     title: string;
@@ -59,6 +60,7 @@ interface ThreadSummary {
     is_locked: boolean;
     is_published: boolean;
     has_unread: boolean;
+    prefix: ForumPrefixLabel | null;
     last_reply_author: string | null;
     last_reply_at: string | null;
     permissions: ThreadPermissions;
@@ -86,7 +88,9 @@ const props = defineProps<{
     threads: ThreadsPayload;
     filters: {
         search?: string;
+        prefix?: string | null;
     };
+    prefixes: ForumPrefixLabel[];
     permissions: {
         canModerate: boolean;
     };
@@ -114,8 +118,25 @@ const canStartThread = computed(() => Boolean(page.props.auth?.user));
 const hasUnreadThreads = computed(() => props.threads.data.some((thread) => thread.has_unread));
 const activeFilters = computed(() => ({
     search: searchQuery.value || undefined,
+    prefix: props.filters.prefix || undefined,
 }));
 const boardMarking = ref(false);
+
+const prefixHref = (slug: string | null) => {
+    const query: Record<string, string> = { board: props.board.slug };
+
+    const search = searchQuery.value.trim();
+
+    if (search !== '') {
+        query.search = search;
+    }
+
+    if (slug) {
+        query.prefix = slug;
+    }
+
+    return route('forum.boards.show', query);
+};
 
 const {
     meta: threadsMeta,
@@ -157,6 +178,7 @@ const threadReportForm = useForm({
 });
 const threadEditForm = useForm({
     title: '',
+    prefix: '',
 });
 const threadDeleteDialogOpen = ref(false);
 const pendingThreadDeletion = ref<ThreadSummary | null>(null);
@@ -331,7 +353,8 @@ const openThreadEditDialog = (thread: ThreadSummary) => {
 
     threadEditTarget.value = thread;
     threadEditForm.title = thread.title;
-    threadEditForm.clearErrors('title');
+    threadEditForm.prefix = thread.prefix ? String(thread.prefix.id) : '';
+    threadEditForm.clearErrors('title', 'prefix');
     threadEditDialogOpen.value = true;
 };
 
@@ -349,7 +372,9 @@ const submitThreadEdit = () => {
         return;
     }
 
-    if (trimmed === target.title) {
+    const prefixUnchanged = props.prefixes.length === 0 || threadEditForm.prefix === (target.prefix ? String(target.prefix.id) : '');
+
+    if (trimmed === target.title && prefixUnchanged) {
         threadEditDialogOpen.value = false;
         return;
     }
@@ -364,10 +389,18 @@ const submitThreadEdit = () => {
                 page: threadsMeta.value.current_page,
             };
 
+            if (props.prefixes.length > 0) {
+                payload.prefix = threadEditForm.prefix;
+            }
+
             const search = searchQuery.value.trim();
 
             if (search) {
                 payload.search = search;
+            }
+
+            if (props.filters.prefix) {
+                payload.list_prefix = props.filters.prefix;
             }
 
             return payload;
@@ -443,6 +476,10 @@ const markBoardAsRead = () => {
         payload.search = search;
     }
 
+    if (props.filters.prefix) {
+        payload.prefix = props.filters.prefix;
+    }
+
     router.post(route('forum.boards.mark-read', { board: props.board.slug }), payload, {
         preserveScroll: true,
         preserveState: false,
@@ -476,6 +513,19 @@ const markBoardAsRead = () => {
                         <p v-if="threadEditForm.errors.title" class="text-sm text-destructive">
                             {{ threadEditForm.errors.title }}
                         </p>
+                    </div>
+                    <div v-if="prefixes.length > 0" class="space-y-2">
+                        <Label for="board_thread_edit_prefix">Prefix</Label>
+                        <select
+                            id="board_thread_edit_prefix"
+                            v-model="threadEditForm.prefix"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs"
+                            :disabled="threadEditForm.processing"
+                        >
+                            <option value="">None</option>
+                            <option v-for="prefix in prefixes" :key="prefix.id" :value="String(prefix.id)">{{ prefix.name }}</option>
+                        </select>
+                        <p v-if="threadEditForm.errors.prefix" class="text-sm text-destructive">{{ threadEditForm.errors.prefix }}</p>
                     </div>
                     <DialogFooter class="gap-2 sm:gap-3">
                         <Button type="button" variant="outline" :disabled="threadEditForm.processing" @click="threadEditDialogOpen = false">
@@ -600,6 +650,28 @@ const markBoardAsRead = () => {
                     </Button>
                 </div>
             </header>
+
+            <nav v-if="prefixes.length > 0" class="flex flex-wrap items-center gap-2" aria-label="Filter by prefix">
+                <Link
+                    :href="prefixHref(null)"
+                    class="rounded-md px-3 py-1.5 text-sm"
+                    :class="
+                        !filters.prefix ? 'bg-primary/10 font-medium text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    "
+                >
+                    All
+                </Link>
+                <Link
+                    v-for="prefix in prefixes"
+                    :key="prefix.id"
+                    :href="prefixHref(prefix.slug)"
+                    class="rounded-md px-2 py-1"
+                    :class="filters.prefix === prefix.slug ? 'bg-primary/10' : 'hover:bg-muted'"
+                    :aria-current="filters.prefix === prefix.slug ? 'true' : undefined"
+                >
+                    <ForumPrefixBadge :prefix="prefix" />
+                </Link>
+            </nav>
             <!-- Top Pagination and Search -->
             <div class="flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row">
                 <div class="text-center text-sm text-muted-foreground md:text-left">
@@ -658,6 +730,7 @@ const markBoardAsRead = () => {
                                         'hover:underline',
                                     ]"
                                 >
+                                    <ForumPrefixBadge v-if="thread.prefix" :prefix="thread.prefix" class="mr-2" />
                                     {{ thread.title }}
                                     <Pin v-if="thread.is_pinned" class="ml-1 inline-block h-4 w-4 text-primary" />
                                     <Lock v-if="thread.is_locked" class="ml-1 inline-block h-4 w-4 text-muted-foreground" />

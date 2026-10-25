@@ -92,7 +92,7 @@ Strong already. Remaining gaps, in priority order:
 
 1. **Public member profiles and a member directory.** **Done** (third slice, see [members.md](members.md)). Users have bios and social links, and a public profile and a directory now show them. Following someone is not built.
 2. **Moderation depth.** Reports exist. Warnings and ban history are **done** ([moderation.md](moderation.md)), and so are automod rules, the review queue and a spam guard on the forum's forms ([automod.md](automod.md)), and taking down everything a spammer posted, alone, with a ban or for several members at once ([moderation.md](moderation.md#taking-down-what-a-member-posted)).
-3. **Thread features:** tags/prefixes, "solved" answers, ignore list, attachments and image uploads in posts.
+3. **Thread features:** prefixes are **done** ([forum-prefixes.md](forum-prefixes.md)): one staff-defined label per thread, offered per board, optional or required when starting a thread. Still open: "solved" answers, an ignore list, attachments and image uploads.
 4. **Direct messages and following.**
 5. **Email digests** and notification batching.
 6. **Forum RSS** (blog has it).
@@ -416,7 +416,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 ### M4. Community completions (8–12 days)
 
 - Public member profiles and a directory (**done**, third slice, see [members.md](members.md)); follow is not built yet
-- Forum: thread tags/prefixes, solved answers, attachments, ignore list, RSS
+- Forum: thread prefixes (**done**, fourth slice, see [forum-prefixes.md](forum-prefixes.md)); solved answers, attachments, ignore list and RSS are not built
 - Moderation: infractions and ban history (**done**, first slice, see [moderation.md](moderation.md)), automod rules and the spam guard extended to forum posts (**done**, second slice: see [automod.md](automod.md), and [moderation.md](moderation.md#taking-down-what-a-member-posted) for clearing out a spammer's posts)
 - Email digests
 - Break up the largest controllers while touching them

@@ -21,6 +21,7 @@ const props = defineProps<{
         slug: string;
         description: string | null;
         forum_category_id: number;
+        prefixes_required: boolean;
     };
     categories: Array<{ id: number; title: string }>;
 }>();
@@ -35,6 +36,7 @@ const form = useForm({
     title: props.board.title ?? '',
     slug: props.board.slug ?? '',
     description: props.board.description ?? '',
+    prefixes_required: props.board.prefixes_required,
 });
 
 const hasCategories = computed(() => props.categories.length > 0);
@@ -149,6 +151,16 @@ const confirmDelete = () => {
                             />
                             <InputError :message="form.errors.description" />
                         </div>
+
+                        <label class="flex items-start gap-3 text-sm">
+                            <input v-model="form.prefixes_required" type="checkbox" class="mt-1 size-4 rounded border-input" />
+                            <span>
+                                <span class="font-medium">Require a prefix</span>
+                                <span class="mt-1 block text-muted-foreground">
+                                    A new thread on this board has to pick one of the prefixes offered here. Boards with no prefixes are unaffected.
+                                </span>
+                            </span>
+                        </label>
                     </CardContent>
                     <CardFooter class="flex flex-col gap-4 border-t border-border/50 pt-6 md:flex-row md:items-center md:justify-between">
                         <div class="text-sm text-muted-foreground">

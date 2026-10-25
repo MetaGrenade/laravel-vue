@@ -195,12 +195,17 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                 Create, arrange, and update the categories and boards that power the community forums.
                             </p>
                         </div>
-                        <Button v-if="createForums" class="text-sm" as-child>
-                            <Link :href="route('acp.forums.categories.create')" preserve-scroll>
-                                <PlusCircle class="mr-2 h-4 w-4" />
-                                Create Category
-                            </Link>
-                        </Button>
+                        <div class="flex flex-wrap gap-2">
+                            <Button v-if="createForums" class="text-sm" as-child>
+                                <Link :href="route('acp.forums.categories.create')" preserve-scroll>
+                                    <PlusCircle class="mr-2 h-4 w-4" />
+                                    Create Category
+                                </Link>
+                            </Button>
+                            <Button variant="outline" class="text-sm" as-child>
+                                <Link :href="route('acp.forums.prefixes.index')" preserve-scroll>Thread prefixes</Link>
+                            </Button>
+                        </div>
                     </div>
 
                     <p

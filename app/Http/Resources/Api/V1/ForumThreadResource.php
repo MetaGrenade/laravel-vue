@@ -33,6 +33,18 @@ class ForumThreadResource extends JsonResource
                 ];
             }),
             'author' => new UserSummaryResource($this->whenLoaded('author')),
+            'prefix' => $this->whenLoaded('prefix', function () {
+                if ($this->prefix === null) {
+                    return null;
+                }
+
+                return [
+                    'id' => $this->prefix->id,
+                    'name' => $this->prefix->name,
+                    'slug' => $this->prefix->slug,
+                    'color' => $this->prefix->color,
+                ];
+            }),
             'latest_post' => $this->whenLoaded('latestPost', function () {
                 $post = $this->latestPost;
 

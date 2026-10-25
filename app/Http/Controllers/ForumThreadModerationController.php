@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ForumBoard;
 use App\Models\ForumThread;
+use App\Support\Forum\ThreadPrefixes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -76,7 +77,7 @@ class ForumThreadModerationController extends Controller
         return $this->redirectAfterAction($request, $board, $thread, 'Thread unpinned successfully.');
     }
 
-    public function update(Request $request, ForumBoard $board, ForumThread $thread): RedirectResponse
+    public function update(Request $request, ForumBoard $board, ForumThread $thread, ThreadPrefixes $prefixes): RedirectResponse
     {
         $this->ensureThreadBelongsToBoard($board, $thread);
 
@@ -91,6 +92,7 @@ class ForumThreadModerationController extends Controller
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'prefix' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
         $title = trim($validated['title']);
@@ -101,13 +103,26 @@ class ForumThreadModerationController extends Controller
             ]);
         }
 
+        $changes = [];
+
         if ($title !== $thread->title) {
-            $thread->forceFill([
-                'title' => $title,
-            ])->save();
+            $changes['title'] = $title;
         }
 
-        return $this->redirectAfterAction($request, $board, $thread, 'Thread title updated successfully.');
+        if ($request->exists('prefix')) {
+            $prefix = $prefixes->resolve($board, $validated['prefix'] ?? null, false);
+            $prefixId = $prefix?->id;
+
+            if ($prefixId !== $thread->forum_prefix_id) {
+                $changes['forum_prefix_id'] = $prefixId;
+            }
+        }
+
+        if ($changes !== []) {
+            $thread->forceFill($changes)->save();
+        }
+
+        return $this->redirectAfterAction($request, $board, $thread, 'Thread updated successfully.');
     }
 
     public function destroy(Request $request, ForumBoard $board, ForumThread $thread): RedirectResponse
@@ -143,6 +158,16 @@ class ForumThreadModerationController extends Controller
 
             if ($search !== '') {
                 $parameters['search'] = $search;
+            }
+        }
+
+        $prefix = $request->input('list_prefix');
+
+        if (is_string($prefix)) {
+            $prefix = trim($prefix);
+
+            if ($prefix !== '') {
+                $parameters['prefix'] = $prefix;
             }
         }
 

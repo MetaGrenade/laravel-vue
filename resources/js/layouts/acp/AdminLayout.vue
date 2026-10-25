@@ -95,6 +95,7 @@ const navGroups = computed<AdminNavGroup[]>(() => {
                 { title: 'Blogs', href: '/acp/blogs', icon: BookOpen, visible: can('blogs.acp.view') && sections.value.blog },
                 { title: 'Blog comments', href: '/acp/blog-comments', icon: MessageCircle, visible: can('blogs.acp.view') && sections.value.blog },
                 { title: 'Forums', href: '/acp/forums', icon: MessageSquare, visible: can('forums.acp.view') && sections.value.forum },
+                { title: 'Thread prefixes', href: '/acp/forums/prefixes', icon: Tags, visible: can('forums.acp.view') && sections.value.forum },
                 { title: 'Forum reports', href: '/acp/forums/reports', icon: ShieldAlert, visible: can('forums.acp.view') && sections.value.forum },
                 { title: 'Review queue', href: '/acp/forums/review', icon: Inbox, visible: can('forums.acp.review') && sections.value.forum },
                 { title: 'Automod rules', href: '/acp/forums/automod', icon: ListFilter, visible: can('forums.acp.automod') && sections.value.forum },

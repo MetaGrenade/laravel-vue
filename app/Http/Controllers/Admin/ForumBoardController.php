@@ -70,6 +70,7 @@ class ForumBoardController extends Controller
                 'slug' => $board->slug,
                 'description' => $board->description,
                 'forum_category_id' => $board->forum_category_id,
+                'prefixes_required' => $board->prefixes_required,
             ],
             'categories' => $categories->map(fn (ForumCategory $category) => [
                 'id' => $category->id,
@@ -95,6 +96,7 @@ class ForumBoardController extends Controller
             'title' => $validated['title'],
             'slug' => $this->resolveSlug($validated['slug'] ?? null, $validated['title'], ForumBoard::class, $board->id),
             'description' => $validated['description'] ?? null,
+            'prefixes_required' => $request->boolean('prefixes_required'),
             'position' => $newPosition,
         ])->save();
 

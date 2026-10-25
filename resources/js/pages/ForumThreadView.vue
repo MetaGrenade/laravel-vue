@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import ForumPrefixBadge, { type ForumPrefixLabel } from '@/components/forum/ForumPrefixBadge.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
 
@@ -83,6 +84,7 @@ interface ThreadSummary {
     last_posted_at: string | null;
     is_subscribed: boolean;
     subscribers_count: number;
+    prefix: ForumPrefixLabel | null;
     permissions: ThreadPermissions;
 }
 
@@ -177,6 +179,7 @@ const props = defineProps<{
     thread: ThreadSummary;
     posts: PostsPayload;
     reportReasons: ReportReasonOption[];
+    prefixes: ForumPrefixLabel[];
 }>();
 
 const page = usePage<SharedData>();
@@ -816,6 +819,7 @@ const unpinThread = () => {
 const threadEditDialogOpen = ref(false);
 const threadEditForm = useForm({
     title: props.thread.title,
+    prefix: props.thread.prefix ? String(props.thread.prefix.id) : '',
 });
 
 watch(
@@ -832,9 +836,10 @@ watch(
 
 watch(threadEditDialogOpen, (open) => {
     if (!open) {
-        threadEditForm.reset('title');
-        threadEditForm.clearErrors('title');
+        threadEditForm.reset('title', 'prefix');
+        threadEditForm.clearErrors('title', 'prefix');
         threadEditForm.title = props.thread.title;
+        threadEditForm.prefix = props.thread.prefix ? String(props.thread.prefix.id) : '';
     }
 });
 
@@ -853,7 +858,8 @@ const renameThread = () => {
     }
 
     threadEditForm.title = props.thread.title;
-    threadEditForm.clearErrors('title');
+    threadEditForm.prefix = props.thread.prefix ? String(props.thread.prefix.id) : '';
+    threadEditForm.clearErrors('title', 'prefix');
     threadEditDialogOpen.value = true;
 };
 
@@ -869,7 +875,9 @@ const submitThreadEdit = () => {
         return;
     }
 
-    if (trimmed === props.thread.title) {
+    const prefixUnchanged = props.prefixes.length === 0 || threadEditForm.prefix === (props.thread.prefix ? String(props.thread.prefix.id) : '');
+
+    if (trimmed === props.thread.title && prefixUnchanged) {
         threadEditDialogOpen.value = false;
         return;
     }
@@ -880,6 +888,7 @@ const submitThreadEdit = () => {
     threadEditForm
         .transform(() => ({
             title: trimmed,
+            ...(props.prefixes.length > 0 ? { prefix: threadEditForm.prefix } : {}),
             redirect_to_thread: true,
             page: postsMeta.value.current_page,
         }))
@@ -1227,6 +1236,19 @@ const submitReply = () => {
                             {{ threadEditForm.errors.title }}
                         </p>
                     </div>
+                    <div v-if="prefixes.length > 0" class="space-y-2">
+                        <Label for="thread_edit_prefix">Prefix</Label>
+                        <select
+                            id="thread_edit_prefix"
+                            v-model="threadEditForm.prefix"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs"
+                            :disabled="threadEditForm.processing"
+                        >
+                            <option value="">None</option>
+                            <option v-for="prefix in prefixes" :key="prefix.id" :value="String(prefix.id)">{{ prefix.name }}</option>
+                        </select>
+                        <p v-if="threadEditForm.errors.prefix" class="text-sm text-destructive">{{ threadEditForm.errors.prefix }}</p>
+                    </div>
                     <DialogFooter class="gap-2 sm:gap-3">
                         <Button type="button" variant="outline" :disabled="threadEditForm.processing" @click="threadEditDialogOpen = false">
                             Cancel
@@ -1494,6 +1516,7 @@ const submitReply = () => {
             <header class="flex flex-col items-center justify-between gap-4 rounded-xl border bg-card p-5 shadow-xs lg:flex-row">
                 <h1 id="thread_title" class="text-2xl font-semibold tracking-tight">
                     <Pin v-if="props.thread.is_pinned" class="mr-2 inline-block h-8 w-8" />
+                    <ForumPrefixBadge v-if="props.thread.prefix" :prefix="props.thread.prefix" class="mr-2 align-middle" />
                     {{ props.thread.title }}
                     <Lock v-if="props.thread.is_locked" class="ml-2 inline-block h-8 w-8 text-muted-foreground" />
                 </h1>
