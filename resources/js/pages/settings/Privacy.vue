@@ -37,6 +37,7 @@ interface Props {
     erasureRequest: ErasureRequestResource | null;
     status?: string;
     ignored: IgnoredMember[] | null;
+    following: IgnoredMember[] | null;
 }
 
 const props = defineProps<Props>();
@@ -45,6 +46,10 @@ const viewingAs = computed(() => page.props.impersonation !== null);
 
 const stopIgnoring = (member: IgnoredMember) => {
     router.delete(route('forum.ignores.destroy', member.id), { preserveScroll: true });
+};
+
+const stopFollowing = (member: IgnoredMember) => {
+    router.delete(route('forum.follows.destroy', member.id), { preserveScroll: true });
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -158,6 +163,27 @@ const formatDateTime = (value?: string | null) => {
                             <Button v-if="!viewingAs" variant="outline" size="sm" type="button" @click="stopIgnoring(member)"> Stop ignoring </Button>
                         </li>
                     </ul>
+                </div>
+                <div v-if="following !== null" class="space-y-4">
+                    <HeadingSmall
+                        title="Following"
+                        description="Their new threads and replies are on your Following page, and you are told when they post."
+                    />
+                    <p v-if="following.length === 0" class="text-sm text-muted-foreground">You are not following anyone.</p>
+                    <ul v-else class="divide-y rounded-lg border">
+                        <li v-for="member in following" :key="member.id" class="flex items-center justify-between gap-3 px-4 py-3">
+                            <Link v-if="!member.banned" :href="route('members.show', member.id)" class="text-sm font-medium hover:underline">
+                                {{ member.nickname }}
+                            </Link>
+                            <span v-else class="text-sm font-medium">{{ member.nickname }}</span>
+                            <Button v-if="!viewingAs" variant="outline" size="sm" type="button" @click="stopFollowing(member)">
+                                Stop following
+                            </Button>
+                        </li>
+                    </ul>
+                    <p class="text-sm">
+                        <Link :href="route('forum.following')" class="text-primary hover:underline">Open your Following page</Link>
+                    </p>
                 </div>
                 <div class="space-y-4">
                     <HeadingSmall title="Data export" description="Request a portable copy of your content and account history." />

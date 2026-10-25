@@ -58,9 +58,15 @@ interface IgnoreState {
     ignoring: boolean;
 }
 
+interface FollowState {
+    can: boolean;
+    following: boolean;
+}
+
 const props = defineProps<{
     member: MemberProfile;
     ignore: IgnoreState | null;
+    follow: FollowState | null;
 }>();
 
 const { t } = useI18n();
@@ -75,6 +81,16 @@ const toggleIgnore = () => {
     }
 
     router.put(route('forum.ignores.store', props.member.id), {}, { preserveScroll: true });
+};
+
+const toggleFollow = () => {
+    if (props.follow?.following) {
+        router.delete(route('forum.follows.destroy', props.member.id), { preserveScroll: true });
+
+        return;
+    }
+
+    router.put(route('forum.follows.store', props.member.id), {}, { preserveScroll: true });
 };
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
@@ -103,9 +119,19 @@ const role = computed(() => props.member.role ?? t('members.profile.role_member'
                         </div>
                     </div>
 
-                    <Button v-if="ignore?.can && !viewingAs" class="mt-4" variant="outline" size="sm" type="button" @click="toggleIgnore">
-                        {{ ignore?.ignoring ? t('members.profile.stop_ignoring') : t('members.profile.ignore') }}
-                    </Button>
+                    <div v-if="!viewingAs && (follow || ignore?.can)" class="mt-4 flex flex-wrap gap-2">
+                        <template v-if="follow">
+                            <Button v-if="follow.can || follow.following" variant="outline" size="sm" type="button" @click="toggleFollow">
+                                {{ follow.following ? t('members.profile.stop_following') : t('members.profile.follow') }}
+                            </Button>
+                            <Button v-else as-child variant="outline" size="sm">
+                                <Link :href="route('forum.following')">{{ t('members.following.title') }}</Link>
+                            </Button>
+                        </template>
+                        <Button v-if="ignore?.can" variant="outline" size="sm" type="button" @click="toggleIgnore">
+                            {{ ignore?.ignoring ? t('members.profile.stop_ignoring') : t('members.profile.ignore') }}
+                        </Button>
+                    </div>
 
                     <p v-if="member.joined_at" class="mt-5 text-sm text-muted-foreground">
                         {{ t('members.profile.member_since', { date: member.joined_at }) }}

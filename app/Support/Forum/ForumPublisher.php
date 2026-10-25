@@ -7,6 +7,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
 use App\Models\User;
+use App\Notifications\ForumFollowedMemberPosted;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
 use App\Support\Reputation\ReputationManager;
@@ -14,8 +15,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * What follows content that is now out in the open in the forum: the thread is bumped, the author has read it, the people mentioned and
- * the people following the thread are told, the page is told live, and the author earns reputation.
+ * What follows content that is now out in the open in the forum: the thread is bumped, the author has read it, the people mentioned,
+ * the people following the thread and the people following the author are told, the page is told live, and the author earns reputation.
  *
  * It is done when a reply or a thread is posted, or, for one that automatic moderation held, when a moderator approves it (docs/automod.md),
  * and so it lives here and not in each of the controllers that post.
@@ -25,6 +26,7 @@ class ForumPublisher
     public function __construct(
         private readonly ReputationManager $reputation,
         private readonly IgnoredMembers $ignored,
+        private readonly FollowedMembers $followed,
     ) {}
 
     /**
@@ -42,10 +44,15 @@ class ForumPublisher
         $thread->loadMissing('board');
 
         $mentionedUsers = $this->resolveMentionedUsers((string) $post->body, $author->id);
+        $alreadyTold = [];
 
         if ($mentionedUsers->isNotEmpty()) {
             $post->mentions()->sync($mentionedUsers->pluck('id')->all());
             $this->notifyMentionedUsers($mentionedUsers, $thread, $post);
+
+            foreach ($mentionedUsers as $mentioned) {
+                $alreadyTold[(int) $mentioned->id] = true;
+            }
         }
 
         $quiet = array_flip($this->ignored->quietFor($author));
@@ -57,12 +64,18 @@ class ForumPublisher
             ->values();
 
         if ($subscribers->isNotEmpty()) {
+            foreach ($subscribers as $subscriber) {
+                $alreadyTold[(int) $subscriber->id] = true;
+            }
+
             $notification = new ForumThreadUpdated($thread, $post);
 
             $subscribers->each(function (User $subscriber) use ($notification): void {
                 $subscriber->notifyThroughPreferences($notification, 'forums', ['database', 'mail', 'push']);
             });
         }
+
+        $this->notifyFollowers($thread, $post, $author, $alreadyTold);
 
         ForumPostCreated::dispatch($thread, $post);
 
@@ -77,6 +90,9 @@ class ForumPublisher
     public function threadPublished(ForumThread $thread, ForumPost $initialPost, User $author): void
     {
         $this->markRead($thread, $initialPost, $author);
+
+        $thread->loadMissing('board');
+        $this->notifyFollowers($thread, $initialPost, $author, []);
 
         $this->reputation->record('forum_post_created', $author, $initialPost, [
             'thread_id' => $thread->id,
@@ -127,6 +143,26 @@ class ForumPublisher
 
         $mentionedUsers->each(function (User $mentionedUser) use ($notification): void {
             $mentionedUser->notifyThroughPreferences($notification, 'forums', ['database', 'mail', 'push']);
+        });
+    }
+
+    /**
+     * @param  array<int, true>  $alreadyTold
+     */
+    private function notifyFollowers(ForumThread $thread, ForumPost $post, User $author, array $alreadyTold): void
+    {
+        $thread->loadMissing('board');
+
+        $followers = $this->followed->listeners($author, $alreadyTold);
+
+        if ($followers->isEmpty()) {
+            return;
+        }
+
+        $notification = new ForumFollowedMemberPosted($thread, $post, $author);
+
+        $followers->each(function (User $follower) use ($notification): void {
+            $follower->notifyThroughPreferences($notification, 'forums', ['database', 'mail', 'push']);
         });
     }
 

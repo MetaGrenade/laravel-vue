@@ -90,10 +90,10 @@ Plan: eight milestones (M0–M7) in section 9, roughly **70–100 developer-days
 
 Strong already. Remaining gaps, in priority order:
 
-1. **Public member profiles and a member directory.** **Done** (third slice, see [members.md](members.md)). Users have bios and social links, and a public profile and a directory now show them. Following someone is not built.
+1. **Public member profiles and a member directory.** **Done** (third slice, see [members.md](members.md)). Users have bios and social links, and a public profile and a directory now show them. Following someone is **done** ([member-follows.md](member-follows.md)).
 2. **Moderation depth.** Reports exist. Warnings and ban history are **done** ([moderation.md](moderation.md)), and so are automod rules, the review queue and a spam guard on the forum's forms ([automod.md](automod.md)), and taking down everything a spammer posted, alone, with a ban or for several members at once ([moderation.md](moderation.md#taking-down-what-a-member-posted)).
 3. **Thread features:** prefixes are **done** ([forum-prefixes.md](forum-prefixes.md)): one staff-defined label per thread, offered per board, optional or required when starting a thread. Solved answers are **done** ([forum-solutions.md](forum-solutions.md)): one reply marked as the answer. An ignore list is **done** ([forum-ignores.md](forum-ignores.md)): a member can hide another member's posts and stop hearing from them. Pictures and files are **done** ([forum-attachments.md](forum-attachments.md)): a post can carry a re-encoded picture or a PDF, text file or zip, served only while the post can be seen.
-4. **Direct messages and following.**
+4. **Direct messages and following.** Following is **done** ([member-follows.md](member-follows.md)): a member can follow another member, read their public posts, and be told when they post. Direct messages are not built.
 5. **Email digests** and notification batching.
 6. **Forum RSS** (blog has it).
 7. **Leaderboards / activity feed** (reputation data already exists).
@@ -415,7 +415,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 
 ### M4. Community completions (8–12 days)
 
-- Public member profiles and a directory (**done**, third slice, see [members.md](members.md)); follow is not built yet
+- Public member profiles and a directory (**done**, third slice, see [members.md](members.md)); following a member (**done**, eighth slice, see [member-follows.md](member-follows.md)); direct messages are not built
 - Forum: thread prefixes (**done**, fourth slice, see [forum-prefixes.md](forum-prefixes.md)); solved answers (**done**, fifth slice, see [forum-solutions.md](forum-solutions.md)); an ignore list (**done**, sixth slice, see [forum-ignores.md](forum-ignores.md)); pictures and files (**done**, seventh slice, see [forum-attachments.md](forum-attachments.md)); RSS is not built
 - Moderation: infractions and ban history (**done**, first slice, see [moderation.md](moderation.md)), automod rules and the spam guard extended to forum posts (**done**, second slice: see [automod.md](automod.md), and [moderation.md](moderation.md#taking-down-what-a-member-posted) for clearing out a spammer's posts)
 - Email digests
