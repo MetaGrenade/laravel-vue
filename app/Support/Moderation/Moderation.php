@@ -26,7 +26,7 @@ class Moderation
     /**
      * Why this moderator may not do this to this member, in words to show them, or null when they may.
      *
-     * @param  'warn'|'ban'|'unban'  $action
+     * @param  'warn'|'ban'|'unban'|'cleanup'  $action
      */
     public function refusal(User $moderator, User $member, string $action): ?string
     {

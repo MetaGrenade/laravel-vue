@@ -68,6 +68,8 @@ class RolePermissionSeeder extends Seeder
                 Permission::firstOrCreate(['name' => $permission.'.acp.ban']);
                 // A warning is a notice and a ban shuts somebody out, so they are granted separately (docs/moderation.md).
                 Permission::firstOrCreate(['name' => $permission.'.acp.warn']);
+                // Taking down everything a member posted (forum, comments, reviews) reaches well beyond one account (docs/moderation.md).
+                Permission::firstOrCreate(['name' => $permission.'.acp.cleanup']);
                 // Seeing the site as a customer sees it (read only, and written to the audit log): shows what the customer sees, so it
                 // is granted on its own.
                 Permission::firstOrCreate(['name' => $permission.'.acp.impersonate']);
@@ -95,12 +97,14 @@ class RolePermissionSeeder extends Seeder
             'polls.acp.edit',
         ]);
 
-        // A moderator can see members, warn them and ban them (but not staff: only an administrator can moderate staff).
+        // A moderator can see members, warn them, ban them and take down what they posted (but not staff: only an administrator can
+        // moderate staff).
         $moderatorRole->givePermissionTo([
             'polls.acp.view',
             'users.acp.view',
             'users.acp.warn',
             'users.acp.ban',
+            'users.acp.cleanup',
             'forums.acp.view',
             'forums.acp.review',
         ]);

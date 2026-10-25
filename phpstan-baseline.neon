@@ -967,14 +967,8 @@ parameters:
 			path: app/Http/Controllers/BlogController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\BlogComment\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/BlogController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, body\: string, created_at\: string\|null, updated_at\: string\|null, permissions\: array\{can_update\: bool, can_delete\: bool, can_report\: bool\}, reactions\: array\{likes\: int\<0, max\>, dislikes\: int\<0, max\>, user_reaction\: mixed\}, user\: array\{id\: mixed, nickname\: mixed, avatar_url\: non\-empty\-string\|null, profile_bio\: non\-empty\-string\|null\}\|null\}, Closure\(App\\Models\\BlogComment\)\: array\{id\: int\<0, max\>, body\: string, created_at\: string\|null, updated_at\: string\|null, permissions\: array\{can_update\: bool, can_delete\: bool, can_report\: bool\}, reactions\: array\{likes\: int\<0, max\>, dislikes\: int\<0, max\>, user_reaction\: mixed\}, user\: array\{id\: mixed, nickname\: mixed, avatar_url\: non\-empty\-string\|null, profile_bio\: non\-empty\-string\|null\}\|null\} given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/BlogController.php
 

@@ -2,7 +2,7 @@
 
 An administrator sets **rules**. Every new thread and reply a member posts is checked against them. A post that breaks a rule is either **held** (kept out of sight until a moderator approves it) or **refused** (not kept, and the member is told it looks like spam). Moderators work through what was held in a **review queue**.
 
-> **Status:** built: the four kinds of rule, holding and refusing, the review queue (single and bulk), the rules screen with a box to try a text, the hidden-field trap on the forum's forms, and the API's answers. **Not built:** see [below](#not-built). Clearing out everything a spammer posted, and banning a wave of accounts together with their posts, is the next slice.
+> **Status:** built: the four kinds of rule, holding and refusing, the review queue (single and bulk), the rules screen with a box to try a text, the hidden-field trap on the forum's forms, and the API's answers. **Not built:** see [below](#not-built). Clearing out everything a spammer posted, and banning a wave of accounts together with their posts, is in [moderation.md](moderation.md#taking-down-what-a-member-posted).
 
 ## What is checked, and who
 

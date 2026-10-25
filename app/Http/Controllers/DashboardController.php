@@ -362,7 +362,7 @@ class DashboardController extends Controller
             $fallback = Blog::query()
                 ->where('status', 'published')
                 ->when($viewedBlogIds->isNotEmpty(), fn ($query) => $query->whereNotIn('id', $viewedBlogIds->all()))
-                ->withCount('comments')
+                ->withCount('approvedComments as comments_count')
                 ->orderByDesc('comments_count')
                 ->orderByDesc('published_at')
                 ->orderByDesc('created_at')

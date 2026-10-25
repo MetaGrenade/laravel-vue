@@ -97,6 +97,7 @@ return [
         'forums.automod.destroy' => 'Deleted an automod rule',
         'users.ban' => 'Banned a user',
         'users.unban' => 'Lifted a ban',
+        'users.cleanup' => 'Took down what a user posted',
         'users.bulk-update' => 'Changed several users at once',
         'acl.roles.store' => 'Made a role',
         'acl.roles.update' => 'Changed a role',
