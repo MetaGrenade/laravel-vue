@@ -671,6 +671,7 @@ class Specification
                                     'properties' => [
                                         'title' => ['type' => 'string', 'maxLength' => 255],
                                         'body' => ['type' => 'string'],
+                                        'prefix' => ['type' => 'string', 'nullable' => true, 'description' => 'Slug of a prefix this board offers. Required when the board requires one.'],
                                     ],
                                 ],
                             ],
@@ -718,6 +719,7 @@ class Specification
                                     'required' => ['title'],
                                     'properties' => [
                                         'title' => ['type' => 'string', 'maxLength' => 255],
+                                        'prefix' => ['type' => 'string', 'nullable' => true, 'description' => 'Slug of a prefix this board offers. Omit to leave the current prefix. Null clears it.'],
                                     ],
                                 ],
                             ],
@@ -1400,6 +1402,17 @@ class Specification
                     'is_pinned' => ['type' => 'boolean'],
                     'views' => ['type' => 'integer'],
                     'last_posted_at' => ['type' => 'string', 'format' => 'date-time', 'nullable' => true],
+                    'prefix' => [
+                        'type' => 'object',
+                        'nullable' => true,
+                        'properties' => [
+                            'id' => ['type' => 'integer'],
+                            'name' => ['type' => 'string'],
+                            'slug' => ['type' => 'string'],
+                            'color' => ['type' => 'string'],
+                        ],
+                        'required' => ['id', 'name', 'slug', 'color'],
+                    ],
                     'board' => [
                         'type' => 'object',
                         'properties' => [

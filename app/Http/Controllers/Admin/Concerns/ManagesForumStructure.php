@@ -44,7 +44,7 @@ trait ManagesForumStructure
         return $candidate;
     }
 
-    protected function swapPositions(Model $first, Model $second): void
+    protected function swapPositions(ForumCategory|ForumBoard $first, ForumCategory|ForumBoard $second): void
     {
         $firstPosition = $first->position;
         $secondPosition = $second->position;

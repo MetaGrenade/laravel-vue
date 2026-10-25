@@ -12,7 +12,7 @@ class ForumThreadController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $threads = ForumThread::query()
-            ->with(['board', 'author', 'latestPost.author'])
+            ->with(['board', 'author', 'prefix', 'latestPost.author'])
             ->where('is_published', true)
             ->orderByDesc('last_posted_at')
             ->paginate();
@@ -24,7 +24,7 @@ class ForumThreadController extends Controller
     {
         abort_if(! $thread->is_published, 404);
 
-        $thread->loadMissing(['board', 'author', 'latestPost.author']);
+        $thread->loadMissing(['board', 'author', 'prefix', 'latestPost.author']);
 
         return new ForumThreadResource($thread);
     }

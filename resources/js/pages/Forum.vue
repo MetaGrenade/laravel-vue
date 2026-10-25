@@ -4,6 +4,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import { Clock, Flame, MessageSquare, MessagesSquare, Search } from '@lucide/vue';
 import Input from '@/components/ui/input/Input.vue';
+import ForumPrefixBadge, { type ForumPrefixLabel } from '@/components/forum/ForumPrefixBadge.vue';
 import Button from '@/components/ui/button/Button.vue';
 
 interface ForumBoardSummary {
@@ -21,6 +22,7 @@ interface ForumBoardSummary {
         author: string | null;
         last_reply_author: string | null;
         last_reply_at: string | null;
+        prefix: ForumPrefixLabel | null;
     } | null;
 }
 
@@ -45,6 +47,7 @@ interface TrendingThreadSummary {
     views: number;
     replies: number;
     last_reply_at: string | null;
+    prefix: ForumPrefixLabel | null;
 }
 
 interface LatestPostSummary {
@@ -56,6 +59,7 @@ interface LatestPostSummary {
     author: string | null;
     created_at: string;
     thread_id: number;
+    prefix: ForumPrefixLabel | null;
 }
 
 const props = defineProps<{
@@ -136,7 +140,14 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                                         </div>
                                         <div class="hidden w-60 shrink-0 text-right md:block">
                                             <template v-if="board.latest_thread">
-                                                <span class="block truncate text-sm font-medium">{{ board.latest_thread.title }}</span>
+                                                <span class="block truncate text-sm font-medium">
+                                                    <ForumPrefixBadge
+                                                        v-if="board.latest_thread.prefix"
+                                                        :prefix="board.latest_thread.prefix"
+                                                        class="mr-1.5"
+                                                    />
+                                                    {{ board.latest_thread.title }}
+                                                </span>
                                                 <span class="block truncate text-xs text-muted-foreground">
                                                     by {{ board.latest_thread.last_reply_author ?? board.latest_thread.author ?? '—' }} •
                                                     {{ board.latest_thread.last_reply_at ?? 'No replies yet' }}
@@ -168,7 +179,10 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                                     :href="route('forum.threads.show', { board: thread.board.slug, thread: thread.slug })"
                                     class="block px-4 py-3 transition-colors hover:bg-muted/60"
                                 >
-                                    <h3 class="text-sm leading-snug font-medium">{{ thread.title }}</h3>
+                                    <h3 class="text-sm leading-snug font-medium">
+                                        <ForumPrefixBadge v-if="thread.prefix" :prefix="thread.prefix" class="mr-1.5" />
+                                        {{ thread.title }}
+                                    </h3>
                                     <p class="mt-1 text-xs text-muted-foreground">
                                         by {{ thread.author ?? 'Unknown' }}
                                         <span v-if="thread.last_reply_at">• {{ thread.last_reply_at }}</span>
@@ -194,7 +208,10 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                                     :href="route('forum.threads.show', { board: post.board_slug, thread: post.thread_slug })"
                                     class="block px-4 py-3 transition-colors hover:bg-muted/60"
                                 >
-                                    <h3 class="text-sm leading-snug font-medium">{{ post.title }}</h3>
+                                    <h3 class="text-sm leading-snug font-medium">
+                                        <ForumPrefixBadge v-if="post.prefix" :prefix="post.prefix" class="mr-1.5" />
+                                        {{ post.title }}
+                                    </h3>
                                     <p class="mt-1 text-xs text-muted-foreground">by {{ post.author ?? 'Unknown' }} • {{ post.created_at }}</p>
                                     <span class="mt-1 inline-block text-xs font-medium text-primary">{{ post.board_title }}</span>
                                 </Link>

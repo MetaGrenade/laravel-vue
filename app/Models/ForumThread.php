@@ -36,6 +36,7 @@ class ForumThread extends Model
 
     protected $fillable = [
         'forum_board_id',
+        'forum_prefix_id',
         'user_id',
         'title',
         'slug',
@@ -60,6 +61,14 @@ class ForumThread extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    /**
+     * @return BelongsTo<ForumPrefix, $this>
+     */
+    public function prefix(): BelongsTo
+    {
+        return $this->belongsTo(ForumPrefix::class, 'forum_prefix_id');
     }
 
     /**

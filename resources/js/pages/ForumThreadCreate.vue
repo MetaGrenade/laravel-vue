@@ -7,6 +7,7 @@ import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/InputError.vue';
+import { type ForumPrefixLabel } from '@/components/forum/ForumPrefixBadge.vue';
 import RichTextEditor from '@/components/editor/RichTextEditor.vue';
 
 interface BoardSummary {
@@ -22,6 +23,8 @@ interface BoardSummary {
 
 const props = defineProps<{
     board: BoardSummary;
+    prefixes: ForumPrefixLabel[];
+    prefixesRequired: boolean;
 }>();
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => {
@@ -41,6 +44,7 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
 const form = useForm({
     title: '',
     body: '',
+    prefix: '',
     honeypot: '',
 });
 
@@ -107,6 +111,20 @@ const submit = () => {
                         required
                     />
                     <InputError :message="form.errors.title" />
+                </div>
+
+                <div v-if="prefixes.length > 0" class="grid gap-2">
+                    <Label for="thread_prefix">Prefix</Label>
+                    <select
+                        id="thread_prefix"
+                        v-model="form.prefix"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs"
+                        :required="prefixesRequired"
+                    >
+                        <option value="">{{ prefixesRequired ? 'Choose a prefix' : 'No prefix' }}</option>
+                        <option v-for="prefix in prefixes" :key="prefix.id" :value="String(prefix.id)">{{ prefix.name }}</option>
+                    </select>
+                    <InputError :message="form.errors.prefix" />
                 </div>
 
                 <div class="grid gap-2">

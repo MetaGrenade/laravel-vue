@@ -10,13 +10,14 @@ use App\Http\Resources\Api\V1\ForumThreadResource;
 use App\Models\ForumBoard;
 use App\Models\ForumThread;
 use App\Support\Forum\ForumSubmissions;
+use App\Support\Forum\ThreadPrefixes;
 use App\Support\Security\HtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
 class ForumThreadCommandController extends Controller
 {
-    public function store(StoreForumThreadRequest $request, ForumBoard $board, ForumSubmissions $submissions): JsonResponse
+    public function store(StoreForumThreadRequest $request, ForumBoard $board, ForumSubmissions $submissions, ThreadPrefixes $prefixes): JsonResponse
     {
         $user = $request->user();
 
@@ -34,12 +35,14 @@ class ForumThreadCommandController extends Controller
             ]);
         }
 
-        $submission = $submissions->thread($user, $board, $title, $body);
+        $prefix = $prefixes->resolveSlug($board, $validated['prefix'] ?? null, (bool) $board->prefixes_required);
+
+        $submission = $submissions->thread($user, $board, $title, $body, $prefix);
 
         $thread = $submission->thread;
         $initialPost = $submission->post;
 
-        $thread->loadMissing(['board', 'author', 'latestPost.author']);
+        $thread->loadMissing(['board', 'author', 'prefix', 'latestPost.author']);
         $initialPost->loadMissing('author');
 
         // 202 when it was received but a rule has held it for a moderator (docs/automod.md): it is not out in the open yet.
@@ -49,7 +52,7 @@ class ForumThreadCommandController extends Controller
         ], $submission->held ? 202 : 201);
     }
 
-    public function update(UpdateForumThreadRequest $request, ForumBoard $board, ForumThread $thread): ForumThreadResource
+    public function update(UpdateForumThreadRequest $request, ForumBoard $board, ForumThread $thread, ThreadPrefixes $prefixes): ForumThreadResource
     {
         $this->ensureThreadBelongsToBoard($board, $thread);
 
@@ -71,13 +74,26 @@ class ForumThreadCommandController extends Controller
             ]);
         }
 
+        $changes = [];
+
         if ($title !== $thread->title) {
-            $thread->forceFill([
-                'title' => $title,
-            ])->save();
+            $changes['title'] = $title;
         }
 
-        $thread->loadMissing(['board', 'author', 'latestPost.author']);
+        if (array_key_exists('prefix', $validated)) {
+            $prefix = $prefixes->resolveSlug($board, $validated['prefix'], false);
+            $prefixId = $prefix?->id;
+
+            if ($prefixId !== $thread->forum_prefix_id) {
+                $changes['forum_prefix_id'] = $prefixId;
+            }
+        }
+
+        if ($changes !== []) {
+            $thread->forceFill($changes)->save();
+        }
+
+        $thread->loadMissing(['board', 'author', 'prefix', 'latestPost.author']);
 
         return new ForumThreadResource($thread);
     }

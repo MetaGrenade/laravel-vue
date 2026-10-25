@@ -205,12 +205,6 @@ parameters:
 			path: app/Http/Controllers/Admin/BlogController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$position\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Admin/ForumBoardController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$author\.$#'
 			identifier: property.notFound
 			count: 1
@@ -232,12 +226,6 @@ parameters:
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$last_posted_at\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Http/Controllers/Admin/ForumCategoryController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$position\.$#'
-			identifier: property.notFound
-			count: 2
 			path: app/Http/Controllers/Admin/ForumCategoryController.php
 
 		-
@@ -1063,19 +1051,19 @@ parameters:
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, board\: array\{slug\: string, title\: string, category_title\: mixed\}, author\: string\|null, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, board\: array\{slug\: string, title\: string, category_title\: mixed\}, author\: string\|null, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, board\: array\{slug\: string, title\: string, category_title\: mixed\}, author\: string\|null, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, board\: array\{slug\: string, title\: string, category_title\: mixed\}, author\: string\|null, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, boards\: Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}\>\}, Closure\(App\\Models\\ForumCategory\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, boards\: Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}\>\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, boards\: Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}\>\}, Closure\(App\\Models\\ForumCategory\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, boards\: Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}\>\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, thread_slug\: string, board_slug\: string, board_title\: string, author\: string\|null, created_at\: string\|null, thread_id\: int\<0, max\>\}, Closure\(App\\Models\\ForumPost\)\: array\{id\: int\<0, max\>, title\: string, thread_slug\: string, board_slug\: string, board_title\: string, author\: string\|null, created_at\: string\|null, thread_id\: int\<0, max\>\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, thread_slug\: string, board_slug\: string, board_title\: string, author\: string\|null, created_at\: string\|null, thread_id\: int\<0, max\>\}, Closure\(App\\Models\\ForumPost\)\: array\{id\: int\<0, max\>, title\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, thread_slug\: string, board_slug\: string, board_title\: string, author\: string\|null, created_at\: string\|null, thread_id\: int\<0, max\>\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php
@@ -1093,13 +1081,13 @@ parameters:
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, author\: string\|null, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, author\: string\|null, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, author\: string\|null, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, author\: string\|null, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}, Closure\(App\\Models\\ForumBoard\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}, Closure\(App\\Models\\ForumBoard\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php

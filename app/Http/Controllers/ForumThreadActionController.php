@@ -124,6 +124,7 @@ class ForumThreadActionController extends Controller
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
             'search' => ['nullable', 'string', 'max:100'],
+            'prefix' => ['nullable', 'string', 'max:255'],
         ]);
 
         $threads = $board->threads()
@@ -173,6 +174,12 @@ class ForumThreadActionController extends Controller
 
         if ($search !== null) {
             $redirectParameters['search'] = $search;
+        }
+
+        $prefix = isset($validated['prefix']) ? trim((string) $validated['prefix']) : '';
+
+        if ($prefix !== '') {
+            $redirectParameters['prefix'] = $prefix;
         }
 
         return redirect()->route('forum.boards.show', $redirectParameters)

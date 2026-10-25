@@ -26,6 +26,7 @@ class UpdateForumBoardRequest extends FormRequest
                 Rule::unique('forum_boards', 'slug')->ignore($boardId),
             ],
             'description' => ['nullable', 'string'],
+            'prefixes_required' => ['required', 'boolean'],
         ];
     }
 }
