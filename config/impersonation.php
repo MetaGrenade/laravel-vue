@@ -56,6 +56,8 @@ return [
 
         // What anyone can open.
         'home',
+        'members.index',
+        'members.show',
         'pricing',
         'search',
         'search.results',

@@ -169,12 +169,6 @@ parameters:
 			path: app/Http/Controllers/Admin/BlogController.php
 
 		-
-			message: '#^Call to function is_array\(\) with string will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 1
-			path: app/Http/Controllers/Admin/BlogController.php
-
-		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
@@ -208,12 +202,6 @@ parameters:
 			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
 			identifier: larastan.relationExistence
 			count: 5
-			path: app/Http/Controllers/Admin/BlogController.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
 			path: app/Http/Controllers/Admin/BlogController.php
 
 		-
@@ -949,12 +937,6 @@ parameters:
 			path: app/Http/Controllers/BlogController.php
 
 		-
-			message: '#^Call to function is_array\(\) with string will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 1
-			path: app/Http/Controllers/BlogController.php
-
-		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\BlogCategory\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
@@ -988,12 +970,6 @@ parameters:
 			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
 			identifier: larastan.relationExistence
 			count: 3
-			path: app/Http/Controllers/BlogController.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
 			path: app/Http/Controllers/BlogController.php
 
 		-

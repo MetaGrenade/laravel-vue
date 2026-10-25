@@ -2,7 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
 
 // Import shadcn‑vue components
@@ -1671,15 +1671,36 @@ const submitReply = () => {
                 >
                     <!-- Left Side: User Info -->
                     <div class="w-full shrink-0 border-r pr-4 md:w-1/5">
-                        <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
-                            <AvatarImage v-if="post.author.avatar_url" :src="post.author.avatar_url" :alt="post.author.nickname ?? 'Forum user'" />
-                            <AvatarFallback
-                                class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground uppercase"
-                            >
-                                {{ getInitials(post.author.nickname ?? 'Member') }}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div class="text-lg font-bold">{{ post.author.nickname ?? 'Unknown' }}</div>
+                        <Link v-if="post.author.id" :href="route('members.show', post.author.id)" class="block w-fit">
+                            <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
+                                <AvatarImage
+                                    v-if="post.author.avatar_url"
+                                    :src="post.author.avatar_url"
+                                    :alt="post.author.nickname ?? 'Forum user'"
+                                />
+                                <AvatarFallback
+                                    class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground uppercase"
+                                >
+                                    {{ getInitials(post.author.nickname ?? 'Member') }}
+                                </AvatarFallback>
+                            </Avatar>
+                            <span class="text-lg font-bold hover:underline">{{ post.author.nickname ?? 'Unknown' }}</span>
+                        </Link>
+                        <template v-else>
+                            <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
+                                <AvatarImage
+                                    v-if="post.author.avatar_url"
+                                    :src="post.author.avatar_url"
+                                    :alt="post.author.nickname ?? 'Forum user'"
+                                />
+                                <AvatarFallback
+                                    class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground uppercase"
+                                >
+                                    {{ getInitials(post.author.nickname ?? 'Member') }}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div class="text-lg font-bold">{{ post.author.nickname ?? 'Unknown' }}</div>
+                        </template>
                         <div class="text-sm text-muted-foreground">{{ post.author.primary_role ?? 'Member' }}</div>
                         <div class="mt-2 text-xs text-muted-foreground">
                             Joined: <span class="font-medium">{{ post.author.joined_at ?? '—' }}</span>

@@ -29,7 +29,7 @@ return [
     |
     */
 
-    'shared_groups' => ['ui'],
+    'shared_groups' => ['ui', 'members'],
 
     // Cookie that remembers a visitor's language choice.
     'cookie' => 'locale',

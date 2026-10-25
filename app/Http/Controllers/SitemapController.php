@@ -6,6 +6,7 @@ use App\Models\Blog;
 use App\Models\ForumBoard;
 use App\Models\ForumThread;
 use App\Models\Product;
+use App\Models\User;
 use App\Support\WebsiteSections;
 use DateTimeInterface;
 use Illuminate\Http\Response;
@@ -56,6 +57,7 @@ class SitemapController extends Controller
     {
         $urls = [
             $this->url(route('home'), priority: '1.0'),
+            $this->url(route('members.index'), priority: '0.6'),
             $this->url(route('pricing'), priority: '0.8'),
         ];
 
@@ -113,6 +115,16 @@ class SitemapController extends Controller
                     $urls[] = $this->url(route('shop.products.show', $product), $product->updated_at, '0.6');
                 });
         }
+
+        // After the rest, so a large directory is what gets cut when the sitemap is full.
+        User::query()
+            ->where('is_banned', false)
+            ->latest('updated_at')
+            ->limit($this->limit())
+            ->get(['id', 'updated_at'])
+            ->each(function (User $member) use (&$urls) {
+                $urls[] = $this->url(route('members.show', $member), $member->updated_at, '0.4');
+            });
 
         $urls = array_slice($urls, 0, (int) config('seo.sitemap.max_urls', 45000));
 

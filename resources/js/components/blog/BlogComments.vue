@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { csrfHeaders } from '@/lib/http';
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -862,7 +862,14 @@ const submitReport = async () => {
                     <div class="min-w-0 flex-1 space-y-3">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <div class="min-w-0">
-                                <p class="text-sm font-semibold text-foreground">
+                                <Link
+                                    v-if="comment.user?.id"
+                                    :href="route('members.show', comment.user.id)"
+                                    class="text-sm font-semibold text-foreground hover:underline"
+                                >
+                                    {{ commentAuthor(comment) }}
+                                </Link>
+                                <p v-else class="text-sm font-semibold text-foreground">
                                     {{ commentAuthor(comment) }}
                                 </p>
                                 <p v-if="comment.created_at" class="text-xs text-muted-foreground">
