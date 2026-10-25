@@ -45,6 +45,10 @@ class UsersIndexTest extends TestCase
 
     public function test_search_results_are_paginated_on_server(): void
     {
+        // Accounts made in the same second share a `created_at` (it has one-second precision). Here all of them do, which is what
+        // happens by chance when a test makes them quickly: the list has to put them in an order that does not depend on the database.
+        $this->freezeTime();
+
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
 
         $admin = User::factory()->create();
@@ -79,8 +83,9 @@ class UsersIndexTest extends TestCase
 
         $response->assertOk();
 
+        // Newest first, and the newer of two made in the same second first.
         $expectedUsers = $matchingUsers
-            ->sortByDesc('created_at')
+            ->sortBy([['created_at', 'desc'], ['id', 'desc']])
             ->values()
             ->slice($perPage, $perPage)
             ->values();

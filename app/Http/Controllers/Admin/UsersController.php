@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Support\Audit\Audit;
 use App\Support\Billing\SubscriptionCancellationFailed;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Impersonation\Impersonation;
 use App\Support\Localization\DateFormatter;
 use App\Support\OAuth\OAuthProviders;
 use Carbon\CarbonInterface;
@@ -92,7 +93,9 @@ class UsersController extends Controller
 
         $users = (clone $filteredQuery)
             ->with(['roles:id,name', 'bannedBy:id,nickname'])
+            // `created_at` is to the second, so accounts made together tie: the id settles them, or a page could repeat or skip one.
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate($perPage)
             ->withQueryString();
 
@@ -143,9 +146,10 @@ class UsersController extends Controller
     /**
      * Show the form for editing the specified user.
      */
-    public function edit(Request $request, User $user)
+    public function edit(Request $request, User $user, Impersonation $impersonation)
     {
         $formatter = DateFormatter::for($request->user());
+        $admin = $request->user();
 
         $user->loadMissing(['roles', 'socialAccounts']);
 
@@ -195,6 +199,14 @@ class UsersController extends Controller
             'user' => $userData,
             'allRoles' => Role::all(),
             'availableSocialProviders' => $providers,
+            // The "view as this user" card (docs/impersonation.md): whether the staff member may, and if this person cannot be viewed
+            // as, why. Not called `impersonation`: that is the shared prop the bar at the top of a view reads, which a page prop of the
+            // same name replaces.
+            'viewAs' => [
+                'can' => $admin instanceof User && $admin->can('users.acp.impersonate'),
+                'refusal' => $admin instanceof User ? $impersonation->refusal($admin, $user) : null,
+                'minutes' => (int) config('impersonation.minutes', 30),
+            ],
         ]);
     }
 

@@ -6,6 +6,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import ImpersonateUserCard from '@/components/ImpersonateUserCard.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -82,6 +83,8 @@ const props = defineProps<{
     user: User;
     allRoles: Role[];
     availableSocialProviders: SocialProviderOption[];
+    /** Viewing as this person, read only: whether the staff member may, why not if this person cannot be viewed as, and for how long. */
+    viewAs: { can: boolean; refusal: string | null; minutes: number };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -536,6 +539,13 @@ const removeSocialLink = (index: number) => {
                                 </Button>
                             </CardFooter>
                         </Card>
+
+                        <ImpersonateUserCard
+                            v-if="props.viewAs.can"
+                            :user="{ id: props.user.id, nickname: props.user.nickname }"
+                            :refusal="props.viewAs.refusal"
+                            :minutes="props.viewAs.minutes"
+                        />
 
                         <Card v-if="canDeleteUsers">
                             <CardHeader>

@@ -102,6 +102,11 @@ return [
         'billing.plans.update' => 'Changed a subscription plan',
         'billing.plans.destroy' => 'Deleted a subscription plan',
         'billing.webhooks.replay' => 'Ran a payment webhook again',
+        'users.impersonate' => 'Tried to start viewing as a customer',
+        'impersonation.started' => 'Started viewing as a customer',
+        'impersonation.viewed' => 'Opened a page while viewing as a customer',
+        'impersonation.blocked' => 'Was stopped from opening or changing something while viewing as a customer',
+        'impersonation.stopped' => 'Stopped viewing as a customer',
     ],
 
 ];

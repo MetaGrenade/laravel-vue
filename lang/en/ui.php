@@ -36,6 +36,15 @@ return [
         'system' => 'System',
     ],
 
+    // The bar at the top of every page while staff are viewing the site as a customer (docs/impersonation.md).
+    'impersonation' => [
+        'viewing_as' => 'Viewing as :name',
+        'read_only' => 'Read only: nothing can be changed.',
+        'reason' => 'Reason: :reason',
+        'ends_in' => 'Ends in :time',
+        'stop' => 'Stop viewing',
+    ],
+
     'footer' => [
         'tagline' => 'A production-ready Laravel and Vue foundation for SaaS products and online communities.',
         'product' => 'Product',

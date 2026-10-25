@@ -2,14 +2,14 @@
 
 Every change somebody makes in the admin area is written to an **audit log**: who made it, what it was done to, what changed (as it was and as it became), where from, and whether it worked. Staff read it in **Admin → Audit log**.
 
-> **Status:** built: the log (append-only), recording for every change under `acp/`, before-and-after detail for accounts, roles, permissions, settings, plans, coupons, gift cards, orders, refunds and API tokens, the viewer with filters and a per-account view, retention, and the permission. **Not built:** the next slice, read-only impersonation, which writes to this log; recording staff actions made outside the admin area; a tamper-evident chain; export (see [not built](#not-built)).
+> **Status:** built: the log (append-only), recording for every change under `acp/`, before-and-after detail for accounts, roles, permissions, settings, plans, coupons, gift cards, orders, refunds and API tokens, the viewer with filters and a per-account view, retention, the permission, and every page staff open while [viewing as a customer](impersonation.md). **Not built:** recording staff actions made outside the admin area; a tamper-evident chain; export (see [not built](#not-built)).
 
 ## What is recorded
 
 A **POST, PUT, PATCH or DELETE to an address under `acp/`**, by somebody who is signed in. One entry for each request, written when it ends.
 
 - **It recognises the address, not the route group.** `AuditAdminActions` is in the `web` group and looks at the URL, so a route added to the admin area later is covered without anybody having to tag it. A test checks every admin write route is under it.
-- **Looking at a page is not recorded.** (Only changes are.)
+- **Looking at a page is not recorded.** (Only changes are, with one exception: every page staff open while [viewing as a customer](impersonation.md), which is the whole point of a view being on record.)
 - **Not recorded:** a request nobody was signed in for (that is a bot, not an admin), and one that matches no route.
 - **Recorded as *denied*:** somebody signed in who is refused (`403`), whether it is a member of staff without the permission or a customer trying an admin address. Somebody trying the admin area is worth knowing about.
 - **Changes outside the admin area are not "admin actions"** and are not recorded: people signing up, webhooks, queued jobs, and staff acting through the public site (a moderator locking a forum thread from the forum's own page, say). See [not built](#not-built).
@@ -52,7 +52,7 @@ Giving somebody a role, or a role a permission, is not a change to a model, so i
 
 ### Entries made by code
 
-`Audit::record($event, $actor, $subject, ...)` writes an entry for something that is not an admin request (a console command, a job) or is not a change. Read-only impersonation uses it.
+`Audit::record($event, $actor, $subject, ...)` writes an entry for something that is not an admin request (a console command, a job) or is not a change. [Read-only impersonation](impersonation.md) uses it for the pages opened, the things refused and the end of a view.
 
 ## The viewer
 
@@ -87,7 +87,6 @@ An entry holds the **address and browser** of a member of staff, and the **nickn
 - **A tamper-evident chain** (each entry hashing the one before it, so that removing or editing one can be seen). The database privileges above are the protection today.
 - **Export** of the log (CSV), and **alerts** on things such as a role being given or a run of denied requests.
 - **Telling the person** that staff did something on their account.
-- **Impersonation**: the next slice. It writes to this log, so nothing it does is unrecorded.
 
 ## Testing
 

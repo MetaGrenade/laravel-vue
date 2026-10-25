@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Support\Commerce\CartManager;
 use App\Support\Entitlements\Entitlements;
+use App\Support\Impersonation\Impersonation;
 use App\Support\Localization\DateFormatter;
 use App\Support\Localization\FrontendTranslations;
 use App\Support\OAuth\OAuthProviders;
@@ -81,6 +82,8 @@ class HandleInertiaRequests extends Middleware
                     ? app(Entitlements::class)->forUser($user)->toArray()
                     : ['features' => [], 'limits' => []],
             ],
+            // Set while a staff member is viewing as this customer (docs/impersonation.md): the bar at the top of every page.
+            'impersonation' => fn () => app(Impersonation::class)->banner($request),
             'notifications' => fn () => $user ? (function () use ($user, $formatter) {
                 $unreadQuery = $user->unreadNotifications()->latest();
 

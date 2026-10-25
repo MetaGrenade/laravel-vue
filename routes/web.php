@@ -23,6 +23,7 @@ use App\Http\Controllers\ForumPostRevisionController;
 use App\Http\Controllers\ForumThreadActionController;
 use App\Http\Controllers\ForumThreadModerationController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ImpersonationStopController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SearchResultsController;
@@ -297,6 +298,12 @@ Route::middleware('section.enabled:support')->group(function () {
 Route::get('dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+// The way out of a read-only view as a customer (the bar at the top of its pages). The customer is who is signed in for the request,
+// so `auth` passes; see ApplyImpersonation.
+Route::post('impersonation/stop', ImpersonationStopController::class)
+    ->middleware('auth')
+    ->name('impersonation.stop');
 
 require __DIR__.'/admin.php';
 require __DIR__.'/settings.php';
