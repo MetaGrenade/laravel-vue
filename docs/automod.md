@@ -19,7 +19,7 @@ Editing a post after it is out is **not** checked (see [not built](#not-built)).
 | Kind | Catches | Needs |
 |---|---|---|
 | **Words and phrases** | A phrase anywhere in the post or title, in any capitals, with the markup left out (`<b>cheap</b> watches` is "cheap watches"). | The phrases, one on each line (blank lines are left out; up to 500). **Whole words only** keeps "ass" from catching "class". |
-| **Links** | A post with **more links** than a number, and/or **any link to a domain**. | A number (0 allows none) and/or domains, one on each line. A domain catches its subdomains (`bad.example` catches `shop.bad.example`, but not `notbad.example`); `www.`, a scheme or a path in what you type is ignored. A link is counted once however many times it appears, and whether it is in an `href` or typed. |
+| **Links** | A post with **more links** than a number, and/or **any link to a domain**. | A number (0 allows none) and/or domains, one on each line. A domain catches its subdomains (`bad.example` catches `shop.bad.example`, but not `notbad.example`); `www.`, a scheme, a path or a full stop at the end of the name (`bad.example.` is `bad.example`, and a link to it works) in what you type, or in a link, is ignored. A link is counted once however many times it appears, and whether it is in an `href` or typed. |
 | **The same text again** | The member posting the same words again: capitals and spacing do not matter. | How many earlier copies (1 catches the second post) and in the last how many minutes. Their held posts count. |
 | **Too many posts** | A member who has already posted a number of times in the last minutes. | How many posts and how many minutes. Held posts count, so a wave of spam from one account is caught from its fourth post. |
 
@@ -31,7 +31,7 @@ Changes to the rules are in the [audit log](audit-log.md) as they were and as th
 
 ## What happens to a held post
 
-- **It is kept**, but is in nobody's lists, counts, searches or feeds. For its author a held **reply** is on the thread page, marked **Awaiting review**, and they are told "Your reply has been sent for review." A held **thread** is not published, so only moderators can open it; its author is sent to the board with "Your thread has been sent for review."
+- **It is kept**, but is in nobody's lists, counts, searches or feeds. For its author a held **reply** is on the thread page, marked **Awaiting review**, and they are told "Your reply has been sent for review." Until it is out it offers no edit, delete, report or history to anybody, moderators included: a moderator approves or rejects it in the review queue. A held **thread** is not published, so only moderators can open it; its author is sent to the board with "Your thread has been sent for review."
 - **Nothing has happened that a post makes happen.** Nobody is notified (the people following the thread, the people it mentions), no reputation is earned, the thread is not bumped, and the live page is not told. A spammer's post does not reach anybody who would be bothered by it.
 - **Moderators see it** in the queue, and held replies are marked on the thread page with which rule held them and why.
 - **Approving it** posts it as if it had never been held: everything above happens now, once. Approving twice, or two moderators at the same moment, does it once.

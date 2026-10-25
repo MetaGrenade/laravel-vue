@@ -196,10 +196,12 @@ class ForumController extends Controller
                     ->orWhereLike('forum_threads.excerpt', $likeTerm)
                     ->orWhereLike('thread_authors.nickname', $likeTerm)
                     ->orWhereExists(function ($postQuery) use ($likeTerm) {
+                        // A table, not the model: the scope that leaves held replies out does not reach it (docs/automod.md).
                         $postQuery->selectRaw('1')
                             ->from('forum_posts')
                             ->whereColumn('forum_posts.forum_thread_id', 'forum_threads.id')
                             ->whereNull('forum_posts.deleted_at')
+                            ->whereNull('forum_posts.held_at')
                             ->whereLike('forum_posts.body', $likeTerm);
                     });
             });
@@ -352,16 +354,19 @@ class ForumController extends Controller
         $postItems = $posts->getCollection()->map(function (ForumPost $post, int $index) use ($posts, $user, $isModerator, $thread, $formatter) {
             $author = $post->author;
 
-            $canModerate = (bool) $isModerator;
+            // A held reply can be neither edited, deleted, reported nor looked up in the history until it is out: those routes do not find it
+            // (the scope), and a moderator approves or rejects it in the review queue.
+            $held = $post->held_at !== null;
+            $canModerate = (bool) $isModerator && ! $held;
             $canEdit = $canModerate;
 
-            if (! $canEdit && $user !== null && $user->id === $post->user_id && $thread->is_published && ! $thread->is_locked) {
+            if (! $canEdit && ! $held && $user !== null && $user->id === $post->user_id && $thread->is_published && ! $thread->is_locked) {
                 $canEdit = true;
             }
 
             return [
                 'id' => $post->id,
-                'held' => $post->held_at !== null,
+                'held' => $held,
                 'held_reason' => $isModerator ? $post->held_reason : null,
                 'body' => $post->body,
                 'body_raw' => $post->body,
@@ -396,9 +401,9 @@ class ForumController extends Controller
                     })->values(),
                 ],
                 'permissions' => [
-                    'canReport' => $user !== null && $user->id !== $post->user_id,
+                    'canReport' => ! $held && $user !== null && $user->id !== $post->user_id,
                     'canEdit' => $canEdit,
-                    'canDelete' => $user !== null && ($user->id === $post->user_id || $canModerate),
+                    'canDelete' => ! $held && $user !== null && ($user->id === $post->user_id || $canModerate),
                     'canModerate' => $canModerate,
                 ],
                 'mentions' => $post->mentions->map(function (User $mentioned) {

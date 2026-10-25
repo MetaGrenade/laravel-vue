@@ -258,13 +258,14 @@ class Automod
     }
 
     /**
-     * A domain as it is compared: lower case, with no scheme, path or `www.`.
+     * A domain as it is compared: lower case, with no scheme, path, `www.` or full stop at the end (`bad.example.` is `bad.example`, and a
+     * link to it works).
      */
     private static function domain(string $value): string
     {
         $value = Str::lower(trim($value));
         $value = (string) preg_replace('~^[a-z][a-z0-9+.-]*://~', '', $value);
-        $value = explode('/', $value)[0];
+        $value = rtrim(explode('/', $value)[0], '.');
 
         return (string) preg_replace('/^www\./', '', $value);
     }

@@ -36,6 +36,20 @@ class AutomodRulesTest extends TestCase
         return $user;
     }
 
+    /**
+     * What a rule keeps, with its names in order: a JSON column hands the names back in the order its database likes (MySQL puts the shorter
+     * ones first), which is nothing a rule depends on.
+     *
+     * @return array<string, mixed>
+     */
+    private function kept(AutomodRule $rule): array
+    {
+        $settings = $rule->settings;
+        ksort($settings);
+
+        return $settings;
+    }
+
     // --- Who ------------------------------------------------------------------------------------------------------------------
 
     #[Test]
@@ -87,7 +101,7 @@ class AutomodRulesTest extends TestCase
 
         $this->assertSame('Watch spam', $rule->name);
         $this->assertSame('words', $rule->type);
-        $this->assertSame(['phrases' => ['cheap watches', 'replica'], 'whole_words' => true], $rule->settings);
+        $this->assertSame(['phrases' => ['cheap watches', 'replica'], 'whole_words' => true], $this->kept($rule));
         $this->assertSame('hold', $rule->action);
         $this->assertSame(14, $rule->only_new_days);
         $this->assertTrue($rule->is_enabled);
@@ -119,10 +133,10 @@ class AutomodRulesTest extends TestCase
         $admin->post(route('acp.forums.automod.store'), ['name' => 'Repeats', 'type' => 'duplicate', 'action' => 'hold', 'settings' => ['minutes' => 30, 'copies' => 2, 'posts' => 9]]);
         $admin->post(route('acp.forums.automod.store'), ['name' => 'Too fast', 'type' => 'rate', 'action' => 'hold', 'settings' => ['posts' => 5, 'minutes' => 10, 'copies' => 9]]);
 
-        $this->assertSame(['max_links' => 2, 'blocked_domains' => ['bad.example', 'worse.example']], AutomodRule::query()->where('type', 'links')->sole()->settings);
+        $this->assertSame(['blocked_domains' => ['bad.example', 'worse.example'], 'max_links' => 2], $this->kept(AutomodRule::query()->where('type', 'links')->sole()));
         $this->assertSame('reject', AutomodRule::query()->where('type', 'links')->sole()->action);
-        $this->assertSame(['minutes' => 30, 'copies' => 2], AutomodRule::query()->where('type', 'duplicate')->sole()->settings);
-        $this->assertSame(['posts' => 5, 'minutes' => 10], AutomodRule::query()->where('type', 'rate')->sole()->settings);
+        $this->assertSame(['copies' => 2, 'minutes' => 30], $this->kept(AutomodRule::query()->where('type', 'duplicate')->sole()));
+        $this->assertSame(['minutes' => 10, 'posts' => 5], $this->kept(AutomodRule::query()->where('type', 'rate')->sole()));
     }
 
     /**
@@ -215,7 +229,7 @@ class AutomodRulesTest extends TestCase
         $rule->refresh();
         $this->assertSame('Renamed', $rule->name);
         $this->assertSame('words', $rule->type, 'what a rule looks for is what it is');
-        $this->assertSame(['phrases' => ['replica'], 'whole_words' => true], $rule->settings);
+        $this->assertSame(['phrases' => ['replica'], 'whole_words' => true], $this->kept($rule));
         $this->assertSame('reject', $rule->action);
         $this->assertSame(30, $rule->only_new_days);
         $this->assertFalse($rule->is_enabled);

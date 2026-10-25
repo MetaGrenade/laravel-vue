@@ -198,6 +198,16 @@ class AutomodTest extends TestCase
             'a blocked domain in capitals' => ['<p>See HTTPS://BAD.EXAMPLE/Page</p>', 10, ['Bad.Example'], true],
             'a blocked domain at the end of a sentence' => ['<p>Visit http://bad.example.</p>', 10, ['bad.example'], true],
             'a blocked domain in brackets' => ['<p>(see https://bad.example)</p>', 10, ['bad.example'], true],
+            'a blocked domain with a full stop after the name and a path' => ['<p>See https://bad.example./offer</p>', 10, ['bad.example'], true],
+            'a subdomain with a full stop after the name' => ['<p>See https://shop.bad.example./offer</p>', 10, ['bad.example'], true],
+            'a www and a full stop after the name' => ['<p>See https://www.bad.example./offer</p>', 10, ['bad.example'], true],
+            'a full stop after the name and a port' => ['<p>See https://bad.example.:8080/offer</p>', 10, ['bad.example'], true],
+            'a full stop after the name in an href' => ['<p><a href="https://bad.example./offer">offer</a></p>', 10, ['bad.example'], true],
+            'a full stop after the name and no scheme' => ['<p>See www.bad.example./offer</p>', 10, ['bad.example'], true],
+            'a blocked domain written with a full stop after it' => ['<p>See https://bad.example/offer</p>', 10, ['bad.example.'], true],
+            'a blocked address written with a full stop after the name' => ['<p>See https://shop.bad.example/offer</p>', 10, ['https://www.bad.example./some/path'], true],
+            'a domain with a full stop that only ends the same way' => ['<p>See https://notbad.example./offer</p>', 10, ['bad.example'], false],
+            'a blocked domain that is only a full stop blocks nothing' => ['<p>See https://good.example./offer</p>', 10, ['.'], false],
             'a link and the same link with punctuation after it are one' => ['<p>https://a.example, https://a.example. https://a.example! and https://b.example</p>', 2, [], false],
         ];
     }
@@ -229,10 +239,13 @@ class AutomodTest extends TestCase
     #[Test]
     public function a_blank_domain_left_in_a_rule_blocks_nothing(): void
     {
-        // The screen never stores one; a rule edited by hand might have one. A host that ends in a full stop is a host all the same.
+        // The screen never stores one; a rule edited by hand might have one. A link with no host in it is not a link to a blank domain.
         AutomodRule::factory()->links(null, ['', ' ', 'bad.example'])->create();
 
         $this->reply($this->member(), '<p>See http://example.com./page</p>');
+        $this->assertNull($this->held());
+
+        $this->reply($this->member(), '<p><a href="http://">nowhere</a></p>');
         $this->assertNull($this->held());
 
         $this->reply($this->member(), '<p>See http://bad.example/page</p>');
@@ -551,9 +564,14 @@ class AutomodTest extends TestCase
         $this->reply($author, '<p>cheap watches</p>');
         $this->reply($this->member(), '<p>A reply that is fine</p>');
 
-        $posts = fn (?User $viewer) => collect(
-            ($viewer ? $this->actingAs($viewer) : $this)->get(route('forum.threads.show', [$this->board, $this->thread]))->viewData('page')['props']['posts']['data'],
-        );
+        $posts = function (?User $viewer) {
+            // A test stays signed in as the last one it acted as, so a guest has to be made.
+            $this->app['auth']->forgetGuards();
+
+            return collect(
+                ($viewer ? $this->actingAs($viewer) : $this)->get(route('forum.threads.show', [$this->board, $this->thread]))->viewData('page')['props']['posts']['data'],
+            );
+        };
 
         $mine = $posts($author);
         $this->assertCount(2, $mine);
@@ -580,6 +598,78 @@ class AutomodTest extends TestCase
         $this->assertSame(1, $this->thread->posts()->count());
         $this->assertSame($visible->id, $this->thread->latestPost()->first()->id);
         $this->assertSame(0, $author->forumPosts()->count());
+    }
+
+    #[Test]
+    public function a_held_reply_is_not_found_by_searching_the_board(): void
+    {
+        AutomodRule::factory()->words(['cheap watches'])->create();
+        $author = $this->member();
+        $this->reply($author, '<p>cheap watches at zebracorn prices</p>');
+
+        $other = $this->makeThread($this->member(), 'Another thread');
+        ForumPost::create(['forum_thread_id' => $other->id, 'user_id' => $this->member()->id, 'body' => '<p>zebracorn</p>']);
+
+        $found = function (?User $viewer) {
+            $this->app['auth']->forgetGuards();
+
+            return collect(
+                ($viewer ? $this->actingAs($viewer) : $this)
+                    ->get(route('forum.boards.show', ['board' => $this->board->slug, 'search' => 'zebracorn']))
+                    ->viewData('page')['props']['threads']['data'],
+            )->pluck('id')->sort()->values()->all();
+        };
+
+        $this->assertSame([$other->id], $found(null), 'a guest');
+        $this->assertSame([$other->id], $found($this->member()), 'another member');
+        $this->assertSame([$other->id], $found($author), 'its author');
+        $this->assertSame([$other->id], $found($this->staff()), 'a moderator');
+
+        $this->assertTrue(app(ForumReview::class)->approveReply($this->held()));
+
+        $this->assertSame([$this->thread->id, $other->id], $found(null), 'once it is out');
+    }
+
+    #[Test]
+    public function a_held_reply_offers_no_action_until_it_is_out(): void
+    {
+        AutomodRule::factory()->words(['cheap watches'])->create();
+        $author = $this->member();
+        $this->reply($author, '<p>cheap watches</p>');
+        $this->reply($author, '<p>A reply that is fine</p>');
+
+        $permissions = fn (User $viewer, bool $held) => collect(
+            $this->actingAs($viewer)->get(route('forum.threads.show', [$this->board, $this->thread]))->viewData('page')['props']['posts']['data'],
+        )->firstWhere('held', $held)['permissions'];
+
+        $none = ['canReport' => false, 'canEdit' => false, 'canDelete' => false, 'canModerate' => false];
+
+        $this->assertSame($none, $permissions($author, true), 'its author');
+        $this->assertSame($none, $permissions($this->staff(), true), 'a moderator');
+
+        $this->assertSame(['canReport' => false, 'canEdit' => true, 'canDelete' => true, 'canModerate' => false], $permissions($author, false), 'its author, once it is out');
+        $this->assertSame(['canReport' => true, 'canEdit' => true, 'canDelete' => true, 'canModerate' => true], $permissions($this->staff(), false), 'a moderator, once it is out');
+    }
+
+    #[Test]
+    public function a_held_reply_cannot_be_edited_deleted_reported_or_looked_up_in_the_history(): void
+    {
+        AutomodRule::factory()->words(['cheap watches'])->create();
+        $author = $this->member();
+        $this->reply($author, '<p>cheap watches</p>');
+        $held = $this->held();
+        $parameters = [$this->board, $this->thread, $held->id];
+
+        $this->actingAs($author)->put(route('forum.posts.update', $parameters), ['body' => '<p>Something else</p>'])->assertNotFound();
+        $this->actingAs($author)->delete(route('forum.posts.destroy', $parameters))->assertNotFound();
+
+        $moderator = $this->staff();
+        $this->actingAs($moderator)->post(route('forum.posts.report', $parameters), ['reason_category' => 'spam'])->assertNotFound();
+        $this->actingAs($moderator)->get(route('forum.posts.history', $parameters))->assertNotFound();
+        $this->actingAs($moderator)->delete(route('forum.posts.destroy', $parameters))->assertNotFound();
+
+        $this->assertSame('<p>cheap watches</p>', $held->fresh()->body);
+        $this->assertNotNull($this->held());
     }
 
     #[Test]
