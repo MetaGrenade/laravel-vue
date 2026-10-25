@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Support\Commerce\GuestCarryOver;
+use App\Support\Moderation\Moderation;
 use App\Support\OAuth\Exceptions\OAuthException;
 use App\Support\OAuth\OAuthManager;
 use App\Support\OAuth\OAuthProviders;
@@ -107,9 +108,11 @@ class SocialLoginController extends Controller
             $user = $this->createUserFromProvider($provider, $oauthUser);
         }
 
-        if ($user->is_banned ?? false) {
+        app(Moderation::class)->liftIfRunOut($user);
+
+        if ($user->is_banned) {
             return redirect()->route('login')->withErrors([
-                'email' => trans('auth.banned'),
+                'email' => app(Moderation::class)->banMessage($user),
             ]);
         }
 

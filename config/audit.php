@@ -83,6 +83,7 @@ return [
         'users.update' => 'Edited a user',
         'users.destroy' => 'Deleted a user',
         'users.verify' => 'Verified a user\'s email address',
+        'users.warn' => 'Warned a user',
         'users.ban' => 'Banned a user',
         'users.unban' => 'Lifted a ban',
         'users.bulk-update' => 'Changed several users at once',

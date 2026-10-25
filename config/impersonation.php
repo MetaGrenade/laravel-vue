@@ -39,6 +39,7 @@ return [
         'settings',
         'settings.notifications.edit',
         'settings.addresses.index',
+        'settings.standing',
         'settings.api-keys.index',
         'settings.billing.index',
         'settings.billing.invoices.index',

@@ -138,8 +138,8 @@ class AuditLogTest extends TestCase
 
         $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.20'])
             ->withHeader('User-Agent', 'TestBrowser/1.0')
-            ->put(route('acp.users.ban', $target->id))
-            ->assertRedirect(route('acp.users.index'));
+            ->put(route('acp.users.ban', $target->id), ['reason' => 'Posting adverts in every board'])
+            ->assertRedirect(route('acp.users.moderation.show', $target->id));
 
         $entry = $this->entry();
 
@@ -162,7 +162,7 @@ class AuditLogTest extends TestCase
         $admin = $this->signInAdmin();
         $target = User::factory()->create();
 
-        $this->put(route('acp.users.ban', $target->id));
+        $this->put(route('acp.users.ban', $target->id), ['reason' => 'Posting adverts in every board']);
 
         $changes = $this->entry()->changes;
         $this->assertCount(1, $changes);
@@ -428,7 +428,7 @@ class AuditLogTest extends TestCase
         $target = User::factory()->create();
         AuditLog::creating(fn () => throw new RuntimeException('The disk is full.'));
 
-        $this->put(route('acp.users.ban', $target->id))->assertRedirect(route('acp.users.index'));
+        $this->put(route('acp.users.ban', $target->id), ['reason' => 'Posting adverts in every board'])->assertRedirect(route('acp.users.moderation.show', $target->id));
 
         $this->assertTrue($target->fresh()->is_banned, 'the change was made');
         Exceptions::assertReported(fn (RuntimeException $exception) => $exception->getMessage() === 'The disk is full.');
@@ -661,7 +661,7 @@ class AuditLogTest extends TestCase
         $this->signInAdmin();
         $users = User::factory()->count(6)->create();
 
-        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all()])->assertSessionHasNoErrors();
+        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all(), 'reason' => 'A wave of spam accounts', 'notify' => false])->assertSessionHasNoErrors();
 
         $entry = $this->entry();
         $this->assertCount(3, $entry->changes);
@@ -731,7 +731,7 @@ class AuditLogTest extends TestCase
         $this->signInAdmin();
         $users = User::factory()->count(4)->create();
 
-        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all()])->assertSessionHasNoErrors();
+        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all(), 'reason' => 'A wave of spam accounts', 'notify' => false])->assertSessionHasNoErrors();
 
         $entry = $this->entry();
 
@@ -746,7 +746,7 @@ class AuditLogTest extends TestCase
         $this->signInAdmin();
         $users = User::factory()->count(6)->create();
 
-        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all()])->assertSessionHasNoErrors();
+        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all(), 'reason' => 'A wave of spam accounts', 'notify' => false])->assertSessionHasNoErrors();
 
         $entry = $this->entry();
 
@@ -763,7 +763,7 @@ class AuditLogTest extends TestCase
         $this->signInAdmin();
         $users = User::factory()->count(501)->create();
 
-        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all()])->assertSessionHasNoErrors();
+        $this->patch(route('acp.users.bulk-update'), ['action' => 'ban', 'ids' => $users->pluck('id')->all(), 'reason' => 'A wave of spam accounts', 'notify' => false])->assertSessionHasNoErrors();
 
         $entry = $this->entry();
 
@@ -870,7 +870,7 @@ class AuditLogTest extends TestCase
             }
         });
 
-        $this->put(route('acp.users.ban', $target->id))->assertRedirect();
+        $this->put(route('acp.users.ban', $target->id), ['reason' => 'Posting adverts in every board'])->assertRedirect();
 
         $this->assertCount(2, $levels, 'the entry, then its account');
         $this->assertSame([$before + 1, $before + 1], $levels, 'both inside one transaction, so neither is written without the other');

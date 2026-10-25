@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\Moderation\Moderation;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -54,11 +55,18 @@ class LoginRequest extends FormRequest
 
         $user = $this->user();
 
+        if ($user !== null) {
+            app(Moderation::class)->liftIfRunOut($user);
+        }
+
+        // Only now that the password has been right: who is banned, and why, is not for somebody who is guessing at it to find out.
         if ($user?->is_banned) {
+            $message = app(Moderation::class)->banMessage($user);
+
             Auth::logout();
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.banned'),
+                'email' => $message,
             ]);
         }
     }

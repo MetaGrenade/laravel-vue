@@ -34,8 +34,8 @@ class UserBanManagementTest extends TestCase
 
         $target = User::factory()->create();
 
-        $this->put(route('acp.users.ban', $target))
-            ->assertRedirect(route('acp.users.index'));
+        $this->put(route('acp.users.ban', $target), ['reason' => 'Harassing other members in the forum'])
+            ->assertRedirect(route('acp.users.moderation.show', $target));
 
         $target->refresh();
         $this->assertTrue($target->is_banned);
@@ -43,7 +43,7 @@ class UserBanManagementTest extends TestCase
         $this->assertSame($admin->id, $target->banned_by_id);
 
         $this->put(route('acp.users.unban', $target))
-            ->assertRedirect(route('acp.users.index'));
+            ->assertRedirect(route('acp.users.moderation.show', $target));
 
         $target->refresh();
         $this->assertFalse($target->is_banned);

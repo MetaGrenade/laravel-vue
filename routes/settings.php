@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\AccountStandingController;
 use App\Http\Controllers\Settings\AddressController;
 use App\Http\Controllers\Settings\ApiKeyController;
 use App\Http\Controllers\Settings\DataErasureRequestController;
@@ -39,6 +40,9 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
 
     Route::get('settings/privacy', PrivacyController::class)->name('privacy.index');
+
+    // What moderators have warned this member about, and any ban they have been under (docs/moderation.md).
+    Route::get('settings/account-standing', AccountStandingController::class)->name('settings.standing');
 
     Route::get('settings/api-keys', [ApiKeyController::class, 'index'])->name('settings.api-keys.index');
     // Making a key needs a verified address where the site asks for one; taking one away never does.

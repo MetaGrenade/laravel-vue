@@ -91,7 +91,7 @@ Plan: eight milestones (M0–M7) in section 9, roughly **70–100 developer-days
 Strong already. Remaining gaps, in priority order:
 
 1. **Public member profiles and a member directory.** Users have bios and social links, but there is no public profile page.
-2. **Moderation depth.** Reports exist; add warnings/infractions, ban history, and automod for the forum. The spam guard (`CommentGuard`) covers blog comments only.
+2. **Moderation depth.** Reports exist. Warnings and ban history are **done** ([moderation.md](moderation.md)); automod for the forum is still to do. The spam guard (`CommentGuard`) covers blog comments only.
 3. **Thread features:** tags/prefixes, "solved" answers, ignore list, attachments and image uploads in posts.
 4. **Direct messages and following.**
 5. **Email digests** and notification batching.
@@ -417,7 +417,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 
 - Public member profiles and directory; follow
 - Forum: thread tags/prefixes, solved answers, attachments, ignore list, RSS
-- Moderation: infractions and ban history, automod rules, spam guard extended from blog comments to forum posts
+- Moderation: infractions and ban history (**done**, first slice, see [moderation.md](moderation.md)), automod rules, spam guard extended from blog comments to forum posts
 - Email digests
 - Break up the largest controllers while touching them
 - **Exit:** a moderator can handle a spam wave and a rule-breaking member entirely from the ACP.

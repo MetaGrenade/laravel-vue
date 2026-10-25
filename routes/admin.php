@@ -49,6 +49,7 @@ use App\Http\Controllers\Admin\TebexController;
 use App\Http\Controllers\Admin\TebexPackageEntitlementController;
 use App\Http\Controllers\Admin\TokenController;
 use App\Http\Controllers\Admin\TrustSafetyController;
+use App\Http\Controllers\Admin\UserModerationController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
 use App\Http\Controllers\Admin\UserSocialAccountController;
 use Illuminate\Support\Facades\Route;
@@ -73,8 +74,18 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/users/{user}', [AdminUserController::class, 'update'])->name('acp.users.update');
     Route::delete('acp/users/{user}', [AdminUserController::class, 'destroy'])->name('acp.users.destroy');
     Route::put('acp/users/{user}/verify', [AdminUserController::class, 'verify'])->name('acp.users.verify');
-    Route::put('acp/users/{user}/ban', [AdminUserController::class, 'ban'])->name('acp.users.ban');
-    Route::put('acp/users/{user}/unban', [AdminUserController::class, 'unban'])->name('acp.users.unban');
+    // Moderating a member: where they stand and what has been done, a warning, a ban (for good or until a date), lifting one
+    // (docs/moderation.md). Warning and banning are separate permissions.
+    Route::get('acp/users/{user}/moderation', [UserModerationController::class, 'show'])->name('acp.users.moderation.show');
+    Route::post('acp/users/{user}/warnings', [UserModerationController::class, 'warn'])
+        ->middleware('can:users.acp.warn')
+        ->name('acp.users.warn');
+    Route::put('acp/users/{user}/ban', [UserModerationController::class, 'ban'])
+        ->middleware('can:users.acp.ban')
+        ->name('acp.users.ban');
+    Route::put('acp/users/{user}/unban', [UserModerationController::class, 'unban'])
+        ->middleware('can:users.acp.ban')
+        ->name('acp.users.unban');
     Route::patch('acp/users/bulk', [AdminUserController::class, 'bulkUpdate'])->name('acp.users.bulk-update');
     // See the site as a customer sees it, read only (docs/impersonation.md). Its own permission: it shows what the customer sees.
     Route::post('acp/users/{user}/impersonate', [ImpersonationController::class, 'store'])

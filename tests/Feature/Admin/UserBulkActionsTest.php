@@ -79,6 +79,7 @@ class UserBulkActionsTest extends TestCase
             ->patch(route('acp.users.bulk-update'), [
                 'action' => 'ban',
                 'ids' => $users->pluck('id')->all(),
+                'reason' => 'Posting the same advert in every board',
             ]);
 
         $response->assertRedirect(route('acp.users.index'));
@@ -89,6 +90,7 @@ class UserBulkActionsTest extends TestCase
             $this->assertTrue($fresh->is_banned);
             $this->assertTrue($fresh->banned_at->equalTo(Carbon::now()));
             $this->assertSame($admin->id, $fresh->banned_by_id);
+            $this->assertSame('Posting the same advert in every board', $fresh->ban_reason);
         }
 
         Carbon::setTestNow();

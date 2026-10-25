@@ -18,6 +18,7 @@ use App\Http\Middleware\ThrottleTokenUsage;
 use App\Http\Middleware\UpdateLastActivity;
 use App\Jobs\AggregateSearchQueryStats;
 use App\Jobs\ExpirePendingOrders;
+use App\Jobs\LiftRunOutBans;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneAuditLogs;
 use App\Jobs\PruneSearchQueryLogs;
@@ -113,6 +114,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
         $schedule->job(new PruneUsageEvents)->dailyAt('01:30');
         $schedule->job(new PruneAuditLogs)->dailyAt('02:00');
+        // A ban with an end date lifts itself when the member next tries to sign in or make a request; this is for the lists of members.
+        $schedule->job(new LiftRunOutBans)->everyMinute();
         $schedule->job(new ExpirePendingOrders)->everyFiveMinutes();
         // Looked at every five minutes; runs when the copy of the Tebex catalogue is older than the configured interval.
         $schedule->job(new SyncTebexCatalogue)->everyFiveMinutes()->when(fn () => app(TebexCatalogue::class)->isDue());
