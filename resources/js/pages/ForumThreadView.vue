@@ -1673,7 +1673,11 @@ const submitReply = () => {
                     <div class="w-full shrink-0 border-r pr-4 md:w-1/5">
                         <Link v-if="post.author.id" :href="route('members.show', post.author.id)" class="block w-fit">
                             <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
-                                <AvatarImage v-if="post.author.avatar_url" :src="post.author.avatar_url" :alt="post.author.nickname ?? 'Forum user'" />
+                                <AvatarImage
+                                    v-if="post.author.avatar_url"
+                                    :src="post.author.avatar_url"
+                                    :alt="post.author.nickname ?? 'Forum user'"
+                                />
                                 <AvatarFallback
                                     class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground uppercase"
                                 >
@@ -1684,7 +1688,11 @@ const submitReply = () => {
                         </Link>
                         <template v-else>
                             <Avatar class="mb-2 h-24 w-24 overflow-hidden rounded-full">
-                                <AvatarImage v-if="post.author.avatar_url" :src="post.author.avatar_url" :alt="post.author.nickname ?? 'Forum user'" />
+                                <AvatarImage
+                                    v-if="post.author.avatar_url"
+                                    :src="post.author.avatar_url"
+                                    :alt="post.author.nickname ?? 'Forum user'"
+                                />
                                 <AvatarFallback
                                     class="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground uppercase"
                                 >

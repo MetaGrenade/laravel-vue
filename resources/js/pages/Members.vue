@@ -96,7 +96,11 @@ const sortHref = (value: string) => route('members.index', { sort: value, ...(pr
                     :key="item.value"
                     :href="sortHref(item.value)"
                     class="rounded-md px-3 py-1.5 text-sm"
-                    :class="sort === item.value ? 'bg-primary/10 font-medium text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+                    :class="
+                        sort === item.value
+                            ? 'bg-primary/10 font-medium text-foreground'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    "
                     :aria-current="sort === item.value ? 'true' : undefined"
                 >
                     {{ t(item.label) }}
