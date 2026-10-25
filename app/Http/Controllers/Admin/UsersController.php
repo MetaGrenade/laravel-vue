@@ -93,7 +93,9 @@ class UsersController extends Controller
 
         $users = (clone $filteredQuery)
             ->with(['roles:id,name', 'bannedBy:id,nickname'])
+            // `created_at` is to the second, so accounts made together tie: the id settles them, or a page could repeat or skip one.
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate($perPage)
             ->withQueryString();
 
