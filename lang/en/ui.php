@@ -45,6 +45,52 @@ return [
         'stop' => 'Stop viewing',
     ],
 
+    // The "Get started" checklist on the dashboard (docs/onboarding.md). The steps are those of config/onboarding.php.
+    'onboarding' => [
+        'title' => 'Get started',
+        'description' => 'A few things worth doing first.',
+        'progress' => ':done of :total done',
+        'dismiss' => 'Hide this',
+        'done' => 'Done',
+        'steps' => [
+            'verify_email' => [
+                'title' => 'Confirm your email address',
+                'description' => 'So we can reach you about orders and your account.',
+                'action' => 'Confirm',
+            ],
+            'profile' => [
+                'title' => 'Tell people about yourself',
+                'description' => 'Add a picture or a few words about you.',
+                'action' => 'Edit profile',
+            ],
+            'two_factor' => [
+                'title' => 'Protect your account',
+                'description' => 'Turn on two-factor authentication, so a stolen password is not enough.',
+                'action' => 'Set up',
+            ],
+            'notifications' => [
+                'title' => 'Choose what we email you',
+                'description' => 'Pick the updates you want, and how you get them.',
+                'action' => 'Choose',
+            ],
+            'plan' => [
+                'title' => 'Choose a plan',
+                'description' => 'See what each plan gives you.',
+                'action' => 'See plans',
+            ],
+            'api_key' => [
+                'title' => 'Make an API key',
+                'description' => 'Use the API from your own tools.',
+                'action' => 'Make a key',
+            ],
+            'community' => [
+                'title' => 'Say hello in the forum',
+                'description' => 'Start a thread or reply to one.',
+                'action' => 'Open the forum',
+            ],
+        ],
+    ],
+
     'footer' => [
         'tagline' => 'A production-ready Laravel and Vue foundation for SaaS products and online communities.',
         'product' => 'Product',

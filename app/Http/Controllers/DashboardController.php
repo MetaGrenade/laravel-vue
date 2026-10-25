@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\Commerce\CustomerOrders;
 use App\Support\Commerce\Money;
 use App\Support\Localization\DateFormatter;
+use App\Support\Onboarding\Onboarding;
 use App\Support\WebsiteSections;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -40,6 +41,7 @@ class DashboardController extends Controller
             'shop' => $this->shop($user),
             'plan' => $this->plan($user),
             'account' => $this->account($user),
+            'onboarding' => $this->onboarding($user),
         ]);
     }
 
@@ -56,6 +58,18 @@ class DashboardController extends Controller
         }
 
         return app(CustomerOrders::class)->dashboard($user);
+    }
+
+    /**
+     * The "Get started" checklist, until it is done, hidden or too old to show (docs/onboarding.md).
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function onboarding(User $user): ?array
+    {
+        $checklist = app(Onboarding::class)->for($user);
+
+        return $checklist === null ? null : [...$checklist, 'dismiss_url' => route('onboarding.dismiss')];
     }
 
     /**

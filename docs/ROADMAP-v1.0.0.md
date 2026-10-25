@@ -67,8 +67,8 @@ Plan: eight milestones (M0–M7) in section 9, roughly **70–100 developer-days
 | Customer-facing API keys | **Done** (M3): a self-service page with scopes, expiry and revoke, and scopes the API enforces; see [api-keys.md](api-keys.md). |
 | Outbound webhooks for customers | **Missing.** |
 | Admin impersonation, admin audit log | **Both done** (M3): [audit-log.md](audit-log.md), and read-only "view as" in [impersonation.md](impersonation.md). |
-| Onboarding flow, in-app changelog/status | **Missing.** |
-| Transactional email design | **Partial.** 8 notifications use the default Laravel mail templates; no branded layout. |
+| Onboarding flow, in-app changelog/status | **Partial.** A "Get started" checklist on the dashboard is done (M3, [onboarding.md](onboarding.md)); an in-app changelog and a status page are **missing.** |
+| Transactional email design | **Done** (M3): every notification, and the mails Laravel sends itself, are in one branded layout with a plain-text and a dark version; see [email.md](email.md). |
 
 ### 3.2 eCommerce
 
@@ -409,8 +409,8 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Metered usage example with reporting (**done**, see [usage.md](usage.md); billing the overage through Stripe is not built)
 - Self-service API keys page with scopes and expiry (**done**, see [api-keys.md](api-keys.md); it also made scopes real: every API route that takes a key names the scope it needs, and a revoked key is refused, which `revoked_at` never did before; with an email when a key is made, one-step rotation, limits an owner sets, and least-privilege defaults for keys made by signing in over the API)
 - Admin audit log (**done**, see [audit-log.md](audit-log.md)) and read-only impersonation (**done**, see [impersonation.md](impersonation.md))
-- Onboarding checklist; branded email layout
-- Tests asserting that policies resolve through the owner, so teams can be added in 1.1 (section 7.4)
+- Onboarding checklist (**done**, see [onboarding.md](onboarding.md)); branded email layout (**done**, see [email.md](email.md))
+- Tests asserting that policies resolve through the owner, so teams can be added in 1.1 (section 7.4; **done**, see [ownership.md](ownership.md), which also has the "Upgrading to teams" note)
 - **Exit:** a plan change visibly changes what a user can do; limits are enforced; audit log records admin actions.
 
 ### M4. Community completions (8–12 days)
