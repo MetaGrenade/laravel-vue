@@ -6,6 +6,7 @@ use App\Http\Controllers\Settings\ApiKeyController;
 use App\Http\Controllers\Settings\DataErasureRequestController;
 use App\Http\Controllers\Settings\DataExportController;
 use App\Http\Controllers\Settings\LinkedSocialAccountController;
+use App\Http\Controllers\Settings\DiscordNotificationSettingsController;
 use App\Http\Controllers\Settings\NotificationSettingsController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\PrivacyController;
@@ -36,6 +37,9 @@ Route::middleware('auth')->group(function () {
         ->name('settings.notifications.edit');
     Route::put('settings/notifications', [NotificationSettingsController::class, 'update'])
         ->name('settings.notifications.update');
+
+    Route::get('settings/discord-notifications', [DiscordNotificationSettingsController::class, 'edit'])
+        ->name('settings.discord-notifications.edit');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
 

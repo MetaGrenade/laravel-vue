@@ -19,6 +19,7 @@ import {
     ListFilter,
     MessageCircle,
     MessageSquare,
+    MessagesSquare,
     Package,
     Percent,
     ReceiptText,
@@ -145,6 +146,8 @@ const navGroups = computed<AdminNavGroup[]>(() => {
             title: 'System',
             items: [
                 { title: 'Access tokens', href: '/acp/tokens', icon: Key, visible: can('tokens.acp.view') },
+                { title: 'Discord mappings', href: '/acp/discord/role-mappings', icon: MessagesSquare, visible: can('system.acp.view') },
+                { title: 'Discord sync', href: '/acp/discord/sync', icon: MessagesSquare, visible: can('system.acp.view') },
                 { title: 'System settings', href: '/acp/system', icon: Settings, visible: can('system.acp.view') },
                 { title: 'Audit log', href: '/acp/audit-log', icon: ScrollText, visible: can('audit.acp.view') },
             ],

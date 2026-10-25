@@ -23,7 +23,8 @@
         "pusher/pusher-php-server": "^7.3",
         "spatie/laravel-permission": "^8.0",
         "symfony/html-sanitizer": "^8.1",
-        "tightenco/ziggy": "^2.6"
+        "tightenco/ziggy": "^2.6",
+        "metagrenade/metaforge-discord": "dev-main"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
@@ -111,6 +112,43 @@
             "php-http/discovery": true
         }
     },
-    "minimum-stability": "stable",
-    "prefer-stable": true
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "repositories": [
+        {
+            "type": "package",
+            "package": {
+                "name": "metagrenade/metaforge-discord",
+                "version": "dev-main",
+                "type": "library",
+                "license": "MIT",
+                "source": {
+                    "url": "https://github.com/MetaGrenade/MetaForge-DiscordBot.git",
+                    "type": "git",
+                    "reference": "main"
+                },
+                "require": {
+                    "php": "^8.4",
+                    "illuminate/contracts": "^13.0",
+                    "illuminate/http": "^13.0",
+                    "illuminate/notifications": "^13.0",
+                    "illuminate/routing": "^13.0",
+                    "illuminate/support": "^13.0",
+                    "spatie/laravel-permission": "^8.0"
+                },
+                "autoload": {
+                    "psr-4": {
+                        "MetaForge\\Discord\\": "laravel/src/"
+                    }
+                },
+                "extra": {
+                    "laravel": {
+                        "providers": [
+                            "MetaForge\\Discord\\DiscordServiceProvider"
+                        ]
+                    }
+                }
+            }
+        }
+    ]
 }

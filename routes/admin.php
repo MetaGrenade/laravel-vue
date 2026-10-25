@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\CommerceOrderLicenceKeyController;
 use App\Http\Controllers\Admin\CommerceOrderRefundController;
 use App\Http\Controllers\Admin\CommerceReviewController;
 use App\Http\Controllers\Admin\CouponController;
+use App\Http\Controllers\Admin\DiscordController;
 use App\Http\Controllers\Admin\EntitlementController;
 use App\Http\Controllers\Admin\FaqCategoryController;
 use App\Http\Controllers\Admin\ForumBoardController;
@@ -550,6 +551,13 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/support/faq-categories/{category}/edit', [FaqCategoryController::class, 'edit'])->name('acp.support.faq-categories.edit');
     Route::put('acp/support/faq-categories/{category}', [FaqCategoryController::class, 'update'])->name('acp.support.faq-categories.update');
     Route::delete('acp/support/faq-categories/{category}', [FaqCategoryController::class, 'destroy'])->name('acp.support.faq-categories.destroy');
+
+    Route::get('acp/discord/role-mappings', [DiscordController::class, 'roleMappings'])
+        ->middleware('can:system.acp.view')
+        ->name('acp.discord.role-mappings');
+    Route::get('acp/discord/sync', [DiscordController::class, 'sync'])
+        ->middleware('can:system.acp.view')
+        ->name('acp.discord.sync');
 
     Route::get('acp/system', [SystemSettingsController::class, 'index'])
         ->middleware('can:system.acp.view')

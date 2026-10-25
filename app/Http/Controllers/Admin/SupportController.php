@@ -27,6 +27,7 @@ use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
 use App\Models\User;
 use App\Notifications\TicketOpened;
+use App\Notifications\SupportTicketAgentReply;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
 use App\Support\Database\Transaction;
@@ -1076,6 +1077,10 @@ class SupportController extends Controller
                     return ['database', 'mail', 'push'];
                 }
             );
+
+            if ($ticket->user && (int) $message->user_id !== (int) $ticket->user_id) {
+                $ticket->user->notify(new SupportTicketAgentReply($ticket, $message));
+            }
         }
 
         return redirect()
