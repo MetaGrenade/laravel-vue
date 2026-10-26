@@ -27,19 +27,7 @@ class ImageProcessor
      */
     public function process(string $bytes): ProcessedImage
     {
-        if (! extension_loaded('gd') || ! function_exists('imagewebp')) {
-            throw new ImageRejected('This server cannot process images: the GD extension with WebP support is missing.');
-        }
-
-        [$width, $height, $type] = $this->inspect($bytes);
-
-        $source = @imagecreatefromstring($bytes);
-
-        if (! $source instanceof GdImage) {
-            throw new ImageRejected('That file could not be read as a picture. It may be damaged.');
-        }
-
-        $source = $this->oriented($source, $bytes, $type);
+        $source = $this->decode($bytes);
 
         $sizes = (array) config('commerce.images.sizes');
 
@@ -54,6 +42,36 @@ class ImageProcessor
             width: imagesx($large),
             height: imagesy($large),
         );
+    }
+
+    /**
+     * One WebP whose longest side is at most $longest. A smaller picture is not enlarged.
+     *
+     * @throws ImageRejected
+     */
+    public function webp(string $bytes, int $longest): string
+    {
+        return $this->encode($this->fit($this->decode($bytes), max(1, $longest)));
+    }
+
+    /**
+     * @throws ImageRejected
+     */
+    private function decode(string $bytes): GdImage
+    {
+        if (! extension_loaded('gd') || ! function_exists('imagewebp')) {
+            throw new ImageRejected('This server cannot process images: the GD extension with WebP support is missing.');
+        }
+
+        [, , $type] = $this->inspect($bytes);
+
+        $source = @imagecreatefromstring($bytes);
+
+        if (! $source instanceof GdImage) {
+            throw new ImageRejected('That file could not be read as a picture. It may be damaged.');
+        }
+
+        return $this->oriented($source, $bytes, $type);
     }
 
     /**

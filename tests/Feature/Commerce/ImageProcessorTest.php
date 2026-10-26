@@ -253,4 +253,19 @@ class ImageProcessorTest extends TestCase
 
         $this->assertSame([100, 100], [$result->width, $result->height]);
     }
+
+    #[Test]
+    public function one_webp_fits_the_longest_side_and_drops_a_note(): void
+    {
+        $upload = $this->pngWithNote('GPS-LOCATION-51.5');
+
+        $webp = $this->processor->webp($upload, 40);
+
+        $info = getimagesizefromstring($webp);
+
+        $this->assertNotFalse($info);
+        $this->assertSame(IMAGETYPE_WEBP, $info[2]);
+        $this->assertSame(40, max($info[0], $info[1]));
+        $this->assertStringNotContainsString('GPS-LOCATION', $webp);
+    }
 }

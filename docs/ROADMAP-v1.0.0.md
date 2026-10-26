@@ -107,7 +107,7 @@ Strong already. Remaining gaps, in priority order:
 | Sev | Finding | Status | Fix |
 |-----|---------|--------|-----|
 | **High** | Support-ticket attachments are written to the `public` disk (`SupportCenterController`: `$disk = 'public'`). Files are reachable without authentication or ticket authorisation. The stored MIME type is the client-supplied one. | Verified | Move to a private disk; serve through an authorised controller with `Content-Disposition: attachment`; validate by sniffed MIME and extension allow-list; cap size; optional AV hook. Add a migration to move existing files. |
-| High (latent) | Blog covers also use the public disk; fine for public images, but there is no image re-encoding, so crafted files are served as-is. | Verified | Re-encode and strip metadata on upload; limit dimensions. |
+| High (latent) | Blog covers also use the public disk; fine for public images, but there is no image re-encoding, so crafted files are served as-is. | **Done** (second M5 slice, see [blog-covers.md](blog-covers.md)) | Re-encode and strip metadata on upload; limit dimensions. |
 | Medium | Two-factor is a custom TOTP implementation (`TwoFactorAuthenticator`). Secrets are stored encrypted. No recovery-code rotation prompt. | Verified | Review against RFC 6238 test vectors; add tests. **Passkeys/WebAuthn are deferred to 1.1.** |
 | Medium | Sanctum tokens default to abilities `['*']` and no expiry. | Verified | Default to least-privilege abilities; set `SANCTUM_EXPIRATION`; add per-token rate limits. |
 | Medium | No admin audit log. Role changes, bans, refunds and settings changes are not recorded. | Verified | Add an append-only `audit_logs` table and a model observer/trait; ACP viewer. |
@@ -122,7 +122,7 @@ Strong already. Remaining gaps, in priority order:
 ### 4.2 Hardening checklist for 1.0
 
 - [ ] Private storage and authorised downloads for all user uploads
-- [ ] Upload pipeline: MIME sniffing, extension allow-list, size caps, image re-encode
+- [ ] Upload pipeline: MIME sniffing, extension allow-list, size caps, image re-encode (product pictures, forum pictures and blog covers are re-encoded; see [blog-covers.md](blog-covers.md))
 - [x] Admin audit log (**done in M3**: an append-only `audit_logs` table written for every change under `acp/`, with before and after for the records that matter, a viewer, and retention; see [audit-log.md](audit-log.md))
 - [x] Admin impersonation, read-only (**done in M3**: staff see the site as one customer sees it, for 30 minutes, with a reason, nothing can be changed, a few pages stay closed, and every page opened is in the audit log; see [impersonation.md](impersonation.md))
 - [x] Token abilities default, expiry, rate limits (**done in M3**: scopes are enforced on every API route, keys made on the settings page or by signing in over the API are least-privilege by default, expire, are limited in number and can be limited in calls, and revoking really revokes; see [api-keys.md](api-keys.md))
@@ -426,6 +426,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 
 - Section 4.2 checklist; upload pipeline; token defaults
 - Legal pages (Terms, Privacy, Cookie policy) managed in the ACP; cookie-consent banner (**done**, first slice, see [legal-pages.md](legal-pages.md))
+- Blog covers are decoded and saved again as WebP (**done**, second slice, see [blog-covers.md](blog-covers.md))
 - Accessibility pass (axe on main flows)
 - **Exit:** checklist complete; external dependency audit clean; no open high/medium findings. (Passkeys are deferred to 1.1.)
 
