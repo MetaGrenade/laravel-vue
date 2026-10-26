@@ -41,6 +41,7 @@ type BlogAuthor = {
 type BlogPermissions = {
     canViewRevisions: boolean;
     canRestoreRevisions: boolean;
+    canPublish: boolean;
 };
 
 type BlogPayload = {
@@ -90,11 +91,14 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: props.blog.title, href: route('acp.blogs.edit', { blog: props.blog.id }) },
 ];
 
-const statusOptions: Array<{ label: string; value: BlogStatus }> = [
-    { label: 'Draft', value: 'draft' },
-    { label: 'Published', value: 'published' },
-    { label: 'Archived', value: 'archived' },
-];
+const statusLabels: Record<BlogStatus, string> = {
+    draft: 'Draft',
+    published: 'Published',
+    archived: 'Archived',
+    scheduled: 'Scheduled',
+};
+
+const canPublish = computed(() => props.permissions.canPublish);
 
 const form = useForm<BlogForm>({
     title: props.blog.title ?? '',
@@ -114,6 +118,16 @@ const form = useForm<BlogForm>({
                 url: typeof link?.url === 'string' ? link.url : '',
             })) ?? [],
     },
+});
+
+const statusOptions = computed<Array<{ label: string; value: BlogStatus }>>(() => {
+    const choices: BlogStatus[] = canPublish.value ? ['draft', 'published', 'archived'] : [form.status];
+
+    if (canPublish.value && form.status === 'scheduled' && !choices.includes('scheduled')) {
+        choices.push('scheduled');
+    }
+
+    return choices.map((value) => ({ label: statusLabels[value], value }));
 });
 
 // Errors for nested fields (e.g. `social_links.0.url`) are keyed by dot notation.
@@ -658,7 +672,8 @@ const handleSubmit = () => {
                                     <select
                                         id="status"
                                         v-model="form.status"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
+                                        :disabled="!canPublish"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                                             {{ option.label }}
@@ -669,7 +684,14 @@ const handleSubmit = () => {
 
                                 <div v-if="form.status === 'scheduled'" class="grid gap-2">
                                     <Label for="scheduled_for">Schedule for</Label>
-                                    <Input id="scheduled_for" v-model="form.scheduled_for" type="datetime-local" :min="minScheduleValue" required />
+                                    <Input
+                                        id="scheduled_for"
+                                        v-model="form.scheduled_for"
+                                        type="datetime-local"
+                                        :min="minScheduleValue"
+                                        :disabled="!canPublish"
+                                        required
+                                    />
                                     <p class="text-xs text-muted-foreground">We'll queue the post to publish automatically at this time.</p>
                                     <InputError :message="form.errors.scheduled_for" />
                                 </div>

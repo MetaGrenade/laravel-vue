@@ -90,7 +90,111 @@ class BlogAuthorizationTest extends TestCase
         $this->assertFalse(Gate::forUser($editor)->allows('delete', $comment));
     }
 
-    private function editor(?string $permission = null): User
+    #[Test]
+    public function saving_a_post_cannot_change_its_publication_without_the_publish_permission(): void
+    {
+        $author = $this->editor('blogs.acp.create');
+
+        $this->actingAs($author)->get(route('acp.blogs.create'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('canPublish', false));
+
+        foreach (['published', 'scheduled', 'archived'] as $status) {
+            $payload = [
+                'title' => 'Not '.$status,
+                'body' => '<p>Hello</p>',
+                'status' => $status,
+            ];
+
+            if ($status === 'scheduled') {
+                $payload['scheduled_for'] = now()->addDay()->toDateTimeString();
+            }
+
+            $this->actingAs($author)->post(route('acp.blogs.store'), $payload)->assertForbidden();
+            $this->assertDatabaseMissing('blogs', ['title' => 'Not '.$status]);
+        }
+
+        $publisher = $this->editor(['blogs.acp.create', 'blogs.acp.publish']);
+
+        $this->actingAs($publisher)->post(route('acp.blogs.store'), [
+            'title' => 'A published post',
+            'body' => '<p>Hello</p>',
+            'status' => 'published',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('blogs', [
+            'title' => 'A published post',
+            'status' => 'published',
+        ]);
+
+        $editor = $this->editor('blogs.acp.edit');
+        $draft = Blog::factory()->create([
+            'status' => 'draft',
+            'title' => 'Draft title',
+            'body' => '<p>Old</p>',
+        ]);
+        $live = Blog::factory()->published()->create([
+            'title' => 'Live title',
+            'body' => '<p>Old</p>',
+        ]);
+
+        $this->actingAs($editor)->get(route('acp.blogs.edit', $draft))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('permissions.canPublish', false));
+
+        $this->actingAs($editor)->put(route('acp.blogs.update', $draft), [
+            'title' => 'Draft title revised',
+            'body' => '<p>New</p>',
+            'status' => 'draft',
+        ])->assertRedirect();
+
+        $draft->refresh();
+        $this->assertSame('draft', $draft->status);
+        $this->assertSame('Draft title revised', $draft->title);
+
+        $this->actingAs($editor)->put(route('acp.blogs.update', $draft), [
+            'title' => 'Should stay a draft',
+            'body' => '<p>New</p>',
+            'status' => 'published',
+        ])->assertForbidden();
+
+        $draft->refresh();
+        $this->assertSame('draft', $draft->status);
+        $this->assertSame('Draft title revised', $draft->title);
+
+        $this->actingAs($editor)->put(route('acp.blogs.update', $live), [
+            'title' => 'Live title revised',
+            'body' => '<p>New</p>',
+            'status' => 'published',
+        ])->assertRedirect();
+
+        $live->refresh();
+        $this->assertSame('published', $live->status);
+        $this->assertSame('Live title revised', $live->title);
+
+        foreach (['draft', 'archived', 'scheduled'] as $status) {
+            $payload = [
+                'title' => 'Should stay published',
+                'body' => '<p>New</p>',
+                'status' => $status,
+            ];
+
+            if ($status === 'scheduled') {
+                $payload['scheduled_for'] = now()->addDay()->toDateTimeString();
+            }
+
+            $this->actingAs($editor)->put(route('acp.blogs.update', $live), $payload)->assertForbidden();
+
+            $live->refresh();
+            $this->assertSame('published', $live->status);
+            $this->assertSame('Live title revised', $live->title);
+        }
+    }
+
+    /**
+     * @param  string|list<string>|null  $permission
+     */
+    private function editor(string|array|null $permission = null): User
     {
         $editor = User::factory()->create()->assignRole('editor');
 

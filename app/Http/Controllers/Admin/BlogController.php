@@ -247,6 +247,7 @@ class BlogController extends Controller
                 ->values()
                 ->all(),
             'author' => $this->authorPayload(auth()->user()),
+            'canPublish' => (bool) auth()->user()?->can('blogs.acp.publish'),
         ]);
     }
 
@@ -257,6 +258,9 @@ class BlogController extends Controller
     {
         // Validate request data
         $validated = $request->validated();
+
+        // A new post may be a draft. Publishing, scheduling, or archiving it is the publish permission.
+        $this->guardPublicationChange(null, $validated['status'], $validated['status']);
 
         try {
             $coverImagePath = $this->coverPath($request->file('cover_image'));
@@ -418,6 +422,7 @@ class BlogController extends Controller
             'permissions' => [
                 'canViewRevisions' => request()->user()?->can('viewRevisions', $blog) ?? false,
                 'canRestoreRevisions' => request()->user()?->can('restoreRevision', $blog) ?? false,
+                'canPublish' => (bool) request()->user()?->can('blogs.acp.publish'),
             ],
         ]);
     }
@@ -462,6 +467,9 @@ class BlogController extends Controller
         } else {
             $publishedAt = null;
         }
+
+        // Editing the text of a post leaves its status alone. Changing that status is the publish permission.
+        $this->guardPublicationChange($blog, $validated['status'], $status);
 
         $updateData = [
             'title' => $validated['title'],
@@ -829,6 +837,21 @@ class BlogController extends Controller
         $blog->delete();
 
         return $this->redirectToBlogList('Blog post deleted successfully.');
+    }
+
+    /**
+     * Publishing, scheduling, archiving, and moving a post back to draft all use the publish permission.
+     * Creating a draft, or saving a post without changing its status, does not.
+     */
+    private function guardPublicationChange(?Blog $blog, string $requestedStatus, string $resolvedStatus): void
+    {
+        $current = $blog === null ? 'draft' : (string) $blog->status;
+
+        if ($requestedStatus === $current && $resolvedStatus === $current) {
+            return;
+        }
+
+        abort_unless(request()->user()?->can('blogs.acp.publish'), 403);
     }
 
     /**
