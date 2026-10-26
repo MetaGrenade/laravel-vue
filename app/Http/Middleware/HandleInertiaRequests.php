@@ -11,6 +11,7 @@ use App\Support\Localization\DateFormatter;
 use App\Support\Localization\FrontendTranslations;
 use App\Support\OAuth\OAuthProviders;
 use App\Support\Routing\ZiggyRouteGroup;
+use App\Support\Security\TwoFactorAuthenticator;
 use App\Support\Seo\Seo;
 use App\Support\WebsiteSections;
 use Illuminate\Foundation\Inspiring;
@@ -83,6 +84,17 @@ class HandleInertiaRequests extends Middleware
                 'entitlements' => fn () => $user
                     ? app(Entitlements::class)->forUser($user)->toArray()
                     : ['features' => [], 'limits' => []],
+                // A full set has been used down, so the signed-in member should make a new one (docs/two-factor.md).
+                // Hidden while viewing as a customer: that view cannot change the codes, and it does not reveal them.
+                'replaceRecoveryCodes' => function () use ($request, $user): bool {
+                    if (! $user || $user->two_factor_confirmed_at === null || Impersonation::isActive($request)) {
+                        return false;
+                    }
+
+                    $stored = $user->two_factor_recovery_codes;
+
+                    return TwoFactorAuthenticator::needsNewRecoveryCodes(is_string($stored) ? $stored : null);
+                },
             ],
             // Set while a staff member is viewing as this customer (docs/impersonation.md): the bar at the top of every page.
             'impersonation' => fn () => app(Impersonation::class)->banner($request),

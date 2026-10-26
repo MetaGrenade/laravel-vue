@@ -3,9 +3,11 @@
 namespace App\Support\Security;
 
 use App\Models\User;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
+use JsonException;
 
 class TwoFactorAuthenticator
 {
@@ -14,6 +16,9 @@ class TwoFactorAuthenticator
     private const DEFAULT_DIGITS = 6;
 
     private const DEFAULT_PERIOD = 30;
+
+    /** How many recovery codes a new set contains. Fewer than this means some have been used. */
+    public const RECOVERY_SET_SIZE = 8;
 
     /**
      * Generate a new base32-encoded secret for TOTP.
@@ -30,7 +35,7 @@ class TwoFactorAuthenticator
      *
      * @return list<string>
      */
-    public static function generateRecoveryCodes(int $count = 8): array
+    public static function generateRecoveryCodes(int $count = self::RECOVERY_SET_SIZE): array
     {
         return collect(range(1, $count))
             ->map(fn () => Str::upper(Str::random(4)).'-'.Str::upper(Str::random(4)).'-'.Str::upper(Str::random(4)))
@@ -94,6 +99,24 @@ class TwoFactorAuthenticator
         }
 
         return Crypt::decryptString($encryptedSecret);
+    }
+
+    /**
+     * A confirmed account should be asked for a new set when this is true: none are stored, they cannot be read, or some have been used.
+     */
+    public static function needsNewRecoveryCodes(?string $encryptedRecoveryCodes): bool
+    {
+        if ($encryptedRecoveryCodes === null || $encryptedRecoveryCodes === '') {
+            return true;
+        }
+
+        try {
+            $codes = self::decryptRecoveryCodes($encryptedRecoveryCodes);
+        } catch (DecryptException|JsonException) {
+            return true;
+        }
+
+        return count($codes) < self::RECOVERY_SET_SIZE;
     }
 
     /**

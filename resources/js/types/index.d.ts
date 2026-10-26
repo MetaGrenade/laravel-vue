@@ -12,6 +12,8 @@ export interface Auth {
     user: User | null;
     permissions: string[];
     entitlements: Entitlements;
+    /** True when two-factor recovery codes are not a full set, so the member should make new ones. */
+    replaceRecoveryCodes: boolean;
 }
 
 export interface BreadcrumbItem {
