@@ -88,7 +88,7 @@ const features: { title: string; description: string; icon: Component }[] = [
     },
     {
         title: 'Community',
-        description: 'Forums with boards, subscriptions, mentions, reactions, polls, reputation badges and reporting tools.',
+        description: 'Forums with boards, subscriptions, mentions, reactions, polls, reputation badges, reporting tools and an RSS feed.',
         icon: MessagesSquare,
     },
     {

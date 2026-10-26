@@ -16,7 +16,7 @@ Editing a post can add files and can remove one that is already there.
 
 - **A picture placed inside the sentence.** It is shown with the post.
 - **The API**, and the list in a data export.
-- **RSS.**
+- **The public feed** does not include the file ([forum-rss.md](forum-rss.md)).
 
 ## Testing
 

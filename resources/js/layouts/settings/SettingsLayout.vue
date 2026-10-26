@@ -2,7 +2,21 @@
 import { cn } from '@/lib/utils';
 import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Bell, CreditCard, KeyRound, KeySquare, Lock, MapPin, MessagesSquare, Palette, Receipt, ShieldAlert, ShieldCheck, User, Wallet } from '@lucide/vue';
+import {
+    Bell,
+    CreditCard,
+    KeyRound,
+    KeySquare,
+    Lock,
+    MapPin,
+    MessagesSquare,
+    Palette,
+    Receipt,
+    ShieldAlert,
+    ShieldCheck,
+    User,
+    Wallet,
+} from '@lucide/vue';
 import { computed, type Component } from 'vue';
 
 interface SettingsNavItem {

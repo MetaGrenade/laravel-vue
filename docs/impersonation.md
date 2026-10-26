@@ -41,6 +41,7 @@ Everything a customer can open, **except** what is under `blocked` in `config/im
 | Checkout, order completion, Tebex continue, Cashier payment | They call Stripe or Tebex and can change something there, which a rollback does not reach. |
 | Sign-in, register, password reset, two-factor challenge, OAuth, verify-email link | Viewing as one person must not turn into being another. |
 | Blog previews by link, live-update auth | Not pages a customer reaches by themselves, and a read-only view has no use for updates. |
+| Discord admin routes (role mappings, sync, the guild's roles) | They are the admin area, and listing the guild's roles calls Discord, which a rollback does not reach. |
 
 The "verify your email" notice **is** viewable: it is where a customer who has not verified is sent, so it is what they see.
 

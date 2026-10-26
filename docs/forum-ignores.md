@@ -23,7 +23,7 @@ Deleting the account, on either side, drops the row.
 - **Hiding the threads they started** from a board, from search, or from the forum home. The home page is the same for everyone, so it cannot leave someone out for one viewer.
 - **The list in a data export**, and an API for it.
 - **A block that goes both ways**, or hiding them from the member directory. Their profile stays public.
-- **RSS.** A file on a post is separate ([forum-attachments.md](forum-attachments.md)).
+- **The public feed** does not hide them ([forum-rss.md](forum-rss.md)). It is the same list for everyone, like the forum home. A file on a post is separate ([forum-attachments.md](forum-attachments.md)).
 
 ## Testing
 
