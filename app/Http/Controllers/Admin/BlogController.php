@@ -10,9 +10,12 @@ use App\Models\BlogCategory;
 use App\Models\BlogRevision;
 use App\Models\BlogTag;
 use App\Models\User;
+use App\Support\Blog\BlogCovers;
+use App\Support\Commerce\Catalogue\ImageRejected;
 use App\Support\Localization\DateFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -255,9 +258,11 @@ class BlogController extends Controller
         // Validate request data
         $validated = $request->validated();
 
-        $coverImagePath = $request->file('cover_image')
-            ? $request->file('cover_image')->store('blog-covers', 'public')
-            : null;
+        try {
+            $coverImagePath = $this->coverPath($request->file('cover_image'));
+        } catch (ImageRejected $exception) {
+            return back()->withErrors(['cover_image' => $exception->getMessage()])->withInput();
+        }
 
         $excerpt = $validated['excerpt'] ?? null;
         if ($excerpt === '') {
@@ -314,6 +319,22 @@ class BlogController extends Controller
 
         return redirect()->route('acp.blogs.index')
             ->with('success', 'Blog post created successfully.');
+    }
+
+    /**
+     * Decode a cover and store it as WebP. No file means no cover.
+     *
+     * @param  UploadedFile|array<int, UploadedFile>|null  $upload
+     *
+     * @throws ImageRejected
+     */
+    private function coverPath(UploadedFile|array|null $upload): ?string
+    {
+        if (! $upload instanceof UploadedFile) {
+            return null;
+        }
+
+        return app(BlogCovers::class)->store($upload);
     }
 
     /**
@@ -454,11 +475,19 @@ class BlogController extends Controller
         ];
 
         if ($request->hasFile('cover_image')) {
-            if ($blog->cover_image) {
-                Storage::disk('public')->delete($blog->cover_image);
+            try {
+                $stored = $this->coverPath($request->file('cover_image'));
+            } catch (ImageRejected $exception) {
+                return back()->withErrors(['cover_image' => $exception->getMessage()])->withInput();
             }
 
-            $updateData['cover_image'] = $request->file('cover_image')->store('blog-covers', 'public');
+            if (is_string($stored)) {
+                if (is_string($blog->cover_image) && $blog->cover_image !== '' && $blog->cover_image !== $stored) {
+                    Storage::disk('public')->delete($blog->cover_image);
+                }
+
+                $updateData['cover_image'] = $stored;
+            }
         }
 
         // Update the blog record
