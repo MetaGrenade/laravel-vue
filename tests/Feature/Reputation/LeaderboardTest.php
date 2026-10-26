@@ -171,7 +171,10 @@ class LeaderboardTest extends TestCase
         $oldest = $this->reply($thread, $author, 'Line 01');
         $this->award($author, $oldest);
 
-        foreach (range(2, Leaderboard::ACTIVITY) as $number) {
+        $second = $this->reply($thread, $author, 'Line 02');
+        $this->award($author, $second);
+
+        foreach (range(3, Leaderboard::ACTIVITY) as $number) {
             $this->award($author, $this->reply($thread, $author, sprintf('Line %02d', $number)));
         }
 
@@ -212,8 +215,9 @@ class LeaderboardTest extends TestCase
                 ->where('activity.0.label', 'Posted in the forum')
                 ->where('activity.0.post.excerpt', 'A note & more today')
                 ->where('activity.0.post.thread', 'Hello there')
-                ->where('activity.0.post.url', route('forum.threads.show', [$this->board, $thread]).'#post-'.$newest->id)
-                ->where('activity.19.post.excerpt', 'Line 02'))
+                ->where('activity.0.post.url', route('forum.threads.show', ['board' => $this->board, 'thread' => $thread, 'page' => 3]).'#post-'.$newest->id)
+                ->where('activity.19.post.excerpt', 'Line 02')
+                ->where('activity.19.post.url', route('forum.threads.show', [$this->board, $thread]).'#post-'.$second->id))
             ->assertDontSee('Held back', false)
             ->assertDontSee('Taken down', false)
             ->assertDontSee('Still private', false)

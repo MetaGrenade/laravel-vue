@@ -150,10 +150,40 @@ class Leaderboard
             ],
             'post' => [
                 'excerpt' => $this->excerpt($post->body),
-                'url' => route('forum.threads.show', [$board, $thread]).'#post-'.$post->id,
+                'url' => $this->url($post, $thread, $board),
                 'thread' => $thread->title,
             ],
         ];
+    }
+
+    /**
+     * The thread page shows ten posts. A post after the first page needs that page, or the address opens a page that does not contain it.
+     */
+    private function url(ForumPost $post, ForumThread $thread, ForumBoard $board): string
+    {
+        $position = ForumPost::query()
+            ->where('forum_thread_id', $thread->id)
+            ->where(function (Builder $query) use ($post): void {
+                $query->where('created_at', '<', $post->created_at)
+                    ->orWhere(function (Builder $query) use ($post): void {
+                        $query->where('created_at', $post->created_at)
+                            ->where('id', '<=', $post->id);
+                    });
+            })
+            ->count();
+
+        $page = (int) ceil(max($position, 1) / 10);
+
+        $parameters = [
+            'board' => $board,
+            'thread' => $thread,
+        ];
+
+        if ($page > 1) {
+            $parameters['page'] = $page;
+        }
+
+        return route('forum.threads.show', $parameters).'#post-'.$post->id;
     }
 
     /**
