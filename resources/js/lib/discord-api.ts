@@ -18,6 +18,10 @@ async function parseJson<T>(response: Response): Promise<T> {
     return (await response.json()) as T;
 }
 
+function request<T>(url: string, init?: RequestInit): Promise<T> {
+    return fetch(url, init).then((response) => parseJson<T>(response));
+}
+
 export type DiscordRoleMapping = {
     id: number;
     spatie_role_name: string;
@@ -46,36 +50,36 @@ export type DiscordNotificationPreferences = {
 
 export const discordAdminApi = {
     listRoleMappings(): Promise<{ data: DiscordRoleMapping[] }> {
-        return fetch(`${adminBase}/role-mappings`, { headers: jsonHeaders() }).then(parseJson);
+        return request(`${adminBase}/role-mappings`, { headers: jsonHeaders() });
     },
     createRoleMapping(payload: Omit<DiscordRoleMapping, 'id'>): Promise<{ data: DiscordRoleMapping }> {
-        return fetch(`${adminBase}/role-mappings`, {
+        return request(`${adminBase}/role-mappings`, {
             method: 'POST',
             headers: jsonHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(payload),
-        }).then(parseJson);
+        });
     },
     updateRoleMapping(id: number, payload: Partial<Omit<DiscordRoleMapping, 'id'>>): Promise<{ data: DiscordRoleMapping }> {
-        return fetch(`${adminBase}/role-mappings/${id}`, {
+        return request(`${adminBase}/role-mappings/${id}`, {
             method: 'PUT',
             headers: jsonHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(payload),
-        }).then(parseJson);
+        });
     },
     deleteRoleMapping(id: number): Promise<void> {
-        return fetch(`${adminBase}/role-mappings/${id}`, {
+        return request(`${adminBase}/role-mappings/${id}`, {
             method: 'DELETE',
             headers: jsonHeaders(),
-        }).then(parseJson);
+        });
     },
     listDiscordRoles(): Promise<{ data: DiscordGuildRole[] }> {
-        return fetch(`${adminBase}/discord-roles`, { headers: jsonHeaders() }).then(parseJson);
+        return request(`${adminBase}/discord-roles`, { headers: jsonHeaders() });
     },
     syncStatus(): Promise<DiscordSyncStatus> {
-        return fetch(`${adminBase}/sync/status`, { headers: jsonHeaders() }).then(parseJson);
+        return request(`${adminBase}/sync/status`, { headers: jsonHeaders() });
     },
     syncRuns(page = 1): Promise<{ data: Record<string, unknown>[]; meta?: Record<string, unknown> }> {
-        return fetch(`${adminBase}/sync/runs?per_page=15&page=${page}`, { headers: jsonHeaders() }).then(parseJson);
+        return request(`${adminBase}/sync/runs?per_page=15&page=${page}`, { headers: jsonHeaders() });
     },
     syncUser(userId: number, options: { sync?: boolean; dryRun?: boolean } = {}): Promise<Record<string, unknown>> {
         const params = new URLSearchParams();
@@ -90,22 +94,22 @@ export const discordAdminApi = {
 
         const query = params.toString();
 
-        return fetch(`${adminBase}/sync/users/${userId}${query ? `?${query}` : ''}`, {
+        return request(`${adminBase}/sync/users/${userId}${query ? `?${query}` : ''}`, {
             method: 'POST',
             headers: jsonHeaders(),
-        }).then(parseJson);
+        });
     },
 };
 
 export const discordUserApi = {
     notificationPreferences(): Promise<DiscordNotificationPreferences> {
-        return fetch(`${userBase}/notification-preferences`, { headers: jsonHeaders() }).then(parseJson);
+        return request(`${userBase}/notification-preferences`, { headers: jsonHeaders() });
     },
     updateNotificationPreferences(preferences: Record<string, boolean>): Promise<{ preferences: Record<string, boolean> }> {
-        return fetch(`${userBase}/notification-preferences`, {
+        return request(`${userBase}/notification-preferences`, {
             method: 'PUT',
             headers: jsonHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ preferences }),
-        }).then(parseJson);
+        });
     },
 };
