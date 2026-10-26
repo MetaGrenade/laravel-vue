@@ -138,6 +138,11 @@ export interface SharedData extends PageProps {
         website_sections: Record<'blog' | 'forum' | 'support' | 'commerce', boolean>;
         oauth_providers: Record<string, boolean>;
     };
+    /** Published legal pages, and the visitor's cookie choice (docs/legal-pages.md). */
+    legal: {
+        pages: string[];
+        consent: 'necessary' | 'all' | null;
+    };
     cart: CartSummary | null;
 }
 

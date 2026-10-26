@@ -62,6 +62,7 @@ return [
 
         // What anyone can open.
         'home',
+        'legal.show',
         'members.index',
         'members.show',
         'leaderboard',

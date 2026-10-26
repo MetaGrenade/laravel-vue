@@ -112,7 +112,7 @@ Strong already. Remaining gaps, in priority order:
 | Medium | Sanctum tokens default to abilities `['*']` and no expiry. | Verified | Default to least-privilege abilities; set `SANCTUM_EXPIRATION`; add per-token rate limits. |
 | Medium | No admin audit log. Role changes, bans, refunds and settings changes are not recorded. | Verified | Add an append-only `audit_logs` table and a model observer/trait; ACP viewer. |
 | Medium | Webhook handling is Stripe-specific; no replay window or idempotency key on the stored calls. | Inferred | Generalise (section 7) with unique `(provider, external_id)` and a processed-at guard. |
-| Medium | No cookie-consent mechanism or legal pages (Terms, Privacy Policy). | Verified | Add configurable legal pages and a consent banner that gates optional scripts. |
+| Medium | No cookie-consent mechanism or legal pages (Terms, Privacy Policy). | **Done** (first M5 slice, see [legal-pages.md](legal-pages.md)) | Configurable legal pages and a consent banner. Optional scripts stay off until the visitor allows them. |
 | Low | No `SECURITY.md` or `/.well-known/security.txt`. | Verified | Add both. |
 | Low | CSP `style-src` includes `'unsafe-inline'`. | Verified | Acceptable for 1.0 (Tailwind/Vue inline styles); document, and tighten if feasible. |
 | Low | Password rules are strong in production (min 12, mixed case, numbers, uncompromised) and weak elsewhere (min 8). | Verified | Fine; document. |
@@ -425,7 +425,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 ### M5. Security and compliance (5–7 days)
 
 - Section 4.2 checklist; upload pipeline; token defaults
-- Legal pages (Terms, Privacy, Cookie policy) managed in the ACP; cookie-consent banner
+- Legal pages (Terms, Privacy, Cookie policy) managed in the ACP; cookie-consent banner (**done**, first slice, see [legal-pages.md](legal-pages.md))
 - Accessibility pass (axe on main flows)
 - **Exit:** checklist complete; external dependency audit clean; no open high/medium findings. (Passkeys are deferred to 1.1.)
 

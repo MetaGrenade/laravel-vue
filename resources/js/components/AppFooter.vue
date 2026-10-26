@@ -15,6 +15,7 @@ interface FooterLink {
 const page = usePage<SharedData>();
 const { t } = useI18n();
 const sections = computed(() => page.props.settings?.website_sections ?? { blog: true, forum: true, support: true, commerce: true });
+const legalPages = computed(() => page.props.legal?.pages ?? []);
 const year = new Date().getFullYear();
 
 const columns = computed<{ title: string; links: FooterLink[] }[]>(() => [
@@ -80,7 +81,18 @@ const columns = computed<{ title: string; links: FooterLink[] }[]>(() => [
         <div class="border-t">
             <div class="container-app flex flex-col items-center justify-between gap-3 py-5 text-sm text-muted-foreground sm:flex-row">
                 <p>{{ t('ui.footer.rights', { year, name: page.props.name }) }}</p>
-                <ThemeToggle />
+                <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                    <nav v-if="legalPages.length > 0" :aria-label="t('legal.footer')">
+                        <ul class="flex flex-wrap justify-center gap-x-4 gap-y-1">
+                            <li v-for="slug in legalPages" :key="slug">
+                                <Link :href="route('legal.show', { page: slug })" class="transition-colors hover:text-foreground">
+                                    {{ t(`legal.pages.${slug}`) }}
+                                </Link>
+                            </li>
+                        </ul>
+                    </nav>
+                    <ThemeToggle />
+                </div>
             </div>
         </div>
     </footer>

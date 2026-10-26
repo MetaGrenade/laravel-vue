@@ -7,6 +7,7 @@ use App\Models\ForumBoard;
 use App\Models\ForumThread;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\Legal\LegalPages;
 use App\Support\WebsiteSections;
 use DateTimeInterface;
 use Illuminate\Http\Response;
@@ -20,7 +21,7 @@ class SitemapController extends Controller
     public function sitemap(): Response
     {
         $xml = Cache::remember(
-            'seo:sitemap:'.md5(json_encode(WebsiteSections::all())),
+            $this->cacheKey(),
             config('seo.sitemap.cache_ttl', 3600),
             fn () => $this->buildSitemap(),
         );
@@ -60,6 +61,12 @@ class SitemapController extends Controller
             $this->url(route('members.index'), priority: '0.6'),
             $this->url(route('pricing'), priority: '0.8'),
         ];
+
+        $legal = app(LegalPages::class);
+
+        foreach ($legal->publishedSlugs() as $slug) {
+            $urls[] = $this->url(route('legal.show', ['page' => $slug]), $legal->updatedAt($slug), '0.3');
+        }
 
         if (WebsiteSections::isEnabled('blog')) {
             $urls[] = $this->url(route('blogs.index'), priority: '0.8');
@@ -147,5 +154,18 @@ class SitemapController extends Controller
     private function limit(): int
     {
         return (int) config('seo.sitemap.max_urls', 45000);
+    }
+
+    /**
+     * Sections and the legal pages share this cache. A published page has to change the key, or the old sitemap is served.
+     */
+    private function cacheKey(): string
+    {
+        $payload = json_encode([
+            'sections' => WebsiteSections::all(),
+            'legal' => app(LegalPages::class)->stamp(),
+        ]);
+
+        return 'seo:sitemap:'.md5($payload === false ? '' : $payload);
     }
 }

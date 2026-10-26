@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ApiDocumentationController;
 use App\Http\Controllers\BlogCommentController;
 use App\Http\Controllers\BlogCommentSubscriptionController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\CookieConsentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DirectMessageController;
 use App\Http\Controllers\Ecommerce\CartController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\ForumThreadSolutionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImpersonationStopController;
 use App\Http\Controllers\LeaderboardController;
+use App\Http\Controllers\LegalPageController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MemberFollowController;
 use App\Http\Controllers\OnboardingDismissController;
@@ -43,6 +45,7 @@ use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use App\Http\Controllers\Webhooks\TebexWebhookController;
 use App\Http\Controllers\WebManifestController;
+use App\Support\Legal\LegalPages;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
 use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
@@ -64,6 +67,14 @@ Route::get('members/{user}', [MemberController::class, 'show'])->whereNumber('us
 Route::get('/search', SearchController::class)->middleware('throttle:search')->name('search');
 Route::get('/search/results', SearchResultsController::class)->middleware('throttle:search')->name('search.results');
 Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
+
+// Terms, the privacy policy and the cookie policy. A page with no text is not published (docs/legal-pages.md).
+Route::post('legal/consent', [CookieConsentController::class, 'store'])
+    ->middleware('throttle:interactions')
+    ->name('legal.consent.store');
+Route::get('legal/{page}', [LegalPageController::class, 'show'])
+    ->whereIn('page', array_keys(LegalPages::PAGES))
+    ->name('legal.show');
 Route::middleware('throttle:billing')->group(function () {
     Route::post('/pricing/setup-intent', [PricingController::class, 'intent'])->name('pricing.intent');
     Route::post('/pricing/promotion-code', [PricingController::class, 'promotionCode'])
