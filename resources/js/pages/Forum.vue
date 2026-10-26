@@ -88,15 +88,20 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Community forum</h1>
                         <p class="text-sm text-muted-foreground">Ask questions, share ideas and follow the conversations that matter to you.</p>
-                        <a
-                            :href="route('forum.feed')"
-                            rel="alternate"
-                            type="application/atom+xml"
-                            target="_blank"
-                            class="mt-1 inline-block text-sm font-medium text-primary transition hover:text-primary/80"
-                        >
-                            Subscribe via RSS
-                        </a>
+                        <span class="mt-1 flex flex-wrap gap-x-4">
+                            <a
+                                :href="route('forum.feed')"
+                                rel="alternate"
+                                type="application/atom+xml"
+                                target="_blank"
+                                class="text-sm font-medium text-primary transition hover:text-primary/80"
+                            >
+                                Subscribe via RSS
+                            </a>
+                            <Link :href="route('leaderboard')" class="text-sm font-medium text-primary transition hover:text-primary/80">
+                                Leaderboard
+                            </Link>
+                        </span>
                     </div>
                 </div>
                 <form :action="route('search.results')" method="get" class="flex w-full max-w-md gap-2" role="search">

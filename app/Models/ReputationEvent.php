@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @property string $event
+ * @property int $points
+ * @property string|null $source_type
+ * @property int|null $source_id
+ */
 class ReputationEvent extends Model
 {
     use HasFactory;
@@ -25,6 +31,9 @@ class ReputationEvent extends Model
         'metadata' => 'array',
     ];
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

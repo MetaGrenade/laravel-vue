@@ -21,7 +21,7 @@ Deleting the account, on either side, drops the row.
 - **Blog comments** on the Following page.
 - **The list in a data export**, and an API for it.
 - **A follow that goes both ways.**
-- **The public feed** lists every published thread, not only people you follow ([forum-rss.md](forum-rss.md)).
+- **The public feed** lists every published thread, not only people you follow ([forum-rss.md](forum-rss.md)). The leaderboard is the same for everyone ([leaderboard.md](leaderboard.md)).
 
 ## Testing
 

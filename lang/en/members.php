@@ -26,6 +26,21 @@ return [
         'page' => 'Page :current of :last',
     ],
 
+    'leaderboard' => [
+        'title' => 'Leaderboard',
+        'meta' => 'Who has earned the most reputation, and the latest points from public posts.',
+        'description' => 'Reputation comes from public forum posts. Everyone sees the same list.',
+        'standings' => 'Top members',
+        'activity' => 'Recent activity',
+        'empty_standings' => 'Nobody has earned reputation yet.',
+        'empty_activity' => 'No public activity yet.',
+        'rank' => 'Rank :rank',
+        'reputation' => ':count reputation',
+        'awarded' => ':points points',
+        'open_profile' => 'View :name\'s profile',
+        'open_post' => 'Open the post in :thread',
+    ],
+
     'profile' => [
         'meta' => ':name on this community.',
         'member_since' => 'Member since :date',

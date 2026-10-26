@@ -64,6 +64,7 @@ return [
         'home',
         'members.index',
         'members.show',
+        'leaderboard',
         'pricing',
         'search',
         'search.results',

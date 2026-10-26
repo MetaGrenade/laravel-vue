@@ -32,6 +32,7 @@ const columns = computed<{ title: string; links: FooterLink[] }[]>(() => [
             { title: t('ui.nav.members'), href: route('members.index') },
             ...(sections.value.blog ? [{ title: t('ui.nav.blog'), href: route('blogs.index') }] : []),
             ...(sections.value.forum ? [{ title: t('ui.nav.forum'), href: route('forum.index') }] : []),
+            ...(sections.value.forum ? [{ title: t('ui.nav.leaderboard'), href: route('leaderboard') }] : []),
             ...(sections.value.support ? [{ title: t('ui.nav.support'), href: route('support') }] : []),
         ],
     },

@@ -15,6 +15,7 @@ return [
         'blog' => 'Blog',
         'forum' => 'Forum',
         'members' => 'Members',
+        'leaderboard' => 'Leaderboard',
         'admin' => 'Admin',
         'support' => 'Support',
         'repository' => 'Repository',
