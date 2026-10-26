@@ -13,6 +13,7 @@ use App\Models\ForumPrefix;
 use App\Models\ForumThread;
 use App\Models\Order;
 use App\Models\PersonalAccessToken;
+use App\Models\User;
 use App\Observers\ForumIndexCacheObserver;
 use App\Payments\PaymentManager;
 use App\Payments\Stripe\CashierStripeGateway;
@@ -80,6 +81,15 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::before(function ($user) {
             return $user->hasRole('admin') ? true : null;
+        });
+
+        // The tag and category lists are also the pickers on a post, so writing one may load them.
+        Gate::define('blogs.acp.catalogue', function (User $user): bool {
+            return $user->canAny([
+                'blogs.acp.view',
+                'blogs.acp.create',
+                'blogs.acp.edit',
+            ]);
         });
 
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);

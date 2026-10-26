@@ -117,44 +117,98 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::put('acp/acl/roles/{role}', [AdminACLController::class, 'updateRole'])->name('acp.acl.roles.update');
     Route::delete('acp/acl/roles/{role}', [AdminACLController::class, 'destroyRole'])->name('acp.acl.roles.destroy');
 
-    // Admin Blog Management Routes
-    Route::get('acp/blogs', [AdminBlogController::class, 'index'])->name('acp.blogs.index');
-    Route::get('acp/blogs/create', [AdminBlogController::class, 'create'])->name('acp.blogs.create');
-    Route::post('acp/blogs', [AdminBlogController::class, 'store'])->name('acp.blogs.store');
-    Route::get('acp/blogs/{blog}/edit', [AdminBlogController::class, 'edit'])->name('acp.blogs.edit');
-    Route::put('acp/blogs/{blog}', [AdminBlogController::class, 'update'])->name('acp.blogs.update');
-    Route::delete('acp/blogs/{blog}', [AdminBlogController::class, 'destroy'])->name('acp.blogs.destroy');
-    Route::put('acp/blogs/{blog}/publish', [AdminBlogController::class, 'publish'])->name('acp.blogs.publish');
-    Route::put('acp/blogs/{blog}/unpublish', [AdminBlogController::class, 'unpublish'])->name('acp.blogs.unpublish');
-    Route::put('acp/blogs/{blog}/archive', [AdminBlogController::class, 'archive'])->name('acp.blogs.archive');
-    Route::put('acp/blogs/{blog}/unarchive', [AdminBlogController::class, 'unarchive'])->name('acp.blogs.unarchive');
+    // Blog management. The menu already follows these permissions; the routes do too (docs/blog-permissions.md).
+    Route::get('acp/blogs', [AdminBlogController::class, 'index'])
+        ->middleware('can:blogs.acp.view')
+        ->name('acp.blogs.index');
+    Route::get('acp/blogs/create', [AdminBlogController::class, 'create'])
+        ->middleware('can:blogs.acp.create')
+        ->name('acp.blogs.create');
+    Route::post('acp/blogs', [AdminBlogController::class, 'store'])
+        ->middleware('can:blogs.acp.create')
+        ->name('acp.blogs.store');
+    Route::get('acp/blogs/{blog}/edit', [AdminBlogController::class, 'edit'])
+        ->middleware('can:blogs.acp.edit')
+        ->name('acp.blogs.edit');
+    Route::put('acp/blogs/{blog}', [AdminBlogController::class, 'update'])
+        ->middleware('can:blogs.acp.edit')
+        ->name('acp.blogs.update');
+    Route::delete('acp/blogs/{blog}', [AdminBlogController::class, 'destroy'])
+        ->middleware('can:blogs.acp.delete')
+        ->name('acp.blogs.destroy');
+    Route::put('acp/blogs/{blog}/publish', [AdminBlogController::class, 'publish'])
+        ->middleware('can:blogs.acp.publish')
+        ->name('acp.blogs.publish');
+    Route::put('acp/blogs/{blog}/unpublish', [AdminBlogController::class, 'unpublish'])
+        ->middleware('can:blogs.acp.publish')
+        ->name('acp.blogs.unpublish');
+    Route::put('acp/blogs/{blog}/archive', [AdminBlogController::class, 'archive'])
+        ->middleware('can:blogs.acp.publish')
+        ->name('acp.blogs.archive');
+    Route::put('acp/blogs/{blog}/unarchive', [AdminBlogController::class, 'unarchive'])
+        ->middleware('can:blogs.acp.publish')
+        ->name('acp.blogs.unarchive');
     Route::put('acp/blogs/{blog}/comments/enable', [AdminBlogController::class, 'enableComments'])
+        ->middleware('can:blogs.acp.edit')
         ->name('acp.blogs.comments.enable');
     Route::put('acp/blogs/{blog}/comments/disable', [AdminBlogController::class, 'disableComments'])
+        ->middleware('can:blogs.acp.edit')
         ->name('acp.blogs.comments.disable');
-    Route::patch('acp/blogs/bulk/status', [AdminBlogController::class, 'bulkUpdateStatus'])->name('acp.blogs.bulk-status');
+    Route::patch('acp/blogs/bulk/status', [AdminBlogController::class, 'bulkUpdateStatus'])
+        ->middleware('can:blogs.acp.publish')
+        ->name('acp.blogs.bulk-status');
 
-    Route::get('acp/blog-comments', [AdminBlogCommentController::class, 'index'])->name('acp.blog-comments.index');
-    Route::put('acp/blog-comments/{comment}', [AdminBlogCommentController::class, 'update'])->name('acp.blog-comments.update');
-    Route::delete('acp/blog-comments/{comment}', [AdminBlogCommentController::class, 'destroy'])->name('acp.blog-comments.destroy');
+    Route::get('acp/blog-comments', [AdminBlogCommentController::class, 'index'])
+        ->middleware('can:blogs.acp.view')
+        ->name('acp.blog-comments.index');
+    Route::put('acp/blog-comments/{comment}', [AdminBlogCommentController::class, 'update'])
+        ->middleware('can:blogs.acp.edit')
+        ->name('acp.blog-comments.update');
+    Route::delete('acp/blog-comments/{comment}', [AdminBlogCommentController::class, 'destroy'])
+        ->middleware('can:blogs.acp.delete')
+        ->name('acp.blog-comments.destroy');
     Route::patch('acp/blog-comment-reports/bulk-status', [AdminBlogCommentController::class, 'bulkUpdateReportStatus'])
+        ->middleware('can:blogs.acp.edit')
         ->name('acp.blog-comment-reports.bulk-status');
 
-    // Admin Blog Tag Management Routes
-    Route::get('acp/blog-tags', [BlogTagController::class, 'index'])->name('acp.blog-tags.index');
-    Route::get('acp/blog-tags/create', [BlogTagController::class, 'create'])->name('acp.blog-tags.create');
-    Route::post('acp/blog-tags', [BlogTagController::class, 'store'])->name('acp.blog-tags.store');
-    Route::get('acp/blog-tags/{tag}/edit', [BlogTagController::class, 'edit'])->name('acp.blog-tags.edit');
-    Route::put('acp/blog-tags/{tag}', [BlogTagController::class, 'update'])->name('acp.blog-tags.update');
-    Route::delete('acp/blog-tags/{tag}', [BlogTagController::class, 'destroy'])->name('acp.blog-tags.destroy');
+    // Tags and categories. The list is also the picker on a post, so view, create or edit may open it.
+    Route::get('acp/blog-tags', [BlogTagController::class, 'index'])
+        ->middleware('can:blogs.acp.catalogue')
+        ->name('acp.blog-tags.index');
+    Route::get('acp/blog-tags/create', [BlogTagController::class, 'create'])
+        ->middleware('can:blogs.acp.create')
+        ->name('acp.blog-tags.create');
+    Route::post('acp/blog-tags', [BlogTagController::class, 'store'])
+        ->middleware('can:blogs.acp.create')
+        ->name('acp.blog-tags.store');
+    Route::get('acp/blog-tags/{tag}/edit', [BlogTagController::class, 'edit'])
+        ->middleware('can:blogs.acp.edit')
+        ->name('acp.blog-tags.edit');
+    Route::put('acp/blog-tags/{tag}', [BlogTagController::class, 'update'])
+        ->middleware('can:blogs.acp.edit')
+        ->name('acp.blog-tags.update');
+    Route::delete('acp/blog-tags/{tag}', [BlogTagController::class, 'destroy'])
+        ->middleware('can:blogs.acp.delete')
+        ->name('acp.blog-tags.destroy');
 
-    // Admin Blog Category Management Routes
-    Route::get('acp/blog-categories', [BlogCategoryController::class, 'index'])->name('acp.blog-categories.index');
-    Route::get('acp/blog-categories/create', [BlogCategoryController::class, 'create'])->name('acp.blog-categories.create');
-    Route::post('acp/blog-categories', [BlogCategoryController::class, 'store'])->name('acp.blog-categories.store');
-    Route::get('acp/blog-categories/{category}/edit', [BlogCategoryController::class, 'edit'])->name('acp.blog-categories.edit');
-    Route::put('acp/blog-categories/{category}', [BlogCategoryController::class, 'update'])->name('acp.blog-categories.update');
-    Route::delete('acp/blog-categories/{category}', [BlogCategoryController::class, 'destroy'])->name('acp.blog-categories.destroy');
+    Route::get('acp/blog-categories', [BlogCategoryController::class, 'index'])
+        ->middleware('can:blogs.acp.catalogue')
+        ->name('acp.blog-categories.index');
+    Route::get('acp/blog-categories/create', [BlogCategoryController::class, 'create'])
+        ->middleware('can:blogs.acp.create')
+        ->name('acp.blog-categories.create');
+    Route::post('acp/blog-categories', [BlogCategoryController::class, 'store'])
+        ->middleware('can:blogs.acp.create')
+        ->name('acp.blog-categories.store');
+    Route::get('acp/blog-categories/{category}/edit', [BlogCategoryController::class, 'edit'])
+        ->middleware('can:blogs.acp.edit')
+        ->name('acp.blog-categories.edit');
+    Route::put('acp/blog-categories/{category}', [BlogCategoryController::class, 'update'])
+        ->middleware('can:blogs.acp.edit')
+        ->name('acp.blog-categories.update');
+    Route::delete('acp/blog-categories/{category}', [BlogCategoryController::class, 'destroy'])
+        ->middleware('can:blogs.acp.delete')
+        ->name('acp.blog-categories.destroy');
 
     Route::get('acp/forums', [ForumCategoryController::class, 'index'])->name('acp.forums.index');
     // What automatic moderation has held for a moderator, and the rules that hold it (docs/automod.md).

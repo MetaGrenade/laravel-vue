@@ -9,17 +9,17 @@ class BlogCommentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'editor', 'moderator']);
+        return $user->can('blogs.acp.view');
     }
 
     public function review(User $user, BlogComment $comment): bool
     {
-        return $this->viewAny($user);
+        return $user->can('blogs.acp.edit');
     }
 
     public function update(User $user, BlogComment $comment): bool
     {
-        if ($this->viewAny($user)) {
+        if ($user->can('blogs.acp.edit')) {
             return true;
         }
 
@@ -28,7 +28,7 @@ class BlogCommentPolicy
 
     public function delete(User $user, BlogComment $comment): bool
     {
-        if ($this->viewAny($user)) {
+        if ($user->can('blogs.acp.delete')) {
             return true;
         }
 

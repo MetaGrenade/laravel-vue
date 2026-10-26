@@ -317,8 +317,7 @@ class BlogController extends Controller
 
         BlogRevision::recordSnapshot($blog, $request->user());
 
-        return redirect()->route('acp.blogs.index')
-            ->with('success', 'Blog post created successfully.');
+        return $this->redirectToBlogList('Blog post created successfully.');
     }
 
     /**
@@ -505,8 +504,7 @@ class BlogController extends Controller
 
         BlogRevision::recordSnapshot($blog, $request->user());
 
-        return redirect()->route('acp.blogs.index')
-            ->with('success', 'Blog post updated successfully.');
+        return $this->redirectToBlogList('Blog post updated successfully.');
     }
 
     public function revisions(Blog $blog): Response
@@ -830,8 +828,21 @@ class BlogController extends Controller
     {
         $blog->delete();
 
-        return redirect()->route('acp.blogs.index')
-            ->with('success', 'Blog post deleted successfully.');
+        return $this->redirectToBlogList('Blog post deleted successfully.');
+    }
+
+    /**
+     * The list is the usual next page. Someone who can write a post but cannot open the list goes back to the form.
+     */
+    private function redirectToBlogList(string $message): RedirectResponse
+    {
+        $user = request()->user();
+
+        if ($user !== null && $user->can('blogs.acp.view')) {
+            return redirect()->route('acp.blogs.index')->with('success', $message);
+        }
+
+        return back()->with('success', $message);
     }
 
     public function bulkUpdateStatus(Request $request): RedirectResponse
@@ -922,8 +933,6 @@ class BlogController extends Controller
 
     public function enableComments(Blog $blog): RedirectResponse
     {
-        $this->authorize('update', $blog);
-
         $blog->forceFill(['comments_enabled' => true])->save();
 
         return redirect()->back()->with('success', 'Comments enabled for this blog post.');
@@ -931,8 +940,6 @@ class BlogController extends Controller
 
     public function disableComments(Blog $blog): RedirectResponse
     {
-        $this->authorize('update', $blog);
-
         $blog->forceFill(['comments_enabled' => false])->save();
 
         return redirect()->back()->with('success', 'Comments disabled for this blog post.');

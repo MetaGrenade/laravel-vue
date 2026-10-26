@@ -9,7 +9,9 @@ use App\Models\User;
 use App\Support\Spam\CommentGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class BlogApiTest extends TestCase
@@ -23,6 +25,8 @@ class BlogApiTest extends TestCase
         Role::firstOrCreate(['name' => 'moderator', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'editor', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Permission::findOrCreate('blogs.acp.delete');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     public function test_can_list_only_approved_comments_for_published_blog(): void
@@ -156,7 +160,7 @@ class BlogApiTest extends TestCase
         ]);
     }
 
-    public function test_moderator_can_delete_comment(): void
+    public function test_a_moderator_deletes_someone_elses_comment_only_with_the_blog_permission(): void
     {
         $moderator = User::factory()->create();
         $moderator->assignRole('moderator');
@@ -166,9 +170,16 @@ class BlogApiTest extends TestCase
 
         Sanctum::actingAs($moderator, ['*']);
 
-        $response = $this->deleteJson(route('api.v1.blogs.comments.destroy', [$blog, $comment]));
+        $this->deleteJson(route('api.v1.blogs.comments.destroy', [$blog, $comment]))
+            ->assertForbidden();
 
-        $response
+        $this->assertDatabaseHas('blog_comments', [
+            'id' => $comment->id,
+        ]);
+
+        $moderator->givePermissionTo('blogs.acp.delete');
+
+        $this->deleteJson(route('api.v1.blogs.comments.destroy', [$blog, $comment]))
             ->assertOk()
             ->assertJsonPath('id', $comment->id);
 
