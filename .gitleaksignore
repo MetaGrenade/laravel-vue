@@ -4,3 +4,7 @@
 # real key, and the helper now builds it at run time so no later commit contains it. This line only keeps that old
 # commit from failing the scan of the pull request that contains it.
 d8d7ef245b7239d005a089832b719432ae126ef6:tests/Support/InteractsWithTebex.php:generic-api-key:19
+
+# The published RFC 6238 appendix B test vector, named like a secret in the first commit of the two-factor slice.
+# It is the base32 form of the paper's example value, not a credential. The constant has since been renamed.
+1aa5037d5236c60d04eb98d03bafe5477c94e234:tests/Feature/Auth/TwoFactorAuthenticatorTest.php:generic-api-key:16

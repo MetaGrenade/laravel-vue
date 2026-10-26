@@ -13,7 +13,8 @@ use Tests\TestCase;
  */
 class TwoFactorAuthenticatorTest extends TestCase
 {
-    private const SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+    /** RFC 6238 appendix B, the base32 form of the published test value. Not a credential. */
+    private const RFC6238_VECTOR = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
 
     /**
      * @return array<string, array{0: int, 1: string}>
@@ -34,24 +35,24 @@ class TwoFactorAuthenticatorTest extends TestCase
     #[DataProvider('publishedCodes')]
     public function a_code_matches_the_published_test_vector(int $timestamp, string $eightDigits): void
     {
-        $this->assertSame($eightDigits, TwoFactorAuthenticator::code(self::SECRET, $timestamp, 8));
+        $this->assertSame($eightDigits, TwoFactorAuthenticator::code(self::RFC6238_VECTOR, $timestamp, 8));
 
         $sixDigits = substr($eightDigits, -6);
 
-        $this->assertTrue(TwoFactorAuthenticator::verify(self::SECRET, $sixDigits, 0, $timestamp));
-        $this->assertFalse(TwoFactorAuthenticator::verify(self::SECRET, $eightDigits, 0, $timestamp));
+        $this->assertTrue(TwoFactorAuthenticator::verify(self::RFC6238_VECTOR, $sixDigits, 0, $timestamp));
+        $this->assertFalse(TwoFactorAuthenticator::verify(self::RFC6238_VECTOR, $eightDigits, 0, $timestamp));
     }
 
     #[Test]
     public function a_code_is_accepted_one_step_either_side_and_refused_beyond_that(): void
     {
-        $code = TwoFactorAuthenticator::code(self::SECRET, 59, 6);
+        $code = TwoFactorAuthenticator::code(self::RFC6238_VECTOR, 59, 6);
 
-        $this->assertTrue(TwoFactorAuthenticator::verify(self::SECRET, '287 082', 1, 59));
-        $this->assertTrue(TwoFactorAuthenticator::verify(self::SECRET, $code, 1, 59 - 30));
-        $this->assertTrue(TwoFactorAuthenticator::verify(self::SECRET, $code, 1, 59 + 30));
-        $this->assertFalse(TwoFactorAuthenticator::verify(self::SECRET, $code, 1, 59 + 90));
-        $this->assertFalse(TwoFactorAuthenticator::verify(self::SECRET, '000000', 1, 59));
+        $this->assertTrue(TwoFactorAuthenticator::verify(self::RFC6238_VECTOR, '287 082', 1, 59));
+        $this->assertTrue(TwoFactorAuthenticator::verify(self::RFC6238_VECTOR, $code, 1, 59 - 30));
+        $this->assertTrue(TwoFactorAuthenticator::verify(self::RFC6238_VECTOR, $code, 1, 59 + 30));
+        $this->assertFalse(TwoFactorAuthenticator::verify(self::RFC6238_VECTOR, $code, 1, 59 + 90));
+        $this->assertFalse(TwoFactorAuthenticator::verify(self::RFC6238_VECTOR, '000000', 1, 59));
     }
 
     #[Test]
