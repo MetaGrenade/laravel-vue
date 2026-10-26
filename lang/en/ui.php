@@ -47,6 +47,12 @@ return [
         'stop' => 'Stop viewing',
     ],
 
+    // The bar asking a member to replace recovery codes that are no longer a full set (docs/two-factor.md).
+    'security' => [
+        'recovery_prompt' => 'Your recovery codes are no longer a full set. Make a new set and store it somewhere safe.',
+        'recovery_prompt_action' => 'Make new codes',
+    ],
+
     // The "Get started" checklist on the dashboard (docs/onboarding.md). The steps are those of config/onboarding.php.
     'onboarding' => [
         'title' => 'Get started',

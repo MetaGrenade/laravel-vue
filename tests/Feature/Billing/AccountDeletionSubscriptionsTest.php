@@ -478,7 +478,12 @@ class AccountDeletionSubscriptionsTest extends TestCase
     public function a_bulk_delete_names_only_the_first_few_users_it_could_not_delete(): void
     {
         Log::spy();
-        $users = collect(range(1, 6))->map(fn (int $n) => $this->subscribed("cus_{$n}", "sub_{$n}"));
+        $users = collect(range(1, 6))->map(function (int $n) {
+            $user = $this->subscribed("cus_{$n}", "sub_{$n}");
+            $user->forceFill(['nickname' => "Undeleted member {$n}"])->save();
+
+            return $user;
+        });
         $this->stripeAnswers(array_fill(0, 6, Stripe::error(500, 'Something went wrong on our end.', 'api_error')));
 
         $this->actingAs($this->admin())

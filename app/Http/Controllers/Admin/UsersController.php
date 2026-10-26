@@ -297,9 +297,17 @@ class UsersController extends Controller
 
         $ids = array_values(array_unique(array_map('intval', $validated['ids'])));
 
+        // The order the ids were sent in. A database may return a where-in list in any order, and the
+        // message that names the first few people who were not deleted depends on this order.
         $users = User::query()
             ->whereIn('id', $ids)
-            ->get();
+            ->get()
+            ->sortBy(function (User $user) use ($ids): int {
+                $position = array_search((int) $user->id, $ids, true);
+
+                return $position === false ? PHP_INT_MAX : $position;
+            })
+            ->values();
 
         if ($users->isEmpty()) {
             return back()->with('success', 'No users required updates.');

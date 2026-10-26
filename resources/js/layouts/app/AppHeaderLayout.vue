@@ -5,6 +5,7 @@ import AppHeader from '@/components/AppHeader.vue';
 import AppShell from '@/components/AppShell.vue';
 import CookieConsentBanner from '@/components/CookieConsentBanner.vue';
 import ImpersonationBanner from '@/components/ImpersonationBanner.vue';
+import RecoveryCodesPrompt from '@/components/RecoveryCodesPrompt.vue';
 import { useI18n } from '@/composables/useI18n';
 import type { BreadcrumbItemType } from '@/types';
 
@@ -30,6 +31,7 @@ const { t } = useI18n();
             {{ t('ui.nav.skip_to_content') }}
         </a>
         <ImpersonationBanner />
+        <RecoveryCodesPrompt />
         <AppHeader :breadcrumbs="breadcrumbs" />
         <AppContent :full-width="fullWidth">
             <slot />

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, toRefs, watch } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { useI18n } from '@/composables/useI18n';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
@@ -12,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, LoaderCircle } from '@lucide/vue';
 
@@ -50,6 +51,10 @@ interface Props {
         description?: string | null;
     }>;
 }
+
+const page = usePage<SharedData>();
+const { t } = useI18n();
+const replaceRecoveryCodes = computed(() => page.props.auth.replaceRecoveryCodes === true);
 
 const props = defineProps<Props>();
 const { sessions, twoFactorEnabled, twoFactorConfirmed, pendingSecret, qrCodeUrl, recoveryCodes, status, socialAccounts, availableSocialProviders } =
@@ -442,6 +447,9 @@ watch(hasRecoveryCodes, (value) => {
                                                 <CardDescription>
                                                     Use a recovery code if you lose access to your authenticator device.
                                                 </CardDescription>
+                                                <Alert v-if="replaceRecoveryCodes">
+                                                    <AlertDescription>{{ t('ui.security.recovery_prompt') }}</AlertDescription>
+                                                </Alert>
                                             </div>
                                             <CollapsibleTrigger as-child>
                                                 <Button type="button" variant="ghost" size="sm" class="w-full sm:w-auto">

@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use App\Support\Security\TwoFactorAuthenticator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class RateLimitingTest extends TestCase
@@ -20,12 +21,38 @@ class RateLimitingTest extends TestCase
         ])->save();
 
         $this->withSession(['two_factor:id' => $user->id]);
+        $this->clearTwoFactorLimits($user->id);
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $this->post('/two-factor-challenge', ['code' => '000000'])->assertStatus(302);
         }
 
         $this->post('/two-factor-challenge', ['code' => '000000'])->assertStatus(429);
+    }
+
+    public function test_two_factor_recovery_code_attempts_are_rate_limited(): void
+    {
+        $user = User::factory()->create();
+        $user->forceFill([
+            'two_factor_secret' => TwoFactorAuthenticator::encryptSecret(TwoFactorAuthenticator::generateSecret()),
+            'two_factor_confirmed_at' => now(),
+            'two_factor_recovery_codes' => TwoFactorAuthenticator::encryptRecoveryCodes(['ABCD-EFGH-IJKL']),
+        ])->save();
+
+        $this->withSession(['two_factor:id' => $user->id]);
+        $this->clearTwoFactorLimits($user->id);
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->post('/two-factor-challenge', ['recovery_code' => 'NOPE-NOPE-NOPE'])->assertStatus(302);
+        }
+
+        $this->post('/two-factor-challenge', ['recovery_code' => 'NOPE-NOPE-NOPE'])->assertStatus(429);
+    }
+
+    private function clearTwoFactorLimits(int $userId): void
+    {
+        RateLimiter::clear('2fa:'.$userId);
+        RateLimiter::clear('2fa-ip:127.0.0.1');
     }
 
     public function test_password_reset_requests_are_rate_limited(): void
