@@ -1078,8 +1078,10 @@ class SupportController extends Controller
                 }
             );
 
-            if ($ticket->user && (int) $message->user_id !== (int) $ticket->user_id) {
-                $ticket->user->notify(new SupportTicketAgentReply($ticket, $message));
+            $owner = $ticket->user;
+
+            if ($message instanceof SupportTicketMessage && $owner instanceof User && (int) $message->user_id !== (int) $ticket->user_id) {
+                $owner->notify(new SupportTicketAgentReply($ticket, $message));
             }
         }
 
