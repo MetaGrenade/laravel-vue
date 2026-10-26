@@ -73,7 +73,7 @@ The model refuses to change or delete an entry (`LogicException`). That guards t
 
 ## Privacy
 
-An entry holds the **address and browser** of a member of staff, and the **nickname and email** of the people it is about, as they were then. They are kept for as long as retention says, and **a person's deletion or an erasure request does not remove them**: the log is there to show what staff did, which does not stop being true. Choose a retention you are happy to defend (two years is common), and say so in your privacy policy. The log is not part of a person's data export, since it is a record of staff's actions and not their own content.
+An entry holds the **address and browser** of a member of staff, and the **nickname and email** of the people it is about, as they were then. They are kept for as long as retention says, and **a person's deletion or an erasure request does not remove them**: the log is there to show what staff did, which does not stop being true. Choose a retention you are happy to defend (two years is common), and say so in your privacy policy ([legal-pages.md](legal-pages.md)). The log is not part of a person's data export, since it is a record of staff's actions and not their own content.
 
 ## Upgrading
 

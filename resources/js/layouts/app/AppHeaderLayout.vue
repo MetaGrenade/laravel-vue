@@ -3,6 +3,7 @@ import AppContent from '@/components/AppContent.vue';
 import AppFooter from '@/components/AppFooter.vue';
 import AppHeader from '@/components/AppHeader.vue';
 import AppShell from '@/components/AppShell.vue';
+import CookieConsentBanner from '@/components/CookieConsentBanner.vue';
 import ImpersonationBanner from '@/components/ImpersonationBanner.vue';
 import { useI18n } from '@/composables/useI18n';
 import type { BreadcrumbItemType } from '@/types';
@@ -34,5 +35,6 @@ const { t } = useI18n();
             <slot />
         </AppContent>
         <AppFooter />
+        <CookieConsentBanner />
     </AppShell>
 </template>

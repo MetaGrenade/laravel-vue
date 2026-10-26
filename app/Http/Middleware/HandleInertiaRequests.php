@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use App\Support\Commerce\CartManager;
 use App\Support\Entitlements\Entitlements;
 use App\Support\Impersonation\Impersonation;
+use App\Support\Legal\CookieConsent;
+use App\Support\Legal\LegalPages;
 use App\Support\Localization\DateFormatter;
 use App\Support\Localization\FrontendTranslations;
 use App\Support\OAuth\OAuthProviders;
@@ -129,6 +131,10 @@ class HandleInertiaRequests extends Middleware
             'settings' => [
                 'website_sections' => $websiteSections,
                 'oauth_providers' => OAuthProviders::all(),
+            ],
+            'legal' => fn () => [
+                'pages' => app(LegalPages::class)->publishedSlugs(),
+                'consent' => CookieConsent::choice($request),
             ],
             'cart' => function () use ($request, $websiteSections) {
                 if (! $websiteSections['commerce']) {

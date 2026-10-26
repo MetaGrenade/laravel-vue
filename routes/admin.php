@@ -38,6 +38,7 @@ use App\Http\Controllers\Admin\ForumReportController;
 use App\Http\Controllers\Admin\ForumReviewController;
 use App\Http\Controllers\Admin\GiftCardController;
 use App\Http\Controllers\Admin\ImpersonationController;
+use App\Http\Controllers\Admin\LegalPageController;
 use App\Http\Controllers\Admin\PollController;
 use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\ShippingRateController;
@@ -558,6 +559,13 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::get('acp/discord/sync', [DiscordController::class, 'sync'])
         ->middleware('can:system.acp.view')
         ->name('acp.discord.sync');
+
+    Route::get('acp/legal', [LegalPageController::class, 'edit'])
+        ->middleware('can:system.acp.view')
+        ->name('acp.legal.edit');
+    Route::put('acp/legal', [LegalPageController::class, 'update'])
+        ->middleware('can:system.acp.edit')
+        ->name('acp.legal.update');
 
     Route::get('acp/system', [SystemSettingsController::class, 'index'])
         ->middleware('can:system.acp.view')
