@@ -5,8 +5,8 @@ import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import { getInitials } from '@/composables/useInitials';
 import { useI18n } from '@/composables/useI18n';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Search, Users } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
@@ -40,6 +40,8 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const page = usePage<SharedData>();
+const forumOn = computed(() => page.props.settings?.website_sections?.forum ?? true);
 
 const query = ref(props.search);
 
@@ -74,6 +76,9 @@ const sortHref = (value: string) => route('members.index', { sort: value, ...(pr
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">{{ t('members.directory.title') }}</h1>
                         <p class="text-sm text-muted-foreground">{{ t('members.directory.description') }}</p>
+                        <Link v-if="forumOn" :href="route('leaderboard')" class="mt-1 inline-block text-sm font-medium text-primary hover:underline">
+                            {{ t('members.leaderboard.title') }}
+                        </Link>
                     </div>
                 </div>
 

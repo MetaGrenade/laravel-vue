@@ -76,6 +76,7 @@ class SitemapController extends Controller
 
         if (WebsiteSections::isEnabled('forum')) {
             $urls[] = $this->url(route('forum.index'), priority: '0.8');
+            $urls[] = $this->url(route('leaderboard'), priority: '0.5');
 
             ForumBoard::query()->get(['id', 'slug', 'updated_at'])->each(function (ForumBoard $board) use (&$urls) {
                 $urls[] = $this->url(route('forum.boards.show', $board), $board->updated_at, '0.6');

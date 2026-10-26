@@ -29,6 +29,7 @@ class WebsiteSectionsTest extends TestCase
 
         $this->get('/forum')->assertNotFound();
         $this->get('/forum/feed')->assertNotFound();
+        $this->get('/leaderboard')->assertNotFound();
     }
 
     public function test_support_routes_return_not_found_when_section_disabled(): void

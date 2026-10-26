@@ -29,6 +29,7 @@ use App\Http\Controllers\ForumThreadModerationController;
 use App\Http\Controllers\ForumThreadSolutionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImpersonationStopController;
+use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MemberFollowController;
 use App\Http\Controllers\OnboardingDismissController;
@@ -214,6 +215,7 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware('section.enabled:forum')->group(function () {
+    Route::get('leaderboard', [LeaderboardController::class, 'index'])->name('leaderboard');
     Route::get('forum/attachments/{attachment}', [ForumAttachmentController::class, 'show'])
         ->whereNumber('attachment')
         ->name('forum.attachments.show');

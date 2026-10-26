@@ -96,7 +96,7 @@ Strong already. Remaining gaps, in priority order:
 4. **Direct messages and following.** Following is **done** ([member-follows.md](member-follows.md)): a member can follow another member, read their public posts, and be told when they post. Direct messages are **done** ([direct-messages.md](direct-messages.md)): a member can write to another member, and an ignore stops messages in both directions.
 5. **Email digests** and notification batching. **Done** (tenth slice, see [email-digests.md](email-digests.md)): forum, blog, and direct-message email can be one message a day. In-app and browser alerts stay immediate.
 6. **Forum RSS** (blog has it). **Done** (eleventh slice, see [forum-rss.md](forum-rss.md)): a public feed of the latest published threads, and one feed per board. In-app ignores and follows do not change it.
-7. **Leaderboards / activity feed** (reputation data already exists).
+7. **Leaderboards / activity feed** (reputation data already exists). **Done** (twelfth slice, see [leaderboard.md](leaderboard.md)): the top twenty members by reputation, and the latest twenty public events. An upvote and an accepted answer still do not award points.
 
 ---
 
@@ -416,7 +416,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 ### M4. Community completions (8–12 days)
 
 - Public member profiles and a directory (**done**, third slice, see [members.md](members.md)); following a member (**done**, eighth slice, see [member-follows.md](member-follows.md)); direct messages (**done**, ninth slice, see [direct-messages.md](direct-messages.md))
-- Forum: thread prefixes (**done**, fourth slice, see [forum-prefixes.md](forum-prefixes.md)); solved answers (**done**, fifth slice, see [forum-solutions.md](forum-solutions.md)); an ignore list (**done**, sixth slice, see [forum-ignores.md](forum-ignores.md)); pictures and files (**done**, seventh slice, see [forum-attachments.md](forum-attachments.md)); RSS (**done**, eleventh slice, see [forum-rss.md](forum-rss.md))
+- Forum: thread prefixes (**done**, fourth slice, see [forum-prefixes.md](forum-prefixes.md)); solved answers (**done**, fifth slice, see [forum-solutions.md](forum-solutions.md)); an ignore list (**done**, sixth slice, see [forum-ignores.md](forum-ignores.md)); pictures and files (**done**, seventh slice, see [forum-attachments.md](forum-attachments.md)); RSS (**done**, eleventh slice, see [forum-rss.md](forum-rss.md)); a leaderboard (**done**, twelfth slice, see [leaderboard.md](leaderboard.md))
 - Moderation: infractions and ban history (**done**, first slice, see [moderation.md](moderation.md)), automod rules and the spam guard extended to forum posts (**done**, second slice: see [automod.md](automod.md), and [moderation.md](moderation.md#taking-down-what-a-member-posted) for clearing out a spammer's posts)
 - Email digests (**done**, tenth slice, see [email-digests.md](email-digests.md))
 - Break up the largest controllers while touching them
