@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\SupportTicket;
 use App\Models\SupportTicketMessageAttachment;
 use App\Models\User;
 
@@ -14,10 +15,10 @@ class SupportTicketMessageAttachmentPolicy
     {
         $ticket = $attachment->message?->ticket;
 
-        if ($ticket === null) {
+        if (! $ticket instanceof SupportTicket) {
             return false;
         }
 
-        return $ticket->user_id === $user->id || $user->can('support.acp.view');
+        return app(SupportTicketPolicy::class)->view($user, $ticket) || $user->can('support.acp.view');
     }
 }

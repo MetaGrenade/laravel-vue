@@ -10,11 +10,23 @@ use Illuminate\Validation\Rule;
 class ProductRequest extends FormRequest
 {
     /**
-     * The commerce permissions are enforced by the routes (view, create, edit, delete).
+     * Creating and changing a product follow ProductPolicy. The route names the same permission.
      */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        if ($this->isMethod('POST')) {
+            return $user->can('create', Product::class);
+        }
+
+        $product = $this->route('product');
+
+        return $product instanceof Product && $user->can('update', $product);
     }
 
     /**

@@ -21,10 +21,6 @@ class SupportTicketMessageController extends Controller
 
     public function store(StorePublicSupportTicketMessageRequest $request, SupportTicket $ticket): JsonResponse
     {
-        $user = $request->user();
-
-        abort_unless($user && $ticket->user_id === $user->id, 403);
-
         $validated = $request->validated();
 
         $message = null;

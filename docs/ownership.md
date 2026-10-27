@@ -18,7 +18,7 @@ A record has an **owner** (`owner_type` and `owner_id`, a morph) and, separately
 
 These use the `HasOwner` trait. A plan's entitlements are read from the owner's live Stripe subscription rather than copied ([entitlements.md](entitlements.md#subscription-plans)).
 
-**Personal on purpose:** things that are about a person and not about what they pay for stay on the person: their carts, wishlist, reviews, tickets, forum posts, notification settings and API keys. A team may share some of these one day; that is a decision for 1.1, not something 1.0 should guess.
+**Personal on purpose:** things that are about a person and not about what they pay for stay on the person: their carts, wishlist, reviews, tickets, forum posts, notification settings and API keys. A ticket is opened through `SupportTicketPolicy`, which asks who opened it. A team may share some of these one day; that is a decision for 1.1, not something 1.0 should guess. See [record-policies.md](record-policies.md).
 
 ## How access is decided
 

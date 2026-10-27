@@ -13,8 +13,7 @@ class ReopenPublicSupportTicketRequest extends FormRequest
         $ticket = $this->route('ticket');
 
         return $ticket instanceof SupportTicket
-            && $this->user()
-            && (int) $ticket->user_id === (int) $this->user()->id;
+            && (bool) $this->user()?->can('reopen', $ticket);
     }
 
     public function rules(): array

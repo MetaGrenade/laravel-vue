@@ -12,8 +12,7 @@ class StorePublicSupportTicketMessageRequest extends FormRequest
         $ticket = $this->route('ticket');
 
         return $ticket instanceof SupportTicket
-            && $this->user()
-            && $ticket->user_id === $this->user()->id;
+            && (bool) $this->user()?->can('reply', $ticket);
     }
 
     public function rules(): array
