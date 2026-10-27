@@ -76,6 +76,12 @@ Each request a moderator makes (the warning, the ban, the lifting) is also in th
 | `users.acp.warn` | Warn (new). |
 | `users.acp.ban` | Ban, lift a ban, and ban several at once. |
 | `users.acp.cleanup` | Take down what a member posted, alone, with a ban and for several members (new). A ban with *Also take down what they posted* needs both. |
+| `users.acp.edit` | Open and save a member's account. Not given to moderators. |
+| `users.acp.delete` | Delete an account. Not given to moderators. |
+| `users.acp.verify` | Mark an email address verified. Not given to moderators. |
+| `users.acp.update` | Link or remove a social account. Not given to moderators. |
+
+The list, the account form, verifying an email, and a social account each check that permission on the route. A bulk action checks the permission for that action (verify, ban, clean-up, or delete).
 
 Running `php artisan db:seed --class=RolePermissionSeeder` creates `users.acp.warn` and `users.acp.cleanup` and **gives the `moderator` role** `users.acp.view`, `users.acp.warn`, `users.acp.ban` and `users.acp.cleanup`. Administrators can do everything. Take them off a role in **Admin → Access control** if you do not want moderators to ban or to clear out members.
 
