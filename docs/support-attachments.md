@@ -8,7 +8,7 @@ A ticket can carry a file. A picture is drawn again before it is stored. Anythin
 
 On a new ticket or a reply, choose up to five files, each at most 10 MB. A JPEG, PNG, GIF or WebP is decoded and saved again as WebP, at its own size, so the file that is stored is not the file that was uploaded. A note in the picture (a camera location, a comment) does not survive. A picture with more pixels than the shop allows is refused before it is decoded, and the ticket or reply is not saved. A PDF, a plain text or CSV file, JSON, a zip or a spreadsheet is kept as it arrived. Anything else is refused.
 
-The stored name is generated. The download uses the name the person chose, with `.webp` for a picture, and is always sent as a download. A type that is not on the list of types the browser may render is sent as an opaque file.
+The stored name is generated. The download uses the name the person chose, with `.webp` for a picture, and is always sent as a download. A type that is not on the list of types the browser may render is sent as an opaque file. A disk the web server would serve is refused, so a wrong `SUPPORT_ATTACHMENT_DISK` cannot publish the files. See [private-uploads.md](private-uploads.md).
 
 ## Not built
 
@@ -17,4 +17,4 @@ The stored name is generated. The download uses the name the person chose, with 
 
 ## Testing
 
-`tests/Feature/Support/SupportAttachmentImageTest.php`: a picture is stored as WebP and a note in the file does not survive; a picture with too many pixels opens no ticket and adds no reply; a PDF is kept as the uploaded file. Downloads and the move off the public disk are covered by `tests/Feature/Support/SupportAttachmentDownloadTest.php`.
+`tests/Feature/Support/SupportAttachmentImageTest.php`: a picture is stored as WebP and a note in the file does not survive; a picture with too many pixels opens no ticket and adds no reply; a PDF is kept as the uploaded file. Downloads, the move off the public disk, and the refusal of a public disk are covered by `tests/Feature/Support/SupportAttachmentDownloadTest.php`.

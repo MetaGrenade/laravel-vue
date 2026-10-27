@@ -124,6 +124,23 @@ class ForumAttachmentTest extends TestCase
         $this->assertSame(0, ForumPost::query()->count());
     }
 
+    public function test_a_public_disk_is_refused_and_nothing_is_saved(): void
+    {
+        Storage::fake('public');
+        config(['forum.attachments.disk' => 'public']);
+
+        $this->actingAs($this->author)->post(route('forum.posts.store', [$this->board, $this->thread]), [
+            'body' => '<p>Hello</p>',
+            'attachments' => [$this->pdf()],
+        ])->assertSessionHasErrors([
+            'attachments' => 'The forum attachment disk "public" is public, so anyone could fetch these files. Set FORUM_ATTACHMENT_DISK to a private disk.',
+        ]);
+
+        $this->assertSame(0, ForumPost::query()->count());
+        $this->assertSame(0, ForumAttachment::query()->count());
+        $this->assertSame([], Storage::disk('public')->allFiles());
+    }
+
     public function test_too_many_files_and_a_file_over_the_size_are_refused(): void
     {
         $files = [];

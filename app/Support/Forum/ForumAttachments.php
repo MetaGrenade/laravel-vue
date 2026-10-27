@@ -76,6 +76,10 @@ class ForumAttachments
      */
     public function prepare(array $files): array
     {
+        if ($files !== []) {
+            $this->guardPrivateDisk();
+        }
+
         $prepared = [];
 
         foreach ($files as $index => $file) {
@@ -317,6 +321,8 @@ class ForumAttachments
             return;
         }
 
+        $this->guardPrivateDisk();
+
         $diskName = (string) config('forum.attachments.disk', 'local');
         $directory = trim((string) config('forum.attachments.directory', 'forum-attachments'), '/').'/'.$post->id;
         $created = [];
@@ -349,6 +355,25 @@ class ForumAttachments
                 'attachments' => 'The file could not be saved.',
             ]);
         }
+    }
+
+    /**
+     * A post's files are only for people who can see the post. A disk the web
+     * serves would hand them to anyone who learns the path.
+     *
+     * @throws ValidationException
+     */
+    private function guardPrivateDisk(): void
+    {
+        $disk = (string) config('forum.attachments.disk', 'local');
+
+        if (config('filesystems.disks.'.$disk.'.visibility') !== 'public') {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'attachments' => 'The forum attachment disk "'.$disk.'" is public, so anyone could fetch these files. Set FORUM_ATTACHMENT_DISK to a private disk.',
+        ]);
     }
 
     private function displayName(UploadedFile $file, string $extension): string

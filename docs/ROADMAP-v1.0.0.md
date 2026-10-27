@@ -106,7 +106,7 @@ Strong already. Remaining gaps, in priority order:
 
 | Sev | Finding | Status | Fix |
 |-----|---------|--------|-----|
-| **High** | Support-ticket attachments are written to the `public` disk (`SupportCenterController`: `$disk = 'public'`). Files are reachable without authentication or ticket authorisation. The stored MIME type is the client-supplied one. | Verified | Move to a private disk; serve through an authorised controller with `Content-Disposition: attachment`; validate by sniffed MIME and extension allow-list; cap size; optional AV hook. Add a migration to move existing files. |
+| **High** | Support-ticket attachments are written to the `public` disk (`SupportCenterController`: `$disk = 'public'`). Files are reachable without authentication or ticket authorisation. The stored MIME type is the client-supplied one. | **Done** (eleventh M5 slice, see [private-uploads.md](private-uploads.md)) | Move to a private disk; serve through an authorised controller with `Content-Disposition: attachment`; validate by sniffed MIME and extension allow-list; cap size; optional AV hook. Add a migration to move existing files. |
 | High (latent) | Blog covers also use the public disk; fine for public images, but there is no image re-encoding, so crafted files are served as-is. | **Done** (second M5 slice, see [blog-covers.md](blog-covers.md)) | Re-encode and strip metadata on upload; limit dimensions. |
 | Medium | Two-factor is a custom TOTP implementation (`TwoFactorAuthenticator`). Secrets are stored encrypted. No recovery-code rotation prompt. | **Done** (third M5 slice, see [two-factor.md](two-factor.md)) | Review against RFC 6238 test vectors; add tests. **Passkeys/WebAuthn are deferred to 1.1.** |
 | Medium | Sanctum tokens default to abilities `['*']` and no expiry. | Verified | Default to least-privilege abilities; set `SANCTUM_EXPIRATION`; add per-token rate limits. |
@@ -121,7 +121,7 @@ Strong already. Remaining gaps, in priority order:
 
 ### 4.2 Hardening checklist for 1.0
 
-- [ ] Private storage and authorised downloads for all user uploads
+- [x] Private storage and authorised downloads for all user uploads (support files, forum files, product downloads and data exports; product pictures and blog covers stay public because the site shows them; eleventh M5 slice, see [private-uploads.md](private-uploads.md))
 - [x] Upload pipeline: MIME sniffing, extension allow-list, size caps, image re-encode (product pictures, forum pictures, blog covers and support pictures are re-encoded; tenth M5 slice, see [blog-covers.md](blog-covers.md) and [support-attachments.md](support-attachments.md))
 - [x] Admin audit log (**done in M3**: an append-only `audit_logs` table written for every change under `acp/`, with before and after for the records that matter, a viewer, and retention; see [audit-log.md](audit-log.md))
 - [x] Admin impersonation, read-only (**done in M3**: staff see the site as one customer sees it, for 30 minutes, with a reason, nothing can be changed, a few pages stay closed, and every page opened is in the audit log; see [impersonation.md](impersonation.md))
@@ -435,6 +435,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Orders, tickets and products follow policies (**done**, eighth slice, see [record-policies.md](record-policies.md))
 - Accessibility pass (axe on main flows) (**done**, ninth slice, see [accessibility.md](accessibility.md))
 - Support pictures are decoded and saved again as WebP (**done**, tenth slice, see [support-attachments.md](support-attachments.md))
+- Support, forum and download files stay on a private disk, and a public disk is refused (**done**, eleventh slice, see [private-uploads.md](private-uploads.md))
 - **Exit:** checklist complete; external dependency audit clean; no open high/medium findings. (Passkeys are deferred to 1.1.)
 
 ### M6. Search and performance (8–12 days)

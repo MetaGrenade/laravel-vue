@@ -61,6 +61,14 @@ class SupportAttachmentStorage
     }
 
     /**
+     * A disk the web server would hand out to anyone who learns the path.
+     */
+    public function diskIsPublic(): bool
+    {
+        return config('filesystems.disks.'.$this->disk().'.visibility') === 'public';
+    }
+
+    /**
      * Store every uploaded file on the message. Accepts what
      * `$request->file('attachments')` returns: a file, an array of files or null.
      */
@@ -93,6 +101,14 @@ class SupportAttachmentStorage
 
         if (! is_array($files)) {
             return [];
+        }
+
+        foreach ($files as $file) {
+            if ($file instanceof UploadedFile) {
+                $this->guardPrivateDisk();
+
+                break;
+            }
         }
 
         $prepared = [];
@@ -160,6 +176,8 @@ class SupportAttachmentStorage
      */
     private function storePicture(SupportTicket $ticket, string $bytes, string $name): array
     {
+        $this->guardPrivateDisk();
+
         $disk = $this->disk();
         $directory = trim((string) config('support.attachments.directory', 'support-attachments'), '/')."/{$ticket->id}";
         $path = $directory.'/'.Str::lower((string) Str::ulid()).'.webp';
@@ -184,6 +202,8 @@ class SupportAttachmentStorage
      */
     public function store(UploadedFile $file, SupportTicket $ticket): array
     {
+        $this->guardPrivateDisk();
+
         $disk = $this->disk();
         $directory = trim((string) config('support.attachments.directory', 'support-attachments'), '/')."/{$ticket->id}";
 
@@ -199,6 +219,23 @@ class SupportAttachmentStorage
             'mime_type' => $file->getMimeType() ?: 'application/octet-stream',
             'size' => (int) ($file->getSize() ?: 0),
         ];
+    }
+
+    /**
+     * Ticket files are only for people who may see the ticket. A disk the web
+     * serves would hand them to anyone who learns the path.
+     *
+     * @throws ValidationException
+     */
+    private function guardPrivateDisk(): void
+    {
+        if (! $this->diskIsPublic()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'attachments' => 'The support attachment disk "'.$this->disk().'" is public, so anyone could fetch these files. Set SUPPORT_ATTACHMENT_DISK to a private disk.',
+        ]);
     }
 
     /**
@@ -262,6 +299,10 @@ class SupportAttachmentStorage
      */
     public function privatize(SupportTicketMessageAttachment $attachment): string
     {
+        if ($this->diskIsPublic()) {
+            return self::FAILED;
+        }
+
         $target = $this->disk();
 
         if ($attachment->disk === $target) {
