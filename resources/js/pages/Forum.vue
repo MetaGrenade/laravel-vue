@@ -119,7 +119,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
 
             <div class="grid grid-cols-1 gap-6 md:grid-cols-4">
                 <!-- Main Content: Forum Categories as Cards -->
-                <main class="space-y-6 md:col-span-3">
+                <div class="space-y-6 md:col-span-3">
                     <template v-if="props.categories.length">
                         <section
                             v-for="category in props.categories"
@@ -183,7 +183,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                     <div v-else class="rounded-xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
                         No forum categories are available yet. Run the forum demo seeder or create categories in the admin panel to get started.
                     </div>
-                </main>
+                </div>
 
                 <!-- Sidebar -->
                 <aside class="space-y-6 md:col-span-1">

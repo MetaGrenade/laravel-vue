@@ -748,15 +748,18 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                 class="w-full md:w-64"
                                 :disabled="!props.canSubmitTicket"
                             />
-                            <select
-                                v-model="ticketCategoryFilter"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:w-60"
-                                :disabled="!props.canSubmitTicket"
-                            >
-                                <option v-for="category in ticketCategoryOptions" :key="category.id ?? 'all'" :value="category.id">
-                                    {{ category.name }}
-                                </option>
-                            </select>
+                            <label class="w-full md:w-60">
+                                <span class="sr-only">Ticket category</span>
+                                <select
+                                    v-model="ticketCategoryFilter"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+                                    :disabled="!props.canSubmitTicket"
+                                >
+                                    <option v-for="category in ticketCategoryOptions" :key="category.id ?? 'all'" :value="category.id">
+                                        {{ category.name }}
+                                    </option>
+                                </select>
+                            </label>
                             <DropdownMenu>
                                 <DropdownMenuTrigger as-child>
                                     <Button

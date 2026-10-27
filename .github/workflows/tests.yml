@@ -113,3 +113,27 @@ jobs:
 
       - name: Run tests (PostgreSQL 16)
         run: php artisan test
+
+  # axe on the public pages. The M7 Playwright smoke suite is a separate item.
+  a11y:
+    name: a11y (axe)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the accessibility audit
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ${{ github.workspace }}/database/a11y.sqlite
+          DB_URL: ''
+          APP_URL: http://127.0.0.1:8000
+          A11Y_PREPARE: '1'
+        run: npx playwright test --config=tests/a11y/playwright.config.ts
