@@ -35,6 +35,6 @@ Out of scope: vulnerabilities in third-party services (Stripe, Tebex, Pusher and
 
 - Keep `APP_DEBUG=false` and set `APP_ENV=production` in production.
 - Serve over HTTPS and enable HSTS (`SECURITY_HSTS_*` in `.env`).
-- Store user uploads on a private disk. Support attachments already use one (`SUPPORT_ATTACHMENT_DISK`).
+- Store user uploads on a private disk. Support files, forum files and product downloads refuse a disk that is public (`SUPPORT_ATTACHMENT_DISK`, `FORUM_ATTACHMENT_DISK`, `COMMERCE_DOWNLOAD_DISK`). See [docs/private-uploads.md](docs/private-uploads.md).
 - Run `composer audit` and `npm audit` regularly; CI runs both on every change.
 - Rotate `APP_KEY`, payment-provider secrets and webhook secrets if they may have been exposed.

@@ -15,6 +15,13 @@ class PrivatizeSupportAttachments extends Command
     public function handle(SupportAttachmentStorage $storage): int
     {
         $target = $storage->disk();
+
+        if ($storage->diskIsPublic()) {
+            $this->error('The support attachment disk "'.$target.'" is public, so anyone could fetch these files. Set SUPPORT_ATTACHMENT_DISK to a private disk.');
+
+            return self::FAILURE;
+        }
+
         $pending = SupportTicketMessageAttachment::query()->where('disk', '!=', $target);
 
         $this->info(sprintf('%d attachment(s) are not on the "%s" disk.', $pending->count(), $target));

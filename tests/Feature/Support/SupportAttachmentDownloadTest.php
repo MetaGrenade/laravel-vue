@@ -284,4 +284,37 @@ class SupportAttachmentDownloadTest extends TestCase
         $this->assertSame(SupportAttachmentStorage::MOVED, $result);
         $this->assertSame('local', $legacy->fresh()->disk);
     }
+
+    #[Test]
+    public function a_public_disk_is_refused_and_the_move_command_will_not_copy_onto_it(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+        config(['support.attachments.disk' => 'public']);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('support.tickets.store'), [
+            'subject' => 'Logs',
+            'body' => 'See the file.',
+            'priority' => 'medium',
+            'attachments' => [UploadedFile::fake()->create('notes.pdf', 4, 'application/pdf')],
+        ])->assertSessionHasErrors([
+            'attachments' => 'The support attachment disk "public" is public, so anyone could fetch these files. Set SUPPORT_ATTACHMENT_DISK to a private disk.',
+        ]);
+
+        $this->assertSame(0, SupportTicket::query()->count());
+        $this->assertSame([], Storage::disk('public')->allFiles());
+
+        $legacy = $this->attachment(disk: 'local');
+
+        $this->artisan('support:attachments:privatize')
+            ->expectsOutputToContain('Set SUPPORT_ATTACHMENT_DISK to a private disk.')
+            ->assertFailed();
+
+        $this->assertSame(SupportAttachmentStorage::FAILED, app(SupportAttachmentStorage::class)->privatize($legacy->fresh()));
+        $this->assertSame('local', $legacy->fresh()->disk);
+        Storage::disk('local')->assertExists($legacy->path);
+        $this->assertSame([], Storage::disk('public')->allFiles());
+    }
 }
