@@ -24,6 +24,11 @@ class ReopenPublicSupportTicketRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            // The site answers with its usual notice. The API reports the same thing as a validation error.
+            if (! $this->expectsJson()) {
+                return;
+            }
+
             $ticket = $this->route('ticket');
 
             if (! $ticket instanceof SupportTicket) {
