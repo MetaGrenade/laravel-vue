@@ -10,7 +10,8 @@
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
         "lint:check": "eslint .",
-        "types:check": "vue-tsc --noEmit"
+        "types:check": "vue-tsc --noEmit",
+        "a11y": "playwright test --config=tests/a11y/playwright.config.ts"
     },
     "dependencies": {
         "@inertiajs/vue3": "^3.9.1",
@@ -42,8 +43,10 @@
         "ziggy-js": "^2.6.5"
     },
     "devDependencies": {
+        "@axe-core/playwright": "^4.14.0",
         "@eslint/js": "^10.0.1",
         "@inertiajs/vite": "^3.9.1",
+        "@playwright/test": "^1.64.1",
         "@tailwindcss/vite": "^4.3.3",
         "@types/node": "^24.19.2",
         "@vitejs/plugin-vue": "^6.0.10",

@@ -25,3 +25,7 @@ yarn-error.log
 /.zed
 /storage/framework/phpstan
 /.vs
+/database/a11y.sqlite
+/playwright-report
+/test-results
+/blob-report

@@ -178,7 +178,7 @@ Strong already. Remaining gaps, in priority order:
 | Release files | No CHANGELOG, CONTRIBUTING, SECURITY, issue/PR templates, CODEOWNERS | Add. |
 | Local setup | Sail in dev dependencies; no documented Docker flow | Ship `compose.yaml` (app, MySQL, Redis, Mailpit, queue worker, Vite). |
 | i18n | Only `lang/en`; 14 uses of the translator in the whole app; UI strings are hard-coded | **Decision: English-only in 1.0 with an extraction-ready structure** (section 8B). Bulk string extraction is 1.1. |
-| Accessibility | Skip link, focus styles, reduced-motion support added; no audit | Run axe on the main flows; fix criticals. |
+| Accessibility | Skip link, focus styles, reduced-motion support; axe on the main public flows, criticals fixed (**done**, ninth slice, see [accessibility.md](accessibility.md)) | Keep the audit in CI. |
 | Error pages | No custom 403/404/419/429/500/503 views (only maintenance) | Add branded error pages. |
 | Install | Manual steps | Add `php artisan metaforge:install` (env checks, migrate, seed roles, create admin, sample data optional). |
 | Versioning | No tags | Adopt SemVer, tag `v1.0.0-rc.N`, then `v1.0.0`; write upgrade notes. |
@@ -433,7 +433,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - The support desk follows named permissions (**done**, sixth slice, see [support-permissions.md](support-permissions.md))
 - Roles, the forum, trust and safety, badges and tokens follow named permissions (**done**, seventh slice, see [acp-permissions.md](acp-permissions.md)). The dashboard stays open to any staff member
 - Orders, tickets and products follow policies (**done**, eighth slice, see [record-policies.md](record-policies.md))
-- Accessibility pass (axe on main flows)
+- Accessibility pass (axe on main flows) (**done**, ninth slice, see [accessibility.md](accessibility.md))
 - **Exit:** checklist complete; external dependency audit clean; no open high/medium findings. (Passkeys are deferred to 1.1.)
 
 ### M6. Search and performance (8–12 days)
