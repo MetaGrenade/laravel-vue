@@ -62,6 +62,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::redirect('acp', '/acp/dashboard');
 
+    // Any staff member can open the overview. Every other admin route names the permission it needs (docs/acp-permissions.md).
     Route::get('acp/dashboard', [AdminController::class, 'get'])->name('acp.dashboard');
     Route::get('acp/search-analytics', [SearchAnalyticsController::class, 'index'])
         ->middleware('can:search.acp.view')
@@ -121,15 +122,34 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->name('acp.users.social-accounts.destroy');
 
     // Admin Access Control Management Routes
-    Route::get('acp/acl', [AdminACLController::class, 'index'])->name('acp.acl.index');
-    Route::get('acp/acl/permissions/create', [AdminACLController::class, 'createPermission'])->name('acp.acl.permissions.create');
-    Route::post('acp/acl/permissions', [AdminACLController::class, 'storePermission'])->name('acp.acl.permissions.store');
-    Route::put('acp/acl/permissions/{permission}', [AdminACLController::class, 'updatePermission'])->name('acp.acl.permissions.update');
-    Route::delete('acp/acl/permissions/{permission}', [AdminACLController::class, 'destroyPermission'])->name('acp.acl.permissions.destroy');
-    Route::post('acp/acl/roles', [AdminACLController::class, 'storeRole'])->name('acp.acl.roles.store');
-    Route::get('acp/acl/roles/create', [AdminACLController::class, 'createRole'])->name('acp.acl.roles.create');
-    Route::put('acp/acl/roles/{role}', [AdminACLController::class, 'updateRole'])->name('acp.acl.roles.update');
-    Route::delete('acp/acl/roles/{role}', [AdminACLController::class, 'destroyRole'])->name('acp.acl.roles.destroy');
+    // Roles and permissions. The menu already follows acl.acp.view (docs/acp-permissions.md).
+    Route::get('acp/acl', [AdminACLController::class, 'index'])
+        ->middleware('can:acl.acp.view')
+        ->name('acp.acl.index');
+    Route::get('acp/acl/permissions/create', [AdminACLController::class, 'createPermission'])
+        ->middleware('can:acl.acp.create')
+        ->name('acp.acl.permissions.create');
+    Route::post('acp/acl/permissions', [AdminACLController::class, 'storePermission'])
+        ->middleware('can:acl.acp.create')
+        ->name('acp.acl.permissions.store');
+    Route::put('acp/acl/permissions/{permission}', [AdminACLController::class, 'updatePermission'])
+        ->middleware('can:acl.acp.edit')
+        ->name('acp.acl.permissions.update');
+    Route::delete('acp/acl/permissions/{permission}', [AdminACLController::class, 'destroyPermission'])
+        ->middleware('can:acl.acp.delete')
+        ->name('acp.acl.permissions.destroy');
+    Route::post('acp/acl/roles', [AdminACLController::class, 'storeRole'])
+        ->middleware('can:acl.acp.create')
+        ->name('acp.acl.roles.store');
+    Route::get('acp/acl/roles/create', [AdminACLController::class, 'createRole'])
+        ->middleware('can:acl.acp.create')
+        ->name('acp.acl.roles.create');
+    Route::put('acp/acl/roles/{role}', [AdminACLController::class, 'updateRole'])
+        ->middleware('can:acl.acp.edit')
+        ->name('acp.acl.roles.update');
+    Route::delete('acp/acl/roles/{role}', [AdminACLController::class, 'destroyRole'])
+        ->middleware('can:acl.acp.delete')
+        ->name('acp.acl.roles.destroy');
 
     // Blog management. The menu already follows these permissions; the routes do too (docs/blog-permissions.md).
     Route::get('acp/blogs', [AdminBlogController::class, 'index'])
@@ -224,46 +244,131 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->middleware('can:blogs.acp.delete')
         ->name('acp.blog-categories.destroy');
 
-    Route::get('acp/forums', [ForumCategoryController::class, 'index'])->name('acp.forums.index');
+    // Forums. The menu already follows these permissions; the routes do too (docs/acp-permissions.md).
+    Route::get('acp/forums', [ForumCategoryController::class, 'index'])
+        ->middleware('can:forums.acp.view')
+        ->name('acp.forums.index');
     // What automatic moderation has held for a moderator, and the rules that hold it (docs/automod.md).
-    Route::get('acp/forums/review', [ForumReviewController::class, 'index'])->name('acp.forums.review.index');
-    Route::post('acp/forums/review/bulk', [ForumReviewController::class, 'bulk'])->name('acp.forums.review.bulk');
-    Route::post('acp/forums/review/replies/{post}/approve', [ForumReviewController::class, 'approveReply'])->whereNumber('post')->name('acp.forums.review.replies.approve');
-    Route::delete('acp/forums/review/replies/{post}', [ForumReviewController::class, 'rejectReply'])->whereNumber('post')->name('acp.forums.review.replies.reject');
-    Route::post('acp/forums/review/threads/{thread:id}/approve', [ForumReviewController::class, 'approveThread'])->whereNumber('thread')->name('acp.forums.review.threads.approve');
-    Route::delete('acp/forums/review/threads/{thread:id}', [ForumReviewController::class, 'rejectThread'])->whereNumber('thread')->name('acp.forums.review.threads.reject');
-    Route::get('acp/forums/automod', [AutomodRuleController::class, 'index'])->name('acp.forums.automod.index');
-    Route::post('acp/forums/automod', [AutomodRuleController::class, 'store'])->name('acp.forums.automod.store');
-    Route::put('acp/forums/automod/{rule}', [AutomodRuleController::class, 'update'])->whereNumber('rule')->name('acp.forums.automod.update');
-    Route::patch('acp/forums/automod/{rule}/enabled', [AutomodRuleController::class, 'enabled'])->whereNumber('rule')->name('acp.forums.automod.enabled');
-    Route::delete('acp/forums/automod/{rule}', [AutomodRuleController::class, 'destroy'])->whereNumber('rule')->name('acp.forums.automod.destroy');
-    Route::get('acp/forums/prefixes', [ForumPrefixController::class, 'index'])->name('acp.forums.prefixes.index');
-    Route::get('acp/forums/prefixes/create', [ForumPrefixController::class, 'create'])->name('acp.forums.prefixes.create');
-    Route::post('acp/forums/prefixes', [ForumPrefixController::class, 'store'])->name('acp.forums.prefixes.store');
-    Route::get('acp/forums/prefixes/{prefix}/edit', [ForumPrefixController::class, 'edit'])->whereNumber('prefix')->name('acp.forums.prefixes.edit');
-    Route::put('acp/forums/prefixes/{prefix}', [ForumPrefixController::class, 'update'])->whereNumber('prefix')->name('acp.forums.prefixes.update');
-    Route::delete('acp/forums/prefixes/{prefix}', [ForumPrefixController::class, 'destroy'])->whereNumber('prefix')->name('acp.forums.prefixes.destroy');
-    Route::get('acp/forums/reports', [ForumReportController::class, 'index'])->name('acp.forums.reports.index');
-    Route::patch('acp/forums/reports/bulk/status', [ForumReportController::class, 'bulkUpdateStatus'])->name('acp.forums.reports.bulk-status');
-    Route::patch('acp/forums/reports/threads/{report}', [ForumReportController::class, 'updateThread'])->name('acp.forums.reports.threads.update');
-    Route::patch('acp/forums/reports/posts/{report}', [ForumReportController::class, 'updatePost'])->name('acp.forums.reports.posts.update');
-    Route::get('acp/forums/categories/create', [ForumCategoryController::class, 'create'])->name('acp.forums.categories.create');
-    Route::post('acp/forums/categories', [ForumCategoryController::class, 'store'])->name('acp.forums.categories.store');
-    Route::get('acp/forums/categories/{category}/edit', [ForumCategoryController::class, 'edit'])->name('acp.forums.categories.edit');
-    Route::put('acp/forums/categories/{category}', [ForumCategoryController::class, 'update'])->name('acp.forums.categories.update');
-    Route::delete('acp/forums/categories/{category}', [ForumCategoryController::class, 'destroy'])->name('acp.forums.categories.destroy');
-    Route::patch('acp/forums/categories/{category}/reorder', [ForumCategoryController::class, 'reorder'])->name('acp.forums.categories.reorder');
+    Route::get('acp/forums/review', [ForumReviewController::class, 'index'])
+        ->middleware('can:forums.acp.review')
+        ->name('acp.forums.review.index');
+    Route::post('acp/forums/review/bulk', [ForumReviewController::class, 'bulk'])
+        ->middleware('can:forums.acp.review')
+        ->name('acp.forums.review.bulk');
+    Route::post('acp/forums/review/replies/{post}/approve', [ForumReviewController::class, 'approveReply'])
+        ->middleware('can:forums.acp.review')
+        ->whereNumber('post')
+        ->name('acp.forums.review.replies.approve');
+    Route::delete('acp/forums/review/replies/{post}', [ForumReviewController::class, 'rejectReply'])
+        ->middleware('can:forums.acp.review')
+        ->whereNumber('post')
+        ->name('acp.forums.review.replies.reject');
+    Route::post('acp/forums/review/threads/{thread:id}/approve', [ForumReviewController::class, 'approveThread'])
+        ->middleware('can:forums.acp.review')
+        ->whereNumber('thread')
+        ->name('acp.forums.review.threads.approve');
+    Route::delete('acp/forums/review/threads/{thread:id}', [ForumReviewController::class, 'rejectThread'])
+        ->middleware('can:forums.acp.review')
+        ->whereNumber('thread')
+        ->name('acp.forums.review.threads.reject');
+    Route::get('acp/forums/automod', [AutomodRuleController::class, 'index'])
+        ->middleware('can:forums.acp.automod')
+        ->name('acp.forums.automod.index');
+    Route::post('acp/forums/automod', [AutomodRuleController::class, 'store'])
+        ->middleware('can:forums.acp.automod')
+        ->name('acp.forums.automod.store');
+    Route::put('acp/forums/automod/{rule}', [AutomodRuleController::class, 'update'])
+        ->middleware('can:forums.acp.automod')
+        ->whereNumber('rule')
+        ->name('acp.forums.automod.update');
+    Route::patch('acp/forums/automod/{rule}/enabled', [AutomodRuleController::class, 'enabled'])
+        ->middleware('can:forums.acp.automod')
+        ->whereNumber('rule')
+        ->name('acp.forums.automod.enabled');
+    Route::delete('acp/forums/automod/{rule}', [AutomodRuleController::class, 'destroy'])
+        ->middleware('can:forums.acp.automod')
+        ->whereNumber('rule')
+        ->name('acp.forums.automod.destroy');
+    Route::get('acp/forums/prefixes', [ForumPrefixController::class, 'index'])
+        ->middleware('can:forums.acp.view')
+        ->name('acp.forums.prefixes.index');
+    Route::get('acp/forums/prefixes/create', [ForumPrefixController::class, 'create'])
+        ->middleware('can:forums.acp.create')
+        ->name('acp.forums.prefixes.create');
+    Route::post('acp/forums/prefixes', [ForumPrefixController::class, 'store'])
+        ->middleware('can:forums.acp.create')
+        ->name('acp.forums.prefixes.store');
+    Route::get('acp/forums/prefixes/{prefix}/edit', [ForumPrefixController::class, 'edit'])
+        ->middleware('can:forums.acp.edit')
+        ->whereNumber('prefix')
+        ->name('acp.forums.prefixes.edit');
+    Route::put('acp/forums/prefixes/{prefix}', [ForumPrefixController::class, 'update'])
+        ->middleware('can:forums.acp.edit')
+        ->whereNumber('prefix')
+        ->name('acp.forums.prefixes.update');
+    Route::delete('acp/forums/prefixes/{prefix}', [ForumPrefixController::class, 'destroy'])
+        ->middleware('can:forums.acp.delete')
+        ->whereNumber('prefix')
+        ->name('acp.forums.prefixes.destroy');
+    Route::get('acp/forums/reports', [ForumReportController::class, 'index'])
+        ->middleware('can:forums.acp.view')
+        ->name('acp.forums.reports.index');
+    Route::patch('acp/forums/reports/bulk/status', [ForumReportController::class, 'bulkUpdateStatus'])
+        ->middleware('can:forums.acp.view')
+        ->name('acp.forums.reports.bulk-status');
+    Route::patch('acp/forums/reports/threads/{report}', [ForumReportController::class, 'updateThread'])
+        ->middleware('can:forums.acp.view')
+        ->name('acp.forums.reports.threads.update');
+    Route::patch('acp/forums/reports/posts/{report}', [ForumReportController::class, 'updatePost'])
+        ->middleware('can:forums.acp.view')
+        ->name('acp.forums.reports.posts.update');
+    Route::get('acp/forums/categories/create', [ForumCategoryController::class, 'create'])
+        ->middleware('can:forums.acp.create')
+        ->name('acp.forums.categories.create');
+    Route::post('acp/forums/categories', [ForumCategoryController::class, 'store'])
+        ->middleware('can:forums.acp.create')
+        ->name('acp.forums.categories.store');
+    Route::get('acp/forums/categories/{category}/edit', [ForumCategoryController::class, 'edit'])
+        ->middleware('can:forums.acp.edit')
+        ->name('acp.forums.categories.edit');
+    Route::put('acp/forums/categories/{category}', [ForumCategoryController::class, 'update'])
+        ->middleware('can:forums.acp.edit')
+        ->name('acp.forums.categories.update');
+    Route::delete('acp/forums/categories/{category}', [ForumCategoryController::class, 'destroy'])
+        ->middleware('can:forums.acp.delete')
+        ->name('acp.forums.categories.destroy');
+    Route::patch('acp/forums/categories/{category}/reorder', [ForumCategoryController::class, 'reorder'])
+        ->middleware('can:forums.acp.move')
+        ->name('acp.forums.categories.reorder');
 
-    Route::get('acp/forums/boards/create', [ForumBoardController::class, 'create'])->name('acp.forums.boards.create');
-    Route::post('acp/forums/boards', [ForumBoardController::class, 'store'])->name('acp.forums.boards.store');
-    Route::get('acp/forums/boards/{board:id}/edit', [ForumBoardController::class, 'edit'])->name('acp.forums.boards.edit');
-    Route::put('acp/forums/boards/{board:id}', [ForumBoardController::class, 'update'])->name('acp.forums.boards.update');
-    Route::delete('acp/forums/boards/{board:id}', [ForumBoardController::class, 'destroy'])->name('acp.forums.boards.destroy');
-    Route::patch('acp/forums/boards/{board:id}/reorder', [ForumBoardController::class, 'reorder'])->name('acp.forums.boards.reorder');
+    Route::get('acp/forums/boards/create', [ForumBoardController::class, 'create'])
+        ->middleware('can:forums.acp.create')
+        ->name('acp.forums.boards.create');
+    Route::post('acp/forums/boards', [ForumBoardController::class, 'store'])
+        ->middleware('can:forums.acp.create')
+        ->name('acp.forums.boards.store');
+    Route::get('acp/forums/boards/{board:id}/edit', [ForumBoardController::class, 'edit'])
+        ->middleware('can:forums.acp.edit')
+        ->name('acp.forums.boards.edit');
+    Route::put('acp/forums/boards/{board:id}', [ForumBoardController::class, 'update'])
+        ->middleware('can:forums.acp.edit')
+        ->name('acp.forums.boards.update');
+    Route::delete('acp/forums/boards/{board:id}', [ForumBoardController::class, 'destroy'])
+        ->middleware('can:forums.acp.delete')
+        ->name('acp.forums.boards.destroy');
+    Route::patch('acp/forums/boards/{board:id}/reorder', [ForumBoardController::class, 'reorder'])
+        ->middleware('can:forums.acp.move')
+        ->name('acp.forums.boards.reorder');
 
-    Route::get('acp/trust-safety', [TrustSafetyController::class, 'index'])->name('acp.trust-safety.index');
-    Route::patch('acp/trust-safety/exports/{export}', [TrustSafetyController::class, 'updateExport'])->name('acp.trust-safety.exports.update');
-    Route::patch('acp/trust-safety/erasure-requests/{erasureRequest}', [TrustSafetyController::class, 'updateErasure'])->name('acp.trust-safety.erasure.update');
+    Route::get('acp/trust-safety', [TrustSafetyController::class, 'index'])
+        ->middleware('can:trust_safety.acp.view')
+        ->name('acp.trust-safety.index');
+    Route::patch('acp/trust-safety/exports/{export}', [TrustSafetyController::class, 'updateExport'])
+        ->middleware('can:trust_safety.acp.edit')
+        ->name('acp.trust-safety.exports.update');
+    Route::patch('acp/trust-safety/erasure-requests/{erasureRequest}', [TrustSafetyController::class, 'updateErasure'])
+        ->middleware('can:trust_safety.acp.edit')
+        ->name('acp.trust-safety.erasure.update');
 
     Route::middleware(['section.enabled:commerce', 'can:commerce.acp.view'])
         ->prefix('acp/commerce')
@@ -734,12 +839,24 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->middleware('can:system.acp.edit')
         ->name('acp.system.update');
 
-    Route::get('acp/reputation/badges', [BadgeController::class, 'index'])->name('acp.reputation.badges.index');
-    Route::get('acp/reputation/badges/create', [BadgeController::class, 'create'])->name('acp.reputation.badges.create');
-    Route::post('acp/reputation/badges', [BadgeController::class, 'store'])->name('acp.reputation.badges.store');
-    Route::get('acp/reputation/badges/{badge}/edit', [BadgeController::class, 'edit'])->name('acp.reputation.badges.edit');
-    Route::put('acp/reputation/badges/{badge}', [BadgeController::class, 'update'])->name('acp.reputation.badges.update');
-    Route::delete('acp/reputation/badges/{badge}', [BadgeController::class, 'destroy'])->name('acp.reputation.badges.destroy');
+    Route::get('acp/reputation/badges', [BadgeController::class, 'index'])
+        ->middleware('can:reputation.acp.view')
+        ->name('acp.reputation.badges.index');
+    Route::get('acp/reputation/badges/create', [BadgeController::class, 'create'])
+        ->middleware('can:reputation.acp.create')
+        ->name('acp.reputation.badges.create');
+    Route::post('acp/reputation/badges', [BadgeController::class, 'store'])
+        ->middleware('can:reputation.acp.create')
+        ->name('acp.reputation.badges.store');
+    Route::get('acp/reputation/badges/{badge}/edit', [BadgeController::class, 'edit'])
+        ->middleware('can:reputation.acp.edit')
+        ->name('acp.reputation.badges.edit');
+    Route::put('acp/reputation/badges/{badge}', [BadgeController::class, 'update'])
+        ->middleware('can:reputation.acp.edit')
+        ->name('acp.reputation.badges.update');
+    Route::delete('acp/reputation/badges/{badge}', [BadgeController::class, 'destroy'])
+        ->middleware('can:reputation.acp.delete')
+        ->name('acp.reputation.badges.destroy');
 
     // Polls
     Route::get('acp/polls', [PollController::class, 'index'])
@@ -766,14 +883,25 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->middleware('can:audit.acp.view')
         ->name('acp.audit-log.index');
 
-    // Tokens
-    Route::get('acp/tokens', [TokenController::class, 'index'])->name('acp.tokens.index');
-    Route::post('acp/tokens', [TokenController::class, 'store'])->name('acp.tokens.store');
-    Route::put('acp/tokens/{token}', [TokenController::class, 'update'])->name('acp.tokens.update');
-    Route::patch('acp/tokens/{token}/revoke', [TokenController::class, 'revoke'])->name('acp.tokens.revoke');
-    Route::delete('acp/tokens/{token}', [TokenController::class, 'destroy'])->name('acp.tokens.destroy');
+    // Tokens. The menu already follows tokens.acp.view (docs/acp-permissions.md).
+    Route::get('acp/tokens', [TokenController::class, 'index'])
+        ->middleware('can:tokens.acp.view')
+        ->name('acp.tokens.index');
+    Route::post('acp/tokens', [TokenController::class, 'store'])
+        ->middleware('can:tokens.acp.create')
+        ->name('acp.tokens.store');
+    Route::put('acp/tokens/{token}', [TokenController::class, 'update'])
+        ->middleware('can:tokens.acp.edit')
+        ->name('acp.tokens.update');
+    Route::patch('acp/tokens/{token}/revoke', [TokenController::class, 'revoke'])
+        ->middleware('can:tokens.acp.edit')
+        ->name('acp.tokens.revoke');
+    Route::delete('acp/tokens/{token}', [TokenController::class, 'destroy'])
+        ->middleware('can:tokens.acp.delete')
+        ->name('acp.tokens.destroy');
 
     Route::get('acp/tokens/logs/{tokenLog}', [TokenController::class, 'showLog'])
+        ->middleware('can:tokens.acp.view')
         ->name('acp.tokens.logs.show');
 });
 

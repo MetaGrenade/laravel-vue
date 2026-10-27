@@ -9,8 +9,9 @@ class BadgeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('reputation.acp.view') ?? false
-            || $this->user()?->hasAnyRole(['admin', 'editor', 'moderator']);
+        $ability = $this->isMethod('POST') ? 'reputation.acp.create' : 'reputation.acp.edit';
+
+        return (bool) $this->user()?->can($ability);
     }
 
     public function rules(): array

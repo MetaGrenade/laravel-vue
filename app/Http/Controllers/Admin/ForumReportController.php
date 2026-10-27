@@ -369,6 +369,8 @@ class ForumReportController extends Controller
         $moderationAction = $validated['moderation_action'] ?? 'none';
         $moderationAction = $moderationAction === 'none' ? null : $moderationAction;
 
+        $this->guardReportContentAction($moderationAction);
+
         $report->forceFill([
             'status' => $status,
             'reviewed_at' => $status === ForumThreadReport::STATUS_PENDING ? null : now(),
@@ -401,6 +403,8 @@ class ForumReportController extends Controller
         $moderationAction = $validated['moderation_action'] ?? 'none';
         $moderationAction = $moderationAction === 'none' ? null : $moderationAction;
 
+        $this->guardReportContentAction($moderationAction);
+
         $report->forceFill([
             'status' => $status,
             'reviewed_at' => $status === ForumPostReport::STATUS_PENDING ? null : now(),
@@ -412,5 +416,21 @@ class ForumReportController extends Controller
         }
 
         return back()->with('success', 'Post report updated.');
+    }
+
+    private function guardReportContentAction(?string $action): void
+    {
+        $permission = match ($action) {
+            'lock_thread', 'unlock_thread' => 'forums.acp.lock',
+            'unpublish_thread', 'republish_thread' => 'forums.acp.publish',
+            'delete_post' => 'forums.acp.delete',
+            default => null,
+        };
+
+        if ($permission === null) {
+            return;
+        }
+
+        abort_unless(request()->user()?->can($permission), 403);
     }
 }

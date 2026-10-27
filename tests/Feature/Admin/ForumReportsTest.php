@@ -27,6 +27,8 @@ class ForumReportsTest extends TestCase
 
         Role::create(['name' => 'moderator', 'guard_name' => 'web']);
         Permission::create(['name' => 'forums.acp.view', 'guard_name' => 'web']);
+        Permission::create(['name' => 'forums.acp.lock', 'guard_name' => 'web']);
+        Permission::create(['name' => 'forums.acp.delete', 'guard_name' => 'web']);
     }
 
     private function createModerator(): User
@@ -121,6 +123,7 @@ class ForumReportsTest extends TestCase
     public function test_moderator_can_review_thread_report_and_lock_thread(): void
     {
         $moderator = $this->createModerator();
+        $moderator->givePermissionTo('forums.acp.lock');
         $reporter = User::factory()->create();
 
         $thread = $this->seedForumHierarchy($reporter);
@@ -154,6 +157,7 @@ class ForumReportsTest extends TestCase
     public function test_moderator_can_dismiss_post_report_and_delete_post(): void
     {
         $moderator = $this->createModerator();
+        $moderator->givePermissionTo('forums.acp.delete');
         $reporter = User::factory()->create();
         $postAuthor = User::factory()->create();
 
@@ -274,5 +278,53 @@ class ForumReportsTest extends TestCase
             ]);
 
         $response->assertForbidden();
+    }
+
+    public function test_viewing_a_report_cannot_lock_a_thread_or_delete_a_post(): void
+    {
+        $moderator = $this->createModerator();
+        $reporter = User::factory()->create();
+        $thread = $this->seedForumHierarchy($reporter);
+        $post = ForumPost::create([
+            'forum_thread_id' => $thread->id,
+            'user_id' => $reporter->id,
+            'body' => 'Still here.',
+        ]);
+        $threadReport = ForumThreadReport::create([
+            'forum_thread_id' => $thread->id,
+            'reporter_id' => $reporter->id,
+            'reason_category' => 'spam',
+            'status' => ForumThreadReport::STATUS_PENDING,
+        ]);
+        $postReport = ForumPostReport::create([
+            'forum_post_id' => $post->id,
+            'reporter_id' => $reporter->id,
+            'reason_category' => 'abuse',
+            'status' => ForumPostReport::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($moderator)
+            ->patch(route('acp.forums.reports.threads.update', $threadReport), [
+                'status' => ForumThreadReport::STATUS_REVIEWED,
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($moderator)
+            ->patch(route('acp.forums.reports.threads.update', $threadReport), [
+                'status' => ForumThreadReport::STATUS_REVIEWED,
+                'moderation_action' => 'lock_thread',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($moderator)
+            ->patch(route('acp.forums.reports.posts.update', $postReport), [
+                'status' => ForumPostReport::STATUS_DISMISSED,
+                'moderation_action' => 'delete_post',
+            ])
+            ->assertForbidden();
+
+        $this->assertFalse($thread->fresh()->is_locked);
+        $this->assertNotNull($post->fresh());
+        $this->assertSame(ForumThreadReport::STATUS_REVIEWED, $threadReport->fresh()->status);
     }
 }

@@ -64,7 +64,7 @@ The forum's reply form and new-thread form carry a field that people never see, 
 | `forums.acp.review` | See the review queue, approve and reject. The `moderator` role has it. |
 | `forums.acp.automod` | Make, change, switch off and delete the rules. Administrators only, unless you give it. |
 
-They are separate from `forums.acp.create`, `edit` and `delete`, which guard the boards and categories. Run `php artisan db:seed --class=RolePermissionSeeder` to create them and give `moderator` the review queue (and `forums.acp.view`, which it did not have: the page of reports and the forum list were closed to moderators).
+They are separate from `forums.acp.create`, `edit` and `delete`, which guard the boards and categories. Run `php artisan db:seed --class=RolePermissionSeeder` to create them and give `moderator` the review queue (and `forums.acp.view`, which it did not have: the page of reports and the forum list were closed to moderators). Marking a report reviewed uses that view permission. Locking the thread, publishing it, or deleting the reply uses `forums.acp.lock`, `publish` or `delete` (see [acp-permissions.md](acp-permissions.md)).
 
 ## Setting it up
 
