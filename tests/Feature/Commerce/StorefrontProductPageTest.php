@@ -121,19 +121,34 @@ class StorefrontProductPageTest extends TestCase
     #[Test]
     public function the_exact_count_is_never_sent_to_the_shop(): void
     {
-        $product = Product::factory()->priced('10.00')->stocked(37)->create();
-        ProductVariant::factory()->for($product)->stocked(12)->create();
+        // The whole page is searched, including ids and the generated slug. A short count turns up in
+        // either of those (PostgreSQL does not reuse sequence values), so only a longer one can be the stock.
+        $onHand = 10000037;
+        $variantOnHand = 10000012;
+
+        $product = Product::factory()->priced('10.00')->stocked($onHand)->create([
+            'name' => 'Hoodie',
+            'slug' => 'hoodie',
+            'description' => 'A warm hoodie.',
+        ]);
+        ProductVariant::factory()->for($product)->stocked($variantOnHand)->create([
+            'name' => 'Medium',
+            'sku' => 'HOODIE-M',
+        ]);
 
         $json = $this->get(route('shop.products.show', $product))->viewData('page')['props'];
         $encoded = json_encode($json);
 
         $this->assertStringNotContainsString('inventory', $encoded);
         $this->assertStringNotContainsString('"quantity"', $encoded);
-        $this->assertStringNotContainsString('37', $encoded);
+        $this->assertStringNotContainsString((string) $onHand, $encoded);
+        $this->assertStringNotContainsString((string) $variantOnHand, $encoded);
 
         $listing = json_encode($this->get(route('shop.index'))->viewData('page')['props']);
         $this->assertStringNotContainsString('"quantity"', $listing);
         $this->assertStringNotContainsString('allow_backorder', $listing);
+        $this->assertStringNotContainsString((string) $onHand, $listing);
+        $this->assertStringNotContainsString((string) $variantOnHand, $listing);
     }
 
     #[Test]
