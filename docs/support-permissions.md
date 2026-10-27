@@ -14,7 +14,7 @@ The category lists are opened from the desk while creating or editing, and so is
 
 ## Not built
 
-- **The rest of the admin area.** Forum reports, roles, tokens and the other screens are a later pass of the same review.
+- **The dashboard.** Any staff member can open it. See [acp-permissions.md](acp-permissions.md).
 - **A change to who an administrator is.** An administrator still has every permission.
 
 ## Testing

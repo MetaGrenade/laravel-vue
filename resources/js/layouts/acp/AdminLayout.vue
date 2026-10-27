@@ -79,7 +79,7 @@ const navGroups = computed<AdminNavGroup[]>(() => {
             title: 'Overview',
             items: [
                 { title: 'Dashboard', href: '/acp/dashboard', icon: LayoutGrid, visible: isStaff },
-                { title: 'Search analytics', href: '/acp/search-analytics', icon: Search, visible: isStaff || can('search.acp.view') },
+                { title: 'Search analytics', href: '/acp/search-analytics', icon: Search, visible: can('search.acp.view') },
             ],
         },
         {
@@ -87,7 +87,7 @@ const navGroups = computed<AdminNavGroup[]>(() => {
             items: [
                 { title: 'Users', href: '/acp/users', icon: User, visible: can('users.acp.view') },
                 { title: 'Access control', href: '/acp/acl', icon: Shield, visible: can('acl.acp.view') },
-                { title: 'Badges', href: '/acp/reputation/badges', icon: Award, visible: isStaff || can('reputation.acp.view') },
+                { title: 'Badges', href: '/acp/reputation/badges', icon: Award, visible: can('reputation.acp.view') },
                 { title: 'Trust & safety', href: '/acp/trust-safety', icon: ShieldCheck, visible: can('trust_safety.acp.view') },
             ],
         },

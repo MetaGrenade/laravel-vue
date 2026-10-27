@@ -6,6 +6,7 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem, type QueryParams } from '@/types';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { usePermissions } from '@/composables/usePermissions';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -358,25 +359,32 @@ const moderationDialogConfirmLabel = computed(() => (moderationStatus.value === 
 
 const isModerationConfirmDisabled = computed(() => moderationTarget.value === null);
 
+const { hasPermission } = usePermissions();
+
 const moderationOptions = computed(() => {
     if (!moderationTarget.value) {
         return [] as Array<{ value: ModerationAction; label: string }>;
     }
 
+    const options: Array<{ value: ModerationAction; label: string }> = [{ value: 'none', label: 'No additional action' }];
+
     if (moderationTarget.value.type === 'thread') {
-        return [
-            { value: 'none', label: 'No additional action' },
-            { value: 'lock_thread', label: 'Lock thread' },
-            { value: 'unlock_thread', label: 'Unlock thread' },
-            { value: 'unpublish_thread', label: 'Unpublish thread' },
-            { value: 'republish_thread', label: 'Republish thread' },
-        ];
+        if (hasPermission('forums.acp.lock')) {
+            options.push({ value: 'lock_thread', label: 'Lock thread' }, { value: 'unlock_thread', label: 'Unlock thread' });
+        }
+
+        if (hasPermission('forums.acp.publish')) {
+            options.push({ value: 'unpublish_thread', label: 'Unpublish thread' }, { value: 'republish_thread', label: 'Republish thread' });
+        }
+
+        return options;
     }
 
-    return [
-        { value: 'none', label: 'No additional action' },
-        { value: 'delete_post', label: 'Delete post' },
-    ];
+    if (hasPermission('forums.acp.delete')) {
+        options.push({ value: 'delete_post', label: 'Delete post' });
+    }
+
+    return options;
 });
 
 const submitModeration = () => {
