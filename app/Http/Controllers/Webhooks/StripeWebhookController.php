@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Webhooks;
 
+use App\Models\BillingWebhookCall;
 use App\Payments\Providers\StripeProvider;
 use App\Payments\Stripe\StripeSignatureVerifier;
 use App\Support\Billing\BillingWebhookProcessor;
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Arr;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
 
 /**
@@ -37,30 +40,30 @@ class StripeWebhookController extends CashierWebhookController
 
     protected function handleInvoicePaymentSucceeded(array $payload): Response
     {
-        $this->processor->handleInvoicePaymentSucceeded($payload);
-
-        return new Response('Webhook handled', 200);
+        return $this->billOnce($payload, function () use ($payload): void {
+            $this->processor->handleInvoicePaymentSucceeded($payload);
+        });
     }
 
     protected function handleInvoicePaymentFailed(array $payload): Response
     {
-        $this->processor->handleInvoicePaymentFailed($payload);
-
-        return new Response('Webhook handled', 200);
+        return $this->billOnce($payload, function () use ($payload): void {
+            $this->processor->handleInvoicePaymentFailed($payload);
+        });
     }
 
     protected function handleCustomerSubscriptionDeleted(array $payload): Response
     {
-        $this->processor->handleCustomerSubscriptionDeleted($payload);
-
-        return new Response('Webhook handled', 200);
+        return $this->billOnce($payload, function () use ($payload): void {
+            $this->processor->handleCustomerSubscriptionDeleted($payload);
+        });
     }
 
     protected function handleCustomerSubscriptionTrialWillEnd(array $payload): Response
     {
-        $this->processor->handleCustomerSubscriptionTrialWillEnd($payload);
-
-        return new Response('Webhook handled', 200);
+        return $this->billOnce($payload, function () use ($payload): void {
+            $this->processor->handleCustomerSubscriptionTrialWillEnd($payload);
+        });
     }
 
     protected function handleCheckoutSessionCompleted(array $payload): Response
@@ -106,6 +109,42 @@ class StripeWebhookController extends CashierWebhookController
     protected function handleChargeRefundUpdated(array $payload): Response
     {
         return $this->forwardToCommerce($payload);
+    }
+
+    /**
+     * A subscription event that was already kept is acknowledged and not applied again.
+     * Staff can still run it from the archive; that path does not come through here.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  Closure(): void  $handle
+     */
+    private function billOnce(array $payload, Closure $handle): Response
+    {
+        if ($this->alreadyHandled($payload)) {
+            return new Response('Webhook already handled', 200);
+        }
+
+        $handle();
+
+        return new Response('Webhook handled', 200);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function alreadyHandled(array $payload): bool
+    {
+        $id = Arr::get($payload, 'id');
+
+        if (! is_string($id) || $id === '') {
+            return false;
+        }
+
+        return BillingWebhookCall::query()
+            ->where('provider', 'stripe')
+            ->where('external_id', $id)
+            ->whereNotNull('processed_at')
+            ->exists();
     }
 
     /**

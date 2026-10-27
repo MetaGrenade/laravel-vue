@@ -135,6 +135,70 @@ class StripeWebhookTest extends TestCase
         $this->assertNotNull($webhook);
     }
 
+    public function test_a_redelivered_subscription_event_is_not_applied_again(): void
+    {
+        config([
+            'cashier.webhook.secret' => 'whsec_test',
+            'cashier.webhook.cli_secret' => null,
+        ]);
+
+        $user = User::factory()->create(['stripe_id' => 'cus_test123']);
+
+        $subscription = Subscription::create([
+            'user_id' => $user->id,
+            'type' => config('billing.subscription_name', 'default'),
+            'stripe_id' => 'sub_test123',
+            'stripe_status' => 'active',
+            'stripe_price' => 'price_starter',
+        ]);
+
+        $payload = $this->stripeFixture('customer_subscription_deleted');
+
+        $this->postJson(
+            route('stripe.webhook'),
+            $payload,
+            ['Stripe-Signature' => $this->stripeSignatureHeader($payload, 'whsec_test')]
+        )->assertOk();
+
+        $subscription->forceFill(['ends_at' => '2000-01-01 00:00:00'])->save();
+
+        $this->postJson(
+            route('stripe.webhook'),
+            $payload,
+            ['Stripe-Signature' => $this->stripeSignatureHeader($payload, 'whsec_test')]
+        )->assertOk()->assertSee('already handled');
+
+        $subscription->refresh();
+
+        $this->assertSame('2000-01-01 00:00:00', $subscription->ends_at?->toDateTimeString());
+        $this->assertSame(1, BillingWebhookCall::query()->count());
+    }
+
+    public function test_a_signature_outside_the_window_is_rejected_and_changes_nothing(): void
+    {
+        config([
+            'cashier.webhook.secret' => 'whsec_test',
+            'cashier.webhook.cli_secret' => null,
+            'cashier.webhook.tolerance' => 300,
+        ]);
+
+        SubscriptionPlan::factory()->create(['stripe_price_id' => 'price_starter']);
+        User::factory()->create(['stripe_id' => 'cus_test123']);
+
+        $payload = $this->stripeFixture('invoice_payment_succeeded');
+
+        foreach ([time() - 3600, time() + 3600] as $timestamp) {
+            $this->postJson(
+                route('stripe.webhook'),
+                $payload,
+                ['Stripe-Signature' => $this->stripeSignatureHeader($payload, 'whsec_test', $timestamp)]
+            )->assertStatus(400);
+        }
+
+        $this->assertSame(0, BillingInvoice::query()->count());
+        $this->assertSame(0, BillingWebhookCall::query()->count());
+    }
+
     public function test_webhook_rejects_requests_with_invalid_signature(): void
     {
         config([
