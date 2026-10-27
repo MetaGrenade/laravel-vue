@@ -92,6 +92,14 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
+        // Category lists and the member search are opened while creating or editing a ticket or an FAQ.
+        Gate::define('support.acp.write', function (User $user): bool {
+            return $user->canAny([
+                'support.acp.create',
+                'support.acp.edit',
+            ]);
+        });
+
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 
         // Sanctum turns a key away once it has expired but knows nothing of `revoked_at`, so without this a revoked key kept working.

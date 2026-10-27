@@ -28,6 +28,7 @@ class SupportTicketNotificationTest extends TestCase
         Permission::create(['name' => 'support.acp.view', 'guard_name' => 'web']);
         Permission::create(['name' => 'support.acp.reply', 'guard_name' => 'web']);
         Permission::create(['name' => 'support.acp.edit', 'guard_name' => 'web']);
+        Permission::create(['name' => 'support.acp.status', 'guard_name' => 'web']);
     }
 
     private function createSupportAgent(array $permissions = []): User
@@ -349,7 +350,7 @@ class SupportTicketNotificationTest extends TestCase
         Notification::fake();
 
         $owner = User::factory()->create(['email_verified_at' => now()]);
-        $agent = $this->createSupportAgent(['support.acp.edit', 'support.acp.view']);
+        $agent = $this->createSupportAgent(['support.acp.edit', 'support.acp.view', 'support.acp.status']);
 
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,

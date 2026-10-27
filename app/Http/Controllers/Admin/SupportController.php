@@ -727,6 +727,8 @@ class SupportController extends Controller
     {
         $validated = $request->validated();
 
+        $this->guardTicketControlChange($ticket, $validated);
+
         $previousStatus = $ticket->status;
 
         if (array_key_exists('status', $validated)) {
@@ -1347,7 +1349,14 @@ class SupportController extends Controller
 
     public function storeFaq(StoreFaqRequest $request)
     {
-        Faq::create($request->validated());
+        $validated = $request->validated();
+
+        // A new FAQ is published when the field is left off: that is the column default.
+        $this->guardFaqPublication(
+            array_key_exists('published', $validated) ? $this->isPublished($validated['published']) : true,
+        );
+
+        Faq::create($validated);
 
         return redirect()
             ->route('acp.support.index')
@@ -1387,7 +1396,17 @@ class SupportController extends Controller
 
     public function updateFaq(UpdateFaqRequest $request, Faq $faq)
     {
-        $faq->update($request->validated());
+        $validated = $request->validated();
+
+        if (array_key_exists('published', $validated) && $this->isPublished($validated['published']) !== (bool) $faq->published) {
+            $this->guardFaqPublication(true);
+        }
+
+        if (array_key_exists('order', $validated) && (int) $validated['order'] !== (int) $faq->order) {
+            abort_unless($request->user()?->can('support.acp.move'), 403);
+        }
+
+        $faq->update($validated);
 
         return redirect()
             ->route('acp.support.index')
@@ -1486,6 +1505,48 @@ class SupportController extends Controller
         return redirect()
             ->route('acp.support.sla.index')
             ->with('success', 'Support SLA thresholds were updated.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function guardTicketControlChange(SupportTicket $ticket, array $validated): void
+    {
+        $user = request()->user();
+
+        if (array_key_exists('status', $validated) && (string) $validated['status'] !== (string) $ticket->status) {
+            abort_unless($user?->can('support.acp.status'), 403);
+        }
+
+        if (array_key_exists('priority', $validated) && (string) $validated['priority'] !== (string) $ticket->priority) {
+            abort_unless($user?->can('support.acp.priority'), 403);
+        }
+
+        if (array_key_exists('assigned_to', $validated) && ! $this->sameAssignee($validated['assigned_to'], $ticket->assigned_to)) {
+            abort_unless($user?->can('support.acp.assign'), 403);
+        }
+    }
+
+    private function guardFaqPublication(bool $publishing): void
+    {
+        if (! $publishing) {
+            return;
+        }
+
+        abort_unless(request()->user()?->can('support.acp.publish'), 403);
+    }
+
+    private function isPublished(mixed $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN) === true;
+    }
+
+    private function sameAssignee(mixed $requested, mixed $current): bool
+    {
+        $requestedId = $requested === null || $requested === '' ? null : (int) $requested;
+        $currentId = $current === null || $current === '' ? null : (int) $current;
+
+        return $requestedId === $currentId;
     }
 
     protected function resolutionAttributes(SupportTicket $ticket, string $nextStatus, int $userId): array

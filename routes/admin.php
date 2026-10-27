@@ -552,74 +552,166 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
                 ->name('tax-rates.destroy');
         });
 
-    // Support ACP
-    Route::get('acp/support', [SupportController::class, 'index'])->name('acp.support.index');
-    Route::get('acp/support/users/search', [SupportController::class, 'searchUsers'])->name('acp.support.users.search');
+    // Support ACP. The menu already follows these permissions; the routes do too (docs/support-permissions.md).
+    Route::get('acp/support', [SupportController::class, 'index'])
+        ->middleware('can:support.acp.view')
+        ->name('acp.support.index');
+    Route::get('acp/support/users/search', [SupportController::class, 'searchUsers'])
+        ->middleware('can:support.acp.write')
+        ->name('acp.support.users.search');
 
-    Route::get('acp/support/sla', [SupportController::class, 'sla'])->name('acp.support.sla.index');
-    Route::put('acp/support/sla', [SupportController::class, 'updateSla'])->name('acp.support.sla.update');
+    Route::get('acp/support/sla', [SupportController::class, 'sla'])
+        ->middleware('can:support.acp.edit')
+        ->name('acp.support.sla.index');
+    Route::put('acp/support/sla', [SupportController::class, 'updateSla'])
+        ->middleware('can:support.acp.edit')
+        ->name('acp.support.sla.update');
 
-    Route::get('acp/support/templates', [SupportController::class, 'templates'])->name('acp.support.templates.index');
-    Route::post('acp/support/templates', [SupportController::class, 'storeTemplate'])->name('acp.support.templates.store');
-    Route::put('acp/support/templates/{template}', [SupportController::class, 'updateTemplate'])->name('acp.support.templates.update');
-    Route::delete('acp/support/templates/{template}', [SupportController::class, 'destroyTemplate'])->name('acp.support.templates.destroy');
+    Route::get('acp/support/templates', [SupportController::class, 'templates'])
+        ->middleware('can:support_templates.acp.view')
+        ->name('acp.support.templates.index');
+    Route::post('acp/support/templates', [SupportController::class, 'storeTemplate'])
+        ->middleware('can:support_templates.acp.create')
+        ->name('acp.support.templates.store');
+    Route::put('acp/support/templates/{template}', [SupportController::class, 'updateTemplate'])
+        ->middleware('can:support_templates.acp.edit')
+        ->name('acp.support.templates.update');
+    Route::delete('acp/support/templates/{template}', [SupportController::class, 'destroyTemplate'])
+        ->middleware('can:support_templates.acp.delete')
+        ->name('acp.support.templates.destroy');
 
     Route::get('acp/support/assignment-rules', [SupportAssignmentRuleController::class, 'index'])
+        ->middleware('can:support_assignment_rules.acp.view')
         ->name('acp.support.assignment-rules.index');
     Route::post('acp/support/assignment-rules', [SupportAssignmentRuleController::class, 'store'])
+        ->middleware('can:support_assignment_rules.acp.create')
         ->name('acp.support.assignment-rules.store');
     Route::put('acp/support/assignment-rules/{rule}', [SupportAssignmentRuleController::class, 'update'])
+        ->middleware('can:support_assignment_rules.acp.edit')
         ->name('acp.support.assignment-rules.update');
     Route::delete('acp/support/assignment-rules/{rule}', [SupportAssignmentRuleController::class, 'destroy'])
+        ->middleware('can:support_assignment_rules.acp.delete')
         ->name('acp.support.assignment-rules.destroy');
     Route::patch('acp/support/assignment-rules/{rule}/reorder', [SupportAssignmentRuleController::class, 'reorder'])
+        ->middleware('can:support_assignment_rules.acp.edit')
         ->name('acp.support.assignment-rules.reorder');
 
-    Route::get('acp/support/teams', [SupportController::class, 'teams'])->name('acp.support.teams.index');
-    Route::post('acp/support/teams', [SupportController::class, 'storeTeam'])->name('acp.support.teams.store');
-    Route::put('acp/support/teams/{team}', [SupportController::class, 'updateTeam'])->name('acp.support.teams.update');
-    Route::delete('acp/support/teams/{team}', [SupportController::class, 'destroyTeam'])->name('acp.support.teams.destroy');
+    Route::get('acp/support/teams', [SupportController::class, 'teams'])
+        ->middleware('can:support_teams.acp.view')
+        ->name('acp.support.teams.index');
+    Route::post('acp/support/teams', [SupportController::class, 'storeTeam'])
+        ->middleware('can:support_teams.acp.create')
+        ->name('acp.support.teams.store');
+    Route::put('acp/support/teams/{team}', [SupportController::class, 'updateTeam'])
+        ->middleware('can:support_teams.acp.edit')
+        ->name('acp.support.teams.update');
+    Route::delete('acp/support/teams/{team}', [SupportController::class, 'destroyTeam'])
+        ->middleware('can:support_teams.acp.delete')
+        ->name('acp.support.teams.destroy');
     Route::put('acp/support/teams/memberships/{user}', [SupportController::class, 'updateTeamMembership'])
+        ->middleware('can:support_teams.acp.edit')
         ->name('acp.support.teams.memberships.update');
 
     // Tickets
-    Route::get('acp/support/tickets/create', [SupportController::class, 'createTicket'])->name('acp.support.tickets.create');
-    Route::get('acp/support/tickets/{ticket}', [SupportController::class, 'showTicket'])->name('acp.support.tickets.show');
-    Route::get('acp/support/tickets/{ticket}/edit', [SupportController::class, 'editTicket'])->name('acp.support.tickets.edit');
-    Route::post('acp/support/tickets', [SupportController::class, 'storeTicket'])->name('acp.support.tickets.store');
-    Route::post('acp/support/tickets/{ticket}/messages', [SupportController::class, 'storeTicketMessage'])->name('acp.support.tickets.messages.store');
-    Route::put('acp/support/tickets/{ticket}', [SupportController::class, 'updateTicket'])->name('acp.support.tickets.update');
-    Route::delete('acp/support/tickets/{ticket}', [SupportController::class, 'destroyTicket'])->name('acp.support.tickets.destroy');
-    Route::put('acp/support/tickets/{ticket}/assign', [SupportController::class, 'assignTicket'])->name('acp.support.tickets.assign');
-    Route::put('acp/support/tickets/{ticket}/priority', [SupportController::class, 'updateTicketPriority'])->name('acp.support.tickets.priority');
-    Route::put('acp/support/tickets/{ticket}/status', [SupportController::class, 'updateTicketStatus'])->name('acp.support.tickets.status');
-    Route::patch('acp/support/tickets/bulk/status', [SupportController::class, 'bulkUpdateStatus'])->name('acp.support.tickets.bulk-status');
+    Route::get('acp/support/tickets/create', [SupportController::class, 'createTicket'])
+        ->middleware('can:support.acp.create')
+        ->name('acp.support.tickets.create');
+    Route::get('acp/support/tickets/{ticket}', [SupportController::class, 'showTicket'])
+        ->middleware('can:support.acp.view')
+        ->name('acp.support.tickets.show');
+    Route::get('acp/support/tickets/{ticket}/edit', [SupportController::class, 'editTicket'])
+        ->middleware('can:support.acp.edit')
+        ->name('acp.support.tickets.edit');
+    Route::post('acp/support/tickets', [SupportController::class, 'storeTicket'])
+        ->middleware('can:support.acp.create')
+        ->name('acp.support.tickets.store');
+    Route::post('acp/support/tickets/{ticket}/messages', [SupportController::class, 'storeTicketMessage'])
+        ->middleware('can:support.acp.reply')
+        ->name('acp.support.tickets.messages.store');
+    Route::put('acp/support/tickets/{ticket}', [SupportController::class, 'updateTicket'])
+        ->middleware('can:support.acp.edit')
+        ->name('acp.support.tickets.update');
+    Route::delete('acp/support/tickets/{ticket}', [SupportController::class, 'destroyTicket'])
+        ->middleware('can:support.acp.delete')
+        ->name('acp.support.tickets.destroy');
+    Route::put('acp/support/tickets/{ticket}/assign', [SupportController::class, 'assignTicket'])
+        ->middleware('can:support.acp.assign')
+        ->name('acp.support.tickets.assign');
+    Route::put('acp/support/tickets/{ticket}/priority', [SupportController::class, 'updateTicketPriority'])
+        ->middleware('can:support.acp.priority')
+        ->name('acp.support.tickets.priority');
+    Route::put('acp/support/tickets/{ticket}/status', [SupportController::class, 'updateTicketStatus'])
+        ->middleware('can:support.acp.status')
+        ->name('acp.support.tickets.status');
+    Route::patch('acp/support/tickets/bulk/status', [SupportController::class, 'bulkUpdateStatus'])
+        ->middleware('can:support.acp.status')
+        ->name('acp.support.tickets.bulk-status');
 
-    // Ticket categories
-    Route::get('acp/support/ticket-categories', [SupportTicketCategoryController::class, 'index'])->name('acp.support.ticket-categories.index');
-    Route::get('acp/support/ticket-categories/create', [SupportTicketCategoryController::class, 'create'])->name('acp.support.ticket-categories.create');
-    Route::post('acp/support/ticket-categories', [SupportTicketCategoryController::class, 'store'])->name('acp.support.ticket-categories.store');
-    Route::get('acp/support/ticket-categories/{category}/edit', [SupportTicketCategoryController::class, 'edit'])->name('acp.support.ticket-categories.edit');
-    Route::put('acp/support/ticket-categories/{category}', [SupportTicketCategoryController::class, 'update'])->name('acp.support.ticket-categories.update');
-    Route::delete('acp/support/ticket-categories/{category}', [SupportTicketCategoryController::class, 'destroy'])->name('acp.support.ticket-categories.destroy');
+    // Ticket categories. Creating or editing a ticket is what opens this list.
+    Route::get('acp/support/ticket-categories', [SupportTicketCategoryController::class, 'index'])
+        ->middleware('can:support.acp.write')
+        ->name('acp.support.ticket-categories.index');
+    Route::get('acp/support/ticket-categories/create', [SupportTicketCategoryController::class, 'create'])
+        ->middleware('can:support.acp.create')
+        ->name('acp.support.ticket-categories.create');
+    Route::post('acp/support/ticket-categories', [SupportTicketCategoryController::class, 'store'])
+        ->middleware('can:support.acp.create')
+        ->name('acp.support.ticket-categories.store');
+    Route::get('acp/support/ticket-categories/{category}/edit', [SupportTicketCategoryController::class, 'edit'])
+        ->middleware('can:support.acp.edit')
+        ->name('acp.support.ticket-categories.edit');
+    Route::put('acp/support/ticket-categories/{category}', [SupportTicketCategoryController::class, 'update'])
+        ->middleware('can:support.acp.edit')
+        ->name('acp.support.ticket-categories.update');
+    Route::delete('acp/support/ticket-categories/{category}', [SupportTicketCategoryController::class, 'destroy'])
+        ->middleware('can:support.acp.delete')
+        ->name('acp.support.ticket-categories.destroy');
 
     // FAQs
-    Route::get('acp/support/faqs/create', [SupportController::class, 'createFaq'])->name('acp.support.faqs.create');
-    Route::get('acp/support/faqs/{faq}/edit', [SupportController::class, 'editFaq'])->name('acp.support.faqs.edit');
-    Route::post('acp/support/faqs', [SupportController::class, 'storeFaq'])->name('acp.support.faqs.store');
-    Route::put('acp/support/faqs/{faq}', [SupportController::class, 'updateFaq'])->name('acp.support.faqs.update');
-    Route::delete('acp/support/faqs/{faq}', [SupportController::class, 'destroyFaq'])->name('acp.support.faqs.destroy');
-    Route::patch('acp/support/faqs/{faq}/reorder', [SupportController::class, 'reorderFaq'])->name('acp.support.faqs.reorder');
-    Route::patch('acp/support/faqs/{faq}/publish', [SupportController::class, 'publishFaq'])->name('acp.support.faqs.publish');
-    Route::patch('acp/support/faqs/{faq}/unpublish', [SupportController::class, 'unpublishFaq'])->name('acp.support.faqs.unpublish');
+    Route::get('acp/support/faqs/create', [SupportController::class, 'createFaq'])
+        ->middleware('can:support.acp.create')
+        ->name('acp.support.faqs.create');
+    Route::get('acp/support/faqs/{faq}/edit', [SupportController::class, 'editFaq'])
+        ->middleware('can:support.acp.edit')
+        ->name('acp.support.faqs.edit');
+    Route::post('acp/support/faqs', [SupportController::class, 'storeFaq'])
+        ->middleware('can:support.acp.create')
+        ->name('acp.support.faqs.store');
+    Route::put('acp/support/faqs/{faq}', [SupportController::class, 'updateFaq'])
+        ->middleware('can:support.acp.edit')
+        ->name('acp.support.faqs.update');
+    Route::delete('acp/support/faqs/{faq}', [SupportController::class, 'destroyFaq'])
+        ->middleware('can:support.acp.delete')
+        ->name('acp.support.faqs.destroy');
+    Route::patch('acp/support/faqs/{faq}/reorder', [SupportController::class, 'reorderFaq'])
+        ->middleware('can:support.acp.move')
+        ->name('acp.support.faqs.reorder');
+    Route::patch('acp/support/faqs/{faq}/publish', [SupportController::class, 'publishFaq'])
+        ->middleware('can:support.acp.publish')
+        ->name('acp.support.faqs.publish');
+    Route::patch('acp/support/faqs/{faq}/unpublish', [SupportController::class, 'unpublishFaq'])
+        ->middleware('can:support.acp.publish')
+        ->name('acp.support.faqs.unpublish');
 
-    // FAQ Categories
-    Route::get('acp/support/faq-categories', [FaqCategoryController::class, 'index'])->name('acp.support.faq-categories.index');
-    Route::get('acp/support/faq-categories/create', [FaqCategoryController::class, 'create'])->name('acp.support.faq-categories.create');
-    Route::post('acp/support/faq-categories', [FaqCategoryController::class, 'store'])->name('acp.support.faq-categories.store');
-    Route::get('acp/support/faq-categories/{category}/edit', [FaqCategoryController::class, 'edit'])->name('acp.support.faq-categories.edit');
-    Route::put('acp/support/faq-categories/{category}', [FaqCategoryController::class, 'update'])->name('acp.support.faq-categories.update');
-    Route::delete('acp/support/faq-categories/{category}', [FaqCategoryController::class, 'destroy'])->name('acp.support.faq-categories.destroy');
+    // FAQ categories. Creating or editing an FAQ is what opens this list.
+    Route::get('acp/support/faq-categories', [FaqCategoryController::class, 'index'])
+        ->middleware('can:support.acp.write')
+        ->name('acp.support.faq-categories.index');
+    Route::get('acp/support/faq-categories/create', [FaqCategoryController::class, 'create'])
+        ->middleware('can:support.acp.create')
+        ->name('acp.support.faq-categories.create');
+    Route::post('acp/support/faq-categories', [FaqCategoryController::class, 'store'])
+        ->middleware('can:support.acp.create')
+        ->name('acp.support.faq-categories.store');
+    Route::get('acp/support/faq-categories/{category}/edit', [FaqCategoryController::class, 'edit'])
+        ->middleware('can:support.acp.edit')
+        ->name('acp.support.faq-categories.edit');
+    Route::put('acp/support/faq-categories/{category}', [FaqCategoryController::class, 'update'])
+        ->middleware('can:support.acp.edit')
+        ->name('acp.support.faq-categories.update');
+    Route::delete('acp/support/faq-categories/{category}', [FaqCategoryController::class, 'destroy'])
+        ->middleware('can:support.acp.delete')
+        ->name('acp.support.faq-categories.destroy');
 
     Route::get('acp/discord/role-mappings', [DiscordController::class, 'roleMappings'])
         ->middleware('can:system.acp.view')
