@@ -7,18 +7,6 @@ parameters:
 			path: app/Events/ForumPostCreated.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Admin/AdminController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$user_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Admin/AdminController.php
-
-		-
 			message: '#^Strict comparison using \!\=\= between float and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
@@ -435,13 +423,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
 			identifier: property.notFound
-			count: 9
+			count: 8
 			path: app/Http/Controllers/Admin/SupportController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 16
+			count: 14
 			path: app/Http/Controllers/Admin/SupportController.php
 
 		-
@@ -453,13 +441,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
 			identifier: property.notFound
-			count: 9
-			path: app/Http/Controllers/Admin/SupportController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$user_id\.$#'
-			identifier: property.notFound
-			count: 1
+			count: 8
 			path: app/Http/Controllers/Admin/SupportController.php
 
 		-
@@ -505,18 +487,6 @@ parameters:
 			path: app/Http/Controllers/Admin/SupportController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array, Closure\(App\\Models\\SupportTicketMessage\)\: array given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Admin/SupportController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}, Closure\(App\\Models\\SupportTicketMessageAttachment\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Admin/SupportController.php
-
-		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string\}, Closure\(App\\Models\\SupportTeam\)\: array\{id\: int\<0, max\>, name\: string\} given\.$#'
 			identifier: argument.type
 			count: 3
@@ -530,18 +500,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:flatMap\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: \(array\<0\|1, int\>\|Illuminate\\Support\\Collection\<0\|1, int\>\), Closure\(App\\Models\\SupportTicketAudit\)\: \(array\{\}\|array\{0\: int, 1\?\: int\}\) given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Admin/SupportController.php
-
-		-
-			message: '#^Parameter \#1 \$message of method App\\Support\\SupportAttachmentStorage\:\:attach\(\) expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Admin/SupportController.php
-
-		-
-			message: '#^Parameter \#2 \$message of class App\\Notifications\\TicketReplied constructor expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Admin/SupportController.php
@@ -717,13 +675,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 1
 			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 5
+			count: 3
 			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
 
 		-
@@ -735,74 +693,8 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
 			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array, Closure\(App\\Models\\SupportTicketMessage\)\: array given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}, Closure\(App\\Models\\SupportTicketMessageAttachment\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
-
-		-
-			message: '#^Parameter \#1 \$message of method App\\Support\\SupportAttachmentStorage\:\:attach\(\) expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
-
-		-
-			message: '#^Parameter \#2 \$message of class App\\Notifications\\TicketOpened constructor expects App\\Models\\SupportTicketMessage\|null, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}, Closure\(App\\Models\\SupportTicketMessageAttachment\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
-
-		-
-			message: '#^Parameter \#1 \$message of method App\\Http\\Controllers\\Api\\V1\\Support\\SupportTicketMessageController\:\:transformMessage\(\) expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
-
-		-
-			message: '#^Parameter \#1 \$message of method App\\Support\\SupportAttachmentStorage\:\:attach\(\) expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
-
-		-
-			message: '#^Parameter \#2 \$message of class App\\Notifications\\TicketReplied constructor expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/Support/SupportTicketMessageController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider_id\.$#'
@@ -1359,13 +1251,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
 			identifier: property.notFound
-			count: 5
+			count: 4
 			path: app/Http/Controllers/SupportCenterController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 10
+			count: 8
 			path: app/Http/Controllers/SupportCenterController.php
 
 		-
@@ -1377,7 +1269,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
 			identifier: property.notFound
-			count: 5
+			count: 4
 			path: app/Http/Controllers/SupportCenterController.php
 
 		-
@@ -1389,42 +1281,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\SupportTicket\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/SupportCenterController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/SupportCenterController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, body\: string, created_at\: string\|null, author\: array\{id\: mixed, nickname\: mixed, email\: mixed\}\|null, is_from_support\: bool, attachments\: array\<int, array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}\>\}, Closure\(App\\Models\\SupportTicketMessage\)\: array\{id\: int\<0, max\>, body\: string, created_at\: string\|null, author\: array\{id\: mixed, nickname\: mixed, email\: mixed\}\|null, is_from_support\: bool, attachments\: array\<int, array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}\>\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/SupportCenterController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\}, Closure\(App\\Models\\SupportTicketMessageAttachment\)\: array\{id\: int\<0, max\>, name\: string, size\: int\<0, max\>, download_url\: string\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/SupportCenterController.php
-
-		-
-			message: '#^Parameter \#1 \$message of method App\\Support\\SupportAttachmentStorage\:\:attach\(\) expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Http/Controllers/SupportCenterController.php
-
-		-
-			message: '#^Parameter \#2 \$message of class App\\Notifications\\TicketOpened constructor expects App\\Models\\SupportTicketMessage\|null, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/SupportCenterController.php
-
-		-
-			message: '#^Parameter \#2 \$message of class App\\Notifications\\TicketReplied constructor expects App\\Models\\SupportTicketMessage, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/SupportCenterController.php
 
@@ -1765,31 +1621,7 @@ parameters:
 			path: app/Notifications/TicketOpened.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Notifications/TicketReplied.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Notifications/TicketReplied.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Notifications/TicketReplied.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>email" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Notifications/TicketReplied.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Notifications/TicketReplied.php

@@ -49,6 +49,9 @@ class SupportTicket extends Model
         return $this->belongsTo(User::class, 'resolved_by');
     }
 
+    /**
+     * @return HasMany<SupportTicketMessage, $this>
+     */
     public function messages(): HasMany
     {
         return $this->hasMany(SupportTicketMessage::class)->orderBy('created_at');

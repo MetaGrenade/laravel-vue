@@ -1045,8 +1045,10 @@ class SupportController extends Controller
         $validated = $request->validated();
 
         $message = null;
+        $storage = app(SupportAttachmentStorage::class);
+        $attachments = $storage->prepare($request->file('attachments'));
 
-        Transaction::run(function () use ($request, $ticket, $validated, &$message): void {
+        Transaction::run(function () use ($request, $ticket, $validated, &$message, $storage, $attachments): void {
             $message = $ticket->messages()->create([
                 'user_id' => $request->user()->id,
                 'body' => $validated['body'],
@@ -1054,9 +1056,7 @@ class SupportController extends Controller
 
             $message->setRelation('author', $request->user());
 
-            $attachments = $request->file('attachments');
-
-            app(SupportAttachmentStorage::class)->attach($message, $ticket, $attachments);
+            $storage->keep($message, $ticket, $attachments);
 
             $ticket->touch();
             $message->touch();
@@ -1082,7 +1082,7 @@ class SupportController extends Controller
 
             $owner = $ticket->user;
 
-            if ($message instanceof SupportTicketMessage && $owner instanceof User && (int) $message->user_id !== (int) $ticket->user_id) {
+            if ($owner instanceof User && (int) $message->user_id !== (int) $ticket->user_id) {
                 $owner->notify(new SupportTicketAgentReply($ticket, $message));
             }
         }

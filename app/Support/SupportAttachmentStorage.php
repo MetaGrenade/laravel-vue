@@ -5,8 +5,12 @@ namespace App\Support;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
+use App\Support\Commerce\Catalogue\ImageProcessor;
+use App\Support\Commerce\Catalogue\ImageRejected;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
@@ -26,6 +30,8 @@ class SupportAttachmentStorage
     public const MISSING = 'missing';
 
     public const FAILED = 'failed';
+
+    public function __construct(private readonly ImageProcessor $images) {}
 
     /**
      * Media types that are safe to report back on download. Anything else is
@@ -68,13 +74,109 @@ class SupportAttachmentStorage
             return;
         }
 
-        foreach ($files as $file) {
+        $this->keep($message, $ticket, $this->prepare($files));
+    }
+
+    /**
+     * Pictures are decoded and saved again before a ticket is written. Anything else is left
+     * for {@see self::store()}, so a log or a PDF is kept as it arrived.
+     *
+     * @return list<UploadedFile|array{bytes: string, name: string}>
+     *
+     * @throws ValidationException
+     */
+    public function prepare(mixed $files): array
+    {
+        if ($files instanceof UploadedFile) {
+            $files = [$files];
+        }
+
+        if (! is_array($files)) {
+            return [];
+        }
+
+        $prepared = [];
+
+        foreach ($files as $index => $file) {
             if (! $file instanceof UploadedFile) {
                 continue;
             }
 
-            $message->attachments()->create($this->store($file, $ticket));
+            $prepared[] = $this->prepareOne($file, is_int($index) ? $index : 0);
         }
+
+        return $prepared;
+    }
+
+    /**
+     * @param  list<UploadedFile|array{bytes: string, name: string}>  $prepared
+     */
+    public function keep(SupportTicketMessage $message, SupportTicket $ticket, array $prepared): void
+    {
+        foreach ($prepared as $item) {
+            if ($item instanceof UploadedFile) {
+                $message->attachments()->create($this->store($item, $ticket));
+
+                continue;
+            }
+
+            $message->attachments()->create($this->storePicture($ticket, $item['bytes'], $item['name']));
+        }
+    }
+
+    /**
+     * @return UploadedFile|array{bytes: string, name: string}
+     *
+     * @throws ValidationException
+     */
+    private function prepareOne(UploadedFile $file, int $index): UploadedFile|array
+    {
+        $mime = strtolower((string) $file->getMimeType());
+
+        if (! str_starts_with($mime, 'image/')) {
+            return $file;
+        }
+
+        try {
+            // Kept at its own size. The pixel limit still refuses a picture that would exhaust the server,
+            // and encoding again drops metadata and anything else hidden in the upload.
+            $bytes = $this->images->webp($file->getContent(), (int) config('commerce.images.max_pixels', 16_000_000));
+        } catch (ImageRejected $exception) {
+            throw ValidationException::withMessages([
+                'attachments.'.$index => $exception->getMessage(),
+            ]);
+        }
+
+        return [
+            'bytes' => $bytes,
+            'name' => $this->pictureName($file),
+        ];
+    }
+
+    /**
+     * @return array{disk: string, path: string, name: string, mime_type: string, size: int}
+     *
+     * @throws ValidationException
+     */
+    private function storePicture(SupportTicket $ticket, string $bytes, string $name): array
+    {
+        $disk = $this->disk();
+        $directory = trim((string) config('support.attachments.directory', 'support-attachments'), '/')."/{$ticket->id}";
+        $path = $directory.'/'.Str::lower((string) Str::ulid()).'.webp';
+
+        if (! Storage::disk($disk)->put($path, $bytes, ['visibility' => 'private'])) {
+            throw ValidationException::withMessages([
+                'attachments' => 'That picture could not be saved. Try again.',
+            ]);
+        }
+
+        return [
+            'disk' => $disk,
+            'path' => $path,
+            'name' => $name,
+            'mime_type' => 'image/webp',
+            'size' => strlen($bytes),
+        ];
     }
 
     /**
@@ -113,6 +215,18 @@ class SupportAttachmentStorage
         $name = mb_substr($name, 0, 150);
 
         return $name !== '' ? $name : $file->hashName();
+    }
+
+    /**
+     * The download name of a picture: the name the person chose, with the extension of the file
+     * that was actually stored.
+     */
+    private function pictureName(UploadedFile $file): string
+    {
+        $stem = trim((string) pathinfo($this->displayName($file), PATHINFO_FILENAME), " .\t");
+        $stem = $stem !== '' ? mb_substr($stem, 0, 120) : 'picture';
+
+        return $stem.'.webp';
     }
 
     /**

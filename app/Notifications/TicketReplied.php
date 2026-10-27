@@ -160,7 +160,7 @@ class TicketReplied extends Notification implements ShouldQueue
     {
         $author = $this->message->author;
 
-        return $author?->nickname ?? $author?->name ?? $author?->email ?? 'A support member';
+        return $author?->nickname ?? $author?->email ?? 'A support member';
     }
 
     protected function messageExcerpt(): ?string
