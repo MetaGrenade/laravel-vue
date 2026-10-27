@@ -114,7 +114,7 @@ Tebex does not report a payment when asked; it **tells** the shop, by webhook. T
 
 ### Who may send
 
-Two checks, both Tebex's own advice. It sends **only from two addresses** (18.209.80.3 and 54.87.231.232); a request from anywhere else is told the page does not exist (404). If a proxy or CDN hides the sender's address and cannot be told to pass it on, `TEBEX_WEBHOOK_CHECK_IP=false` switches that check off (the signature still holds). And every delivery is **signed**: `X-Signature` is an HMAC-SHA256, keyed with the secret, of the SHA-256 hash (as hex) of the body **exactly as it was sent**. It is compared in constant time, and a body that was parsed and written out again does not match. A delivery that is not signed correctly, or arrives while no secret is set, is refused and kept nowhere.
+Two checks, both Tebex's own advice. It sends **only from two addresses** (18.209.80.3 and 54.87.231.232); a request from anywhere else is told the page does not exist (404). If a proxy or CDN hides the sender's address and cannot be told to pass it on, `TEBEX_WEBHOOK_CHECK_IP=false` switches that check off (the signature still holds). And every delivery is **signed**: `X-Signature` is an HMAC-SHA256, keyed with the secret, of the SHA-256 hash (as hex) of the body **exactly as it was sent**. Tebex puts no time in that signature, so a repeat is stopped by keeping the delivery's id, not by how old the signature is. It is compared in constant time, and a body that was parsed and written out again does not match. A delivery that is not signed correctly, or arrives while no secret is set, is refused and kept nowhere. See [webhooks.md](webhooks.md).
 
 ### What each delivery does
 

@@ -6,6 +6,9 @@ use App\Models\BillingInvoice;
 use App\Models\BillingWebhookCall;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Support\Billing\BillingWebhookProcessor;
+use App\Support\Billing\Dunning;
+use App\Support\Billing\TrialReminders;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Laravel\Cashier\Subscription;
@@ -133,6 +136,136 @@ class StripeWebhookTest extends TestCase
 
         $webhook = BillingWebhookCall::firstWhere('stripe_id', 'evt_test_deleted');
         $this->assertNotNull($webhook);
+    }
+
+    public function test_a_redelivered_subscription_event_is_not_applied_again(): void
+    {
+        config([
+            'cashier.webhook.secret' => 'whsec_test',
+            'cashier.webhook.cli_secret' => null,
+        ]);
+
+        $user = User::factory()->create(['stripe_id' => 'cus_test123']);
+
+        $subscription = Subscription::create([
+            'user_id' => $user->id,
+            'type' => config('billing.subscription_name', 'default'),
+            'stripe_id' => 'sub_test123',
+            'stripe_status' => 'active',
+            'stripe_price' => 'price_starter',
+        ]);
+
+        $payload = $this->stripeFixture('customer_subscription_deleted');
+
+        $this->postJson(
+            route('stripe.webhook'),
+            $payload,
+            ['Stripe-Signature' => $this->stripeSignatureHeader($payload, 'whsec_test')]
+        )->assertOk();
+
+        $subscription->forceFill(['ends_at' => '2000-01-01 00:00:00'])->save();
+
+        $this->postJson(
+            route('stripe.webhook'),
+            $payload,
+            ['Stripe-Signature' => $this->stripeSignatureHeader($payload, 'whsec_test')]
+        )->assertOk()->assertSee('already handled');
+
+        $subscription->refresh();
+
+        $this->assertSame('2000-01-01 00:00:00', $subscription->ends_at?->toDateTimeString());
+        $this->assertSame(1, BillingWebhookCall::query()->count());
+    }
+
+    public function test_a_delivery_that_overlaps_the_first_does_not_apply_the_event_again(): void
+    {
+        config([
+            'cashier.webhook.secret' => 'whsec_test',
+            'cashier.webhook.cli_secret' => null,
+        ]);
+
+        $user = User::factory()->create(['stripe_id' => 'cus_test123']);
+
+        $subscription = Subscription::create([
+            'user_id' => $user->id,
+            'type' => config('billing.subscription_name', 'default'),
+            'stripe_id' => 'sub_test123',
+            'stripe_status' => 'active',
+            'stripe_price' => 'price_starter',
+        ]);
+
+        $payload = $this->stripeFixture('customer_subscription_deleted');
+        $header = $this->stripeSignatureHeader($payload, 'whsec_test');
+
+        $state = new \stdClass;
+        $state->runs = 0;
+        $state->claimed = false;
+        $state->overlap = function () use ($payload, $header): void {
+            $this->postJson(route('stripe.webhook'), $payload, ['Stripe-Signature' => $header])
+                ->assertOk()
+                ->assertSee('already handled');
+        };
+
+        $this->app->singleton(BillingWebhookProcessor::class, function ($app) use ($state) {
+            return new class($app->make(Dunning::class), $app->make(TrialReminders::class), $state) extends BillingWebhookProcessor
+            {
+                public function __construct(
+                    Dunning $dunning,
+                    TrialReminders $trials,
+                    private readonly \stdClass $state,
+                ) {
+                    parent::__construct($dunning, $trials);
+                }
+
+                public function handleCustomerSubscriptionDeleted(array $payload, ?int $fallbackUserId = null): void
+                {
+                    $this->state->runs++;
+
+                    // The row is claimed before this runs, and it is not marked done until the handler returns.
+                    $call = BillingWebhookCall::query()->where('external_id', $payload['id'])->first();
+                    $this->state->claimed = $call !== null && $call->processed_at === null;
+
+                    if ($this->state->runs === 1) {
+                        ($this->state->overlap)();
+                    }
+
+                    parent::handleCustomerSubscriptionDeleted($payload, $fallbackUserId);
+                }
+            };
+        });
+
+        $this->postJson(route('stripe.webhook'), $payload, ['Stripe-Signature' => $header])->assertOk();
+
+        $this->assertSame(1, $state->runs);
+        $this->assertTrue($state->claimed);
+        $this->assertSame('canceled', $subscription->fresh()->stripe_status);
+        $this->assertSame(1, BillingWebhookCall::query()->count());
+        $this->assertNotNull(BillingWebhookCall::query()->sole()->processed_at);
+    }
+
+    public function test_a_signature_outside_the_window_is_rejected_and_changes_nothing(): void
+    {
+        config([
+            'cashier.webhook.secret' => 'whsec_test',
+            'cashier.webhook.cli_secret' => null,
+            'cashier.webhook.tolerance' => 300,
+        ]);
+
+        SubscriptionPlan::factory()->create(['stripe_price_id' => 'price_starter']);
+        User::factory()->create(['stripe_id' => 'cus_test123']);
+
+        $payload = $this->stripeFixture('invoice_payment_succeeded');
+
+        foreach ([time() - 3600, time() + 3600] as $timestamp) {
+            $this->postJson(
+                route('stripe.webhook'),
+                $payload,
+                ['Stripe-Signature' => $this->stripeSignatureHeader($payload, 'whsec_test', $timestamp)]
+            )->assertStatus(400);
+        }
+
+        $this->assertSame(0, BillingInvoice::query()->count());
+        $this->assertSame(0, BillingWebhookCall::query()->count());
     }
 
     public function test_webhook_rejects_requests_with_invalid_signature(): void

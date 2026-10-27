@@ -59,7 +59,7 @@ The billing page has a **Manage billing in Stripe** button that sends the custom
 
 ## Webhook events
 
-One endpoint, `POST /stripe/webhook`, signed with `STRIPE_WEBHOOK_SECRET`, for subscriptions and for shop orders. The subscription side needs these events switched on in Stripe: `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted` (Cashier keeps the local subscription in step with them), `customer.subscription.trial_will_end` (the trial reminder), and `invoice.payment_succeeded` and `invoice.payment_failed` (invoices, and the emails above).
+One endpoint, `POST /stripe/webhook`, signed with `STRIPE_WEBHOOK_SECRET`, for subscriptions and for shop orders. A signature older than `STRIPE_WEBHOOK_TOLERANCE` (300 seconds) or dated further ahead than that is refused and not kept. A subscription event that was already kept is acknowledged and not applied again; running it from **Billing → Webhooks** still applies it. See [webhooks.md](webhooks.md). The subscription side needs these events switched on in Stripe: `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted` (Cashier keeps the local subscription in step with them), `customer.subscription.trial_will_end` (the trial reminder), and `invoice.payment_succeeded` and `invoice.payment_failed` (invoices, and the emails above).
 
 ## What is stored
 

@@ -111,7 +111,7 @@ Strong already. Remaining gaps, in priority order:
 | Medium | Two-factor is a custom TOTP implementation (`TwoFactorAuthenticator`). Secrets are stored encrypted. No recovery-code rotation prompt. | **Done** (third M5 slice, see [two-factor.md](two-factor.md)) | Review against RFC 6238 test vectors; add tests. **Passkeys/WebAuthn are deferred to 1.1.** |
 | Medium | Sanctum tokens default to abilities `['*']` and no expiry. | Verified | Default to least-privilege abilities; set `SANCTUM_EXPIRATION`; add per-token rate limits. |
 | Medium | No admin audit log. Role changes, bans, refunds and settings changes are not recorded. | Verified | Add an append-only `audit_logs` table and a model observer/trait; ACP viewer. |
-| Medium | Webhook handling is Stripe-specific; no replay window or idempotency key on the stored calls. | Inferred | Generalise (section 7) with unique `(provider, external_id)` and a processed-at guard. |
+| Medium | Webhook handling is Stripe-specific; no replay window or idempotency key on the stored calls. | **Done** (twelfth M5 slice, see [webhooks.md](webhooks.md)) | Generalise (section 7) with unique `(provider, external_id)` and a processed-at guard. |
 | Medium | No cookie-consent mechanism or legal pages (Terms, Privacy Policy). | **Done** (first M5 slice, see [legal-pages.md](legal-pages.md)) | Configurable legal pages and a consent banner. Optional scripts stay off until the visitor allows them. |
 | Low | No `SECURITY.md` or `/.well-known/security.txt`. | Verified | Add both. |
 | Low | CSP `style-src` includes `'unsafe-inline'`. | Verified | Acceptable for 1.0 (Tailwind/Vue inline styles); document, and tighten if feasible. |
@@ -128,7 +128,7 @@ Strong already. Remaining gaps, in priority order:
 - [x] Token abilities default, expiry, rate limits (**done in M3**: scopes are enforced on every API route, keys made on the settings page or by signing in over the API are least-privilege by default, expire, are limited in number and can be limited in calls, and revoking really revokes; see [api-keys.md](api-keys.md))
 - [x] Per-route authorisation review: every ACP route behind a named permission (currently 166 admin routes). Blog management is behind `blogs.acp.*` (fourth M5 slice, see [blog-permissions.md](blog-permissions.md)). The users list and account form are behind `users.acp.*` (fifth M5 slice, see [moderation.md](moderation.md#permissions)). The support desk is behind the support permissions (sixth M5 slice, see [support-permissions.md](support-permissions.md)). Roles, the forum, trust and safety, badges and tokens are behind their permissions (seventh M5 slice, see [acp-permissions.md](acp-permissions.md)). The dashboard stays open to any staff member.
 - [x] Policies for orders, tickets and products (eighth M5 slice, see [record-policies.md](record-policies.md)). An order follows its owner. A ticket follows the person who opened it. A product is on the shop when it is for sale.
-- [ ] Webhook idempotency and replay protection for all providers
+- [x] Webhook idempotency and replay protection for all providers (Stripe's signature window, and a delivery that was already kept is not applied again, for shop payments, subscriptions and Tebex; twelfth M5 slice, see [webhooks.md](webhooks.md))
 - [x] Brute-force protection on 2FA challenge and recovery codes (**done**, third M5 slice, see [two-factor.md](two-factor.md))
 - [ ] Security headers test in CI
 - [ ] `SECURITY.md`, `security.txt`, dependency-update automation (Dependabot or Renovate)
@@ -436,6 +436,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Accessibility pass (axe on main flows) (**done**, ninth slice, see [accessibility.md](accessibility.md))
 - Support pictures are decoded and saved again as WebP (**done**, tenth slice, see [support-attachments.md](support-attachments.md))
 - Support, forum and download files stay on a private disk, and a public disk is refused (**done**, eleventh slice, see [private-uploads.md](private-uploads.md))
+- A webhook that was already kept is not applied again, and a Stripe signature outside its window is refused (**done**, twelfth slice, see [webhooks.md](webhooks.md))
 - **Exit:** checklist complete; external dependency audit clean; no open high/medium findings. (Passkeys are deferred to 1.1.)
 
 ### M6. Search and performance (8–12 days)
