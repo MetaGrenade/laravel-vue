@@ -122,7 +122,7 @@ Strong already. Remaining gaps, in priority order:
 ### 4.2 Hardening checklist for 1.0
 
 - [ ] Private storage and authorised downloads for all user uploads
-- [ ] Upload pipeline: MIME sniffing, extension allow-list, size caps, image re-encode (product pictures, forum pictures and blog covers are re-encoded; see [blog-covers.md](blog-covers.md))
+- [x] Upload pipeline: MIME sniffing, extension allow-list, size caps, image re-encode (product pictures, forum pictures, blog covers and support pictures are re-encoded; tenth M5 slice, see [blog-covers.md](blog-covers.md) and [support-attachments.md](support-attachments.md))
 - [x] Admin audit log (**done in M3**: an append-only `audit_logs` table written for every change under `acp/`, with before and after for the records that matter, a viewer, and retention; see [audit-log.md](audit-log.md))
 - [x] Admin impersonation, read-only (**done in M3**: staff see the site as one customer sees it, for 30 minutes, with a reason, nothing can be changed, a few pages stay closed, and every page opened is in the audit log; see [impersonation.md](impersonation.md))
 - [x] Token abilities default, expiry, rate limits (**done in M3**: scopes are enforced on every API route, keys made on the settings page or by signing in over the API are least-privilege by default, expire, are limited in number and can be limited in calls, and revoking really revokes; see [api-keys.md](api-keys.md))
@@ -434,6 +434,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Roles, the forum, trust and safety, badges and tokens follow named permissions (**done**, seventh slice, see [acp-permissions.md](acp-permissions.md)). The dashboard stays open to any staff member
 - Orders, tickets and products follow policies (**done**, eighth slice, see [record-policies.md](record-policies.md))
 - Accessibility pass (axe on main flows) (**done**, ninth slice, see [accessibility.md](accessibility.md))
+- Support pictures are decoded and saved again as WebP (**done**, tenth slice, see [support-attachments.md](support-attachments.md))
 - **Exit:** checklist complete; external dependency audit clean; no open high/medium findings. (Passkeys are deferred to 1.1.)
 
 ### M6. Search and performance (8–12 days)

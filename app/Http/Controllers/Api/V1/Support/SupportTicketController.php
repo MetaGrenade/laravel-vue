@@ -45,8 +45,10 @@ class SupportTicketController extends Controller
 
         $ticket = null;
         $message = null;
+        $storage = app(SupportAttachmentStorage::class);
+        $attachments = $storage->prepare($request->file('attachments'));
 
-        Transaction::run(function () use ($request, $validated, &$ticket, &$message): void {
+        Transaction::run(function () use ($validated, &$ticket, &$message, $storage, $attachments): void {
             $ticket = SupportTicket::create([
                 'user_id' => $validated['user_id'],
                 'subject' => $validated['subject'],
@@ -62,9 +64,7 @@ class SupportTicketController extends Controller
 
             $message->setRelation('author', $ticket->user);
 
-            $attachments = $request->file('attachments');
-
-            app(SupportAttachmentStorage::class)->attach($message, $ticket, $attachments);
+            $storage->keep($message, $ticket, $attachments);
 
             $message->touch();
 

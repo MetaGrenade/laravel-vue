@@ -84,7 +84,7 @@ class SupportApiTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('message.body', 'Here is another update.')
-            ->assertJsonPath('message.attachments.0.name', 'screenshot.png');
+            ->assertJsonPath('message.attachments.0.name', 'screenshot.webp');
 
         $attachment = SupportTicketMessageAttachment::latest('id')->first();
         $this->assertNotNull($attachment);

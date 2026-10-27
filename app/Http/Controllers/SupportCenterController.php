@@ -309,8 +309,10 @@ class SupportCenterController extends Controller
 
         $ticket = null;
         $message = null;
+        $storage = app(SupportAttachmentStorage::class);
+        $attachments = $storage->prepare($request->file('attachments'));
 
-        Transaction::run(function () use ($request, $validated, &$ticket, &$message): void {
+        Transaction::run(function () use ($validated, &$ticket, &$message, $storage, $attachments): void {
             $ticket = SupportTicket::create([
                 'user_id' => $validated['user_id'],
                 'subject' => $validated['subject'],
@@ -326,9 +328,7 @@ class SupportCenterController extends Controller
 
             $message->setRelation('author', $ticket->user);
 
-            $attachments = $request->file('attachments');
-
-            app(SupportAttachmentStorage::class)->attach($message, $ticket, $attachments);
+            $storage->keep($message, $ticket, $attachments);
 
             $message->touch();
 
@@ -453,8 +453,10 @@ class SupportCenterController extends Controller
         $validated = $request->validated();
 
         $message = null;
+        $storage = app(SupportAttachmentStorage::class);
+        $attachments = $storage->prepare($request->file('attachments'));
 
-        Transaction::run(function () use ($request, $ticket, $validated, &$message): void {
+        Transaction::run(function () use ($request, $ticket, $validated, &$message, $storage, $attachments): void {
             $message = $ticket->messages()->create([
                 'user_id' => $request->user()->id,
                 'body' => $validated['body'],
@@ -462,9 +464,7 @@ class SupportCenterController extends Controller
 
             $message->setRelation('author', $request->user());
 
-            $attachments = $request->file('attachments');
-
-            app(SupportAttachmentStorage::class)->attach($message, $ticket, $attachments);
+            $storage->keep($message, $ticket, $attachments);
 
             $ticket->touch();
             $message->touch();
