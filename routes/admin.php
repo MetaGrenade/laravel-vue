@@ -73,15 +73,27 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->middleware('can:search.acp.view')
         ->name('acp.search-analytics.export-searches');
 
-    // Admin User Management Routes
-    Route::get('acp/users', [AdminUserController::class, 'index'])->name('acp.users.index');
-    Route::get('acp/users/{user}/edit', [AdminUserController::class, 'edit'])->name('acp.users.edit');
-    Route::put('acp/users/{user}', [AdminUserController::class, 'update'])->name('acp.users.update');
-    Route::delete('acp/users/{user}', [AdminUserController::class, 'destroy'])->name('acp.users.destroy');
-    Route::put('acp/users/{user}/verify', [AdminUserController::class, 'verify'])->name('acp.users.verify');
+    // Members. The menu already follows these permissions; the routes do too (docs/moderation.md).
+    Route::get('acp/users', [AdminUserController::class, 'index'])
+        ->middleware('can:users.acp.view')
+        ->name('acp.users.index');
+    Route::get('acp/users/{user}/edit', [AdminUserController::class, 'edit'])
+        ->middleware('can:users.acp.edit')
+        ->name('acp.users.edit');
+    Route::put('acp/users/{user}', [AdminUserController::class, 'update'])
+        ->middleware('can:users.acp.edit')
+        ->name('acp.users.update');
+    Route::delete('acp/users/{user}', [AdminUserController::class, 'destroy'])
+        ->middleware('can:users.acp.delete')
+        ->name('acp.users.destroy');
+    Route::put('acp/users/{user}/verify', [AdminUserController::class, 'verify'])
+        ->middleware('can:users.acp.verify')
+        ->name('acp.users.verify');
     // Moderating a member: where they stand and what has been done, a warning, a ban (for good or until a date), lifting one
     // (docs/moderation.md). Warning and banning are separate permissions.
-    Route::get('acp/users/{user}/moderation', [UserModerationController::class, 'show'])->name('acp.users.moderation.show');
+    Route::get('acp/users/{user}/moderation', [UserModerationController::class, 'show'])
+        ->middleware('can:users.acp.view')
+        ->name('acp.users.moderation.show');
     Route::post('acp/users/{user}/warnings', [UserModerationController::class, 'warn'])
         ->middleware('can:users.acp.warn')
         ->name('acp.users.warn');
@@ -102,8 +114,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
         ->middleware('can:users.acp.impersonate')
         ->name('acp.users.impersonate');
     Route::post('acp/users/{user}/social-accounts', [UserSocialAccountController::class, 'store'])
+        ->middleware('can:users.acp.update')
         ->name('acp.users.social-accounts.store');
     Route::delete('acp/users/{user}/social-accounts/{socialAccount}', [UserSocialAccountController::class, 'destroy'])
+        ->middleware('can:users.acp.update')
         ->name('acp.users.social-accounts.destroy');
 
     // Admin Access Control Management Routes

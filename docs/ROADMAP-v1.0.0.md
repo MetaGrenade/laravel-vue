@@ -126,7 +126,7 @@ Strong already. Remaining gaps, in priority order:
 - [x] Admin audit log (**done in M3**: an append-only `audit_logs` table written for every change under `acp/`, with before and after for the records that matter, a viewer, and retention; see [audit-log.md](audit-log.md))
 - [x] Admin impersonation, read-only (**done in M3**: staff see the site as one customer sees it, for 30 minutes, with a reason, nothing can be changed, a few pages stay closed, and every page opened is in the audit log; see [impersonation.md](impersonation.md))
 - [x] Token abilities default, expiry, rate limits (**done in M3**: scopes are enforced on every API route, keys made on the settings page or by signing in over the API are least-privilege by default, expire, are limited in number and can be limited in calls, and revoking really revokes; see [api-keys.md](api-keys.md))
-- [ ] Per-route authorisation review: every ACP route behind a named permission (currently 166 admin routes; **To verify** that none rely on role only). Blog management is behind `blogs.acp.*` (**done**, fourth M5 slice, see [blog-permissions.md](blog-permissions.md))
+- [ ] Per-route authorisation review: every ACP route behind a named permission (currently 166 admin routes; **To verify** that none rely on role only). Blog management is behind `blogs.acp.*` (**done**, fourth M5 slice, see [blog-permissions.md](blog-permissions.md)). The users list and account form are behind `users.acp.*` (**done**, fifth M5 slice, see [moderation.md](moderation.md#permissions))
 - [ ] Policies for orders, tickets, products (only 3 policies exist today)
 - [ ] Webhook idempotency and replay protection for all providers
 - [x] Brute-force protection on 2FA challenge and recovery codes (**done**, third M5 slice, see [two-factor.md](two-factor.md))
@@ -429,6 +429,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Blog covers are decoded and saved again as WebP (**done**, second slice, see [blog-covers.md](blog-covers.md))
 - Two-factor codes match the published test times, and a used recovery code asks for a new set (**done**, third slice, see [two-factor.md](two-factor.md))
 - Blog management in the admin area follows named permissions (**done**, fourth slice, see [blog-permissions.md](blog-permissions.md))
+- The users list and a member's account follow named permissions (**done**, fifth slice, see [moderation.md](moderation.md#permissions))
 - Accessibility pass (axe on main flows)
 - **Exit:** checklist complete; external dependency audit clean; no open high/medium findings. (Passkeys are deferred to 1.1.)
 
