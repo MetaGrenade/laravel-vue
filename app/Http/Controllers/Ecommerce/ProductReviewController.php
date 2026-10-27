@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CommerceReviewController;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Commerce\ProductReviewRequest;
 use App\Models\Product;
+use App\Policies\ProductPolicy;
 use App\Support\Commerce\Reviews\ProductReviews;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,7 @@ class ProductReviewController extends Controller
      */
     public function store(ProductReviewRequest $request, Product $product, ProductReviews $reviews): RedirectResponse
     {
-        abort_unless($product->is_active, 404);
+        abort_unless(app(ProductPolicy::class)->view($request->user(), $product), 404);
 
         $user = $request->user();
         $reason = $reviews->whyNot($user, $product);

@@ -15,6 +15,7 @@ use App\Models\ProductVariant;
 use App\Models\User;
 use App\Payments\PaymentManager;
 use App\Payments\Tebex\TebexSelling;
+use App\Policies\ProductPolicy;
 use App\Support\Commerce\ProductAvailability;
 use App\Support\Commerce\Reviews\ProductReviews;
 use App\Support\Commerce\StorefrontProducts;
@@ -106,7 +107,7 @@ class ProductCatalogController extends Controller
 
     public function show(Request $request, Product $product, ProductAvailability $availability, StorefrontProducts $storefront, ProductReviews $reviews, Wishlists $wishlists): Response
     {
-        abort_unless($product->is_active, 404);
+        abort_unless(app(ProductPolicy::class)->view($request->user(), $product), 404);
 
         $product->load([
             'options' => fn ($query) => $query->orderBy('position')->orderBy('id'),

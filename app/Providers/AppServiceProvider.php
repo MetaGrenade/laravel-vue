@@ -13,6 +13,8 @@ use App\Models\ForumPrefix;
 use App\Models\ForumThread;
 use App\Models\Order;
 use App\Models\PersonalAccessToken;
+use App\Models\Product;
+use App\Models\SupportTicket;
 use App\Models\User;
 use App\Observers\ForumIndexCacheObserver;
 use App\Payments\PaymentManager;
@@ -24,6 +26,8 @@ use App\Policies\BlogCommentPolicy;
 use App\Policies\BlogPolicy;
 use App\Policies\ForumPostPolicy;
 use App\Policies\OrderPolicy;
+use App\Policies\ProductPolicy;
+use App\Policies\SupportTicketPolicy;
 use App\Support\Audit\Audit;
 use App\Support\Audit\AuditObserver;
 use App\Support\Billing\SubscriptionManager;
@@ -76,6 +80,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Blog::class, BlogPolicy::class);
         Gate::policy(BlogComment::class, BlogCommentPolicy::class);
         Gate::policy(Order::class, OrderPolicy::class);
+        Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(SupportTicket::class, SupportTicketPolicy::class);
         Gate::policy(Address::class, AddressPolicy::class);
         Gate::policy(SupportTicketMessageAttachment::class, SupportTicketMessageAttachmentPolicy::class);
 

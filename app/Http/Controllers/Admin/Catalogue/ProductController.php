@@ -283,6 +283,7 @@ class ProductController extends Controller
 
     public function destroy(Product $product): RedirectResponse
     {
+        $this->authorize('delete', $product);
         try {
             $this->remover->deleteProduct($product);
         } catch (CatalogueException $exception) {

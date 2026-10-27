@@ -25,9 +25,7 @@ class SupportTicketController extends Controller
 
     public function show(Request $request, SupportTicket $ticket): JsonResponse
     {
-        $user = $request->user();
-
-        abort_unless($user && $ticket->user_id === $user->id, 403);
+        $this->authorize('view', $ticket);
 
         $ticket->load([
             'assignee:id,nickname,email',

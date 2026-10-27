@@ -13,8 +13,7 @@ class ReopenPublicSupportTicketRequest extends FormRequest
         $ticket = $this->route('ticket');
 
         return $ticket instanceof SupportTicket
-            && $this->user()
-            && (int) $ticket->user_id === (int) $this->user()->id;
+            && (bool) $this->user()?->can('reopen', $ticket);
     }
 
     public function rules(): array
@@ -25,6 +24,11 @@ class ReopenPublicSupportTicketRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            // The site answers with its usual notice. The API reports the same thing as a validation error.
+            if (! $this->expectsJson()) {
+                return;
+            }
+
             $ticket = $this->route('ticket');
 
             if (! $ticket instanceof SupportTicket) {

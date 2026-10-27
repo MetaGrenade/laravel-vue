@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
+use App\Http\Requests\ReopenPublicSupportTicketRequest;
 use App\Http\Requests\StoreFaqFeedbackRequest;
 use App\Http\Requests\StorePublicSupportTicketMessageRequest;
 use App\Http\Requests\StorePublicSupportTicketRatingRequest;
 use App\Http\Requests\StorePublicSupportTicketRequest;
+use App\Http\Requests\UpdatePublicSupportTicketStatusRequest;
 use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\FaqFeedback;
@@ -24,7 +26,6 @@ use App\Support\SupportTicketAutoAssigner;
 use App\Support\SupportTicketNotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -350,9 +351,7 @@ class SupportCenterController extends Controller
 
     public function show(Request $request, SupportTicket $ticket): Response
     {
-        $user = $request->user();
-
-        abort_unless($user && $ticket->user_id === $user->id, 403);
+        $this->authorize('view', $ticket);
 
         $formatter = DateFormatter::for($request->user());
 
@@ -501,15 +500,11 @@ class SupportCenterController extends Controller
             ->with('success', 'Thanks for sharing your feedback.');
     }
 
-    public function updateStatus(Request $request, SupportTicket $ticket): RedirectResponse
+    public function updateStatus(UpdatePublicSupportTicketStatusRequest $request, SupportTicket $ticket): RedirectResponse
     {
         $user = $request->user();
 
-        abort_unless($user && (int) $ticket->user_id === (int) $user->id, 403);
-
-        $validated = $request->validate([
-            'status' => ['required', Rule::in(['closed'])],
-        ]);
+        $validated = $request->validated();
 
         if ($ticket->status === $validated['status']) {
             return back()->with('info', 'This ticket is already closed.');
@@ -532,12 +527,8 @@ class SupportCenterController extends Controller
         return back()->with('success', 'Ticket closed.');
     }
 
-    public function reopen(Request $request, SupportTicket $ticket): RedirectResponse
+    public function reopen(ReopenPublicSupportTicketRequest $request, SupportTicket $ticket): RedirectResponse
     {
-        $user = $request->user();
-
-        abort_unless($user && (int) $ticket->user_id === (int) $user->id, 403);
-
         if ($ticket->status !== 'closed') {
             return back()->with('info', 'This ticket is already open.');
         }

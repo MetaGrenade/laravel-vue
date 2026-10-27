@@ -14,8 +14,7 @@ class StorePublicSupportTicketRatingRequest extends FormRequest
         $ticket = $this->route('ticket');
 
         return $ticket instanceof SupportTicket
-            && $this->user()
-            && $ticket->user_id === $this->user()->id;
+            && (bool) $this->user()?->can('rate', $ticket);
     }
 
     public function rules(): array

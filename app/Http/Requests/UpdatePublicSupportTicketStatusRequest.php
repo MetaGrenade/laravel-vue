@@ -13,8 +13,7 @@ class UpdatePublicSupportTicketStatusRequest extends FormRequest
         $ticket = $this->route('ticket');
 
         return $ticket instanceof SupportTicket
-            && $this->user()
-            && (int) $ticket->user_id === (int) $this->user()->id;
+            && (bool) $this->user()?->can('close', $ticket);
     }
 
     public function rules(): array
