@@ -40,6 +40,7 @@ const props = defineProps<{
     categories: BlogTaxonomyOption[];
     tags: BlogTaxonomyOption[];
     author?: BlogAuthor | null;
+    canPublish: boolean;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -47,12 +48,16 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Create blog post', href: route('acp.blogs.create') },
 ];
 
-const statusOptions = [
-    { label: 'Draft', value: 'draft' },
-    { label: 'Scheduled', value: 'scheduled' },
-    { label: 'Published', value: 'published' },
-    { label: 'Archived', value: 'archived' },
-];
+const statusOptions = computed(() => {
+    const options = [
+        { label: 'Draft', value: 'draft' as const },
+        { label: 'Scheduled', value: 'scheduled' as const },
+        { label: 'Published', value: 'published' as const },
+        { label: 'Archived', value: 'archived' as const },
+    ];
+
+    return props.canPublish ? options : options.filter((option) => option.value === 'draft');
+});
 
 type BlogForm = {
     title: string;

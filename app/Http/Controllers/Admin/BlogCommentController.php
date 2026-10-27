@@ -236,7 +236,7 @@ class BlogCommentController extends Controller
 
     public function bulkUpdateReportStatus(Request $request): RedirectResponse
     {
-        $this->authorize('viewAny', BlogComment::class);
+        $this->authorize('blogs.acp.edit');
 
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(BlogCommentReport::STATUSES)],
