@@ -20,7 +20,7 @@ A response that is not HTML, such as the sitemap or the web manifest, still gets
 
 ## Inline styles
 
-`style-src` includes `'unsafe-inline'`. Vue sets styles on elements, and those have no nonce. Removing it would break the pages that do that. Scripts do not get the same exception: a script needs the nonce. The check in CI includes the style rule, so a later edit cannot widen it without the check failing.
+`style-src` is `'self'` and `'unsafe-inline'`, and nothing else. Vue sets styles on elements, and those have no nonce. Removing the inline exception would break the pages that do that. Scripts do not get the same exception: a script needs the nonce. The check in CI compares that whole source list, so a later host or a wildcard fails the check. The Vite dev server is added only while it is running.
 
 ## Adding a third-party host
 
@@ -28,4 +28,4 @@ A script, frame or connection to another host has to be named in `config/securit
 
 ## Testing
 
-`tests/Feature/SecurityHeadersTest.php` loads the home page and checks each header, the nonce on the scripts, and the style, frame and base rules. It checks that HTTPS sends strict transport security and HTTP does not, including the subdomain form. It checks the sitemap and the web manifest keep the other headers and omit the policy. `.github/workflows/tests.yml` runs that file with the rest of the suite on SQLite, MySQL 8 and PostgreSQL 16.
+`tests/Feature/SecurityHeadersTest.php` loads the home page and checks each header, the nonce on the scripts, and the frame and base rules. The style rule is compared source for source with `'self'` and `'unsafe-inline'`. It checks that HTTPS sends strict transport security and HTTP does not, including the subdomain form. It checks the sitemap and the web manifest keep the other headers and omit the policy. `.github/workflows/tests.yml` runs that file with the rest of the suite on SQLite, MySQL 8 and PostgreSQL 16.

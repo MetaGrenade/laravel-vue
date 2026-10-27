@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Vite;
 use Tests\TestCase;
 
 class SecurityHeadersTest extends TestCase
@@ -26,8 +27,8 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString("object-src 'none'", $csp);
         $this->assertStringContainsString("frame-ancestors 'self'", $csp);
         $this->assertStringContainsString("base-uri 'self'", $csp);
-        // Vue sets inline styles. The policy allows that, and the check keeps it from widening quietly.
-        $this->assertStringContainsString("style-src 'self' 'unsafe-inline'", $csp);
+        // Vue sets inline styles. The whole source list is compared, so a host or a wildcard added later fails.
+        $this->assertSame($this->allowedStyleSources(), $this->directiveSources($csp, 'style-src'));
 
         preg_match("/'nonce-([A-Za-z0-9]+)'/", $csp, $matches);
 
@@ -73,5 +74,45 @@ class SecurityHeadersTest extends TestCase
             $response->assertHeaderMissing('Content-Security-Policy');
             $response->assertHeaderMissing('Content-Security-Policy-Report-Only');
         }
+    }
+
+    /**
+     * `'self'` and `'unsafe-inline'`, plus the Vite dev server only while it is actually running.
+     *
+     * @return list<string>
+     */
+    private function allowedStyleSources(): array
+    {
+        $sources = ["'self'", "'unsafe-inline'"];
+
+        if (Vite::isRunningHot()) {
+            $sources[] = rtrim((string) file_get_contents(Vite::hotFile()));
+        }
+
+        return $sources;
+    }
+
+    /**
+     * Every source on one directive, in the order the policy sends them.
+     *
+     * @return list<string>
+     */
+    private function directiveSources(string $policy, string $directive): array
+    {
+        $found = [];
+
+        foreach (explode(';', $policy) as $part) {
+            $tokens = preg_split('/\s+/', trim($part), -1, PREG_SPLIT_NO_EMPTY);
+
+            if (! is_array($tokens) || ($tokens[0] ?? null) !== $directive) {
+                continue;
+            }
+
+            $found[] = array_values(array_slice($tokens, 1));
+        }
+
+        $this->assertCount(1, $found, "The content security policy should have one {$directive} directive.");
+
+        return $found[0];
     }
 }
