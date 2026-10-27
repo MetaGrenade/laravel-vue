@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { usePermissions } from '@/composables/usePermissions';
+import { computed } from 'vue';
 
 const props = defineProps<{
     categories: Array<{
@@ -26,6 +28,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Support ACP', href: route('acp.support.index') },
     { title: 'Create FAQ', href: route('acp.support.faqs.create') },
 ];
+
+const { hasPermission } = usePermissions();
+const canPublish = computed(() => hasPermission('support.acp.publish'));
 
 const form = useForm({
     faq_category_id: props.categories[0]?.id ?? null,
@@ -122,7 +127,7 @@ const handleSubmit = () => {
                             </div>
 
                             <div class="flex items-center space-x-2">
-                                <Checkbox id="published" v-model="form.published" />
+                                <Checkbox id="published" v-model="form.published" :disabled="!canPublish" />
                                 <Label for="published">Publish immediately</Label>
                             </div>
                             <InputError :message="form.errors.published" />

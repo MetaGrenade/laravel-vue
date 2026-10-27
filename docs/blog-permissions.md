@@ -16,7 +16,7 @@ A member can still edit or delete a comment they wrote.
 
 ## Not built
 
-- **The rest of the admin area.** Forum, support, members and the other screens are a later pass of the same review.
+- **The rest of the admin area.** Forum reports, roles, tokens and the other screens are a later pass of the same review.
 - **A change to who an administrator is.** An administrator still has every permission.
 
 ## Testing

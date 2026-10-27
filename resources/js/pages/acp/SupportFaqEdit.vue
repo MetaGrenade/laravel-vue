@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { usePermissions } from '@/composables/usePermissions';
 
 const props = defineProps<{
     faq: {
@@ -46,6 +47,10 @@ const form = useForm({
     order: props.faq.order,
     published: props.faq.published,
 });
+
+const { hasPermission } = usePermissions();
+const canPublish = computed(() => hasPermission('support.acp.publish'));
+const canMove = computed(() => hasPermission('support.acp.move'));
 
 const { formatDate, fromNow } = useUserTimezone();
 
@@ -128,12 +133,12 @@ const handleSubmit = () => {
 
                                 <div class="grid gap-2">
                                     <Label for="order">Display order</Label>
-                                    <Input id="order" v-model.number="form.order" type="number" min="0" />
+                                    <Input id="order" v-model.number="form.order" type="number" min="0" :disabled="!canMove" />
                                     <InputError :message="form.errors.order" />
                                 </div>
 
                                 <div class="flex items-center space-x-2">
-                                    <Checkbox id="published" v-model="form.published" />
+                                    <Checkbox id="published" v-model="form.published" :disabled="!canPublish" />
                                     <Label for="published">Published</Label>
                                 </div>
                                 <InputError :message="form.errors.published" />

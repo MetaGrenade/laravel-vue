@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { usePermissions } from '@/composables/usePermissions';
 import SupportTicketUserSelect from '@/components/SupportTicketUserSelect.vue';
 
 type TicketUser = { id: number; nickname: string; email: string };
@@ -58,6 +59,10 @@ const priorityOptions = [
 ];
 
 const categoryOptions = computed(() => props.categories ?? []);
+const { hasPermission } = usePermissions();
+const canChangeStatus = computed(() => hasPermission('support.acp.status'));
+const canChangePriority = computed(() => hasPermission('support.acp.priority'));
+const canAssign = computed(() => hasPermission('support.acp.assign'));
 
 const form = useForm({
     subject: props.ticket.subject,
@@ -165,7 +170,8 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                     <select
                                         id="status"
                                         v-model="form.status"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+                                        :disabled="!canChangeStatus"
                                     >
                                         <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                                             {{ option.label }}
@@ -179,7 +185,8 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                     <select
                                         id="priority"
                                         v-model="form.priority"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+                                        :disabled="!canChangePriority"
                                     >
                                         <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
                                             {{ option.label }}
@@ -208,7 +215,8 @@ const handleRequesterChange = (user: TicketUser | null) => {
                                     <select
                                         id="assigned_to"
                                         v-model="form.assigned_to"
-                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+                                        :disabled="!canAssign"
                                     >
                                         <option :value="null">Unassigned</option>
                                         <option v-for="agent in props.agents" :key="agent.id" :value="agent.id">
