@@ -8,9 +8,7 @@ Stripe and Tebex tell the shop what happened to a payment. A delivery is kept on
 
 One address, `POST /stripe/webhook`, for shop orders and for subscriptions. The signature is `Stripe-Signature`, checked against `STRIPE_WEBHOOK_SECRET` (and `STRIPE_CLI_WEBHOOK_SECRET` when that is set). The time in the signature may be at most `STRIPE_WEBHOOK_TOLERANCE` seconds away from now (300 by default). Older than that, or further ahead than that, is refused. `0` accepts any time.
 
-A shop payment is applied through the shared receiver: the event id is stored, and a second delivery of that id changes nothing. A subscription event (an invoice paid or failed, a subscription deleted, a trial about to end) is applied once it has been kept. A later delivery of the same event is answered and left alone. Running it from **Billing → Webhooks** still applies it, which is how a failed one is tried again. The payment emails are also claimed once, so a replay does not write to the customer twice. See [billing.md](billing.md#webhook-events).
-
-Keeping the archive on is what makes the second subscription delivery a no-op (`BILLING_WEBHOOK_STORE`, on by default). With it off, a repeat runs the handler again; the emails are still sent once.
+A shop payment is applied through the shared receiver: the event id is stored, and a second delivery of that id changes nothing. A subscription event (an invoice paid or failed, a subscription deleted, a trial about to end) is claimed the same way, and the row is locked, before the handler runs. A second delivery, including one that arrives while the first is still being applied, is answered and left alone. Running it from **Billing → Webhooks** still applies it, which is how a failed one is tried again. The payment emails are also claimed once, so a replay does not write to the customer twice. See [billing.md](billing.md#webhook-events).
 
 ## Tebex
 
@@ -18,4 +16,4 @@ Keeping the archive on is what makes the second subscription delivery a no-op (`
 
 ## Testing
 
-`tests/Feature/Webhooks/StripeWebhookTest.php`: a subscription event delivered again does not change the subscription, and a signature an hour old or an hour ahead is refused. `tests/Feature/Commerce/StripeCommerceWebhookTest.php`: a shop event delivered again does not pay the order twice, and a stale signature is refused. `tests/Feature/Tebex/TebexWebhookTest.php`: a delivery from another address is not found, a bad signature is refused, and the same delivery again changes nothing.
+`tests/Feature/Webhooks/StripeWebhookTest.php`: a subscription event delivered again does not change the subscription, one that arrives while the first is still being applied does not apply it either, and a signature an hour old or an hour ahead is refused. `tests/Feature/Commerce/StripeCommerceWebhookTest.php`: a shop event delivered again does not pay the order twice, and a stale signature is refused. `tests/Feature/Tebex/TebexWebhookTest.php`: a delivery from another address is not found, a bad signature is refused, and the same delivery again changes nothing.

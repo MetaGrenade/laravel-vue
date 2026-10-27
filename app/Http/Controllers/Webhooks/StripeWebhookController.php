@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Webhooks;
 
 use App\Models\BillingWebhookCall;
+use App\Payments\Data\WebhookOutcome;
 use App\Payments\Providers\StripeProvider;
 use App\Payments\Stripe\StripeSignatureVerifier;
+use App\Payments\Webhooks\WebhookReceiver;
 use App\Support\Billing\BillingWebhookProcessor;
 use Closure;
 use Illuminate\Http\Request;
@@ -19,10 +21,21 @@ use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookControll
  */
 class StripeWebhookController extends CashierWebhookController
 {
+    /**
+     * Event ids whose handler is already running in this process. Two PHP workers
+     * still take the row lock in {@see WebhookReceiver::receive()}; this only stops
+     * a second delivery that arrives in this same process before the first finishes,
+     * which cannot wait on that lock without deadlocking itself.
+     *
+     * @var array<string, true>
+     */
+    private static array $applying = [];
+
     public function __construct(
         private readonly BillingWebhookProcessor $processor,
         private readonly StripeProvider $commerce,
         private readonly StripeSignatureVerifier $signatures,
+        private readonly WebhookReceiver $webhooks,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -112,39 +125,49 @@ class StripeWebhookController extends CashierWebhookController
     }
 
     /**
-     * A subscription event that was already kept is acknowledged and not applied again.
-     * Staff can still run it from the archive; that path does not come through here.
+     * Claim the event and lock that row before the handler runs, as {@see WebhookReceiver::receive()}
+     * does. A second delivery then finds the claim and does not apply the event again, including one
+     * that arrives while the first is still at work. Staff can still run a kept event from the archive;
+     * that path does not come through here.
      *
      * @param  array<string, mixed>  $payload
      * @param  Closure(): void  $handle
      */
     private function billOnce(array $payload, Closure $handle): Response
     {
-        if ($this->alreadyHandled($payload)) {
-            return new Response('Webhook already handled', 200);
-        }
-
-        $handle();
-
-        return new Response('Webhook handled', 200);
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function alreadyHandled(array $payload): bool
-    {
         $id = Arr::get($payload, 'id');
 
         if (! is_string($id) || $id === '') {
-            return false;
+            $handle();
+
+            return new Response('Webhook handled', 200);
         }
 
-        return BillingWebhookCall::query()
-            ->where('provider', 'stripe')
-            ->where('external_id', $id)
-            ->whereNotNull('processed_at')
-            ->exists();
+        if (isset(self::$applying[$id])) {
+            return new Response('Webhook already handled', 200);
+        }
+
+        $type = Arr::get($payload, 'type');
+
+        self::$applying[$id] = true;
+
+        try {
+            $outcome = $this->webhooks->receive(
+                StripeProvider::KEY,
+                $id,
+                is_string($type) && $type !== '' ? $type : 'unknown',
+                $payload,
+                function (BillingWebhookCall $call) use ($handle): ?WebhookOutcome {
+                    $handle();
+
+                    return null;
+                },
+            );
+        } finally {
+            unset(self::$applying[$id]);
+        }
+
+        return new Response($outcome->message, $outcome->httpStatus);
     }
 
     /**
