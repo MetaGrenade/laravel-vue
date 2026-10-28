@@ -132,7 +132,7 @@ Strong already. Remaining gaps, in priority order:
 - [x] Brute-force protection on 2FA challenge and recovery codes (**done**, third M5 slice, see [two-factor.md](two-factor.md))
 - [x] Security headers test in CI (every HTML response is checked for the clickjacking, sniffing, referrer, permissions and opener headers and for a nonce-based content security policy; a response that is not HTML keeps those headers and omits the policy; thirteenth M5 slice, see [security-headers.md](security-headers.md))
 - [x] `SECURITY.md`, `security.txt`, dependency-update automation (Dependabot or Renovate) (`/.well-known/security.txt` names the private contact, the policy, and an expiry under a year; Dependabot opens a weekly request for Composer, npm, and GitHub Actions; fourteenth M5 slice, see [security-contact.md](security-contact.md))
-- [ ] Secrets scanning in CI
+- [x] Secrets scanning in CI (every commit on the branch is read, on each push and pull request and again each week, and the job fails if the scanner accepts a key; fifteenth M5 slice, see [secrets-scan.md](secrets-scan.md))
 - [ ] Optional: CAPTCHA provider integration for registration and contact forms
 - Deferred to 1.1: passkeys (WebAuthn)
 
@@ -439,6 +439,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - A webhook that was already kept is not applied again, and a Stripe signature outside its window is refused (**done**, twelfth slice, see [webhooks.md](webhooks.md))
 - The security headers are checked on every CI run (**done**, thirteenth slice, see [security-headers.md](security-headers.md))
 - A vulnerability is reported in private, and that contact is published at `/.well-known/security.txt`; Dependabot opens weekly dependency updates (**done**, fourteenth slice, see [security-contact.md](security-contact.md))
+- Every commit on the branch is read for a secret, and the scan fails if it would accept a key (**done**, fifteenth slice, see [secrets-scan.md](secrets-scan.md))
 - **Exit:** checklist complete; external dependency audit clean; no open high/medium findings. (Passkeys are deferred to 1.1.)
 
 ### M6. Search and performance (8–12 days)

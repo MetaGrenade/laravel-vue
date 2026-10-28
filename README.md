@@ -433,7 +433,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
   - PHP static analysis (Larastan, level 5): `composer analyse`
   - Translation completeness: `php artisan lang:check`
 
-  CI (`.github/workflows`) runs the test suite on SQLite, MySQL 8 and PostgreSQL 16, then Pint, Prettier, ESLint, vue-tsc, Larastan and `lang:check`, plus dependency audits and a secrets scan (gitleaks) on every push and pull request. Two scheduled jobs repeat the suite in random order and re-check dependency advisories weekly. The front-end checks only look at `resources/`.
+  CI (`.github/workflows`) runs the test suite on SQLite, MySQL 8 and PostgreSQL 16, then Pint, Prettier, ESLint, vue-tsc, Larastan and `lang:check`, plus dependency audits and a secrets scan (gitleaks, every commit on the branch) on every push and pull request. Two scheduled jobs repeat the suite in random order and, each week, re-check dependency advisories and read the branch again for a secret. The front-end checks only look at `resources/`. See [docs/secrets-scan.md](docs/secrets-scan.md).
 
 ## Production & SSR Builds
 - **Frontend build**: `npm run build` outputs versioned assets for Laravel's Vite integration.

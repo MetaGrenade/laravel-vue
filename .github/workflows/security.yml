@@ -10,13 +10,12 @@ on:
       - develop
       - main
   schedule:
-    # Weekly, so new advisories are noticed even when no code changes.
+    # Weekly, so new advisories are noticed, and every commit on the branch is read for a secret again.
     - cron: '17 5 * * 1'
   workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -32,10 +31,46 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Scan for committed secrets (gitleaks)
-        uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install gitleaks 8.24.3
+        run: |
+          set -euo pipefail
+          version=8.24.3
+          asset="gitleaks_${version}_linux_x64.tar.gz"
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${version}"
+          curl --fail --silent --show-error --location --retry 4 --retry-max-time 120 \
+            --output "$asset" "${url}/${asset}"
+          curl --fail --silent --show-error --location --retry 4 --retry-max-time 120 \
+            --output checksums.txt "${url}/gitleaks_${version}_checksums.txt"
+          grep "$asset" checksums.txt | sha256sum --check -
+          tar --extract --gzip --file "$asset" gitleaks
+          sudo install --mode 0755 gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan every commit on this branch
+        # HEAD, not every ref the checkout fetched. --full-history keeps a commit that a merge would otherwise hide.
+        run: gitleaks detect --source . --redact --exit-code 1 --log-opts="--full-history HEAD"
+
+      - name: The scanner must refuse a key
+        run: |
+          set -euo pipefail
+          dir=$(mktemp --directory)
+          # Built from character codes so this file does not itself contain a key.
+          key=$(printf '\101\113\111\101')
+          i=0
+          while [ "$i" -lt 16 ]; do
+            key="${key}I"
+            i=$((i + 1))
+          done
+          printf '%s\n' "$key" > "$dir/leak.txt"
+          set +e
+          gitleaks detect --source "$dir" --no-git --redact --exit-code 1
+          code=$?
+          set -e
+          rm -rf "$dir"
+          if [ "$code" -eq 0 ]; then
+            echo "The secrets scan accepted a key."
+            exit 1
+          fi
 
   advisories:
     name: dependency advisories

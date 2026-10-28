@@ -1,10 +1,11 @@
 # Findings the secrets scan (gitleaks) has been told to accept, one fingerprint per line.
 #
-# A made-up Tebex public token in a test helper, in the first commit of the Tebex catalogue slice. It was never a
-# real key, and the helper now builds it at run time so no later commit contains it. This line only keeps that old
-# commit from failing the scan of the pull request that contains it.
+# The scan reads every commit on the branch. A made-up Tebex public token in a test helper, in the first commit of
+# the Tebex catalogue slice. It was never a real key, and the helper now builds it at run time so no later commit
+# contains it. This line keeps that old commit from failing the scan.
 d8d7ef245b7239d005a089832b719432ae126ef6:tests/Support/InteractsWithTebex.php:generic-api-key:19
 
 # The published RFC 6238 appendix B test vector, named like a secret in the first commit of the two-factor slice.
 # It is the base32 form of the paper's example value, not a credential. The constant has since been renamed.
+# This line keeps that old commit from failing the scan of the whole branch.
 1aa5037d5236c60d04eb98d03bafe5477c94e234:tests/Feature/Auth/TwoFactorAuthenticatorTest.php:generic-api-key:16
