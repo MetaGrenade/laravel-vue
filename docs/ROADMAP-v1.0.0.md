@@ -114,7 +114,7 @@ Strong already. Remaining gaps, in priority order:
 | Medium | Webhook handling is Stripe-specific; no replay window or idempotency key on the stored calls. | **Done** (twelfth M5 slice, see [webhooks.md](webhooks.md)) | Generalise (section 7) with unique `(provider, external_id)` and a processed-at guard. |
 | Medium | No cookie-consent mechanism or legal pages (Terms, Privacy Policy). | **Done** (first M5 slice, see [legal-pages.md](legal-pages.md)) | Configurable legal pages and a consent banner. Optional scripts stay off until the visitor allows them. |
 | Low | No `SECURITY.md` or `/.well-known/security.txt`. | Verified | Add both. |
-| Low | CSP `style-src` includes `'unsafe-inline'`. | Verified | Acceptable for 1.0 (Tailwind/Vue inline styles); document, and tighten if feasible. |
+| Low | CSP `style-src` includes `'unsafe-inline'`. | **Done** (accepted for 1.0, thirteenth M5 slice, see [security-headers.md](security-headers.md)) | Vue style bindings need inline styles. The policy is checked in CI. |
 | Low | Password rules are strong in production (min 12, mixed case, numbers, uncompromised) and weak elsewhere (min 8). | Verified | Fine; document. |
 | Low | `Model::preventLazyLoading` only logs and only locally. | Verified | Keep; add a test-suite mode that fails on lazy loading. |
 | Info | Positives: nonce CSP, `PreventRequestForgery`, sanitised rich text, named rate limiters, banned-user middleware, Stripe signature check, `.env` not tracked, dependency audits in CI. | Verified | Keep. |
@@ -130,7 +130,7 @@ Strong already. Remaining gaps, in priority order:
 - [x] Policies for orders, tickets and products (eighth M5 slice, see [record-policies.md](record-policies.md)). An order follows its owner. A ticket follows the person who opened it. A product is on the shop when it is for sale.
 - [x] Webhook idempotency and replay protection for all providers (Stripe's signature window, and a delivery that was already kept is not applied again, for shop payments, subscriptions and Tebex; twelfth M5 slice, see [webhooks.md](webhooks.md))
 - [x] Brute-force protection on 2FA challenge and recovery codes (**done**, third M5 slice, see [two-factor.md](two-factor.md))
-- [ ] Security headers test in CI
+- [x] Security headers test in CI (every HTML response is checked for the clickjacking, sniffing, referrer, permissions and opener headers and for a nonce-based content security policy; a response that is not HTML keeps those headers and omits the policy; thirteenth M5 slice, see [security-headers.md](security-headers.md))
 - [ ] `SECURITY.md`, `security.txt`, dependency-update automation (Dependabot or Renovate)
 - [ ] Secrets scanning in CI
 - [ ] Optional: CAPTCHA provider integration for registration and contact forms
@@ -437,6 +437,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Support pictures are decoded and saved again as WebP (**done**, tenth slice, see [support-attachments.md](support-attachments.md))
 - Support, forum and download files stay on a private disk, and a public disk is refused (**done**, eleventh slice, see [private-uploads.md](private-uploads.md))
 - A webhook that was already kept is not applied again, and a Stripe signature outside its window is refused (**done**, twelfth slice, see [webhooks.md](webhooks.md))
+- The security headers are checked on every CI run (**done**, thirteenth slice, see [security-headers.md](security-headers.md))
 - **Exit:** checklist complete; external dependency audit clean; no open high/medium findings. (Passkeys are deferred to 1.1.)
 
 ### M6. Search and performance (8–12 days)
