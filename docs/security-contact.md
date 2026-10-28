@@ -10,7 +10,7 @@ The policy is [SECURITY.md](../SECURITY.md). Use the repository's **Security** t
 
 ## security.txt
 
-`GET /.well-known/security.txt` names that same contact, the policy, the address of the file itself, and an expiry 364 days ahead, so the published file does not go stale. The contact is `SECURITY_CONTACT_URI` and the policy is `SECURITY_POLICY_URL`. A value with a line break is left out, so it cannot add another field. The file is plain text. It is one of the pages staff can open while viewing the site as a customer.
+`GET /.well-known/security.txt` names that same contact, the policy, the address of the file itself, and an expiry 364 days ahead, so the published file does not go stale. It stays available while the site is in maintenance. The contact is `SECURITY_CONTACT_URI` and the policy is `SECURITY_POLICY_URL`. A value with a line break is left out, so it cannot add another field. The file is plain text. It is one of the pages staff can open while viewing the site as a customer.
 
 ## Dependency updates
 
@@ -18,4 +18,4 @@ Dependabot (`.github/dependabot.yml`) opens a pull request each week for Compose
 
 ## Testing
 
-`tests/Feature/SecurityTextTest.php`: the file names the contact, the policy, its own address, and an expiry 364 days ahead, and a policy value with a line break is left out. `tests/Unit/DependabotConfigTest.php`: Composer, npm, and GitHub Actions are each checked weekly.
+`tests/Feature/SecurityTextTest.php`: the file names the contact, the policy, its own address, and an expiry 364 days ahead, a policy value with a line break is left out, and the file is still served while the site is in maintenance. `tests/Unit/DependabotConfigTest.php`: Composer, npm, and GitHub Actions are each checked weekly.

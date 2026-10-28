@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\SystemSetting;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -36,5 +37,16 @@ class SecurityTextTest extends TestCase
         $response->assertSee('Contact: https://example.test/report', false);
         $response->assertDontSee('hidden', false);
         $response->assertDontSee('Policy:', false);
+    }
+
+    public function test_the_contact_stays_available_while_the_site_is_in_maintenance(): void
+    {
+        SystemSetting::set('maintenance_mode', true);
+
+        $this->get(route('home'))->assertStatus(503);
+
+        $this->get(route('security.txt'))
+            ->assertOk()
+            ->assertSee('Contact: https://github.com/MetaGrenade/laravel-vue/security/advisories/new', false);
     }
 }
