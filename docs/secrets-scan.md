@@ -14,7 +14,7 @@ Two old commits are named in `.gitleaksignore`. One holds a made-up Tebex token 
 
 ## The scanner has to notice a key
 
-After the history is clean, the job writes a key into a temporary directory on the runner, from character codes so the workflow file itself does not contain one, and scans that directory. If the scanner accepts it, the job fails. The file is removed and is never committed.
+After the history is clean, the job writes a key into a temporary directory on the runner, from character codes so the workflow file itself does not contain one, and scans that directory. The characters vary, so the token sits above the entropy bar and is not skipped. If the scanner accepts it, the job fails. The file is removed and is never committed.
 
 ## Testing
 

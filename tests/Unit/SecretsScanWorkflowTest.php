@@ -15,6 +15,8 @@ class SecretsScanWorkflowTest extends TestCase
         $this->assertStringNotContainsString('gitleaks-action', $workflow);
         $this->assertStringNotContainsString('log-opts=-1', $workflow);
         $this->assertStringNotContainsString('--log-opts=--all', $workflow);
+        $this->assertStringContainsString('\101\113\111\101\062\063\064\065\066\067\070\071\102\103\104\105\106\107\110\112', $workflow);
+        $this->assertStringNotContainsString('key="${key}I"', $workflow);
         $this->assertStringNotContainsString('AKIA', $workflow);
     }
 }
