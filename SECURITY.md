@@ -23,7 +23,9 @@ Report it privately through GitHub: go to the repository's **Security** tab and 
 
 You can expect an acknowledgement within a few days. We will keep you updated while we investigate, agree a disclosure date with you, and credit you in the release notes if you wish.
 
-> Maintainers: private vulnerability reporting must be enabled under *Settings → Code security*. If you would rather publish a contact email, add it here and in `public/.well-known/security.txt`.
+The same contact is published at `/.well-known/security.txt`, with this policy's address and an expiry that stays under a year. Change it with `SECURITY_CONTACT_URI` and `SECURITY_POLICY_URL`. See [docs/security-contact.md](docs/security-contact.md).
+
+> Maintainers: private vulnerability reporting must be enabled under *Settings → Code security*. If you would rather publish a contact email, set `SECURITY_CONTACT_URI` to a `mailto:` address.
 
 ## Scope
 
@@ -36,5 +38,5 @@ Out of scope: vulnerabilities in third-party services (Stripe, Tebex, Pusher and
 - Keep `APP_DEBUG=false` and set `APP_ENV=production` in production.
 - Serve over HTTPS and enable HSTS (`SECURITY_HSTS_*` in `.env`).
 - Store user uploads on a private disk. Support files, forum files and product downloads refuse a disk that is public (`SUPPORT_ATTACHMENT_DISK`, `FORUM_ATTACHMENT_DISK`, `COMMERCE_DOWNLOAD_DISK`). See [docs/private-uploads.md](docs/private-uploads.md).
-- Run `composer audit` and `npm audit` regularly; CI runs both on every change.
+- Run `composer audit` and `npm audit` regularly; CI runs both on every change. Dependabot opens a pull request each week for Composer, npm, and GitHub Actions.
 - Rotate `APP_KEY`, payment-provider secrets and webhook secrets if they may have been exposed.

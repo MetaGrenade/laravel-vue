@@ -90,6 +90,7 @@ return [
         'api.docs.schema',
         'sitemap',
         'robots',
+        'security.txt',
         'webmanifest',
         'sanctum.csrf-cookie',
         'up',

@@ -14,7 +14,7 @@ Every page sent by the web middleware carries a set of headers from `App\Http\Mi
 - `Strict-Transport-Security` only when the request is HTTPS and `SECURITY_HSTS` is on (it is on in production). `SECURITY_HSTS_SUBDOMAINS` adds `includeSubDomains`. It is left off until every subdomain is served over HTTPS.
 - A content security policy with a fresh nonce on each response. Inline scripts in the page carry that nonce. `object-src` is `none` and `base-uri` is `'self'`.
 
-A response that is not HTML, such as the sitemap or the web manifest, still gets the other headers. It does not get the content security policy.
+A response that is not HTML, such as the sitemap, the web manifest, or `security.txt`, still gets the other headers. It does not get the content security policy.
 
 `CSP_REPORT_ONLY=true` sends the policy as `Content-Security-Policy-Report-Only` instead, so a change can be tried without blocking the page. `CSP_ENABLED=false` turns the policy off. The other headers stay.
 

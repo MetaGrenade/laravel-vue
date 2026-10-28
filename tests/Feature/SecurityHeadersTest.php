@@ -66,7 +66,7 @@ class SecurityHeadersTest extends TestCase
 
     public function test_responses_that_are_not_html_keep_the_other_headers_and_omit_the_csp(): void
     {
-        foreach ([route('sitemap'), route('webmanifest')] as $url) {
+        foreach ([route('sitemap'), route('webmanifest'), route('security.txt')] as $url) {
             $response = $this->get($url)->assertOk();
 
             $response->assertHeader('X-Content-Type-Options', 'nosniff');
