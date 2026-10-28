@@ -69,4 +69,20 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Vulnerability contact
+    |--------------------------------------------------------------------------
+    |
+    | Published at /.well-known/security.txt. The policy page is SECURITY.md.
+    | A value with a line break is left out, so it cannot add another field.
+    |
+    */
+
+    'contact' => [
+        'uri' => env('SECURITY_CONTACT_URI', 'https://github.com/MetaGrenade/laravel-vue/security/advisories/new'),
+        'policy' => env('SECURITY_POLICY_URL', 'https://github.com/MetaGrenade/laravel-vue/security/policy'),
+        'languages' => 'en',
+    ],
+
 ];

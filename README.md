@@ -251,7 +251,7 @@ dispatch but nothing will be pushed to clients. To enable realtime notifications
 - **Social sign-in trusts verified addresses only.** An email address from Google or Discord is only used to recognise an account (or to mark a new one verified) when the provider says it verified it.
 - **Hardened serialization.** Sessions use Laravel 13's JSON serialization and the cache only unserializes an explicit allow-list of classes (`config/cache.php`).
 - **Private files and safe uploads.** Support attachments and digital downloads live on private disks and are only served through authorised routes (digital files as signed, short-lived, download-limited attachments). Product pictures are decoded and re-encoded, so anything hidden in an upload does not survive. Prices, shipping and tax are always recalculated on the server, never read back from the cart or the form.
-- **Reporting a vulnerability.** Please do not open a public issue; see [SECURITY.md](SECURITY.md).
+- **Reporting a vulnerability.** Please do not open a public issue. The contact is also published at `/.well-known/security.txt`. See [SECURITY.md](SECURITY.md) and [docs/security-contact.md](docs/security-contact.md).
 
 ## SEO
 - **Per-page metadata.** Controllers describe a page with the request-scoped `App\Support\Seo\Seo` service:

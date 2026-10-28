@@ -38,6 +38,7 @@ use App\Http\Controllers\OnboardingDismissController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SearchResultsController;
+use App\Http\Controllers\SecurityTextController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SupportAttachmentController;
 use App\Http\Controllers\SupportCenterController;
@@ -45,6 +46,7 @@ use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use App\Http\Controllers\Webhooks\TebexWebhookController;
 use App\Http\Controllers\WebManifestController;
+use App\Http\Middleware\EnsureSiteIsAvailable;
 use App\Support\Legal\LegalPages;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
@@ -57,6 +59,10 @@ Route::get('/api/docs/openapi.json', ApiDocumentationController::class)
 // PUBLIC PAGES
 Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+// Stays up during maintenance, so the reporting contact can still be found.
+Route::get('/.well-known/security.txt', SecurityTextController::class)
+    ->name('security.txt')
+    ->withoutMiddleware([EnsureSiteIsAvailable::class]);
 Route::get('/site.webmanifest', WebManifestController::class)->name('webmanifest');
 
 Route::get('/', HomeController::class)->name('home');
