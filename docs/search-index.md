@@ -1,8 +1,8 @@
 # Search index
 
-What may be put in the search index, and how its Meilisearch settings are applied. The search page still reads the database.
+What may be put in the search index, how its Meilisearch settings are applied, and how documents are rebuilt. The search page still reads the database.
 
-> **Status:** the index rules and settings sync are in place. Searching that index, a rebuild, and a fallback when Meilisearch is down are not built yet.
+> **Status:** the index rules, settings sync and reindex command are in place. Searching that index, a zero-downtime index swap, and a fallback when Meilisearch is down are not built yet.
 
 ## What is listed
 
@@ -31,10 +31,22 @@ php artisan metaforge:search:sync
 
 That command only pushes settings. It does not import documents. With `SEARCH_DRIVER=database` it refuses and says so.
 
+## Rebuilding documents
+
+To flush each index and import every record that may be listed:
+
+```bash
+php artisan metaforge:search:reindex
+```
+
+Settings are applied first (same as sync). Pass `--skip-sync` to import only, or `--chunk=100` to change the batch size. Import runs in-process; a queued rebuild and a zero-downtime index swap are not built yet. With `SEARCH_DRIVER=database` the command refuses and says so.
+
+A bulk import only loads rows that already qualify (published blogs and due scheduled posts, published threads, published FAQs, active products).
+
 ## Not built
 
 - The search page still uses the database, including a scheduled post whose time has arrived. A scheduled post is not added to the Meilisearch index by the clock: it is added when the post is saved after it is due, or when the index is rebuilt.
-- `metaforge:search:reindex`, a queued rebuild, and swapping the search page onto the index.
+- Swapping the search page onto the index, a queued rebuild, and zero-downtime index swap.
 - A fallback to the database when Meilisearch cannot be reached, the ACP health check, and a CI job that runs Meilisearch.
 
 ## Testing
@@ -42,3 +54,5 @@ That command only pushes settings. It does not import documents. With `SEARCH_DR
 `tests/Feature/Search/SearchIndexTest.php` uses Scout's collection engine: a draft, an unpublished thread, an unpublished FAQ, an archived product and a held reply are left out, unpublishing a post removes its document, and taking down a member's posts removes their threads and reply text from the index.
 
 `tests/Feature/Search/SyncSearchIndexSettingsCommandTest.php` checks that sync refuses the database driver and pushes settings for every index when Meilisearch is configured (through a fake engine, without a live server).
+
+`tests/Feature/Search/ReindexSearchCommandTest.php` checks that reindex refuses the database driver, flushes each index, imports only searchable rows, and can skip settings with `--skip-sync`.

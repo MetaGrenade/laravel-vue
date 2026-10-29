@@ -2,10 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Support\Search\SearchIndexSettings;
+use App\Support\Search\SearchDriver;
+use App\Support\Search\SearchIndexConfigurator;
 use Illuminate\Console\Command;
-use Laravel\Scout\Contracts\UpdatesIndexSettings;
-use Laravel\Scout\EngineManager;
 use Throwable;
 
 /**
@@ -18,26 +17,18 @@ class SyncSearchIndexSettingsCommand extends Command
 
     protected $description = 'Apply Meilisearch index settings for blogs, forum threads, FAQs and products';
 
-    public function handle(EngineManager $engines): int
+    public function handle(SearchIndexConfigurator $configurator): int
     {
-        if (config('search.driver') !== 'meilisearch' || config('scout.driver') !== 'meilisearch') {
-            $this->components->error('Set SEARCH_DRIVER=meilisearch to sync index settings.');
-
-            return self::FAILURE;
-        }
-
-        $engine = $engines->engine('meilisearch');
-
-        if (! $engine instanceof UpdatesIndexSettings) {
-            $this->components->error('The Meilisearch engine does not support updating index settings.');
+        if (! SearchDriver::usesMeilisearch()) {
+            $this->components->error(SearchDriver::meilisearchRequiredMessage());
 
             return self::FAILURE;
         }
 
         try {
-            foreach (SearchIndexSettings::forScout() as $modelClass => $settings) {
-                $index = (new $modelClass)->indexableAs();
-                $engine->updateIndexSettings($index, $settings);
+            $configurator->syncSettings();
+
+            foreach ($configurator->indexNames() as $index) {
                 $this->components->info("Settings for the [{$index}] index synced successfully.");
             }
         } catch (Throwable $exception) {

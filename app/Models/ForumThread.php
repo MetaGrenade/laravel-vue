@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasSearchDocument;
 use App\Support\Forum\ForumAttachments;
 use App\Support\Search\SearchText;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -178,6 +179,15 @@ class ForumThread extends Model
     public function shouldBeSearchable(): bool
     {
         return (bool) $this->is_published;
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    protected function makeAllSearchableUsing(Builder $query): Builder
+    {
+        return $query->where('is_published', true);
     }
 
     /**

@@ -332,7 +332,7 @@ A small provider-neutral entitlement layer is needed by Tebex purchases, Stripe 
 - **Indexes:** `blogs`, `forum_threads` (title plus first post and replies as a bounded text field), `faqs`, `products`. Optional later: member directory.
 - **Visibility is enforced at index time.** `shouldBeSearchable()` excludes drafts, unpublished threads, boards restricted by permission, inactive products. Content that changes visibility is re-indexed or removed through model observers (the forum already has `ForumIndexCacheObserver` as a pattern). **Done** for these rules (M6, first slice, see [search-index.md](search-index.md)): boards have no permission of their own yet, so a published thread is indexed. The search page still uses the database.
 - **Index settings** (searchable, filterable, sortable attributes, ranking rules, stop words, typo tolerance) live in code (`SearchIndexSettings`) and are applied by `php artisan metaforge:search:sync`, so a fresh install configures itself. **Done** (M6, second slice, see [search-index.md](search-index.md)): searchable attributes, ranking rules and typo tolerance for the four indexes. Filterable/sortable attributes and stop words wait until a query needs them.
-- **Indexing** runs on the queue with batching; a `metaforge:search:reindex` command rebuilds from scratch (zero-downtime via index swap).
+- **Indexing** runs on the queue with batching; a `metaforge:search:reindex` command rebuilds from scratch (zero-downtime via index swap). **Partly done** (M6, third slice, see [search-index.md](search-index.md)): `metaforge:search:reindex` flushes and imports in-process after syncing settings. Queued import and index swap wait until the page uses Meilisearch.
 - **Keys:** the application uses a server-side search key; the master key is never used at runtime and never sent to the browser.
 - **Fallback:** `GlobalSearchService` keeps the `database` path, made portable (case-insensitive on PostgreSQL). If Meilisearch is unreachable, a short circuit breaker serves the database path and logs a warning.
 - **Existing features keep working:** query logging and aggregation (`SearchQuery`, analytics page), result grouping, pagination and highlight snippets (use Meilisearch's crop/highlight output when present).
@@ -446,7 +446,8 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 
 - The search index keeps only what a guest can already open: a published or due blog post, a published forum thread and its visible replies, a published FAQ, and a product that is for sale (**done**, first slice, see [search-index.md](search-index.md)). The search page still uses the database
 - Index settings live in code and are applied with `php artisan metaforge:search:sync` (**done**, second slice, see [search-index.md](search-index.md)). The search page still uses the database
-- Meilisearch search (section 8A): reindex command, searching that index, fallback when it is unreachable, ACP health, CI integration job
+- Documents are rebuilt with `php artisan metaforge:search:reindex` (**done**, third slice, see [search-index.md](search-index.md)). Settings are applied first; only searchable rows are imported. Zero-downtime index swap waits until the page uses Meilisearch. The search page still uses the database
+- Meilisearch search (section 8A): searching that index, fallback when it is unreachable, ACP health, CI integration job
 - Redis defaults for production; Horizon option; Octane notes
 - Image pipeline with responsive variants; CDN notes
 - Guest HTTP caching; query-count regression tests; bundle and Lighthouse budgets in CI
