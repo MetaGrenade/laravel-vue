@@ -42,4 +42,14 @@ trait HasSearchDocument
 
         return is_string($name) ? $name : '';
     }
+
+    /**
+     * The Meilisearch index for this model. Matches Scout's default of
+     * prefixing {@see config('scout.prefix')} so settings sync and document
+     * writes use the same name.
+     */
+    protected function searchIndexAs(string $name): string
+    {
+        return (string) config('scout.prefix').$name;
+    }
 }

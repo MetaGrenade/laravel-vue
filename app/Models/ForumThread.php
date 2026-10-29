@@ -167,7 +167,7 @@ class ForumThread extends Model
 
     public function searchableAs(): string
     {
-        return 'forum_threads';
+        return $this->searchIndexAs('forum_threads');
     }
 
     /**
