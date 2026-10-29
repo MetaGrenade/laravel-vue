@@ -106,7 +106,7 @@ class Blog extends Model
 
     public function searchableAs(): string
     {
-        return 'blogs';
+        return $this->searchIndexAs('blogs');
     }
 
     /**

@@ -21,7 +21,7 @@ The words stored are plain text, and a document stops at 8,000 characters.
 
 ## Index settings
 
-Settings live in code (`App\Support\Search\SearchIndexSettings`) and in `config/scout.php`. Each index lists its searchable attributes in ranking order, turns typo tolerance on, and leaves filterable and sortable attributes empty (visibility is decided when a document is written, not at query time).
+Settings live in code (`App\Support\Search\SearchIndexSettings`) and in `config/scout.php`, keyed by model class so the index name comes from each model's `searchableAs()` (including `SCOUT_PREFIX` when set). Each index lists its searchable attributes in ranking order, turns typo tolerance on, and leaves filterable and sortable attributes empty (visibility is decided when a document is written, not at query time).
 
 With Meilisearch running and `SEARCH_DRIVER=meilisearch`, apply them:
 

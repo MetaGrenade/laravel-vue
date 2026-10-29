@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Support\Search\SearchIndexSettings;
 use Illuminate\Console\Command;
-use Illuminate\Support\Str;
 use Laravel\Scout\Contracts\UpdatesIndexSettings;
 use Laravel\Scout\EngineManager;
 use Throwable;
@@ -35,11 +34,9 @@ class SyncSearchIndexSettingsCommand extends Command
             return self::FAILURE;
         }
 
-        $prefix = (string) config('scout.prefix', '');
-
         try {
-            foreach (SearchIndexSettings::forScout() as $name => $settings) {
-                $index = ! Str::startsWith($name, $prefix) ? $prefix.$name : $name;
+            foreach (SearchIndexSettings::forScout() as $modelClass => $settings) {
+                $index = (new $modelClass)->indexableAs();
                 $engine->updateIndexSettings($index, $settings);
                 $this->components->info("Settings for the [{$index}] index synced successfully.");
             }

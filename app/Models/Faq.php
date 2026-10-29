@@ -56,7 +56,7 @@ class Faq extends Model
 
     public function searchableAs(): string
     {
-        return 'faqs';
+        return $this->searchIndexAs('faqs');
     }
 
     public function shouldBeSearchable(): bool

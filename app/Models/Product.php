@@ -138,7 +138,7 @@ class Product extends Model
 
     public function searchableAs(): string
     {
-        return 'products';
+        return $this->searchIndexAs('products');
     }
 
     /**

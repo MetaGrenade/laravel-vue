@@ -2,6 +2,10 @@
 
 namespace Tests\Feature\Search;
 
+use App\Models\Blog;
+use App\Models\Faq;
+use App\Models\ForumThread;
+use App\Models\Product;
 use App\Support\Search\SearchIndexSettings;
 use Laravel\Scout\Contracts\UpdatesIndexSettings;
 use Laravel\Scout\EngineManager;
@@ -41,17 +45,18 @@ class SyncSearchIndexSettingsCommandTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame(
-            array_keys(SearchIndexSettings::forScout()),
+            ['blogs', 'forum_threads', 'faqs', 'products'],
             array_keys($engine->updates),
         );
 
-        foreach (SearchIndexSettings::forScout() as $name => $settings) {
-            $this->assertSame($settings, $engine->updates[$name]);
+        foreach (SearchIndexSettings::forScout() as $modelClass => $settings) {
+            $index = (new $modelClass)->indexableAs();
+            $this->assertSame($settings, $engine->updates[$index]);
         }
     }
 
     #[Test]
-    public function it_applies_the_scout_prefix_to_index_names(): void
+    public function it_uses_the_same_prefixed_names_as_the_models(): void
     {
         $engine = new RecordingSettingsEngine;
         $this->app->make(EngineManager::class)->extend('meilisearch', fn () => $engine);
@@ -63,6 +68,16 @@ class SyncSearchIndexSettingsCommandTest extends TestCase
         ]);
 
         $this->artisan('metaforge:search:sync')->assertSuccessful();
+
+        $this->assertSame(
+            [
+                (new Blog)->indexableAs(),
+                (new ForumThread)->indexableAs(),
+                (new Faq)->indexableAs(),
+                (new Product)->indexableAs(),
+            ],
+            array_keys($engine->updates),
+        );
 
         $this->assertSame(
             ['site_blogs', 'site_forum_threads', 'site_faqs', 'site_products'],

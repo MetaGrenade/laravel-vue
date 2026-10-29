@@ -2,30 +2,38 @@
 
 namespace App\Support\Search;
 
+use App\Models\Blog;
+use App\Models\Faq;
+use App\Models\ForumThread;
+use App\Models\Product;
+
 /**
  * Meilisearch index settings for the four search indexes. Applied by
  * `php artisan metaforge:search:sync`. Document import is a later command.
+ *
+ * Keys are model classes so Scout resolves the index name through
+ * `indexableAs()` / `searchableAs()`, including `scout.prefix`.
  */
 final class SearchIndexSettings
 {
     /**
-     * Settings keyed by Scout index name (`searchableAs()` on each model).
+     * Settings keyed by searchable model class.
      *
-     * @return array<string, array<string, mixed>>
+     * @return array<class-string, array<string, mixed>>
      */
     public static function forScout(): array
     {
         return [
-            'blogs' => self::index(
+            Blog::class => self::index(
                 searchable: ['title', 'excerpt', 'body', 'author'],
             ),
-            'forum_threads' => self::index(
+            ForumThread::class => self::index(
                 searchable: ['title', 'excerpt', 'replies', 'author'],
             ),
-            'faqs' => self::index(
+            Faq::class => self::index(
                 searchable: ['question', 'answer', 'category'],
             ),
-            'products' => self::index(
+            Product::class => self::index(
                 searchable: ['name', 'description', 'brand'],
             ),
         ];
