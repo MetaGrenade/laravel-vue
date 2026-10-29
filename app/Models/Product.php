@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSearchDocument;
+use App\Support\Search\SearchText;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 class Product extends Model
 {
     use HasFactory;
+    use HasSearchDocument;
 
     protected $fillable = [
         'brand_id',
@@ -131,5 +134,41 @@ class Product extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(ProductReview::class);
+    }
+
+    public function searchableAs(): string
+    {
+        return 'products';
+    }
+
+    /**
+     * The shop shows a product that is for sale. An archived one is not.
+     */
+    public function shouldBeSearchable(): bool
+    {
+        return (bool) $this->is_active;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function toSearchableArray(): array
+    {
+        return $this->searchDocument([
+            'name' => (string) $this->name,
+            'description' => SearchText::plain($this->description),
+            'brand' => $this->brandName(),
+        ]);
+    }
+
+    private function brandName(): string
+    {
+        if ($this->brand_id === null) {
+            return '';
+        }
+
+        $name = Brand::query()->whereKey($this->brand_id)->value('name');
+
+        return is_string($name) ? $name : '';
     }
 }

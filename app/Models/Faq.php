@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSearchDocument;
+use App\Support\Search\SearchText;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Faq extends Model
 {
     use HasFactory;
+    use HasSearchDocument;
 
     protected $fillable = [
         'faq_category_id',
@@ -49,5 +52,38 @@ class Faq extends Model
     public function notHelpfulFeedback(): HasMany
     {
         return $this->feedback()->where('is_helpful', false);
+    }
+
+    public function searchableAs(): string
+    {
+        return 'faqs';
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return filter_var($this->published, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function toSearchableArray(): array
+    {
+        return $this->searchDocument([
+            'question' => (string) $this->question,
+            'answer' => SearchText::plain($this->answer),
+            'category' => $this->categoryName(),
+        ]);
+    }
+
+    private function categoryName(): string
+    {
+        if ($this->faq_category_id === null) {
+            return '';
+        }
+
+        $name = FaqCategory::query()->whereKey($this->faq_category_id)->value('name');
+
+        return is_string($name) ? $name : '';
     }
 }
