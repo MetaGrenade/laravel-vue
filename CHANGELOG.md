@@ -126,6 +126,7 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 
 ### Fixed
 
+- **Security:** `symfony/mime` is updated to 8.1.10 so a MIME parameter name can no longer inject email headers (CVE-2026-45070).
 - The API gave `null` for the name of a thread's board (`board.name`): a board has a `title`, and the resource read a `name` that does not exist. It is the board's title now.
 - A blog post still showed the comments a moderator had rejected (or that were waiting to be approved) in the first page of comments it opens with: only the list that pages through them and the API left them out. The post, and the "most commented" sorts of the blog list, the post's recommendations and the dashboard (which counted every comment, so a spam wave made a post popular), now use the approved comments only (`Blog::approvedComments()`).
 - A banned member's request with an API key ended in a server error (`PreventBannedUser` called `logout()` on a guard that has none), and the first one that got further would have deleted the key. It is now refused with a `403` and the reason, and the key is kept, so that it works again when a ban with an end date runs out.

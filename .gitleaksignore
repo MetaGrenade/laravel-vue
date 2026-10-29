@@ -9,3 +9,8 @@ d8d7ef245b7239d005a089832b719432ae126ef6:tests/Support/InteractsWithTebex.php:ge
 # It is the base32 form of the paper's example value, not a credential. The constant has since been renamed.
 # This line keeps that old commit from failing the scan of the whole branch.
 1aa5037d5236c60d04eb98d03bafe5477c94e234:tests/Feature/Auth/TwoFactorAuthenticatorTest.php:generic-api-key:16
+
+# Placeholder Discord role ids in the companion integration test, in the commit that added it.
+# They are eighteen digits in a row, so the discord-client-id rule names them. They are not an application id or a secret.
+610571ef2c1cd693d7672903de4aa08f2affec58:tests/Feature/Discord/DiscordCompanionIntegrationTest.php:discord-client-id:56
+610571ef2c1cd693d7672903de4aa08f2affec58:tests/Feature/Discord/DiscordCompanionIntegrationTest.php:discord-client-id:62

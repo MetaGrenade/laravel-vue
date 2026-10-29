@@ -10,7 +10,7 @@ The secrets job in `.github/workflows/security.yml` checks out the whole history
 
 Other branches that happen to be in the checkout are not read. The scan is `HEAD`, not every ref.
 
-Two old commits are named in `.gitleaksignore`. One holds a made-up Tebex token that a test helper used to contain, and one holds the published two-factor test vector. Neither was a real credential, and neither string is in a later commit. The fingerprint is what lets the whole history pass.
+Three old commits are named in `.gitleaksignore`. One holds a made-up Tebex token that a test helper used to contain, one holds the published two-factor test vector, and one holds placeholder Discord role ids (eighteen digits in a row) that the client-id rule matches. None of them was a real credential. The Tebex token and the test vector are not in a later commit. The fingerprint is what lets the whole history pass.
 
 ## The scanner has to notice a key
 
