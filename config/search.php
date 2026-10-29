@@ -2,8 +2,13 @@
 
 return [
     // 'database' searches with case-insensitive LIKE and works on MySQL, PostgreSQL and SQLite.
-    // A Meilisearch driver is planned for the 1.0 release.
+    // 'meilisearch' is the only other driver. It is read by config/scout.php.
+    // The search page still uses the database path. See docs/search-index.md.
     'driver' => env('SEARCH_DRIVER', 'database'),
+
+    'documents' => [
+        'max_characters' => 8000,
+    ],
 
     'highlight' => [
         'context_chars' => (int) env('SEARCH_HIGHLIGHT_CONTEXT_CHARS', 80),

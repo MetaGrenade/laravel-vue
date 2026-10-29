@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSearchDocument;
 use App\Support\Forum\ForumAttachments;
+use App\Support\Search\SearchText;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class ForumThread extends Model
 {
     use HasFactory;
+    use HasSearchDocument;
 
     protected static function booted(): void
     {
@@ -160,5 +163,66 @@ class ForumThread extends Model
         }
 
         return $this->subscriptions()->where('user_id', $user->id)->exists();
+    }
+
+    public function searchableAs(): string
+    {
+        return 'forum_threads';
+    }
+
+    /**
+     * A published thread. Boards are public, so there is no permission to
+     * apply here; a board that later requires one is excluded in this method.
+     * A held thread is not published.
+     */
+    public function shouldBeSearchable(): bool
+    {
+        return (bool) $this->is_published;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function toSearchableArray(): array
+    {
+        return $this->searchDocument([
+            'title' => (string) $this->title,
+            'excerpt' => SearchText::plain($this->excerpt),
+            'replies' => $this->visibleReplyText(),
+            'author' => $this->searchNickname($this->user_id),
+        ]);
+    }
+
+    /**
+     * Visible replies only. A held reply is left out by the model's scope,
+     * and a deleted one is left out with it. The text stops at the document limit.
+     */
+    private function visibleReplyText(): string
+    {
+        $remaining = max(1, (int) config('search.documents.max_characters', 8000));
+        $parts = [];
+
+        $bodies = ForumPost::query()
+            ->where('forum_thread_id', $this->id)
+            ->orderBy('id')
+            ->limit(40)
+            ->pluck('body');
+
+        foreach ($bodies as $body) {
+            if ($remaining < 1) {
+                break;
+            }
+
+            $plain = SearchText::plain($body, $remaining);
+
+            if ($plain === '') {
+                continue;
+            }
+
+            $parts[] = $plain;
+            $remaining -= mb_strlen($plain) + 1;
+        }
+
+        return implode(' ', $parts);
     }
 }

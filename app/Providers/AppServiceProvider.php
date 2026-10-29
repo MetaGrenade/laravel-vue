@@ -17,6 +17,7 @@ use App\Models\Product;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Observers\ForumIndexCacheObserver;
+use App\Observers\SearchIndexObserver;
 use App\Payments\PaymentManager;
 use App\Payments\Stripe\CashierStripeGateway;
 use App\Payments\Stripe\StripeGateway;
@@ -134,6 +135,8 @@ class AppServiceProvider extends ServiceProvider
         ForumThread::observe($cacheObserver);
         ForumPost::observe($cacheObserver);
         ForumPrefix::observe($cacheObserver);
+
+        ForumPost::observe(SearchIndexObserver::class);
 
     }
 

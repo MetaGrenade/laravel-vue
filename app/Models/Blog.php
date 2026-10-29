@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use App\Casts\SanitizedHtml;
+use App\Models\Concerns\HasSearchDocument;
+use App\Support\Search\SearchText;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -12,6 +15,7 @@ use Illuminate\Support\Str;
 class Blog extends Model
 {
     use HasFactory;
+    use HasSearchDocument;
 
     protected $fillable = [
         'title',
@@ -98,5 +102,40 @@ class Blog extends Model
     public function revisions(): HasMany
     {
         return $this->hasMany(BlogRevision::class);
+    }
+
+    public function searchableAs(): string
+    {
+        return 'blogs';
+    }
+
+    /**
+     * A published post, or a scheduled one whose time has arrived. The same
+     * rule the database search uses.
+     */
+    public function shouldBeSearchable(): bool
+    {
+        if ($this->status === 'published') {
+            return true;
+        }
+
+        $due = $this->scheduled_for;
+
+        return $this->status === 'scheduled'
+            && $due instanceof CarbonInterface
+            && $due->lessThanOrEqualTo(now());
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function toSearchableArray(): array
+    {
+        return $this->searchDocument([
+            'title' => (string) $this->title,
+            'excerpt' => SearchText::plain($this->excerpt),
+            'body' => SearchText::plain($this->body),
+            'author' => $this->searchNickname($this->user_id),
+        ]);
     }
 }

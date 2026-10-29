@@ -330,7 +330,7 @@ A small provider-neutral entitlement layer is needed by Tebex purchases, Stripe 
 **Design**
 - **Engine:** Laravel Scout with the Meilisearch driver. `config/search.php` `driver` becomes `meilisearch | database` (the broken `mysql_fulltext` option is removed).
 - **Indexes:** `blogs`, `forum_threads` (title plus first post and replies as a bounded text field), `faqs`, `products`. Optional later: member directory.
-- **Visibility is enforced at index time.** `shouldBeSearchable()` excludes drafts, unpublished threads, boards restricted by permission, inactive products. Content that changes visibility is re-indexed or removed through model observers (the forum already has `ForumIndexCacheObserver` as a pattern).
+- **Visibility is enforced at index time.** `shouldBeSearchable()` excludes drafts, unpublished threads, boards restricted by permission, inactive products. Content that changes visibility is re-indexed or removed through model observers (the forum already has `ForumIndexCacheObserver` as a pattern). **Done** for these rules (M6, first slice, see [search-index.md](search-index.md)): boards have no permission of their own yet, so a published thread is indexed. The search page still uses the database.
 - **Index settings** (searchable, filterable, sortable attributes, ranking rules, stop words, typo tolerance) live in code (`SearchIndexSettings`) and are applied by `php artisan metaforge:search:sync`, so a fresh install configures itself.
 - **Indexing** runs on the queue with batching; a `metaforge:search:reindex` command rebuilds from scratch (zero-downtime via index swap).
 - **Keys:** the application uses a server-side search key; the master key is never used at runtime and never sent to the browser.
@@ -444,7 +444,8 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 
 ### M6. Search and performance (8–12 days)
 
-- Meilisearch search (section 8A): indexes, visibility rules, sync/reindex commands, fallback, ACP health, CI integration job
+- The search index keeps only what a guest can already open: a published or due blog post, a published forum thread and its visible replies, a published FAQ, and a product that is for sale (**done**, first slice, see [search-index.md](search-index.md)). The search page still uses the database
+- Meilisearch search (section 8A): index settings, sync and reindex commands, searching that index, fallback when it is unreachable, ACP health, CI integration job
 - Redis defaults for production; Horizon option; Octane notes
 - Image pipeline with responsive variants; CDN notes
 - Guest HTTP caching; query-count regression tests; bundle and Lighthouse budgets in CI
