@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppLogo from '@/components/AppLogo.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { SharedData } from '@/types';
@@ -10,11 +11,12 @@ import {
     Check,
     ChevronDown,
     CreditCard,
-    Gauge,
+    KeyRound,
     LayoutDashboard,
     LifeBuoy,
     MessagesSquare,
     Newspaper,
+    Package,
     Search,
     ShieldCheck,
     ShoppingBag,
@@ -63,90 +65,97 @@ const techIcons = Object.entries(rawIconModules)
     .filter((icon) => !['openai', 'docker', 'npm', 'pusher'].includes(icon.name))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-const highlights = ['Auth, MFA and social login', 'Stripe subscriptions and invoices', 'Role-based admin control panel'];
+const highlights = [
+    'Checkout with Stripe and Tebex',
+    'Forums, DMs and member profiles',
+    'Fine-grained ACP permissions',
+    'Private uploads and security headers in CI',
+];
 
 const features: { title: string; description: string; icon: Component }[] = [
     {
-        title: 'Authentication & security',
-        description: 'Email verification, TOTP two-factor auth, recovery codes, session management, OAuth linking and a strict CSP.',
-        icon: ShieldCheck,
+        title: 'Shop and checkout',
+        description:
+            'Catalogue, variants, stock, shipping and tax, Stripe Checkout, guest orders and Tebex packages or the experimental Checkout API.',
+        icon: ShoppingBag,
     },
     {
-        title: 'Billing that works',
-        description: 'Cashier-powered plans, trials, invoices and payment methods, with webhook auditing in the admin panel.',
+        title: 'Subscriptions and entitlements',
+        description: 'Cashier plans with trials and dunning, plus feature and limit entitlements from plans and Tebex packages.',
         icon: CreditCard,
     },
     {
-        title: 'Admin control panel',
-        description: 'Users, roles and permissions, moderation queues, system settings and analytics behind fine-grained access.',
-        icon: LayoutDashboard,
-    },
-    {
-        title: 'Publishing',
-        description: 'A rich-text blog with categories, tags, scheduling, revisions, comments and an RSS feed.',
-        icon: Newspaper,
-    },
-    {
-        title: 'Community',
-        description:
-            'Forums with boards, subscriptions, mentions, reactions, polls, reputation badges, a leaderboard, reporting tools and an RSS feed.',
+        title: 'Community and moderation',
+        description: 'Forums with prefixes, solutions, attachments and ignores, member follows and DMs, automod, bans and one-click content cleanup.',
         icon: MessagesSquare,
     },
     {
-        title: 'Support desk',
-        description: 'Tickets with SLAs, assignment rules, canned replies, teams, an FAQ and satisfaction ratings.',
-        icon: LifeBuoy,
+        title: 'Authentication and keys',
+        description: 'Email verification, TOTP two-factor auth, recovery codes, OAuth linking and scoped Sanctum API keys with rotation.',
+        icon: KeyRound,
     },
     {
-        title: 'Search & SEO',
-        description: 'Server-side rendering, structured data, sitemaps and a site-wide command palette search.',
+        title: 'Security by default',
+        description:
+            'Nonce CSP and security headers checked in CI, private disks for member uploads, webhook replay protection and a published security contact.',
+        icon: ShieldCheck,
+    },
+    {
+        title: 'Admin control panel',
+        description: 'Named permissions for users, blogs, support, commerce and billing, plus audit log and read-only impersonation.',
+        icon: LayoutDashboard,
+    },
+    {
+        title: 'Publishing and support',
+        description: 'Blog with WebP covers, scheduling and RSS; tickets with SLAs, private attachments and a help centre FAQ.',
+        icon: Newspaper,
+    },
+    {
+        title: 'Search and SEO',
+        description:
+            'Site-wide search, SSR, structured data and sitemaps. Meilisearch index rules, settings sync and reindex are ready for the engine path.',
         icon: Search,
     },
     {
-        title: 'API ready',
-        description: 'Versioned REST endpoints with Sanctum tokens, rate limiting and interactive API documentation.',
+        title: 'API and delivery',
+        description: 'Versioned REST with scoped tokens, OpenAPI docs, queues, CI on MySQL and PostgreSQL, and accessibility checks on main flows.',
         icon: Braces,
-    },
-    {
-        title: 'Fast by default',
-        description: 'Vite 8, code-split pages, self-hosted fonts and a lightweight UI that keeps pages quick to load.',
-        icon: Gauge,
     },
 ];
 
 const modules = computed(() =>
     [
         {
-            key: 'blog',
-            title: 'Blog',
-            description: 'Announcements, guides and release notes with SEO-friendly article pages.',
-            href: route('blogs.index'),
-            cta: 'Read the blog',
-            icon: Newspaper,
-            enabled: websiteSections.value.blog,
+            key: 'commerce',
+            title: 'Shop',
+            description: 'Buyable catalogue, cart, checkout with Stripe or Tebex, orders, refunds and digital downloads.',
+            href: route('shop.index'),
+            cta: 'Visit the shop',
+            icon: Package,
+            enabled: websiteSections.value.commerce,
         },
         {
             key: 'forum',
             title: 'Forum',
-            description: 'Organised boards, thread subscriptions and moderation tools for a healthy community.',
+            description: 'Boards, solved answers, attachments, subscriptions and tools to clear out a spam wave.',
             href: route('forum.index'),
             cta: 'Browse threads',
             icon: MessagesSquare,
             enabled: websiteSections.value.forum,
         },
         {
-            key: 'commerce',
-            title: 'Shop',
-            description: 'Product catalogue, detail pages and a cart you can extend into a full storefront.',
-            href: route('shop.index'),
-            cta: 'Visit the shop',
-            icon: ShoppingBag,
-            enabled: websiteSections.value.commerce,
+            key: 'blog',
+            title: 'Blog',
+            description: 'Guides and release notes with scheduling, revisions, comments and an RSS feed.',
+            href: route('blogs.index'),
+            cta: 'Read the blog',
+            icon: Newspaper,
+            enabled: websiteSections.value.blog,
         },
         {
             key: 'support',
             title: 'Support',
-            description: 'Help centre with FAQs and ticketing connected to member accounts.',
+            description: 'Tickets with SLAs, private file uploads, canned replies and an FAQ that members can rate.',
             href: route('support'),
             cta: 'Open support',
             icon: LifeBuoy,
@@ -156,10 +165,10 @@ const modules = computed(() =>
 );
 
 const steps = [
-    { title: 'Create a demo account', description: 'Explore the member experience across the blog, forum, billing and settings.' },
-    { title: 'Clone the repository', description: 'Install dependencies, run the migrations and seeders, and start the dev server.' },
-    { title: 'Toggle the modules', description: 'Enable only the sections you need from the admin system settings.' },
-    { title: 'Make it yours', description: 'Change the brand colour in one place, replace the copy and start shipping features.' },
+    { title: 'Create a demo account', description: 'Walk the shop, forum, billing portal and settings as a member would.' },
+    { title: 'Clone the repository', description: 'Install dependencies, run migrations and seeders, then start the Herd or compose stack.' },
+    { title: 'Toggle the modules', description: 'Turn blog, forum, support and commerce on or off from system settings.' },
+    { title: 'Make it yours', description: 'Set APP_NAME, brand colour and logos, then ship the features that are already wired.' },
 ];
 
 const stack = [
@@ -169,11 +178,11 @@ const stack = [
     },
     {
         title: 'Backend',
-        items: ['Laravel 13', 'Cashier (Stripe) and Sanctum', 'Spatie permissions', 'Queues, events and broadcasting'],
+        items: ['Laravel 13', 'Cashier, Scout and Sanctum', 'Stripe and Tebex payments', 'Spatie permissions'],
     },
     {
         title: 'Requirements',
-        items: ['PHP 8.4+ with Composer', 'Node.js 24+', 'MySQL, PostgreSQL or SQLite', 'Optional Pusher or Reverb for realtime'],
+        items: ['PHP 8.4+ with Composer', 'Node.js 24+', 'MySQL, PostgreSQL or SQLite', 'Optional Redis, Meilisearch and Reverb'],
     },
 ];
 
@@ -187,11 +196,11 @@ const resources = [
 const faqs = [
     {
         question: 'Is this production-ready?',
-        answer: 'Yes. It ships with CI, a large automated test suite, hardened security headers, rate limiting and sanitised user content. Review the configuration for your own infrastructure before launch.',
+        answer: 'Yes. CI runs the suite on SQLite, MySQL and PostgreSQL, axe checks the main public flows, security headers and secrets scans run on every pull request, and uploads stay on private disks. Review the configuration for your own infrastructure before launch.',
     },
     {
-        question: 'Can I use a different payment provider?',
-        answer: 'Stripe is built in through Laravel Cashier. Billing logic is isolated in its own module, so you can swap or add providers.',
+        question: 'Which payment providers are supported?',
+        answer: 'Stripe powers shop checkout and Cashier subscriptions. Tebex covers game-store packages, embedded checkout and an experimental Checkout API for your own catalogue. Both share the same payment and webhook layer.',
     },
     {
         question: 'Can I turn off modules I do not need?',
@@ -199,7 +208,7 @@ const faqs = [
     },
     {
         question: 'How do I change the look and feel?',
-        answer: 'All colours are design tokens in resources/css/app.css. Change the primary colour there and every component, chart and focus ring follows, in light and dark mode.',
+        answer: 'Swap the wordmarks under public/brand, set APP_NAME, and change the primary colour in resources/css/app.css. Components, charts and focus rings follow in light and dark mode.',
     },
 ];
 </script>
@@ -216,11 +225,16 @@ const faqs = [
 
             <div class="relative container-app grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:py-24">
                 <div>
+                    <div class="animate-rise">
+                        <AppLogo size="xl" />
+                    </div>
+
                     <a
                         href="https://github.com/MetaGrenade/laravel-vue"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="inline-flex animate-rise items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-xs transition-colors hover:text-foreground"
+                        class="mt-6 inline-flex animate-rise items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-xs transition-colors hover:text-foreground"
+                        style="--delay: 60ms"
                     >
                         <span class="size-1.5 rounded-full bg-highlight" />
                         Open source · Laravel 13 + Vue 3
@@ -229,14 +243,14 @@ const faqs = [
 
                     <h1
                         class="mt-6 animate-rise text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.08]"
-                        style="--delay: 80ms"
+                        style="--delay: 100ms"
                     >
-                        The production-ready starter kit for
-                        <span class="bg-[linear-gradient(transparent_78%,hsl(var(--highlight)/0.55)_78%)] text-primary">SaaS and communities</span>
+                        Ship a shop, community and SaaS on
+                        <span class="bg-[linear-gradient(transparent_78%,hsl(var(--highlight)/0.55)_78%)] text-primary">one Laravel stack</span>
                     </h1>
                     <p class="mt-5 max-w-xl animate-rise text-lg text-muted-foreground" style="--delay: 160ms">
-                        Launch faster with authentication, billing, an admin panel, content and community features already wired together with
-                        Laravel, Inertia, Vue and Tailwind.
+                        Checkout, subscriptions, forums, support and a hardened admin panel are already wired—so you spend time on your product, not
+                        the scaffolding.
                     </p>
 
                     <div class="mt-8 flex animate-rise flex-wrap gap-3" style="--delay: 240ms">
@@ -246,14 +260,17 @@ const faqs = [
                                 <ArrowRight />
                             </Link>
                         </Button>
-                        <Button size="lg" variant="outline" as-child>
+                        <Button v-if="websiteSections.commerce" size="lg" variant="outline" as-child>
+                            <Link :href="route('shop.index')">Browse the shop</Link>
+                        </Button>
+                        <Button v-else size="lg" variant="outline" as-child>
                             <Link :href="route('pricing')">View pricing</Link>
                         </Button>
                     </div>
 
                     <ul class="mt-8 grid animate-rise gap-2 text-sm text-muted-foreground sm:grid-cols-2" style="--delay: 320ms">
-                        <li v-for="item in highlights" :key="item" class="flex items-center gap-2">
-                            <Check class="size-4 text-success" />
+                        <li v-for="item in highlights" :key="item" class="flex items-start gap-2">
+                            <Check class="mt-0.5 size-4 shrink-0 text-success" />
                             {{ item }}
                         </li>
                     </ul>
@@ -318,8 +335,8 @@ const faqs = [
                                 <CreditCard class="size-4" />
                             </span>
                             <div>
-                                <p class="text-xs font-semibold">New subscription</p>
-                                <p class="text-[0.7rem] text-muted-foreground">Pro plan · just now</p>
+                                <p class="text-xs font-semibold">Order paid</p>
+                                <p class="text-[0.7rem] text-muted-foreground">Stripe · entitlement granted</p>
                             </div>
                         </div>
                     </div>
@@ -354,9 +371,11 @@ const faqs = [
             <div class="relative container-app py-20 lg:py-24">
                 <div class="reveal mx-auto max-w-2xl text-center">
                     <p class="eyebrow">Everything included</p>
-                    <h2 id="features-heading" class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Skip the plumbing, ship the product</h2>
+                    <h2 id="features-heading" class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                        Built for the product you are shipping
+                    </h2>
                     <p class="mt-4 text-muted-foreground">
-                        Opinionated defaults and tested building blocks for the parts every SaaS and community platform needs.
+                        Commerce, community, billing and operations that grew with the kit—not placeholders you have to replace later.
                     </p>
                 </div>
 
@@ -513,9 +532,9 @@ const faqs = [
                         aria-hidden="true"
                     />
                     <div class="relative">
-                        <h2 class="text-3xl font-semibold tracking-tight">Start building your product today</h2>
+                        <h2 class="text-3xl font-semibold tracking-tight">Start from a stack that already sells and moderates</h2>
                         <p class="mx-auto mt-4 max-w-xl text-primary-foreground/80 dark:text-muted-foreground">
-                            Everything you need to launch, with the freedom to change anything. Free and open source.
+                            MetaForge is free and open source. Clone it, turn on the modules you need, and ship.
                         </p>
                         <div class="mt-8 flex flex-wrap justify-center gap-3">
                             <Button v-if="canRegister" size="lg" variant="highlight" as-child>

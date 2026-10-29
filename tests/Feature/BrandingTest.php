@@ -19,7 +19,27 @@ class BrandingTest extends TestCase
             ->assertOk()
             ->assertHeader('Content-Type', 'application/manifest+json')
             ->assertJsonPath('name', 'Acme Cloud')
-            ->assertJsonPath('short_name', 'Acme Cloud');
+            ->assertJsonPath('short_name', 'Acme Cloud')
+            ->assertJsonPath('icons.0.src', '/android-chrome-192x192.png')
+            ->assertJsonPath('icons.1.src', '/android-chrome-512x512.png');
+    }
+
+    #[Test]
+    public function the_brand_icons_are_published(): void
+    {
+        foreach ([
+            public_path('favicon.ico'),
+            public_path('favicon-16x16.png'),
+            public_path('favicon-32x32.png'),
+            public_path('apple-touch-icon.png'),
+            public_path('android-chrome-192x192.png'),
+            public_path('android-chrome-512x512.png'),
+            public_path('brand/logo-dark.png'),
+            public_path('brand/logo-light.png'),
+            public_path('brand/mark.png'),
+        ] as $path) {
+            $this->assertFileExists($path);
+        }
     }
 
     #[Test]
