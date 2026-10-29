@@ -16,11 +16,13 @@ A batteries-included boilerplate for building SaaS products, online shops and la
 - [Production & SSR Builds](#production--ssr-builds) · [Artisan commands](#artisan-commands) · [Documentation](#documentation) · [Upgrade Notes](#upgrading)
 
 
+<h2 id="stack-highlights">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/stack-highlights-dark.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/stack-highlights-light.png">
-  <img alt="MetaForge Stack Highlights" src="docs/assets/readme/stack-highlights-light.png" width="100%">
+  <img alt="Stack Highlights" src="docs/assets/readme/stack-highlights-light.png" width="100%">
 </picture>
+</h2>
 
 - **Backend – Laravel 13 (PHP 8.4+)** with Sanctum for API tokens, Spatie Permissions for RBAC, Laravel Cashier (Stripe) for subscriptions, a provider-neutral payment layer for the shop, queue/listener scaffolding, and opinionated seeders for fast iteration.
 - **Frontend – Vue 3 + Inertia.js 3 + TypeScript** with Ziggy-powered routing, optional server-side rendering, and theme initialization in a single SPA shell.
@@ -31,11 +33,13 @@ A batteries-included boilerplate for building SaaS products, online shops and la
 - **Secure & search-friendly by default** – HTML sanitisation for user content, rate limiting, security headers with a nonce-based CSP, per-page SEO metadata, structured data, an XML sitemap and a dynamic `robots.txt`.
 - **Ready for more languages** – English only for now, but interface strings, locale selection and a completeness check (`php artisan lang:check`) are in place (see [docs/i18n.md](docs/i18n.md)).
 
+<h2 id="application-modules">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/application-modules-dark.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/application-modules-light.png">
-  <img alt="MetaForge Application Modules" src="docs/assets/readme/application-modules-light.png" width="100%">
+  <img alt="Application Modules" src="docs/assets/readme/application-modules-light.png" width="100%">
 </picture>
+</h2>
 
 - **Forum System**: Boards, threads, post moderation, publishing workflows, and tracking read state with dedicated controllers and routes.
 - **Blog & Previewing**: Public blog listing, tokenized preview links, and authenticated commenting APIs.
@@ -113,11 +117,13 @@ compose.yaml                # Optional backing services for local development (D
 - Optional: Docker, for the backing services in `compose.yaml` (see below).
 - PHP's `upload_max_filesize` and `post_max_size` limit what staff can upload: product pictures are accepted up to 5 MB and digital files up to 100 MB by default (`COMMERCE_DOWNLOAD_MAX_KB`), but PHP's own defaults are much lower.
 
+<h2 id="quick-start">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/quick-start-dark.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/quick-start-light.png">
-  <img alt="MetaForge Quick Start" src="docs/assets/readme/quick-start-light.png" width="100%">
+  <img alt="Quick Start" src="docs/assets/readme/quick-start-light.png" width="100%">
 </picture>
+</h2>
 
 > **Shortcut:** after cloning, `composer setup` installs PHP and Node dependencies, creates `.env`, generates the app key, runs migrations (creating the SQLite file if needed) and builds the frontend. It does not link storage or seed data, so continue with steps 4 and 5 below.
 
@@ -169,11 +175,13 @@ docker compose --profile search up -d meilisearch  # optional; then SEARCH_DRIVE
 ```
 Then point `.env` at them (database, `REDIS_*`, and `MAIL_MAILER=smtp` with `MAIL_HOST=127.0.0.1`, `MAIL_PORT=1025` for Mailpit, whose inbox is at http://localhost:8025). Unless `DB_DATABASE` and `DB_PASSWORD` are set in `.env`, the containers use the database `metaforge` and the password `password` (user `root` on MySQL, `postgres` on PostgreSQL). See [CONTRIBUTING.md](CONTRIBUTING.md) for running the tests against each database.
 
+<h2 id="setting-up-the-shop">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/setting-up-the-shop-dark.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/setting-up-the-shop-light.png">
-  <img alt="MetaForge Setting Up the Shop" src="docs/assets/readme/setting-up-the-shop-light.png" width="100%">
+  <img alt="Setting up the shop" src="docs/assets/readme/setting-up-the-shop-light.png" width="100%">
 </picture>
+</h2>
 
 The shop works out of the box for browsing and for orders that cost nothing. Taking payment needs Stripe, a queue worker and the scheduler. [docs/commerce.md](docs/commerce.md) explains how everything fits together.
 
@@ -265,11 +273,13 @@ dispatch but nothing will be pushed to clients. To enable realtime notifications
    the changes. New private channel subscriptions will now authenticate through `/broadcasting/auth`
    and emit toast notifications in realtime.
 
+<h2 id="security">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/security-dark.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/security-light.png">
-  <img alt="MetaForge Security" src="docs/assets/readme/security-light.png" width="100%">
+  <img alt="Security" src="docs/assets/readme/security-light.png" width="100%">
 </picture>
+</h2>
 
 - **User content is sanitised on write.** Forum threads/replies and blog bodies pass through `App\Support\Security\HtmlSanitizer` (Symfony HtmlSanitizer) via the `SanitizedHtml` Eloquent cast, so content rendered with `v-html` is safe. Forum content only keeps the markup the editor can produce; blog content allows the full set of safe elements. Run `php artisan content:sanitize` once after upgrading from an older version to clean previously stored content.
 - **Rate limiting.** Named limiters (see `AppServiceProvider::configureRateLimiting()`) protect registration, password resets, password confirmation, two-factor challenges, posting, reports, search, billing, discount codes and downloads. API routes are throttled per token.
@@ -451,11 +461,13 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - **Queues & jobs**: Webhook handling and subscription updates rely on queued jobs. Ensure `queue:listen` (or a Supervisor job)
   is running in development and production so invoice syncing happens promptly.
 
+<h2 id="testing--quality">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/testing-quality-dark.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/testing-quality-light.png">
-  <img alt="MetaForge Testing & Quality" src="docs/assets/readme/testing-quality-light.png" width="100%">
+  <img alt="Testing &amp; Quality" src="docs/assets/readme/testing-quality-light.png" width="100%">
 </picture>
+</h2>
 
 - **PHPUnit**: `composer test` (or `php artisan test`). Tests use an in-memory SQLite database whatever `.env` says, so they never touch your data. To try MySQL or PostgreSQL see [CONTRIBUTING.md](CONTRIBUTING.md#testing-on-other-databases).
 - **Static Analysis & Formatting**:
@@ -487,11 +499,13 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 | `php artisan content:sanitize [--dry-run]` | Re-sanitise stored forum and blog HTML. |
 | `php artisan support:attachments:privatize [--dry-run]` | Move support attachments from the public disk to the private one. |
 
+<h2 id="documentation">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/documentation-dark.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/documentation-light.png">
-  <img alt="MetaForge Documentation" src="docs/assets/readme/documentation-light.png" width="100%">
+  <img alt="Documentation" src="docs/assets/readme/documentation-light.png" width="100%">
 </picture>
+</h2>
 
 - [docs/commerce.md](docs/commerce.md): how the shop works (flow, orders, pricing, shipping, tax, discounts, digital goods, refunds, webhooks, configuration and upgrade notes).
 - [docs/billing.md](docs/billing.md): subscriptions, what a customer is told and can do when a payment fails, and the Stripe events the shop needs.
@@ -505,11 +519,13 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md): the plan and milestones to 1.0.0.
 - [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
+<h2 id="contributing">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/contributing-dark.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/contributing-light.png">
-  <img alt="MetaForge Contributing" src="docs/assets/readme/contributing-light.png" width="100%">
+  <img alt="Contributing" src="docs/assets/readme/contributing-light.png" width="100%">
 </picture>
+</h2>
 
 Issues and pull requests are welcome! Read [CONTRIBUTING.md](CONTRIBUTING.md) first; it covers setup, the checks every change must pass and how to write code that works on all supported databases. Please include tests or updates to this documentation when modifying setup steps, tooling, or major features. Report security problems privately as described in [SECURITY.md](SECURITY.md).
 
