@@ -8,13 +8,5 @@ const props = defineProps<{
 </script>
 
 <template>
-    <img
-        src="/brand/mark.png"
-        alt=""
-        width="32"
-        height="32"
-        decoding="async"
-        :class="cn('size-5 object-contain', props.class)"
-        aria-hidden="true"
-    />
+    <img src="/brand/mark.png" alt="" width="32" height="32" decoding="async" :class="cn('size-5 object-contain', props.class)" aria-hidden="true" />
 </template>
