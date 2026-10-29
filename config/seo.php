@@ -15,13 +15,13 @@ return [
     'site_name' => env('SEO_SITE_NAME') ?: env('APP_NAME', 'Laravel'),
 
     'description' => env('SEO_DESCRIPTION')
-        ?: 'A modern platform with community forums, a blog, a support center and subscription billing.',
+        ?: 'A Laravel and Vue starter kit with a shop, Stripe and Tebex checkout, subscriptions, forums, support and a hardened admin panel.',
 
     // Home page copy. The site name is appended to the title automatically.
     'home' => [
-        'title' => env('SEO_HOME_TITLE') ?: 'The production-ready starter kit for SaaS and communities',
+        'title' => env('SEO_HOME_TITLE') ?: 'Ship a shop, community and SaaS on one Laravel stack',
         'description' => env('SEO_HOME_DESCRIPTION')
-            ?: 'Launch faster with authentication, billing, a shop, forums, a blog, a support center and an admin control panel, built on Laravel and Vue.',
+            ?: 'MetaForge includes checkout with Stripe and Tebex, entitlements, forums with moderation, a support desk, billing and security defaults wired for production.',
     ],
 
     // Absolute URL or path (relative to APP_URL) of the default social share image (1200x630).
