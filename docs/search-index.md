@@ -1,8 +1,8 @@
 # Search index
 
-What may be put in the search index. The search page still reads the database.
+What may be put in the search index, and how its Meilisearch settings are applied. The search page still reads the database.
 
-> **Status:** the index rules are in place. Searching that index, a rebuild, and a fallback when Meilisearch is down are not built yet.
+> **Status:** the index rules and settings sync are in place. Searching that index, a rebuild, and a fallback when Meilisearch is down are not built yet.
 
 ## What is listed
 
@@ -19,12 +19,26 @@ Saving a record that stops qualifying removes its document. A new or edited repl
 
 The words stored are plain text, and a document stops at 8,000 characters.
 
+## Index settings
+
+Settings live in code (`App\Support\Search\SearchIndexSettings`) and in `config/scout.php`. Each index lists its searchable attributes in ranking order, turns typo tolerance on, and leaves filterable and sortable attributes empty (visibility is decided when a document is written, not at query time).
+
+With Meilisearch running and `SEARCH_DRIVER=meilisearch`, apply them:
+
+```bash
+php artisan metaforge:search:sync
+```
+
+That command only pushes settings. It does not import documents. With `SEARCH_DRIVER=database` it refuses and says so.
+
 ## Not built
 
 - The search page still uses the database, including a scheduled post whose time has arrived. A scheduled post is not added to the Meilisearch index by the clock: it is added when the post is saved after it is due, or when the index is rebuilt.
-- Index settings, `metaforge:search:sync`, a queued rebuild, typo tolerance, and swapping the search page onto the index.
+- `metaforge:search:reindex`, a queued rebuild, and swapping the search page onto the index.
 - A fallback to the database when Meilisearch cannot be reached, the ACP health check, and a CI job that runs Meilisearch.
 
 ## Testing
 
 `tests/Feature/Search/SearchIndexTest.php` uses Scout's collection engine: a draft, an unpublished thread, an unpublished FAQ, an archived product and a held reply are left out, unpublishing a post removes its document, and taking down a member's posts removes their threads and reply text from the index.
+
+`tests/Feature/Search/SyncSearchIndexSettingsCommandTest.php` checks that sync refuses the database driver and pushes settings for every index when Meilisearch is configured (through a fake engine, without a live server).

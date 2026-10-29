@@ -63,7 +63,8 @@ services:
       - '${FORWARD_MAILPIT_SMTP_PORT:-1025}:1025'
       - '${FORWARD_MAILPIT_PORT:-8025}:8025'
 
-  # Used by the Meilisearch search driver (planned for 1.0). Not needed today.
+  # Optional search engine. With SEARCH_DRIVER=meilisearch, run
+  # php artisan metaforge:search:sync. The search page still uses the database.
   meilisearch:
     image: getmeili/meilisearch:v1.12
     profiles: [search]
