@@ -86,8 +86,7 @@ const features: { title: string; description: string; icon: Component }[] = [
     },
     {
         title: 'Community and moderation',
-        description:
-            'Forums with prefixes, solutions, attachments and ignores, member follows and DMs, automod, bans and one-click content cleanup.',
+        description: 'Forums with prefixes, solutions, attachments and ignores, member follows and DMs, automod, bans and one-click content cleanup.',
         icon: MessagesSquare,
     },
     {
@@ -250,8 +249,8 @@ const faqs = [
                         <span class="bg-[linear-gradient(transparent_78%,hsl(var(--highlight)/0.55)_78%)] text-primary">one Laravel stack</span>
                     </h1>
                     <p class="mt-5 max-w-xl animate-rise text-lg text-muted-foreground" style="--delay: 160ms">
-                        Checkout, subscriptions, forums, support and a hardened admin panel are already wired—so you spend time on your product,
-                        not the scaffolding.
+                        Checkout, subscriptions, forums, support and a hardened admin panel are already wired—so you spend time on your product, not
+                        the scaffolding.
                     </p>
 
                     <div class="mt-8 flex animate-rise flex-wrap gap-3" style="--delay: 240ms">
@@ -370,9 +369,11 @@ const faqs = [
         <section class="relative overflow-hidden bg-background bg-wash-primary cv-auto" aria-labelledby="features-heading">
             <div class="pointer-events-none absolute inset-0 bg-dots [mask-image:linear-gradient(to_bottom,black,transparent_55%)]" />
             <div class="relative container-app py-20 lg:py-24">
-                    <div class="reveal mx-auto max-w-2xl text-center">
+                <div class="reveal mx-auto max-w-2xl text-center">
                     <p class="eyebrow">Everything included</p>
-                    <h2 id="features-heading" class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Built for the product you are shipping</h2>
+                    <h2 id="features-heading" class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                        Built for the product you are shipping
+                    </h2>
                     <p class="mt-4 text-muted-foreground">
                         Commerce, community, billing and operations that grew with the kit—not placeholders you have to replace later.
                     </p>
