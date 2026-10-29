@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
-import { Anvil } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 
 const props = defineProps<{
@@ -9,5 +8,13 @@ const props = defineProps<{
 </script>
 
 <template>
-    <Anvil :class="cn('size-5', props.class)" aria-hidden="true" />
+    <img
+        src="/brand/mark.png"
+        alt=""
+        width="32"
+        height="32"
+        decoding="async"
+        :class="cn('size-5 object-contain', props.class)"
+        aria-hidden="true"
+    />
 </template>

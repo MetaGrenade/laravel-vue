@@ -32,7 +32,7 @@ class HomeController extends Controller
                 '@type' => 'Organization',
                 'name' => $siteName,
                 'url' => route('home'),
-                'logo' => url('/favicon.svg'),
+                'logo' => url('/brand/mark.png'),
             ]));
 
         return Inertia::render('Welcome');

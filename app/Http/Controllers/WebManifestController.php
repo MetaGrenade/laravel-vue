@@ -17,7 +17,9 @@ class WebManifestController extends Controller
             'name' => $name,
             'short_name' => mb_substr($name, 0, 12),
             'icons' => [
-                ['src' => '/favicon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any'],
+                ['src' => '/android-chrome-192x192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => '/android-chrome-512x512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => '/brand/mark.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
             ],
             'start_url' => '/',
             'display' => 'standalone',
