@@ -15,7 +15,7 @@ Four indexes, and a record is in one only when a guest could already open it:
 - **FAQs** (`faqs`). A published question, with its category's name.
 - **Products** (`products`). A product that is for sale. An archived product stays out. The shop uses the same rule.
 
-Saving a record that stops qualifying removes its document. A new or edited reply asks for the thread's document again, once an engine is in use.
+Saving a record that stops qualifying removes its document. A new or edited reply asks for the thread's document again, once an engine is in use. Taking down a member's posts in bulk (see [moderation.md](moderation.md)) skips those model events, so the clean-up removes the unpublished threads from the index and rebuilds every other thread that lost a reply.
 
 The words stored are plain text, and a document stops at 8,000 characters.
 
@@ -27,4 +27,4 @@ The words stored are plain text, and a document stops at 8,000 characters.
 
 ## Testing
 
-`tests/Feature/Search/SearchIndexTest.php` uses Scout's collection engine: a draft, an unpublished thread, an unpublished FAQ, an archived product and a held reply are left out, and unpublishing a post removes its document.
+`tests/Feature/Search/SearchIndexTest.php` uses Scout's collection engine: a draft, an unpublished thread, an unpublished FAQ, an archived product and a held reply are left out, unpublishing a post removes its document, and taking down a member's posts removes their threads and reply text from the index.

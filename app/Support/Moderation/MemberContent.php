@@ -12,6 +12,7 @@ use App\Models\ForumThreadReport;
 use App\Models\ModerationAction;
 use App\Models\ProductReview;
 use App\Models\User;
+use App\Observers\SearchIndexObserver;
 use App\Support\Forum\ForumAttachments;
 use App\Support\Forum\ForumIndexCache;
 use App\Support\Forum\ForumReview;
@@ -35,6 +36,7 @@ class MemberContent
         private readonly ForumIndexCache $cache,
         private readonly ThreadSolutions $solutions,
         private readonly ForumAttachments $attachments,
+        private readonly SearchIndexObserver $searchIndex,
     ) {}
 
     /**
@@ -65,7 +67,12 @@ class MemberContent
             throw new ModerationRefused($refusal);
         }
 
-        $taken = DB::transaction(function () use ($member, $moderator, $reason, $note) {
+        /** @var list<int> $unpublishedThreadIds */
+        $unpublishedThreadIds = [];
+        /** @var list<int> $replyThreadIds */
+        $replyThreadIds = [];
+
+        $taken = DB::transaction(function () use ($member, $moderator, $reason, $note, &$unpublishedThreadIds, &$replyThreadIds) {
             // Two moderators clearing out the same member at once: the second waits here and then finds nothing left.
             User::query()->lockForUpdate()->findOrFail($member->id);
 
@@ -82,6 +89,8 @@ class MemberContent
             $threadIds = $this->ids($this->threads($member)->where('is_published', true));
             $replyIds = $this->ids($this->replies($member));
             $commentIds = $this->ids($this->comments($member));
+            // Needed before the delete: the search index must refresh these threads without the replies.
+            $replyThreadIds = $this->threadIdsForPosts($replyIds);
 
             // The delete below is a query, so the reply's deleting event (which would clear a solution) does not run.
             $this->solutions->forget($replyIds);
@@ -102,8 +111,12 @@ class MemberContent
             );
 
             if ($taken->isEmpty()) {
+                $replyThreadIds = [];
+
                 return $taken;
             }
+
+            $unpublishedThreadIds = $threadIds;
 
             $taken = $taken->withReports($this->closeReports($threadIds, $replyIds, $commentIds, $moderator));
 
@@ -121,11 +134,37 @@ class MemberContent
         });
 
         if (! $taken->isEmpty()) {
-            // The updates above skip the model events that would empty the forum's cache.
+            // The updates above skip the model events that would empty the forum's cache
+            // and the search index.
             $this->cache->clear();
+            $this->searchIndex->afterMemberContentTakedown($unpublishedThreadIds, $replyThreadIds);
         }
 
         return $taken;
+    }
+
+    /**
+     * @param  list<int>  $postIds
+     * @return list<int>
+     */
+    private function threadIdsForPosts(array $postIds): array
+    {
+        if ($postIds === []) {
+            return [];
+        }
+
+        $ids = [];
+
+        foreach (
+            ForumPost::query()
+                ->withoutGlobalScope(ForumPost::VISIBLE)
+                ->whereKey($postIds)
+                ->pluck('forum_thread_id') as $id
+        ) {
+            $ids[] = (int) $id;
+        }
+
+        return array_values(array_unique($ids));
     }
 
     /**

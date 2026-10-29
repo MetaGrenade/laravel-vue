@@ -12,6 +12,8 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\Moderation\MemberContent;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Scout\EngineManager;
@@ -156,6 +158,42 @@ class SearchIndexTest extends TestCase
         $this->assertCount(1, Product::search('Northwind')->get());
     }
 
+    public function test_taking_down_a_member_synchronizes_the_search_index(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $spammer = User::factory()->create();
+        $other = User::factory()->create();
+        $moderator = User::factory()->create();
+        $moderator->assignRole('moderator');
+
+        $board = $this->board();
+        $own = $this->threadFor($board, $spammer, true, 'Spam lantern thread');
+        $theirs = $this->threadFor($board, $other, true, 'A quiet question');
+
+        ForumPost::query()->create([
+            'forum_thread_id' => $theirs->id,
+            'user_id' => $spammer->id,
+            'body' => 'buy cheap quarksecret watches',
+        ]);
+
+        $engine = $this->recordingEngine();
+        $deleted = $engine->deleted;
+        $updated = $engine->updated;
+
+        app(MemberContent::class)->takeDown($spammer, $moderator, 'Spam wave');
+
+        $this->assertGreaterThan($deleted, $engine->deleted);
+        $this->assertGreaterThan($updated, $engine->updated);
+
+        config(['scout.driver' => 'collection']);
+
+        $this->assertCount(0, ForumThread::search('Spam lantern')->get());
+        $this->assertCount(0, ForumThread::search('quarksecret')->get());
+        $this->assertCount(1, ForumThread::search('quiet question')->get());
+        $this->assertFalse((bool) $own->fresh()->is_published);
+    }
+
     private function board(): ForumBoard
     {
         $category = ForumCategory::query()->create([
@@ -175,9 +213,14 @@ class SearchIndexTest extends TestCase
 
     private function thread(ForumBoard $board, bool $published, string $title): ForumThread
     {
+        return $this->threadFor($board, User::factory()->create(), $published, $title);
+    }
+
+    private function threadFor(ForumBoard $board, User $author, bool $published, string $title): ForumThread
+    {
         return ForumThread::query()->create([
             'forum_board_id' => $board->id,
-            'user_id' => User::factory()->create()->id,
+            'user_id' => $author->id,
             'title' => $title,
             'slug' => Str::slug($title).'-'.Str::lower(Str::random(4)),
             'excerpt' => '',
