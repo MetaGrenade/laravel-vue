@@ -6,6 +6,7 @@ use App\Casts\SanitizedHtml;
 use App\Models\Concerns\HasSearchDocument;
 use App\Support\Search\SearchText;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -124,6 +125,21 @@ class Blog extends Model
         return $this->status === 'scheduled'
             && $due instanceof CarbonInterface
             && $due->lessThanOrEqualTo(now());
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    protected function makeAllSearchableUsing(Builder $query): Builder
+    {
+        return $query->where(function (Builder $builder): void {
+            $builder->where('status', 'published')
+                ->orWhere(function (Builder $scheduled): void {
+                    $scheduled->where('status', 'scheduled')
+                        ->where('scheduled_for', '<=', now());
+                });
+        });
     }
 
     /**

@@ -64,7 +64,7 @@ services:
       - '${FORWARD_MAILPIT_PORT:-8025}:8025'
 
   # Optional search engine. With SEARCH_DRIVER=meilisearch, run
-  # php artisan metaforge:search:sync. The search page still uses the database.
+  # metaforge:search:sync and metaforge:search:reindex. The page still uses the database.
   meilisearch:
     image: getmeili/meilisearch:v1.12
     profiles: [search]
