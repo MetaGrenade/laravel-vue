@@ -46,6 +46,7 @@ class SupportCenterController extends Controller
         $ticketsSearch = $request->string('tickets_search')->trim();
         $faqsSearch = $request->string('faqs_search')->trim();
         $selectedFaqCategoryId = $request->query('faq_category_id');
+        $selectedFaqId = $request->query('faq');
         $selectedTicketCategoryId = $request->query('ticket_category_id');
         $selectedTicketStatus = $request->query('ticket_status');
         $selectedTicketPriority = $request->query('ticket_priority');
@@ -54,8 +55,14 @@ class SupportCenterController extends Controller
             ? (int) $selectedFaqCategoryId
             : null;
 
+        $faqId = is_numeric($selectedFaqId) && (int) $selectedFaqId > 0
+            ? (int) $selectedFaqId
+            : null;
+
         $ticketsSearchTerm = $ticketsSearch->isNotEmpty() ? $ticketsSearch->value() : null;
-        $faqsSearchTerm = $faqsSearch->isNotEmpty() ? $faqsSearch->value() : null;
+        // A deep-linked FAQ (from Meilisearch typo-tolerant hits) must not be
+        // filtered by literal LIKE on faqs_search — that would hide the match.
+        $faqsSearchTerm = $faqId === null && $faqsSearch->isNotEmpty() ? $faqsSearch->value() : null;
         $ticketCategoryId = is_numeric($selectedTicketCategoryId) && (int) $selectedTicketCategoryId > 0
             ? (int) $selectedTicketCategoryId
             : null;
@@ -163,8 +170,9 @@ class SupportCenterController extends Controller
                 'feedback as not_helpful_feedback_count' => fn ($query) => $query->where('is_helpful', false),
             ])
             ->where('published', true)
-            ->when($faqCategoryId, fn ($query) => $query->where('faq_category_id', $faqCategoryId))
-            ->when($faqsSearchTerm, function ($query) use ($faqsSearchTerm) {
+            ->when($faqId, fn ($query) => $query->whereKey($faqId))
+            ->when(! $faqId && $faqCategoryId, fn ($query) => $query->where('faq_category_id', $faqCategoryId))
+            ->when(! $faqId && $faqsSearchTerm, function ($query) use ($faqsSearchTerm) {
                 $escaped = $this->escapeForLike($faqsSearchTerm);
                 $like = "%{$escaped}%";
 

@@ -205,9 +205,10 @@ class ForumThread extends Model
 
     /**
      * Visible replies only. A held reply is left out by the model's scope,
-     * and a deleted one is left out with it. The text stops at the document limit.
+     * and a deleted one is left out with it. Caps at 40 posts and the document
+     * character limit — the same text Meilisearch indexes and search highlights.
      */
-    private function visibleReplyText(): string
+    public function visibleReplyText(): string
     {
         $remaining = max(1, (int) config('search.documents.max_characters', 8000));
         $parts = [];

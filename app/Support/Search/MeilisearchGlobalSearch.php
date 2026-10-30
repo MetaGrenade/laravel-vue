@@ -38,12 +38,11 @@ final class MeilisearchGlobalSearch
             ->query(fn ($query) => $query->with([
                 'board:id,slug,title',
                 'author:id,nickname',
-                'posts' => fn ($posts) => $posts->orderBy('id'),
             ]))
             ->paginate($perPage, 'page', $page);
 
-        $items = $paginator->getCollection()
-            ->map(fn (ForumThread $thread) => $this->presenter->presentForumThread($thread, $term))
+        $items = collect($paginator->items())
+            ->map(fn (ForumThread $thread) => $this->presenter->presentForumThread($thread, $term, includeReplyHighlights: true))
             ->filter()
             ->values()
             ->all();
@@ -62,7 +61,10 @@ final class MeilisearchGlobalSearch
         $paginator = Faq::search($term)
             ->paginate($perPage, 'page', $page);
 
-        return $this->present($paginator, fn (Faq $faq) => $this->presenter->presentFaq($faq, $term));
+        return $this->present(
+            $paginator,
+            fn (Faq $faq) => $this->presenter->presentFaq($faq, $term, deepLinkWithoutSearch: true),
+        );
     }
 
     /**
@@ -74,7 +76,7 @@ final class MeilisearchGlobalSearch
      */
     private function present(LengthAwarePaginator $paginator, callable $map): array
     {
-        $items = $paginator->getCollection()
+        $items = collect($paginator->items())
             ->map($map)
             ->values()
             ->all();

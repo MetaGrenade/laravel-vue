@@ -112,9 +112,10 @@ class GlobalSearchService
     }
 
     /**
+     * @param  bool  $includeReplyHighlights  Meilisearch may match reply text; the database path does not.
      * @return array<string, mixed>|null
      */
-    public function presentForumThread(ForumThread $thread, string $term): ?array
+    public function presentForumThread(ForumThread $thread, string $term, bool $includeReplyHighlights = false): ?array
     {
         $board = $thread->board;
 
@@ -124,8 +125,16 @@ class GlobalSearchService
 
         $excerpt = is_string($thread->excerpt) ? trim($thread->excerpt) : '';
         $author = $thread->author?->nickname ?? null;
-        $replies = $this->forumReplyPlainText($thread);
         $description = $excerpt !== '' ? $excerpt : ($author ? 'Started by '.$author : null);
+
+        $descriptionCandidates = [
+            $excerpt,
+            $author ? 'Started by '.$author : null,
+        ];
+
+        if ($includeReplyHighlights) {
+            array_splice($descriptionCandidates, 1, 0, [$thread->visibleReplyText()]);
+        }
 
         return [
             'id' => $thread->id,
@@ -133,24 +142,23 @@ class GlobalSearchService
             'description' => $description !== null ? Str::limit($description, 120) : null,
             'highlight' => [
                 'title' => $this->highlightText($thread->title, $term),
-                'description' => $this->firstHighlight([
-                    $excerpt,
-                    $replies,
-                    $author ? 'Started by '.$author : null,
-                ], $term),
+                'description' => $this->firstHighlight($descriptionCandidates, $term),
             ],
             'url' => route('forum.threads.show', ['board' => $board->slug, 'thread' => $thread->slug]),
         ];
     }
 
     /**
+     * @param  bool  $deepLinkWithoutSearch  Skip faqs_search so a typo-tolerant hit is not filtered out by LIKE.
      * @return array<string, mixed>
      */
-    public function presentFaq(Faq $faq, string $term): array
+    public function presentFaq(Faq $faq, string $term, bool $deepLinkWithoutSearch = false): array
     {
         $answer = is_string($faq->answer) ? trim(strip_tags($faq->answer)) : '';
 
-        $params = ['faqs_search' => $term];
+        $params = $deepLinkWithoutSearch
+            ? ['faq' => $faq->id]
+            : ['faqs_search' => $term];
 
         if ($faq->faq_category_id) {
             $params['faq_category_id'] = $faq->faq_category_id;
@@ -310,29 +318,6 @@ class GlobalSearchService
             'items' => $items,
             'meta' => $this->formatMeta($paginator),
         ];
-    }
-
-    /**
-     * Visible reply text for highlighting Meilisearch hits that matched replies.
-     * The database path does not search reply bodies; Meilisearch does.
-     */
-    private function forumReplyPlainText(ForumThread $thread): string
-    {
-        if (! $thread->relationLoaded('posts')) {
-            $thread->load(['posts' => fn ($query) => $query->orderBy('id')]);
-        }
-
-        $parts = [];
-
-        foreach ($thread->posts as $post) {
-            $plain = trim(strip_tags((string) $post->body));
-
-            if ($plain !== '') {
-                $parts[] = $plain;
-            }
-        }
-
-        return implode(' ', $parts);
     }
 
     /**

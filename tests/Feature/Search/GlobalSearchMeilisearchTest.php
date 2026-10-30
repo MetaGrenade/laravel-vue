@@ -267,6 +267,41 @@ class GlobalSearchMeilisearchTest extends TestCase
             ->assertJsonCount(1, 'results.blogs.items');
     }
 
+    #[Test]
+    public function faq_results_deep_link_without_literal_search_filter(): void
+    {
+        $category = FaqCategory::factory()->create();
+        $faq = Faq::create([
+            'faq_category_id' => $category->id,
+            'question' => 'How do I reset my password?',
+            'answer' => 'Use the forgot password form.',
+            'order' => 1,
+            'published' => true,
+        ]);
+
+        $response = $this->get(route('search.results', [
+            'q' => 'password',
+            'types' => ['faqs'],
+        ]));
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Search/Results')
+            ->where('results.faqs.items.0.id', $faq->id)
+            ->where('results.faqs.items.0.url', fn ($url) => is_string($url)
+                && str_contains($url, 'faq='.$faq->id)
+                && ! str_contains($url, 'faqs_search='))
+        );
+
+        $this->get(route('support', [
+            'faq' => $faq->id,
+            'faq_category_id' => $category->id,
+        ]))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Support')
+            ->where('faqs.matchingCount', 1)
+            ->where('faqs.groups.0.faqs.0.id', $faq->id)
+        );
+    }
+
     private function board(): ForumBoard
     {
         $category = ForumCategory::create([
