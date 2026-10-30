@@ -58,7 +58,7 @@ A batteries-included boilerplate for building SaaS products, online shops and la
   - **Admin**: Commerce, Products, Orders, Reviews, Brands and tags, Shipping, Tax rates, Discount codes, Gift cards and Tebex in the ACP.
   - **Not built yet**: selling gift cards as a product, and entitlements from the shop's own products (on the roadmap; Stripe plans give them already).
 - **Polls & Surveys**: Polls with admin management, voting and an API.
-- **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics. The page searches the database. The Meilisearch index only keeps what a guest can already open; with `SEARCH_DRIVER=meilisearch`, `php artisan metaforge:search:sync` applies its settings and `php artisan metaforge:search:reindex` rebuilds documents ([docs/search-index.md](docs/search-index.md)).
+- **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics. The default searches the database; with `SEARCH_DRIVER=meilisearch` the page reads the index (settings via `php artisan metaforge:search:sync`, documents via `php artisan metaforge:search:reindex`). The index only keeps what a guest can already open ([docs/search-index.md](docs/search-index.md)).
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility. Plans give entitlements, and a failed renewal is followed up: the customer is emailed once for each attempt (and when it goes through, or the subscription ends), and can press **Pay now** after fixing their card. A plan can give a new customer a free trial, with a reminder before it ends, and a customer can enter a Stripe promotion code that is checked before they pay, and the billing page links to Stripe's customer portal ([docs/billing.md](docs/billing.md)). A metered-usage example counts each account's API calls per month against what its plan allows, with a usage panel for customers and a report for staff ([docs/usage.md](docs/usage.md)).
 - **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, support assignment rules, team membership, the shop, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
 - **Admin audit log**: every change made in the admin area is written to an append-only log (who, what it was done to, what changed as it was and as it became, where from, and whether it worked), with a viewer in **Admin → Audit log**, a view of everything done on one account, and a retention setting ([docs/audit-log.md](docs/audit-log.md)).
@@ -167,11 +167,11 @@ compose.yaml                # Optional backing services for local development (D
    - Under Laravel Herd or Valet the web server is already running; start the queue worker, the scheduler and Vite (`php artisan queue:listen --tries=1`, `php artisan schedule:work` and `npm run dev`).
 
 ### Local services with Docker (optional)
-`compose.yaml` provides MySQL, PostgreSQL, Redis, Meilisearch and Mailpit for local development; the application itself still runs on your machine. (Meilisearch is optional. The search page still uses the database. See [docs/search-index.md](docs/search-index.md).)
+`compose.yaml` provides MySQL, PostgreSQL, Redis, Meilisearch and Mailpit for local development; the application itself still runs on your machine. (Meilisearch is optional; set `SEARCH_DRIVER=meilisearch` to search the index. See [docs/search-index.md](docs/search-index.md).)
 ```bash
 docker compose up -d mysql redis mailpit        # choose what you need
 docker compose --profile pgsql up -d pgsql      # PostgreSQL is opt-in
-docker compose --profile search up -d meilisearch  # optional; then SEARCH_DRIVER=meilisearch, metaforge:search:sync / reindex; the page still uses the database
+docker compose --profile search up -d meilisearch  # optional; then SEARCH_DRIVER=meilisearch, metaforge:search:sync / reindex
 ```
 Then point `.env` at them (database, `REDIS_*`, and `MAIL_MAILER=smtp` with `MAIL_HOST=127.0.0.1`, `MAIL_PORT=1025` for Mailpit, whose inbox is at http://localhost:8025). Unless `DB_DATABASE` and `DB_PASSWORD` are set in `.env`, the containers use the database `metaforge` and the password `password` (user `root` on MySQL, `postgres` on PostgreSQL). See [CONTRIBUTING.md](CONTRIBUTING.md) for running the tests against each database.
 
