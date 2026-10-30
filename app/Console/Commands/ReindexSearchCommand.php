@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Support\Search\SearchDriver;
 use App\Support\Search\SearchIndexConfigurator;
 use App\Support\Search\SearchIndexSettings;
+use App\Support\Search\SearchIndexState;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -46,6 +47,8 @@ class ReindexSearchCommand extends Command
 
                 $this->components->info("Rebuilt the [{$index}] index.");
             }
+
+            SearchIndexState::recordReindex();
         } catch (Throwable $exception) {
             $this->components->error($exception->getMessage());
 

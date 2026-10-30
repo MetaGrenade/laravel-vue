@@ -21,6 +21,11 @@ return [
         'minimum_length' => (int) env('SEARCH_QUERY_MIN_LENGTH', 2),
     ],
 
+    // How long the ACP health card and `metaforge:search:health` wait for Meilisearch before they say it cannot be reached.
+    'health' => [
+        'timeout_seconds' => (int) env('SEARCH_HEALTH_TIMEOUT', 3),
+    ],
+
     // When SEARCH_DRIVER=meilisearch and the host is unreachable, search falls
     // back to the database for this many seconds without retrying every request.
     'meilisearch_fallback' => [

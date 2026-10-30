@@ -28,6 +28,8 @@ final class SearchIndexConfigurator
             $index = (new $modelClass)->indexableAs();
             $engine->updateIndexSettings($index, $settings);
         }
+
+        SearchIndexState::recordSync();
     }
 
     /**

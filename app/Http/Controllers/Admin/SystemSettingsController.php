@@ -7,6 +7,7 @@ use App\Models\SystemSetting;
 use App\Payments\PaymentManager;
 use App\Support\EmailVerification;
 use App\Support\OAuth\OAuthProviders;
+use App\Support\Search\SearchHealth;
 use App\Support\WebsiteSections;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +33,8 @@ class SystemSettingsController extends Controller
             'oauthProviders' => OAuthProviders::options(),
             'commerceProviders' => $payments->options(),
             'diagnostics' => $this->diagnosticsPayload(),
+            // Asked of Meilisearch after the page is shown, so a slow or silent host cannot hold up the settings (docs/search-index.md).
+            'searchHealth' => Inertia::defer(fn () => app(SearchHealth::class)->check()->toArray()),
         ]);
     }
 

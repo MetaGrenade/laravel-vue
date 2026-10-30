@@ -32,6 +32,8 @@ use App\Policies\SupportTicketPolicy;
 use App\Support\Audit\Audit;
 use App\Support\Audit\AuditObserver;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Search\MeilisearchCircuitBreaker;
+use App\Support\Search\SearchHealth;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -62,6 +64,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(StripeGateway::class, CashierStripeGateway::class);
         $this->app->scoped(Seo::class);
         $this->app->scoped(Audit::class);
+        // The health check gives up on a silent Meilisearch sooner than the client Scout uses to index and search does.
+        $this->app->bind(SearchHealth::class, fn ($app) => new SearchHealth(SearchHealth::clientFromConfig(), $app->make(MeilisearchCircuitBreaker::class)));
     }
 
     /**

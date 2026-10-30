@@ -64,7 +64,8 @@ services:
       - '${FORWARD_MAILPIT_PORT:-8025}:8025'
 
   # Optional search engine. With SEARCH_DRIVER=meilisearch, run
-  # metaforge:search:sync and metaforge:search:reindex. The page still uses the database.
+  # metaforge:search:sync and metaforge:search:reindex, and the search page reads the index.
+  # metaforge:search:health says how it is; docs/search-index.md has the key to make for the app.
   meilisearch:
     image: getmeili/meilisearch:v1.12
     profiles: [search]

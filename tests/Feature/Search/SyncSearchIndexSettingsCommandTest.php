@@ -7,6 +7,7 @@ use App\Models\Faq;
 use App\Models\ForumThread;
 use App\Models\Product;
 use App\Support\Search\SearchIndexSettings;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Scout\Contracts\UpdatesIndexSettings;
 use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\NullEngine;
@@ -15,6 +16,9 @@ use Tests\TestCase;
 
 class SyncSearchIndexSettingsCommandTest extends TestCase
 {
+    // A sync notes when it ran (SearchIndexState), and on MySQL and PostgreSQL a write outside a transaction would stay for the tests after.
+    use RefreshDatabase;
+
     #[Test]
     public function it_refuses_to_sync_when_the_driver_is_the_database(): void
     {

@@ -3,7 +3,9 @@ import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Deferred, Head, useForm } from '@inertiajs/vue3';
+import SearchHealthCard from '@/components/SearchHealthCard.vue';
+import type { SearchHealthReport } from '@/types/search';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { toast } from 'vue-sonner';
@@ -39,6 +41,8 @@ const props = defineProps<{
         memory_usage: string;
         memory_peak: string;
     };
+    /** Asked of Meilisearch after the page is shown (a deferred prop), so it is missing until it arrives. */
+    searchHealth?: SearchHealthReport;
 }>();
 
 const form = useForm({
@@ -269,6 +273,16 @@ const saveSettings = () => {
                         </li>
                     </ul>
                 </div>
+
+                <!-- Search: whether Meilisearch is reachable and holds what it should, asked after the page is shown -->
+                <Deferred data="searchHealth">
+                    <template #fallback>
+                        <div class="rounded-xl border border-sidebar-border/70 p-4 text-sm text-muted-foreground dark:border-sidebar-border">
+                            Checking search…
+                        </div>
+                    </template>
+                    <SearchHealthCard v-if="searchHealth" :report="searchHealth" />
+                </Deferred>
 
                 <!-- Save Settings Button -->
                 <div v-if="canEditSystemSettings" class="flex justify-end">

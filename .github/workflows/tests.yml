@@ -137,3 +137,40 @@ jobs:
           APP_URL: http://127.0.0.1:8000
           A11Y_PREPARE: '1'
         run: npx playwright test --config=tests/a11y/playwright.config.ts
+
+  # A real Meilisearch (the version compose.yaml runs): what the search tests with a fake engine cannot show. How it ranks, what a typo
+  # still finds, what leaves the index, the health check against what is really there, and the key recipe in docs/search-index.md.
+  # The tests are in tests/Live, which `php artisan test` does not run, and skip themselves unless MEILISEARCH_LIVE_HOST is set.
+  search:
+    name: search (Meilisearch 1.12)
+    runs-on: ubuntu-latest
+
+    services:
+      meilisearch:
+        image: getmeili/meilisearch:v1.12
+        env:
+          # Not a secret: a throwaway engine that lives for this job.
+          MEILI_MASTER_KEY: meilisearch-ci-not-a-secret
+          MEILI_ENV: development
+          MEILI_NO_ANALYTICS: 'true'
+        ports:
+          - 7700:7700
+        options: >-
+          --health-cmd="curl --fail http://localhost:7700/health"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=12
+
+    env:
+      MEILISEARCH_LIVE_HOST: http://127.0.0.1:7700
+      MEILISEARCH_LIVE_KEY: meilisearch-ci-not-a-secret
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
+
+      - name: Run the Meilisearch tests
+        run: php artisan test tests/Live
