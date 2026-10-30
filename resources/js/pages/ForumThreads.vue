@@ -631,7 +631,11 @@ const markBoardAsRead = () => {
                         <Button type="button" variant="secondary" :disabled="threadReportForm.processing" @click="threadReportDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button type="submit" class="bg-orange-500 hover:bg-orange-600" :disabled="threadReportForm.processing || !hasReportReasons">
+                        <Button
+                            type="submit"
+                            class="bg-warning text-warning-foreground hover:bg-warning/90"
+                            :disabled="threadReportForm.processing || !hasReportReasons"
+                        >
                             Submit report
                         </Button>
                     </DialogFooter>
@@ -844,7 +848,7 @@ const markBoardAsRead = () => {
                                             </DropdownMenuGroup>
                                             <DropdownMenuGroup v-if="thread.permissions.canReport">
                                                 <DropdownMenuItem
-                                                    class="text-orange-500"
+                                                    class="text-warning"
                                                     :disabled="threadReportForm.processing || !hasReportReasons"
                                                     @select="openThreadReportDialog(thread)"
                                                 >

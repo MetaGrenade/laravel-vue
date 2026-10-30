@@ -1084,7 +1084,9 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <InputError :message="attachmentErrors" />
                                 </div>
                                 <div class="flex justify-end">
-                                    <Button type="submit" class="bg-green-500 hover:bg-green-600" :disabled="form.processing"> Submit Ticket </Button>
+                                    <Button type="submit" class="bg-success text-success-foreground hover:bg-success/90" :disabled="form.processing">
+                                        Submit Ticket
+                                    </Button>
                                 </div>
                             </form>
                         </div>
@@ -1203,8 +1205,8 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                                     :variant="faq.user_feedback === 'helpful' ? 'default' : 'outline'"
                                                                     :class="[
                                                                         faq.user_feedback === 'helpful'
-                                                                            ? 'border-green-500 bg-green-500 text-white hover:bg-green-600'
-                                                                            : 'hover:border-green-500 hover:text-green-600',
+                                                                            ? 'border-success bg-success text-success-foreground hover:bg-success/90'
+                                                                            : 'hover:border-success hover:text-success',
                                                                         'transition-colors',
                                                                     ]"
                                                                     :disabled="submittingFaqFeedback[faq.id]"
@@ -1224,8 +1226,8 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                                     :variant="faq.user_feedback === 'not_helpful' ? 'default' : 'outline'"
                                                                     :class="[
                                                                         faq.user_feedback === 'not_helpful'
-                                                                            ? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
-                                                                            : 'hover:border-red-500 hover:text-red-600',
+                                                                            ? 'border-destructive bg-destructive text-white hover:bg-destructive/90'
+                                                                            : 'hover:border-destructive hover:text-destructive',
                                                                         'transition-colors',
                                                                     ]"
                                                                     :disabled="submittingFaqFeedback[faq.id]"
