@@ -1,8 +1,10 @@
-# MetaForge
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="public/brand/logo-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="public/brand/logo-light.png">
+  <img alt="MetaForge Boilerplate" src="docs/assets/readme/stack-highlights-light.png" width="100%">
+</picture>
 
 A batteries-included boilerplate for building SaaS products, online shops and large community websites with Laravel and Vue. The project ships with a production-ready forum, blog, support center, a working shop and admin tooling so teams can focus on features rather than scaffolding. Inertia.js keeps the frontend and backend in sync, Tailwind CSS powers the design system, and first-class TypeScript support ensures maintainable UI code.
-
-![Forum Page Example](https://i.imgur.com/gYNFkFl.png)
 
 > **Status: pre-1.0.** The shop now works end to end (catalogue, cart, discount codes and gift cards, shipping and tax, Stripe checkout, orders, refunds, digital downloads and licence keys, wishlists and reviews). Tebex purchases are in as a preview (not yet checked against a real store), subscription plans give entitlements (a feature, a limit), and the rest of the SaaS work and search at scale are still ahead; the road to a stable 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md). Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
@@ -13,7 +15,15 @@ A batteries-included boilerplate for building SaaS products, online shops and la
 - [Daily Development Workflow](#daily-development-workflow) · [Feature Notes & Endpoints](#feature-notes--endpoints) · [Testing & Quality](#testing--quality)
 - [Production & SSR Builds](#production--ssr-builds) · [Artisan commands](#artisan-commands) · [Documentation](#documentation) · [Upgrade Notes](#upgrading)
 
-## Stack Highlights
+
+<h2 id="stack-highlights">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/stack-highlights-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/stack-highlights-light.png">
+  <img alt="Stack Highlights" src="docs/assets/readme/stack-highlights-light.png" width="100%">
+</picture>
+</h2>
+
 - **Backend – Laravel 13 (PHP 8.4+)** with Sanctum for API tokens, Spatie Permissions for RBAC, Laravel Cashier (Stripe) for subscriptions, a provider-neutral payment layer for the shop, queue/listener scaffolding, and opinionated seeders for fast iteration.
 - **Frontend – Vue 3 + Inertia.js 3 + TypeScript** with Ziggy-powered routing, optional server-side rendering, and theme initialization in a single SPA shell.
 - **UI & Editor Toolkit** – Tailwind CSS 4, shadcn-vue components on Reka UI, Lucide icons, Vue Sonner toasts, and Tiptap 3 rich text editing for forum and blog content.
@@ -23,7 +33,14 @@ A batteries-included boilerplate for building SaaS products, online shops and la
 - **Secure & search-friendly by default** – HTML sanitisation for user content, rate limiting, security headers with a nonce-based CSP, per-page SEO metadata, structured data, an XML sitemap and a dynamic `robots.txt`.
 - **Ready for more languages** – English only for now, but interface strings, locale selection and a completeness check (`php artisan lang:check`) are in place (see [docs/i18n.md](docs/i18n.md)).
 
-## Application Modules
+<h2 id="application-modules">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/application-modules-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/application-modules-light.png">
+  <img alt="Application Modules" src="docs/assets/readme/application-modules-light.png" width="100%">
+</picture>
+</h2>
+
 - **Forum System**: Boards, threads, post moderation, publishing workflows, and tracking read state with dedicated controllers and routes.
 - **Blog & Previewing**: Public blog listing, tokenized preview links, and authenticated commenting APIs.
 - **Support Center**: Ticket submission, messaging threads, authenticated access to customer conversations, and configurable
@@ -100,7 +117,14 @@ compose.yaml                # Optional backing services for local development (D
 - Optional: Docker, for the backing services in `compose.yaml` (see below).
 - PHP's `upload_max_filesize` and `post_max_size` limit what staff can upload: product pictures are accepted up to 5 MB and digital files up to 100 MB by default (`COMMERCE_DOWNLOAD_MAX_KB`), but PHP's own defaults are much lower.
 
-## Quick Start
+<h2 id="quick-start">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/quick-start-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/quick-start-light.png">
+  <img alt="Quick Start" src="docs/assets/readme/quick-start-light.png" width="100%">
+</picture>
+</h2>
+
 > **Shortcut:** after cloning, `composer setup` installs PHP and Node dependencies, creates `.env`, generates the app key, runs migrations (creating the SQLite file if needed) and builds the frontend. It does not link storage or seed data, so continue with steps 4 and 5 below.
 
 1. **Clone & Install**
@@ -151,7 +175,14 @@ docker compose --profile search up -d meilisearch  # optional; then SEARCH_DRIVE
 ```
 Then point `.env` at them (database, `REDIS_*`, and `MAIL_MAILER=smtp` with `MAIL_HOST=127.0.0.1`, `MAIL_PORT=1025` for Mailpit, whose inbox is at http://localhost:8025). Unless `DB_DATABASE` and `DB_PASSWORD` are set in `.env`, the containers use the database `metaforge` and the password `password` (user `root` on MySQL, `postgres` on PostgreSQL). See [CONTRIBUTING.md](CONTRIBUTING.md) for running the tests against each database.
 
-## Setting up the shop
+<h2 id="setting-up-the-shop">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/setting-up-the-shop-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/setting-up-the-shop-light.png">
+  <img alt="Setting up the shop" src="docs/assets/readme/setting-up-the-shop-light.png" width="100%">
+</picture>
+</h2>
+
 The shop works out of the box for browsing and for orders that cost nothing. Taking payment needs Stripe, a queue worker and the scheduler. [docs/commerce.md](docs/commerce.md) explains how everything fits together.
 
 1. **Stripe credentials.** Put your test keys in `.env`: `STRIPE_KEY`, `STRIPE_SECRET` and `STRIPE_WEBHOOK_SECRET`. Stripe is only offered at checkout when both the secret key and the webhook signing secret are set, because without them a payment could never be confirmed.
@@ -242,7 +273,14 @@ dispatch but nothing will be pushed to clients. To enable realtime notifications
    the changes. New private channel subscriptions will now authenticate through `/broadcasting/auth`
    and emit toast notifications in realtime.
 
-## Security
+<h2 id="security">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/security-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/security-light.png">
+  <img alt="Security" src="docs/assets/readme/security-light.png" width="100%">
+</picture>
+</h2>
+
 - **User content is sanitised on write.** Forum threads/replies and blog bodies pass through `App\Support\Security\HtmlSanitizer` (Symfony HtmlSanitizer) via the `SanitizedHtml` Eloquent cast, so content rendered with `v-html` is safe. Forum content only keeps the markup the editor can produce; blog content allows the full set of safe elements. Run `php artisan content:sanitize` once after upgrading from an older version to clean previously stored content.
 - **Rate limiting.** Named limiters (see `AppServiceProvider::configureRateLimiting()`) protect registration, password resets, password confirmation, two-factor challenges, posting, reports, search, billing, discount codes and downloads. API routes are throttled per token.
 - **Security headers & CSP.** `App\Http\Middleware\SecurityHeaders` sends `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, HSTS (over HTTPS, production by default) and a nonce-based Content Security Policy. Tune everything in `config/security.php`; set `CSP_REPORT_ONLY=true` to trial changes. When adding third-party scripts, styles or APIs, add their origins to the relevant directive. The suite checks these on every CI run ([docs/security-headers.md](docs/security-headers.md)).
@@ -423,7 +461,14 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - **Queues & jobs**: Webhook handling and subscription updates rely on queued jobs. Ensure `queue:listen` (or a Supervisor job)
   is running in development and production so invoice syncing happens promptly.
 
-## Testing & Quality
+<h2 id="testing--quality">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/testing-quality-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/testing-quality-light.png">
+  <img alt="Testing &amp; Quality" src="docs/assets/readme/testing-quality-light.png" width="100%">
+</picture>
+</h2>
+
 - **PHPUnit**: `composer test` (or `php artisan test`). Tests use an in-memory SQLite database whatever `.env` says, so they never touch your data. To try MySQL or PostgreSQL see [CONTRIBUTING.md](CONTRIBUTING.md#testing-on-other-databases).
 - **Static Analysis & Formatting**:
   - Lint Vue/TypeScript: `npm run lint` (fix) / `npm run lint:check`
@@ -454,7 +499,14 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 | `php artisan content:sanitize [--dry-run]` | Re-sanitise stored forum and blog HTML. |
 | `php artisan support:attachments:privatize [--dry-run]` | Move support attachments from the public disk to the private one. |
 
-## Documentation
+<h2 id="documentation">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/documentation-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/documentation-light.png">
+  <img alt="Documentation" src="docs/assets/readme/documentation-light.png" width="100%">
+</picture>
+</h2>
+
 - [docs/commerce.md](docs/commerce.md): how the shop works (flow, orders, pricing, shipping, tax, discounts, digital goods, refunds, webhooks, configuration and upgrade notes).
 - [docs/billing.md](docs/billing.md): subscriptions, what a customer is told and can do when a payment fails, and the Stripe events the shop needs.
 - [docs/entitlements.md](docs/entitlements.md): what a purchase or a subscription plan gives an account (features and limits), when it is given and taken back, and how code asks for it.
@@ -467,7 +519,14 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md): the plan and milestones to 1.0.0.
 - [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
-## Contributing
+<h2 id="contributing">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/contributing-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/contributing-light.png">
+  <img alt="Contributing" src="docs/assets/readme/contributing-light.png" width="100%">
+</picture>
+</h2>
+
 Issues and pull requests are welcome! Read [CONTRIBUTING.md](CONTRIBUTING.md) first; it covers setup, the checks every change must pass and how to write code that works on all supported databases. Please include tests or updates to this documentation when modifying setup steps, tooling, or major features. Report security problems privately as described in [SECURITY.md](SECURITY.md).
 
 ## Useful Links
