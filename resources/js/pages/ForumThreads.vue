@@ -631,7 +631,11 @@ const markBoardAsRead = () => {
                         <Button type="button" variant="secondary" :disabled="threadReportForm.processing" @click="threadReportDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button type="submit" class="bg-warning text-warning-foreground hover:bg-warning/90" :disabled="threadReportForm.processing || !hasReportReasons">
+                        <Button
+                            type="submit"
+                            class="bg-warning text-warning-foreground hover:bg-warning/90"
+                            :disabled="threadReportForm.processing || !hasReportReasons"
+                        >
                             Submit report
                         </Button>
                     </DialogFooter>

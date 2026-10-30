@@ -1084,7 +1084,9 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <InputError :message="attachmentErrors" />
                                 </div>
                                 <div class="flex justify-end">
-                                    <Button type="submit" class="bg-success text-success-foreground hover:bg-success/90" :disabled="form.processing"> Submit Ticket </Button>
+                                    <Button type="submit" class="bg-success text-success-foreground hover:bg-success/90" :disabled="form.processing">
+                                        Submit Ticket
+                                    </Button>
                                 </div>
                             </form>
                         </div>

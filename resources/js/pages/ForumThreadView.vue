@@ -1521,7 +1521,11 @@ const submitReply = () => {
                         <Button type="button" variant="secondary" :disabled="threadReportForm.processing" @click="threadReportDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button type="submit" class="bg-warning text-warning-foreground hover:bg-warning/90" :disabled="threadReportForm.processing || !hasReportReasons">
+                        <Button
+                            type="submit"
+                            class="bg-warning text-warning-foreground hover:bg-warning/90"
+                            :disabled="threadReportForm.processing || !hasReportReasons"
+                        >
                             Submit report
                         </Button>
                     </DialogFooter>
@@ -1601,7 +1605,11 @@ const submitReply = () => {
                         <Button type="button" variant="secondary" :disabled="postReportForm.processing" @click="postReportDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button type="submit" class="bg-warning text-warning-foreground hover:bg-warning/90" :disabled="postReportForm.processing || !hasReportReasons">
+                        <Button
+                            type="submit"
+                            class="bg-warning text-warning-foreground hover:bg-warning/90"
+                            :disabled="postReportForm.processing || !hasReportReasons"
+                        >
                             Submit report
                         </Button>
                     </DialogFooter>
@@ -1805,7 +1813,7 @@ const submitReply = () => {
             <div v-if="props.thread.solution">
                 <Link
                     :href="solutionHref"
-                    class="inline-flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm font-medium text-success hover:bg-success/15"
+                    class="inline-flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm font-medium text-[color-mix(in_srgb,var(--color-success)_60%,black)] hover:bg-success/15 dark:text-success"
                 >
                     <ForumSolvedBadge />
                     Jump to the reply
@@ -2118,7 +2126,12 @@ const submitReply = () => {
                         {{ replyForm.errors.body }}
                     </p>
 
-                    <Button type="submit" variant="secondary" class="cursor-pointer bg-success text-success-foreground hover:bg-success/90" :disabled="replySubmitDisabled">
+                    <Button
+                        type="submit"
+                        variant="secondary"
+                        class="cursor-pointer bg-success text-success-foreground hover:bg-success/90"
+                        :disabled="replySubmitDisabled"
+                    >
                         Submit Reply
                     </Button>
                 </form>
