@@ -10,6 +10,7 @@ use Laravel\Scout\Contracts\UpdatesIndexSettings;
 use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\CollectionEngine;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\FakesSearchTasks;
 use Tests\TestCase;
 
 /**
@@ -18,6 +19,7 @@ use Tests\TestCase;
  */
 class SearchIndexStateTest extends TestCase
 {
+    use FakesSearchTasks;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -26,6 +28,8 @@ class SearchIndexStateTest extends TestCase
 
         config(['search.driver' => 'meilisearch', 'scout.driver' => 'meilisearch', 'scout.prefix' => '']);
         $this->app->make(EngineManager::class)->extend('meilisearch', fn () => new TakesSettingsEngine);
+        // The rebuild asks Meilisearch about its tasks; this one has none.
+        $this->fakeSearchTasks();
     }
 
     #[Test]
@@ -33,6 +37,7 @@ class SearchIndexStateTest extends TestCase
     {
         $this->assertNull(SearchIndexState::lastSyncedAt());
         $this->assertNull(SearchIndexState::lastReindexedAt());
+        $this->assertNull(SearchIndexState::lastReindexFromTask());
     }
 
     #[Test]
@@ -44,6 +49,7 @@ class SearchIndexStateTest extends TestCase
 
         $this->assertSame(now()->toIso8601String(), SearchIndexState::lastSyncedAt()->toIso8601String());
         $this->assertNull(SearchIndexState::lastReindexedAt());
+        $this->assertNull(SearchIndexState::lastReindexFromTask(), 'a sync begins no rebuild');
     }
 
     #[Test]
@@ -56,6 +62,7 @@ class SearchIndexStateTest extends TestCase
 
         $this->assertSame(now()->toIso8601String(), SearchIndexState::lastSyncedAt()->toIso8601String());
         $this->assertSame(now()->toIso8601String(), SearchIndexState::lastReindexedAt()->toIso8601String());
+        $this->assertSame(0, SearchIndexState::lastReindexFromTask(), 'and where it began: the first task there will be');
     }
 
     #[Test]
@@ -65,6 +72,7 @@ class SearchIndexStateTest extends TestCase
 
         $this->assertNull(SearchIndexState::lastSyncedAt());
         $this->assertNotNull(SearchIndexState::lastReindexedAt());
+        $this->assertSame(0, SearchIndexState::lastReindexFromTask());
     }
 
     #[Test]
@@ -77,6 +85,7 @@ class SearchIndexStateTest extends TestCase
 
         $this->assertNull(SearchIndexState::lastSyncedAt());
         $this->assertNull(SearchIndexState::lastReindexedAt());
+        $this->assertNull(SearchIndexState::lastReindexFromTask(), 'it refused before it began');
     }
 
     #[Test]
@@ -88,7 +97,8 @@ class SearchIndexStateTest extends TestCase
         $this->artisan('metaforge:search:reindex')->assertFailed();
 
         $this->assertNull(SearchIndexState::lastSyncedAt());
-        $this->assertNull(SearchIndexState::lastReindexedAt());
+        $this->assertNull(SearchIndexState::lastReindexedAt(), 'it was not done');
+        $this->assertSame(0, SearchIndexState::lastReindexFromTask(), 'but it had begun, and what it sent before it failed is counted from there');
     }
 
     #[Test]
@@ -102,6 +112,18 @@ class SearchIndexStateTest extends TestCase
 
         SystemSetting::set('search.reindexed_at', '');
         $this->assertNull(SearchIndexState::lastReindexedAt(), 'an empty note is no note');
+
+        SearchIndexState::recordReindexBegan(41);
+        $this->assertSame(41, SystemSetting::get('search.reindex_from_task'));
+        $this->assertSame(41, SearchIndexState::lastReindexFromTask());
+
+        SearchIndexState::recordReindexBegan(0);
+        $this->assertSame(0, SearchIndexState::lastReindexFromTask(), 'the first task there is, is a number too');
+
+        SystemSetting::set('search.reindex_from_task', 'not a number');
+        $this->assertNull(SearchIndexState::lastReindexFromTask());
+        SystemSetting::set('search.reindex_from_task', -3);
+        $this->assertNull(SearchIndexState::lastReindexFromTask());
     }
 }
 

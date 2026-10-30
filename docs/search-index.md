@@ -49,6 +49,17 @@ php artisan metaforge:search:reindex
 
 Settings are applied first (same as sync). Pass `--skip-sync` to import only, or `--chunk=100` to change the batch size. Import runs in-process; a queued rebuild and a zero-downtime index swap are not built yet. With `SEARCH_DRIVER=database` the command refuses and says so.
 
+**It waits, and says whether Meilisearch did it.** Meilisearch answers an update at once, does it afterwards, and may then refuse it (a document it cannot take, say). So the rebuild notes **where it began** (the number of the first Meilisearch task it will cause, before it sends anything), sends everything, waits until Meilisearch has finished the updates for these indexes, and counts as **done** only if none of them, from where it began, was refused:
+
+- All accepted: it prints that Meilisearch finished and refused nothing, and records the time ("Documents last rebuilt" on the health card).
+- Something refused: it fails (exit 1), says how many were refused and why the first was, and **does not record the rebuild as done**. The health card counts the refusals from the same point, so they stay in view until a rebuild that is accepted.
+- Not finished within the time: it fails and says so (Meilisearch carries on; `metaforge:search:health` shows when it has, and whether it refused anything). The time is `SEARCH_REINDEX_WAIT` seconds (default 120); `--wait=300` gives a large index longer.
+- `--wait=0` does not wait: it sends the rebuild and returns, and says the rebuild is **not recorded as done**, since it does not know. Where it began is still noted, so the health card shows what Meilisearch refuses of it.
+
+Where the rebuild began is a task number and not a time, because the app's clock and Meilisearch's can differ and a time is only kept to the second: an update refused after the command finished is still the rebuild's, however long the command took.
+
+To know all this the key has to be allowed to read tasks (`tasks.get`, see [Keys](#keys)). A key that cannot makes the rebuild stop before it sends anything and say so; `--wait=0` rebuilds without it.
+
 A bulk import only loads rows that already qualify (published blogs and due scheduled posts, published threads, published FAQs, active products).
 
 ## Checking on it
@@ -57,7 +68,7 @@ A bulk import only loads rows that already qualify (published blogs and due sche
 
 - whether it is **reachable**, which **version** it is, and when the settings were last pushed and the documents last rebuilt (noted by `metaforge:search:sync` and `metaforge:search:reindex`);
 - for each index, **how many documents it holds against how many the database says it should** (counted the way a reindex would), and whether its **settings are the coded ones**. Anything else you changed on the server, such as stop words or synonyms, is left alone;
-- how many **updates Meilisearch refused** since the last rebuild, and why the first was;
+- how many **updates Meilisearch refused** since the last rebuild began (so the rebuild's own are among them, however long the command took), and why the first was;
 - whether search is **on the database for a moment** after a failure (the circuit in [Searching](#searching)).
 
 Each problem comes with the command that puts it right:
@@ -93,7 +104,7 @@ curl -X POST "$MEILISEARCH_HOST/keys" \
   }'
 ```
 
-Put the `key` it answers with in `MEILISEARCH_KEY`. If the site uses `SCOUT_PREFIX`, `indexes` can be `["<prefix>*"]`. Two of the actions only feed the health check: without `version` the card shows the version as unknown, and without `tasks.get` it cannot count refused updates. Meilisearch's *Default Admin API Key* also works, but it can do everything, including manage keys.
+Put the `key` it answers with in `MEILISEARCH_KEY`. If the site uses `SCOUT_PREFIX`, `indexes` can be `["<prefix>*"]`. `tasks.get` is what lets a rebuild wait for Meilisearch and say whether it was accepted (without it the rebuild stops before it sends anything, unless it is run with `--wait=0`), and what lets the health card count refused updates. Without `version` only the card changes: it shows the version as unknown. Meilisearch's *Default Admin API Key* also works, but it can do everything, including manage keys.
 
 ## When Meilisearch is down
 
@@ -113,6 +124,7 @@ Either way, anything saved while Meilisearch was down is missing from the index 
 
 - A scheduled blog post is not added to the Meilisearch index by the clock: it is added when the post is saved after it is due, or when the index is rebuilt. The database search path still finds a due scheduled post without that save.
 - Queued rebuild and zero-downtime index swap.
+- A rebuild counts refusals from where it began up to a page of 100 (it says "100 or more" past that), and any refusal of an index since it began counts, including one for a post somebody saved while it ran.
 - Indexing on the queue is **not the default** (`SCOUT_QUEUE=false`), so a site that wants saves to survive a Meilisearch outage has to set it.
 - Telling anybody when the health check finds a problem (it shows on the System page and in the command; nothing is sent).
 - Products on the global search page.
@@ -123,13 +135,13 @@ Either way, anything saved while Meilisearch was down is missing from the index 
 
 `tests/Feature/Search/SyncSearchIndexSettingsCommandTest.php` checks that sync refuses the database driver and pushes settings for every index when Meilisearch is configured (through a fake engine, without a live server).
 
-`tests/Feature/Search/ReindexSearchCommandTest.php` checks that reindex refuses the database driver, flushes each index, imports only searchable rows, and can skip settings with `--skip-sync`.
+`tests/Feature/Search/ReindexSearchCommandTest.php` checks that reindex refuses the database driver, flushes each index, imports only searchable rows, and can skip settings with `--skip-sync`. `ReindexSearchCommandTasksTest.php` checks what it does about Meilisearch's tasks, against a stand-in that answers as the real engine does: where it began is noted before it sends anything, it is done only when its updates were all accepted, a refusal fails it and is not recorded as done, a refusal that comes after the command has sent everything still fails it, refusals from before it are not its own, what it does when Meilisearch has not finished in time, with `--wait=0`, and with a key that cannot read tasks. `SearchTasksTest.php` checks the task code itself (including that Meilisearch's `total` ignores where a page starts, so what comes back is what is counted).
 
 `tests/Feature/Search/GlobalSearchMeilisearchTest.php` runs the search page and header JSON with `SEARCH_DRIVER=meilisearch` backed by Scout's collection engine: cross-group results, unpublished exclusion, type filters, pagination, reply-text highlights and disabled website sections.
 
 `tests/Feature/Search/SearchHealthTest.php` runs the health check through the real Meilisearch client and a stand-in that answers by path (`tests/Support/FakeMeilisearch.php`): a healthy engine, one that cannot be reached or stops answering, a missing key, a key that is refused, fresh installs and missing indexes, each way the settings can differ (and what Meilisearch adds that is not a difference), document counts that are off (singular and plural), an index still updating, refused updates and the time they are counted from, an open circuit, the record of the last sync and rebuild, and that no message ever carries the key. `SearchHealthCommandTest.php` covers the command (output, `--json`, exit codes), `SearchIndexStateTest.php` and `SearchIndexStateThatCannotBeKeptTest.php` the record of the last sync and rebuild (written only by a command that did its work, and never failing one), and `tests/Feature/Admin/SystemSearchHealthTest.php` the card on the System page (deferred, never holding the page up, no more permission than the page needs).
 
-`tests/Live/Meilisearch/MeilisearchLiveTest.php` runs against a **real Meilisearch** and is what the CI `search (Meilisearch 1.12)` job runs: the settings Meilisearch ends up with, only what a guest can open being listed, a title ranking above a body, which typos are forgiven (and that a word under four letters forgives none), what leaves the index on unpublish and delete, a held reply never reaching a thread's document, the search page reading the index (with a typo only Meilisearch would forgive) and falling back to the database when it is unreachable, a save during an outage failing in the request and succeeding on the queue, the health check noticing a missing document, changed settings, no index, a wrong key and no key (and putting each right with the command), and a key with only the actions listed in [Keys](#keys) doing everything the app does, while one without `settings.update` is refused. These are in `tests/Live`, which `php artisan test` does not run; they skip themselves unless `MEILISEARCH_LIVE_HOST` and `MEILISEARCH_LIVE_KEY` are set, and each run uses its own index prefix and removes its indexes. To run them locally:
+`tests/Live/Meilisearch/MeilisearchLiveTest.php` runs against a **real Meilisearch** and is what the CI `search (Meilisearch 1.12)` job runs: the settings Meilisearch ends up with, only what a guest can open being listed, a title ranking above a body, which typos are forgiven (and that a word under four letters forgives none), what leaves the index on unpublish and delete, a held reply never reaching a thread's document, the search page reading the index (with a typo only Meilisearch would forgive) and falling back to the database when it is unreachable, a save during an outage failing in the request and succeeding on the queue, the health check noticing a missing document, changed settings, no index, a wrong key and no key (and putting each right with the command), and a rebuild that Meilisearch refuses (an index whose primary key the documents do not have) failing, not being recorded as done, and the health check showing what it refused until a good rebuild; a key with only the actions listed in [Keys](#keys) doing everything the app does, while one without `settings.update` is refused and one without `tasks.get` cannot wait for a rebuild but can rebuild with `--wait=0`. These are in `tests/Live`, which `php artisan test` does not run; they skip themselves unless `MEILISEARCH_LIVE_HOST` and `MEILISEARCH_LIVE_KEY` are set, and each run uses its own index prefix and removes its indexes. To run them locally:
 
 ```bash
 docker compose --profile search up -d meilisearch

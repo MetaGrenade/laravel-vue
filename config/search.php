@@ -21,6 +21,12 @@ return [
         'minimum_length' => (int) env('SEARCH_QUERY_MIN_LENGTH', 2),
     ],
 
+    // How long `metaforge:search:reindex` waits for Meilisearch to finish the updates it sent before it says the rebuild is done, or that
+    // some were refused. Meilisearch does them after it has answered, so a large index needs longer. 0 does not wait (--wait overrides it).
+    'reindex' => [
+        'wait_seconds' => (int) env('SEARCH_REINDEX_WAIT', 120),
+    ],
+
     // How long the ACP health card and `metaforge:search:health` wait for Meilisearch before they say it cannot be reached.
     'health' => [
         'timeout_seconds' => (int) env('SEARCH_HEALTH_TIMEOUT', 3),

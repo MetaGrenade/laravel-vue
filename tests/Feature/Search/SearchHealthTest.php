@@ -368,60 +368,114 @@ class SearchHealthTest extends TestCase
 
     // --- Updates Meilisearch refused -------------------------------------------------------------------------------------------------
 
-    private function failedTasks(int $total, string $message = 'Document does not have a primary key'): array
-    {
-        return [
-            'results' => [['uid' => 7, 'indexUid' => 'blogs', 'status' => 'failed', 'type' => 'documentAdditionOrUpdate', 'error' => ['message' => $message, 'code' => 'x', 'type' => 'invalid_request', 'link' => 'https://docs.meilisearch.com/errors']]],
-            'total' => $total,
-            'limit' => 1,
-            'from' => 7,
-            'next' => null,
-        ];
-    }
-
     #[Test]
-    public function updates_that_meilisearch_refused_are_counted_and_the_first_reason_is_given(): void
+    public function updates_that_meilisearch_refused_are_counted_and_the_newest_reason_is_given_when_no_rebuild_is_on_record(): void
     {
-        $fake = FakeMeilisearch::serving()->on('GET /tasks', $this->failedTasks(3));
+        $log = [
+            FakeMeilisearch::task(1, 'failed', 'blogs', 'An older refusal.'),
+            FakeMeilisearch::task(2),
+            FakeMeilisearch::task(3, 'failed', 'faqs', 'Document does not have a primary key.'),
+        ];
 
-        $report = $this->check($fake);
+        $report = $this->check(FakeMeilisearch::serving()->taskLog($log));
 
         $this->assertSame(SearchHealthReport::ATTENTION, $report->status);
-        $this->assertSame(3, $report->failedTasks);
-        $this->assertSame(['Meilisearch refused 3 updates so far: Document does not have a primary key'], $report->problems);
+        $this->assertSame(2, $report->failedTasks);
+        $this->assertSame(['Meilisearch refused 2 updates so far: Document does not have a primary key.'], $report->problems);
     }
 
     #[Test]
     public function a_single_refused_update_is_said_in_the_singular(): void
     {
-        $report = $this->check(FakeMeilisearch::serving()->on('GET /tasks', $this->failedTasks(1)));
+        $log = [FakeMeilisearch::task(1, 'failed', 'blogs', 'Document does not have a primary key.')];
 
-        $this->assertSame(['Meilisearch refused 1 update so far: Document does not have a primary key'], $report->problems);
+        $report = $this->check(FakeMeilisearch::serving()->taskLog($log));
+
+        $this->assertSame(['Meilisearch refused 1 update so far: Document does not have a primary key.'], $report->problems);
     }
 
     #[Test]
-    public function the_tasks_asked_about_are_the_failed_ones_of_these_indexes_since_the_last_rebuild(): void
+    public function the_tasks_asked_about_are_the_failed_ones_of_these_indexes_and_all_of_them_when_no_rebuild_is_on_record(): void
     {
-        $this->freezeTime();
-        $before = FakeMeilisearch::serving();
-        $this->check($before);
+        $log = [];
+        $fake = FakeMeilisearch::serving()->taskLog($log);
+        $this->check($fake);
 
-        $tasks = array_values(array_filter($before->requests, fn (string $request) => str_starts_with($request, 'GET /tasks')));
+        $tasks = array_values(array_filter($fake->requests, fn (string $request) => str_starts_with($request, 'GET /tasks')));
         $this->assertCount(1, $tasks);
         $this->assertStringContainsString('statuses=failed', $tasks[0]);
         $this->assertStringContainsString('indexUids=blogs,forum_threads,faqs,products', $tasks[0]);
-        $this->assertStringContainsString('limit=1', $tasks[0]);
-        $this->assertStringNotContainsString('afterEnqueuedAt', $tasks[0], 'with no rebuild on record, every refusal counts');
-
-        SearchIndexState::recordReindex();
-        $after = FakeMeilisearch::serving()->on('GET /tasks', $this->failedTasks(2));
-        $report = $this->check($after);
-
-        $this->assertTrue($after->asked('GET /tasks?'));
-        $this->assertStringContainsString('afterEnqueuedAt='.now()->toIso8601String(), implode(' ', $after->requests));
-        $this->assertSame(['Meilisearch refused 2 updates since the last rebuild: Document does not have a primary key'], $report->problems);
+        $this->assertStringContainsString('limit=100', $tasks[0]);
+        $this->assertStringNotContainsString('reverse', $tasks[0], 'with no rebuild on record, every refusal counts');
+        $this->assertStringNotContainsString('from=', $tasks[0]);
     }
 
+    #[Test]
+    public function the_refusals_of_a_rebuild_are_counted_from_where_it_began_even_though_it_finished_after_they_were_sent(): void
+    {
+        // The rebuild began at task 5 and sent tasks 5 to 7. Meilisearch refused 5 and 7 after the command had finished and noted the time.
+        $log = [
+            FakeMeilisearch::task(3, 'failed', 'blogs', 'Refused before the rebuild.'),
+            FakeMeilisearch::task(5, 'failed', 'blogs', 'First refused in the rebuild.'),
+            FakeMeilisearch::task(6),
+            FakeMeilisearch::task(7, 'failed', 'faqs', 'Second refused in the rebuild.'),
+        ];
+        SearchIndexState::recordReindexBegan(5);
+        SearchIndexState::recordReindex();
+        $fake = FakeMeilisearch::serving()->taskLog($log);
+
+        $report = $this->check($fake);
+
+        $this->assertSame(SearchHealthReport::ATTENTION, $report->status);
+        $this->assertSame(2, $report->failedTasks, 'the one before the rebuild is not counted, and the two of the rebuild are');
+        $this->assertSame(['Meilisearch refused 2 updates since the last rebuild began: First refused in the rebuild.'], $report->problems);
+        $tasks = implode(' ', $fake->requests);
+        $this->assertStringContainsString('reverse=true', $tasks);
+        $this->assertStringContainsString('from=5', $tasks);
+    }
+
+    #[Test]
+    public function a_good_rebuild_leaves_the_refusals_before_it_behind_and_later_ones_are_counted(): void
+    {
+        $log = [FakeMeilisearch::task(3, 'failed', 'blogs', 'Long ago.'), FakeMeilisearch::task(4)];
+        SearchIndexState::recordReindexBegan(5);
+        SearchIndexState::recordReindex();
+
+        $this->assertSame(SearchHealthReport::HEALTHY, $this->check(FakeMeilisearch::serving()->taskLog($log))->status);
+
+        $log[] = FakeMeilisearch::task(9, 'failed', 'products', 'Since the rebuild.');
+
+        $report = $this->check(FakeMeilisearch::serving()->taskLog($log));
+
+        $this->assertSame(['Meilisearch refused 1 update since the last rebuild began: Since the rebuild.'], $report->problems);
+    }
+
+    #[Test]
+    public function a_rebuild_that_began_at_the_very_first_task_counts_that_one(): void
+    {
+        $log = [FakeMeilisearch::task(0, 'failed', 'blogs', 'The first task of all.')];
+        SearchIndexState::recordReindexBegan(0);
+
+        $report = $this->check(FakeMeilisearch::serving()->taskLog($log));
+
+        $this->assertSame(1, $report->failedTasks);
+    }
+
+    #[Test]
+    public function more_refusals_than_a_page_are_reported_as_that_many_or_more(): void
+    {
+        $log = [];
+
+        for ($uid = 1; $uid <= 130; $uid++) {
+            $log[] = FakeMeilisearch::task($uid, 'failed', 'blogs', 'Refused.');
+        }
+
+        SearchIndexState::recordReindexBegan(1);
+
+        $report = $this->check(FakeMeilisearch::serving()->taskLog($log));
+
+        $this->assertSame(['Meilisearch refused 100 or more updates since the last rebuild began: Refused.'], $report->problems);
+    }
     // --- The circuit and the record -----------------------------------------------------------------------------------------------
 
     #[Test]

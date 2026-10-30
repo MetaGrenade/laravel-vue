@@ -23,7 +23,7 @@ use Throwable;
  */
 final class FakeMeilisearch
 {
-    /** @var array<string, array{int, array<mixed>}|Throwable> */
+    /** @var array<string, array{int, array<mixed>}|Throwable|\Closure> */
     private array $answers = [];
 
     /** @var list<string> Every request, as "GET /path?query". */
@@ -70,13 +70,72 @@ final class FakeMeilisearch
     }
 
     /**
-     * @param  array<mixed>|Throwable  $answer  A body, or an exception to throw as if the host could not be reached.
+     * @param  array<mixed>|Throwable|\Closure  $answer  A body; an exception to throw as if the host could not be reached; or a closure
+     *                                                   that is given the query (as an array) and returns the body, for a route that
+     *                                                   answers differently according to what it is asked, as the tasks do.
      */
-    public function on(string $route, array|Throwable $answer, int $status = 200): self
+    public function on(string $route, array|Throwable|\Closure $answer, int $status = 200): self
     {
-        $this->answers[$route] = $answer instanceof Throwable ? $answer : [$status, $answer];
+        $this->answers[$route] = $answer instanceof Throwable || $answer instanceof \Closure ? $answer : [$status, $answer];
 
         return $this;
+    }
+
+    /**
+     * A task as Meilisearch lists it.
+     *
+     * @return array{uid: int, status: string, indexUid: string, error?: array{message: string, code: string, type: string, link: string}}
+     */
+    public static function task(int $uid, string $status = 'succeeded', string $index = 'blogs', ?string $error = null): array
+    {
+        $task = ['uid' => $uid, 'status' => $status, 'indexUid' => $index, 'type' => 'documentAdditionOrUpdate'];
+
+        if ($error !== null) {
+            $task['error'] = ['message' => $error, 'code' => 'internal', 'type' => 'invalid_request', 'link' => 'https://docs.meilisearch.com/errors'];
+        }
+
+        return $task;
+    }
+
+    /**
+     * Answer the tasks as Meilisearch does, from a log of them: filtered by status and index, newest first (oldest first with `reverse`),
+     * from a task number on, a page at a time, and with a `total` that ignores where the page starts (it is every task that matches).
+     * The log is read on every request, so a test can add to it or change a task while the code under test is running; `$onAsk` is
+     * called with how many times the tasks have been asked for, before each answer.
+     *
+     * @param  list<array{uid: int, status: string, indexUid: string, error?: array<string, string>}>  $log
+     */
+    public function taskLog(array &$log, ?\Closure $onAsk = null): self
+    {
+        $asked = 0;
+
+        return $this->on('GET /tasks', function (array $query) use (&$log, &$asked, $onAsk): array {
+            $asked++;
+
+            if ($onAsk !== null) {
+                $onAsk($asked);
+            }
+
+            $statuses = isset($query['statuses']) ? explode(',', $query['statuses']) : null;
+            $indexes = isset($query['indexUids']) ? explode(',', $query['indexUids']) : null;
+            $reverse = ($query['reverse'] ?? 'false') === 'true';
+
+            $matching = array_values(array_filter($log, fn (array $task) => ($statuses === null || in_array($task['status'], $statuses, true))
+                && ($indexes === null || in_array($task['indexUid'], $indexes, true))));
+            usort($matching, fn (array $a, array $b) => $reverse ? $a['uid'] <=> $b['uid'] : $b['uid'] <=> $a['uid']);
+
+            $total = count($matching);
+
+            if (isset($query['from'])) {
+                $from = (int) $query['from'];
+                $matching = array_values(array_filter($matching, fn (array $task) => $reverse ? $task['uid'] >= $from : $task['uid'] <= $from));
+            }
+
+            $limit = (int) ($query['limit'] ?? 20);
+            $page = array_slice($matching, 0, $limit);
+
+            return ['results' => $page, 'total' => $total, 'limit' => $limit, 'from' => $page[0]['uid'] ?? null, 'next' => $matching[$limit]['uid'] ?? null];
+        });
     }
 
     /**
@@ -104,6 +163,11 @@ final class FakeMeilisearch
 
             if ($answer instanceof Throwable) {
                 return Create::rejectionFor($answer);
+            }
+
+            if ($answer instanceof \Closure) {
+                parse_str($query, $asked);
+                $answer = [200, $answer($asked)];
             }
 
             return Create::promiseFor(new Response($answer[0], ['Content-Type' => 'application/json'], (string) json_encode($answer[1])));

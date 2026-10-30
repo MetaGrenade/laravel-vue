@@ -10,6 +10,7 @@ use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\CollectionEngine;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
+use Tests\Support\FakesSearchTasks;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class SearchIndexStateThatCannotBeKeptTest extends TestCase
 {
+    use FakesSearchTasks;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -27,6 +29,7 @@ class SearchIndexStateThatCannotBeKeptTest extends TestCase
 
         config(['search.driver' => 'meilisearch', 'scout.driver' => 'meilisearch', 'scout.prefix' => '']);
         $this->app->make(EngineManager::class)->extend('meilisearch', fn () => new TakesSettingsToo);
+        $this->fakeSearchTasks();
 
         // On this test's own application, so it is gone with it.
         SystemSetting::saving(fn () => throw new RuntimeException('The database is not taking writes.'));
@@ -49,8 +52,8 @@ class SearchIndexStateThatCannotBeKeptTest extends TestCase
 
         $this->artisan('metaforge:search:reindex')->assertSuccessful();
 
-        // The settings are noted and so is the rebuild: both are logged and neither stops the command.
-        Log::shouldHaveReceived('warning')->twice();
+        // The settings, where the rebuild began and the rebuild itself are noted: each is logged and none stops the command.
+        Log::shouldHaveReceived('warning')->times(3);
     }
 }
 

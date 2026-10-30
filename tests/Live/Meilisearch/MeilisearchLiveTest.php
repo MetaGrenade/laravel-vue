@@ -110,6 +110,87 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
         $this->artisan('metaforge:search:health')->expectsOutputToContain('Meilisearch is healthy.')->assertSuccessful();
     }
 
+    /**
+     * Run the rebuild and give its exit code and what it printed in one line (a long message wraps).
+     *
+     * @param  array<string, mixed>  $options
+     * @return array{int, string}
+     */
+    private function reindex(array $options = []): array
+    {
+        $code = Artisan::call('metaforge:search:reindex', $options);
+
+        return [$code, trim((string) preg_replace('/\s+/', ' ', Artisan::output()))];
+    }
+
+    #[Test]
+    public function a_rebuild_that_meilisearch_refuses_fails_and_is_not_recorded_and_health_shows_what_it_refused(): void
+    {
+        // An index that already has a primary key the documents do not have: Meilisearch takes every update and then refuses it.
+        $index = (new Blog)->indexableAs();
+        $this->meili->waitForTask($this->meili->createIndex($index, ['primaryKey' => 'nope'])['taskUid']);
+        Blog::withoutSyncingToSearch(fn () => Blog::factory()->published()->create(['title' => 'Kubernetes basics', 'user_id' => $this->author()->id]));
+
+        [$code, $output] = $this->reindex();
+
+        $this->assertSame(1, $code);
+        $this->assertStringContainsString('Meilisearch refused 1 update in this rebuild', $output);
+        $this->assertStringContainsString('nope', $output, 'and why, in Meilisearch\'s words');
+        $this->assertStringContainsString('The rebuild is not recorded as done.', $output);
+        $this->assertNull(SearchIndexState::lastReindexedAt());
+        $this->assertNotNull(SearchIndexState::lastReindexFromTask());
+
+        // The refusal came after the command sent the update, and is the rebuild's own: it is counted from where the rebuild began.
+        $report = $this->health();
+        $this->assertSame(SearchHealthReport::ATTENTION, $report->status);
+        $this->assertSame(1, $report->failedTasks);
+        $this->assertStringStartsWith('Meilisearch refused 1 update since the last rebuild began', collect($report->problems)->first(fn (string $problem) => str_contains($problem, 'refused')));
+
+        // Put right, the next rebuild is done, and what the last one was refused is behind it.
+        $this->meili->waitForTask($this->meili->deleteIndex($index)['taskUid']);
+        [$code, $output] = $this->reindex();
+
+        $this->assertSame(0, $code, $output);
+        $this->assertNotNull(SearchIndexState::lastReindexedAt());
+        $report = $this->health();
+        $this->assertSame(SearchHealthReport::HEALTHY, $report->status, implode(' ', $report->problems));
+        $this->assertSame(0, $report->failedTasks);
+    }
+
+    #[Test]
+    public function a_key_that_may_not_read_tasks_cannot_wait_for_a_rebuild_but_can_rebuild_without_waiting(): void
+    {
+        $host = (string) getenv('MEILISEARCH_LIVE_HOST');
+        $master = getenv('MEILISEARCH_LIVE_KEY') ?: null;
+        $key = $this->meili->createKey([
+            'name' => 'metaforge test without tasks '.$this->prefix,
+            'actions' => array_values(array_diff(self::actionsTheAppNeeds(), ['tasks.get'])),
+            'indexes' => [$this->prefix.'*'],
+            'expiresAt' => null,
+        ]);
+        Blog::withoutSyncingToSearch(fn () => Blog::factory()->published()->create(['title' => 'Kubernetes basics', 'user_id' => $this->author()->id]));
+
+        try {
+            $this->useMeilisearch($host, $key->getKey());
+
+            [$code, $output] = $this->reindex();
+            $this->assertSame(1, $code);
+            $this->assertStringContainsString('tasks.get', $output);
+            $this->assertNull(SearchIndexState::lastReindexFromTask(), 'and nothing was sent');
+
+            [$code, $output] = $this->reindex(['--wait' => 0]);
+            $this->assertSame(0, $code, $output);
+            $this->assertStringContainsString('Not waiting for Meilisearch', $output);
+            $this->assertNull(SearchIndexState::lastReindexedAt(), 'it was not waited for, so it is not recorded as done');
+        } finally {
+            $this->useMeilisearch($host, $master);
+            $this->meili->deleteKey($key->getKey());
+        }
+
+        $this->settle();
+        $this->assertSame(1, $this->documentsIn(Blog::class), 'but it was sent, and Meilisearch did it');
+    }
+
     // --- How it ranks and what it forgives ---------------------------------------------------------------------------------------
 
     #[Test]

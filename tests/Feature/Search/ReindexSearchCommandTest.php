@@ -17,10 +17,12 @@ use Laravel\Scout\Contracts\UpdatesIndexSettings;
 use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\NullEngine;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\FakesSearchTasks;
 use Tests\TestCase;
 
 class ReindexSearchCommandTest extends TestCase
 {
+    use FakesSearchTasks;
     use RefreshDatabase;
 
     #[Test]
@@ -110,6 +112,8 @@ class ReindexSearchCommandTest extends TestCase
     {
         $engine = new RecordingReindexEngine;
         $this->app->make(EngineManager::class)->extend('meilisearch', fn () => $engine);
+        // The rebuild asks Meilisearch about its tasks afterwards; this one has none.
+        $this->fakeSearchTasks();
 
         config([
             'search.driver' => 'meilisearch',

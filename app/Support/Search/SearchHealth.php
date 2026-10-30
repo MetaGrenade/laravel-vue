@@ -6,7 +6,6 @@ use GuzzleHttp\Client as HttpClient;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Meilisearch\Client;
-use Meilisearch\Contracts\TasksQuery;
 use Meilisearch\Exceptions\ApiException;
 use Throwable;
 
@@ -18,10 +17,14 @@ use Throwable;
  */
 final class SearchHealth
 {
+    private readonly SearchTasks $tasks;
+
     public function __construct(
         private readonly Client $client,
         private readonly MeilisearchCircuitBreaker $circuit,
-    ) {}
+    ) {
+        $this->tasks = new SearchTasks($client);
+    }
 
     /**
      * A client for the configured host and key that gives up quickly, unlike the one Scout uses to index and search.
@@ -138,11 +141,10 @@ final class SearchHealth
                 : 'The '.Arr::join(array_map(fn (string $name) => "[{$name}]", $missing), ', ', ' and ').' '.(count($missing) === 1 ? 'index does' : 'indexes do').' not exist. Run: php artisan metaforge:search:reindex');
         }
 
-        [$failed, $firstFailure] = $this->failedTasks($names, $reindexed);
+        $refused = $this->refusedUpdates($names);
 
-        if ($failed > 0) {
-            $since = $reindexed !== null ? 'since the last rebuild' : 'so far';
-            $problems[] = "Meilisearch refused {$failed} ".Str::plural('update', $failed)." {$since}".($firstFailure !== null ? ": {$firstFailure}" : '.');
+        if ($refused->any()) {
+            $problems[] = $refused->sentence(SearchIndexState::lastReindexFromTask() !== null ? 'since the last rebuild began' : 'so far');
         }
 
         if ($circuitOpen) {
@@ -162,7 +164,7 @@ final class SearchHealth
             $circuitOpen,
             $synced?->toIso8601String(),
             $reindexed?->toIso8601String(),
-            $failed,
+            $refused->count,
             $indexes,
             $problems,
             $notes,
@@ -203,27 +205,18 @@ final class SearchHealth
     }
 
     /**
-     * How many updates to these indexes Meilisearch refused (since a time, when there is one), and why the first was.
+     * What Meilisearch refused of the updates to these indexes: from the task the last rebuild began at (so the rebuild's own updates,
+     * which it did after the command that sent them had finished, are among them), or all of it when no rebuild is on record.
      *
      * @param  list<string>  $names
-     * @return array{int, string|null}
      */
-    private function failedTasks(array $names, ?\DateTimeInterface $since): array
+    private function refusedUpdates(array $names): RefusedUpdates
     {
         try {
-            $query = (new TasksQuery)->setStatuses(['failed'])->setIndexUids($names)->setLimit(1);
-
-            if ($since !== null) {
-                $query->setAfterEnqueuedAt($since);
-            }
-
-            $found = $this->client->getTasks($query);
-            $message = $found->getResults()[0]['error']['message'] ?? null;
-
-            return [$found->getTotal(), is_string($message) ? Str::limit($message, 200) : null];
+            return $this->tasks->refusedFrom($names, SearchIndexState::lastReindexFromTask());
         } catch (Throwable) {
             // A key that cannot read tasks is not a reason to call search unhealthy.
-            return [0, null];
+            return new RefusedUpdates;
         }
     }
 
