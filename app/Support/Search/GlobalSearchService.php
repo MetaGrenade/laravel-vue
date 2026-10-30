@@ -39,8 +39,12 @@ class GlobalSearchService
             return ! $section || WebsiteSections::isEnabled($section);
         }));
 
+        $meilisearch = SearchDriver::usesMeilisearch()
+            ? new MeilisearchGlobalSearch($this)
+            : null;
+
         $results = collect(self::GROUPS)
-            ->mapWithKeys(function (string $group) use ($types, $normalizedTerm, $perPage, $pages) {
+            ->mapWithKeys(function (string $group) use ($types, $normalizedTerm, $perPage, $pages, $meilisearch) {
                 if (! in_array($group, $types, true)) {
                     return [$group => $this->emptyGroup($perPage)];
                 }
@@ -49,6 +53,17 @@ class GlobalSearchService
 
                 if ($section && ! WebsiteSections::isEnabled($section)) {
                     return [$group => $this->emptyGroup($perPage)];
+                }
+
+                if ($meilisearch !== null) {
+                    $results = match ($group) {
+                        'blogs' => $meilisearch->searchBlogs($normalizedTerm, $perPage, $pages['blogs']),
+                        'forum_threads' => $meilisearch->searchForumThreads($normalizedTerm, $perPage, $pages['forum_threads']),
+                        'faqs' => $meilisearch->searchFaqs($normalizedTerm, $perPage, $pages['faqs']),
+                        default => $this->emptyGroup($perPage),
+                    };
+
+                    return [$group => $results];
                 }
 
                 $results = match ($group) {
@@ -65,6 +80,108 @@ class GlobalSearchService
         return [
             'query' => $normalizedTerm,
             'results' => $results,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentBlog(Blog $blog, string $term): array
+    {
+        $excerpt = is_string($blog->excerpt) ? trim($blog->excerpt) : '';
+        $body = is_string($blog->body) ? trim(strip_tags($blog->body)) : '';
+        $author = $blog->user?->nickname ?? null;
+        $description = $excerpt !== ''
+            ? $excerpt
+            : ($body !== '' ? Str::limit($body, 160) : null);
+
+        return [
+            'id' => $blog->id,
+            'title' => $blog->title,
+            'description' => $description !== null ? Str::limit($description, 120) : null,
+            'highlight' => [
+                'title' => $this->highlightText($blog->title, $term),
+                'description' => $this->firstHighlight([
+                    $excerpt,
+                    $body,
+                    $author ? 'By '.$author : null,
+                ], $term),
+            ],
+            'url' => route('blogs.view', ['slug' => $blog->slug]),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function presentForumThread(ForumThread $thread, string $term): ?array
+    {
+        $board = $thread->board;
+
+        if ($board === null) {
+            return null;
+        }
+
+        $excerpt = is_string($thread->excerpt) ? trim($thread->excerpt) : '';
+        $author = $thread->author?->nickname ?? null;
+        $replies = $this->forumReplyPlainText($thread);
+        $description = $excerpt !== '' ? $excerpt : ($author ? 'Started by '.$author : null);
+
+        return [
+            'id' => $thread->id,
+            'title' => $thread->title,
+            'description' => $description !== null ? Str::limit($description, 120) : null,
+            'highlight' => [
+                'title' => $this->highlightText($thread->title, $term),
+                'description' => $this->firstHighlight([
+                    $excerpt,
+                    $replies,
+                    $author ? 'Started by '.$author : null,
+                ], $term),
+            ],
+            'url' => route('forum.threads.show', ['board' => $board->slug, 'thread' => $thread->slug]),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentFaq(Faq $faq, string $term): array
+    {
+        $answer = is_string($faq->answer) ? trim(strip_tags($faq->answer)) : '';
+
+        $params = ['faqs_search' => $term];
+
+        if ($faq->faq_category_id) {
+            $params['faq_category_id'] = $faq->faq_category_id;
+        }
+
+        $description = $answer !== '' ? Str::limit($answer, 160) : null;
+
+        return [
+            'id' => $faq->id,
+            'title' => $faq->question,
+            'description' => $description !== null ? Str::limit($description, 120) : null,
+            'highlight' => [
+                'title' => $this->highlightText($faq->question, $term),
+                'description' => $this->firstHighlight([$answer], $term),
+            ],
+            'url' => route('support', $params),
+        ];
+    }
+
+    /**
+     * @return array<string, int|null>
+     */
+    public function formatMeta(LengthAwarePaginator $paginator): array
+    {
+        return [
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+            'from' => $paginator->firstItem(),
+            'to' => $paginator->lastItem(),
         ];
     }
 
@@ -103,31 +220,7 @@ class GlobalSearchService
         $paginator = $query->paginate($perPage, ['*'], 'page', $page);
 
         $items = $paginator->getCollection()
-            ->map(function (Blog $blog) use ($term) {
-                $excerpt = is_string($blog->excerpt) ? trim($blog->excerpt) : '';
-                $body = is_string($blog->body) ? trim(strip_tags($blog->body)) : '';
-                $author = $blog->user?->nickname ?? null;
-                $description = $excerpt !== ''
-                    ? $excerpt
-                    : ($body !== '' ? Str::limit($body, 160) : null);
-
-                $highlights = [
-                    'title' => $this->highlightText($blog->title, $term),
-                    'description' => $this->firstHighlight([
-                        $excerpt,
-                        $body,
-                        $author ? 'By '.$author : null,
-                    ], $term),
-                ];
-
-                return [
-                    'id' => $blog->id,
-                    'title' => $blog->title,
-                    'description' => $description !== null ? Str::limit($description, 120) : null,
-                    'highlight' => $highlights,
-                    'url' => route('blogs.view', ['slug' => $blog->slug]),
-                ];
-            })
+            ->map(fn (Blog $blog) => $this->presentBlog($blog, $term))
             ->values()
             ->all();
 
@@ -173,32 +266,7 @@ class GlobalSearchService
         $paginator = $query->paginate($perPage, ['*'], 'page', $page);
 
         $items = $paginator->getCollection()
-            ->map(function (ForumThread $thread) use ($term) {
-                $board = $thread->board;
-
-                if ($board === null) {
-                    return null;
-                }
-
-                $excerpt = is_string($thread->excerpt) ? trim($thread->excerpt) : '';
-                $author = $thread->author?->nickname ?? null;
-                $description = $excerpt !== '' ? $excerpt : ($author ? 'Started by '.$author : null);
-                $highlights = [
-                    'title' => $this->highlightText($thread->title, $term),
-                    'description' => $this->firstHighlight([
-                        $excerpt,
-                        $author ? 'Started by '.$author : null,
-                    ], $term),
-                ];
-
-                return [
-                    'id' => $thread->id,
-                    'title' => $thread->title,
-                    'description' => $description !== null ? Str::limit($description, 120) : null,
-                    'highlight' => $highlights,
-                    'url' => route('forum.threads.show', ['board' => $board->slug, 'thread' => $thread->slug]),
-                ];
-            })
+            ->map(fn (ForumThread $thread) => $this->presentForumThread($thread, $term))
             ->filter()
             ->values()
             ->all();
@@ -234,29 +302,7 @@ class GlobalSearchService
         $paginator = $query->paginate($perPage, ['*'], 'page', $page);
 
         $items = $paginator->getCollection()
-            ->map(function (Faq $faq) use ($term) {
-                $answer = is_string($faq->answer) ? trim(strip_tags($faq->answer)) : '';
-
-                $params = ['faqs_search' => $term];
-
-                if ($faq->faq_category_id) {
-                    $params['faq_category_id'] = $faq->faq_category_id;
-                }
-
-                $description = $answer !== '' ? Str::limit($answer, 160) : null;
-                $highlights = [
-                    'title' => $this->highlightText($faq->question, $term),
-                    'description' => $this->firstHighlight([$answer], $term),
-                ];
-
-                return [
-                    'id' => $faq->id,
-                    'title' => $faq->question,
-                    'description' => $description !== null ? Str::limit($description, 120) : null,
-                    'highlight' => $highlights,
-                    'url' => route('support', $params),
-                ];
-            })
+            ->map(fn (Faq $faq) => $this->presentFaq($faq, $term))
             ->values()
             ->all();
 
@@ -264,6 +310,29 @@ class GlobalSearchService
             'items' => $items,
             'meta' => $this->formatMeta($paginator),
         ];
+    }
+
+    /**
+     * Visible reply text for highlighting Meilisearch hits that matched replies.
+     * The database path does not search reply bodies; Meilisearch does.
+     */
+    private function forumReplyPlainText(ForumThread $thread): string
+    {
+        if (! $thread->relationLoaded('posts')) {
+            $thread->load(['posts' => fn ($query) => $query->orderBy('id')]);
+        }
+
+        $parts = [];
+
+        foreach ($thread->posts as $post) {
+            $plain = trim(strip_tags((string) $post->body));
+
+            if ($plain !== '') {
+                $parts[] = $plain;
+            }
+        }
+
+        return implode(' ', $parts);
     }
 
     /**
@@ -339,21 +408,6 @@ class GlobalSearchService
             'faqs' => WebsiteSections::SUPPORT,
             default => null,
         };
-    }
-
-    /**
-     * @return array<string, int|null>
-     */
-    private function formatMeta(LengthAwarePaginator $paginator): array
-    {
-        return [
-            'current_page' => $paginator->currentPage(),
-            'last_page' => $paginator->lastPage(),
-            'per_page' => $paginator->perPage(),
-            'total' => $paginator->total(),
-            'from' => $paginator->firstItem(),
-            'to' => $paginator->lastItem(),
-        ];
     }
 
     /**

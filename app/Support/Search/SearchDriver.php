@@ -3,8 +3,8 @@
 namespace App\Support\Search;
 
 /**
- * Whether Meilisearch artisan commands may run. Both SEARCH_DRIVER and
- * Scout's resolved driver must be meilisearch.
+ * Whether Meilisearch is in use for search queries and artisan commands.
+ * Both SEARCH_DRIVER and Scout's resolved driver must be meilisearch.
  */
 final class SearchDriver
 {
