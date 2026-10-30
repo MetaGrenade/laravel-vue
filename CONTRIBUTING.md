@@ -65,6 +65,7 @@ The application must work on MySQL, PostgreSQL and SQLite:
 - **Uploads:** store user files on a private disk and serve them through an authorised route. Never trust client-supplied names or media types.
 - **Front end:** Vue 3 with TypeScript and Tailwind. Use the theme tokens (`bg-card`, `text-muted-foreground`, `bg-highlight` and so on) rather than raw colours so light and dark modes both work. Check pages at phone width.
 - **Tests:** add tests with the change. Prefer feature tests for behaviour and unit tests for pure logic.
+- **Queries:** a list loads what it shows for the whole list (`with()`, `withCount()`), never for each row. The suite fails a test that lazy-loads a relation out of a list, and the pages people use most have a query budget that fails when a page asks something once per row or asks more than it is allowed. When a page legitimately needs another query, raise its ceiling in the same change ([docs/query-budgets.md](docs/query-budgets.md)).
 - **Commits:** a short imperative subject line, then a body explaining why. Keep commits focused.
 
 ## Pull requests

@@ -95,7 +95,7 @@ class GuestCarryOver
             $mine = Cart::query()
                 ->where('status', CartManager::OPEN)
                 ->where('user_id', $user->id)
-                ->with('items')
+                ->with('items.tebexPackage')
                 ->latest('id')
                 ->lockForUpdate()
                 ->first();

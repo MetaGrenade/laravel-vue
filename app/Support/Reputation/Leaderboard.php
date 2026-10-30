@@ -7,6 +7,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ReputationEvent;
 use App\Models\User;
+use App\Support\Forum\PostPages;
 use App\Support\Localization\DateFormatter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -103,10 +104,11 @@ class Leaderboard
             ->limit(self::ACTIVITY)
             ->get();
 
+        $pages = PostPages::of($events->map(fn (ReputationEvent $event) => $event->source));
         $rows = [];
 
         foreach ($events as $event) {
-            $row = $this->activityRow($event, $labels, $formatter);
+            $row = $this->activityRow($event, $labels, $formatter, $pages);
 
             if ($row !== null) {
                 $rows[] = $row;
@@ -120,7 +122,7 @@ class Leaderboard
      * @param  array<string, string>  $labels
      * @return array{id: int, points: int, label: string, at: string|null, member: array{id: int, nickname: string, url: string, avatar_url: string|null}, post: array{excerpt: string|null, url: string, thread: string}}|null
      */
-    private function activityRow(ReputationEvent $event, array $labels, DateFormatter $formatter): ?array
+    private function activityRow(ReputationEvent $event, array $labels, DateFormatter $formatter, PostPages $pages): ?array
     {
         $member = $event->user;
         $post = $event->source;
@@ -150,40 +152,10 @@ class Leaderboard
             ],
             'post' => [
                 'excerpt' => $this->excerpt($post->body),
-                'url' => $this->url($post, $thread, $board),
+                'url' => $pages->address($post, $board, $thread),
                 'thread' => $thread->title,
             ],
         ];
-    }
-
-    /**
-     * The thread page shows ten posts. A post after the first page needs that page, or the address opens a page that does not contain it.
-     */
-    private function url(ForumPost $post, ForumThread $thread, ForumBoard $board): string
-    {
-        $position = ForumPost::query()
-            ->where('forum_thread_id', $thread->id)
-            ->where(function (Builder $query) use ($post): void {
-                $query->where('created_at', '<', $post->created_at)
-                    ->orWhere(function (Builder $query) use ($post): void {
-                        $query->where('created_at', $post->created_at)
-                            ->where('id', '<=', $post->id);
-                    });
-            })
-            ->count();
-
-        $page = (int) ceil(max($position, 1) / 10);
-
-        $parameters = [
-            'board' => $board,
-            'thread' => $thread,
-        ];
-
-        if ($page > 1) {
-            $parameters['page'] = $page;
-        }
-
-        return route('forum.threads.show', $parameters).'#post-'.$post->id;
     }
 
     /**

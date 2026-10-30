@@ -5,6 +5,8 @@ namespace App\Support\Commerce;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\GiftCard;
+use App\Models\Price;
+use App\Models\ProductVariant;
 use App\Models\TaxRate;
 use App\Payments\Tebex\TebexSelling;
 use App\Support\Commerce\Discounts\CouponRejected;
@@ -95,7 +97,8 @@ class OrderPricer
         }
 
         $currency = $this->prices->currency();
-        $lines = $cart->items->map(fn (CartItem $item) => $this->line($item))->values()->all();
+        $line = $this->lineMaker($cart);
+        $lines = $cart->items->map($line)->values()->all();
 
         $subtotal = Money::zero($currency);
         $shippable = Money::zero($currency);
@@ -182,8 +185,10 @@ class OrderPricer
      */
     private function priceTebexProducts(Cart $cart): Pricing
     {
-        return $this->throughTebex($cart->items->map(function (CartItem $item) {
-            $line = $this->line($item);
+        $priced = $this->lineMaker($cart);
+
+        return $this->throughTebex($cart->items->map(function (CartItem $item) use ($priced) {
+            $line = $priced($item);
 
             if ($line->requiresShipping) {
                 throw new CheckoutException("{$line->description} has to be shipped, which cannot be paid for through Tebex. Please remove it.");
@@ -421,7 +426,24 @@ class OrderPricer
         return $lines;
     }
 
-    private function line(CartItem $item): PricedLine
+    /**
+     * Prices one line of the cart. What every line needs from the database (whether its product is sold in options, what it costs)
+     * is fetched once for the whole cart here, not once per line, and lines are still checked one after another in the cart's order.
+     *
+     * @return \Closure(CartItem): PricedLine
+     */
+    private function lineMaker(Cart $cart): \Closure
+    {
+        $optionsOnly = $cart->items->filter(fn (CartItem $item) => $item->product_variant_id === null && $item->product_id !== null)->pluck('product_id')->unique()->values()->all();
+        $withOptions = $optionsOnly === []
+            ? []
+            : array_flip(ProductVariant::query()->whereIn('product_id', $optionsOnly)->distinct()->pluck('product_id')->all());
+        $prices = $this->prices->resolveLines($cart->items);
+
+        return fn (CartItem $item): PricedLine => $this->line($item, isset($withOptions[$item->product_id]), $prices[$item->id] ?? null);
+    }
+
+    private function line(CartItem $item, bool $productHasOptions, ?Price $price): PricedLine
     {
         $product = $item->product;
         $variant = $item->variant;
@@ -437,7 +459,7 @@ class OrderPricer
 
         // A cart from before the product gained variants holds a line for the base product. It is
         // not sold as that any more.
-        if ($item->product_variant_id === null && $product->variants()->exists()) {
+        if ($item->product_variant_id === null && $productHasOptions) {
             throw new CheckoutException("{$name} is no longer available in the option you chose.");
         }
 
@@ -446,8 +468,6 @@ class OrderPricer
         if ($item->quantity < 1 || $item->quantity > $max) {
             throw new CheckoutException("You can buy between 1 and {$max} of {$name} at a time.");
         }
-
-        $price = $this->prices->resolve($product, $variant);
 
         if ($price === null) {
             throw new CheckoutException("{$name} can't be purchased right now.");
