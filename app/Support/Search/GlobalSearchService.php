@@ -8,7 +8,9 @@ use App\Models\ForumThread;
 use App\Support\WebsiteSections;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class GlobalSearchService
 {
@@ -39,11 +41,53 @@ class GlobalSearchService
             return ! $section || WebsiteSections::isEnabled($section);
         }));
 
-        $meilisearch = SearchDriver::usesMeilisearch()
-            ? new MeilisearchGlobalSearch($this)
-            : null;
+        $useMeilisearch = SearchDriver::usesMeilisearch();
+        $circuit = $useMeilisearch ? new MeilisearchCircuitBreaker : null;
 
-        $results = collect(self::GROUPS)
+        if ($useMeilisearch && $circuit !== null && ! $circuit->isOpen()) {
+            try {
+                return [
+                    'query' => $normalizedTerm,
+                    'results' => $this->searchGroups(
+                        $types,
+                        $normalizedTerm,
+                        $perPage,
+                        $pages,
+                        new MeilisearchGlobalSearch($this),
+                    ),
+                ];
+            } catch (Throwable $exception) {
+                if (! $circuit->shouldFallback($exception)) {
+                    throw $exception;
+                }
+
+                Log::warning('Meilisearch unreachable; falling back to database search.', [
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
+                $circuit->open();
+            }
+        }
+
+        return [
+            'query' => $normalizedTerm,
+            'results' => $this->searchGroups($types, $normalizedTerm, $perPage, $pages),
+        ];
+    }
+
+    /**
+     * @param  list<string>  $types
+     * @param  array{blogs: int, forum_threads: int, faqs: int}  $pages
+     * @return array<string, array{items: array<int, array<string, mixed>>, meta: array<string, int|null>}>
+     */
+    private function searchGroups(
+        array $types,
+        string $normalizedTerm,
+        int $perPage,
+        array $pages,
+        ?MeilisearchGlobalSearch $meilisearch = null,
+    ): array {
+        return collect(self::GROUPS)
             ->mapWithKeys(function (string $group) use ($types, $normalizedTerm, $perPage, $pages, $meilisearch) {
                 if (! in_array($group, $types, true)) {
                     return [$group => $this->emptyGroup($perPage)];
@@ -76,11 +120,6 @@ class GlobalSearchService
                 return [$group => $results];
             })
             ->all();
-
-        return [
-            'query' => $normalizedTerm,
-            'results' => $results,
-        ];
     }
 
     /**
