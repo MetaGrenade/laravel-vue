@@ -10,7 +10,9 @@ The secrets job in `.github/workflows/security.yml` checks out the whole history
 
 Other branches that happen to be in the checkout are not read. The scan is `HEAD`, not every ref.
 
-Three old commits are named in `.gitleaksignore`. One holds a made-up Tebex token that a test helper used to contain, one holds the published two-factor test vector, and one holds placeholder Discord role ids (eighteen digits in a row) that the client-id rule matches. None of them was a real credential. The Tebex token and the test vector are not in a later commit. The fingerprint is what lets the whole history pass.
+Four old commits are named in `.gitleaksignore`. One holds a made-up Tebex token that a test helper used to contain, one holds the published two-factor test vector, one holds placeholder Discord role ids (eighteen digits in a row) that the client-id rule matches, and one holds a made-up Meilisearch key that a test looked for in messages. None of them was a real credential. The Tebex token, the test vector and the Meilisearch key are not in a later commit. The fingerprint is what lets the whole history pass.
+
+**A test that needs a made-up key** should not write one as a literal next to a name like `key`, `token` or `secret`: a string with enough different characters (the rule's bar is an entropy of 3.5) is taken for a real one, wherever it is, and a commit that holds it fails this scan for good, because the scan reads every commit. Build it from a repeated word instead, as `str_repeat('canary-', 3).'key'`, which is easy to look for and sits well under the bar. To see what the job will say before pushing, run the same scan: `gitleaks detect --source . --redact --log-opts="--full-history HEAD"`.
 
 ## The scanner has to notice a key
 

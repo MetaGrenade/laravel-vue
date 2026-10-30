@@ -14,3 +14,8 @@ d8d7ef245b7239d005a089832b719432ae126ef6:tests/Support/InteractsWithTebex.php:ge
 # They are eighteen digits in a row, so the discord-client-id rule names them. They are not an application id or a secret.
 610571ef2c1cd693d7672903de4aa08f2affec58:tests/Feature/Discord/DiscordCompanionIntegrationTest.php:discord-client-id:56
 610571ef2c1cd693d7672903de4aa08f2affec58:tests/Feature/Discord/DiscordCompanionIntegrationTest.php:discord-client-id:62
+
+# A made-up Meilisearch key in the search health test, in the commit that added it. It is a word and some digits that the test
+# looks for in the messages to prove none of them repeats a key, not a credential. The test now builds it from a repeated word, so
+# no later commit contains it. This line keeps that old commit from failing the scan of the whole branch.
+bc4b58bce17b4c346b9d6f275d36aec57c2174cf:tests/Feature/Search/SearchHealthTest.php:generic-api-key:230
