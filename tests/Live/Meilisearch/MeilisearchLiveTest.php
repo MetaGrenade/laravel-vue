@@ -34,6 +34,15 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     }
 
     /**
+     * A key the server does not know, made of a repeated word so that it is easy to look for and the secrets scan does not take it for
+     * a real one (docs/secrets-scan.md).
+     */
+    private function wrongKey(): string
+    {
+        return str_repeat('wrong-', 3).'key';
+    }
+
+    /**
      * @return list<string>
      */
     private function titles(string $query): array
@@ -295,16 +304,16 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     #[Test]
     public function a_key_the_server_does_not_accept_is_called_down_and_never_repeated(): void
     {
-        $this->useMeilisearch((string) getenv('MEILISEARCH_LIVE_HOST'), 'not-the-key-0123456789');
+        $this->useMeilisearch((string) getenv('MEILISEARCH_LIVE_HOST'), $this->wrongKey());
 
         $report = $this->health();
 
         $this->assertSame(SearchHealthReport::DOWN, $report->status);
         $this->assertStringContainsString('refused the key (HTTP 403)', $report->problems[0]);
-        $this->assertStringNotContainsString('not-the-key-0123456789', (string) json_encode($report->toArray()));
+        $this->assertStringNotContainsString($this->wrongKey(), (string) json_encode($report->toArray()));
 
         Artisan::call('metaforge:search:health');
-        $this->assertStringNotContainsString('not-the-key-0123456789', Artisan::output());
+        $this->assertStringNotContainsString($this->wrongKey(), Artisan::output());
     }
 
     #[Test]

@@ -227,7 +227,9 @@ class SearchHealthTest extends TestCase
     #[Test]
     public function no_message_carries_the_key(): void
     {
-        config(['scout.meilisearch.key' => 'secret-key-abc123']);
+        // A made-up word repeated, which is easy to look for and which the secrets scan does not take for a key (docs/secrets-scan.md).
+        $key = str_repeat('canary-', 3).'key';
+        config(['scout.meilisearch.key' => $key]);
 
         foreach ([
             FakeMeilisearch::serving()->unreachable(),
@@ -235,9 +237,9 @@ class SearchHealthTest extends TestCase
             FakeMeilisearch::serving()->refusing('GET /indexes/blogs/stats', 403),
             FakeMeilisearch::serving()->refusing('GET /indexes/blogs/stats', 500, 'internal'),
         ] as $fake) {
-            $report = (new SearchHealth($fake->client('http://meili.test', 'secret-key-abc123'), new MeilisearchCircuitBreaker))->check();
+            $report = (new SearchHealth($fake->client('http://meili.test', $key), new MeilisearchCircuitBreaker))->check();
 
-            $this->assertStringNotContainsString('secret-key-abc123', (string) json_encode($report->toArray()));
+            $this->assertStringNotContainsString($key, (string) json_encode($report->toArray()));
         }
     }
 
