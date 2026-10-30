@@ -2,7 +2,7 @@
 
 What may be put in the search index, how its Meilisearch settings are applied, how documents are rebuilt, and how the search page uses that index when Meilisearch is configured.
 
-> **Status:** index rules, settings sync, reindex and the Meilisearch query path for `/search` and `/search/results` are in place. A zero-downtime index swap, a fallback when Meilisearch is down, ACP health, and a CI Meilisearch job are not built yet.
+> **Status:** index rules, settings sync, reindex, the Meilisearch query path for `/search` and `/search/results`, and a database fallback when Meilisearch is unreachable are in place. A zero-downtime index swap, ACP health, and a CI Meilisearch job are not built yet.
 
 ## What is listed
 
@@ -23,7 +23,9 @@ The words stored are plain text, and a document stops at 8,000 characters.
 
 With `SEARCH_DRIVER=meilisearch`, `/search` (header JSON) and `/search/results` (Inertia page) read the blogs, forum threads and FAQs indexes through Scout. The response shape matches the database path (grouped items, per-group pagination, type filters, website-section gating, `<mark>` highlights). Forum reply text can match on Meilisearch because it is stored on the thread document; the database path still only matches title, excerpt and author.
 
-With `SEARCH_DRIVER=database`, those endpoints keep using `LIKE` as before. If Meilisearch cannot be reached while the driver is set to `meilisearch`, the request fails (there is no silent fallback yet).
+With `SEARCH_DRIVER=database`, those endpoints keep using `LIKE` as before.
+
+If Meilisearch cannot be reached while the driver is set to `meilisearch` (connection failure, or HTTP 404 / 408 / 502 / 503 / 504), `GlobalSearchService` logs one warning, opens a short circuit (`SEARCH_MEILISEARCH_CIRCUIT_SECONDS`, default 60), and serves the database path for that whole request. While the circuit is open, later searches skip Meilisearch entirely so the warning is not repeated every hit. Auth and misconfiguration errors (HTTP 401 / 403) and other unexpected failures still fail loudly. Artisan sync and reindex stay fail-loud; they do not fall back.
 
 ## Index settings
 
@@ -53,7 +55,7 @@ A bulk import only loads rows that already qualify (published blogs and due sche
 
 - A scheduled blog post is not added to the Meilisearch index by the clock: it is added when the post is saved after it is due, or when the index is rebuilt. The database search path still finds a due scheduled post without that save.
 - Queued rebuild and zero-downtime index swap.
-- A fallback to the database when Meilisearch cannot be reached, the ACP health check, and a CI job that runs Meilisearch.
+- The ACP health check and a CI job that runs Meilisearch.
 - Products on the global search page.
 
 ## Testing
@@ -65,3 +67,5 @@ A bulk import only loads rows that already qualify (published blogs and due sche
 `tests/Feature/Search/ReindexSearchCommandTest.php` checks that reindex refuses the database driver, flushes each index, imports only searchable rows, and can skip settings with `--skip-sync`.
 
 `tests/Feature/Search/GlobalSearchMeilisearchTest.php` runs the search page and header JSON with `SEARCH_DRIVER=meilisearch` backed by Scout's collection engine: cross-group results, unpublished exclusion, type filters, pagination, reply-text highlights and disabled website sections.
+
+`tests/Unit/Search/MeilisearchCircuitBreakerTest.php` and `tests/Feature/Search/GlobalSearchMeilisearchFallbackTest.php` cover the open circuit, which failures trigger fallback, and a throwing Scout engine that still returns database-shaped results with a single warning.

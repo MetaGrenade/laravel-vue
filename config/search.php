@@ -20,4 +20,11 @@ return [
         'top_zero_queries_limit' => (int) env('SEARCH_TOP_ZERO_QUERIES_LIMIT', 5),
         'minimum_length' => (int) env('SEARCH_QUERY_MIN_LENGTH', 2),
     ],
+
+    // When SEARCH_DRIVER=meilisearch and the host is unreachable, search falls
+    // back to the database for this many seconds without retrying every request.
+    'meilisearch_fallback' => [
+        'circuit_seconds' => (int) env('SEARCH_MEILISEARCH_CIRCUIT_SECONDS', 60),
+        'cache_key' => env('SEARCH_MEILISEARCH_CIRCUIT_CACHE_KEY', 'search:meilisearch:circuit_open'),
+    ],
 ];
