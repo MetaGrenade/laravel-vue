@@ -169,14 +169,14 @@ const statusLabel = (status: string) => {
 const statusToneClass = (status: string) => {
     switch (status) {
         case 'completed':
-            return 'border-emerald-500/30 bg-emerald-500/10 text-success';
+            return 'border-success/30 bg-success/10 text-success';
         case 'failed':
         case 'rejected':
             return 'border-destructive/40 bg-destructive/10 text-destructive';
         case 'processing':
-            return 'border-sky-500/30 bg-sky-500/10 text-info';
+            return 'border-info/30 bg-info/10 text-info';
         default:
-            return 'border-yellow-500/30 bg-yellow-500/10 text-warning';
+            return 'border-warning/30 bg-warning/10 text-warning';
     }
 };
 
@@ -439,7 +439,7 @@ const submitErasureForm = () => {
                                     {{ normalizedExportCounts.pending + normalizedExportCounts.processing }}
                                 </p>
                             </div>
-                            <div class="rounded-full bg-emerald-500/10 p-2 text-success">
+                            <div class="rounded-full bg-success/10 p-2 text-success">
                                 <FileDown class="h-5 w-5" />
                             </div>
                         </div>
@@ -471,7 +471,7 @@ const submitErasureForm = () => {
                                     {{ normalizedErasureCounts.pending + normalizedErasureCounts.processing }}
                                 </p>
                             </div>
-                            <div class="rounded-full bg-sky-500/10 p-2 text-info">
+                            <div class="rounded-full bg-info/10 p-2 text-info">
                                 <ShieldCheck class="h-5 w-5" />
                             </div>
                         </div>

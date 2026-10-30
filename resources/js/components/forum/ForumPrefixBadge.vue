@@ -12,11 +12,11 @@ defineProps<{
 
 const tones: Record<string, string> = {
     slate: 'bg-muted text-muted-foreground',
-    sky: 'bg-sky-500/15 text-sky-800 dark:text-sky-200',
-    green: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
-    amber: 'bg-amber-500/15 text-amber-900 dark:text-amber-200',
-    rose: 'bg-rose-500/15 text-rose-800 dark:text-rose-200',
-    violet: 'bg-violet-500/15 text-violet-800 dark:text-violet-200',
+    sky: 'bg-info/15 text-info',
+    green: 'bg-success/15 text-success',
+    amber: 'bg-warning/15 text-warning',
+    rose: 'bg-destructive/15 text-destructive',
+    violet: 'bg-primary/15 text-primary',
 };
 </script>
 

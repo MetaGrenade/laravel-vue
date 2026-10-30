@@ -1521,7 +1521,7 @@ const submitReply = () => {
                         <Button type="button" variant="secondary" :disabled="threadReportForm.processing" @click="threadReportDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button type="submit" class="bg-orange-500 hover:bg-orange-600" :disabled="threadReportForm.processing || !hasReportReasons">
+                        <Button type="submit" class="bg-warning text-warning-foreground hover:bg-warning/90" :disabled="threadReportForm.processing || !hasReportReasons">
                             Submit report
                         </Button>
                     </DialogFooter>
@@ -1601,7 +1601,7 @@ const submitReply = () => {
                         <Button type="button" variant="secondary" :disabled="postReportForm.processing" @click="postReportDialogOpen = false">
                             Cancel
                         </Button>
-                        <Button type="submit" class="bg-orange-500 hover:bg-orange-600" :disabled="postReportForm.processing || !hasReportReasons">
+                        <Button type="submit" class="bg-warning text-warning-foreground hover:bg-warning/90" :disabled="postReportForm.processing || !hasReportReasons">
                             Submit report
                         </Button>
                     </DialogFooter>
@@ -1696,7 +1696,7 @@ const submitReply = () => {
                             <DropdownMenuSeparator />
                             <DropdownMenuGroup v-if="threadPermissions.canReport">
                                 <DropdownMenuItem
-                                    class="text-orange-500"
+                                    class="text-warning"
                                     :disabled="threadActionLoading || threadReportForm.processing || !hasReportReasons"
                                     @select="openThreadReportDialog"
                                 >
@@ -1805,7 +1805,7 @@ const submitReply = () => {
             <div v-if="props.thread.solution">
                 <Link
                     :href="solutionHref"
-                    class="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-500/15 dark:text-emerald-200"
+                    class="inline-flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm font-medium text-success hover:bg-success/15"
                 >
                     <ForumSolvedBadge />
                     Jump to the reply
@@ -1819,7 +1819,7 @@ const submitReply = () => {
                     :key="post.id"
                     :id="`post-${post.id}`"
                     class="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-xs md:flex-row"
-                    :class="props.thread.solution?.post_id === post.id ? 'border-emerald-500/50' : ''"
+                    :class="props.thread.solution?.post_id === post.id ? 'border-success/50' : ''"
                 >
                     <div v-if="post.ignored && !revealedPostIds.includes(post.id)" class="flex flex-1 flex-wrap items-center justify-between gap-3">
                         <p class="text-sm text-muted-foreground">You are ignoring {{ post.author.nickname ?? 'this member' }}.</p>
@@ -1919,7 +1919,7 @@ const submitReply = () => {
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
                                                 v-if="canMarkPost(post)"
-                                                class="text-emerald-700 dark:text-emerald-300"
+                                                class="text-success"
                                                 :disabled="activePostActionId === post.id"
                                                 @select="markSolution(post)"
                                             >
@@ -1954,7 +1954,7 @@ const submitReply = () => {
                                             />
                                             <DropdownMenuGroup v-if="post.permissions.canReport">
                                                 <DropdownMenuItem
-                                                    class="text-orange-500"
+                                                    class="text-warning"
                                                     :disabled="activePostActionId === post.id || postReportForm.processing || !hasReportReasons"
                                                     @select="openPostReportDialog(post)"
                                                 >
@@ -1995,7 +1995,7 @@ const submitReply = () => {
                                             />
                                             <DropdownMenuItem
                                                 v-if="post.permissions.canModerate"
-                                                class="text-purple-500"
+                                                class="text-primary"
                                                 @select="viewPostHistory(post)"
                                             >
                                                 <RotateCcw class="h-4 w-4" />
@@ -2118,7 +2118,7 @@ const submitReply = () => {
                         {{ replyForm.errors.body }}
                     </p>
 
-                    <Button type="submit" variant="secondary" class="cursor-pointer bg-green-500 hover:bg-green-600" :disabled="replySubmitDisabled">
+                    <Button type="submit" variant="secondary" class="cursor-pointer bg-success text-success-foreground hover:bg-success/90" :disabled="replySubmitDisabled">
                         Submit Reply
                     </Button>
                 </form>
