@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Models\User;
 use App\Support\Forum\FollowedMembers;
+use App\Support\Forum\PostPages;
 use App\Support\Localization\DateFormatter;
 use App\Support\Seo\Seo;
 use Illuminate\Http\RedirectResponse;
@@ -34,8 +35,10 @@ class MemberFollowController extends Controller
         $formatter = DateFormatter::for($viewer);
         $posts = [];
 
+        $pages = PostPages::of($page->getCollection());
+
         foreach ($page->getCollection() as $post) {
-            $row = $follows->present($post, $formatter);
+            $row = $follows->present($post, $formatter, $pages);
 
             if ($row !== null) {
                 $posts[] = $row;

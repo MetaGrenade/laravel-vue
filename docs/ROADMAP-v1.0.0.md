@@ -116,7 +116,7 @@ Strong already. Remaining gaps, in priority order:
 | Low | No `SECURITY.md` or `/.well-known/security.txt`. | **Done** (fourteenth M5 slice, see [security-contact.md](security-contact.md)) | Both are published, and Dependabot opens a weekly update request for Composer, npm, and GitHub Actions. |
 | Low | CSP `style-src` includes `'unsafe-inline'`. | **Done** (accepted for 1.0, thirteenth M5 slice, see [security-headers.md](security-headers.md)) | Vue style bindings need inline styles. The policy is checked in CI. |
 | Low | Password rules are strong in production (min 12, mixed case, numbers, uncompromised) and weak elsewhere (min 8). | Verified | Fine; document. |
-| Low | `Model::preventLazyLoading` only logs and only locally. | Verified | Keep; add a test-suite mode that fails on lazy loading. |
+| Low | `Model::preventLazyLoading` only logs and only locally. | **Done** (M6, seventh slice, see [query-budgets.md](query-budgets.md)) | The app keeps logging locally; the test suite fails on a lazy load. |
 | Info | Positives: nonce CSP, `PreventRequestForgery`, sanitised rich text, named rate limiters, banned-user middleware, Stripe signature check, `.env` not tracked, dependency audits in CI. | Verified | Keep. |
 
 ### 4.2 Hardening checklist for 1.0
@@ -150,7 +150,7 @@ Strong already. Remaining gaps, in priority order:
 | Medium | Very large controllers: `Admin/SupportController` 1,530 lines, `Admin/BlogController` 991, `BlogController` 673, `ForumController` 658. Hard to optimise or test. | Verified | Extract query/action classes while writing the M4 features; do not do a big-bang refactor. |
 | Medium | No HTTP caching for guest traffic on blog/forum/home. | Inferred | Cache-Control + ETag for guest GETs; cache fragment queries (counts, trending). |
 | Medium | Image handling: lists load full-size covers (I measured a 1080×1350 PNG shown at 388×159). | Verified | Generate responsive variants (WebP/AVIF) on upload; `srcset`; CDN. (Lazy loading is already done on the blog list.) |
-| Medium | Queries: lazy-loading violations are logged locally only; no query-count regression tests. | Verified | Add `preventLazyLoading` in tests; add query-count assertions on top pages. |
+| Medium | Queries: lazy-loading violations are logged locally only; no query-count regression tests. | **Done** (M6, seventh slice, see [query-budgets.md](query-budgets.md)) | The suite fails on a lazy load, and 36 pages have a query budget: the same number of queries however many rows they list, and under a ceiling. |
 | Low | Last-activity updates are already throttled to once a minute. | Verified | Keep. |
 | Low | Front-end: client bundle is code-split; editor and charts are lazy chunks. No size budget in CI. | Verified | Add a bundle-size budget check. |
 | Low | No Lighthouse/Web-Vitals budget. | Inferred | Add Lighthouse CI on home, blog, forum, shop. |
@@ -159,7 +159,7 @@ Strong already. Remaining gaps, in priority order:
 
 - Guest page TTFB under 200 ms on a small VPS with Redis and OPcache
 - Largest Contentful Paint under 2.5 s on 4G for home, blog post and product pages
-- No N+1 queries on the top 20 pages (enforced in tests)
+- No N+1 queries on the top 20 pages (enforced in tests). **Done** (M6, seventh slice): 36 pages, see [query-budgets.md](query-budgets.md)
 - Queue-backed email, exports and webhook processing
 
 ---
@@ -452,7 +452,8 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Meilisearch search (section 8A): the fallback when it is unreachable (**done**, fifth slice); ACP health, the `metaforge:search:health` command and a CI job that runs the search tests against a real Meilisearch (**done**, sixth slice, see [search-index.md](search-index.md#checking-on-it)). Indexing on the queue by default is a decision for the user (see [search-index.md](search-index.md#when-meilisearch-is-down))
 - Redis defaults for production; Horizon option; Octane notes
 - Image pipeline with responsive variants; CDN notes
-- Guest HTTP caching; query-count regression tests; bundle and Lighthouse budgets in CI
+- Query-count regression tests and a suite that fails on lazy loading (**done**, seventh slice, see [query-budgets.md](query-budgets.md)). It found and fixed a cart and checkout that priced each line with two queries, and two lists that counted the posts before each post
+- Guest HTTP caching; bundle and Lighthouse budgets in CI
 - **Exit:** section 5.2 targets met on a reference setup; budgets enforced in CI; search works with and without Meilisearch.
 
 ### M7. Quality, docs and release (11–15 days)
@@ -488,7 +489,7 @@ A release candidate is cut only when every box is checked.
 **Quality**
 - [ ] CI green on the MySQL 8 and PostgreSQL 16 matrix; Larastan clean at the agreed level
 - [ ] Playwright smoke suite green on the main flows
-- [ ] No flaky tests; no lazy-loading violations in the test suite
+- [ ] No flaky tests; no lazy-loading violations in the test suite (the second half is enforced by the suite itself since M6, seventh slice)
 - [ ] `lang:check` passes
 
 **Performance**

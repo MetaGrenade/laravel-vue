@@ -151,7 +151,7 @@ class FollowedMembers
     /**
      * @return array{id: int, excerpt: string|null, url: string, thread: string, board: string, author: array{id: int, nickname: string}, created_at: string|null}|null
      */
-    public function present(ForumPost $post, DateFormatter $formatter): ?array
+    public function present(ForumPost $post, DateFormatter $formatter, ?PostPages $pages = null): ?array
     {
         $author = $post->author;
         $thread = $post->thread;
@@ -164,7 +164,7 @@ class FollowedMembers
         return [
             'id' => $post->id,
             'excerpt' => $this->excerpt($post->body),
-            'url' => $this->url($post, $thread, $board),
+            'url' => ($pages ?? PostPages::of([$post]))->address($post, $board, $thread),
             'thread' => $thread->title,
             'board' => $board->title,
             'author' => [
@@ -241,33 +241,6 @@ class FollowedMembers
         }
 
         return $visible;
-    }
-
-    private function url(ForumPost $post, ForumThread $thread, ForumBoard $board): string
-    {
-        $position = ForumPost::query()
-            ->where('forum_thread_id', $thread->id)
-            ->where(function (Builder $query) use ($post): void {
-                $query->where('created_at', '<', $post->created_at)
-                    ->orWhere(function (Builder $query) use ($post): void {
-                        $query->where('created_at', $post->created_at)
-                            ->where('id', '<=', $post->id);
-                    });
-            })
-            ->count();
-
-        $page = (int) ceil(max($position, 1) / 10);
-
-        $parameters = [
-            'board' => $board,
-            'thread' => $thread,
-        ];
-
-        if ($page > 1) {
-            $parameters['page'] = $page;
-        }
-
-        return route('forum.threads.show', $parameters).'#post-'.$post->id;
     }
 
     private function excerpt(?string $value): ?string

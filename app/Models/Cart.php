@@ -60,6 +60,7 @@ class Cart extends Model
      */
     public function items(): HasMany
     {
-        return $this->hasMany(CartItem::class);
+        // A line asked for its cart (to price itself in the cart's currency) is given the one it was loaded with, not a query for each line.
+        return $this->hasMany(CartItem::class)->chaperone();
     }
 }
