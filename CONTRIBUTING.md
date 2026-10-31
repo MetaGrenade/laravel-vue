@@ -50,6 +50,16 @@ DB_USERNAME=postgres DB_PASSWORD=password EXPECTED_DB_DRIVER=pgsql php artisan t
 
 `EXPECTED_DB_DRIVER` makes a guard test fail if the run silently used another database.
 
+### Testing on Redis
+
+The suite runs on the array cache, the sync queue and array sessions. The `redis (Redis 7)` CI job runs `tests/Live/Redis` against a real Redis; they skip themselves unless `REDIS_LIVE_HOST` is set, and they empty the Redis they run against, so give them one of their own (docs/redis.md):
+
+```bash
+docker run --rm -d --name metaforge-redis-live -p 6390:6379 redis:7-alpine
+REDIS_LIVE_HOST=127.0.0.1 REDIS_LIVE_PORT=6390 php artisan test tests/Live/Redis
+docker stop metaforge-redis-live
+```
+
 ## Writing portable code
 
 The application must work on MySQL, PostgreSQL and SQLite:
