@@ -453,6 +453,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Redis defaults for production; Horizon option; Octane notes
 - Image pipeline with responsive variants; CDN notes
 - Query-count regression tests and a suite that fails on lazy loading (**done**, seventh slice, see [query-budgets.md](query-budgets.md)). It found and fixed a cart and checkout that priced each line with two queries, and two lists that counted the posts before each post
+- System settings read with one query for each request instead of one for each setting (**done**, eighth slice, see [query-budgets.md](query-budgets.md#settings-are-read-once-for-each-request)): 749 queries to 459 across the 36 budgeted pages, with nothing kept between requests
 - Guest HTTP caching; bundle and Lighthouse budgets in CI
 - **Exit:** section 5.2 targets met on a reference setup; budgets enforced in CI; search works with and without Meilisearch.
 

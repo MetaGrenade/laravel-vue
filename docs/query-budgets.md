@@ -39,6 +39,7 @@ How it measures:
 
 - The cache is emptied before each measured request, so a page that keeps its result for a few minutes (the forum index) costs what building the result costs, which is what grows with the rows. A request that happens to be answered from the cache would say nothing.
 - One unmeasured request comes first, for what every request loads once (permissions, route caches).
+- What is bound once for each request (the settings, the SEO and audit state) is dropped before each measured request, because a test serves every request with one app and a real request starts without what the last one read.
 - Lists of ids (`in (1, 2, 3)`) are written `in (?)` so two requests that fetched a different number of rows by id still read the same.
 - Every row the page lists should be a different one: a new author for each reply, a new category for each post. A test that adds six rows by the same author passes for a page that asks for the author of each.
 
@@ -60,10 +61,21 @@ Written against the pages as they were, the budgets and the lazy-loading mode fo
 - **The Following page and the leaderboard's activity list counted the posts before each post** to work out which page of its thread the post is on. `App\Support\Forum\PostPages` places every post of a list in one query, and the notification of a followed member's reply uses the same class, so the three can no longer disagree.
 - **Merging a guest's cart into an account's** read the cart and the package of each line one at a time. The lines are given their cart and their packages when the cart is loaded.
 
-## Known costs
+## Settings are read once for each request
 
-Not loops, but the largest single cost the budgets show on every page: the app reads its settings (maintenance mode, website sections, email verification, the payment provider, legal pages and so on) with one query each, eight or so on every request. A cache of them, cleared when a setting is saved, would take most of it away. It is not built because every test that writes a setting would have to go through it.
+Not a loop, but the largest single cost the budgets showed on every page: the app read its settings (maintenance mode, website sections, sign-in providers, email verification, the payment provider, legal pages and so on) with one query each, and a page asks for several of them more than once. The home page ran 9 queries, 8 of them settings; a member's dashboard ran 15 setting reads.
+
+`SystemSetting::get()` now reads the whole table with one query the first time a request asks for any setting, and answers the rest from that (`App\Support\Settings\SettingsSnapshot`, bound once for each request). Across the 36 budgeted pages that took 749 queries to 459, and every ceiling was lowered to match.
+
+What it does and does not promise:
+
+- **Nothing is kept between requests.** It is not a cache, so there is nothing to clear on a deploy, nothing that can go stale on a second server, and nothing that a setting written by a queue worker or a script has to reach. A request, an Octane request and a queue job each start from the table (the framework drops what is bound once for each of them).
+- **A change made in the request is seen by the next read in it.** Saving or deleting a setting through the model (`SystemSetting::set()`, `->update()`, `->delete()`) and rolling back a transaction both drop what was read, so the next read is of what the table now holds.
+- **A change that goes round the model is not seen** until the next request: `SystemSetting::query()->update(...)`, `DB::table('system_settings')`. Call `app(SettingsSnapshot::class)->forget()` after one. There is none in the app today.
+- **A value that is not there is the default**, as before: a setting that was never saved and one saved as `null` both give the default; `false`, `0` and `[]` are values.
+
+It was not made a cache across requests on purpose. The default cache store is the database, so reading the settings from it would cost a query too; with Redis it would save one query of the one that is left, in exchange for a setting that can be stale after a change made by another process.
 
 ## Tests
 
-`LazyLoadingModeTest` (the mode fails a loop, and fails a caught one, and lets a single model load what it needs), `QueryCostHelperTest` (the check can fail: a loop, a ceiling, and the cache), `PostPagesTest`, `PriceResolverLinesTest`, and the budgets themselves in `QueryBudgetTest` and `QueryBudgetShopTest`.
+`LazyLoadingModeTest` (the mode fails a loop, and fails a caught one, and lets a single model load what it needs), `QueryCostHelperTest` (the check can fail: a loop, a ceiling, and the cache), `SettingsSnapshotTest` (one query for all the settings, what is saved is seen at once, a rollback is forgotten, the next request starts again, and four pages read them once), `PostPagesTest`, `PriceResolverLinesTest`, and the budgets themselves in `QueryBudgetTest` and `QueryBudgetShopTest`.

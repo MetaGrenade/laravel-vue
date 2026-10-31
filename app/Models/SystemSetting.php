@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Settings\SettingsSnapshot;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -34,11 +35,23 @@ class SystemSetting extends Model
     }
 
     /**
-     * Retrieve a setting value with a fallback default.
+     * Whatever is saved or deleted through the model, the settings read so far in this request are read again.
+     */
+    protected static function booted(): void
+    {
+        $forget = static fn () => app(SettingsSnapshot::class)->forget();
+
+        static::saved($forget);
+        static::deleted($forget);
+    }
+
+    /**
+     * Retrieve a setting value with a fallback default. All the settings are read with one query the first time a request asks for
+     * one (see SettingsSnapshot), not one query for each.
      */
     public static function get(string $key, mixed $default = null): mixed
     {
-        return static::query()->where('key', $key)->first()?->value ?? $default;
+        return app(SettingsSnapshot::class)->get($key, $default);
     }
 
     /**
