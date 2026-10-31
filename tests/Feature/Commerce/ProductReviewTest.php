@@ -721,6 +721,7 @@ class ProductReviewTest extends TestCase
     public function the_catalogue_asks_for_ratings_once_however_many_products_there_are(): void
     {
         $count = function (): int {
+            $this->app->forgetScopedInstances(); // each request starts without what the last one read (the settings)
             DB::flushQueryLog();
             DB::enableQueryLog();
             $this->get(route('shop.index'))->assertOk();

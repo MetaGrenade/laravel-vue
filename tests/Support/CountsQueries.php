@@ -24,6 +24,7 @@ trait CountsQueries
     protected function queriesRun(Closure $request): array
     {
         Cache::flush();
+        app()->forgetScopedInstances(); // a test serves every request with one app; a real request starts without what was read for the last
         DB::flushQueryLog();
         DB::enableQueryLog();
 

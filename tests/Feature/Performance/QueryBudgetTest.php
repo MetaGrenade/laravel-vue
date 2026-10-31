@@ -49,13 +49,13 @@ class QueryBudgetTest extends TestCase
     #[Test]
     public function the_home_page(): void
     {
-        $this->assertQueryCost('the home page', fn () => null, fn () => $this->get(route('home'))->assertOk(), 12);
+        $this->assertQueryCost('the home page', fn () => null, fn () => $this->get(route('home'))->assertOk(), 3);
     }
 
     #[Test]
     public function the_blog_list(): void
     {
-        $this->assertQueryCost('the blog list', fn () => $this->blog(), fn () => $this->get(route('blogs.index'))->assertOk(), 23);
+        $this->assertQueryCost('the blog list', fn () => $this->blog(), fn () => $this->get(route('blogs.index'))->assertOk(), 13);
     }
 
     #[Test]
@@ -67,7 +67,7 @@ class QueryBudgetTest extends TestCase
             'a blog post',
             fn () => BlogComment::factory()->for($blog)->create(),
             fn () => $this->get(route('blogs.view', $blog->slug))->assertOk(),
-            28,
+            18,
         );
     }
 
@@ -80,7 +80,7 @@ class QueryBudgetTest extends TestCase
             'the comments of a blog post',
             fn () => BlogComment::factory()->for($blog)->create(),
             fn () => $this->getJson(route('blogs.comments.index', $blog))->assertOk(),
-            12,
+            8,
         );
     }
 
@@ -95,7 +95,7 @@ class QueryBudgetTest extends TestCase
             'the forum index',
             fn () => $this->thread($this->board($category)),
             fn () => $this->get(route('forum.index'))->assertOk(),
-            29,
+            19,
         );
     }
 
@@ -108,7 +108,7 @@ class QueryBudgetTest extends TestCase
             'a forum board',
             fn () => $this->thread($board),
             fn () => $this->get(route('forum.boards.show', $board))->assertOk(),
-            22,
+            12,
         );
     }
 
@@ -122,7 +122,7 @@ class QueryBudgetTest extends TestCase
             'a forum thread',
             fn () => $this->reply($thread),
             fn () => $this->get(route('forum.threads.show', [$board, $thread]))->assertOk(),
-            33,
+            23,
         );
     }
 
@@ -131,7 +131,7 @@ class QueryBudgetTest extends TestCase
     #[Test]
     public function the_member_list(): void
     {
-        $this->assertQueryCost('the member list', fn () => User::factory()->create(), fn () => $this->get(route('members.index'))->assertOk(), 14);
+        $this->assertQueryCost('the member list', fn () => User::factory()->create(), fn () => $this->get(route('members.index'))->assertOk(), 5);
     }
 
     #[Test]
@@ -143,7 +143,7 @@ class QueryBudgetTest extends TestCase
             'a member profile',
             fn () => $this->reply($this->thread($this->board(), $member), $member),
             fn () => $this->get(route('members.show', $member))->assertOk(),
-            27,
+            14,
         );
     }
 
@@ -158,7 +158,7 @@ class QueryBudgetTest extends TestCase
                 ReputationEvent::create(['user_id' => $member->id, 'event' => 'forum_post_created', 'points' => 5, 'source_type' => $post->getMorphClass(), 'source_id' => $post->id]);
             },
             fn () => $this->get(route('leaderboard'))->assertOk(),
-            23,
+            13,
         );
     }
 
@@ -177,7 +177,7 @@ class QueryBudgetTest extends TestCase
                 WishlistItem::factory()->for($user)->for($product)->create();
             },
             fn () => $this->actingAs($user)->get(route('shop.index'))->assertOk(),
-            38,
+            27,
         );
     }
 
@@ -190,7 +190,7 @@ class QueryBudgetTest extends TestCase
             'a product',
             fn () => ProductReview::factory()->for($product)->create(),
             fn () => $this->get(route('shop.products.show', $product))->assertOk(),
-            30,
+            20,
         );
     }
 
@@ -207,7 +207,7 @@ class QueryBudgetTest extends TestCase
                 CartManager::addItem($cart, $product, null, $product->prices()->firstOrFail(), 1);
             },
             fn () => $this->actingAs($user)->get(route('shop.cart'))->assertOk(),
-            30,
+            17,
         );
     }
 
@@ -220,7 +220,7 @@ class QueryBudgetTest extends TestCase
             'the wishlist',
             fn () => WishlistItem::factory()->for($user)->for($this->product())->create(),
             fn () => $this->actingAs($user)->get(route('shop.wishlist'))->assertOk(),
-            32,
+            22,
         );
     }
 
@@ -233,7 +233,7 @@ class QueryBudgetTest extends TestCase
             'the order history',
             fn () => $this->order($user),
             fn () => $this->actingAs($user)->get(route('shop.orders'))->assertOk(),
-            30,
+            20,
         );
     }
 
@@ -251,14 +251,14 @@ class QueryBudgetTest extends TestCase
                 BlogView::factory()->create(['blog_id' => $this->blog()->id, 'user_id' => $user->id]);
             },
             fn () => $this->actingAs($user)->get(route('dashboard'))->assertOk(),
-            72,
+            54,
         );
     }
 
     #[Test]
     public function the_pricing_page(): void
     {
-        $this->assertQueryCost('the pricing page', fn () => SubscriptionPlan::factory()->create(), fn () => $this->get(route('pricing'))->assertOk(), 14);
+        $this->assertQueryCost('the pricing page', fn () => SubscriptionPlan::factory()->create(), fn () => $this->get(route('pricing'))->assertOk(), 5);
     }
 
     // --- Help --------------------------------------------------------------------------------------
@@ -275,7 +275,7 @@ class QueryBudgetTest extends TestCase
                 Faq::factory()->create(['published' => true]);
             },
             fn () => $this->actingAs($user)->get(route('support'))->assertOk(),
-            29,
+            19,
         );
     }
 
@@ -289,7 +289,7 @@ class QueryBudgetTest extends TestCase
             'a support ticket',
             fn () => SupportTicketMessage::create(['support_ticket_id' => $ticket->id, 'user_id' => User::factory()->create()->id, 'body' => 'An answer.']),
             fn () => $this->actingAs($user)->get(route('support.tickets.show', $ticket))->assertOk(),
-            27,
+            17,
         );
     }
 
@@ -305,7 +305,7 @@ class QueryBudgetTest extends TestCase
                 $this->thread($this->board())->update(['title' => 'Lighthouse '.Str::random(5)]);
             },
             fn () => $this->get(route('search.results', ['q' => 'Lighthouse']))->assertOk(),
-            30,
+            14,
         );
     }
 
@@ -326,7 +326,7 @@ class QueryBudgetTest extends TestCase
                 DirectMessage::create(['direct_conversation_id' => $conversation->id, 'user_id' => $other->id, 'body' => 'Hello']);
             },
             fn () => $this->actingAs($user)->get(route('messages.index'))->assertOk(),
-            25,
+            17,
         );
     }
 
@@ -343,7 +343,7 @@ class QueryBudgetTest extends TestCase
                 $this->reply($this->thread($this->board(), $followed), $followed);
             },
             fn () => $this->actingAs($user)->get(route('forum.following'))->assertOk(),
-            34,
+            24,
         );
     }
 
@@ -356,7 +356,7 @@ class QueryBudgetTest extends TestCase
             'the suggestions for a mention',
             fn () => User::factory()->create(),
             fn () => $this->actingAs($user)->getJson(route('forum.mentions.index', ['q' => 'a']))->assertOk(),
-            9,
+            5,
         );
     }
 
@@ -365,7 +365,7 @@ class QueryBudgetTest extends TestCase
     #[Test]
     public function the_blog_feed(): void
     {
-        $this->assertQueryCost('the blog feed', fn () => $this->blog(), fn () => $this->get(route('blogs.feed'))->assertOk(), 8);
+        $this->assertQueryCost('the blog feed', fn () => $this->blog(), fn () => $this->get(route('blogs.feed'))->assertOk(), 4);
     }
 
     #[Test]
@@ -373,7 +373,7 @@ class QueryBudgetTest extends TestCase
     {
         $board = $this->board();
 
-        $this->assertQueryCost('the forum feed', fn () => $this->thread($board), fn () => $this->get(route('forum.feed'))->assertOk(), 8);
+        $this->assertQueryCost('the forum feed', fn () => $this->thread($board), fn () => $this->get(route('forum.feed'))->assertOk(), 4);
     }
 
     #[Test]
@@ -389,7 +389,7 @@ class QueryBudgetTest extends TestCase
                 $this->product();
             },
             fn () => $this->get(route('sitemap'))->assertOk(),
-            25,
+            9,
         );
     }
 
@@ -400,7 +400,7 @@ class QueryBudgetTest extends TestCase
     {
         $staff = $this->staff();
 
-        $this->assertQueryCost('the staff member list', fn () => User::factory()->create(), fn () => $this->actingAs($staff)->get(route('acp.users.index'))->assertOk(), 30);
+        $this->assertQueryCost('the staff member list', fn () => User::factory()->create(), fn () => $this->actingAs($staff)->get(route('acp.users.index'))->assertOk(), 22);
     }
 
     #[Test]
@@ -408,7 +408,7 @@ class QueryBudgetTest extends TestCase
     {
         $staff = $this->staff();
 
-        $this->assertQueryCost('the staff order list', fn () => $this->order(User::factory()->create()), fn () => $this->actingAs($staff)->get(route('acp.commerce.orders.index'))->assertOk(), 25);
+        $this->assertQueryCost('the staff order list', fn () => $this->order(User::factory()->create()), fn () => $this->actingAs($staff)->get(route('acp.commerce.orders.index'))->assertOk(), 15);
     }
 
     #[Test]
@@ -416,7 +416,7 @@ class QueryBudgetTest extends TestCase
     {
         $staff = $this->staff();
 
-        $this->assertQueryCost('the staff product list', fn () => $this->product(), fn () => $this->actingAs($staff)->get(route('acp.commerce.products.index'))->assertOk(), 30);
+        $this->assertQueryCost('the staff product list', fn () => $this->product(), fn () => $this->actingAs($staff)->get(route('acp.commerce.products.index'))->assertOk(), 20);
     }
 
     #[Test]
@@ -424,7 +424,7 @@ class QueryBudgetTest extends TestCase
     {
         $staff = $this->staff();
 
-        $this->assertQueryCost('the staff blog list', fn () => $this->blog(), fn () => $this->actingAs($staff)->get(route('acp.blogs.index'))->assertOk(), 37);
+        $this->assertQueryCost('the staff blog list', fn () => $this->blog(), fn () => $this->actingAs($staff)->get(route('acp.blogs.index'))->assertOk(), 28);
     }
 
     #[Test]
@@ -436,7 +436,7 @@ class QueryBudgetTest extends TestCase
             'the staff ticket list',
             fn () => SupportTicket::factory()->create(),
             fn () => $this->actingAs($staff)->get(route('acp.support.index'))->assertOk(),
-            37,
+            28,
         );
     }
 
@@ -459,7 +459,7 @@ class QueryBudgetTest extends TestCase
                 ]);
             },
             fn () => $this->actingAs($staff)->get(route('acp.forums.reports.index'))->assertOk(),
-            30,
+            22,
         );
     }
 

@@ -45,7 +45,7 @@ class QueryBudgetShopTest extends TestCase
                 CartManager::addItem($cart, $product, null, $product->prices()->firstOrFail(), 1);
             },
             fn () => $this->actingAs($user)->get(route('shop.checkout'))->assertOk(),
-            35,
+            19,
         );
     }
 
@@ -59,7 +59,7 @@ class QueryBudgetShopTest extends TestCase
             'the package list',
             fn () => TebexPackage::factory()->priced('10.00')->create(),
             fn () => $this->get(route('shop.packages'))->assertOk(),
-            19,
+            8,
         );
     }
 
@@ -74,7 +74,7 @@ class QueryBudgetShopTest extends TestCase
             'a package',
             fn () => TebexPackage::factory()->priced('10.00')->create(['tebex_category_id' => $package->tebex_category_id]),
             fn () => $this->get(route('shop.packages.show', $package->tebex_id))->assertOk(),
-            17,
+            5,
         );
     }
 
@@ -90,7 +90,7 @@ class QueryBudgetShopTest extends TestCase
             'the cart of packages',
             fn () => CartManager::addPackage($cart, TebexPackage::factory()->priced('10.00')->create(), 1),
             fn () => $this->actingAs($user)->get(route('shop.cart'))->assertOk(),
-            25,
+            14,
         );
     }
 }

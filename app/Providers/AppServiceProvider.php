@@ -37,10 +37,13 @@ use App\Support\Search\SearchHealth;
 use App\Support\Search\SearchTasks;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
+use App\Support\Settings\SettingsSnapshot;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\TransactionRolledBack;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -65,6 +68,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(StripeGateway::class, CashierStripeGateway::class);
         $this->app->scoped(Seo::class);
         $this->app->scoped(Audit::class);
+        $this->app->scoped(SettingsSnapshot::class);
         // The health check gives up on a silent Meilisearch sooner than the client Scout uses to index and search does.
         $this->app->bind(SearchHealth::class, fn ($app) => new SearchHealth(SearchHealth::clientFromConfig(), $app->make(MeilisearchCircuitBreaker::class)));
         $this->app->bind(SearchTasks::class, fn () => new SearchTasks(SearchHealth::clientFromConfig()));
@@ -144,6 +148,8 @@ class AppServiceProvider extends ServiceProvider
 
         ForumPost::observe(SearchIndexObserver::class);
 
+        // A setting written in a transaction that is rolled back must not stay in what this request has read of the settings.
+        Event::listen(TransactionRolledBack::class, fn () => $this->app->make(SettingsSnapshot::class)->forget());
     }
 
     /**
