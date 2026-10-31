@@ -43,6 +43,17 @@ runs:
       shell: bash
       run: npm ci
 
+    # The build downloads the Inter font from Bunny and keeps it in this
+    # directory; with it restored the build makes no request at all, so a slow
+    # or unreachable font host cannot fail a job. It is restored after
+    # `npm ci`, which deletes node_modules, and keyed on what decides the
+    # download (the fonts in vite.config.ts and the plugin that fetches them).
+    - name: Cache downloaded fonts
+      uses: actions/cache@v6
+      with:
+        path: node_modules/.cache/laravel-vite-plugin/fonts
+        key: vite-fonts-${{ hashFiles('vite.config.ts', 'package-lock.json') }}
+
     - name: Prepare environment
       shell: bash
       run: |

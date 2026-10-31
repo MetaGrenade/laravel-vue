@@ -36,6 +36,7 @@ php artisan test                # PHP tests (SQLite by default)
 npm run format                  # Prettier (format:check to only check)
 npm run lint:check              # ESLint
 npm run types:check             # vue-tsc
+npm run build && npm run bundle:check   # the size of the front end against its budget
 ```
 
 ### Testing on other databases
@@ -63,7 +64,7 @@ The application must work on MySQL, PostgreSQL and SQLite:
 - **PHP:** follow Pint's Laravel preset. Keep controllers thin; put reusable logic in `app/Support` or a dedicated class.
 - **Authorisation:** every route that touches user data needs a policy, gate or permission check. Add tests for the allowed and forbidden cases.
 - **Uploads:** store user files on a private disk and serve them through an authorised route. Never trust client-supplied names or media types.
-- **Front end:** Vue 3 with TypeScript and Tailwind. Use the theme tokens (`bg-card`, `text-muted-foreground`, `bg-highlight` and so on) rather than raw colours so light and dark modes both work. Check pages at phone width.
+- **Front end:** Vue 3 with TypeScript and Tailwind. Use the theme tokens (`bg-card`, `text-muted-foreground`, `bg-highlight` and so on) rather than raw colours so light and dark modes both work. Check pages at phone width. CI holds the built front end to a size budget (what every page loads, what each page adds, the largest script); import a heavy library where it is used and only when it is needed, and if growth is on purpose raise the number in `scripts/bundle-budget.json` in the same change ([docs/bundle-budget.md](docs/bundle-budget.md)).
 - **Tests:** add tests with the change. Prefer feature tests for behaviour and unit tests for pure logic.
 - **Queries:** a list loads what it shows for the whole list (`with()`, `withCount()`), never for each row. The suite fails a test that lazy-loads a relation out of a list, and the pages people use most have a query budget that fails when a page asks something once per row or asks more than it is allowed. When a page legitimately needs another query, raise its ceiling in the same change ([docs/query-budgets.md](docs/query-budgets.md)).
 - **Commits:** a short imperative subject line, then a body explaining why. Keep commits focused.
