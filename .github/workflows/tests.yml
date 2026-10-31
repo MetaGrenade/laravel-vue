@@ -174,3 +174,22 @@ jobs:
 
       - name: Run the Meilisearch tests
         run: php artisan test tests/Live
+
+  # What the built front end weighs, in gzipped bytes: what every page loads, what a page adds to that, and the largest script.
+  # The numbers are in scripts/bundle-budget.json; docs/bundle-budget.md says how to read a failure and when to raise one.
+  bundle:
+    name: bundle (size budget)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
+
+      - name: Test the size check
+        run: npm run bundle:test
+
+      - name: Check the size of the build
+        run: npm run bundle:check

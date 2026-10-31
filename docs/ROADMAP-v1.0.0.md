@@ -152,7 +152,7 @@ Strong already. Remaining gaps, in priority order:
 | Medium | Image handling: lists load full-size covers (I measured a 1080×1350 PNG shown at 388×159). | Verified | Generate responsive variants (WebP/AVIF) on upload; `srcset`; CDN. (Lazy loading is already done on the blog list.) |
 | Medium | Queries: lazy-loading violations are logged locally only; no query-count regression tests. | **Done** (M6, seventh slice, see [query-budgets.md](query-budgets.md)) | The suite fails on a lazy load, and 36 pages have a query budget: the same number of queries however many rows they list, and under a ceiling. |
 | Low | Last-activity updates are already throttled to once a minute. | Verified | Keep. |
-| Low | Front-end: client bundle is code-split; editor and charts are lazy chunks. No size budget in CI. | Verified | Add a bundle-size budget check. |
+| Low | Front-end: client bundle is code-split; editor and charts are lazy chunks. No size budget in CI. | **Done** (M6, ninth slice, see [bundle-budget.md](bundle-budget.md)) | CI holds what every page loads, the typical page, each page and the largest script to a gzipped size. It also found that the forum thread page imports the editor itself, so a guest who cannot reply loads 141 kB of it (the thread page adds 229 kB); loading it only when the reply box shows is the next fix. |
 | Low | No Lighthouse/Web-Vitals budget. | Inferred | Add Lighthouse CI on home, blog, forum, shop. |
 
 ### 5.2 Targets for 1.0
@@ -454,7 +454,8 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Image pipeline with responsive variants; CDN notes
 - Query-count regression tests and a suite that fails on lazy loading (**done**, seventh slice, see [query-budgets.md](query-budgets.md)). It found and fixed a cart and checkout that priced each line with two queries, and two lists that counted the posts before each post
 - System settings read with one query for each request instead of one for each setting (**done**, eighth slice, see [query-budgets.md](query-budgets.md#settings-are-read-once-for-each-request)): 749 queries to 459 across the 36 budgeted pages, with nothing kept between requests
-- Guest HTTP caching; bundle and Lighthouse budgets in CI
+- Bundle size budget in CI (**done**, ninth slice, see [bundle-budget.md](bundle-budget.md)): `npm run bundle:check` after the build, with its own tests. The forum thread page ships the editor to guests; that is the first thing to take off the page
+- Guest HTTP caching; Lighthouse budget in CI
 - **Exit:** section 5.2 targets met on a reference setup; budgets enforced in CI; search works with and without Meilisearch.
 
 ### M7. Quality, docs and release (11–15 days)
