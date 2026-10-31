@@ -4,16 +4,12 @@
         "css": 29500
     },
     "chunk": {
-        "max": 156000
+        "max": 155000
     },
     "page": {
         "typical": 89500,
         "default": 110000,
         "overrides": {
-            "ForumThreadView.vue": {
-                "limit": 252000,
-                "why": "The rich-text editor (141 kB gzipped) is imported by the page itself, so a reader who cannot reply loads it too."
-            },
             "ForumThreadCreate.vue": {
                 "limit": 233000,
                 "why": "The rich-text editor (141 kB gzipped): the page is for writing."
