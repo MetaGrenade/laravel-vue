@@ -14,17 +14,17 @@ Sizes are **gzipped bytes**, which is what every host can send (brotli is smalle
 
 | Number | What it is | Now | Allowed |
 |---|---|---|---|
-| JavaScript every page loads | The app entry and everything it imports statically | 101,184 | 112,000 |
-| Stylesheet every page loads | `resources/css/app.css` | 26,447 | 29,500 |
-| Largest script | Any one script the build makes, loaded at once or on demand | 140,966 | 156,000 |
-| The typical page | What the middle page of the 136 adds to the first two (its own chunk, its stylesheet, the chunks it shares with other pages such as the layout), counted once | 81,128 | 89,500 |
+| JavaScript every page loads | The app entry and everything it imports statically | 101,205 | 112,000 |
+| Stylesheet every page loads | `resources/css/app.css` | 26,463 | 29,500 |
+| Largest script | Any one script the build makes, loaded at once or on demand | 140,533 | 155,000 |
+| The typical page | What the middle page of the 136 adds to the first two (its own chunk, its stylesheet, the chunks it shares with other pages such as the layout), counted once | 81,365 | 89,500 |
 | Any one page | The same for each page | 110,000 or its own limit | |
 
-Pages are loaded on demand, so a heavy library that one page uses costs that page and no other. A first visit to the home page is the 127,631 every page loads plus the 99,073 `Welcome.vue` adds: about 227 kB over the wire.
+Pages are loaded on demand, so a heavy library that one page uses costs that page and no other. A first visit to the home page is the 127,668 every page loads plus the 99,309 `Welcome.vue` adds: about 227 kB needed before it appears (the background prefetch, below, comes on top).
 
 The typical page is there because a change to the layout or a shared component makes every page heavier by a little, and no page is then over its own limit. The middle page moves when that happens and does not when one page grows.
 
-The largest script is there because a library imported lazily (the Tebex checkout script, for one) is not part of any page's number and could otherwise grow without anything noticing. It also holds the editor's chunk, which several pages share, to what it weighs now.
+The largest script is there because a library imported lazily (the Tebex checkout script, for one) is not part of any page's number and could otherwise grow without anything noticing. It also holds the editor's chunk, which the forum pages load, to what it weighs now.
 
 ## Pages that are allowed more
 
@@ -32,14 +32,19 @@ A page that needs a heavy library has a limit of its own in `scripts/bundle-budg
 
 | Page | Limit | Why |
 |---|---|---|
-| `ForumThreadView.vue` | 252,000 | The rich-text editor (141 kB) is imported by the page itself, so a reader who cannot reply loads it too |
-| `ForumThreadCreate.vue` | 233,000 | The rich-text editor: the page is for writing |
+| `ForumThreadCreate.vue` | 233,000 | The rich-text editor (141 kB): the page is for writing |
 | `acp/Support.vue`, `acp/Blogs.vue`, `Dashboard.vue`, `acp/Dashboard.vue` | 161,000 to 192,000 | Charts (68 kB) |
 | `acp/CommerceProductEdit.vue` | 122,000 | Options, variants, prices and pictures on one page |
 
-The first row is not a decision, it is a measurement: a guest reading a thread downloads the editor to look at a form they cannot use. Loading the editor only when the reply box is shown would take most of those 141 kB off a page every forum visitor opens, and the limit would be lowered in the same change.
-
 A limit for a page that no longer exists fails the check, so the file does not collect old entries, and a limit without a reason is refused.
+
+### The editor on the thread page
+
+`ForumThreadView.vue` used to be the first row, at 252,000: it imported the rich-text editor outright, so the page itself needed 141 kB for a reply box a guest never sees. It now draws the editor with `LazyRichTextEditor` (in `resources/js/components/editor/`), which downloads the code the first time the reply box or the edit dialog is drawn. Until it arrives, a stand-in with the editor's id and height holds the place (so nothing jumps and the "quote" button has somewhere to scroll), and if the code cannot be fetched (a tab opened before a deploy, no connection) the box says so and asks for a reload. The page adds 89,824 instead of 229,000 and no longer has a limit of its own. A reader who cannot reply, a locked thread and a guest never draw the editor. What the page puts in the box before the editor exists is kept (the "quote" button works while the editor is still downloading): the editor takes up the page's text when it is drawn and, if the member has a saved draft, puts the draft first and that text after it, as the button does on an editor that is already drawn.
+
+`ForumThreadCreate.vue` still imports the editor itself: the page exists to write in it, so waiting for the code would only delay the page.
+
+Use `LazyRichTextEditor` instead of `RichTextEditor` wherever the editor is behind a condition, a dialog or a tab.
 
 ## When a check fails
 
@@ -73,3 +78,4 @@ npm run bundle:test    # tests of the check itself (node:test, no dependencies)
 - It does not run the app. How long a page takes to draw depends on more than its bytes (images, fonts, the server), and that is the Lighthouse budget still to come.
 - It does not measure the server-rendered build (`build:ssr`), which runs on the server and is not downloaded.
 - It does not count a chunk a page loads after the user does something, apart from holding it to the largest-script limit.
+- It does not count what the browser fetches after the page has loaded. `Vite::prefetch(concurrency: 3)` in `AppServiceProvider` makes every page, for every visitor and guests among them, fetch the rest of the build in the background once it has drawn: all 257 files, about 990 kB gzipped, the admin pages included, at low priority and three at a time. That keeps moving between pages quick, and it is why a guest on a thread still downloads the editor a moment after the page appears. The budget is about what a page needs to appear and work, which is what its first view waits for, not the total a visit costs. Whether the prefetch should reach that far (a guest has no use for the admin pages) is a separate decision.

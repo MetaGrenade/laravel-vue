@@ -21,7 +21,7 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { Textarea } from '@/components/ui/textarea';
-import RichTextEditor from '@/components/editor/RichTextEditor.vue';
+import { LazyRichTextEditor } from '@/components/editor/LazyRichTextEditor';
 import ForumAttachmentField from '@/components/forum/ForumAttachmentField.vue';
 import { useInitials } from '@/composables/useInitials';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -57,6 +57,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { loadEcho, leaveEchoChannel } from '@/lib/echo';
+import { appendRichText, hasRichTextContent } from '@/lib/richText';
 import type { PresenceChannel } from 'laravel-echo';
 
 interface BoardSummary {
@@ -1076,15 +1077,6 @@ const attachmentError = (errors: Record<string, string | undefined>): string => 
     return found?.[1] ?? '';
 };
 
-const richTextToPlainText = (html: string) =>
-    html
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/&nbsp;/gi, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-const hasRichTextContent = (html: string) => richTextToPlainText(html) !== '';
-
 watch(postEditDialogOpen, (open) => {
     if (!open) {
         postEditTarget.value = null;
@@ -1239,16 +1231,9 @@ const quotePost = (post: ThreadPost) => {
         return;
     }
 
-    const currentBody = replyForm.body ?? '';
-    const hasExistingContent = hasRichTextContent(currentBody);
-
-    if (!hasExistingContent) {
-        replyForm.body = quoteHtml;
-    } else {
-        const trimmed = currentBody.trim();
-        const withSpacer = trimmed.endsWith('<p></p>') ? trimmed : `${trimmed}<p></p>`;
-        replyForm.body = `${withSpacer}${quoteHtml}`;
-    }
+    // The reply box may still be downloading its editor. The quote waits in `replyForm.body`
+    // and the editor, when it arrives, puts it after the member's saved draft.
+    replyForm.body = appendRichText(replyForm.body ?? '', quoteHtml);
 
     nextTick(() => {
         document.getElementById('thread_reply_body')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1423,7 +1408,7 @@ const submitReply = () => {
                 <form class="space-y-5" @submit.prevent="submitPostEdit">
                     <div class="space-y-2">
                         <Label for="post_edit_body">Post content</Label>
-                        <RichTextEditor
+                        <LazyRichTextEditor
                             id="post_edit_body"
                             v-model="postEditForm.body"
                             :placeholder="'Share your updated thoughts...'"
@@ -2102,7 +2087,7 @@ const submitReply = () => {
             <div v-if="showReplyForm" class="mt-8 rounded-xl border bg-card p-6 shadow-sm">
                 <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
                 <form class="flex flex-col gap-4" @submit.prevent="submitReply">
-                    <RichTextEditor
+                    <LazyRichTextEditor
                         id="thread_reply_body"
                         v-model="replyForm.body"
                         :placeholder="'Write your reply here...'"

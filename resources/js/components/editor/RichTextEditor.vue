@@ -6,6 +6,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Placeholder } from '@tiptap/extensions';
 import MentionSuggestionList, { type MentionSuggestionItem } from '@/components/editor/MentionSuggestionList.vue';
 import MentionExtension, { type MentionAttributes } from './extensions/mention';
+import { appendRichText, hasRichTextContent } from '@/lib/richText';
 import { cn } from '@/lib/utils';
 import { useDebounceFn } from '@vueuse/core';
 import {
@@ -192,9 +193,16 @@ const loadInitialContent = () => {
         const stored = window.localStorage.getItem(storageKey.value);
 
         if (stored && stored.trim() !== '') {
-            emit('update:modelValue', stored);
+            // The parent can put content in before this editor exists: the forum's Quote action
+            // works while the editor is still downloading. That content follows the saved draft,
+            // where the action would have put it on an editor that was already drawn. Content
+            // equal to the draft is the draft itself, from an editor drawn again, not something new.
+            const added = props.modelValue.trim();
+            const content = hasRichTextContent(added) && added !== stored.trim() ? appendRichText(stored, added) : stored;
+
+            emit('update:modelValue', content);
             lastSavedAt.value = new Date();
-            return stored;
+            return content;
         }
     }
 
