@@ -57,6 +57,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
 import { loadEcho, leaveEchoChannel } from '@/lib/echo';
+import { appendRichText, hasRichTextContent } from '@/lib/richText';
 import type { PresenceChannel } from 'laravel-echo';
 
 interface BoardSummary {
@@ -1076,15 +1077,6 @@ const attachmentError = (errors: Record<string, string | undefined>): string => 
     return found?.[1] ?? '';
 };
 
-const richTextToPlainText = (html: string) =>
-    html
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/&nbsp;/gi, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-const hasRichTextContent = (html: string) => richTextToPlainText(html) !== '';
-
 watch(postEditDialogOpen, (open) => {
     if (!open) {
         postEditTarget.value = null;
@@ -1239,16 +1231,9 @@ const quotePost = (post: ThreadPost) => {
         return;
     }
 
-    const currentBody = replyForm.body ?? '';
-    const hasExistingContent = hasRichTextContent(currentBody);
-
-    if (!hasExistingContent) {
-        replyForm.body = quoteHtml;
-    } else {
-        const trimmed = currentBody.trim();
-        const withSpacer = trimmed.endsWith('<p></p>') ? trimmed : `${trimmed}<p></p>`;
-        replyForm.body = `${withSpacer}${quoteHtml}`;
-    }
+    // The reply box may still be downloading its editor. The quote waits in `replyForm.body`
+    // and the editor, when it arrives, puts it after the member's saved draft.
+    replyForm.body = appendRichText(replyForm.body ?? '', quoteHtml);
 
     nextTick(() => {
         document.getElementById('thread_reply_body')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
