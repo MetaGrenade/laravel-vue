@@ -21,7 +21,7 @@ import {
     PaginationPrev,
 } from '@/components/ui/pagination';
 import { Textarea } from '@/components/ui/textarea';
-import RichTextEditor from '@/components/editor/RichTextEditor.vue';
+import { LazyRichTextEditor } from '@/components/editor/LazyRichTextEditor';
 import ForumAttachmentField from '@/components/forum/ForumAttachmentField.vue';
 import { useInitials } from '@/composables/useInitials';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -1423,7 +1423,7 @@ const submitReply = () => {
                 <form class="space-y-5" @submit.prevent="submitPostEdit">
                     <div class="space-y-2">
                         <Label for="post_edit_body">Post content</Label>
-                        <RichTextEditor
+                        <LazyRichTextEditor
                             id="post_edit_body"
                             v-model="postEditForm.body"
                             :placeholder="'Share your updated thoughts...'"
@@ -2102,7 +2102,7 @@ const submitReply = () => {
             <div v-if="showReplyForm" class="mt-8 rounded-xl border bg-card p-6 shadow-sm">
                 <h2 id="post_reply" class="mb-4 text-xl font-bold">Leave a Reply</h2>
                 <form class="flex flex-col gap-4" @submit.prevent="submitReply">
-                    <RichTextEditor
+                    <LazyRichTextEditor
                         id="thread_reply_body"
                         v-model="replyForm.body"
                         :placeholder="'Write your reply here...'"
