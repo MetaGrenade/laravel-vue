@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\ForeignKeyIndexes;
 use Tests\TestCase;
 
 /**
@@ -37,6 +38,7 @@ class GiftCardMigrationsTest extends TestCase
         $this->assertTrue(Schema::hasColumns('orders', ['gift_card_id', 'gift_card_total']));
         $this->assertTrue(Schema::hasColumn('refunds', 'gift_card_id'));
 
+        ForeignKeyIndexes::takeOff();
         $this->migration('2026_10_18_000100_add_gift_cards_to_carts_orders_and_refunds')->down();
         $this->migration('2026_10_18_000000_create_gift_cards_tables')->down();
 
@@ -49,6 +51,7 @@ class GiftCardMigrationsTest extends TestCase
 
         $this->migration('2026_10_18_000000_create_gift_cards_tables')->up();
         $this->migration('2026_10_18_000100_add_gift_cards_to_carts_orders_and_refunds')->up();
+        ForeignKeyIndexes::putBack();
 
         $this->assertTrue(Schema::hasTable('gift_cards'));
         $this->assertTrue(Schema::hasColumns('orders', ['gift_card_id', 'gift_card_total']));

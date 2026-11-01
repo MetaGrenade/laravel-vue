@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\ForeignKeyIndexes;
 use Tests\TestCase;
 
 /**
@@ -46,6 +47,7 @@ class TebexMigrationsTest extends TestCase
         $entitlements = require database_path('migrations/2026_10_22_000000_create_entitlements_tables.php');
         $planEntitlements = require database_path('migrations/2026_10_23_000000_create_subscription_plan_entitlements_table.php');
 
+        ForeignKeyIndexes::takeOff();
         $planEntitlements->down();
         $entitlements->down();
         $subscriptions->down();
@@ -61,6 +63,7 @@ class TebexMigrationsTest extends TestCase
         $subscriptions->up();
         $entitlements->up();
         $planEntitlements->up();
+        ForeignKeyIndexes::putBack();
 
         $this->assertTrue(Schema::hasTable('tebex_packages'));
         $this->assertTrue(Schema::hasTable('user_entitlements'));
@@ -132,12 +135,14 @@ class TebexMigrationsTest extends TestCase
         $this->assertTrue(Schema::hasColumn('cart_items', 'tebex_package_id'));
         $this->assertTrue(Schema::hasColumn('order_items', 'tebex_package_id'));
 
+        ForeignKeyIndexes::takeOff();
         $lines->down();
 
         $this->assertFalse(Schema::hasColumn('cart_items', 'tebex_package_id'));
         $this->assertFalse(Schema::hasColumn('order_items', 'tebex_package_id'));
 
         $lines->up();
+        ForeignKeyIndexes::putBack();
 
         $this->assertTrue(Schema::hasColumn('cart_items', 'tebex_package_id'));
         $this->assertTrue(Schema::hasColumn('order_items', 'tebex_package_id'));
