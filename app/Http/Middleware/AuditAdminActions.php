@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Support\Audit\Audit;
+use App\Support\Errors\ErrorPages;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,7 +39,8 @@ class AuditAdminActions
             throw $exception;
         }
 
-        $audit->finish($request, $response->getStatusCode());
+        // A refusal inside the app is answered with a redirect back to the page, so the status it had is asked for: a 403 is a denial.
+        $audit->finish($request, ErrorPages::statusOf($request, $response));
 
         return $response;
     }

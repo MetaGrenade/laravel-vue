@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use App\Models\SystemSetting;
 use Closure;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Support\Header;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureSiteIsAvailable
@@ -32,6 +34,14 @@ class EnsureSiteIsAvailable
             return response()->json([
                 'message' => 'The application is currently undergoing maintenance.',
             ], 503);
+        }
+
+        // A visit inside the app cannot show a page of its own: the client would put this one in a dialog over the page it was on.
+        // Telling it to load an address in full shows the maintenance page as a page. The address is the one asked for, unless it is
+        // for an action (a form, a button): many addresses of those are POST only, and loading one in full is refused as the wrong
+        // method before this is asked, so the page the action was made from is loaded instead.
+        if ($request->header(Header::INERTIA)) {
+            return Inertia::location($request->isMethod('GET') ? $request->fullUrl() : url()->previous());
         }
 
         return response()->view('maintenance', [], 503);

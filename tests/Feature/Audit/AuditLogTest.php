@@ -308,6 +308,24 @@ class AuditLogTest extends TestCase
     }
 
     #[Test]
+    public function a_refusal_inside_the_app_is_recorded_as_denied_though_it_is_answered_with_a_redirect(): void
+    {
+        $editor = $this->signInEditor();
+        $target = User::factory()->create();
+
+        // A button in the app is refused with a 403, which is answered with a redirect back to the page and a notice (ErrorPages).
+        $this->put(route('acp.users.ban', $target->id), [], ['X-Inertia' => 'true'])
+            ->assertStatus(303)
+            ->assertSessionHasErrors('refused');
+
+        $entry = $this->entry();
+        $this->assertSame(AuditLog::DENIED, $entry->outcome);
+        $this->assertSame($editor->id, $entry->actor_id);
+        $this->assertSame(403, $entry->meta['status'], 'the status it was refused with, not the redirect that replaced it');
+        $this->assertFalse($target->fresh()->is_banned);
+    }
+
+    #[Test]
     public function the_audit_middleware_runs_after_authentication_and_before_the_checks_that_can_turn_a_request_away(): void
     {
         $router = app('router');

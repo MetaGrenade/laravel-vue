@@ -26,6 +26,7 @@ use App\Jobs\PruneUsageEvents;
 use App\Jobs\SendEmailDigests;
 use App\Jobs\SyncTebexCatalogue;
 use App\Payments\Tebex\TebexCatalogue;
+use App\Support\Errors\ErrorPages;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
@@ -124,5 +125,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new SyncTebexCatalogue)->everyFiveMinutes()->when(fn () => app(TebexCatalogue::class)->isDue());
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // A visit inside the app that is refused gets the Error page, or a notice on the page it was on (docs/error-pages.md).
+        $exceptions->respond(ErrorPages::respond(...));
     })->create();
