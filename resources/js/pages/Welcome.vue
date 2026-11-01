@@ -10,7 +10,6 @@ import {
     ArrowRight,
     ArrowUpRight,
     Braces,
-    Check,
     ChevronDown,
     CreditCard,
     KeyRound,
@@ -446,35 +445,50 @@ const faqs = [
         </section>
 
         <!-- Stack details -->
-        <section class="relative overflow-hidden border-y bg-surface cv-auto" aria-labelledby="tech-heading">
+        <section class="relative overflow-hidden border-y bg-surface bg-wash-destructive cv-auto" aria-labelledby="tech-heading">
             <div class="pointer-events-none absolute inset-0 bg-stripes [mask-image:linear-gradient(to_bottom_right,black,transparent_60%)]" />
             <div class="relative container-app grid gap-12 py-20 lg:grid-cols-[1fr_2fr] lg:py-24">
-                <div class="reveal">
-                    <p class="eyebrow">Tech stack</p>
-                    <h2 id="tech-heading" class="mt-3 text-3xl font-semibold tracking-tight">Modern tooling, no surprises</h2>
-                    <p class="mt-4 text-muted-foreground">
-                        Current releases across the stack, with Pint, ESLint, Prettier, type checking and PHPUnit running in CI on every pull request.
-                    </p>
-                    <ul class="mt-6 space-y-2">
-                        <li v-for="resource in resources" :key="resource.href">
-                            <a
-                                :href="resource.href"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                            >
-                                {{ resource.title }}
-                                <ArrowUpRight class="size-3.5" />
-                            </a>
-                        </li>
-                    </ul>
+                <div class="reveal flex gap-4">
+                    <span class="mt-1 hidden w-0.5 shrink-0 self-stretch rounded-full bg-destructive/80 sm:block" aria-hidden="true" />
+                    <div>
+                        <p class="eyebrow inline-flex items-center gap-2 text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">
+                            <span class="size-1.5 rotate-45 bg-destructive" aria-hidden="true" />
+                            Tech stack
+                        </p>
+                        <h2 id="tech-heading" class="mt-3 text-3xl font-semibold tracking-tight">Modern tooling, no surprises</h2>
+                        <p class="mt-4 text-muted-foreground">
+                            Current releases across the stack, with Pint, ESLint, Prettier, type checking and PHPUnit running in CI on every pull request.
+                        </p>
+                        <ul class="mt-6 space-y-2">
+                            <li v-for="resource in resources" :key="resource.href">
+                                <a
+                                    :href="resource.href"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-[hsl(0_70%_32%)] dark:hover:text-[hsl(0_80%_74%)]"
+                                >
+                                    {{ resource.title }}
+                                    <ArrowUpRight class="size-3.5" />
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="reveal grid gap-4 sm:grid-cols-3">
-                    <div v-for="group in stack" :key="group.title" class="rounded-xl border bg-card p-6 shadow-xs">
-                        <h3 class="font-semibold">{{ group.title }}</h3>
-                        <ul class="mt-4 space-y-2.5">
-                            <li v-for="item in group.items" :key="item" class="flex gap-2 text-sm text-muted-foreground">
-                                <Check class="mt-0.5 size-4 shrink-0 text-primary" />
+                    <div
+                        v-for="group in stack"
+                        :key="group.title"
+                        class="relative overflow-hidden rounded-xl border bg-card shadow-sm dark:shadow-none"
+                    >
+                        <span class="absolute top-3.5 right-3.5 size-2 rotate-45 bg-destructive" aria-hidden="true" />
+                        <div
+                            class="border-b border-destructive/15 bg-[linear-gradient(180deg,hsl(var(--destructive)/0.14),hsl(var(--destructive)/0.04))] px-5 py-3.5 pr-8"
+                        >
+                            <h3 class="font-semibold text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">{{ group.title }}</h3>
+                        </div>
+                        <ul class="space-y-2.5 px-5 py-4">
+                            <li v-for="item in group.items" :key="item" class="flex gap-2.5 text-sm text-muted-foreground">
+                                <span class="mt-1.5 size-1.5 shrink-0 rotate-45 bg-destructive/80" aria-hidden="true" />
                                 {{ item }}
                             </li>
                         </ul>

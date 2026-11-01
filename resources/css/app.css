@@ -418,6 +418,13 @@
         linear-gradient(180deg, hsl(var(--success) / 0.07), transparent 64%);
 }
 
+/* Crimson pooled at the lower right, behind the stack columns rather than across the top. */
+@utility bg-wash-destructive {
+    background-image:
+        radial-gradient(38rem 22rem at 100% 110%, hsl(var(--destructive) / 0.16), transparent 70%),
+        linear-gradient(200deg, transparent 30%, hsl(var(--destructive) / 0.06) 100%);
+}
+
 /* Gradient text for a single hero word. */
 @utility text-gradient-brand {
     background-image: linear-gradient(90deg, hsl(var(--primary)), hsl(264 80% 62%));
