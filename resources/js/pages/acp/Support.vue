@@ -955,13 +955,13 @@ const unpublishFaq = (faq: FaqItem) => {
         <AdminLayout>
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <div class="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                         <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                             <MessageSquare class="size-5" />
                         </span>
                         <div class="min-w-0">
-                            <div class="truncate text-sm text-muted-foreground">Total Tickets</div>
+                            <div class="text-sm text-muted-foreground">Total Tickets</div>
                             <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.total }}</div>
                         </div>
                     </div>
@@ -970,7 +970,7 @@ const unpublishFaq = (faq: FaqItem) => {
                             <XCircle class="size-5" />
                         </span>
                         <div class="min-w-0">
-                            <div class="truncate text-sm text-muted-foreground">Open Tickets</div>
+                            <div class="text-sm text-muted-foreground">Open Tickets</div>
                             <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.open }}</div>
                         </div>
                     </div>
@@ -979,7 +979,7 @@ const unpublishFaq = (faq: FaqItem) => {
                             <CheckCircle class="size-5" />
                         </span>
                         <div class="min-w-0">
-                            <div class="truncate text-sm text-muted-foreground">Closed Tickets</div>
+                            <div class="text-sm text-muted-foreground">Closed Tickets</div>
                             <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.closed }}</div>
                         </div>
                     </div>
@@ -988,7 +988,7 @@ const unpublishFaq = (faq: FaqItem) => {
                             <Star class="size-5" />
                         </span>
                         <div class="min-w-0">
-                            <div class="truncate text-sm text-muted-foreground">Avg. CSAT</div>
+                            <div class="text-sm text-muted-foreground">Avg. CSAT</div>
                             <div class="text-xl font-semibold tracking-tight tabular-nums">
                                 {{ satisfactionStats.average !== null ? `${satisfactionStats.average}/5` : 'No ratings yet' }}
                             </div>
@@ -999,7 +999,7 @@ const unpublishFaq = (faq: FaqItem) => {
                             <Ticket class="size-5" />
                         </span>
                         <div class="min-w-0">
-                            <div class="truncate text-sm text-muted-foreground">Rated Tickets</div>
+                            <div class="text-sm text-muted-foreground">Rated Tickets</div>
                             <div class="text-xl font-semibold tracking-tight tabular-nums">{{ satisfactionStats.count }}</div>
                         </div>
                     </div>
@@ -1008,7 +1008,7 @@ const unpublishFaq = (faq: FaqItem) => {
                             <HelpCircle class="size-5" />
                         </span>
                         <div class="min-w-0">
-                            <div class="truncate text-sm text-muted-foreground">FAQs</div>
+                            <div class="text-sm text-muted-foreground">FAQs</div>
                             <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.faqs }}</div>
                             <div class="text-xs text-muted-foreground">{{ totalFaqFeedback }} total votes</div>
                         </div>
@@ -1018,7 +1018,7 @@ const unpublishFaq = (faq: FaqItem) => {
                             <ThumbsUp class="size-5" />
                         </span>
                         <div class="min-w-0">
-                            <div class="truncate text-sm text-muted-foreground">Helpful votes</div>
+                            <div class="text-sm text-muted-foreground">Helpful votes</div>
                             <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.faq_helpful_feedback }}</div>
                         </div>
                     </div>
@@ -1027,7 +1027,7 @@ const unpublishFaq = (faq: FaqItem) => {
                             <ThumbsDown class="size-5" />
                         </span>
                         <div class="min-w-0">
-                            <div class="truncate text-sm text-muted-foreground">Not helpful votes</div>
+                            <div class="text-sm text-muted-foreground">Not helpful votes</div>
                             <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.faq_not_helpful_feedback }}</div>
                         </div>
                     </div>
