@@ -35,7 +35,7 @@ class ErrorPagesTest extends TestCase
             Route::get('/_errors/missing', fn () => abort(404));
             Route::get('/_errors/forbidden', fn () => abort(403));
             Route::get('/_errors/bound/{user}', fn (User $user) => 'ok');
-            Route::get('/_errors/said',fn () => abort(404, 'The thread called Secret plans is gone.'));
+            Route::get('/_errors/said', fn () => abort(404, 'The thread called Secret plans is gone.'));
             Route::get('/_errors/reason', fn () => abort(403, 'This thread is locked.'));
             Route::get('/_errors/policy', fn () => throw new AuthorizationException('Only the author may do this.'));
             Route::get('/_errors/broken', fn () => throw new RuntimeException('secret detail about the database'));
@@ -200,7 +200,7 @@ class ErrorPagesTest extends TestCase
             ->post('/_errors/missing', [], $this->visit())
             ->assertStatus(303)
             ->assertRedirect('/blogs')
-            ->assertSessionHas('error', 'That is no longer there. It may have been removed.');
+            ->assertSessionHasErrors(['refused' => 'That is no longer there. It may have been removed.']);
     }
 
     public function test_the_client_is_told_to_ask_again_with_get_whatever_the_method_was(): void
@@ -215,7 +215,7 @@ class ErrorPagesTest extends TestCase
         $this->from('/forum')
             ->post('/_errors/reason', [], $this->visit())
             ->assertStatus(303)
-            ->assertSessionHas('error', 'This thread is locked.');
+            ->assertSessionHasErrors(['refused' => 'This thread is locked.']);
     }
 
     public function test_a_failed_action_does_not_say_what_broke(): void
@@ -223,7 +223,7 @@ class ErrorPagesTest extends TestCase
         $this->from('/forum')
             ->post('/_errors/broken', [], $this->visit())
             ->assertStatus(303)
-            ->assertSessionHas('error', 'Something went wrong on our side. Try again in a moment.');
+            ->assertSessionHasErrors(['refused' => 'Something went wrong on our side. Try again in a moment.']);
     }
 
     public function test_an_expired_session_goes_back_with_a_notice(): void
@@ -232,7 +232,7 @@ class ErrorPagesTest extends TestCase
             ->post('/_errors/expired', [], $this->visit())
             ->assertStatus(303)
             ->assertRedirect('/settings/profile')
-            ->assertSessionHas('error', 'Your session ended, so that was not saved. Try again.');
+            ->assertSessionHasErrors(['refused' => 'Your session ended, so that was not saved. Try again.']);
     }
 
     public function test_throttled_actions_go_back_with_a_notice(): void
@@ -242,14 +242,20 @@ class ErrorPagesTest extends TestCase
         $this->from('/blogs')
             ->post('/_errors/throttled', [], $this->visit())
             ->assertStatus(303)
-            ->assertSessionHas('error', 'Too many attempts. Wait a moment, then try again.');
+            ->assertSessionHasErrors(['refused' => 'Too many attempts. Wait a moment, then try again.']);
     }
 
-    public function test_the_notice_is_the_flash_message_the_toast_shows(): void
+    public function test_the_page_it_goes_back_to_has_the_notice_as_an_error_and_not_as_a_success(): void
     {
         $this->from('/blogs')->post('/_errors/missing', [], $this->visit());
 
-        $this->get('/blogs', $this->visit())->assertJsonPath('props.flash.error', 'That is no longer there. It may have been removed.');
+        // An error on the page is what keeps the client from calling the visit's onSuccess, where a form clears what was typed and a
+        // draft is deleted: it is a visit that did not work, like a form with mistakes, and onError runs instead. The toast is made from
+        // it (resources/js/lib/flashToast.ts), so it is not also a flash message, which would be shown as a success.
+        $this->get('/blogs', $this->visit())
+            ->assertJsonPath('props.errors.refused', 'That is no longer there. It may have been removed.')
+            ->assertJsonPath('props.flash.error', null)
+            ->assertJsonPath('props.flash.success', null);
     }
 
     public function test_a_form_with_mistakes_still_shows_them_on_the_form(): void
@@ -341,5 +347,17 @@ class ErrorPagesTest extends TestCase
             ->assertHeader('X-Inertia-Location', route('home'));
 
         $this->get(route('home'))->assertStatus(503)->assertHeaderMissing('X-Inertia');
+    }
+
+    public function test_an_action_made_when_maintenance_starts_loads_the_page_it_was_made_from(): void
+    {
+        SystemSetting::set('maintenance_mode', true);
+
+        // Loading the address of an action in full is a GET, and a POST-only address is refused as the wrong method before
+        // maintenance mode is asked.
+        $this->from('/forum')
+            ->post('/_errors/missing', [], $this->visit())
+            ->assertStatus(409)
+            ->assertHeader('X-Inertia-Location', url('/forum'));
     }
 }

@@ -32,6 +32,12 @@ final class ErrorPages
     /** Statuses where trying again may work, so the page offers it. */
     private const RETRYABLE = [429, 500, 503];
 
+    /** The key the message of a refused action is given under in the page's `errors`: see notice(). */
+    public const REFUSED = 'refused';
+
+    /** The request attribute that keeps the status a refused action was answered with, for what looks at the answer after it. */
+    private const STATUS_ATTRIBUTE = 'error_pages.status';
+
     /** What the refusal says about when to ask again, which the answer in its place keeps. */
     private const KEPT_HEADERS = ['Retry-After', 'X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'];
 
@@ -100,8 +106,27 @@ final class ErrorPages
             return $response;
         }
 
+        $message = self::message($status, $e);
+
+        // What the audit log and the like read from the answer is the status it had, and this one is a redirect.
+        $request->attributes->set(self::STATUS_ATTRIBUTE, $status);
+
         // 303 whatever the method: the client must ask for the page again with GET, not repeat a DELETE at it.
-        return redirect()->back(303)->with('error', self::message($status, $e));
+        //
+        // The message goes in the page's errors, and resources/js/lib/flashToast.ts shows it as a toast. As a flash message it would be
+        // a success to the Inertia client, which calls the visit's onSuccess when the page has no errors, and the callers that clear
+        // what was typed, delete a draft or close a dialog there would do so for something that did not happen. As an error it is what
+        // a form with mistakes is: onError runs, onSuccess does not, and the form keeps what it had.
+        return redirect()->back(303)->withErrors([self::REFUSED => $message]);
+    }
+
+    /**
+     * The status a request was answered with, as the code that refused it chose it: a refused action is answered with a redirect, which is
+     * not what a log of who was turned away from what should say.
+     */
+    public static function statusOf(Request $request, Response $response): int
+    {
+        return (int) $request->attributes->get(self::STATUS_ATTRIBUTE, $response->getStatusCode());
     }
 
     /**

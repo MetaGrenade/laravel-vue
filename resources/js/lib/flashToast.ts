@@ -30,6 +30,14 @@ export function initializeFlashToast(initialFlash?: FlashMessages | null): void 
         showFlashToasts(event.detail.page.props.flash as FlashMessages | undefined);
     });
 
+    // A refused action (App\Support\Errors\ErrorPages) comes back as an error on the page, so that the form keeps what it had and the
+    // visit's onSuccess does not run. `success` does not fire for it, and the message is what the toast says.
+    router.on('error', (event) => {
+        const refused = (event.detail.errors as Record<string, string> | undefined)?.refused;
+
+        if (refused) toast.error(refused);
+    });
+
     // Wait for the <Toaster> in the layout to mount before showing anything
     // flashed on the initial (full page) load.
     setTimeout(() => showFlashToasts(initialFlash), 0);
