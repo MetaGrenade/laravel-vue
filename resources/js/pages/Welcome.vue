@@ -475,16 +475,12 @@ const faqs = [
                     </div>
                 </div>
                 <div class="reveal grid gap-4 sm:grid-cols-3">
-                    <div
-                        v-for="group in stack"
-                        :key="group.title"
-                        class="relative overflow-hidden rounded-xl border bg-card shadow-sm dark:shadow-none"
-                    >
-                        <span class="absolute top-3.5 right-3.5 size-2 rotate-45 bg-destructive" aria-hidden="true" />
+                    <div v-for="group in stack" :key="group.title" class="overflow-hidden rounded-xl border bg-card shadow-sm dark:shadow-none">
                         <div
-                            class="border-b border-destructive/15 bg-[linear-gradient(180deg,hsl(var(--destructive)/0.14),hsl(var(--destructive)/0.04))] px-5 py-3.5 pr-8"
+                            class="border-b border-destructive/15 bg-[linear-gradient(180deg,hsl(var(--destructive)/0.14),hsl(var(--destructive)/0.04))] px-5 py-3.5 text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]"
                         >
-                            <h3 class="font-semibold text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">{{ group.title }}</h3>
+                            <h3 class="font-semibold">{{ group.title }}</h3>
+                            <span class="mt-2 block h-0.5 w-8 rounded-full bg-current" aria-hidden="true" />
                         </div>
                         <ul class="space-y-2.5 px-5 py-4">
                             <li v-for="item in group.items" :key="item" class="flex gap-2.5 text-sm text-muted-foreground">
