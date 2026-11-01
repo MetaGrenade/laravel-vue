@@ -78,6 +78,7 @@ The application must work on MySQL, PostgreSQL and SQLite:
 - **Tests:** add tests with the change. Prefer feature tests for behaviour and unit tests for pure logic.
 - **Queries:** a list loads what it shows for the whole list (`with()`, `withCount()`), never for each row. The suite fails a test that lazy-loads a relation out of a list, and the pages people use most have a query budget that fails when a page asks something once per row or asks more than it is allowed. When a page legitimately needs another query, raise its ceiling in the same change ([docs/query-budgets.md](docs/query-budgets.md)).
 - **Foreign keys:** give the column an index where the table is made, `$table->foreignId('user_id')->index()->constrained()`. MySQL adds one for you; PostgreSQL and SQLite do not, and without it every page that asks for the rows of a parent, and every delete of the parent, reads the whole table. `ForeignKeyIndexTest` fails on any database when one is missing ([docs/indexes.md](docs/indexes.md)).
+- **Documents:** a file that is the same for every reader (a feed, a text file, a schema) is declared with `PublicDocuments::cachedFor($seconds)` and gets a line in `PublicDocumentsTest::documents()`. It starts no session, so it must not read one or the signed-in member, and a cache may keep it ([docs/http-caching.md](docs/http-caching.md)).
 - **Commits:** a short imperative subject line, then a body explaining why. Keep commits focused.
 
 ## Pull requests

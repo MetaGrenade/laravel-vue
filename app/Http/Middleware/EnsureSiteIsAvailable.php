@@ -20,7 +20,9 @@ class EnsureSiteIsAvailable
             return $next($request);
         }
 
-        $user = $request->user();
+        // A request that starts no session (a document, app/Support/Routing/PublicDocuments.php) has nobody signed in to let through.
+        // Asking the guard anyway could sign a member in from a remember-me cookie, with nothing to keep it in.
+        $user = $request->hasSession() ? $request->user() : null;
 
         if ($user !== null && $user->hasAnyRole(['admin', 'editor', 'moderator'])) {
             return $next($request);

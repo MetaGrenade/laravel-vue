@@ -48,22 +48,24 @@ use App\Http\Controllers\Webhooks\TebexWebhookController;
 use App\Http\Controllers\WebManifestController;
 use App\Http\Middleware\EnsureSiteIsAvailable;
 use App\Support\Legal\LegalPages;
+use App\Support\Routing\PublicDocuments;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
 use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
 
 Route::view('/api/docs', 'api.docs')->name('api.docs');
-Route::get('/api/docs/openapi.json', ApiDocumentationController::class)
+// Documents: the same for everyone, so no session and a cache may keep them (docs/http-caching.md).
+PublicDocuments::cachedFor(3600)->get('/api/docs/openapi.json', ApiDocumentationController::class)
     ->name('api.docs.schema');
 
 // PUBLIC PAGES
-Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
-Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+PublicDocuments::cachedFor(3600)->get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
+PublicDocuments::cachedFor(3600)->get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 // Stays up during maintenance, so the reporting contact can still be found.
-Route::get('/.well-known/security.txt', SecurityTextController::class)
+PublicDocuments::cachedFor(3600)->get('/.well-known/security.txt', SecurityTextController::class)
     ->name('security.txt')
     ->withoutMiddleware([EnsureSiteIsAvailable::class]);
-Route::get('/site.webmanifest', WebManifestController::class)->name('webmanifest');
+PublicDocuments::cachedFor(3600)->get('/site.webmanifest', WebManifestController::class)->name('webmanifest');
 
 Route::get('/', HomeController::class)->name('home');
 
@@ -180,7 +182,7 @@ Route::get('/downloads/{grant}/{file}', [DownloadController::class, 'show'])
 // Public Blog Routes
 Route::middleware('section.enabled:blog')->group(function () {
     Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
-    Route::get('/blogs/feed', [BlogController::class, 'feed'])->name('blogs.feed');
+    PublicDocuments::cachedFor(300)->get('/blogs/feed', [BlogController::class, 'feed'])->name('blogs.feed');
     Route::get('/blogs/preview/{blog}/{token}', [BlogController::class, 'preview'])->name('blogs.preview');
     Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.view');
 
@@ -238,11 +240,11 @@ Route::middleware('section.enabled:forum')->group(function () {
         ->name('forum.attachments.show');
     Route::middleware('auth')->get('forum/following', [MemberFollowController::class, 'index'])
         ->name('forum.following');
-    Route::get('forum/feed', [ForumFeedController::class, 'index'])->name('forum.feed');
+    PublicDocuments::cachedFor(300)->get('forum/feed', [ForumFeedController::class, 'index'])->name('forum.feed');
     Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
     Route::middleware(['auth', 'throttle:search'])->get('forum/mentions', [ForumController::class, 'mentionSuggestions'])
         ->name('forum.mentions.index');
-    Route::get('forum/{board:slug}/feed', [ForumFeedController::class, 'board'])->name('forum.boards.feed');
+    PublicDocuments::cachedFor(300)->get('forum/{board:slug}/feed', [ForumFeedController::class, 'board'])->name('forum.boards.feed');
     Route::get('forum/{board:slug}', [ForumController::class, 'showBoard'])->name('forum.boards.show');
     Route::get('forum/{board:slug}/{thread:slug}', [ForumController::class, 'showThread'])->name('forum.threads.show');
 
