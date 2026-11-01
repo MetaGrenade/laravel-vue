@@ -42,30 +42,61 @@ class ForeignKeyIndexTest extends TestCase
         $this->assertTrue($this->startsAnIndex('forum_posts', ['forum_thread_id']));
         $this->assertContains('forum_posts_forum_thread_id_fk', $this->indexNames('forum_posts'));
 
-        $others = $this->indexNamesNotMadeByIt('forum_posts');
-        $this->assertNotSame([], $others, 'the table has indexes of its own to leave alone');
+        $before = $this->allIndexNames();
+        $made = $this->madeByIt();
+
+        $this->assertContains('forum_posts.forum_posts_forum_thread_id_fk', $made, 'it writes down what it makes');
+        $this->assertNotSame([], array_diff($before, $made), 'the schema has indexes of its own to leave alone');
 
         $this->migration()->down();
 
         try {
+            $this->assertFalse(Schema::hasTable($this->registry()), 'down() takes the list away with the indexes');
             $this->assertFalse($this->startsAnIndex('forum_posts', ['forum_thread_id']), 'down() leaves the index it made');
-            $this->assertSame($others, $this->indexNamesNotMadeByIt('forum_posts'), 'down() takes back only the indexes it made');
+            $this->assertSame(array_values(array_diff($before, $made)), $this->allIndexNames(), 'down() takes back the indexes it made and no other');
         } finally {
             $this->migration()->up();
         }
 
-        $this->assertTrue($this->startsAnIndex('forum_posts', ['forum_thread_id']));
+        $this->assertSame($before, $this->allIndexNames(), 'up() makes the same ones again');
+        $this->assertSame($made, $this->madeByIt());
         $this->assertSame([], $this->foreignKeysWithoutAnIndex());
     }
 
     #[Test]
     public function running_it_again_makes_nothing_new(): void
     {
+        if ($this->indexesItself()) {
+            $this->markTestSkipped('InnoDB indexes a foreign key itself, so there is nothing for the migration to make.');
+        }
+
         $before = $this->allIndexNames();
+        $made = $this->madeByIt();
 
         $this->migration()->up();
 
         $this->assertSame($before, $this->allIndexNames());
+        $this->assertSame($made, $this->madeByIt());
+    }
+
+    #[Test]
+    public function down_copes_with_an_index_somebody_already_took_away(): void
+    {
+        if ($this->indexesItself()) {
+            $this->markTestSkipped('InnoDB indexes a foreign key itself, so there is nothing for the migration to make.');
+        }
+
+        Schema::table('forum_posts', fn ($table) => $table->dropIndex('forum_posts_forum_thread_id_fk'));
+
+        try {
+            $this->migration()->down();
+
+            $this->assertFalse(Schema::hasTable($this->registry()));
+        } finally {
+            $this->migration()->up();
+        }
+
+        $this->assertSame([], $this->foreignKeysWithoutAnIndex());
     }
 
     #[Test]
@@ -77,22 +108,104 @@ class ForeignKeyIndexTest extends TestCase
 
         $this->migration()->down();
 
-        Schema::table('forum_posts', fn ($table) => $table->index(['forum_thread_id', 'created_at'], 'forum_posts_thread_and_time_index'));
+        // Indexes a person made before this migration ran, three of them named the way this migration names its own:
+        //  - a unique key that starts with a foreign key column (a guarantee, and it covers the column);
+        //  - an index with exactly the name this migration would give, on a column it covers;
+        //  - a unique key that does not cover a foreign key column, beside one this migration has to make.
+        $theirs = [
+            'forum_posts' => ['forum_posts_thread_and_time_index', 'forum_posts_thread_time_unique_fk', 'forum_posts_id_and_user_unique_fk'],
+            'blog_comments' => ['blog_comments_blog_id_fk'],
+        ];
+
+        Schema::table('forum_posts', function ($table) {
+            $table->index(['forum_thread_id', 'created_at'], 'forum_posts_thread_and_time_index');
+            $table->unique(['forum_thread_id', 'created_at', 'id'], 'forum_posts_thread_time_unique_fk');
+            $table->unique(['id', 'user_id'], 'forum_posts_id_and_user_unique_fk');
+        });
+        Schema::table('blog_comments', fn ($table) => $table->index(['blog_id'], 'blog_comments_blog_id_fk'));
 
         try {
             $this->migration()->up();
 
             $this->assertNotContains('forum_posts_forum_thread_id_fk', $this->indexNames('forum_posts'), 'a column that already starts an index is not given a second');
+            $this->assertSame(['blog_comments_blog_id_fk'], $this->namesOfIndexesStarting('blog_comments', ['blog_id']), 'nor is one that has the name this migration would give');
+            $this->assertContains('forum_posts_user_id_fk', $this->indexNames('forum_posts'), 'a column nothing starts is given one, beside theirs');
 
             $this->migration()->down();
 
-            $this->assertContains('forum_posts_thread_and_time_index', $this->indexNames('forum_posts'), 'down() takes back only the indexes the migration made');
+            foreach ($theirs as $table => $names) {
+                foreach ($names as $name) {
+                    $this->assertContains($name, $this->indexNames($table), "down() took back {$table}.{$name}, which it did not make");
+                }
+            }
+
+            $this->assertNotContains('forum_posts_user_id_fk', $this->indexNames('forum_posts'), 'down() takes back what it made');
         } finally {
-            Schema::table('forum_posts', fn ($table) => $table->dropIndex('forum_posts_thread_and_time_index'));
+            foreach ($theirs as $table => $names) {
+                foreach ($names as $name) {
+                    if (in_array($name, $this->indexNames($table), true)) {
+                        // PostgreSQL keeps a unique key as a constraint, which is dropped as one.
+                        Schema::table($table, fn ($blueprint) => str_contains($name, '_unique_') ? $blueprint->dropUnique($name) : $blueprint->dropIndex($name));
+                    }
+                }
+            }
+
             $this->migration()->up();
         }
 
         $this->assertSame([], $this->foreignKeysWithoutAnIndex());
+    }
+
+    #[Test]
+    public function an_index_taken_away_by_hand_is_made_again_and_listed_once(): void
+    {
+        if ($this->indexesItself()) {
+            $this->markTestSkipped('InnoDB indexes a foreign key itself, so there is nothing for the migration to make.');
+        }
+
+        $made = $this->madeByIt();
+
+        Schema::table('forum_posts', fn ($table) => $table->dropIndex('forum_posts_forum_thread_id_fk'));
+
+        $this->assertFalse($this->startsAnIndex('forum_posts', ['forum_thread_id']));
+
+        $this->migration()->up();
+
+        $this->assertTrue($this->startsAnIndex('forum_posts', ['forum_thread_id']));
+        $this->assertSame($made, $this->madeByIt());
+    }
+
+    #[Test]
+    public function down_copes_with_a_table_that_is_gone(): void
+    {
+        if ($this->indexesItself()) {
+            $this->markTestSkipped('InnoDB indexes a foreign key itself, so there is nothing for the migration to make.');
+        }
+
+        Schema::create('fk_gone_parent', fn ($table) => $table->id());
+        Schema::create('fk_gone_child', function ($table) {
+            $table->id();
+            $table->foreignId('parent_id')->constrained('fk_gone_parent');
+        });
+
+        try {
+            $this->migration()->up();
+
+            $this->assertContains('fk_gone_child.fk_gone_child_parent_id_fk', $this->madeByIt());
+
+            Schema::drop('fk_gone_child');
+            Schema::drop('fk_gone_parent');
+
+            $this->migration()->down();
+
+            $this->assertFalse(Schema::hasTable($this->registry()));
+        } finally {
+            Schema::dropIfExists('fk_gone_child');
+            Schema::dropIfExists('fk_gone_parent');
+            $this->migration()->up();
+        }
+
+        $this->assertSame([], array_filter($this->madeByIt(), fn (string $made) => str_starts_with($made, 'fk_gone_')));
     }
 
     #[Test]
@@ -117,7 +230,9 @@ class ForeignKeyIndexTest extends TestCase
             $this->migration()->up();
 
             $this->assertSame(['fk_probe_child_parent_id_fk'], array_values(array_filter($this->indexNames('fk_probe_child'), fn (string $name) => str_ends_with($name, '_fk'))));
+            $this->assertSame(['fk_probe_child.fk_probe_child_parent_id_fk'], array_values(array_filter($this->madeByIt(), fn (string $made) => str_starts_with($made, 'fk_probe_child.'))));
         } finally {
+            DB::table($this->registry())->where('table_name', 'fk_probe_child')->delete();
             Schema::dropIfExists('fk_probe_child');
             Schema::dropIfExists('fk_probe_parent_b');
             Schema::dropIfExists('fk_probe_parent_a');
@@ -176,6 +291,9 @@ class ForeignKeyIndexTest extends TestCase
         $before = $this->allIndexNames();
 
         $this->migration()->up();
+
+        $this->assertFalse(Schema::hasTable($this->registry()), 'it keeps no list where it makes nothing');
+
         $this->migration()->down();
 
         $this->assertSame($before, $this->allIndexNames());
@@ -242,21 +360,56 @@ class ForeignKeyIndexTest extends TestCase
     }
 
     /**
+     * @param  list<string>  $columns
      * @return list<string>
      */
-    private function indexNamesNotMadeByIt(string $table): array
+    private function namesOfIndexesStarting(string $table, array $columns): array
     {
-        return array_values(array_filter($this->indexNames($table), fn (string $name) => ! str_ends_with($name, '_fk')));
+        $names = [];
+
+        foreach (Schema::getIndexes($table) as $index) {
+            if (array_slice($index['columns'], 0, count($columns)) === $columns) {
+                $names[] = $index['name'];
+            }
+        }
+
+        return $names;
+    }
+
+    private function registry(): string
+    {
+        return $this->migration()::REGISTRY;
     }
 
     /**
+     * What the migration says it made, as "table.index", the way allIndexNames() lists them.
+     *
+     * @return list<string>
+     */
+    private function madeByIt(): array
+    {
+        $made = DB::table($this->registry())->get()->map(fn (object $row) => $row->table_name.'.'.$row->index_name)->all();
+
+        sort($made);
+
+        return $made;
+    }
+
+    /**
+     * Every index in the schema as "table.index", without the migration's own list (which comes and goes with the migration).
+     *
      * @return list<string>
      */
     private function allIndexNames(): array
     {
         $names = [];
+        $registry = $this->registry();
 
         foreach (Schema::getTables() as $table) {
+            if ($table['name'] === $registry) {
+                continue;
+            }
+
             foreach ($this->indexNames($table['name']) as $name) {
                 $names[] = $table['name'].'.'.$name;
             }

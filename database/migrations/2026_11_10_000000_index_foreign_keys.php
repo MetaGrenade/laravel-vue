@@ -13,10 +13,15 @@ use Illuminate\Support\Facades\Schema;
  * every table that points at them with a scan. Nothing is done on MySQL or MariaDB, and elsewhere nothing for a column that already
  * starts an index, so it is safe to run again.
  *
- * The indexes made here end in `_fk`, so `down()` takes back only these and never an index a person made.
+ * Which indexes are this migration's is written down, in the `foreign_key_indexes` table, as each one is made, and `down()` takes
+ * back exactly those. It never goes by a name: an index somebody made before (a unique key included) can be called anything,
+ * `..._fk` and the very name this migration would give included, and it is theirs.
  */
 return new class extends Migration
 {
+    /** The indexes this migration made. */
+    public const REGISTRY = 'foreign_key_indexes';
+
     /** PostgreSQL cuts an identifier at 63 bytes (MySQL allows 64), and two cut names that start alike would collide. */
     private const LONGEST = 63;
 
@@ -26,6 +31,15 @@ return new class extends Migration
     {
         if ($this->indexesItself()) {
             return;
+        }
+
+        if (! Schema::hasTable(self::REGISTRY)) {
+            Schema::create(self::REGISTRY, function (Blueprint $table) {
+                $table->string('table_name');
+                $table->string('index_name');
+
+                $table->primary(['table_name', 'index_name']);
+            });
         }
 
         foreach (Schema::getTables() as $table) {
@@ -39,29 +53,32 @@ return new class extends Migration
                     continue;
                 }
 
-                Schema::table($table, fn (Blueprint $blueprint) => $blueprint->index($columns, $this->nameOf($table, $columns)));
+                $name = $this->nameOf($table, $columns);
+
+                Schema::table($table, fn (Blueprint $blueprint) => $blueprint->index($columns, $name));
+
+                DB::table(self::REGISTRY)->insertOrIgnore(['table_name' => $table, 'index_name' => $name]);
 
                 // Two foreign keys on the same columns would otherwise try to make the same index.
-                $indexes[] = ['name' => $this->nameOf($table, $columns), 'columns' => $columns];
+                $indexes[] = ['name' => $name, 'columns' => $columns];
             }
         }
     }
 
     public function down(): void
     {
-        if ($this->indexesItself()) {
+        if ($this->indexesItself() || ! Schema::hasTable(self::REGISTRY)) {
             return;
         }
 
-        foreach (Schema::getTables() as $table) {
-            $table = $table['name'];
-
-            foreach (Schema::getIndexes($table) as $index) {
-                if (str_ends_with($index['name'], self::SUFFIX)) {
-                    Schema::table($table, fn (Blueprint $blueprint) => $blueprint->dropIndex($index['name']));
-                }
+        foreach (DB::table(self::REGISTRY)->get() as $made) {
+            // Not there any more if the table was dropped (it has no indexes then) or somebody took the index away by hand.
+            if (in_array($made->index_name, array_column(Schema::getIndexes($made->table_name), 'name'), true)) {
+                Schema::table($made->table_name, fn (Blueprint $blueprint) => $blueprint->dropIndex($made->index_name));
             }
         }
+
+        Schema::drop(self::REGISTRY);
     }
 
     /**
@@ -90,7 +107,7 @@ return new class extends Migration
 
     /**
      * `forum_posts_forum_thread_id_fk`. A name too long for PostgreSQL keeps its start, a hash of the whole name and the suffix, so
-     * it stays the same each time it is made and `down()` still finds it.
+     * it is the same each time it is made. The suffix only tells a reader what the index is for; it is not how `down()` finds them.
      *
      * @param  list<string>  $columns
      */

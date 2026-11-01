@@ -39,7 +39,8 @@ Making the 125 indexes took 2 s on that database.
 `2026_11_10_000000_index_foreign_keys.php` looks at every foreign key in the database. For each one that no index starts with, it makes an index on the column (or columns). Where something already starts with the column, including the primary key, a unique key and an index a person made, it does nothing.
 
 - **On MySQL and MariaDB it does nothing at all**, because every foreign key is covered already. It is safe to run again anywhere.
-- The names end in `_fk` (`forum_posts_forum_thread_id_fk`), so `down()` takes back exactly these and never an index somebody made. A name that would be longer than PostgreSQL keeps (63 characters; MySQL allows 64) keeps its first 51 characters, then a short hash of the whole name, then `_fk`, and is the same each time it is made. None of today's names needs that: the longest, `support_ticket_message_attachments_support_ticket_message_id_fk`, is exactly 63.
+- **It writes down what it makes.** Each index it creates is recorded in a table, `foreign_key_indexes` (`table_name`, `index_name`), and `down()` drops exactly the indexes in that table and then the table. It never goes by a name or a suffix: an index somebody made before, a unique key included, is theirs even when it is called `something_fk` or has the very name this migration would have given (it is then left alone, and the column counts as covered). An index someone removed by hand, or a table that is gone, is skipped. On MySQL and MariaDB it makes no table either.
+- The names end in `_fk` (`forum_posts_forum_thread_id_fk`) so a reader can tell what an index is for; nothing relies on it. A name that would be longer than PostgreSQL keeps (63 characters; MySQL allows 64) keeps its first 51 characters, then a short hash of the whole name, then `_fk`, and is the same each time it is made. None of today's names needs that: the longest, `support_ticket_message_attachments_support_ticket_message_id_fk`, is exactly 63.
 - It is the migration that does this, and not an edit of the old ones, because a migration that has run never runs again. A database that already exists gets the indexes the next time it migrates.
 
 ## The rule for new tables
@@ -63,7 +64,7 @@ The second column of that unique key (`badge_id`) is not covered by it, and a pa
 
 `ForeignKeyIndexTest::every_foreign_key_starts_an_index` asks the schema for every foreign key and fails with the list of the ones nothing starts. It runs on whatever database the suite runs on, so a migration without the `index()` fails in the default SQLite run and not only in `ci-pgsql`. The message says what to write.
 
-The other tests in that file hold the migration to what it promises: it makes the index and `down()` takes back only that; it leaves a person's own index alone and does not double it; no index name is longer than 63 characters and a name that would be is cut the same way each time (tried on its own, since none needs it); on MySQL it makes nothing.
+The other tests in that file hold the migration to what it promises: it makes the index, writes it down, and `down()` takes back exactly what was written down and the list with it; a person's own indexes survive `down()` (a unique key ending in `_fk`, an index with the exact name the migration would give, a composite that covers the column) and are not doubled; an index taken away by hand is made again and listed once, and `down()` copes with one that is gone or whose table is; two foreign keys on one column get one index; no index name is longer than 63 characters and a name that would be is cut the same way each time (tried on its own, since none needs it); on MySQL it makes nothing, not even the list.
 
 ## Dropping a column on SQLite
 
@@ -77,7 +78,7 @@ SQLite refuses to drop a column that an index uses (`error in index ... after dr
 CREATE INDEX CONCURRENTLY forum_posts_forum_thread_id_fk ON forum_posts (forum_thread_id);
 ```
 
-The migration skips a column that something already starts, so it does not repeat those. Use the name the migration would, so a later `down()` takes it back.
+The migration skips a column that something already starts, so it does not repeat those. It did not make them, so `down()` leaves them where they are, whatever they are called.
 
 ## What is not covered
 
