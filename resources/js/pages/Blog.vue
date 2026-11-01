@@ -280,7 +280,7 @@ const {
             <section class="space-y-4 rounded-xl border bg-card p-4 shadow-xs sm:p-5">
                 <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                     <div>
-                        <h1 class="text-lg font-semibold tracking-tight">Blog</h1>
+                        <h1 class="text-2xl font-semibold tracking-tight">Blog</h1>
                         <p class="text-sm text-muted-foreground">Guides, announcements and release notes. Filter by category or tag.</p>
                     </div>
                     <div class="flex items-center gap-3">

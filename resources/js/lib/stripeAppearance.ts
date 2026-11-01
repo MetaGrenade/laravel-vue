@@ -13,19 +13,19 @@ export function stripeAppearance() {
     const token = (name: string, fallback: string) => {
         const value = styles?.getPropertyValue(name).trim();
 
-        // Tokens are raw HSL channels ("243 75% 59%"); Stripe wants a full colour.
+        // Tokens are raw HSL channels ("245 78% 59%"); Stripe wants a full colour.
         return value ? `hsl(${value.split(/\s+/).join(', ')})` : fallback;
     };
 
     return {
         theme: isDark ? 'night' : 'stripe',
         variables: {
-            colorPrimary: token('--primary', isDark ? '#818cf8' : '#4f46e5'),
-            colorBackground: token('--card', isDark ? '#131316' : '#ffffff'),
-            colorText: token('--foreground', isDark ? '#f5f5f5' : '#09090b'),
+            colorPrimary: token('--primary', '#5346e8'),
+            colorBackground: token('--card', isDark ? '#141b2e' : '#ffffff'),
+            colorText: token('--foreground', isDark ? '#f4f6fb' : '#141824'),
             colorDanger: token('--destructive', '#dc2626'),
-            fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-            borderRadius: '8px',
+            fontFamily: '"Source Sans 3", ui-sans-serif, system-ui, sans-serif',
+            borderRadius: '12px',
         },
     } as const;
 }

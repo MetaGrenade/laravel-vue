@@ -54,8 +54,9 @@ const columns = computed<{ title: string; links: FooterLink[] }[]>(() => [
                 <Link :href="route('home')" class="inline-flex rounded-md">
                     <AppLogo />
                 </Link>
-                <p class="max-w-xs text-sm text-muted-foreground">
-                    {{ t('ui.footer.tagline') }}
+                <p class="flex max-w-xs items-start gap-3 text-sm text-muted-foreground">
+                    <span class="mt-0.5 h-8 w-0.5 shrink-0 rounded-full bg-highlight" aria-hidden="true" />
+                    <span>{{ t('ui.footer.tagline') }}</span>
                 </p>
             </div>
             <nav v-for="column in columns.filter((c) => c.links.length)" :key="column.title" :aria-label="column.title">

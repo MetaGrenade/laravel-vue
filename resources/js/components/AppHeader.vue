@@ -98,6 +98,7 @@ const isActive = (href: string) => {
 const canRegister = computed(() => route().has('register'));
 
 const isCommandPaletteOpen = ref(false);
+const shortcutLabel = ref('Ctrl K');
 
 const openCommandPalette = () => {
     isCommandPaletteOpen.value = true;
@@ -214,6 +215,7 @@ watch(
 );
 
 onMounted(() => {
+    shortcutLabel.value = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K';
     window.addEventListener('keydown', handleSearchShortcut);
     void subscribeToNotificationChannel();
 });
@@ -411,7 +413,7 @@ const viewNotification = (notification: NotificationItem) => {
 <template>
     <CommandPalette v-model:open="isCommandPaletteOpen" />
 
-    <header class="sticky top-0 z-40 w-full border-b bg-background">
+    <header class="sticky top-0 z-40 w-full border-b border-border/70 bg-background/80 backdrop-blur-xl">
         <div class="container-app flex h-16 items-center gap-2">
             <!-- Mobile menu -->
             <Sheet>
@@ -432,8 +434,8 @@ const viewNotification = (notification: NotificationItem) => {
                             :href="item.href"
                             :class="
                                 cn(
-                                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
-                                    isActive(item.href) && 'bg-accent text-foreground',
+                                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                    isActive(item.href) && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
                                 )
                             "
                         >
@@ -479,7 +481,11 @@ const viewNotification = (notification: NotificationItem) => {
             </Sheet>
 
             <!-- Logo -->
-            <Link :href="route('home')" class="mr-4 flex shrink-0 items-center rounded-md" :aria-label="t('ui.nav.home')">
+            <Link
+                :href="route('home')"
+                class="mr-4 flex shrink-0 items-center rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                :aria-label="t('ui.nav.home')"
+            >
                 <AppLogo />
             </Link>
 
@@ -492,9 +498,8 @@ const viewNotification = (notification: NotificationItem) => {
                     :aria-current="isActive(item.href) ? 'page' : undefined"
                     :class="
                         cn(
-                            'relative rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
-                            isActive(item.href) &&
-                                'bg-accent text-foreground after:absolute after:inset-x-3 after:-bottom-4 after:h-0.5 after:rounded-full after:bg-highlight',
+                            'rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                            isActive(item.href) && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
                         )
                     "
                 >
@@ -506,12 +511,12 @@ const viewNotification = (notification: NotificationItem) => {
             <div class="ml-auto flex items-center gap-1">
                 <button
                     type="button"
-                    class="hidden h-9 w-56 items-center gap-2 rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:flex xl:w-64"
+                    class="hidden h-9 w-56 items-center gap-2 rounded-full border bg-card/80 px-3.5 text-sm text-muted-foreground shadow-xs transition-colors hover:bg-card hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:flex xl:w-64"
                     @click="openCommandPalette"
                 >
                     <Search class="size-4" />
                     <span>{{ t('ui.actions.search_placeholder') }}</span>
-                    <kbd class="ml-auto rounded border bg-background px-1.5 font-mono text-[0.7rem] font-medium">Ctrl K</kbd>
+                    <kbd class="ml-auto rounded-md border bg-background px-1.5 font-mono text-[0.7rem] font-medium">{{ shortcutLabel }}</kbd>
                 </button>
                 <Button
                     variant="ghost"
@@ -701,13 +706,14 @@ const viewNotification = (notification: NotificationItem) => {
 
                 <DropdownMenu v-if="user">
                     <DropdownMenuTrigger as-child>
-                        <Button variant="ghost" size="icon" class="ml-1 rounded-full" aria-label="Account menu">
-                            <Avatar class="size-8">
+                        <Button variant="ghost" class="ml-1 h-9 gap-2 rounded-full px-1.5 sm:pr-2.5" aria-label="Account menu">
+                            <Avatar class="size-7">
                                 <AvatarImage v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.nickname ?? ''" />
-                                <AvatarFallback class="bg-primary/10 text-xs font-semibold text-primary">
+                                <AvatarFallback class="bg-primary text-[0.65rem] font-semibold text-primary-foreground">
                                     {{ getInitials(user?.nickname ?? '') }}
                                 </AvatarFallback>
                             </Avatar>
+                            <span class="hidden max-w-32 truncate text-sm font-medium text-foreground lg:inline">{{ user?.nickname }}</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" class="w-60">
@@ -727,7 +733,7 @@ const viewNotification = (notification: NotificationItem) => {
         </div>
     </header>
 
-    <div v-if="props.breadcrumbs.length > 1" class="border-b bg-background">
+    <div v-if="props.breadcrumbs.length > 1" class="border-b border-border/70 bg-background/70">
         <div class="container-app flex h-11 items-center">
             <Breadcrumbs :breadcrumbs="breadcrumbs" />
         </div>

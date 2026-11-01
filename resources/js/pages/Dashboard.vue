@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart } from '@/components/ui/chart-line';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type SharedData } from '@/types';
 import type { DashboardAccount, DashboardOnboarding, DashboardPlan, DashboardShop } from '@/types/dashboard';
 import { Head, usePage } from '@inertiajs/vue3';
 import { Activity, CheckCircle2, FileText, KeyRound, LifeBuoy, MessageSquare, ShoppingBag } from '@lucide/vue';
@@ -100,7 +100,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 // Areas the site owner has switched off are left off the dashboard too.
-const page = usePage();
+const page = usePage<SharedData>();
+const displayName = computed(() => page.props.auth.user?.nickname.split(' ')[0] || 'there');
 const sections = computed(() => page.props.settings?.website_sections ?? { blog: true, forum: true, support: true, commerce: true });
 
 const numberFormatter = new Intl.NumberFormat();
@@ -242,7 +243,12 @@ const alertState = computed(() => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Dashboard" />
 
-        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+        <div class="flex h-full flex-1 flex-col gap-4 p-4">
+            <header class="flex flex-col gap-1">
+                <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">Welcome back, {{ displayName }}</h1>
+                <p class="text-sm text-muted-foreground">Here's what's happening with your account today.</p>
+            </header>
+
             <OnboardingCard v-if="onboarding" :onboarding="onboarding" />
 
             <Alert :variant="alertState.variant">
@@ -256,14 +262,16 @@ const alertState = computed(() => {
                 class="grid grid-cols-1 gap-4 md:grid-cols-2"
                 :class="statCards.length === 4 ? 'xl:grid-cols-4' : 'xl:grid-cols-3'"
             >
-                <Card v-for="(stat, index) in statCards" :key="index" class="overflow-hidden">
-                    <CardHeader class="flex flex-row items-start justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">{{ stat.title }}</CardTitle>
-                        <component :is="stat.icon" class="h-5 w-5 text-muted-foreground" />
+                <Card v-for="(stat, index) in statCards" :key="index" class="gap-3 overflow-hidden py-5">
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 px-5">
+                        <CardTitle class="text-sm font-medium text-muted-foreground">{{ stat.title }}</CardTitle>
+                        <span class="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <component :is="stat.icon" class="size-4" />
+                        </span>
                     </CardHeader>
-                    <CardContent>
-                        <div class="text-2xl font-semibold">{{ formatNumber(stat.value) }}</div>
-                        <p class="text-xs text-muted-foreground">{{ stat.helper }}</p>
+                    <CardContent class="px-5">
+                        <div class="text-2xl font-semibold tracking-tight tabular-nums">{{ formatNumber(stat.value) }}</div>
+                        <p class="mt-1 text-xs text-muted-foreground">{{ stat.helper }}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -307,22 +315,17 @@ const alertState = computed(() => {
                         <CardDescription>The latest updates from your tickets and forum participation.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ul v-if="recentActivity.length" class="space-y-3">
-                            <li
-                                v-for="item in recentActivity"
-                                :key="item.id"
-                                class="rounded-lg border border-sidebar-border/60 p-3 text-sm dark:border-sidebar-border"
-                            >
-                                <div class="flex items-start justify-between gap-4">
-                                    <div>
-                                        <p class="font-medium">{{ item.summary }}</p>
-                                        <p class="text-xs text-muted-foreground">{{ item.context }}</p>
-                                    </div>
-                                    <span class="shrink-0 text-xs text-muted-foreground">{{ item.time ?? '—' }}</span>
+                        <ul v-if="recentActivity.length" class="divide-y">
+                            <li v-for="item in recentActivity" :key="item.id" class="flex items-start gap-3 py-3 text-sm">
+                                <span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                                <div class="min-w-0 flex-1">
+                                    <p class="font-medium">{{ item.summary }}</p>
+                                    <p class="text-xs text-muted-foreground">{{ item.context }}</p>
+                                    <a v-if="item.url" :href="item.url" class="mt-1 inline-block text-xs font-medium text-primary hover:underline"
+                                        >View</a
+                                    >
                                 </div>
-                                <div v-if="item.url" class="mt-2">
-                                    <a :href="item.url" class="text-xs font-medium text-primary hover:underline">View</a>
-                                </div>
+                                <span class="shrink-0 text-xs text-muted-foreground">{{ item.time ?? '—' }}</span>
                             </li>
                         </ul>
                         <p v-else class="text-sm text-muted-foreground">We will list your recent interactions here once you start engaging.</p>

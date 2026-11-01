@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Users, UserPlus, BookOpen, LifeBuoy } from '@lucide/vue';
 import { LineChart } from '@/components/ui/chart-line';
 
@@ -260,20 +259,19 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                     <div
                         v-for="(stat, index) in statCards"
                         :key="index"
-                        class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+                        class="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none"
                     >
-                        <div class="mr-4">
-                            <component :is="stat.icon" class="h-8 w-8 text-muted-foreground" />
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <component :is="stat.icon" class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">{{ stat.title }}</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ formatNumber(stat.value) }}</div>
                         </div>
-                        <div>
-                            <div class="text-sm text-muted-foreground">{{ stat.title }}</div>
-                            <div class="text-xl font-bold">{{ formatNumber(stat.value) }}</div>
-                        </div>
-                        <PlaceholderPattern />
                     </div>
                 </div>
 
-                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                <div class="rounded-xl border bg-card p-5 shadow-sm dark:shadow-none">
                     <h2 class="mb-2 text-lg font-semibold">User Signups &amp; Support Tickets</h2>
                     <LineChart
                         v-if="hasChartData"
@@ -286,7 +284,7 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="rounded-xl border bg-card p-5 shadow-sm dark:shadow-none">
                         <h2 class="mb-3 text-lg font-semibold">SLA Snapshot</h2>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                             <div v-for="card in slaSummaryCards" :key="card.title" class="rounded-lg border border-border/60 p-3">
@@ -303,7 +301,7 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                         </div>
                     </div>
 
-                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="rounded-xl border bg-card p-5 shadow-sm dark:shadow-none">
                         <h2 class="mb-3 text-lg font-semibold">Queue Aging</h2>
                         <template v-if="hasQueueAgingData">
                             <ul class="space-y-3">
@@ -321,7 +319,7 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                         <p v-else class="text-sm text-muted-foreground">No tickets are currently awaiting action.</p>
                     </div>
 
-                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="rounded-xl border bg-card p-5 shadow-sm dark:shadow-none">
                         <h2 class="mb-3 text-lg font-semibold">Pending by Priority</h2>
                         <template v-if="pendingPriorityRows.some((row) => row.count > 0)">
                             <ul class="space-y-2">
@@ -336,7 +334,7 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="rounded-xl border bg-card p-5 shadow-sm dark:shadow-none">
                         <h2 class="mb-2 text-lg font-semibold">Pending Volume (Last 7 Days)</h2>
                         <LineChart
                             v-if="hasPendingVolumeData"
@@ -348,7 +346,7 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                         <p v-else class="text-sm text-muted-foreground">Not enough data to show trends yet.</p>
                     </div>
 
-                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="rounded-xl border bg-card p-5 shadow-sm dark:shadow-none">
                         <h2 class="mb-2 text-lg font-semibold">Response Time Trend (Weekly)</h2>
                         <LineChart
                             v-if="hasResponseTimeData"
@@ -361,7 +359,7 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                     </div>
                 </div>
 
-                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                <div class="rounded-xl border bg-card p-5 shadow-sm dark:shadow-none">
                     <div class="mb-3 flex items-center justify-between">
                         <h2 class="text-lg font-semibold">Search Insights</h2>
                         <span v-if="lastAggregatedAt" class="text-xs text-muted-foreground">Refreshed {{ lastAggregatedAt }}</span>
@@ -406,7 +404,7 @@ const lastAggregatedAt = computed(() => formatDateTime(searchInsights.value.last
                     <p v-else class="text-sm text-muted-foreground">Search data will appear after visitors use the global search.</p>
                 </div>
 
-                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                <div class="rounded-xl border bg-card p-5 shadow-sm dark:shadow-none">
                     <h2 class="mb-2 text-lg font-semibold">Recent Activity</h2>
                     <ul v-if="recentActivities.length">
                         <li v-for="activity in recentActivities" :key="activity.id" class="border-b border-border py-2 last:border-b-0">

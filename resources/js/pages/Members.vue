@@ -70,7 +70,7 @@ const sortHref = (value: string) => route('members.index', { sort: value, ...(pr
         <div class="space-y-6 p-4">
             <header class="flex flex-col justify-between gap-4 rounded-xl border bg-card p-5 shadow-xs md:flex-row md:items-center">
                 <div class="flex items-center gap-4">
-                    <span class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                         <Users class="size-5" />
                     </span>
                     <div>
@@ -100,10 +100,10 @@ const sortHref = (value: string) => route('members.index', { sort: value, ...(pr
                     v-for="item in sorts"
                     :key="item.value"
                     :href="sortHref(item.value)"
-                    class="rounded-md px-3 py-1.5 text-sm"
+                    class="rounded-full px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     :class="
                         sort === item.value
-                            ? 'bg-primary/10 font-medium text-foreground'
+                            ? 'bg-primary font-medium text-primary-foreground'
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     "
                     :aria-current="sort === item.value ? 'true' : undefined"

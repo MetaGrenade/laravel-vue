@@ -173,16 +173,16 @@ const activeHref = computed(() => {
 
 const linkClass = (href: string) =>
     cn(
-        'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
-        activeHref.value === href && 'bg-accent font-medium text-foreground',
+        'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+        activeHref.value === href && 'bg-primary font-medium text-primary-foreground shadow-sm hover:bg-primary hover:text-primary-foreground',
     );
 </script>
 
 <template>
     <div class="px-4 py-6">
         <div class="mb-6 flex items-center gap-3">
-            <span class="flex size-10 items-center justify-center rounded-lg border bg-card shadow-xs">
-                <Shield class="size-5 text-primary" />
+            <span class="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                <Shield class="size-5" />
             </span>
             <div>
                 <h1 class="text-xl font-semibold tracking-tight">Admin control panel</h1>
@@ -212,11 +212,13 @@ const linkClass = (href: string) =>
             <aside class="hidden lg:block">
                 <nav class="sticky top-20 max-h-[calc(100svh-6rem)] scrollbar-thin space-y-5 overflow-y-auto pr-1 pb-4" aria-label="Admin sections">
                     <div v-for="group in navGroups" :key="group.title">
-                        <p class="mb-1.5 px-2.5 text-xs font-medium text-muted-foreground/80">{{ group.title }}</p>
+                        <p class="mb-1.5 px-2.5 text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground/80 uppercase">
+                            {{ group.title }}
+                        </p>
                         <ul class="space-y-0.5">
                             <li v-for="item in group.items" :key="item.href">
                                 <Link :href="item.href" :class="linkClass(item.href)" :aria-current="activeHref === item.href ? 'page' : undefined">
-                                    <component :is="item.icon" :class="cn('size-4', activeHref === item.href && 'text-primary')" />
+                                    <component :is="item.icon" class="size-4" />
                                     {{ item.title }}
                                 </Link>
                             </li>

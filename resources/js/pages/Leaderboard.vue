@@ -55,7 +55,7 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 
         <div class="space-y-6 p-4">
             <header class="flex items-center gap-4 rounded-xl border bg-card p-5 shadow-xs">
-                <span class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Trophy class="size-5" />
                 </span>
                 <div>
