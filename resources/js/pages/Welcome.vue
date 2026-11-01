@@ -3,6 +3,7 @@ import AppLogo from '@/components/AppLogo.vue';
 import ForgeHorizon from '@/components/ForgeHorizon.vue';
 import ProductPreview from '@/components/marketing/ProductPreview.vue';
 import { Button } from '@/components/ui/button';
+import { useAppearance } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
@@ -10,9 +11,9 @@ import {
     ArrowRight,
     ArrowUpRight,
     Braces,
-    Check,
     ChevronDown,
     CreditCard,
+    FolderGit2,
     KeyRound,
     LayoutDashboard,
     LifeBuoy,
@@ -23,10 +24,16 @@ import {
     Search,
     ShieldCheck,
     ShoppingBag,
+    Sun,
 } from '@lucide/vue';
 import { computed, type Component } from 'vue';
 
 const page = usePage<SharedData>();
+const { updateAppearance } = useAppearance();
+
+const toggleAppearance = () => {
+    updateAppearance(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+};
 
 const websiteSections = computed(() => {
     const settings = page.props.settings?.website_sections;
@@ -99,59 +106,75 @@ const stackPills = computed(() => {
         pills.push({ label: 'Shop', href: route('shop.index'), tone: 'border bg-card text-foreground' });
     }
 
-    pills.push({ label: 'Dark mode', tone: 'border bg-card text-foreground', icon: Moon });
-
     return pills;
 });
 
-const features: { title: string; description: string; icon: Component }[] = [
+const features: { title: string; description: string; icon: Component; tone: string; wash: string }[] = [
     {
         title: 'Shop and checkout',
         description:
             'Catalogue, variants, stock, shipping and tax, Stripe Checkout, guest orders and Tebex packages or the experimental Checkout API.',
         icon: ShoppingBag,
+        tone: 'bg-[hsl(346_72%_46%/0.14)] text-[hsl(346_72%_32%)] dark:text-[hsl(346_85%_76%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(346_72%_46%/0.2),transparent_68%)]',
     },
     {
         title: 'Subscriptions and entitlements',
         description: 'Cashier plans with trials and dunning, plus feature and limit entitlements from plans and Tebex packages.',
         icon: CreditCard,
+        tone: 'bg-highlight/25 text-[hsl(36_80%_28%)] dark:bg-highlight/15 dark:text-[hsl(40_92%_72%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(var(--highlight)/0.28),transparent_68%)]',
     },
     {
         title: 'Community and moderation',
         description: 'Forums with prefixes, solutions, attachments and ignores, member follows and DMs, automod, bans and one-click content cleanup.',
         icon: MessagesSquare,
+        tone: 'bg-primary/10 text-primary',
+        wash: '[background-image:linear-gradient(165deg,hsl(var(--primary)/0.16),transparent_68%)]',
     },
     {
         title: 'Authentication and keys',
         description: 'Email verification, TOTP two-factor auth, recovery codes, OAuth linking and scoped Sanctum API keys with rotation.',
         icon: KeyRound,
+        tone: 'bg-[hsl(221_75%_48%/0.14)] text-[hsl(221_70%_32%)] dark:text-[hsl(221_90%_78%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(221_75%_48%/0.18),transparent_68%)]',
     },
     {
         title: 'Security by default',
         description:
             'Nonce CSP and security headers checked in CI, private disks for member uploads, webhook replay protection and a published security contact.',
         icon: ShieldCheck,
+        tone: 'bg-success/15 text-[hsl(152_64%_24%)] dark:text-success',
+        wash: '[background-image:linear-gradient(165deg,hsl(var(--success)/0.18),transparent_68%)]',
     },
     {
         title: 'Admin control panel',
         description: 'Named permissions for users, blogs, support, commerce and billing, plus audit log and read-only impersonation.',
         icon: LayoutDashboard,
+        tone: 'bg-[hsl(270_55%_52%/0.14)] text-[hsl(270_45%_36%)] dark:text-[hsl(270_85%_80%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(270_55%_52%/0.18),transparent_68%)]',
     },
     {
         title: 'Publishing and support',
         description: 'Blog with WebP covers, scheduling and RSS; tickets with SLAs, private attachments and a help centre FAQ.',
         icon: Newspaper,
+        tone: 'bg-[hsl(18_80%_48%/0.14)] text-[hsl(18_75%_32%)] dark:text-[hsl(18_90%_74%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(18_80%_48%/0.18),transparent_68%)]',
     },
     {
         title: 'Search and SEO',
         description:
             'Site-wide search, SSR, structured data and sitemaps. Meilisearch index rules, settings sync and reindex are ready for the engine path.',
         icon: Search,
+        tone: 'bg-[hsl(187_65%_36%/0.14)] text-[hsl(187_70%_24%)] dark:text-[hsl(187_65%_68%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(187_65%_36%/0.2),transparent_68%)]',
     },
     {
         title: 'API and delivery',
         description: 'Versioned REST with scoped tokens, OpenAPI docs, queues, CI on MySQL and PostgreSQL, and accessibility checks on main flows.',
         icon: Braces,
+        tone: 'bg-[hsl(322_60%_48%/0.14)] text-[hsl(322_55%_32%)] dark:text-[hsl(322_80%_78%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(322_60%_48%/0.18),transparent_68%)]',
     },
 ];
 
@@ -255,7 +278,7 @@ const faqs = [
                 class="pointer-events-none absolute inset-0 bg-dots [mask-image:radial-gradient(ellipse_at_80%_0%,black,transparent_70%)] opacity-70"
             />
             <div class="pointer-events-none absolute inset-0 bg-hero-wash" aria-hidden="true" />
-            <ForgeHorizon class="absolute inset-x-0 bottom-0 h-40 sm:h-52" />
+            <ForgeHorizon motion class="absolute inset-x-0 bottom-0 h-40 sm:h-52" />
 
             <div class="relative container-app grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[0.92fr_1.08fr] lg:py-24">
                 <div>
@@ -280,10 +303,13 @@ const faqs = [
                                 <ArrowRight />
                             </Link>
                         </Button>
-                        <Button v-if="websiteSections.commerce" size="lg" variant="outline" class="bg-card" as-child>
-                            <Link :href="route('shop.index')">Browse the shop</Link>
+                        <Button size="lg" variant="outline" class="bg-card" as-child>
+                            <a href="https://github.com/MetaGrenade/laravel-vue" target="_blank" rel="noopener noreferrer">
+                                <FolderGit2 />
+                                Repository
+                            </a>
                         </Button>
-                        <Button v-else size="lg" variant="outline" class="bg-card" as-child>
+                        <Button v-if="!websiteSections.commerce" size="lg" variant="outline" class="bg-card" as-child>
                             <Link :href="route('pricing')">View pricing</Link>
                         </Button>
                     </div>
@@ -302,6 +328,18 @@ const faqs = [
                                 <component :is="pill.icon" v-if="pill.icon" class="size-3.5" />
                                 {{ pill.label }}
                             </span>
+                        </li>
+                        <li>
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                @click="toggleAppearance"
+                            >
+                                <Moon class="size-3.5 dark:hidden" />
+                                <Sun class="hidden size-3.5 dark:block" />
+                                <span class="dark:hidden">Dark mode</span>
+                                <span class="hidden dark:inline">Light mode</span>
+                            </button>
                         </li>
                     </ul>
 
@@ -357,36 +395,38 @@ const faqs = [
 
                 <div class="reveal mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div
-                        v-for="(feature, index) in features"
+                        v-for="feature in features"
                         :key="feature.title"
-                        class="group rounded-xl border bg-card p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/30"
+                        class="rounded-xl border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-foreground/15"
+                        :class="feature.wash"
                     >
-                        <span
-                            class="flex size-9 items-center justify-center rounded-lg transition-transform group-hover:-translate-y-0.5"
-                            :class="index % 3 === 1 ? 'bg-highlight/25 text-foreground' : 'bg-primary/10 text-primary'"
-                        >
-                            <component :is="feature.icon" class="size-[1.1rem]" />
-                        </span>
-                        <h3 class="mt-4 font-semibold">{{ feature.title }}</h3>
-                        <p class="mt-1.5 text-sm text-muted-foreground">{{ feature.description }}</p>
+                        <div class="flex items-center gap-3">
+                            <span class="flex size-10 shrink-0 items-center justify-center rounded-lg" :class="feature.tone">
+                                <component :is="feature.icon" class="size-5" />
+                            </span>
+                            <h3 class="font-semibold">{{ feature.title }}</h3>
+                        </div>
+                        <p class="mt-2.5 text-sm text-muted-foreground">{{ feature.description }}</p>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Live modules -->
-        <section
-            v-if="modules.length"
-            class="relative overflow-hidden border-y bg-surface bg-wash-highlight cv-auto"
-            aria-labelledby="modules-heading"
-        >
+        <section v-if="modules.length" class="relative overflow-hidden border-y bg-surface bg-wash-success cv-auto" aria-labelledby="modules-heading">
+            <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-success/80 to-transparent" />
             <div class="pointer-events-none absolute inset-0 bg-grid [mask-image:linear-gradient(to_bottom,transparent,black_40%,transparent)]" />
             <div class="relative container-app py-20 lg:py-24">
                 <div class="reveal flex flex-col justify-between gap-4 md:flex-row md:items-end">
                     <div class="max-w-2xl">
-                        <p class="eyebrow">Live demo</p>
+                        <p class="inline-flex items-center gap-2 eyebrow text-[hsl(152_64%_24%)] dark:text-success">
+                            <span class="size-1.5 rounded-full bg-success" aria-hidden="true" />
+                            Live demo
+                        </p>
                         <h2 id="modules-heading" class="mt-3 text-3xl font-semibold tracking-tight">See every module in action</h2>
-                        <p class="mt-4 text-muted-foreground">These are the real pages your users get, not mock-ups. Click through and try them.</p>
+                        <p class="mt-4 max-w-xl text-muted-foreground">
+                            These are the real pages your users get, not mock-ups. Click through and try them.
+                        </p>
                     </div>
                     <Button variant="outline" class="bg-card" as-child>
                         <Link :href="route('dashboard')">
@@ -401,13 +441,18 @@ const faqs = [
                         v-for="module in modules"
                         :key="module.key"
                         :href="module.href"
-                        class="group flex flex-col rounded-xl border bg-card p-6 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                        class="group relative flex flex-col overflow-hidden rounded-xl border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-success/40 hover:shadow-md dark:shadow-none"
                     >
-                        <span class="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                            <component :is="module.icon" class="size-5" />
-                        </span>
-                        <h3 class="mt-4 font-semibold">{{ module.title }}</h3>
-                        <p class="mt-1.5 flex-1 text-sm text-muted-foreground">{{ module.description }}</p>
+                        <span class="absolute inset-x-0 top-0 h-0.5 bg-success/75" aria-hidden="true" />
+                        <div class="flex items-center gap-3">
+                            <span
+                                class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-success/15 text-[hsl(152_64%_24%)] dark:text-success"
+                            >
+                                <component :is="module.icon" class="size-5" />
+                            </span>
+                            <h3 class="font-semibold">{{ module.title }}</h3>
+                        </div>
+                        <p class="mt-2.5 flex-1 text-sm text-muted-foreground">{{ module.description }}</p>
                         <span class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary">
                             {{ module.cta }}
                             <ArrowRight class="size-4 transition-transform group-hover:translate-x-0.5" />
@@ -426,24 +471,29 @@ const faqs = [
                 </div>
                 <ol class="reveal mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     <li v-for="(step, index) in steps" :key="step.title" class="relative rounded-xl border bg-card p-5 shadow-xs">
-                        <span
-                            class="flex size-7 items-center justify-center rounded-full bg-highlight text-sm font-semibold text-highlight-foreground tabular-nums"
-                        >
-                            {{ index + 1 }}
-                        </span>
-                        <h3 class="mt-4 font-semibold">{{ step.title }}</h3>
-                        <p class="mt-1.5 text-sm text-muted-foreground">{{ step.description }}</p>
+                        <div class="flex items-center gap-3">
+                            <span
+                                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight text-base font-semibold text-highlight-foreground tabular-nums"
+                            >
+                                {{ index + 1 }}
+                            </span>
+                            <h3 class="font-semibold">{{ step.title }}</h3>
+                        </div>
+                        <p class="mt-2.5 text-sm text-muted-foreground">{{ step.description }}</p>
                     </li>
                 </ol>
             </div>
         </section>
 
         <!-- Stack details -->
-        <section class="relative overflow-hidden border-y bg-surface cv-auto" aria-labelledby="tech-heading">
+        <section class="relative overflow-hidden border-y bg-surface bg-wash-destructive cv-auto" aria-labelledby="tech-heading">
             <div class="pointer-events-none absolute inset-0 bg-stripes [mask-image:linear-gradient(to_bottom_right,black,transparent_60%)]" />
             <div class="relative container-app grid gap-12 py-20 lg:grid-cols-[1fr_2fr] lg:py-24">
                 <div class="reveal">
-                    <p class="eyebrow">Tech stack</p>
+                    <p class="inline-flex items-center gap-2 eyebrow text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">
+                        <span class="size-1.5 rotate-45 bg-destructive" aria-hidden="true" />
+                        Tech stack
+                    </p>
                     <h2 id="tech-heading" class="mt-3 text-3xl font-semibold tracking-tight">Modern tooling, no surprises</h2>
                     <p class="mt-4 text-muted-foreground">
                         Current releases across the stack, with Pint, ESLint, Prettier, type checking and PHPUnit running in CI on every pull request.
@@ -454,7 +504,7 @@ const faqs = [
                                 :href="resource.href"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                                class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-[hsl(0_70%_32%)] dark:hover:text-[hsl(0_80%_74%)]"
                             >
                                 {{ resource.title }}
                                 <ArrowUpRight class="size-3.5" />
@@ -463,11 +513,15 @@ const faqs = [
                     </ul>
                 </div>
                 <div class="reveal grid gap-4 sm:grid-cols-3">
-                    <div v-for="group in stack" :key="group.title" class="rounded-xl border bg-card p-6 shadow-xs">
-                        <h3 class="font-semibold">{{ group.title }}</h3>
+                    <div
+                        v-for="group in stack"
+                        :key="group.title"
+                        class="rounded-xl border border-destructive/20 bg-card [background-image:linear-gradient(165deg,hsl(var(--destructive)/0.16),transparent_72%)] p-5 shadow-sm dark:shadow-none"
+                    >
+                        <h3 class="font-semibold text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">{{ group.title }}</h3>
                         <ul class="mt-4 space-y-2.5">
-                            <li v-for="item in group.items" :key="item" class="flex gap-2 text-sm text-muted-foreground">
-                                <Check class="mt-0.5 size-4 shrink-0 text-primary" />
+                            <li v-for="item in group.items" :key="item" class="flex gap-2.5 text-sm text-muted-foreground">
+                                <span class="mt-1.5 size-1.5 shrink-0 rotate-45 bg-destructive/80" aria-hidden="true" />
                                 {{ item }}
                             </li>
                         </ul>

@@ -411,6 +411,20 @@
     background-image: linear-gradient(180deg, hsl(var(--highlight) / 0.09), transparent 70%);
 }
 
+/* Cool green mist. Gold on navy turns olive; success stays green in both modes. */
+@utility bg-wash-success {
+    background-image:
+        radial-gradient(46rem 18rem at 0% 0%, hsl(var(--success) / 0.18), transparent 68%),
+        linear-gradient(180deg, hsl(var(--success) / 0.07), transparent 64%);
+}
+
+/* Crimson pooled at the lower right, behind the stack columns rather than across the top. */
+@utility bg-wash-destructive {
+    background-image:
+        radial-gradient(38rem 22rem at 100% 110%, hsl(var(--destructive) / 0.16), transparent 70%),
+        linear-gradient(200deg, transparent 30%, hsl(var(--destructive) / 0.06) 100%);
+}
+
 /* Gradient text for a single hero word. */
 @utility text-gradient-brand {
     background-image: linear-gradient(90deg, hsl(var(--primary)), hsl(264 80% 62%));
@@ -553,6 +567,88 @@
 .forge-horizon[data-tone='dark'] .horizon-stroke-gold-soft {
     stroke: hsl(var(--highlight) / 0.22);
     stroke-width: 8;
+}
+
+/*
+ * Home hero: the light-mode hills stay filled, and the dark-mode crest lines
+ * sit on top of them. Each ridge is two periods wide and slides one period.
+ */
+.forge-horizon[data-motion] .horizon-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 200%;
+    will-change: transform;
+}
+
+.forge-horizon[data-motion] .horizon-layer-violet {
+    animation: horizon-drift 32s linear infinite;
+}
+
+.forge-horizon[data-motion] .horizon-layer-gold {
+    animation: horizon-drift 22s linear infinite;
+}
+
+.forge-horizon[data-motion].is-quiet .horizon-layer {
+    animation-play-state: paused;
+}
+
+.forge-horizon[data-motion] .horizon-stroke {
+    stroke: hsl(245 62% 42%);
+    stroke-width: 2.25;
+}
+
+.forge-horizon[data-motion] .horizon-stroke-soft {
+    stroke: hsl(245 70% 48% / 0.28);
+    stroke-width: 8;
+}
+
+.forge-horizon[data-motion] .horizon-stroke-gold {
+    stroke: hsl(32 72% 34%);
+    stroke-width: 2;
+}
+
+.forge-horizon[data-motion] .horizon-stroke-gold-soft {
+    stroke: hsl(38 80% 42% / 0.3);
+    stroke-width: 8;
+}
+
+.dark .forge-horizon[data-motion] .horizon-violet {
+    fill: hsl(248 78% 74% / 0.34);
+}
+
+.dark .forge-horizon[data-motion] .horizon-gold {
+    fill: hsl(40 88% 62% / 0.28);
+}
+
+.dark .forge-horizon[data-motion] .horizon-stroke {
+    stroke: hsl(228 96% 76% / 0.95);
+    stroke-width: 2;
+}
+
+.dark .forge-horizon[data-motion] .horizon-stroke-soft {
+    stroke: hsl(228 96% 72% / 0.34);
+    stroke-width: 8;
+}
+
+.dark .forge-horizon[data-motion] .horizon-stroke-gold {
+    stroke: hsl(var(--highlight) / 0.95);
+    stroke-width: 1.75;
+}
+
+.dark .forge-horizon[data-motion] .horizon-stroke-gold-soft {
+    stroke: hsl(var(--highlight) / 0.28);
+    stroke-width: 8;
+}
+
+@keyframes horizon-drift {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
 }
 
 /* Rich text: the TipTap editor and rendered user content. */

@@ -36,7 +36,7 @@ const activity = [
 <template>
     <div class="relative" aria-hidden="true">
         <div
-            class="overflow-hidden rounded-2xl border bg-card shadow-[0_30px_80px_-36px_hsl(232_55%_18%/0.45)] dark:shadow-[0_30px_90px_-32px_hsl(230_80%_2%/0.85)]"
+            class="relative overflow-hidden rounded-2xl border bg-card shadow-[0_30px_80px_-36px_hsl(232_55%_18%/0.45)] dark:shadow-[0_30px_90px_-32px_hsl(230_80%_2%/0.85)]"
         >
             <div class="flex items-center gap-3 border-b px-3 py-2.5 sm:px-4">
                 <AppLogoIcon class="size-6" />
@@ -47,7 +47,10 @@ const activity = [
                     <span class="truncate">Search anything…</span>
                     <kbd class="ml-auto rounded-md border bg-card px-1.5 py-0.5 font-mono text-[0.65rem]">⌘K</kbd>
                 </div>
-                <Bell class="ml-auto size-4 text-muted-foreground md:ml-3" />
+                <span class="relative ml-auto md:ml-3">
+                    <Bell class="size-4 text-muted-foreground" />
+                    <span class="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-success" />
+                </span>
                 <span class="hidden items-center gap-2 rounded-full py-1 pr-1 pl-2.5 text-xs font-medium sm:inline-flex">
                     Taylor Kim
                     <span class="flex size-7 items-center justify-center rounded-full bg-primary text-[0.65rem] font-semibold text-primary-foreground"
@@ -131,8 +134,8 @@ const activity = [
                     </div>
 
                     <ul class="divide-y rounded-xl border px-3">
-                        <li v-for="item in activity" :key="item.title" class="flex items-center gap-3 py-2">
-                            <span class="size-1.5 shrink-0 rounded-full bg-primary" />
+                        <li v-for="(item, index) in activity" :key="item.title" class="flex items-center gap-3 py-2">
+                            <span class="size-1.5 shrink-0 rounded-full" :class="index === 0 ? 'bg-success' : 'bg-primary'" />
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-xs font-medium">{{ item.title }}</span>
                                 <span class="block truncate text-[0.65rem] text-muted-foreground">{{ item.detail }}</span>

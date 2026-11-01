@@ -22,7 +22,6 @@ import {
     Home,
     Layers,
     BookOpen,
-    FolderGit2,
     LayoutGrid,
     Menu,
     Search,
@@ -236,11 +235,18 @@ const websiteSections = computed(() => {
 
 const commerceEnabled = computed(() => Boolean(websiteSections.value.commerce));
 
+const dashboardNavItem: SectionAwareNavItem = {
+    title: 'ui.nav.dashboard',
+    href: '/dashboard',
+    target: '_self',
+    icon: LayoutGrid,
+    requiresAuth: true,
+};
+
 const baseMainNavItems: SectionAwareNavItem[] = [
     { title: 'ui.nav.home', href: '/', target: '_self', icon: Home },
     { title: 'ui.nav.pricing', href: '/pricing', target: '_self', icon: Layers },
     { title: 'ui.nav.shop', href: '/shop', target: '_self', icon: ShoppingBag, section: 'commerce' },
-    { title: 'ui.nav.dashboard', href: '/dashboard', target: '_self', icon: LayoutGrid, requiresAuth: true },
     { title: 'ui.nav.blog', href: '/blogs', target: '_self', icon: BookOpen, section: 'blog' },
     { title: 'ui.nav.forum', href: '/forum', target: '_self', icon: MessagesSquare, section: 'forum' },
     { title: 'ui.nav.members', href: '/members', target: '_self', icon: Users },
@@ -261,12 +267,7 @@ const baseRightNavItems: SectionAwareNavItem[] = [
         icon: LifeBuoy,
         section: 'support',
     },
-    {
-        title: 'ui.nav.repository',
-        href: 'https://github.com/MetaGrenade/laravel-vue',
-        target: '_blank',
-        icon: FolderGit2,
-    },
+    dashboardNavItem,
 ];
 
 const isExternal = (item: NavItem) => item.target === '_blank';
@@ -277,6 +278,25 @@ const translateItems = (items: SectionAwareNavItem[]): NavItem[] => items.filter
 const mainNavItems = computed<NavItem[]>(() => translateItems(baseMainNavItems));
 
 const rightNavItems = computed<NavItem[]>(() => translateItems(baseRightNavItems));
+
+/** The menu lists Dashboard with the other pages. The icon bar keeps it on the right, so it is not listed twice. */
+const sheetNavItems = computed<NavItem[]>(() => {
+    const items = mainNavItems.value.slice();
+    const dashboard = rightNavItems.value.find((item) => item.href === '/dashboard');
+
+    if (!dashboard) {
+        return items;
+    }
+
+    const shopIndex = items.findIndex((item) => item.href === '/shop');
+    const insertAt = shopIndex === -1 ? Math.min(items.length, 2) : shopIndex + 1;
+
+    items.splice(insertAt, 0, dashboard);
+
+    return items;
+});
+
+const sheetSideItems = computed<NavItem[]>(() => rightNavItems.value.filter((item) => item.href !== '/dashboard'));
 
 const setNotificationProcessing = (id: string, processing: boolean) => {
     if (!id) {
@@ -404,7 +424,7 @@ const viewNotification = (notification: NotificationItem) => {
                     </SheetHeader>
                     <nav class="flex-1 space-y-1 overflow-y-auto p-3" :aria-label="t('ui.nav.main')">
                         <Link
-                            v-for="item in mainNavItems"
+                            v-for="item in sheetNavItems"
                             :key="item.title"
                             :href="item.href"
                             :class="
@@ -420,7 +440,7 @@ const viewNotification = (notification: NotificationItem) => {
                         <Separator class="my-3" />
                         <component
                             :is="isExternal(item) ? 'a' : Link"
-                            v-for="item in rightNavItems"
+                            v-for="item in sheetSideItems"
                             :key="item.title"
                             :href="item.href"
                             :target="isExternal(item) ? '_blank' : undefined"
@@ -464,8 +484,32 @@ const viewNotification = (notification: NotificationItem) => {
                 <AppLogo />
             </Link>
 
-            <!-- Desktop navigation -->
-            <nav class="hidden items-center gap-1 lg:flex" :aria-label="t('ui.nav.main')">
+            <!-- Icon navigation: the step between labelled links and the menu. -->
+            <nav class="hidden items-center gap-0.5 lg:flex xl:hidden" :aria-label="t('ui.nav.main')">
+                <TooltipProvider :delay-duration="300">
+                    <Tooltip v-for="item in mainNavItems" :key="item.title">
+                        <TooltipTrigger as-child>
+                            <Link
+                                :href="item.href"
+                                :aria-label="item.title"
+                                :aria-current="isActive(item.href) ? 'page' : undefined"
+                                :class="
+                                    cn(
+                                        'flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                        isActive(item.href) && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
+                                    )
+                                "
+                            >
+                                <component :is="item.icon" v-if="item.icon" class="size-4" />
+                            </Link>
+                        </TooltipTrigger>
+                        <TooltipContent>{{ item.title }}</TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            </nav>
+
+            <!-- Labelled navigation, once the bar has room for the words. -->
+            <nav class="hidden items-center gap-1 xl:flex" :aria-label="t('ui.nav.main')">
                 <Link
                     v-for="item in mainNavItems"
                     :key="item.title"
@@ -507,14 +551,25 @@ const viewNotification = (notification: NotificationItem) => {
                     <div class="hidden items-center lg:flex">
                         <Tooltip v-for="item in rightNavItems" :key="item.title">
                             <TooltipTrigger as-child>
-                                <Button variant="ghost" size="icon" class="text-muted-foreground hover:text-foreground" as-child>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    :class="
+                                        cn(
+                                            'text-muted-foreground hover:text-foreground',
+                                            isActive(item.href) &&
+                                                'rounded-full bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary dark:hover:text-primary-foreground',
+                                        )
+                                    "
+                                    as-child
+                                >
                                     <component
                                         :is="isExternal(item) ? 'a' : Link"
                                         :href="item.href"
                                         :target="isExternal(item) ? '_blank' : undefined"
                                         :rel="isExternal(item) ? 'noopener noreferrer' : undefined"
                                         :aria-label="item.title"
-                                        :class="isActive(item.href) && 'bg-accent text-foreground'"
+                                        :aria-current="isActive(item.href) ? 'page' : undefined"
                                     >
                                         <component :is="item.icon" class="size-[1.15rem]" />
                                     </component>
