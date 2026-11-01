@@ -163,8 +163,8 @@ compose.yaml                # Optional backing services for local development (D
    ```
 6. **Run the App**
    - Everything in one terminal: `composer dev` (Laravel server, queue worker, **scheduler** and Vite). The scheduler does the scheduled work: releasing the stock of unpaid orders (every five minutes), support SLA checks, lifting suspensions that have ended (every minute).
-   - Or separately: `php artisan serve`, `php artisan queue:listen --queue=default,mail --tries=1`, `php artisan schedule:work` and `npm run dev`
-   - Under Laravel Herd or Valet the web server is already running; start the queue worker, the scheduler and Vite (`php artisan queue:listen --queue=default,mail --tries=1`, `php artisan schedule:work` and `npm run dev`).
+   - Or separately: `php artisan serve`, `php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`
+   - Under Laravel Herd or Valet the web server is already running; start the queue worker, the scheduler and Vite (`php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`).
 
 ### Local services with Docker (optional)
 `compose.yaml` provides MySQL, PostgreSQL, Redis, Meilisearch and Mailpit for local development; the application itself still runs on your machine. (Meilisearch is optional; set `SEARCH_DRIVER=meilisearch` to search the index. See [docs/search-index.md](docs/search-index.md).)
@@ -379,7 +379,7 @@ The starter ships with first-party integrations for Google, Discord, and Steam b
    const canManageUsers = computed(() => hasPermission('users.acp.manage'));
    ```
 - **Translations**: Use `useI18n()` (`t()` / `tc()`) for new interface text and add the keys to `lang/en`; see [docs/i18n.md](docs/i18n.md). The shop pages still use literal English for now.
-- **Queues & Background Work**: `composer dev` also starts `queue:listen` so job dispatches from forum moderation, notifications or shop emails run instantly during development. Notification emails wait on their own queue, `mail`, so a worker has to be started with `--queue=default,mail` (as `composer dev` does): `queue:work` or `queue:listen` without it serves only `default` and the emails are never sent. Scheduled work runs from `php artisan schedule:work`, which `composer dev` starts as well.
+- **Queues & Background Work**: `composer dev` also starts `queue:listen` so job dispatches from forum moderation, notifications or shop emails run instantly during development. Notification emails wait on their own queue, `mail`, and `queue:work` / `queue:listen` read only one queue (the connection's own, `default` unless `DB_QUEUE` or `REDIS_QUEUE` is set), so a worker started with them never sends an email. `composer dev` starts the worker with `php artisan metaforge:queue listen`, which reads the connection's own queue, `default` and `mail` and takes the options of `queue:listen`; `php artisan metaforge:queue work` does the same for `queue:work`. Scheduled work runs from `php artisan schedule:work`, which `composer dev` starts as well.
 
 ## Feature Notes & Endpoints
 - **Forum moderation routes** handle publishing, locking, pinning, reporting, and deletion, guarded by role middleware (`role:admin|editor|moderator`).
@@ -459,9 +459,9 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - **Testing fixtures**: Sample webhook JSON lives in `tests/Fixtures/stripe/`. Feature tests under
   `tests/Feature/Webhooks/StripeWebhookTest.php` exercise invoice and subscription webhook flows. Use Stripe's test keys when
   exercising end-to-end subscription flows locally.
-- **Queues & jobs**: Webhook handling and subscription updates rely on queued jobs. Ensure `queue:listen` (or a Supervisor job)
-  is running in development and production so invoice syncing happens promptly, and start it with `--queue=default,mail`
-  so the emails are sent too (see [docs/redis.md](docs/redis.md#the-queue)).
+- **Queues & jobs**: Webhook handling and subscription updates rely on queued jobs. Ensure a worker (`php artisan metaforge:queue listen`, or a
+  Supervisor job running `metaforge:queue work`) is running in development and production so invoice syncing happens promptly
+  and the emails are sent (see [docs/redis.md](docs/redis.md#the-queue)).
 
 <h2 id="testing--quality">
 <picture>
