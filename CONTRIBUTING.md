@@ -37,6 +37,7 @@ npm run format                  # Prettier (format:check to only check)
 npm run lint:check              # ESLint
 npm run types:check             # vue-tsc
 npm run build && npm run bundle:check   # the size of the front end against its budget
+npm run bundle:test             # tests of the scripts in scripts/ (the size check, the time-to-first-byte check)
 ```
 
 ### Testing on other databases

@@ -159,7 +159,7 @@ Strong already. Remaining gaps, in priority order:
 
 ### 5.2 Targets for 1.0
 
-- Guest page TTFB under 200 ms on a small VPS with Redis and OPcache
+- Guest page TTFB under 200 ms on a small VPS with Redis and OPcache. **Measured** (M6, seventeenth slice, see [performance.md](performance.md)): 50 to 90 ms a page on a laptop with OPcache and 250 to 320 ms without it; `npm run ttfb` measures any site. Not yet measured on a small VPS, with Redis or under load
 - Largest Contentful Paint under 2.5 s on 4G for home, blog post and product pages
 - No N+1 queries on the top 20 pages (enforced in tests). **Done** (M6, seventh slice): 36 pages, see [query-budgets.md](query-budgets.md)
 - Queue-backed email, exports and webhook processing
@@ -462,6 +462,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Every foreign key starts an index (**done**, fourteenth slice, see [indexes.md](indexes.md)): 125 were missing on PostgreSQL, and MySQL had them all. The order of the lists is the sixteenth slice
 - Documents that are the same for everyone, kept without a session (**done**, fifteenth slice, see [http-caching.md](http-caching.md)): robots, the sitemap, `security.txt`, the manifest, the API schema and the feeds send `Cache-Control: public` with an `ETag` and set no cookie. A test fails when the web group gains a middleware nobody has decided for them. Pages are not cached: the nonce in each page's Content Security Policy is the reason, and replacing it is a decision
 - Indexes for the order of four lists (**done**, sixteenth slice, see [indexes.md](indexes.md#the-order-of-the-lists)): the latest posts on the forum index, a board's threads, the member list and the "most commented" posts on a blog page, 8 to 600 times faster on a database of 1,000,000 posts and 200,000 members. The leaderboard, the top threads by views, the blog list, the feed and the sitemap were measured and left, with the reason; counts and a comment count kept on the post are separate changes
+- Guest time to first byte measured, and a command for it (**done**, seventeenth slice, see [performance.md](performance.md)): `npm run ttfb -- <site>` asks for the guest pages and fails over 200 ms. On the reference setup every page starts answering in 50 to 90 ms with OPcache on and 250 to 320 ms with it off, so OPcache is the one setting the target depends on; a production checklist (optimise, OPcache, compression, asset caching) and the weight of a page (142 kB written, 20 kB gzipped) are in the document
 - Lighthouse budget in CI (a new package, waits for a decision)
 - **Exit:** section 5.2 targets met on a reference setup; budgets enforced in CI; search works with and without Meilisearch.
 
