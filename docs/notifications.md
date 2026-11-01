@@ -62,3 +62,4 @@ The alert needs a Pusher-compatible server (`BROADCAST_CONNECTION=pusher`, `PUSH
 - **Mark a notice read when the bell is opened.** Nothing does, on purpose: a notice is read when it is clicked, marked or marked all.
 - **List more than ten.** The bell says there are more; there is no page for the rest.
 - **Replay what was missed.** An alert pushed while no browser was open is only the stored notice, shown the next time a page loads.
+- **Keep an alert that has no stored notice.** A member who turned *In-app* off but kept *Browser alerts* is pushed an alert and nothing is stored. It is in the bell until the next response that carries the notifications list (the next page, or any button in the bell, which then lists only what is stored), and its buttons change nothing on the server.
