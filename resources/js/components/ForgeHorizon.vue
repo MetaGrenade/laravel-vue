@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
 import type { HTMLAttributes } from 'vue';
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, useId } from 'vue';
 
 const props = withDefaults(
     defineProps<{
@@ -9,8 +9,8 @@ const props = withDefaults(
         /** `auto` follows the page theme. `dark` always draws the luminous ridges. */
         tone?: 'auto' | 'dark' | 'light';
         /**
-         * Home hero only. Draws the filled hills and the crest lines together,
-         * and drifts them. Auth screens keep the static theme split.
+         * Home hero only. Draws each ridge as a graph line with a fill that
+         * fades to transparent, and drifts them. Auth screens keep the static theme split.
          */
         motion?: boolean;
     }>(),
@@ -21,6 +21,10 @@ const violetCrest =
     'M 0 132 C 80 130 160 70 240 74 C 320 78 400 152 480 156 C 560 160 640 96 720 98 C 800 100 880 170 960 168 C 1040 166 1120 92 1200 86 C 1280 80 1360 134 1440 132 C 1520 130 1600 70 1680 74 C 1760 78 1840 152 1920 156 C 2000 160 2080 96 2160 98 C 2240 100 2320 170 2400 168 C 2480 166 2560 92 2640 86 C 2720 80 2800 134 2880 132';
 const goldCrest =
     'M 0 198 C 80 197 160 152.3 240 156 C 320 159.7 400 217.7 480 220 C 560 222.3 640 169 720 170 C 800 171 880 227.3 960 226 C 1040 224.7 1120 166.7 1200 162 C 1280 157.3 1360 199 1440 198 C 1520 197 1600 152.3 1680 156 C 1760 159.7 1840 217.7 1920 220 C 2000 222.3 2080 169 2160 170 C 2240 171 2320 227.3 2400 226 C 2480 224.7 2560 166.7 2640 162 C 2720 157.3 2800 199 2880 198';
+
+const gradientSuffix = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+const violetFillId = `horizon-violet-${gradientSuffix}`;
+const goldFillId = `horizon-gold-${gradientSuffix}`;
 
 const root = ref<HTMLElement | null>(null);
 let observer: IntersectionObserver | undefined;
@@ -55,14 +59,24 @@ onUnmounted(() => observer?.disconnect());
     >
         <template v-if="motion">
             <svg viewBox="0 0 2880 280" preserveAspectRatio="none" class="horizon-layer horizon-layer-violet">
-                <path class="horizon-violet" :d="`${violetCrest} L 2880 280 L 0 280 Z`" />
-                <path class="horizon-stroke-soft" :d="violetCrest" />
-                <path class="horizon-stroke" :d="violetCrest" />
+                <defs>
+                    <linearGradient :id="violetFillId" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="hsl(var(--primary))" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="hsl(var(--primary))" stop-opacity="0" />
+                    </linearGradient>
+                </defs>
+                <path class="horizon-graph-fill" :fill="`url(#${violetFillId})`" :d="`${violetCrest} L 2880 280 L 0 280 Z`" />
+                <path class="horizon-graph-line" :d="violetCrest" />
             </svg>
             <svg viewBox="0 0 2880 280" preserveAspectRatio="none" class="horizon-layer horizon-layer-gold">
-                <path class="horizon-gold" :d="`${goldCrest} L 2880 280 L 0 280 Z`" />
-                <path class="horizon-stroke-gold-soft" :d="goldCrest" />
-                <path class="horizon-stroke-gold" :d="goldCrest" />
+                <defs>
+                    <linearGradient :id="goldFillId" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="hsl(var(--highlight))" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="hsl(var(--highlight))" stop-opacity="0" />
+                    </linearGradient>
+                </defs>
+                <path class="horizon-graph-fill" :fill="`url(#${goldFillId})`" :d="`${goldCrest} L 2880 280 L 0 280 Z`" />
+                <path class="horizon-graph-line horizon-graph-line-gold" :d="goldCrest" />
             </svg>
         </template>
         <svg v-else viewBox="0 0 1440 280" preserveAspectRatio="none" class="block h-full w-full">
