@@ -3,6 +3,7 @@ import AppLogo from '@/components/AppLogo.vue';
 import ForgeHorizon from '@/components/ForgeHorizon.vue';
 import ProductPreview from '@/components/marketing/ProductPreview.vue';
 import { Button } from '@/components/ui/button';
+import { useAppearance } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
@@ -12,6 +13,7 @@ import {
     Braces,
     ChevronDown,
     CreditCard,
+    FolderGit2,
     KeyRound,
     LayoutDashboard,
     LifeBuoy,
@@ -22,10 +24,16 @@ import {
     Search,
     ShieldCheck,
     ShoppingBag,
+    Sun,
 } from '@lucide/vue';
 import { computed, type Component } from 'vue';
 
 const page = usePage<SharedData>();
+const { updateAppearance } = useAppearance();
+
+const toggleAppearance = () => {
+    updateAppearance(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+};
 
 const websiteSections = computed(() => {
     const settings = page.props.settings?.website_sections;
@@ -98,59 +106,66 @@ const stackPills = computed(() => {
         pills.push({ label: 'Shop', href: route('shop.index'), tone: 'border bg-card text-foreground' });
     }
 
-    pills.push({ label: 'Dark mode', tone: 'border bg-card text-foreground', icon: Moon });
-
     return pills;
 });
 
-const features: { title: string; description: string; icon: Component }[] = [
+const features: { title: string; description: string; icon: Component; tone: string }[] = [
     {
         title: 'Shop and checkout',
         description:
             'Catalogue, variants, stock, shipping and tax, Stripe Checkout, guest orders and Tebex packages or the experimental Checkout API.',
         icon: ShoppingBag,
+        tone: 'bg-[hsl(346_72%_46%/0.12)] text-[hsl(346_72%_32%)] dark:text-[hsl(346_85%_76%)]',
     },
     {
         title: 'Subscriptions and entitlements',
         description: 'Cashier plans with trials and dunning, plus feature and limit entitlements from plans and Tebex packages.',
         icon: CreditCard,
+        tone: 'bg-highlight/25 text-[hsl(36_80%_28%)] dark:bg-highlight/15 dark:text-[hsl(40_92%_72%)]',
     },
     {
         title: 'Community and moderation',
         description: 'Forums with prefixes, solutions, attachments and ignores, member follows and DMs, automod, bans and one-click content cleanup.',
         icon: MessagesSquare,
+        tone: 'bg-primary/10 text-primary',
     },
     {
         title: 'Authentication and keys',
         description: 'Email verification, TOTP two-factor auth, recovery codes, OAuth linking and scoped Sanctum API keys with rotation.',
         icon: KeyRound,
+        tone: 'bg-[hsl(221_75%_48%/0.12)] text-[hsl(221_70%_32%)] dark:text-[hsl(221_90%_78%)]',
     },
     {
         title: 'Security by default',
         description:
             'Nonce CSP and security headers checked in CI, private disks for member uploads, webhook replay protection and a published security contact.',
         icon: ShieldCheck,
+        tone: 'bg-success/15 text-[hsl(152_64%_24%)] dark:text-success',
     },
     {
         title: 'Admin control panel',
         description: 'Named permissions for users, blogs, support, commerce and billing, plus audit log and read-only impersonation.',
         icon: LayoutDashboard,
+        tone: 'bg-[hsl(270_55%_52%/0.12)] text-[hsl(270_45%_36%)] dark:text-[hsl(270_85%_80%)]',
     },
     {
         title: 'Publishing and support',
         description: 'Blog with WebP covers, scheduling and RSS; tickets with SLAs, private attachments and a help centre FAQ.',
         icon: Newspaper,
+        tone: 'bg-[hsl(18_80%_48%/0.12)] text-[hsl(18_75%_32%)] dark:text-[hsl(18_90%_74%)]',
     },
     {
         title: 'Search and SEO',
         description:
             'Site-wide search, SSR, structured data and sitemaps. Meilisearch index rules, settings sync and reindex are ready for the engine path.',
         icon: Search,
+        tone: 'bg-[hsl(187_65%_36%/0.12)] text-[hsl(187_70%_24%)] dark:text-[hsl(187_65%_68%)]',
     },
     {
         title: 'API and delivery',
         description: 'Versioned REST with scoped tokens, OpenAPI docs, queues, CI on MySQL and PostgreSQL, and accessibility checks on main flows.',
         icon: Braces,
+        tone: 'bg-[hsl(322_60%_48%/0.12)] text-[hsl(322_55%_32%)] dark:text-[hsl(322_80%_78%)]',
     },
 ];
 
@@ -279,10 +294,13 @@ const faqs = [
                                 <ArrowRight />
                             </Link>
                         </Button>
-                        <Button v-if="websiteSections.commerce" size="lg" variant="outline" class="bg-card" as-child>
-                            <Link :href="route('shop.index')">Browse the shop</Link>
+                        <Button size="lg" variant="outline" class="bg-card" as-child>
+                            <a href="https://github.com/MetaGrenade/laravel-vue" target="_blank" rel="noopener noreferrer">
+                                <FolderGit2 />
+                                Repository
+                            </a>
                         </Button>
-                        <Button v-else size="lg" variant="outline" class="bg-card" as-child>
+                        <Button v-if="!websiteSections.commerce" size="lg" variant="outline" class="bg-card" as-child>
                             <Link :href="route('pricing')">View pricing</Link>
                         </Button>
                     </div>
@@ -301,6 +319,18 @@ const faqs = [
                                 <component :is="pill.icon" v-if="pill.icon" class="size-3.5" />
                                 {{ pill.label }}
                             </span>
+                        </li>
+                        <li>
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                @click="toggleAppearance"
+                            >
+                                <Moon class="size-3.5 dark:hidden" />
+                                <Sun class="hidden size-3.5 dark:block" />
+                                <span class="dark:hidden">Dark mode</span>
+                                <span class="hidden dark:inline">Light mode</span>
+                            </button>
                         </li>
                     </ul>
 
@@ -356,18 +386,17 @@ const faqs = [
 
                 <div class="reveal mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div
-                        v-for="(feature, index) in features"
+                        v-for="feature in features"
                         :key="feature.title"
-                        class="group rounded-xl border bg-card p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/30"
+                        class="rounded-xl border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/30"
                     >
-                        <span
-                            class="flex size-9 items-center justify-center rounded-lg transition-transform group-hover:-translate-y-0.5"
-                            :class="index % 3 === 1 ? 'bg-highlight/25 text-foreground' : 'bg-primary/10 text-primary'"
-                        >
-                            <component :is="feature.icon" class="size-[1.1rem]" />
-                        </span>
-                        <h3 class="mt-4 font-semibold">{{ feature.title }}</h3>
-                        <p class="mt-1.5 text-sm text-muted-foreground">{{ feature.description }}</p>
+                        <div class="flex items-center gap-2.5">
+                            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg" :class="feature.tone">
+                                <component :is="feature.icon" class="size-3.5" />
+                            </span>
+                            <h3 class="font-semibold">{{ feature.title }}</h3>
+                        </div>
+                        <p class="mt-2.5 text-sm text-muted-foreground">{{ feature.description }}</p>
                     </div>
                 </div>
             </div>
@@ -406,14 +435,18 @@ const faqs = [
                         v-for="module in modules"
                         :key="module.key"
                         :href="module.href"
-                        class="group relative flex flex-col overflow-hidden rounded-xl border bg-card p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-success/40 hover:shadow-md dark:shadow-none"
+                        class="group relative flex flex-col overflow-hidden rounded-xl border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-success/40 hover:shadow-md dark:shadow-none"
                     >
                         <span class="absolute inset-x-0 top-0 h-0.5 bg-success/75" aria-hidden="true" />
-                        <span class="flex size-9 items-center justify-center rounded-lg bg-success/15 text-[hsl(152_64%_24%)] dark:text-success">
-                            <component :is="module.icon" class="size-5" />
-                        </span>
-                        <h3 class="mt-4 font-semibold">{{ module.title }}</h3>
-                        <p class="mt-1.5 flex-1 text-sm text-muted-foreground">{{ module.description }}</p>
+                        <div class="flex items-center gap-2.5">
+                            <span
+                                class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-success/15 text-[hsl(152_64%_24%)] dark:text-success"
+                            >
+                                <component :is="module.icon" class="size-3.5" />
+                            </span>
+                            <h3 class="font-semibold">{{ module.title }}</h3>
+                        </div>
+                        <p class="mt-2.5 flex-1 text-sm text-muted-foreground">{{ module.description }}</p>
                         <span class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary">
                             {{ module.cta }}
                             <ArrowRight class="size-4 transition-transform group-hover:translate-x-0.5" />
@@ -432,13 +465,15 @@ const faqs = [
                 </div>
                 <ol class="reveal mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     <li v-for="(step, index) in steps" :key="step.title" class="relative rounded-xl border bg-card p-5 shadow-xs">
-                        <span
-                            class="flex size-7 items-center justify-center rounded-full bg-highlight text-sm font-semibold text-highlight-foreground tabular-nums"
-                        >
-                            {{ index + 1 }}
-                        </span>
-                        <h3 class="mt-4 font-semibold">{{ step.title }}</h3>
-                        <p class="mt-1.5 text-sm text-muted-foreground">{{ step.description }}</p>
+                        <div class="flex items-center gap-2.5">
+                            <span
+                                class="flex size-7 shrink-0 items-center justify-center rounded-full bg-highlight text-sm font-semibold text-highlight-foreground tabular-nums"
+                            >
+                                {{ index + 1 }}
+                            </span>
+                            <h3 class="font-semibold">{{ step.title }}</h3>
+                        </div>
+                        <p class="mt-2.5 text-sm text-muted-foreground">{{ step.description }}</p>
                     </li>
                 </ol>
             </div>

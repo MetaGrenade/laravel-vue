@@ -131,6 +131,8 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 
 ### Changed
 
+- Home page feature cards place each icon beside its title, and each feature has its own icon colour. Live demo icons and getting-started numbers sit on the title line as well.
+- The repository link moves from the header to the home hero. Dashboard takes its place on the right and stays in the menu. Header links collapse to icons before the menu opens, and the home page dark-mode badge toggles the theme.
 - The home page product preview drifts, draws its chart and surfaces a payment notice with transform and opacity only. The live-demo band uses a green wash and green card rules instead of the gold tint that turned muddy in dark mode. The tech-stack band pools crimson at the lower right, and each column is a rose-headed plate with a short rule under the title.
 - The site footer sits on the card surface, with a top edge and a soft shadow, so it separates from the page in light and dark mode.
 - Support desk summary cards stay at four across, so the labels stay readable on a wide monitor instead of collapsing into one row of eight.
