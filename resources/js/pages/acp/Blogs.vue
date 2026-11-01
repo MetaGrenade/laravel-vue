@@ -5,7 +5,6 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem, type QueryParams } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -535,64 +534,68 @@ const confirmDeletePost = (post: BlogRow) => {
                     <div
                         v-for="(stat, index) in stats"
                         :key="index"
-                        class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+                        class="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none"
                     >
-                        <div class="mr-4">
-                            <component :is="stat.icon" class="h-8 w-8 text-muted-foreground" />
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <component :is="stat.icon" class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">{{ stat.title }}</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ formatNumber(stat.value) }}</div>
                         </div>
-                        <div>
-                            <div class="text-sm text-muted-foreground">{{ stat.title }}</div>
-                            <div class="text-xl font-bold">{{ formatNumber(stat.value) }}</div>
-                        </div>
-
-                        <PlaceholderPattern />
                     </div>
                 </div>
 
-                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
-                    <div class="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h2 class="flex items-center gap-2 text-lg font-semibold">
-                                <TrendingUp class="h-5 w-5 text-muted-foreground" />
-                                Trending posts
-                            </h2>
-                            <p class="text-sm text-muted-foreground">Top-performing articles from the past 30 days based on view counts.</p>
-                        </div>
-                        <div class="text-sm text-muted-foreground">{{ formatNumber(props.blogStats.total_views) }} total views recorded</div>
-                    </div>
-
-                    <LineChart
-                        v-if="hasTrendingData"
-                        :data="trendingChartData"
-                        index="label"
-                        :categories="trendingChartCategories"
-                        :show-legend="false"
-                        :curve-type="CurveType.Linear"
-                        :y-formatter="(tick) => (typeof tick === 'number' ? formatNumber(tick) : '')"
-                    />
-                    <p v-else class="text-sm text-muted-foreground">We will chart trends here once posts accumulate enough views.</p>
-
-                    <ul v-if="hasTrendingData" class="mt-4 grid gap-3 md:grid-cols-2">
-                        <li
-                            v-for="post in trendingPosts"
-                            :key="post.id"
-                            class="rounded-lg border border-sidebar-border/60 p-3 text-sm dark:border-sidebar-border"
-                        >
-                            <div class="flex flex-col gap-2">
-                                <Link :href="route('blogs.view', { slug: post.slug })" class="font-medium text-primary hover:underline">
-                                    {{ post.title }}
-                                </Link>
-                                <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                    <span>{{ formatNumber(post.views) }} views</span>
-                                    <span v-if="post.last_viewed_at">• Last read {{ fromNow(post.last_viewed_at) }}</span>
-                                </div>
+                <section class="overflow-hidden rounded-xl border bg-card shadow-sm dark:shadow-none">
+                    <div class="h-1 bg-highlight" aria-hidden="true"></div>
+                    <div
+                        class="border-b border-highlight/30 bg-[linear-gradient(180deg,hsl(var(--highlight)/0.28),hsl(var(--highlight)/0.08))] px-5 py-4"
+                    >
+                        <p class="eyebrow">Last 30 days</p>
+                        <div class="mt-1 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                            <div>
+                                <h2 class="flex items-center gap-2 text-lg font-semibold">
+                                    <TrendingUp class="size-5 text-highlight" />
+                                    Trending posts
+                                </h2>
+                                <p class="text-sm text-muted-foreground">Top-performing articles from the past 30 days based on view counts.</p>
                             </div>
-                        </li>
-                    </ul>
-                </div>
+                            <p class="text-sm font-medium text-muted-foreground tabular-nums">
+                                {{ formatNumber(props.blogStats.total_views) }} total views
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="p-5">
+                        <LineChart
+                            v-if="hasTrendingData"
+                            :data="trendingChartData"
+                            index="label"
+                            :categories="trendingChartCategories"
+                            :show-legend="false"
+                            :curve-type="CurveType.Linear"
+                            :y-formatter="(tick) => (typeof tick === 'number' ? formatNumber(tick) : '')"
+                        />
+                        <p v-else class="text-sm text-muted-foreground">We will chart trends here once posts accumulate enough views.</p>
+
+                        <ul v-if="hasTrendingData" class="mt-4 grid gap-3 md:grid-cols-2">
+                            <li v-for="post in trendingPosts" :key="post.id" class="rounded-lg border bg-background p-3 text-sm">
+                                <div class="flex flex-col gap-2">
+                                    <Link :href="route('blogs.view', { slug: post.slug })" class="font-medium text-primary hover:underline">
+                                        {{ post.title }}
+                                    </Link>
+                                    <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                        <span>{{ formatNumber(post.views) }} views</span>
+                                        <span v-if="post.last_viewed_at">• Last read {{ fromNow(post.last_viewed_at) }}</span>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </section>
 
                 <!-- Blog Posts Management Section -->
-                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                     <div class="mb-4 space-y-3">
                         <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                             <h2 class="text-lg font-semibold">Blog Posts</h2>

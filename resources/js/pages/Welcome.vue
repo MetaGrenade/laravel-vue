@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import AppLogo from '@/components/AppLogo.vue';
+import ForgeHorizon from '@/components/ForgeHorizon.vue';
+import ProductPreview from '@/components/marketing/ProductPreview.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { SharedData } from '@/types';
@@ -15,6 +17,7 @@ import {
     LayoutDashboard,
     LifeBuoy,
     MessagesSquare,
+    Moon,
     Newspaper,
     Package,
     Search,
@@ -65,12 +68,41 @@ const techIcons = Object.entries(rawIconModules)
     .filter((icon) => !['openai', 'docker', 'npm', 'pusher'].includes(icon.name))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-const highlights = [
-    'Checkout with Stripe and Tebex',
-    'Forums, DMs and member profiles',
-    'Fine-grained ACP permissions',
-    'Private uploads and security headers in CI',
-];
+const stackPills = computed(() => {
+    const pills: { label: string; href?: string; tone: string; icon?: Component }[] = [
+        {
+            label: 'Laravel 13',
+            tone: 'bg-rose-100 text-rose-900 dark:bg-rose-400/30 dark:text-rose-50 dark:ring-1 dark:ring-inset dark:ring-rose-300/45',
+        },
+        {
+            label: 'Vue 3',
+            tone: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-400/30 dark:text-emerald-50 dark:ring-1 dark:ring-inset dark:ring-emerald-300/45',
+        },
+        { label: 'Inertia.js', tone: 'bg-sky-100 text-sky-900 dark:bg-sky-400/30 dark:text-sky-50 dark:ring-1 dark:ring-inset dark:ring-sky-300/45' },
+        {
+            label: 'TypeScript',
+            tone: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-400/32 dark:text-indigo-50 dark:ring-1 dark:ring-inset dark:ring-indigo-300/50',
+        },
+        { label: 'Stripe', href: route('pricing'), tone: 'border bg-card text-foreground' },
+        { label: 'Admin dashboard', tone: 'border bg-card text-foreground' },
+    ];
+
+    if (websiteSections.value.forum) {
+        pills.push({ label: 'Forum', href: route('forum.index'), tone: 'border bg-card text-foreground' });
+    }
+
+    if (websiteSections.value.support) {
+        pills.push({ label: 'Support center', href: route('support'), tone: 'border bg-card text-foreground' });
+    }
+
+    if (websiteSections.value.commerce) {
+        pills.push({ label: 'Shop', href: route('shop.index'), tone: 'border bg-card text-foreground' });
+    }
+
+    pills.push({ label: 'Dark mode', tone: 'border bg-card text-foreground', icon: Moon });
+
+    return pills;
+});
 
 const features: { title: string; description: string; icon: Component }[] = [
     {
@@ -218,128 +250,72 @@ const faqs = [
         <!-- Title, description, canonical and social tags are set server-side (HomeController). -->
 
         <!-- Hero -->
-        <section class="relative overflow-hidden border-b bg-background">
-            <!-- Backdrop: a fading grid under soft indigo and amber washes. Sized in percentages so they stretch with the screen instead of reading as circles. -->
-            <div class="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_50%_0%,black,transparent_72%)]" />
+        <section class="relative overflow-hidden border-b">
+            <div
+                class="pointer-events-none absolute inset-0 bg-dots [mask-image:radial-gradient(ellipse_at_80%_0%,black,transparent_70%)] opacity-70"
+            />
             <div class="pointer-events-none absolute inset-0 bg-hero-wash" aria-hidden="true" />
+            <ForgeHorizon class="absolute inset-x-0 bottom-0 h-40 sm:h-52" />
 
-            <div class="relative container-app grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:py-24">
+            <div class="relative container-app grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[0.92fr_1.08fr] lg:py-24">
                 <div>
                     <div class="animate-rise">
                         <AppLogo size="xl" />
                     </div>
 
-                    <a
-                        href="https://github.com/MetaGrenade/laravel-vue"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="mt-6 inline-flex animate-rise items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-xs transition-colors hover:text-foreground"
-                        style="--delay: 60ms"
-                    >
-                        <span class="size-1.5 rounded-full bg-highlight" />
-                        Open source · Laravel 13 + Vue 3
-                        <ArrowRight class="size-3" />
-                    </a>
-
                     <h1
-                        class="mt-6 animate-rise text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.08]"
-                        style="--delay: 100ms"
+                        class="mt-6 max-w-xl animate-rise text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.25rem] lg:leading-[1.05]"
+                        style="--delay: 80ms"
                     >
-                        Ship a shop, community and SaaS on
-                        <span class="bg-[linear-gradient(transparent_78%,hsl(var(--highlight)/0.55)_78%)] text-primary">one Laravel stack</span>
+                        Laravel + Vue SaaS Boilerplate
                     </h1>
-                    <p class="mt-5 max-w-xl animate-rise text-lg text-muted-foreground" style="--delay: 160ms">
-                        Checkout, subscriptions, forums, support and a hardened admin panel are already wired—so you spend time on your product, not
-                        the scaffolding.
+                    <p class="mt-5 max-w-xl animate-rise text-lg text-muted-foreground" style="--delay: 140ms">
+                        Ship faster with auth, RBAC, billing, admin tools, and realtime features built in.
                     </p>
 
-                    <div class="mt-8 flex animate-rise flex-wrap gap-3" style="--delay: 240ms">
+                    <div class="mt-8 flex animate-rise flex-wrap gap-3" style="--delay: 200ms">
                         <Button v-if="canRegister" size="lg" as-child>
                             <Link :href="route('register')">
                                 Create a demo account
                                 <ArrowRight />
                             </Link>
                         </Button>
-                        <Button v-if="websiteSections.commerce" size="lg" variant="outline" as-child>
+                        <Button v-if="websiteSections.commerce" size="lg" variant="outline" class="bg-card" as-child>
                             <Link :href="route('shop.index')">Browse the shop</Link>
                         </Button>
-                        <Button v-else size="lg" variant="outline" as-child>
+                        <Button v-else size="lg" variant="outline" class="bg-card" as-child>
                             <Link :href="route('pricing')">View pricing</Link>
                         </Button>
                     </div>
 
-                    <ul class="mt-8 grid animate-rise gap-2 text-sm text-muted-foreground sm:grid-cols-2" style="--delay: 320ms">
-                        <li v-for="item in highlights" :key="item" class="flex items-start gap-2">
-                            <Check class="mt-0.5 size-4 shrink-0 text-success" />
-                            {{ item }}
+                    <ul class="mt-6 flex max-w-xl animate-rise flex-wrap gap-2" style="--delay: 260ms">
+                        <li v-for="pill in stackPills" :key="pill.label">
+                            <Link
+                                v-if="pill.href"
+                                :href="pill.href"
+                                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                :class="pill.tone"
+                            >
+                                {{ pill.label }}
+                            </Link>
+                            <span v-else class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" :class="pill.tone">
+                                <component :is="pill.icon" v-if="pill.icon" class="size-3.5" />
+                                {{ pill.label }}
+                            </span>
                         </li>
                     </ul>
+
+                    <p class="mt-8 flex animate-rise items-start gap-3" style="--delay: 320ms">
+                        <span class="mt-0.5 h-9 w-0.5 shrink-0 rounded-full bg-highlight" aria-hidden="true" />
+                        <span class="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                            A full-stack starter kit<br />
+                            for modern SaaS and community apps
+                        </span>
+                    </p>
                 </div>
 
-                <!-- Product preview: plain markup, no images -->
-                <div class="relative animate-appear" style="--delay: 200ms" aria-hidden="true">
-                    <div class="relative animate-float">
-                        <!-- Offset tile behind the card for depth -->
-                        <div class="absolute inset-0 translate-x-3 translate-y-3 rounded-xl border bg-stripes" />
-                        <div class="relative overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/40">
-                            <div class="flex items-center gap-1.5 border-b bg-muted/50 px-4 py-3">
-                                <span class="size-2.5 rounded-full bg-foreground/15" />
-                                <span class="size-2.5 rounded-full bg-foreground/15" />
-                                <span class="size-2.5 rounded-full bg-foreground/15" />
-                                <span class="ml-3 h-5 flex-1 rounded-md bg-background" />
-                            </div>
-                            <div class="grid grid-cols-[7.5rem_1fr]">
-                                <div class="space-y-2 border-r p-4">
-                                    <div class="h-2 w-14 rounded-full bg-primary/70" />
-                                    <div v-for="n in 6" :key="n" class="h-2 rounded-full bg-muted" :class="n % 2 ? 'w-16' : 'w-12'" />
-                                </div>
-                                <div class="space-y-4 p-5">
-                                    <div class="grid grid-cols-3 gap-3">
-                                        <div v-for="(stat, i) in ['$48.2k', '2,315', '98.4%']" :key="stat" class="rounded-lg border p-3">
-                                            <div class="h-1.5 w-10 rounded-full bg-muted" />
-                                            <p class="mt-2 text-sm font-semibold tabular-nums">{{ stat }}</p>
-                                            <p class="mt-1 text-[0.65rem] font-medium" :class="i === 2 ? 'text-muted-foreground' : 'text-success'">
-                                                {{ i === 2 ? 'uptime' : '+12.5%' }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="rounded-lg border p-4">
-                                        <div class="h-1.5 w-20 rounded-full bg-muted" />
-                                        <div class="mt-4 flex h-28 items-end gap-2">
-                                            <div
-                                                v-for="(h, i) in [35, 52, 44, 63, 58, 72, 66, 84, 78, 92]"
-                                                :key="i"
-                                                class="flex-1 animate-grow rounded-t-sm"
-                                                :class="i === 9 ? 'bg-highlight' : 'bg-primary/30'"
-                                                :style="{ height: `${h}%`, '--delay': `${450 + i * 70}ms` }"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div v-for="n in 3" :key="n" class="flex items-center gap-3">
-                                            <span class="size-6 rounded-full bg-muted" />
-                                            <span class="h-2 flex-1 rounded-full bg-muted" />
-                                            <span class="h-4 w-12 rounded-full" :class="n === 1 ? 'bg-success/20' : 'bg-muted'" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Floating notification chip -->
-                        <div
-                            class="absolute -bottom-5 -left-4 hidden animate-rise items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-lg shadow-black/5 sm:flex dark:shadow-black/40"
-                            style="--delay: 1100ms"
-                        >
-                            <span class="flex size-8 items-center justify-center rounded-full bg-highlight text-highlight-foreground">
-                                <CreditCard class="size-4" />
-                            </span>
-                            <div>
-                                <p class="text-xs font-semibold">Order paid</p>
-                                <p class="text-[0.7rem] text-muted-foreground">Stripe · entitlement granted</p>
-                            </div>
-                        </div>
-                    </div>
+                <div class="relative z-10 animate-appear lg:translate-y-2" style="--delay: 180ms">
+                    <ProductPreview />
                 </div>
             </div>
         </section>
@@ -379,8 +355,12 @@ const faqs = [
                     </p>
                 </div>
 
-                <div class="reveal mt-14 grid gap-px overflow-hidden rounded-xl border bg-border shadow-xs sm:grid-cols-2 lg:grid-cols-3">
-                    <div v-for="(feature, index) in features" :key="feature.title" class="group bg-card p-6 transition-colors hover:bg-muted/40">
+                <div class="reveal mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div
+                        v-for="(feature, index) in features"
+                        :key="feature.title"
+                        class="group rounded-xl border bg-card p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/30"
+                    >
                         <span
                             class="flex size-9 items-center justify-center rounded-lg transition-transform group-hover:-translate-y-0.5"
                             :class="index % 3 === 1 ? 'bg-highlight/25 text-foreground' : 'bg-primary/10 text-primary'"
@@ -521,8 +501,9 @@ const faqs = [
         <section class="bg-background pb-20 lg:pb-24">
             <div class="container-app">
                 <div
-                    class="reveal relative overflow-hidden rounded-2xl bg-brand-gradient px-6 py-14 text-center text-primary-foreground sm:px-12 dark:border dark:border-primary/25 dark:bg-primary/10 dark:bg-none dark:text-foreground"
+                    class="reveal relative overflow-hidden rounded-2xl bg-brand-gradient px-6 py-14 text-center text-primary-foreground shadow-[0_24px_60px_-32px_hsl(245_78%_40%/0.7)] sm:px-12 dark:border dark:border-primary/30 dark:bg-card dark:bg-none dark:text-foreground dark:shadow-none"
                 >
+                    <span class="absolute inset-x-12 top-0 h-px bg-highlight/80" aria-hidden="true" />
                     <div
                         class="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)] opacity-60 dark:opacity-100"
                     />

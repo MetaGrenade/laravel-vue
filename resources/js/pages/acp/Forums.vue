@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useConfirmDialog } from '@/composables/useConfirmDialog';
 import {
@@ -174,21 +173,20 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                     <div
                         v-for="(stat, index) in forumStats"
                         :key="index"
-                        class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4"
+                        class="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none"
                     >
-                        <div class="mr-4">
-                            <component :is="stat.icon" class="h-8 w-8 text-muted-foreground" />
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <component :is="stat.icon" class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">{{ stat.title }}</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ stat.value }}</div>
                         </div>
-                        <div>
-                            <div class="text-sm text-muted-foreground">{{ stat.title }}</div>
-                            <div class="text-xl font-bold">{{ stat.value }}</div>
-                        </div>
-                        <PlaceholderPattern />
                     </div>
                 </div>
 
                 <div>
-                    <div class="flex items-center justify-between pb-4">
+                    <div class="flex flex-col gap-3 pb-4 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                             <h2 class="mb-2 text-xl font-bold">Manage Forum Categories</h2>
                             <p class="text-sm text-muted-foreground">
@@ -208,10 +206,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                         </div>
                     </div>
 
-                    <p
-                        v-if="!hasCategories"
-                        class="rounded-lg border border-dashed border-sidebar-border/70 p-6 text-center text-sm text-muted-foreground"
-                    >
+                    <p v-if="!hasCategories" class="rounded-xl border border-dashed bg-card p-6 text-center text-sm text-muted-foreground">
                         No forum categories have been created yet. Use the button above to add your first category.
                     </p>
 
@@ -219,9 +214,9 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                         v-for="(category, catIndex) in categories"
                         v-else
                         :key="category.id"
-                        class="mb-6 rounded-lg border border-sidebar-border/70 shadow-sm transition hover:shadow-lg"
+                        class="mb-6 overflow-hidden rounded-xl border bg-card shadow-sm transition hover:shadow-md dark:shadow-none dark:hover:shadow-none"
                     >
-                        <div class="flex items-start justify-between rounded-t-lg bg-muted p-4">
+                        <div class="flex items-start justify-between border-b bg-muted/40 p-4">
                             <div>
                                 <h3 class="text-xl font-bold">{{ category.title }}</h3>
                                 <p v-if="category.description" class="mt-1 text-sm text-muted-foreground">

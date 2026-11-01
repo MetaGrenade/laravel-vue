@@ -23,8 +23,8 @@ class WebManifestController extends Controller
             ],
             'start_url' => '/',
             'display' => 'standalone',
-            'background_color' => '#ffffff',
-            'theme_color' => '#09090b',
+            'background_color' => '#f4f6fb',
+            'theme_color' => '#5346e8',
         ], 200, ['Content-Type' => 'application/manifest+json']);
     }
 }

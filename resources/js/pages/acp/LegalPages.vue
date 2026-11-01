@@ -62,13 +62,13 @@ const save = () => {
 
         <AdminLayout>
             <form class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4" @submit.prevent="save">
-                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                     <h1 class="text-lg font-semibold">{{ t('legal.admin.title') }}</h1>
                     <p class="mt-1 text-sm text-muted-foreground">{{ t('legal.admin.description') }}</p>
                     <p class="mt-2 text-xs text-muted-foreground">{{ t('legal.admin.hint') }}</p>
                 </div>
 
-                <div v-for="field in fields" :key="field.key" class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                <div v-for="field in fields" :key="field.key" class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                     <div class="mb-3 flex items-baseline justify-between gap-3">
                         <Label :for="`legal-${field.key}`">{{ t(field.label) }}</Label>
                         <p class="text-xs text-muted-foreground">

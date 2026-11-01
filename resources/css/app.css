@@ -7,17 +7,21 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design tokens are stored as raw HSL channels (e.g. `240 10% 4%`) so they can
+ * Design tokens are stored as raw HSL channels (e.g. `224 52% 6%`) so they can
  * be composed with an alpha value: `hsl(var(--primary) / 0.5)`. Tailwind colour
  * utilities are mapped onto them here.
  *
- * The palette is a cool zinc neutral scale with a single indigo brand colour.
- * To rebrand, change --primary / --ring (and their dark-mode counterparts).
+ * The palette follows the MetaForge mark: a cool paper or deep navy field, a
+ * single indigo (`#5346e8`) and the gold diamond (`#f5b029`). To rebrand,
+ * change --primary / --primary-text / --highlight / --ring and their dark-mode
+ * counterparts. --primary is the action fill. --primary-text is for links and
+ * other small text, and is lighter in dark mode so it stays readable on cards.
  */
 @theme inline {
     --font-sans:
-        'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Source Sans 3', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+    --font-display: 'Outfit', 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
     --radius-xl: calc(var(--radius) + 4px);
@@ -74,53 +78,56 @@
     :root {
         color-scheme: light;
 
-        --background: 0 0% 100%;
-        --foreground: 240 10% 4%;
+        --background: 223 47% 97%;
+        --foreground: 225 29% 11%;
         /* Page canvas behind cards in app areas (dashboards, ACP, settings). */
-        --surface: 240 5% 98%;
+        --surface: 228 46% 96%;
         --card: 0 0% 100%;
-        --card-foreground: 240 10% 4%;
+        --card-foreground: 225 29% 11%;
         --popover: 0 0% 100%;
-        --popover-foreground: 240 10% 4%;
-        --primary: 243 75% 59%;
+        --popover-foreground: 225 29% 11%;
+        /* Action fill. White text on this indigo is about 6.2:1. */
+        --primary: 245 78% 59%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 240 5% 95%;
-        --secondary-foreground: 240 6% 10%;
-        --muted: 240 5% 95.5%;
-        --muted-foreground: 240 4% 44%;
-        --accent: 240 5% 95%;
-        --accent-foreground: 240 6% 10%;
+        /* Same indigo for links on the light canvas (about 6.2:1 on white). */
+        --primary-text: 245 78% 59%;
+        --secondary: 226 32% 95%;
+        --secondary-foreground: 225 29% 14%;
+        --muted: 226 32% 95%;
+        --muted-foreground: 223 13% 42%;
+        --accent: 230 40% 94%;
+        --accent-foreground: 225 29% 14%;
         --destructive: 0 72% 51%;
         --destructive-foreground: 0 0% 100%;
-        /* High-contrast partner to the indigo primary: warm amber. Use it for fills, accents and badges, not for text on white. */
-        --highlight: 38 96% 52%;
-        --highlight-foreground: 240 10% 4%;
-        --success: 152 76% 30%;
-        --glow-primary: 0.1;
-        --glow-highlight: 0.09;
-        --grid-alpha: 0.035;
+        /* The gold diamond. Use it for fills, rules and badges, not for text on white. */
+        --highlight: 40 91% 56%;
+        --highlight-foreground: 225 29% 11%;
+        --success: 152 64% 32%;
+        --glow-primary: 0.16;
+        --glow-highlight: 0.14;
+        --grid-alpha: 0.05;
         --success-foreground: 0 0% 100%;
         --warning: 30 92% 36%;
         --warning-foreground: 0 0% 100%;
         --info: 201 90% 36%;
         --info-foreground: 0 0% 100%;
-        --border: 240 6% 90%;
-        --input: 240 6% 87%;
-        --ring: 243 75% 59%;
-        --chart-1: 243 75% 59%;
-        --chart-2: 160 70% 38%;
-        --chart-3: 32 95% 50%;
+        --border: 223 35% 90%;
+        --input: 223 28% 86%;
+        --ring: 245 78% 59%;
+        --chart-1: 245 78% 59%;
+        --chart-2: 160 64% 36%;
+        --chart-3: 40 91% 50%;
         --chart-4: 199 89% 46%;
-        --chart-5: 340 75% 55%;
-        --radius: 0.625rem;
-        --sidebar-background: 240 5% 98%;
-        --sidebar-foreground: 240 5% 26%;
-        --sidebar-primary: 243 75% 59%;
+        --chart-5: 270 70% 58%;
+        --radius: 0.9rem;
+        --sidebar-background: 0 0% 100%;
+        --sidebar-foreground: 223 14% 32%;
+        --sidebar-primary: 245 78% 59%;
         --sidebar-primary-foreground: 0 0% 100%;
-        --sidebar-accent: 240 5% 94%;
-        --sidebar-accent-foreground: 240 6% 10%;
-        --sidebar-border: 240 6% 90%;
-        --sidebar-ring: 243 75% 59%;
+        --sidebar-accent: 230 40% 95%;
+        --sidebar-accent-foreground: 225 29% 14%;
+        --sidebar-border: 223 35% 90%;
+        --sidebar-ring: 245 78% 59%;
 
         /* Charts & tooltips (Unovis) */
         --vis-tooltip-background-color: none !important;
@@ -137,50 +144,56 @@
     .dark {
         color-scheme: dark;
 
-        --background: 240 10% 4%;
-        --foreground: 0 0% 96%;
-        --surface: 240 8% 5.5%;
-        --card: 240 6% 8%;
-        --card-foreground: 0 0% 96%;
-        --popover: 240 6% 9%;
-        --popover-foreground: 0 0% 96%;
-        --primary: 234 89% 74%;
-        --primary-foreground: 240 10% 4%;
-        --secondary: 240 4% 15%;
-        --secondary-foreground: 0 0% 96%;
-        --muted: 240 4% 13%;
-        --muted-foreground: 240 5% 65%;
-        --accent: 240 4% 15%;
-        --accent-foreground: 0 0% 96%;
+        --background: 224 52% 6%;
+        --foreground: 220 40% 96%;
+        --surface: 224 52% 6%;
+        --card: 224 39% 13%;
+        --card-foreground: 220 40% 96%;
+        --popover: 224 34% 15%;
+        --popover-foreground: 220 40% 96%;
+        /* Button, check, and active-pill fill. About 2.75:1 on --card, so not for text. */
+        --primary: 245 78% 59%;
+        --primary-foreground: 0 0% 100%;
+        /*
+         * text-primary. About 6.4:1 on --card, and the 80% hover stays above 4.5:1.
+         * Same hue as the fill, light enough to read as small text.
+         */
+        --primary-text: 245 85% 77%;
+        --secondary: 224 28% 16%;
+        --secondary-foreground: 220 40% 96%;
+        --muted: 224 28% 15%;
+        --muted-foreground: 222 16% 72%;
+        --accent: 224 28% 16%;
+        --accent-foreground: 220 40% 96%;
         --destructive: 0 72% 58%;
         --destructive-foreground: 0 0% 100%;
-        --highlight: 40 96% 58%;
-        --highlight-foreground: 240 10% 4%;
-        --glow-primary: 0.2;
-        --glow-highlight: 0.13;
-        --grid-alpha: 0.05;
-        --success: 152 60% 45%;
-        --success-foreground: 240 10% 4%;
-        --warning: 38 92% 55%;
-        --warning-foreground: 240 10% 4%;
-        --info: 199 89% 60%;
-        --info-foreground: 240 10% 4%;
-        --border: 240 4% 16%;
-        --input: 240 4% 20%;
-        --ring: 234 89% 74%;
-        --chart-1: 234 89% 74%;
-        --chart-2: 160 60% 50%;
-        --chart-3: 38 92% 58%;
-        --chart-4: 199 89% 60%;
-        --chart-5: 340 80% 65%;
-        --sidebar-background: 240 8% 6%;
-        --sidebar-foreground: 240 5% 85%;
-        --sidebar-primary: 234 89% 74%;
-        --sidebar-primary-foreground: 240 10% 4%;
-        --sidebar-accent: 240 4% 14%;
-        --sidebar-accent-foreground: 0 0% 96%;
-        --sidebar-border: 240 4% 16%;
-        --sidebar-ring: 234 89% 74%;
+        --highlight: 40 92% 58%;
+        --highlight-foreground: 224 52% 8%;
+        --glow-primary: 0.28;
+        --glow-highlight: 0.18;
+        --grid-alpha: 0.07;
+        --success: 152 58% 48%;
+        --success-foreground: 224 52% 8%;
+        --warning: 38 92% 58%;
+        --warning-foreground: 224 52% 8%;
+        --info: 199 89% 64%;
+        --info-foreground: 224 52% 8%;
+        --border: 223 28% 18%;
+        --input: 223 24% 22%;
+        --ring: 245 78% 59%;
+        --chart-1: 228 96% 74%;
+        --chart-2: 160 58% 52%;
+        --chart-3: 40 92% 60%;
+        --chart-4: 199 89% 64%;
+        --chart-5: 270 80% 74%;
+        --sidebar-background: 226 48% 8%;
+        --sidebar-foreground: 220 24% 86%;
+        --sidebar-primary: 245 78% 59%;
+        --sidebar-primary-foreground: 0 0% 100%;
+        --sidebar-accent: 224 28% 15%;
+        --sidebar-accent-foreground: 220 40% 96%;
+        --sidebar-border: 223 28% 18%;
+        --sidebar-ring: 245 78% 59%;
     }
 
     *,
@@ -203,7 +216,10 @@
 
     h1,
     h2,
-    h3 {
+    h3,
+    h4 {
+        font-family: var(--font-display);
+        letter-spacing: -0.03em;
         text-wrap: balance;
     }
 
@@ -227,6 +243,26 @@
             transition-duration: 0.01ms !important;
         }
     }
+}
+
+/*
+ * Link text reads --primary-text, not the button fill. These sit outside
+ * @layer so they win over the generated text-primary utilities. In light mode
+ * the two tokens match. In dark mode the fill is too dark for small text.
+ * text-primary-foreground is a different class and stays white on the fill.
+ */
+.text-primary,
+.hover\:text-primary:hover,
+.focus\:text-primary:focus,
+.focus-visible\:text-primary:focus-visible,
+.group-hover\:text-primary:is(:where(.group):hover *),
+.dark\:text-primary:is(.dark *) {
+    color: hsl(var(--primary-text));
+}
+
+.text-primary\/80,
+.hover\:text-primary\/80:hover {
+    color: color-mix(in oklab, hsl(var(--primary-text)) 80%, transparent);
 }
 
 /* Centred, padded page container shared by the app shell and pages. */
@@ -258,7 +294,7 @@
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: hsl(var(--primary));
+    color: hsl(var(--primary-text));
 }
 
 /* Faint dot grid for hero areas: pure CSS, no images or filters. */
@@ -268,7 +304,7 @@
 }
 
 /*
- * Page backdrop: soft indigo and amber glows plus a faint grid, confined to a
+ * Page backdrop: soft indigo and gold glows plus a faint dot field, confined to a
  * short layer at the top of the page that fades out. Keeping it small and
  * static means long pages never rasterise gradients below the fold, and page
  * content further down sits on a plain surface colour with no lines behind it.
@@ -304,17 +340,14 @@
                 hsl(var(--highlight) / calc((var(--glow-highlight)) * 0.1)) 66%,
                 transparent 88%
             ),
-            linear-gradient(hsl(var(--foreground) / var(--grid-alpha)) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(var(--foreground) / var(--grid-alpha)) 1px, transparent 1px);
+            radial-gradient(hsl(var(--foreground) / var(--grid-alpha)) 1px, transparent 1px);
         background-size:
             100% 100%,
             100% 100%,
-            44px 44px,
-            44px 44px;
+            22px 22px;
         background-position:
             0 0,
             0 0,
-            -1px -1px,
             -1px -1px;
         mask-image: linear-gradient(to bottom, black 30%, transparent);
     }
@@ -466,6 +499,62 @@
         }
     }
 }
+/*
+ * Forge horizon: the blue and gold landscape from the brand plates.
+ * Light mode uses soft filled hills. Dark mode draws the same ridges as
+ * luminous strokes (a wider translucent stroke behind each line, no filters).
+ */
+.forge-horizon .horizon-violet {
+    /* Premixed so the hill stays violet on the cool canvas. A thin primary wash turns gray. */
+    fill: #d5cffc;
+}
+
+.forge-horizon .horizon-gold {
+    /* Premixed gold. Highlight at low alpha over the paper canvas reads as beige. */
+    fill: #f6d59a;
+}
+
+.forge-horizon .horizon-stroke,
+.forge-horizon .horizon-stroke-soft,
+.forge-horizon .horizon-stroke-gold,
+.forge-horizon .horizon-stroke-gold-soft {
+    fill: none;
+    stroke: transparent;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.dark .forge-horizon[data-tone='auto'] .horizon-violet,
+.dark .forge-horizon[data-tone='auto'] .horizon-gold,
+.forge-horizon[data-tone='dark'] .horizon-violet,
+.forge-horizon[data-tone='dark'] .horizon-gold {
+    fill: transparent;
+}
+
+.dark .forge-horizon[data-tone='auto'] .horizon-stroke,
+.forge-horizon[data-tone='dark'] .horizon-stroke {
+    stroke: hsl(228 96% 72% / 0.95);
+    stroke-width: 2;
+}
+
+.dark .forge-horizon[data-tone='auto'] .horizon-stroke-soft,
+.forge-horizon[data-tone='dark'] .horizon-stroke-soft {
+    stroke: hsl(228 96% 70% / 0.28);
+    stroke-width: 8;
+}
+
+.dark .forge-horizon[data-tone='auto'] .horizon-stroke-gold,
+.forge-horizon[data-tone='dark'] .horizon-stroke-gold {
+    stroke: hsl(var(--highlight) / 0.9);
+    stroke-width: 1.75;
+}
+
+.dark .forge-horizon[data-tone='auto'] .horizon-stroke-gold-soft,
+.forge-horizon[data-tone='dark'] .horizon-stroke-gold-soft {
+    stroke: hsl(var(--highlight) / 0.22);
+    stroke-width: 8;
+}
+
 /* Rich text: the TipTap editor and rendered user content. */
 @layer components {
     .tiptap,
@@ -579,7 +668,8 @@
     /* Mentions (class attributes are stripped from user content) */
     .tiptap [data-type='mention'],
     .ProseMirror [data-type='mention'] {
-        @apply font-medium text-primary no-underline hover:underline;
+        @apply font-medium no-underline hover:underline;
+        color: hsl(var(--primary-text));
     }
 
     .tiptap a:hover,

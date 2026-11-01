@@ -19,7 +19,7 @@ const props = defineProps<Props>();
     <main v-else id="main-content" tabindex="-1" :class="cn('flex w-full flex-1 flex-col outline-none', props.class)">
         <slot v-if="props.fullWidth" />
         <!-- Pages add their own p-4, so the container only tops up the gutter on larger screens. -->
-        <div v-else class="mx-auto flex w-full max-w-7xl flex-1 flex-col py-2 sm:px-2 lg:px-4">
+        <div v-else class="mx-auto flex w-full max-w-7xl flex-1 flex-col px-1 py-4 sm:px-3 lg:px-6">
             <slot />
         </div>
     </main>

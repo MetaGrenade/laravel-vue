@@ -42,7 +42,7 @@ const variant = computed(() => (props.report.status === 'down' ? 'destructive' :
 </script>
 
 <template>
-    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border" data-testid="search-health">
+    <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none" data-testid="search-health">
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h3 class="flex items-center gap-2 text-lg font-semibold">
                 Search

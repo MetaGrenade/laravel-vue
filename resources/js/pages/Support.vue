@@ -721,7 +721,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
         <Head title="Support Center" />
         <div class="container mx-auto space-y-8 p-4">
             <header class="flex items-center gap-4 rounded-xl border bg-card p-5 shadow-xs">
-                <span class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <LifeBuoy class="size-5" />
                 </span>
                 <div>

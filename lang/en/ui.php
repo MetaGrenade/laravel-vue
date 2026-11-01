@@ -100,7 +100,7 @@ return [
     ],
 
     'footer' => [
-        'tagline' => 'A production-ready Laravel and Vue foundation for SaaS products and online communities.',
+        'tagline' => 'A full-stack starter kit for modern SaaS and community apps.',
         'product' => 'Product',
         'community' => 'Community',
         'developers' => 'Developers',

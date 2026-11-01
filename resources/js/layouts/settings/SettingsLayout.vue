@@ -69,8 +69,8 @@ const isActive = (href: string) => currentPath.value === href;
 
 const linkClass = (href: string) =>
     cn(
-        'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
-        isActive(href) && 'bg-accent font-medium text-foreground',
+        'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+        isActive(href) && 'bg-primary font-medium text-primary-foreground shadow-sm hover:bg-primary hover:text-primary-foreground',
     );
 </script>
 
@@ -99,11 +99,13 @@ const linkClass = (href: string) =>
             <aside class="hidden lg:block">
                 <nav class="sticky top-20 space-y-5" aria-label="Settings sections">
                     <div v-for="group in navGroups" :key="group.title">
-                        <p class="mb-1.5 px-2.5 text-xs font-medium text-muted-foreground/80">{{ group.title }}</p>
+                        <p class="mb-1.5 px-2.5 text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground/80 uppercase">
+                            {{ group.title }}
+                        </p>
                         <ul class="space-y-0.5">
                             <li v-for="item in group.items" :key="item.href">
                                 <Link :href="item.href" :class="linkClass(item.href)" :aria-current="isActive(item.href) ? 'page' : undefined">
-                                    <component :is="item.icon" :class="cn('size-4', isActive(item.href) && 'text-primary')" />
+                                    <component :is="item.icon" class="size-4" />
                                     {{ item.title }}
                                 </Link>
                             </li>
