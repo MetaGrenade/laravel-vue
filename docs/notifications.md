@@ -41,7 +41,7 @@ When an alert is pushed over the websocket, the header adds it at the top withou
 | Dismiss | `DELETE notifications/{id}` | Deletes it |
 | Mark all read | `POST notifications/read-all` | Marks every unread one read |
 
-An id that is not one of the member's stored notifications is **not an error**: the request changes nothing and the page comes back. That happens for an alert that was only pushed (the member turned the notice in the site off but kept the browser alert), for one dismissed in another tab, and for somebody else's id, which is answered exactly like one that does not exist. It used to answer 404, and the bell showed that as an error dialog.
+An id that is not one of the member's stored notifications is **not an error**: the request changes nothing and the page comes back. That happens for an alert that was only pushed (the member turned the notice in the site off but kept the browser alert), for one dismissed in another tab, and for somebody else's id, which is answered exactly like one that does not exist. So is text that is not shaped like an id at all: the column is a `uuid`, PostgreSQL refuses to compare it with anything else (a 500), so the controller only looks up what is UUID-shaped (`NotificationBellTest` runs this on every database CI uses). It used to answer 404, and the bell showed that as an error dialog.
 
 ## What the tests hold in place
 
