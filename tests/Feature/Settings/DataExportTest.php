@@ -136,6 +136,9 @@ class DataExportTest extends TestCase
 
         Notification::assertSentToTimes($user, UserDataExportReady::class, 2);
 
+        // The notice in the site and the alert pushed to the browser are one notification (the bell marks and dismisses by id).
+        $this->assertCount(1, Notification::sent($user, UserDataExportReady::class)->pluck('id')->unique());
+
         $expectedExpiry = $now->copy()->addMinutes(DataExport::DOWNLOAD_TTL_MINUTES)->toIso8601String();
 
         Notification::assertSentTo($user, UserDataExportReady::class, function (UserDataExportReady $notification, array $channels) use ($user, $export, $expectedExpiry) {

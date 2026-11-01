@@ -91,6 +91,9 @@ class SupportTicketNotificationTest extends TestCase
 
         Notification::assertSentToTimes($user, TicketOpened::class, 2);
 
+        // The notice in the site and the alert pushed to the browser are one notification (the bell marks and dismisses by id).
+        $this->assertCount(1, Notification::sent($user, TicketOpened::class)->pluck('id')->unique());
+
         Notification::assertSentTo($user, TicketOpened::class, function (TicketOpened $notification, array $channels) use ($user, $ticket, $message) {
             if ($channels !== ['database']) {
                 return false;
