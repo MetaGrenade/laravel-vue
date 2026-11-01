@@ -551,14 +551,25 @@ const viewNotification = (notification: NotificationItem) => {
                     <div class="hidden items-center lg:flex">
                         <Tooltip v-for="item in rightNavItems" :key="item.title">
                             <TooltipTrigger as-child>
-                                <Button variant="ghost" size="icon" class="text-muted-foreground hover:text-foreground" as-child>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    :class="
+                                        cn(
+                                            'text-muted-foreground hover:text-foreground',
+                                            isActive(item.href) &&
+                                                'rounded-full bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary dark:hover:text-primary-foreground',
+                                        )
+                                    "
+                                    as-child
+                                >
                                     <component
                                         :is="isExternal(item) ? 'a' : Link"
                                         :href="item.href"
                                         :target="isExternal(item) ? '_blank' : undefined"
                                         :rel="isExternal(item) ? 'noopener noreferrer' : undefined"
                                         :aria-label="item.title"
-                                        :class="isActive(item.href) && 'bg-accent text-foreground'"
+                                        :aria-current="isActive(item.href) ? 'page' : undefined"
                                     >
                                         <component :is="item.icon" class="size-[1.15rem]" />
                                     </component>

@@ -109,31 +109,35 @@ const stackPills = computed(() => {
     return pills;
 });
 
-const features: { title: string; description: string; icon: Component; tone: string }[] = [
+const features: { title: string; description: string; icon: Component; tone: string; wash: string }[] = [
     {
         title: 'Shop and checkout',
         description:
             'Catalogue, variants, stock, shipping and tax, Stripe Checkout, guest orders and Tebex packages or the experimental Checkout API.',
         icon: ShoppingBag,
-        tone: 'bg-[hsl(346_72%_46%/0.12)] text-[hsl(346_72%_32%)] dark:text-[hsl(346_85%_76%)]',
+        tone: 'bg-[hsl(346_72%_46%/0.14)] text-[hsl(346_72%_32%)] dark:text-[hsl(346_85%_76%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(346_72%_46%/0.2),transparent_68%)]',
     },
     {
         title: 'Subscriptions and entitlements',
         description: 'Cashier plans with trials and dunning, plus feature and limit entitlements from plans and Tebex packages.',
         icon: CreditCard,
         tone: 'bg-highlight/25 text-[hsl(36_80%_28%)] dark:bg-highlight/15 dark:text-[hsl(40_92%_72%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(var(--highlight)/0.28),transparent_68%)]',
     },
     {
         title: 'Community and moderation',
         description: 'Forums with prefixes, solutions, attachments and ignores, member follows and DMs, automod, bans and one-click content cleanup.',
         icon: MessagesSquare,
         tone: 'bg-primary/10 text-primary',
+        wash: '[background-image:linear-gradient(165deg,hsl(var(--primary)/0.16),transparent_68%)]',
     },
     {
         title: 'Authentication and keys',
         description: 'Email verification, TOTP two-factor auth, recovery codes, OAuth linking and scoped Sanctum API keys with rotation.',
         icon: KeyRound,
-        tone: 'bg-[hsl(221_75%_48%/0.12)] text-[hsl(221_70%_32%)] dark:text-[hsl(221_90%_78%)]',
+        tone: 'bg-[hsl(221_75%_48%/0.14)] text-[hsl(221_70%_32%)] dark:text-[hsl(221_90%_78%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(221_75%_48%/0.18),transparent_68%)]',
     },
     {
         title: 'Security by default',
@@ -141,31 +145,36 @@ const features: { title: string; description: string; icon: Component; tone: str
             'Nonce CSP and security headers checked in CI, private disks for member uploads, webhook replay protection and a published security contact.',
         icon: ShieldCheck,
         tone: 'bg-success/15 text-[hsl(152_64%_24%)] dark:text-success',
+        wash: '[background-image:linear-gradient(165deg,hsl(var(--success)/0.18),transparent_68%)]',
     },
     {
         title: 'Admin control panel',
         description: 'Named permissions for users, blogs, support, commerce and billing, plus audit log and read-only impersonation.',
         icon: LayoutDashboard,
-        tone: 'bg-[hsl(270_55%_52%/0.12)] text-[hsl(270_45%_36%)] dark:text-[hsl(270_85%_80%)]',
+        tone: 'bg-[hsl(270_55%_52%/0.14)] text-[hsl(270_45%_36%)] dark:text-[hsl(270_85%_80%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(270_55%_52%/0.18),transparent_68%)]',
     },
     {
         title: 'Publishing and support',
         description: 'Blog with WebP covers, scheduling and RSS; tickets with SLAs, private attachments and a help centre FAQ.',
         icon: Newspaper,
-        tone: 'bg-[hsl(18_80%_48%/0.12)] text-[hsl(18_75%_32%)] dark:text-[hsl(18_90%_74%)]',
+        tone: 'bg-[hsl(18_80%_48%/0.14)] text-[hsl(18_75%_32%)] dark:text-[hsl(18_90%_74%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(18_80%_48%/0.18),transparent_68%)]',
     },
     {
         title: 'Search and SEO',
         description:
             'Site-wide search, SSR, structured data and sitemaps. Meilisearch index rules, settings sync and reindex are ready for the engine path.',
         icon: Search,
-        tone: 'bg-[hsl(187_65%_36%/0.12)] text-[hsl(187_70%_24%)] dark:text-[hsl(187_65%_68%)]',
+        tone: 'bg-[hsl(187_65%_36%/0.14)] text-[hsl(187_70%_24%)] dark:text-[hsl(187_65%_68%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(187_65%_36%/0.2),transparent_68%)]',
     },
     {
         title: 'API and delivery',
         description: 'Versioned REST with scoped tokens, OpenAPI docs, queues, CI on MySQL and PostgreSQL, and accessibility checks on main flows.',
         icon: Braces,
-        tone: 'bg-[hsl(322_60%_48%/0.12)] text-[hsl(322_55%_32%)] dark:text-[hsl(322_80%_78%)]',
+        tone: 'bg-[hsl(322_60%_48%/0.14)] text-[hsl(322_55%_32%)] dark:text-[hsl(322_80%_78%)]',
+        wash: '[background-image:linear-gradient(165deg,hsl(322_60%_48%/0.18),transparent_68%)]',
     },
 ];
 
@@ -388,11 +397,12 @@ const faqs = [
                     <div
                         v-for="feature in features"
                         :key="feature.title"
-                        class="rounded-xl border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/30"
+                        class="rounded-xl border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-foreground/15"
+                        :class="feature.wash"
                     >
-                        <div class="flex items-center gap-2.5">
-                            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg" :class="feature.tone">
-                                <component :is="feature.icon" class="size-3.5" />
+                        <div class="flex items-center gap-3">
+                            <span class="flex size-10 shrink-0 items-center justify-center rounded-lg" :class="feature.tone">
+                                <component :is="feature.icon" class="size-5" />
                             </span>
                             <h3 class="font-semibold">{{ feature.title }}</h3>
                         </div>
@@ -438,11 +448,11 @@ const faqs = [
                         class="group relative flex flex-col overflow-hidden rounded-xl border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-success/40 hover:shadow-md dark:shadow-none"
                     >
                         <span class="absolute inset-x-0 top-0 h-0.5 bg-success/75" aria-hidden="true" />
-                        <div class="flex items-center gap-2.5">
+                        <div class="flex items-center gap-3">
                             <span
-                                class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-success/15 text-[hsl(152_64%_24%)] dark:text-success"
+                                class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-success/15 text-[hsl(152_64%_24%)] dark:text-success"
                             >
-                                <component :is="module.icon" class="size-3.5" />
+                                <component :is="module.icon" class="size-5" />
                             </span>
                             <h3 class="font-semibold">{{ module.title }}</h3>
                         </div>
@@ -465,9 +475,9 @@ const faqs = [
                 </div>
                 <ol class="reveal mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     <li v-for="(step, index) in steps" :key="step.title" class="relative rounded-xl border bg-card p-5 shadow-xs">
-                        <div class="flex items-center gap-2.5">
+                        <div class="flex items-center gap-3">
                             <span
-                                class="flex size-7 shrink-0 items-center justify-center rounded-full bg-highlight text-sm font-semibold text-highlight-foreground tabular-nums"
+                                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight text-base font-semibold text-highlight-foreground tabular-nums"
                             >
                                 {{ index + 1 }}
                             </span>
@@ -483,41 +493,37 @@ const faqs = [
         <section class="relative overflow-hidden border-y bg-surface bg-wash-destructive cv-auto" aria-labelledby="tech-heading">
             <div class="pointer-events-none absolute inset-0 bg-stripes [mask-image:linear-gradient(to_bottom_right,black,transparent_60%)]" />
             <div class="relative container-app grid gap-12 py-20 lg:grid-cols-[1fr_2fr] lg:py-24">
-                <div class="reveal flex gap-4">
-                    <span class="mt-1 hidden w-0.5 shrink-0 self-stretch rounded-full bg-destructive/80 sm:block" aria-hidden="true" />
-                    <div>
-                        <p class="eyebrow inline-flex items-center gap-2 text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">
-                            <span class="size-1.5 rotate-45 bg-destructive" aria-hidden="true" />
-                            Tech stack
-                        </p>
-                        <h2 id="tech-heading" class="mt-3 text-3xl font-semibold tracking-tight">Modern tooling, no surprises</h2>
-                        <p class="mt-4 text-muted-foreground">
-                            Current releases across the stack, with Pint, ESLint, Prettier, type checking and PHPUnit running in CI on every pull request.
-                        </p>
-                        <ul class="mt-6 space-y-2">
-                            <li v-for="resource in resources" :key="resource.href">
-                                <a
-                                    :href="resource.href"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-[hsl(0_70%_32%)] dark:hover:text-[hsl(0_80%_74%)]"
-                                >
-                                    {{ resource.title }}
-                                    <ArrowUpRight class="size-3.5" />
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                <div class="reveal">
+                    <p class="eyebrow inline-flex items-center gap-2 text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">
+                        <span class="size-1.5 rotate-45 bg-destructive" aria-hidden="true" />
+                        Tech stack
+                    </p>
+                    <h2 id="tech-heading" class="mt-3 text-3xl font-semibold tracking-tight">Modern tooling, no surprises</h2>
+                    <p class="mt-4 text-muted-foreground">
+                        Current releases across the stack, with Pint, ESLint, Prettier, type checking and PHPUnit running in CI on every pull request.
+                    </p>
+                    <ul class="mt-6 space-y-2">
+                        <li v-for="resource in resources" :key="resource.href">
+                            <a
+                                :href="resource.href"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-[hsl(0_70%_32%)] dark:hover:text-[hsl(0_80%_74%)]"
+                            >
+                                {{ resource.title }}
+                                <ArrowUpRight class="size-3.5" />
+                            </a>
+                        </li>
+                    </ul>
                 </div>
                 <div class="reveal grid gap-4 sm:grid-cols-3">
-                    <div v-for="group in stack" :key="group.title" class="overflow-hidden rounded-xl border bg-card shadow-sm dark:shadow-none">
-                        <div
-                            class="border-b border-destructive/15 bg-[linear-gradient(180deg,hsl(var(--destructive)/0.14),hsl(var(--destructive)/0.04))] px-5 py-3.5 text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]"
-                        >
-                            <h3 class="font-semibold">{{ group.title }}</h3>
-                            <span class="mt-2 block h-0.5 w-8 rounded-full bg-current" aria-hidden="true" />
-                        </div>
-                        <ul class="space-y-2.5 px-5 py-4">
+                    <div
+                        v-for="group in stack"
+                        :key="group.title"
+                        class="rounded-xl border border-destructive/20 bg-card p-5 shadow-sm [background-image:linear-gradient(165deg,hsl(var(--destructive)/0.16),transparent_72%)] dark:shadow-none"
+                    >
+                        <h3 class="font-semibold text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">{{ group.title }}</h3>
+                        <ul class="mt-4 space-y-2.5">
                             <li v-for="item in group.items" :key="item" class="flex gap-2.5 text-sm text-muted-foreground">
                                 <span class="mt-1.5 size-1.5 shrink-0 rotate-45 bg-destructive/80" aria-hidden="true" />
                                 {{ item }}
