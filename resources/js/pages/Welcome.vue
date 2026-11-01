@@ -278,7 +278,7 @@ const faqs = [
                 class="pointer-events-none absolute inset-0 bg-dots [mask-image:radial-gradient(ellipse_at_80%_0%,black,transparent_70%)] opacity-70"
             />
             <div class="pointer-events-none absolute inset-0 bg-hero-wash" aria-hidden="true" />
-            <ForgeHorizon class="absolute inset-x-0 bottom-0 h-40 sm:h-52" />
+            <ForgeHorizon motion class="absolute inset-x-0 bottom-0 h-40 sm:h-52" />
 
             <div class="relative container-app grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[0.92fr_1.08fr] lg:py-24">
                 <div>

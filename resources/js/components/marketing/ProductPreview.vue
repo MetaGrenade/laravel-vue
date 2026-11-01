@@ -3,7 +3,7 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import type { SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { BarChart3, Bell, CreditCard, LayoutGrid, LifeBuoy, MessagesSquare, Package, Settings, Users } from '@lucide/vue';
-import { onMounted, onUnmounted, ref, useId } from 'vue';
+import { useId } from 'vue';
 
 const page = usePage<SharedData>();
 const gradientId = `revenue-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
@@ -31,34 +31,12 @@ const activity = [
     { title: 'Payment successful', detail: '$49.00 · Pro Plan', time: '12m ago' },
     { title: 'New forum post', detail: 'How to set up queues?', time: '1h ago' },
 ];
-
-const root = ref<HTMLElement | null>(null);
-let observer: IntersectionObserver | undefined;
-
-onMounted(() => {
-    const node = root.value;
-
-    if (!node || typeof IntersectionObserver === 'undefined') {
-        return;
-    }
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        return;
-    }
-
-    observer = new IntersectionObserver(([entry]) => {
-        node.classList.toggle('is-quiet', !entry?.isIntersecting);
-    });
-    observer.observe(node);
-});
-
-onUnmounted(() => observer?.disconnect());
 </script>
 
 <template>
-    <div ref="root" class="relative" aria-hidden="true">
+    <div class="relative" aria-hidden="true">
         <div
-            class="preview-float relative overflow-hidden rounded-2xl border bg-card shadow-[0_30px_80px_-36px_hsl(232_55%_18%/0.45)] dark:shadow-[0_30px_90px_-32px_hsl(230_80%_2%/0.85)]"
+            class="relative overflow-hidden rounded-2xl border bg-card shadow-[0_30px_80px_-36px_hsl(232_55%_18%/0.45)] dark:shadow-[0_30px_90px_-32px_hsl(230_80%_2%/0.85)]"
         >
             <div class="flex items-center gap-3 border-b px-3 py-2.5 sm:px-4">
                 <AppLogoIcon class="size-6" />
@@ -71,7 +49,7 @@ onUnmounted(() => observer?.disconnect());
                 </div>
                 <span class="relative ml-auto md:ml-3">
                     <Bell class="size-4 text-muted-foreground" />
-                    <span class="preview-pulse absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-success" />
+                    <span class="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-success" />
                 </span>
                 <span class="hidden items-center gap-2 rounded-full py-1 pr-1 pl-2.5 text-xs font-medium sm:inline-flex">
                     Taylor Kim
@@ -124,28 +102,17 @@ onUnmounted(() => observer?.disconnect());
                                     </linearGradient>
                                 </defs>
                                 <path
-                                    class="preview-fill"
                                     :fill="`url(#${gradientId})`"
                                     d="M0 78 C 36 74, 58 62, 86 66 S 132 48, 164 54 S 214 36, 248 32 S 292 24, 320 18 V 112 H 0 Z"
                                 />
                                 <path
-                                    class="preview-draw"
-                                    pathLength="1"
                                     d="M0 78 C 36 74, 58 62, 86 66 S 132 48, 164 54 S 214 36, 248 32 S 292 24, 320 18"
                                     fill="none"
                                     stroke="hsl(var(--primary))"
                                     stroke-width="2.5"
                                     stroke-linecap="round"
                                 />
-                                <circle
-                                    class="preview-point"
-                                    cx="248"
-                                    cy="32"
-                                    r="3.5"
-                                    fill="hsl(var(--card))"
-                                    stroke="hsl(var(--primary))"
-                                    stroke-width="2"
-                                />
+                                <circle cx="248" cy="32" r="3.5" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2" />
                             </svg>
                             <p class="text-right text-[0.65rem] text-muted-foreground">Apr 21 · $16,240</p>
                         </div>
@@ -159,7 +126,7 @@ onUnmounted(() => observer?.disconnect());
                                 <p class="text-sm font-semibold">Pro Plan</p>
                                 <p class="text-xs text-muted-foreground">$49 / month</p>
                                 <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-                                    <div class="preview-meter h-full w-2/3 origin-left rounded-full bg-primary" />
+                                    <div class="h-full w-2/3 rounded-full bg-primary" />
                                 </div>
                                 <p class="mt-1.5 text-[0.65rem] text-muted-foreground">Renews May 1, 2025</p>
                             </div>
@@ -167,13 +134,8 @@ onUnmounted(() => observer?.disconnect());
                     </div>
 
                     <ul class="divide-y rounded-xl border px-3">
-                        <li
-                            v-for="(item, index) in activity"
-                            :key="item.title"
-                            class="preview-row flex items-center gap-3 py-2"
-                            :style="{ '--delay': `${180 + index * 80}ms` }"
-                        >
-                            <span class="size-1.5 shrink-0 rounded-full" :class="index === 0 ? 'preview-pulse bg-success' : 'bg-primary'" />
+                        <li v-for="(item, index) in activity" :key="item.title" class="flex items-center gap-3 py-2">
+                            <span class="size-1.5 shrink-0 rounded-full" :class="index === 0 ? 'bg-success' : 'bg-primary'" />
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-xs font-medium">{{ item.title }}</span>
                                 <span class="block truncate text-[0.65rem] text-muted-foreground">{{ item.detail }}</span>
@@ -183,108 +145,6 @@ onUnmounted(() => observer?.disconnect());
                     </ul>
                 </div>
             </div>
-
-            <div class="preview-toast pointer-events-none absolute right-3 bottom-3 z-10 w-44 rounded-xl border bg-card px-3 py-2 shadow-lg">
-                <p class="text-[0.65rem] font-semibold">Payment received</p>
-                <p class="text-[0.65rem] text-muted-foreground">$49.00 · Pro Plan</p>
-            </div>
         </div>
     </div>
 </template>
-
-<style scoped>
-.preview-float {
-    animation: preview-float 9s ease-in-out infinite;
-    will-change: transform;
-}
-
-.preview-draw {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    animation: preview-draw 1.35s cubic-bezier(0.22, 1, 0.36, 1) 0.35s forwards;
-}
-
-.preview-fill,
-.preview-point {
-    opacity: 0;
-    animation: preview-fade 0.6s ease-out 1.15s forwards;
-}
-
-.preview-meter {
-    transform: scaleX(0);
-    animation: preview-meter 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.7s forwards;
-}
-
-.preview-row {
-    animation: fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: var(--delay, 0ms);
-}
-
-.preview-pulse {
-    animation: preview-pulse 2.4s ease-in-out infinite;
-}
-
-.preview-toast {
-    opacity: 0;
-    animation: preview-toast 9s ease-in-out 1.6s infinite;
-    will-change: transform, opacity;
-}
-
-.is-quiet :is(.preview-float, .preview-toast, .preview-pulse) {
-    animation-play-state: paused;
-}
-
-@keyframes preview-float {
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-6px);
-    }
-}
-
-@keyframes preview-draw {
-    to {
-        stroke-dashoffset: 0;
-    }
-}
-
-@keyframes preview-fade {
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes preview-meter {
-    to {
-        transform: scaleX(1);
-    }
-}
-
-@keyframes preview-pulse {
-    0%,
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.4;
-        transform: scale(0.8);
-    }
-}
-
-@keyframes preview-toast {
-    0%,
-    68%,
-    100% {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    76%,
-    90% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-</style>
