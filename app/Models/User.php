@@ -7,6 +7,7 @@ use App\Support\Entitlements\EntitlementSet;
 use App\Support\Forum\ForumAttachments;
 use App\Support\Notifications\EmailDigest;
 use App\Support\Notifications\RecordsForDigest;
+use App\Support\Notifications\SplitDelivery;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -401,21 +402,11 @@ class User extends Authenticatable implements MustVerifyEmail
             return;
         }
 
-        $synchronousChannels = array_values(array_intersect($channels, ['database']));
-        $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
-
-        if ($synchronousChannels !== []) {
-            $this->notifyNow(
-                $this->cloneNotificationWithChannels($notification, $synchronousChannels),
-                $synchronousChannels
-            );
-        }
-
-        if ($queuedChannels !== []) {
-            $this->notify(
-                $this->cloneNotificationWithChannels($notification, $queuedChannels)
-            );
-        }
+        app(SplitDelivery::class)->send(
+            $this,
+            $channels,
+            fn (array $part): BaseNotification => $this->cloneNotificationWithChannels($notification, $part),
+        );
     }
 
     /**

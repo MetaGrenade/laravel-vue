@@ -14,6 +14,7 @@ import { getInitials } from '@/composables/useInitials';
 import { useI18n } from '@/composables/useI18n';
 import { useRoles } from '@/composables/useRoles';
 import { currentEcho, loadEcho } from '@/lib/echo';
+import { notificationFromPush, withPushedNotification, type PushedNotification } from '@/lib/notifications';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, CartSummary, NavItem, NotificationItem, SharedData, User } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
@@ -37,14 +38,6 @@ import {
     ShoppingCart,
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
-
-interface BroadcastNotificationPayload {
-    id: string;
-    type: string;
-    data?: Record<string, unknown>;
-    created_at?: string;
-    read_at?: string | null;
-}
 
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
@@ -127,32 +120,14 @@ const synchroniseNotifications = () => {
     notificationsState.hasMore = bag?.has_more ?? false;
 };
 
-const handleIncomingNotification = (notification: BroadcastNotificationPayload) => {
-    if (!notification?.id) {
+const handleIncomingNotification = (pushed: PushedNotification) => {
+    const item = notificationFromPush(pushed);
+
+    if (item === null) {
         return;
     }
 
-    const data = (notification.data ?? {}) as Record<string, unknown>;
-    const createdAt = notification.created_at ?? new Date().toISOString();
-    const titleCandidate = typeof data.title === 'string' ? data.title : undefined;
-    const fallbackTitle = typeof data.thread_title === 'string' ? String(data.thread_title) : 'Notification';
-
-    const item: NotificationItem = {
-        id: notification.id,
-        type: notification.type,
-        title: titleCandidate ?? fallbackTitle,
-        excerpt: typeof data.excerpt === 'string' ? data.excerpt : null,
-        url: typeof data.url === 'string' ? data.url : null,
-        data,
-        created_at: createdAt,
-        created_at_for_humans: 'Just now',
-        read_at: notification.read_at ?? null,
-    };
-
-    const existing = notificationsState.items.filter((candidate) => candidate.id !== item.id);
-    notificationsState.items = [item, ...existing].slice(0, 10);
-    notificationsState.unreadCount = notificationsState.unreadCount + 1;
-    notificationsState.hasMore = notificationsState.unreadCount > notificationsState.items.length;
+    Object.assign(notificationsState, withPushedNotification(notificationsState, item));
 };
 
 let notificationChannelName: string | null = null;
@@ -194,7 +169,7 @@ const subscribeToNotificationChannel = async () => {
 
     notificationChannelName = channelName;
 
-    echo.private(channelName).notification((notification: BroadcastNotificationPayload) => {
+    echo.private(channelName).notification((notification: PushedNotification) => {
         handleIncomingNotification(notification);
     });
 };
