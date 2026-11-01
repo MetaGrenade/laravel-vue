@@ -13,8 +13,12 @@ const servers = [];
 const hits = new Map();
 const html = '<p>x</p>'.repeat(1000);
 
-/** A small site: /slow waits 40 ms before it answers, /moved redirects, /missing is a 404, /packed is compressed, /plain is not. */
+/**
+ * A small site: /slow waits 40 ms before it answers, /moved redirects, /missing is a 404, /packed is compressed, /plain is not, and
+ * /flaky fails twice with a 500 (at once) and then is served (after 40 ms), as a page does that breaks now and then.
+ */
 async function site() {
+    let flaky = 0;
     const server = http.createServer((request, response) => {
         hits.set(request.url, (hits.get(request.url) ?? 0) + 1);
 
@@ -26,6 +30,10 @@ async function site() {
         switch (request.url) {
             case '/slow':
                 return setTimeout(() => answer(200, { 'content-type': 'text/html' }, 'late'), 40);
+            case '/flaky':
+                return ++flaky <= 2
+                    ? answer(500, { 'content-type': 'text/html' }, 'oops')
+                    : setTimeout(() => answer(200, { 'content-type': 'text/html' }, 'fine'), 40);
             case '/moved':
                 return answer(302, { location: '/slow' });
             case '/missing':
@@ -112,6 +120,29 @@ describe('measure', () => {
         assert.ok(page.median >= 35 && page.min >= 35, 'every sample waited for the slow answer');
     });
 
+    test('counts the answers that were not 200, not only the last one', async () => {
+        const base = await site();
+        const [flaky] = await measure(base, ['/flaky'], { runs: 3, warmup: 0 });
+
+        assert.equal(flaky.status, 500, 'the answer to show is the one that failed, and not the 200 that came last');
+        assert.equal(flaky.failed, 2);
+        assert.equal(flaky.runs, 3);
+    });
+
+    test('times the answers that were served, not the errors that came back at once', async () => {
+        const base = await site();
+        const [flaky] = await measure(base, ['/flaky'], { runs: 3, warmup: 0 });
+
+        assert.ok(flaky.min >= 35, `the median is ${flaky.median} ms and the fastest ${flaky.min} ms, which are the errors`);
+    });
+
+    test('a page that always answers 200 has not failed', async () => {
+        const base = await site();
+        const [plain] = await measure(base, ['/plain'], { runs: 3, warmup: 0 });
+
+        assert.deepEqual([plain.status, plain.failed, plain.runs], [200, 0, 3]);
+    });
+
     test('keeps the status, the size and the compression of the page', async () => {
         const base = await site();
         const [packed, plain] = await measure(base, ['/packed', '/plain'], { runs: 1, warmup: 0 });
@@ -126,6 +157,8 @@ describe('check', () => {
     const page = (path, status, median, extra = {}) => ({
         path,
         status,
+        failed: status === 200 ? 0 : 1,
+        runs: 1,
         median,
         p90: median,
         min: median,
@@ -158,6 +191,22 @@ describe('check', () => {
         assert.match(problem, /\/ answers 302, a redirect to \/en/);
     });
 
+    test('a page that fails now and then is failing, and the message says how often', () => {
+        const [problem] = check([page('/flaky', 500, 40, { failed: 2, runs: 3 })], 200);
+
+        assert.match(problem, /^\/flaky answers 500 in 2 of 3 requests, not 200/);
+    });
+
+    test('a redirect that comes only now and then is named as one', () => {
+        const [problem] = check([page('/', 302, 40, { failed: 1, runs: 3, location: '/en' })], 200);
+
+        assert.match(problem, /^\/ answers 302 in 1 of 3 requests, a redirect to \/en/);
+    });
+
+    test('a page that fails every time does not say how often', () => {
+        assert.doesNotMatch(check([page('/boom', 500, 3, { failed: 3, runs: 3 })], 200)[0], / of 3 requests/);
+    });
+
     test('a page that fails is a problem however fast the failure is', () => {
         assert.match(check([page('/missing', 404, 3)], 200)[0], /answers 404, not 200/);
         assert.match(check([page('/boom', 500, 3)], 200)[0], /answers 500, not 200/);
@@ -165,7 +214,16 @@ describe('check', () => {
 });
 
 describe('uncompressed', () => {
-    const page = (path, extra) => ({ path, status: 200, bytes: 140_000, encoding: null, type: 'text/html; charset=utf-8', ...extra });
+    const page = (path, extra) => ({
+        path,
+        status: 200,
+        failed: 0,
+        runs: 1,
+        bytes: 140_000,
+        encoding: null,
+        type: 'text/html; charset=utf-8',
+        ...extra,
+    });
 
     test('lists the large text pages that arrive as they were written', () => {
         const found = uncompressed([
@@ -181,8 +239,12 @@ describe('uncompressed', () => {
         );
     });
 
+    test('does not list a page that failed now and then', () => {
+        assert.deepEqual(uncompressed([page('/flaky', { failed: 1, runs: 3 })]), []);
+    });
+
     test('does not list a page that failed', () => {
-        assert.deepEqual(uncompressed([page('/gone', { status: 404 })]), []);
+        assert.deepEqual(uncompressed([page('/gone', { status: 404, failed: 1 })]), []);
     });
 });
 
@@ -214,6 +276,15 @@ describe('the command', () => {
 
         assert.equal(result.status, 1);
         assert.match(result.stderr, /\/slow starts answering after \d+ ms/);
+    });
+
+    test('exits 1 for a page that failed twice in three requests though the last one was served', async () => {
+        const base = await site();
+        const result = await run(base, '--runs=3', '--warmup=0', '--path=/flaky');
+
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /\/flaky answers 500 in 2 of 3 requests/);
+        assert.doesNotMatch(result.stdout, /Every page starts answering/);
     });
 
     test('says when a page arrives uncompressed, and still passes', async () => {

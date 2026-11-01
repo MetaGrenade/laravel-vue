@@ -98,17 +98,25 @@ export async function measure(base, paths, { runs = 15, warmup = 3 } = {}) {
         const samples = [];
         for (let i = 0; i < runs; i++) samples.push(await sample(url));
 
-        // Size, status and encoding of the last answer: they do not change from one request to the next, or the page is not static enough
-        // to measure.
-        const last = samples[samples.length - 1];
+        // Every answer counts, not the last: a page that fails now and then is failing. An error comes back faster than a page, so the
+        // times are those of the answers that were 200 (all of them, when none was).
+        const failed = samples.filter((answer) => answer.status !== 200);
+        const served = samples.filter((answer) => answer.status === 200);
+        const shown = failed[0] ?? samples[samples.length - 1];
+        const last = served[served.length - 1] ?? shown;
+
         results.push({
             path,
-            status: last.status,
-            ...summarise(samples.map((s) => s.ttfb)),
+            status: shown.status,
+            location: shown.location,
+            failed: failed.length,
+            runs: samples.length,
+            ...summarise((served.length > 0 ? served : samples).map((answer) => answer.ttfb)),
+            // Size, encoding and type of an answer that was served: they do not change from one request to the next, or the page is not
+            // static enough to measure.
             bytes: last.bytes,
             encoding: last.encoding,
             type: last.type,
-            location: last.location,
         });
     }
 
@@ -125,12 +133,15 @@ export function check(results, budget = BUDGET_MS) {
     const problems = [];
 
     for (const page of results) {
-        if (page.status >= 300 && page.status < 400) {
+        // The answer that was not 200, and how often: all of them is a page that is not there, some of them is one that fails now and then.
+        const often = page.failed < page.runs ? ` in ${page.failed} of ${page.runs} requests` : '';
+
+        if (page.failed > 0 && page.status >= 300 && page.status < 400) {
             problems.push(
-                `${page.path} answers ${page.status}, a redirect${page.location ? ` to ${page.location}` : ''}. Measure the page it leads to.`,
+                `${page.path} answers ${page.status}${often}, a redirect${page.location ? ` to ${page.location}` : ''}. Measure the page it leads to.`,
             );
-        } else if (page.status !== 200) {
-            problems.push(`${page.path} answers ${page.status}, not 200.`);
+        } else if (page.failed > 0) {
+            problems.push(`${page.path} answers ${page.status}${often}, not 200.`);
         } else if (page.median > budget) {
             problems.push(
                 `${page.path} starts answering after ${Math.round(page.median)} ms (the middle of the samples), over the ${budget} ms it is allowed.`,
@@ -144,7 +155,7 @@ export function check(results, budget = BUDGET_MS) {
 /** Pages that are text, are not small, and arrive as they were written. */
 export function uncompressed(results) {
     return results.filter(
-        (page) => page.status === 200 && !page.encoding && page.bytes > COMPRESS_ABOVE && /text|json|xml|javascript|svg/.test(page.type),
+        (page) => page.failed === 0 && !page.encoding && page.bytes > COMPRESS_ABOVE && /text|json|xml|javascript|svg/.test(page.type),
     );
 }
 

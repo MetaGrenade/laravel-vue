@@ -20,7 +20,7 @@ From section 5.2 of the roadmap:
 npm run ttfb -- https://example.com
 ```
 
-It asks for ten pages a guest can open (the home page, the blog, the forum, the member list, the leaderboard, the shop, pricing, support, the login page and `robots.txt`), each 15 times after 3 requests to warm it. Each request is on a new connection, like a new visitor's, and the time counted is from the start of the request to the arrival of the answer's first byte, so DNS, TCP and TLS are inside it. Read the **median**: one slow request in a row is noise (two runs of the same setup here differed by up to 15 ms on a page). It exits 1 when a page's median is over the budget, or the page answers anything but 200, so it can sit in a deploy script.
+It asks for ten pages a guest can open (the home page, the blog, the forum, the member list, the leaderboard, the shop, pricing, support, the login page and `robots.txt`), each 15 times after 3 requests to warm it. Each request is on a new connection, like a new visitor's, and the time counted is from the start of the request to the arrival of the answer's first byte, so DNS, TCP and TLS are inside it. Read the **median**: one slow request in a row is noise (two runs of the same setup here differed by up to 15 ms on a page). It exits 1 when a page's median is over the budget, or when the page answers anything but 200 **even once** in its runs (a page that fails 2 times in 15 is reported as that, and its time is taken from the answers that were served, since an error comes back faster than a page), so it can sit in a deploy script.
 
 | Option | Meaning |
 |--------|---------|
