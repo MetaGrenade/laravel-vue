@@ -489,8 +489,8 @@ class BlogController extends Controller
             }
 
             if (is_string($stored)) {
-                if (is_string($blog->cover_image) && $blog->cover_image !== '' && $blog->cover_image !== $stored) {
-                    Storage::disk('public')->delete($blog->cover_image);
+                if ($blog->cover_image !== $stored) {
+                    app(BlogCovers::class)->delete($blog->cover_image);
                 }
 
                 $updateData['cover_image'] = $stored;

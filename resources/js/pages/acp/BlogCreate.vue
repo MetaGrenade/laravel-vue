@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
+import CoverImage from '@/components/blog/CoverImage.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -326,7 +327,6 @@ watch(
 );
 
 const previewCoverImage = computed(() => coverImagePreview.value ?? null);
-const previewCover = computed(() => previewCoverImage.value ?? '/images/default-cover.jpg');
 const selectedCategories = computed(() => categoryOptions.value.filter((category) => form.category_ids.includes(category.id)));
 const selectedTags = computed(() => tagOptions.value.filter((tag) => form.tag_ids.includes(tag.id)));
 const previewScheduledMessage = computed(() => {
@@ -684,8 +684,8 @@ const handleSubmit = () => {
                         </Alert>
 
                         <div class="space-y-6">
-                            <div class="overflow-hidden rounded-lg border border-muted">
-                                <img :src="previewCover" alt="Preview cover" class="h-56 w-full object-cover" />
+                            <div class="h-56 overflow-hidden rounded-lg border border-muted">
+                                <CoverImage :src="previewCoverImage" sizes="100vw" alt="Preview cover" class="h-56 w-full object-cover" />
                             </div>
 
                             <div class="space-y-4">
