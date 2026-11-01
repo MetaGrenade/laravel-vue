@@ -131,6 +131,7 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 
 ### Changed
 
+- The home page product preview drifts, draws its chart and surfaces a payment notice with transform and opacity only. The live-demo band uses a green wash and green card rules instead of the gold tint that turned muddy in dark mode.
 - The site footer sits on the card surface, with a top edge and a soft shadow, so it separates from the page in light and dark mode.
 - Support desk summary cards stay at four across, so the labels stay readable on a wide monitor instead of collapsing into one row of eight.
 - Admin blogs, forums, support, tokens, system, and legal pages use solid cards. Trending posts sit on a gold-ruled panel, and the forum reports empty state no longer lays a pattern over the page that blocked every link.

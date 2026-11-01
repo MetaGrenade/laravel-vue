@@ -377,16 +377,22 @@ const faqs = [
         <!-- Live modules -->
         <section
             v-if="modules.length"
-            class="relative overflow-hidden border-y bg-surface bg-wash-highlight cv-auto"
+            class="relative overflow-hidden border-y bg-surface bg-wash-success cv-auto"
             aria-labelledby="modules-heading"
         >
+            <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-success/80 to-transparent" />
             <div class="pointer-events-none absolute inset-0 bg-grid [mask-image:linear-gradient(to_bottom,transparent,black_40%,transparent)]" />
             <div class="relative container-app py-20 lg:py-24">
                 <div class="reveal flex flex-col justify-between gap-4 md:flex-row md:items-end">
                     <div class="max-w-2xl">
-                        <p class="eyebrow">Live demo</p>
+                        <p class="eyebrow inline-flex items-center gap-2 text-[hsl(152_64%_24%)] dark:text-success">
+                            <span class="size-1.5 rounded-full bg-success" aria-hidden="true" />
+                            Live demo
+                        </p>
                         <h2 id="modules-heading" class="mt-3 text-3xl font-semibold tracking-tight">See every module in action</h2>
-                        <p class="mt-4 text-muted-foreground">These are the real pages your users get, not mock-ups. Click through and try them.</p>
+                        <p class="mt-4 max-w-xl text-muted-foreground">
+                            These are the real pages your users get, not mock-ups. Click through and try them.
+                        </p>
                     </div>
                     <Button variant="outline" class="bg-card" as-child>
                         <Link :href="route('dashboard')">
@@ -401,9 +407,10 @@ const faqs = [
                         v-for="module in modules"
                         :key="module.key"
                         :href="module.href"
-                        class="group flex flex-col rounded-xl border bg-card p-6 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                        class="group relative flex flex-col overflow-hidden rounded-xl border bg-card p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-success/40 hover:shadow-md dark:shadow-none"
                     >
-                        <span class="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <span class="absolute inset-x-0 top-0 h-0.5 bg-success/75" aria-hidden="true" />
+                        <span class="flex size-9 items-center justify-center rounded-lg bg-success/15 text-[hsl(152_64%_24%)] dark:text-success">
                             <component :is="module.icon" class="size-5" />
                         </span>
                         <h3 class="mt-4 font-semibold">{{ module.title }}</h3>
