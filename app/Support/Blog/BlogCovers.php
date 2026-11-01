@@ -13,14 +13,15 @@ use Illuminate\Support\Str;
  * The upload's own bytes, name and metadata are not kept.
  *
  * It is kept at three widths, because a cover is shown in a card a third of the page wide on one page and
- * across the whole page on another (docs/images.md). The row points at the largest, and the other two
- * are named after it, so nothing but the name says that a cover has them: a cover stored before this
- * has one file, and a row that points at it still works (it is drawn at its one size).
+ * across the whole page on another (docs/images.md). The row points at the largest, whose name carries its
+ * size in pixels (`{id}-1600x400-large.webp`), and the other two are named after the id (`{id}-medium.webp`,
+ * `{id}-small.webp`). Nothing but the name says that a cover has them, or how big it is: a cover stored
+ * before this has one file, and a row that points at it still works (it is drawn at its one size).
  */
 class BlogCovers
 {
-    /** What the largest file's name ends in, and the mark that a cover has the other sizes. */
-    private const LARGE = '-large.webp';
+    /** The name of the largest file: after the id come its width and height in pixels. */
+    private const LARGE = '#^(?<base>.+)-(?<width>\d+)x(?<height>\d+)-large\.webp$#';
 
     /** The other sizes, smallest first, by the name they carry and the width they are made at. */
     public const WIDTHS = ['small' => 480, 'medium' => 960];
@@ -59,7 +60,7 @@ class BlogCovers
     /** Whether the cover at this path was made with the smaller sizes beside it. */
     public function hasSizes(string $path): bool
     {
-        return str_ends_with($path, self::LARGE);
+        return $this->parse($path) !== null;
     }
 
     /**
@@ -73,15 +74,29 @@ class BlogCovers
     }
 
     /**
+     * Width over height of the cover, or null for one that has a single file and no recorded size. A page needs it
+     * to choose a size: a wide cover in a short box is scaled up to the box's height and cropped at the sides, so it
+     * fills more pixels across than the box is wide (docs/images.md).
+     */
+    public function aspect(?string $path): ?float
+    {
+        $parsed = is_string($path) ? $this->parse($path) : null;
+
+        return $parsed === null ? null : round($parsed['width'] / $parsed['height'], 4);
+    }
+
+    /**
      * The `srcset` of a cover: each file with its width, for the browser to choose from. Null for a cover
      * that has one file, which is then shown as it is.
      *
-     * The width given for the largest is the longest side it is cut to; a portrait picture is narrower than that, so the
-     * browser may think it is a little larger than it is. No size is ever enlarged, so that costs nothing.
+     * The widths are what the files are: the largest is as wide as the cover was cut to, and a cover narrower
+     * than a size has it at its own width. Two files of one width are the same picture, so only one is listed.
      */
     public function srcset(?string $path): ?string
     {
-        if (! is_string($path) || ! $this->hasSizes($path)) {
+        $parsed = is_string($path) ? $this->parse($path) : null;
+
+        if ($parsed === null) {
             return null;
         }
 
@@ -89,12 +104,26 @@ class BlogCovers
         $sources = [];
 
         foreach (self::WIDTHS as $size => $width) {
-            $sources[] = $disk->url($this->sibling($path, $size)).' '.$width.'w';
+            $sources[min($width, $parsed['width'])] ??= $disk->url($this->sibling($parsed['base'], $size));
         }
 
-        $sources[] = $disk->url($path).' '.(int) config('commerce.images.sizes.large', 1600).'w';
+        $sources[$parsed['width']] ??= $disk->url($path);
 
-        return implode(', ', $sources);
+        ksort($sources);
+
+        return implode(', ', array_map(fn (int $width, string $url) => $url.' '.$width.'w', array_keys($sources), $sources));
+    }
+
+    /**
+     * @return array{base: string, width: int, height: int}|null
+     */
+    private function parse(string $path): ?array
+    {
+        if (preg_match(self::LARGE, $path, $found) !== 1 || (int) $found['height'] < 1) {
+            return null;
+        }
+
+        return ['base' => $found['base'], 'width' => (int) $found['width'], 'height' => (int) $found['height']];
     }
 
     /**
@@ -102,16 +131,18 @@ class BlogCovers
      */
     private function files(string $path): array
     {
-        if (! $this->hasSizes($path)) {
+        $parsed = $this->parse($path);
+
+        if ($parsed === null) {
             return [$path];
         }
 
-        return [$path, ...array_map(fn (string $size) => $this->sibling($path, $size), array_keys(self::WIDTHS))];
+        return [$path, ...array_map(fn (string $size) => $this->sibling($parsed['base'], $size), array_keys(self::WIDTHS))];
     }
 
-    private function sibling(string $path, string $size): string
+    private function sibling(string $base, string $size): string
     {
-        return substr($path, 0, -strlen(self::LARGE)).'-'.$size.'.webp';
+        return $base.'-'.$size.'.webp';
     }
 
     /**
@@ -125,11 +156,12 @@ class BlogCovers
             array_values(self::WIDTHS),
         );
 
-        $path = 'blog-covers/'.strtolower((string) Str::ulid()).self::LARGE;
+        $base = 'blog-covers/'.strtolower((string) Str::ulid());
+        $path = "{$base}-{$encoded['width']}x{$encoded['height']}-large.webp";
         $files = [$path => $encoded['large']];
 
         foreach (self::WIDTHS as $size => $width) {
-            $files[$this->sibling($path, $size)] = $encoded['widths'][$width];
+            $files[$this->sibling($base, $size)] = $encoded['widths'][$width];
         }
 
         $disk = Storage::disk('public');

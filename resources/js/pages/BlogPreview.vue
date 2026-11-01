@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import CoverImage from '@/components/blog/CoverImage.vue';
+import { POST_COVER_BOX, fixedHeightSizes } from '@/lib/coverSizes';
 import { CalendarClock } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
@@ -15,6 +16,7 @@ interface BlogPreviewPayload {
     body: string;
     cover_image?: string | null;
     cover_srcset?: string | null;
+    cover_aspect?: number | null;
     published_at?: string | null;
     scheduled_for?: string | null;
     status: string;
@@ -74,7 +76,7 @@ const tags = computed(() => blog.value.tags ?? []);
                     <CoverImage
                         :src="blog.cover_image"
                         :srcset="blog.cover_srcset"
-                        sizes="(min-width: 1280px) 1200px, 100vw"
+                        :sizes="fixedHeightSizes(blog.cover_aspect, POST_COVER_BOX)"
                         alt="Blog cover"
                         class="h-64 w-full object-cover"
                     />

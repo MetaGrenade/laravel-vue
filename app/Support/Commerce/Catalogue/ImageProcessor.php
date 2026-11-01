@@ -61,14 +61,14 @@ class ImageProcessor
      * the same at every width.
      *
      * @param  list<int>  $widths
-     * @return array{large: string, widths: array<int, string>} The widths are keys, as given.
+     * @return array{large: string, width: int, height: int, widths: array<int, string>} The size in pixels is the large picture's. The widths are keys, as given.
      *
      * @throws ImageRejected
      */
     public function webpAtWidths(string $bytes, int $longest, array $widths): array
     {
         $large = $this->fit($this->decode($bytes), max(1, $longest));
-        $encoded = ['large' => $this->encode($large), 'widths' => []];
+        $encoded = ['large' => $this->encode($large), 'width' => imagesx($large), 'height' => imagesy($large), 'widths' => []];
 
         foreach ($widths as $width) {
             $encoded['widths'][$width] = $this->encode($this->fitWidth($large, max(1, $width)));

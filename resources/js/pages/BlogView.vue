@@ -6,6 +6,7 @@ import { csrfHeaders } from '@/lib/http';
 import Button from '@/components/ui/button/Button.vue';
 import BlogComments from '@/components/blog/BlogComments.vue';
 import CoverImage from '@/components/blog/CoverImage.vue';
+import { POST_COVER_BOX, THREE_ACROSS, fixedHeightSizes, ratioBoxSizes } from '@/lib/coverSizes';
 import { Share2 } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -90,6 +91,7 @@ type RecommendedPost = {
     excerpt?: string | null;
     cover_image?: string | null;
     cover_srcset?: string | null;
+    cover_aspect?: number | null;
     published_at?: string | null;
     views?: number;
     last_viewed_at?: string | null;
@@ -110,6 +112,7 @@ type BlogPayload = {
     comment_report_reasons?: ReportReasonOption[];
     cover_image?: string | null;
     cover_srcset?: string | null;
+    cover_aspect?: number | null;
     categories?: BlogTaxonomyItem[];
     tags?: BlogTaxonomyItem[];
     canonical_url?: string | null;
@@ -135,6 +138,9 @@ const props = defineProps<{
 }>();
 
 const blog = computed(() => props.blog);
+
+// The recommended posts are cards in a grid, with a 16:9 picture (aspect-video).
+const RECOMMENDATION_RATIO = 16 / 9;
 const { formatDate, fromNow } = useUserTimezone();
 const numberFormatter = new Intl.NumberFormat();
 const formatNumber = (value: number | null | undefined) => numberFormatter.format(value ?? 0);
@@ -396,7 +402,7 @@ const shareLinks = computed(() => ({
                     <CoverImage
                         :src="blog.cover_image"
                         :srcset="blog.cover_srcset"
-                        sizes="(min-width: 1280px) 1200px, 100vw"
+                        :sizes="fixedHeightSizes(blog.cover_aspect, POST_COVER_BOX)"
                         alt="Blog cover"
                         fetchpriority="high"
                         class="h-64 w-full object-cover"
@@ -502,7 +508,7 @@ const shareLinks = computed(() => ({
                                 v-if="post.cover_image"
                                 :src="post.cover_image"
                                 :srcset="post.cover_srcset"
-                                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                                :sizes="ratioBoxSizes(post.cover_aspect, RECOMMENDATION_RATIO, THREE_ACROSS)"
                                 :alt="`Cover image for ${post.title}`"
                                 loading="lazy"
                                 decoding="async"

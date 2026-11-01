@@ -10,6 +10,7 @@ use App\Support\Commerce\Catalogue\ImageProcessor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -38,9 +39,12 @@ class BlogCoverSizesTest extends TestCase
     {
         $blog = $this->postWithCover(1200, 600);
 
+        // The largest file's name says how big it is; the others are named after the same id.
+        $this->assertMatchesRegularExpression('#^blog-covers/[0-9a-z]{26}-1200x600-large\.webp$#', $blog->cover_image);
         $this->assertSame([1200, 600], $this->sizeOf($blog->cover_image));
         $this->assertSame([960, 480], $this->sizeOf($this->sibling($blog->cover_image, 'medium')));
         $this->assertSame([480, 240], $this->sizeOf($this->sibling($blog->cover_image, 'small')));
+        $this->assertMatchesRegularExpression('#^blog-covers/[0-9a-z]{26}-medium\.webp$#', $this->sibling($blog->cover_image, 'medium'));
         $this->assertCount(3, Storage::disk('public')->allFiles());
     }
 
@@ -50,6 +54,7 @@ class BlogCoverSizesTest extends TestCase
         $blog = $this->postWithCover(600, 1200);
 
         // Cut to a longest side of 1600 first (not needed here), then scaled by width: 600 is narrower than 960.
+        $this->assertStringEndsWith('-600x1200-large.webp', $blog->cover_image);
         $this->assertSame([600, 1200], $this->sizeOf($blog->cover_image));
         $this->assertSame([600, 1200], $this->sizeOf($this->sibling($blog->cover_image, 'medium')));
         $this->assertSame([480, 960], $this->sizeOf($this->sibling($blog->cover_image, 'small')));
@@ -74,23 +79,65 @@ class BlogCoverSizesTest extends TestCase
         $srcset = implode(', ', [
             $disk->url($this->sibling($blog->cover_image, 'small')).' 480w',
             $disk->url($this->sibling($blog->cover_image, 'medium')).' 960w',
-            $disk->url($blog->cover_image).' 1600w',
+            $disk->url($blog->cover_image).' 1200w',
         ]);
 
         $this->get(route('blogs.index'))->assertOk()->assertInertia(fn ($page) => $page
             ->where('blogs.data.0.cover_image', $disk->url($blog->cover_image))
-            ->where('blogs.data.0.cover_srcset', $srcset));
+            ->where('blogs.data.0.cover_srcset', $srcset)
+            ->where('blogs.data.0.cover_aspect', 2));
 
         $this->get(route('blogs.view', ['slug' => $blog->slug]))->assertOk()->assertInertia(fn ($page) => $page
             ->where('blog.cover_image', $disk->url($blog->cover_image))
-            ->where('blog.cover_srcset', $srcset));
+            ->where('blog.cover_srcset', $srcset)
+            ->where('blog.cover_aspect', 2));
 
         $other = Blog::factory()->published()->create();
 
         $this->get(route('blogs.view', ['slug' => $other->slug]))->assertOk()->assertInertia(fn ($page) => $page
             ->where('blog.cover_srcset', null)
+            ->where('blog.cover_aspect', null)
             ->where('blog.recommendations.0.cover_image', $disk->url($blog->cover_image))
-            ->where('blog.recommendations.0.cover_srcset', $srcset));
+            ->where('blog.recommendations.0.cover_srcset', $srcset)
+            ->where('blog.recommendations.0.cover_aspect', 2));
+    }
+
+    #[Test]
+    public function the_page_is_told_how_wide_the_cover_is_so_it_can_allow_for_a_wide_one_in_a_short_box(): void
+    {
+        // A wide cover in a box of fixed height is scaled to the height and cut at the sides: it needs more pixels
+        // across than the box is wide, which only the page can work out, from these proportions.
+        $blog = $this->postWithCover(1600, 400);
+
+        $this->assertStringEndsWith('-1600x400-large.webp', $blog->cover_image);
+
+        $this->get(route('blogs.index'))->assertOk()->assertInertia(fn ($page) => $page->where('blogs.data.0.cover_aspect', 4));
+
+        $tall = $this->postWithCover(600, 1200, 'A tall story');
+
+        $this->get(route('blogs.view', ['slug' => $tall->slug]))->assertOk()->assertInertia(fn ($page) => $page->where('blog.cover_aspect', 0.5));
+    }
+
+    #[Test]
+    public function the_widths_in_the_srcset_are_the_widths_of_the_files(): void
+    {
+        $disk = Storage::disk('public');
+
+        // 600 pixels wide: the 960 size is the same picture as the largest, so it is offered once, at 600.
+        $tall = $this->postWithCover(600, 1200);
+
+        $this->assertSame(
+            $disk->url($this->sibling($tall->cover_image, 'small')).' 480w, '.$disk->url($this->sibling($tall->cover_image, 'medium')).' 600w',
+            app(BlogCovers::class)->srcset($tall->cover_image),
+        );
+
+        // 300 pixels wide: all three are the same picture.
+        $narrow = $this->postWithCover(300, 150, 'A narrow story');
+
+        $this->assertSame(
+            $disk->url($this->sibling($narrow->cover_image, 'small')).' 300w',
+            app(BlogCovers::class)->srcset($narrow->cover_image),
+        );
     }
 
     #[Test]
@@ -102,7 +149,8 @@ class BlogCoverSizesTest extends TestCase
 
         $this->get(route('blogs.view', ['slug' => $blog->slug]))->assertOk()->assertInertia(fn ($page) => $page
             ->where('blog.cover_image', Storage::disk('public')->url('blog-covers/older.webp'))
-            ->where('blog.cover_srcset', null));
+            ->where('blog.cover_srcset', null)
+            ->where('blog.cover_aspect', null));
     }
 
     #[Test]
@@ -112,11 +160,13 @@ class BlogCoverSizesTest extends TestCase
 
         $this->get(route('blogs.index'))->assertOk()->assertInertia(fn ($page) => $page
             ->where('blogs.data.0.cover_image', null)
-            ->where('blogs.data.0.cover_srcset', null));
+            ->where('blogs.data.0.cover_srcset', null)
+            ->where('blogs.data.0.cover_aspect', null));
 
         $this->get(route('blogs.view', ['slug' => $blog->slug]))->assertOk()->assertInertia(fn ($page) => $page
             ->where('blog.cover_image', null)
-            ->where('blog.cover_srcset', null));
+            ->where('blog.cover_srcset', null)
+            ->where('blog.cover_aspect', null));
     }
 
     #[Test]
@@ -134,7 +184,7 @@ class BlogCoverSizesTest extends TestCase
             ->where('blogs.data.0.cover_srcset', implode(', ', [
                 $cdn.$this->sibling($blog->cover_image, 'small').' 480w',
                 $cdn.$this->sibling($blog->cover_image, 'medium').' 960w',
-                $cdn.$blog->cover_image.' 1600w',
+                $cdn.$blog->cover_image.' 1200w',
             ])));
     }
 
@@ -276,18 +326,18 @@ class BlogCoverSizesTest extends TestCase
         $this->assertSame(['blog-covers/old.png'], Storage::disk('public')->allFiles(), 'what was drawn for it is gone, and the old file is not the command to remove');
     }
 
-    private function postWithCover(int $width, int $height): Blog
+    private function postWithCover(int $width, int $height, string $title = 'A story with a cover'): Blog
     {
         $this->actingAs($this->admin())->post(route('acp.blogs.store'), [
-            'title' => 'A story with a cover',
+            'title' => $title,
             'body' => '<p>Hello</p>',
             'status' => 'published',
             'cover_image' => UploadedFile::fake()->image('cover.png', $width, $height),
         ])->assertSessionHasNoErrors();
 
-        $blog = Blog::query()->where('slug', 'a-story-with-a-cover')->firstOrFail();
+        $blog = Blog::query()->where('slug', Str::slug($title))->firstOrFail();
 
-        $this->assertStringEndsWith('-large.webp', $blog->cover_image);
+        $this->assertStringEndsWith("-{$width}x{$height}-large.webp", $blog->cover_image);
 
         // What follows is seen by a visitor who is not signed in.
         $this->app['auth']->forgetGuards();
@@ -319,7 +369,7 @@ class BlogCoverSizesTest extends TestCase
 
     private function sibling(string $path, string $size): string
     {
-        return str_replace('-large.webp', "-$size.webp", $path);
+        return preg_replace('/-\d+x\d+-large\.webp$/', "-$size.webp", $path);
     }
 
     private function admin(): User

@@ -5,6 +5,7 @@ import { type BreadcrumbItem, type QueryParams } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
 import CoverImage from '@/components/blog/CoverImage.vue';
+import { THREE_ACROSS, fixedHeightSizes, ratioBoxSizes } from '@/lib/coverSizes';
 import {
     Pagination,
     PaginationEllipsis,
@@ -36,6 +37,7 @@ interface BlogSummary {
     excerpt: string | null;
     cover_image: string | null;
     cover_srcset: string | null;
+    cover_aspect: number | null;
     views: number;
     last_viewed_at: string | null;
     published_at: string | null;
@@ -79,6 +81,14 @@ const props = defineProps<{
 
 const hasBlogs = computed(() => (props.blogs.data?.length ?? 0) > 0);
 const featuredBlog = computed(() => props.blogs.data?.[0] ?? null);
+
+// What the covers are drawn in, for choosing a file (resources/js/lib/coverSizes.ts): the featured post is a box 16rem tall (18rem from
+// the sm breakpoint) across the page, and the cards in the grid are 16:7 (aspect-[16/7]).
+const FEATURED_BOX = [
+    { minScreen: 640, width: '100vw', height: 288 },
+    { width: '100vw', height: 256 },
+];
+const CARD_RATIO = 16 / 7;
 
 const defaultSort: BlogSortOption = 'latest';
 
@@ -225,7 +235,7 @@ const {
                     <CoverImage
                         :src="featuredBlog.cover_image"
                         :srcset="featuredBlog.cover_srcset"
-                        sizes="100vw"
+                        :sizes="fixedHeightSizes(featuredBlog.cover_aspect, FEATURED_BOX)"
                         alt="Featured blog cover"
                         fetchpriority="high"
                         decoding="async"
@@ -412,7 +422,7 @@ const {
                                 <CoverImage
                                     :src="blog.cover_image"
                                     :srcset="blog.cover_srcset"
-                                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                                    :sizes="ratioBoxSizes(blog.cover_aspect, CARD_RATIO, THREE_ACROSS)"
                                     alt="Blog cover"
                                     loading="lazy"
                                     decoding="async"

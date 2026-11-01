@@ -106,6 +106,7 @@ class BlogController extends Controller
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
                 'cover_srcset' => $covers->srcset($blog->cover_image),
+                'cover_aspect' => $covers->aspect($blog->cover_image),
                 'views' => $blog->views,
                 'last_viewed_at' => $formatter->iso($blog->last_viewed_at),
                 'published_at' => $formatter->iso($blog->published_at),
@@ -431,6 +432,7 @@ class BlogController extends Controller
                         ? Storage::disk('public')->url($relatedBlog->cover_image)
                         : null,
                     'cover_srcset' => $covers->srcset($relatedBlog->cover_image),
+                    'cover_aspect' => $covers->aspect($relatedBlog->cover_image),
                     'published_at' => $formatter->iso($relatedBlog->published_at),
                 ];
             })
@@ -490,6 +492,7 @@ class BlogController extends Controller
                 'excerpt' => $blog->excerpt,
                 'cover_image' => $coverImageUrl,
                 'cover_srcset' => $covers->srcset($blog->cover_image),
+                'cover_aspect' => $covers->aspect($blog->cover_image),
                 'canonical_url' => $canonicalUrl,
                 'body' => $blog->body,
                 'views' => $blog->views,
@@ -614,6 +617,7 @@ class BlogController extends Controller
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
                 'cover_srcset' => app(BlogCovers::class)->srcset($blog->cover_image),
+                'cover_aspect' => app(BlogCovers::class)->aspect($blog->cover_image),
                 'body' => $blog->body,
                 'published_at' => $formatter->iso($blog->published_at),
                 'scheduled_for' => $formatter->iso($blog->scheduled_for),
