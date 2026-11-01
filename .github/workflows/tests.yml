@@ -114,7 +114,7 @@ jobs:
       - name: Run tests (PostgreSQL 16)
         run: php artisan test
 
-  # axe on the public pages. The M7 Playwright smoke suite is a separate item.
+  # axe on the public pages. The suite builds and serves its own database (tests/e2e/serve.mjs).
   a11y:
     name: a11y (axe)
     runs-on: ubuntu-latest
@@ -130,13 +130,39 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run the accessibility audit
-        env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: ${{ github.workspace }}/database/a11y.sqlite
-          DB_URL: ''
-          APP_URL: http://127.0.0.1:8000
-          A11Y_PREPARE: '1'
         run: npx playwright test --config=tests/a11y/playwright.config.ts
+
+  # The paths people take through the site, in a browser: registering and signing in, a forum thread and a reply, a comment, a support
+  # ticket, the cart, an order that costs nothing, the admin area (docs/e2e-tests.md). A failed run keeps the report, the traces and the
+  # log of the server for a week.
+  e2e:
+    name: e2e (Playwright smoke suite)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the smoke suite
+        run: npm run e2e
+
+      - name: Keep the report of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            playwright-report
+            test-results
+            storage/logs
+          retention-days: 7
+          if-no-files-found: ignore
 
   # A real Meilisearch (the version compose.yaml runs): what the search tests with a fake engine cannot show. How it ranks, what a typo
   # still finds, what leaves the index, the health check against what is really there, and the key recipe in docs/search-index.md.

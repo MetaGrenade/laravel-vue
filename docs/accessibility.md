@@ -8,17 +8,17 @@ axe checks the public pages a visitor opens. A problem it marks critical fails t
 
 Home, sign in, register, forgot password, pricing, the shop, a product, the cart, checkout after that product is added, the forum and a thread, the blog and a post, support, the member directory, a profile, and the leaderboard.
 
-`AccessibilityFlowSeeder` creates those records in `database/a11y.sqlite`. Rebuilding runs only when that file is the database. The check fails when axe reports a critical problem.
+`AccessibilityFlowSeeder` creates those records in `database/a11y.sqlite`, which is rebuilt from nothing every time the check starts. The check fails when axe reports a critical problem.
 
 ## Running it
 
-PHP 8.4, from the repository root. `A11Y_PREPARE=1` rebuilds `database/a11y.sqlite` and serves the app at `http://127.0.0.1:8000`.
+PHP 8.4, from the repository root, after `npm run build` and with no Vite dev server running. The check serves the app at `http://127.0.0.1:8000` on its own database and never touches the one in `.env`.
 
 ```bash
-DB_CONNECTION=sqlite DB_DATABASE="$PWD/database/a11y.sqlite" DB_URL= APP_URL=http://127.0.0.1:8000 A11Y_PREPARE=1 npx playwright test --config=tests/a11y/playwright.config.ts
+npm run a11y
 ```
 
-Set `PHP_BIN` when `php` on the path is not 8.4. CI runs the same check as the `a11y` job in `.github/workflows/tests.yml`.
+Set `PHP_BIN` when `php` on the path is not 8.4. It starts the application the way the smoke suite does, so the other options (a browser that is already installed, a site that is already running) are in [e2e-tests.md](e2e-tests.md#running-it). CI runs the same check as the `a11y` job in `.github/workflows/tests.yml`.
 
 ## What changed
 
@@ -28,8 +28,9 @@ The forum page had a second `main` inside the page's own main landmark. That inn
 
 - Fixes for problems axe does not mark critical, including colour contrast.
 - Signed-in pages and the admin area.
-- The Playwright smoke suite (an M7 item).
 - CAPTCHA.
+
+The paths people take through the site, as opposed to the pages they open, are the smoke suite in [e2e-tests.md](e2e-tests.md).
 
 ## Testing
 
