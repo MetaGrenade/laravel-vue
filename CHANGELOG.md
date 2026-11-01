@@ -124,6 +124,7 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 
 ### Changed
 
+- The site footer sits on the card surface, with a top edge and a soft shadow, so it separates from the page in light and dark mode.
 - Support desk summary cards stay at four across, so the labels stay readable on a wide monitor instead of collapsing into one row of eight.
 - Admin blogs, forums, support, tokens, system, and legal pages use solid cards. Trending posts sit on a gold-ruled panel, and the forum reports empty state no longer lays a pattern over the page that blocked every link.
 - Dark mode keeps the saturated indigo for buttons and active navigation, and uses a lighter indigo for `text-primary` so links such as "Forgot password" stay above the 4.5:1 contrast ratio on cards.

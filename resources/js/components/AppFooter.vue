@@ -48,7 +48,7 @@ const columns = computed<{ title: string; links: FooterLink[] }[]>(() => [
 </script>
 
 <template>
-    <footer class="mt-auto border-t bg-background">
+    <footer class="mt-auto border-t border-border bg-card shadow-[0_-20px_40px_-28px_rgb(20_24_36/0.35)]">
         <div class="container-app grid gap-10 py-12 md:grid-cols-[1.5fr_repeat(3,1fr)]">
             <div class="space-y-3">
                 <Link :href="route('home')" class="inline-flex rounded-md">
