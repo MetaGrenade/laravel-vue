@@ -70,7 +70,10 @@ return [
             'queue' => env('REDIS_QUEUE', 'default'),
             'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
             'block_for' => null,
-            'after_commit' => false,
+            // A job is in Redis the moment it is pushed, not when the transaction it was pushed inside commits (a database
+            // queue's row waits for the commit with everything else). Without this a worker can pick a job up before the
+            // record it is about, or the whole order, exists, and a rolled back transaction still sends its email (docs/redis.md).
+            'after_commit' => (bool) env('REDIS_QUEUE_AFTER_COMMIT', true),
         ],
 
         'deferred' => [

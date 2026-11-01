@@ -44,10 +44,14 @@ services:
       timeout: 5s
       retries: 10
 
+  # The cache, queue and sessions when you switch them to Redis (docs/redis.md). Answers on this machine only: Redis has no password here.
+  # The append-only file keeps the queue and the sessions across a restart; noeviction makes a full Redis refuse a write instead of
+  # dropping a queued job or a session to make room.
   redis:
     image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
     ports:
-      - '${FORWARD_REDIS_PORT:-6379}:6379'
+      - '127.0.0.1:${FORWARD_REDIS_PORT:-6379}:6379'
     volumes:
       - redis-data:/data
     healthcheck:

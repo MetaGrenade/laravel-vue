@@ -110,7 +110,7 @@ compose.yaml                # Optional backing services for local development (D
   - Required: `bcmath` (used by Cashier's money library), `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `iconv`, `json`, `libxml`, `mbstring`, `openssl`, `session`, `tokenizer`, `xml`, `xmlwriter` and `zip` (account data exports).
   - A PDO driver for your database: `pdo_sqlite`, `pdo_mysql` or `pdo_pgsql`.
   - `gd` **with WebP support**, for product pictures. Optional: `exif`, so sideways photos are turned upright.
-  - `redis` (phpredis) only if you switch cache, queues or sessions to Redis; the defaults use the database and `.env.example` sets `REDIS_CLIENT=phpredis`.
+  - `redis` (phpredis) only if you switch cache, queues or sessions to Redis (see [docs/redis.md](docs/redis.md)); the defaults use the database and `.env.example` sets `REDIS_CLIENT=phpredis`.
 - **Node.js 22.13 or newer** (24 LTS recommended, see `.nvmrc`) with **npm 10+**.
 - **A database**: SQLite (the default, for local development), **MySQL 8** or **PostgreSQL 16**. The test suite runs against all three in CI, and tests always use an in-memory SQLite database unless you ask otherwise.
 - **For the shop**: a Stripe account (test keys are enough) and, locally, the [Stripe CLI](https://docs.stripe.com/stripe-cli) to forward webhooks.
@@ -485,7 +485,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - **SSR build**: `npm run build:ssr` compiles the SPA and SSR bundle; run `php artisan inertia:start-ssr` and set `INERTIA_SSR_ENABLED=true`. Combine with `composer dev:ssr` when testing server rendering locally.
 - **Database**: run `php artisan migrate --force`. Do **not** run a plain `php artisan db:seed` in production: it creates a demo user with a known password and demo content. Seed only what you need, for example `php artisan db:seed --class=RolePermissionSeeder --force`, plus `SupportTicketCategorySeeder`, `BadgeSeeder` and `SubscriptionPlanSeeder` if you use those features. `RolePermissionSeeder` makes the user with ID 1 an administrator, so register your own account first, or run `User::find($id)->assignRole('admin')` in `php artisan tinker` for another account.
 - **Processes**: keep a queue worker running (for example under Supervisor), add a cron entry for `php artisan schedule:run` every minute, and run `php artisan storage:link`. The shop relies on both: order emails (receipts, shipping and refund notices) are queued, and unpaid orders only expire when the scheduler runs.
-- **Env hardening**: Configure HTTPS (`SESSION_SECURE_COOKIE=true`, `APP_FORCE_HTTPS` behind a proxy), queues (e.g., Redis), the scheduler, mail drivers, your live Stripe keys and webhook endpoint, and `APP_ENV=production` with `APP_DEBUG=false` in `.env` before deploying. Run `php artisan optimize` during deployment.
+- **Env hardening**: Configure HTTPS (`SESSION_SECURE_COOKIE=true`, `APP_FORCE_HTTPS` behind a proxy), the cache, queue and sessions on Redis ([docs/redis.md](docs/redis.md): which database holds what, workers, memory), the scheduler, mail drivers, your live Stripe keys and webhook endpoint, and `APP_ENV=production` with `APP_DEBUG=false` in `.env` before deploying. Run `php artisan optimize` during deployment.
 - **Files**: keep the digital download disk private. If you move uploads to S3 or similar, set `COMMERCE_IMAGE_DISK` and `COMMERCE_DOWNLOAD_DISK` to the matching disks (and keep the AWS_* values in `.env`).
 
 ## Artisan commands

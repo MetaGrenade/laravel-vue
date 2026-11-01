@@ -140,7 +140,7 @@ jobs:
 
   # A real Meilisearch (the version compose.yaml runs): what the search tests with a fake engine cannot show. How it ranks, what a typo
   # still finds, what leaves the index, the health check against what is really there, and the key recipe in docs/search-index.md.
-  # The tests are in tests/Live, which `php artisan test` does not run, and skip themselves unless MEILISEARCH_LIVE_HOST is set.
+  # The tests are in tests/Live/Meilisearch, which `php artisan test` does not run, and skip themselves unless MEILISEARCH_LIVE_HOST is set.
   search:
     name: search (Meilisearch 1.12)
     runs-on: ubuntu-latest
@@ -173,7 +173,38 @@ jobs:
         uses: ./.github/actions/setup-app
 
       - name: Run the Meilisearch tests
-        run: php artisan test tests/Live
+        run: php artisan test tests/Live/Meilisearch
+
+  # The cache, the queue and the sessions on a real Redis, the way a production site is set up (docs/redis.md): where each one lives,
+  # what clearing the cache leaves alone, when a queued job is let in and that a worker runs one.
+  # The tests are in tests/Live/Redis, which `php artisan test` does not run, and skip themselves unless REDIS_LIVE_HOST is set.
+  redis:
+    name: redis (Redis 7)
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=12
+
+    env:
+      REDIS_LIVE_HOST: 127.0.0.1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
+
+      - name: Run the Redis tests
+        run: php artisan test tests/Live/Redis
 
   # What the built front end weighs, in gzipped bytes: what every page loads, what a page adds to that, and the largest script.
   # The numbers are in scripts/bundle-budget.json; docs/bundle-budget.md says how to read a failure and when to raise one.
