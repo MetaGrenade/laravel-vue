@@ -6,7 +6,6 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { toast } from 'vue-sonner';
-import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Button from '@/components/ui/button/Button.vue';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -957,77 +956,85 @@ const unpublishFaq = (faq: FaqItem) => {
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
-                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <MessageSquare class="mr-3 h-8 w-8 text-muted-foreground" />
-                        <div>
-                            <div class="text-sm text-muted-foreground">Total Tickets</div>
-                            <div class="text-xl font-bold">{{ props.supportStats.total }}</div>
+                    <div class="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <MessageSquare class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Total Tickets</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.total }}</div>
                         </div>
-                        <PlaceholderPattern />
                     </div>
-                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <XCircle class="mr-3 h-8 w-8 text-muted-foreground" />
-                        <div>
-                            <div class="text-sm text-muted-foreground">Open Tickets</div>
-                            <div class="text-xl font-bold">{{ props.supportStats.open }}</div>
+                    <div class="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <XCircle class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Open Tickets</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.open }}</div>
                         </div>
-                        <PlaceholderPattern />
                     </div>
-                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <CheckCircle class="mr-3 h-8 w-8 text-muted-foreground" />
-                        <div>
-                            <div class="text-sm text-muted-foreground">Closed Tickets</div>
-                            <div class="text-xl font-bold">{{ props.supportStats.closed }}</div>
+                    <div class="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <CheckCircle class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Closed Tickets</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.closed }}</div>
                         </div>
-                        <PlaceholderPattern />
                     </div>
-                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <Star class="mr-3 h-8 w-8 text-warning" />
-                        <div>
-                            <div class="text-sm text-muted-foreground">Avg. CSAT</div>
-                            <div class="text-xl font-bold">
+                    <div class="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-highlight/15 text-highlight">
+                            <Star class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Avg. CSAT</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">
                                 {{ satisfactionStats.average !== null ? `${satisfactionStats.average}/5` : 'No ratings yet' }}
                             </div>
                         </div>
-                        <PlaceholderPattern />
                     </div>
-                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <Ticket class="mr-3 h-8 w-8 text-primary" />
-                        <div>
-                            <div class="text-sm text-muted-foreground">Rated Tickets</div>
-                            <div class="text-xl font-bold">{{ satisfactionStats.count }}</div>
+                    <div class="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <Ticket class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Rated Tickets</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ satisfactionStats.count }}</div>
                         </div>
-                        <PlaceholderPattern />
                     </div>
-                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <HelpCircle class="mr-3 h-8 w-8 text-muted-foreground" />
-                        <div>
-                            <div class="text-sm text-muted-foreground">FAQs</div>
-                            <div class="text-xl font-bold">{{ props.supportStats.faqs }}</div>
+                    <div class="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <HelpCircle class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">FAQs</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.faqs }}</div>
                             <div class="text-xs text-muted-foreground">{{ totalFaqFeedback }} total votes</div>
                         </div>
-                        <PlaceholderPattern />
                     </div>
-                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <ThumbsUp class="mr-3 h-8 w-8 text-success" />
-                        <div>
-                            <div class="text-sm text-muted-foreground">Helpful votes</div>
-                            <div class="text-xl font-bold">{{ props.supportStats.faq_helpful_feedback }}</div>
+                    <div class="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+                            <ThumbsUp class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Helpful votes</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.faq_helpful_feedback }}</div>
                         </div>
-                        <PlaceholderPattern />
                     </div>
-                    <div class="relative flex items-center overflow-hidden rounded-xl border p-4">
-                        <ThumbsDown class="mr-3 h-8 w-8 text-destructive" />
-                        <div>
-                            <div class="text-sm text-muted-foreground">Not helpful votes</div>
-                            <div class="text-xl font-bold">{{ props.supportStats.faq_not_helpful_feedback }}</div>
+                    <div class="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+                            <ThumbsDown class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Not helpful votes</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ props.supportStats.faq_not_helpful_feedback }}</div>
                         </div>
-                        <PlaceholderPattern />
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    <div class="space-y-4 rounded-xl border p-4">
+                    <div class="space-y-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                         <div class="flex items-start justify-between">
                             <div>
                                 <div class="text-sm text-muted-foreground">Customer satisfaction</div>
@@ -1046,7 +1053,7 @@ const unpublishFaq = (faq: FaqItem) => {
                         </div>
                         <div v-else class="text-sm text-muted-foreground">No customer satisfaction ratings available yet.</div>
                     </div>
-                    <div class="space-y-4 rounded-xl border p-4">
+                    <div class="space-y-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                         <div class="flex items-start justify-between">
                             <div>
                                 <div class="text-sm text-muted-foreground">Ratings by status</div>
@@ -1054,7 +1061,7 @@ const unpublishFaq = (faq: FaqItem) => {
                             </div>
                         </div>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" v-if="hasSatisfactionData">
-                            <div v-for="[status, metrics] in satisfactionStatusEntries" :key="status" class="rounded-lg border p-3">
+                            <div v-for="[status, metrics] in satisfactionStatusEntries" :key="status" class="rounded-lg border bg-muted/40 p-3">
                                 <div class="text-sm font-medium capitalize">{{ status }}</div>
                                 <div class="text-xs text-muted-foreground">Rated: {{ metrics.count }}</div>
                                 <div class="text-lg font-semibold">
@@ -1075,7 +1082,7 @@ const unpublishFaq = (faq: FaqItem) => {
 
                     <!-- Tickets Tab -->
                     <TabsContent value="tickets">
-                        <div class="space-y-4 rounded-xl border p-4">
+                        <div class="space-y-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                             <!-- Header: Search & Create -->
                             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                                 <div class="flex w-full flex-col gap-3">
@@ -1397,7 +1404,7 @@ const unpublishFaq = (faq: FaqItem) => {
 
                     <!-- FAQs Tab -->
                     <TabsContent value="faq">
-                        <div class="space-y-4 rounded-xl border p-4">
+                        <div class="space-y-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                             <!-- Header: Search & Create -->
                             <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                                 <h2 class="text-lg font-semibold">FAQ Management</h2>

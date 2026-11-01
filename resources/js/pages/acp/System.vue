@@ -85,7 +85,7 @@ const saveSettings = () => {
                 <!-- Settings Controls Section -->
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <!-- Maintenance Mode -->
-                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                         <h3 class="mb-2 text-lg font-semibold">Maintenance Mode</h3>
                         <p class="mb-4 text-sm text-muted-foreground">Toggle maintenance mode to temporarily disable access for users.</p>
                         <div class="flex items-center">
@@ -97,7 +97,7 @@ const saveSettings = () => {
                     </div>
 
                     <!-- Email Verification -->
-                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                         <h3 class="mb-2 text-lg font-semibold">Email Verification</h3>
                         <p class="mb-4 text-sm text-muted-foreground">Require users to verify their email address upon registration.</p>
                         <div class="flex items-center">
@@ -109,7 +109,7 @@ const saveSettings = () => {
                     </div>
 
                     <!-- Website Sections -->
-                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                         <h3 class="mb-2 text-lg font-semibold">Website Sections</h3>
                         <p class="mb-4 text-sm text-muted-foreground">Enable or disable different sections of the website.</p>
                         <div class="space-y-3">
@@ -165,7 +165,7 @@ const saveSettings = () => {
                     </div>
 
                     <!-- Payment Provider -->
-                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                         <h3 class="mb-2 text-lg font-semibold">Payment Provider</h3>
                         <p class="mb-4 text-sm text-muted-foreground">
                             Choose how the shop takes payment. Orders already placed are always settled with the provider they were placed with.
@@ -196,7 +196,7 @@ const saveSettings = () => {
                     </div>
 
                     <!-- OAuth Providers -->
-                    <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                    <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                         <h3 class="mb-2 text-lg font-semibold">OAuth Providers</h3>
                         <p class="mb-4 text-sm text-muted-foreground">
                             Control which social authentication providers are available for login and account linking.
@@ -224,7 +224,7 @@ const saveSettings = () => {
                 </div>
 
                 <!-- System Information Section -->
-                <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                     <h3 class="mb-2 text-lg font-semibold">System Information</h3>
                     <ul class="space-y-2 text-sm">
                         <li>
@@ -277,9 +277,7 @@ const saveSettings = () => {
                 <!-- Search: whether Meilisearch is reachable and holds what it should, asked after the page is shown -->
                 <Deferred data="searchHealth">
                     <template #fallback>
-                        <div class="rounded-xl border border-sidebar-border/70 p-4 text-sm text-muted-foreground dark:border-sidebar-border">
-                            Checking search…
-                        </div>
+                        <div class="rounded-xl border bg-card p-4 text-sm text-muted-foreground shadow-sm dark:shadow-none">Checking search…</div>
                     </template>
                     <SearchHealthCard v-if="searchHealth" :report="searchHealth" />
                 </Deferred>

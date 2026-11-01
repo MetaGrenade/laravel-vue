@@ -124,6 +124,7 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 
 ### Changed
 
+- Admin blogs, forums, support, tokens, system, and legal pages use solid cards. Trending posts sit on a gold-ruled panel, and the forum reports empty state no longer lays a pattern over the page that blocked every link.
 - Dark mode keeps the saturated indigo for buttons and active navigation, and uses a lighter indigo for `text-primary` so links such as "Forgot password" stay above the 4.5:1 contrast ratio on cards.
 - The interface now follows the MetaForge plates: cool paper (`#f4f6fb`) and deep navy (`#070b16`), indigo (`#5346e8`) for actions and the active navigation pill, and gold (`#f5b029`) for the diamond, the horizon and the tagline rule. Display type is Outfit and body type is Source Sans 3 (served from the app, replacing Inter). Marketing and sign-in use the forge horizon; app pages use the shared cards, header and side navigation. Missing and error pages use the same light and dark treatment.
 - `composer dev` and `composer dev:ssr` now start the scheduler (`php artisan schedule:work`) with the server, the queue worker and Vite, so one command runs everything that scheduled work (releasing unpaid orders' stock, support SLAs, lifting ended suspensions, the Tebex sync) needs while developing.

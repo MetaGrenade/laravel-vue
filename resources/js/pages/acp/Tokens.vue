@@ -4,7 +4,6 @@ import { ref, computed, watch, onBeforeUnmount, reactive } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { type BreadcrumbItem, type SharedData, type QueryParams } from '@/types';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -637,46 +636,42 @@ const lastUsedDisplay = (value?: string | null) => {
         <AdminLayout>
             <div class="container mx-auto space-y-8 p-4">
                 <!-- Stats Section -->
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-1 lg:grid-cols-4">
-                    <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
-                        <div class="mr-4">
-                            <component :is="Coins" class="h-8 w-8 text-muted-foreground" />
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
+                    <div class="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <Coins class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Total Tokens</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ totalTokens }}</div>
                         </div>
-                        <div>
-                            <div class="text-sm text-muted-foreground">Total Tokens</div>
-                            <div class="text-xl font-bold">{{ totalTokens }}</div>
-                        </div>
-                        <PlaceholderPattern />
                     </div>
-                    <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
-                        <div class="mr-4">
-                            <component :is="ShieldCheck" class="h-8 w-8 text-muted-foreground" />
+                    <div class="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+                            <ShieldCheck class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Active Tokens</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ activeTokens }}</div>
                         </div>
-                        <div>
-                            <div class="text-sm text-muted-foreground">Active Tokens</div>
-                            <div class="text-xl font-bold">{{ activeTokens }}</div>
-                        </div>
-                        <PlaceholderPattern />
                     </div>
-                    <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
-                        <div class="mr-4">
-                            <component :is="ShieldAlert" class="h-8 w-8 text-muted-foreground" />
+                    <div class="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-highlight/15 text-highlight">
+                            <ShieldAlert class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Expired Tokens</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ expiredTokens }}</div>
                         </div>
-                        <div>
-                            <div class="text-sm text-muted-foreground">Expired Tokens</div>
-                            <div class="text-xl font-bold">{{ expiredTokens }}</div>
-                        </div>
-                        <PlaceholderPattern />
                     </div>
-                    <div class="relative flex items-center overflow-hidden rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
-                        <div class="mr-4">
-                            <component :is="ShieldOff" class="h-8 w-8 text-muted-foreground" />
+                    <div class="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+                            <ShieldOff class="size-5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="truncate text-sm text-muted-foreground">Revoked Tokens</div>
+                            <div class="text-xl font-semibold tracking-tight tabular-nums">{{ revokedTokens }}</div>
                         </div>
-                        <div>
-                            <div class="text-sm text-muted-foreground">Revoked Tokens</div>
-                            <div class="text-xl font-bold">{{ revokedTokens }}</div>
-                        </div>
-                        <PlaceholderPattern />
                     </div>
                 </div>
 
@@ -933,7 +928,7 @@ const lastUsedDisplay = (value?: string | null) => {
                             </AlertDescription>
                         </Alert>
 
-                        <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                        <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                             <!-- Search Bar -->
                             <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between">
                                 <h2 class="mb-2 text-lg font-semibold md:mb-0">Manage Access Tokens</h2>
@@ -1093,7 +1088,7 @@ const lastUsedDisplay = (value?: string | null) => {
 
                     <!-- Token Logs Tab -->
                     <TabsContent value="logs" class="space-y-6">
-                        <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                        <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                             <div class="mb-4 flex flex-col gap-4">
                                 <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                                     <div>

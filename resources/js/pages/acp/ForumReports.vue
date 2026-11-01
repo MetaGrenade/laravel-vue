@@ -8,7 +8,6 @@ import { type BreadcrumbItem, type QueryParams } from '@/types';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { usePermissions } from '@/composables/usePermissions';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
-import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
@@ -435,7 +434,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
 
         <AdminLayout>
             <div class="flex w-full flex-1 flex-col gap-6 pb-6">
-                <section class="rounded-xl border bg-background p-6 shadow-xs">
+                <section class="rounded-xl border bg-card p-6 shadow-sm dark:shadow-none">
                     <h1 class="text-2xl font-semibold">Forum moderation queue</h1>
                     <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
                         Review reported threads and posts. Apply moderation actions as needed and mark reports once addressed.
@@ -466,7 +465,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                     </div>
                 </section>
 
-                <section class="rounded-xl border bg-background p-6 shadow-xs">
+                <section class="rounded-xl border bg-card p-6 shadow-sm dark:shadow-none">
                     <div class="flex flex-col gap-6">
                         <form class="grid gap-4 md:grid-cols-5" @submit.prevent="applyFilters()">
                             <div class="grid gap-2">
@@ -760,19 +759,18 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             </div>
                         </div>
 
-                        <div v-else class="rounded-lg border border-dashed bg-muted/30">
-                            <PlaceholderPattern class="rounded-lg">
-                                <div class="flex flex-col items-center justify-center gap-4 px-12 py-16 text-center">
-                                    <ShieldCheck class="h-12 w-12 text-muted-foreground" />
-                                    <div class="space-y-2">
-                                        <h2 class="text-lg font-semibold">No reports match your filters</h2>
-                                        <p class="text-sm text-muted-foreground">
-                                            Adjust the filters above or check back later to review new forum reports.
-                                        </p>
-                                    </div>
-                                    <Button variant="outline" @click="clearFilters">Reset filters</Button>
-                                </div>
-                            </PlaceholderPattern>
+                        <div
+                            v-else
+                            class="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-muted/30 px-6 py-16 text-center"
+                        >
+                            <ShieldCheck class="h-12 w-12 text-muted-foreground" />
+                            <div class="space-y-2">
+                                <h2 class="text-lg font-semibold">No reports match your filters</h2>
+                                <p class="mx-auto max-w-md text-sm text-muted-foreground">
+                                    Adjust the filters above or check back later to review new forum reports.
+                                </p>
+                            </div>
+                            <Button variant="outline" @click="clearFilters">Reset filters</Button>
                         </div>
                     </div>
                 </section>
