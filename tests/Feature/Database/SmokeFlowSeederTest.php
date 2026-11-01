@@ -22,25 +22,26 @@ class SmokeFlowSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
+    #[Test]
+    public function the_administrator_has_the_role_whatever_its_id_is(): void
     {
-        parent::setUp();
+        // On MySQL and PostgreSQL the ids of earlier tests are not given back, so the seeder's first user is hardly ever number 1: the
+        // role seeder gives the role to number 1, and the administrator must not depend on that.
+        User::factory()->count(2)->create();
 
         $this->seed(SmokeFlowSeeder::class);
-    }
 
-    #[Test]
-    public function the_administrator_is_the_account_that_the_role_seeder_makes_one(): void
-    {
         $admin = User::where('email', 'admin@example.com')->firstOrFail();
 
-        $this->assertSame(1, $admin->id);
+        $this->assertNotSame(1, $admin->id);
         $this->assertTrue($admin->hasRole('admin'));
     }
 
     #[Test]
     public function the_member_is_not_staff_and_both_sign_in_with_the_factory_password(): void
     {
+        $this->seed(SmokeFlowSeeder::class);
+
         $admin = User::where('email', 'admin@example.com')->firstOrFail();
         $member = User::where('email', 'avery@example.com')->firstOrFail();
 
@@ -55,6 +56,8 @@ class SmokeFlowSeederTest extends TestCase
     #[Test]
     public function the_hoodie_costs_ten_and_the_guide_costs_nothing_and_is_not_shipped(): void
     {
+        $this->seed(SmokeFlowSeeder::class);
+
         $hoodie = Product::where('slug', 'hoodie')->firstOrFail();
         $guide = Product::where('slug', 'starter-guide')->firstOrFail();
 
@@ -66,6 +69,8 @@ class SmokeFlowSeederTest extends TestCase
     #[Test]
     public function the_board_the_thread_and_the_post_the_suite_opens_are_there(): void
     {
+        $this->seed(SmokeFlowSeeder::class);
+
         $board = ForumBoard::where('slug', 'announcements')->firstOrFail();
 
         $this->assertTrue(ForumThread::where('forum_board_id', $board->id)->where('slug', 'welcome')->exists());

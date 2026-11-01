@@ -31,7 +31,7 @@ There are two browser suites. They share the server script and the browser, and 
 | A visitor | Orders a free download without paying: no payment provider is involved, and the order is shown as paid |
 | An administrator | Opens the admin area and finds a member |
 
-The records come from `SmokeFlowSeeder`: the accessibility records (a member, a hoodie that costs 10.00, a board with a thread, a blog post), an administrator, the roles and permissions, the support categories, and a free digital product. The two people sign in with the factory's password, `password`; the accounts exist only in this throwaway database. `SmokeFlowSeederTest` fails in `php artisan test` when the seeder stops giving the suite what it asks for, so that is found in a minute and not in the browser job.
+The records come from `SmokeFlowSeeder`: the accessibility records (a member, a hoodie that costs 10.00, a board with a thread, a blog post), an administrator, the roles and permissions, the support categories, and a free digital product. The two people sign in with the factory's password, `password`; the accounts exist only in this throwaway database. The administrator is given the role by name: `RolePermissionSeeder` gives it to the account with id 1, which a MySQL or PostgreSQL database that has held users before does not have (they keep counting after a rollback). `SmokeFlowSeederTest` fails in `php artisan test`, on all three databases, when the seeder stops giving the suite what it asks for, so that is found in a minute and not in the browser job.
 
 ## Running it
 
@@ -60,7 +60,9 @@ A failed test leaves a screenshot and a trace in `test-results/e2e` (`npx playwr
 
 `tests/e2e/serve.mjs` starts the application for both suites, and is the only place that decides what they run against:
 
-- **The database is built from nothing at every start** (`migrate:fresh` and the seeder) in a file in `database/` named by the config, and it refuses any other name. The `.env` database is never reached, whatever `.env` says.
+- **The database is built from nothing at every start** (`migrate:fresh` and the seeder) in a file in `database/` named by the config, and it refuses any other name. The `.env` database is never reached, whatever `.env` says, and two things make sure of it:
+  - A cached configuration (`php artisan config:cache`) is read instead of `.env` and of every setting the script makes, so `migrate:fresh` would run against the database it names. The script points the configuration, route and event caches at files that never exist, so the application reads its settings from the source, as in a new checkout.
+  - Before anything is dropped, the script asks Laravel which database it will use (`php artisan db:show --json`) and stops, without touching anything, unless that is the suite's own file. This holds for whatever else may one day override the settings.
 - **Nothing leaves the machine.** Mail goes to the array driver, broadcasting to the log, Stripe's keys are blank and search uses the database. The session cookie is not pinned to a domain, because the server is `http://127.0.0.1`.
 - **The server's output is a file**, because PHP's built-in server writes a line for every request.
 - The built-in server answers one request at a time, so a click can wait behind the scripts a page asks for after it has drawn (`Vite::prefetch`, see [bundle-budget.md](bundle-budget.md)). The expectations wait 15 seconds for that; the whole suite takes about a minute.

@@ -58,6 +58,12 @@ const env = {
     STRIPE_SECRET: '',
     STRIPE_WEBHOOK_SECRET: '',
     SEARCH_DRIVER: 'database',
+    // A cached configuration (`php artisan config:cache`) is read instead of .env and of everything set above, so `migrate:fresh` would
+    // run against whatever database it names. These files never exist: the application reads its configuration, routes and events from
+    // the source, the way a new checkout does.
+    APP_CONFIG_CACHE: 'test-results/e2e-no-config-cache.php',
+    APP_ROUTES_CACHE: 'test-results/e2e-no-routes-cache.php',
+    APP_EVENTS_CACHE: 'test-results/e2e-no-events-cache.php',
 };
 
 for (const suffix of ['', '-wal', '-shm']) {
@@ -65,6 +71,23 @@ for (const suffix of ['', '-wal', '-shm']) {
 }
 
 fs.closeSync(fs.openSync(database, 'a'));
+
+const resolved = (file) => (process.platform === 'win32' ? path.resolve(file).toLowerCase() : path.resolve(file));
+
+// Whatever else could change which database the application uses, `migrate:fresh` is only run once Laravel itself says it is this file.
+function usesTheDatabase() {
+    try {
+        const used = JSON.parse(execFileSync(php, ['artisan', 'db:show', '--json'], { cwd: root, env, encoding: 'utf8' })).platform.config;
+
+        return used.driver === 'sqlite' && resolved(String(used.database)) === resolved(database);
+    } catch {
+        return false;
+    }
+}
+
+if (!usesTheDatabase()) {
+    refuse(`The application would not use ${database}, so the database is not rebuilt. Look for what overrides the settings (a cached configuration, an environment file).`);
+}
 
 execFileSync(php, ['artisan', 'migrate:fresh', '--force', `--seeder=${seeder}`], { cwd: root, stdio: 'inherit', env });
 
