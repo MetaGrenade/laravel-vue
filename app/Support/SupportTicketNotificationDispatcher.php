@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\SupportTeam;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Support\Notifications\SplitDelivery;
 use Illuminate\Notifications\Notification as BaseNotification;
 
 class SupportTicketNotificationDispatcher
@@ -120,27 +121,11 @@ class SupportTicketNotificationDispatcher
                     return;
                 }
 
-                $synchronousChannels = array_values(array_intersect($channels, ['database']));
-                $queuedChannels = array_values(array_diff($channels, $synchronousChannels));
-
-                if ($synchronousChannels !== []) {
-                    $recipient->notifyNow(
-                        $this->notificationWithChannels(
-                            $notificationFactory($audience),
-                            $synchronousChannels,
-                        ),
-                        $synchronousChannels,
-                    );
-                }
-
-                if ($queuedChannels !== []) {
-                    $recipient->notify(
-                        $this->notificationWithChannels(
-                            $notificationFactory($audience),
-                            $queuedChannels,
-                        ),
-                    );
-                }
+                app(SplitDelivery::class)->send(
+                    $recipient,
+                    $channels,
+                    fn (array $part): BaseNotification => $this->notificationWithChannels($notificationFactory($audience), $part),
+                );
             });
     }
 

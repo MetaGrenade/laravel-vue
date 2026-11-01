@@ -7,12 +7,12 @@ use App\Models\ModerationAction;
 use App\Models\UsageEvent;
 use App\Models\User;
 use App\Notifications\UserDataExportReady;
+use App\Support\Notifications\SplitDelivery;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -80,17 +80,7 @@ class GenerateUserDataExport implements ShouldQueue
                 $channels[] = 'broadcast';
             }
 
-            $databaseChannels = array_values(array_intersect($channels, ['database']));
-
-            if ($databaseChannels !== []) {
-                Notification::sendNow($user, $notification->withChannels($databaseChannels));
-            }
-
-            $remainingChannels = array_values(array_diff($channels, ['database']));
-
-            if ($remainingChannels !== []) {
-                Notification::send($user, $notification->withChannels($remainingChannels));
-            }
+            app(SplitDelivery::class)->send($user, $channels, fn (array $part): UserDataExportReady => $notification->withChannels($part));
         } catch (Throwable $exception) {
             $export->update([
                 'status' => DataExport::STATUS_FAILED,
