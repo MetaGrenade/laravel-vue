@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Jobs\PruneUsageEvents;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\Attributes\Queue;
 use Illuminate\Queue\Attributes\Timeout;
 use ReflectionClass;
 use Symfony\Component\Finder\Finder;
@@ -57,6 +58,36 @@ class QueueConfigTest extends TestCase
         }
     }
 
+    public function test_every_worker_command_in_the_repo_reads_every_queue_the_app_puts_work_on(): void
+    {
+        // A worker started without --queue reads only `default`. Notification emails are queued on `mail`, so for as long as no command
+        // named it they were pushed and never sent, and nothing failed to say so.
+        $queues = $this->queuesInUse();
+
+        // The scan has to find the queues, or the loops below pass for want of anything to look at.
+        $this->assertContains('default', $queues);
+        $this->assertContains('mail', $queues);
+
+        $commands = $this->workerCommands();
+        $found = array_column($commands, 0);
+
+        foreach (['composer.json "dev"', 'composer.json "dev:ssr"', 'docs/redis.md Supervisor example'] as $where) {
+            $this->assertContains($where, $found, "No worker command was found in $where, so it could not be checked.");
+        }
+
+        foreach ($commands as [$where, $command]) {
+            $read = $this->queuesRead($command);
+
+            foreach ($queues as $queue) {
+                $this->assertContains(
+                    $queue,
+                    $read,
+                    "$where starts `php artisan $command`, which reads the queue(s) [".implode(', ', $read)."] and never '$queue', a queue the app puts work on. Whatever is queued there is not run (a notification's email is not sent). Add it to --queue (all of: ".implode(',', $queues).').',
+                );
+            }
+        }
+    }
+
     /**
      * Every class in the app that is put on the queue: jobs, notifications, mail and listeners.
      *
@@ -64,23 +95,126 @@ class QueueConfigTest extends TestCase
      */
     private function queuedClasses(): array
     {
+        return array_values(array_filter(
+            $this->appClasses(),
+            fn (ReflectionClass $class) => $class->isInstantiable() && $class->implementsInterface(ShouldQueue::class),
+        ));
+    }
+
+    /**
+     * @return list<ReflectionClass<object>>
+     */
+    private function appClasses(): array
+    {
         $classes = [];
 
         foreach ((new Finder)->files()->in(app_path())->name('*.php') as $file) {
             $name = 'App\\'.str_replace(['/', '.php'], ['\\', ''], $file->getRelativePathname());
 
-            if (! class_exists($name)) {
-                continue;
-            }
-
-            $class = new ReflectionClass($name);
-
-            if ($class->isInstantiable() && $class->implementsInterface(ShouldQueue::class)) {
-                $classes[] = $class;
+            if (class_exists($name)) {
+                $classes[] = new ReflectionClass($name);
             }
         }
 
         return $classes;
+    }
+
+    /**
+     * The queues the app puts work on: each channel of a notification (`viaQueues()`), what a class names with `#[Queue]` or `$queue`,
+     * what is dispatched with `onQueue()`, and `default`, where everything that names no queue goes.
+     *
+     * @return list<string>
+     */
+    private function queuesInUse(): array
+    {
+        $queues = ['default'];
+
+        foreach ($this->appClasses() as $class) {
+            foreach ($class->getAttributes(Queue::class) as $attribute) {
+                $queues[] = (string) $attribute->newInstance()->queue;
+            }
+
+            if ($class->hasProperty('queue') && is_string($default = $class->getProperty('queue')->getDefaultValue())) {
+                $queues[] = $default;
+            }
+
+            if ($class->hasMethod('viaQueues') && $class->isInstantiable()) {
+                // The method lists its queues and nothing else, so it does not need the arguments the constructor takes.
+                $channels = $class->getMethod('viaQueues')->invoke($class->newInstanceWithoutConstructor());
+
+                foreach ($channels as $queue) {
+                    $this->assertIsString($queue, "{$class->getName()}::viaQueues() must give each channel's queue as a string.");
+                    $queues[] = $queue;
+                }
+            }
+        }
+
+        foreach ((new Finder)->files()->in(app_path())->name('*.php') as $file) {
+            $source = $file->getContents();
+            $named = preg_match_all('/onQueue\(\s*([\'"])([^\'"]+)\1/', $source, $literals);
+
+            // A queue chosen at run time cannot be read from here, and would slip past the guard.
+            $this->assertSame(
+                preg_match_all('/onQueue\(/', $source),
+                $named,
+                "{$file->getRelativePathname()} calls onQueue() with something other than a string literal, so the queue it names cannot be checked against the worker commands.",
+            );
+
+            array_push($queues, ...$literals[2]);
+        }
+
+        $queues = array_values(array_unique($queues));
+        sort($queues);
+
+        return $queues;
+    }
+
+    /**
+     * Each `queue:work` or `queue:listen` a person is told to start, or that `composer dev` starts, with where it is written down.
+     *
+     * @return list<array{string, string}>
+     */
+    private function workerCommands(): array
+    {
+        $commands = [];
+
+        $scripts = json_decode((string) file_get_contents(base_path('composer.json')), true)['scripts'] ?? [];
+
+        foreach ($scripts as $name => $script) {
+            foreach ((array) $script as $line) {
+                if (preg_match('/php artisan (queue:(?:work|listen)[^"]*)/', $line, $match)) {
+                    $commands[] = ["composer.json \"$name\"", trim($match[1])];
+                }
+            }
+        }
+
+        $readme = (string) file_get_contents(base_path('README.md'));
+
+        if (preg_match_all('/`php artisan (queue:(?:work|listen)[^`]*)`/', $readme, $found, PREG_OFFSET_CAPTURE)) {
+            foreach ($found[1] as [$command, $offset]) {
+                $commands[] = ['README.md line '.(substr_count($readme, "\n", 0, $offset) + 1), trim($command)];
+            }
+        }
+
+        if (preg_match('/^command=.*artisan (queue:(?:work|listen).*)$/m', (string) file_get_contents(base_path('docs/redis.md')), $match)) {
+            $commands[] = ['docs/redis.md Supervisor example', trim($match[1])];
+        }
+
+        return $commands;
+    }
+
+    /**
+     * What `artisan queue:work` takes jobs from: the queues in `--queue`, or only `default` when it is not given.
+     *
+     * @return list<string>
+     */
+    private function queuesRead(string $command): array
+    {
+        if (preg_match('/--queue(?:=|\s+)(\S+)/', $command, $match)) {
+            return explode(',', $match[1]);
+        }
+
+        return ['default'];
     }
 
     /**
