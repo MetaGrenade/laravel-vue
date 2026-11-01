@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use App\Models\SystemSetting;
 use Closure;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Support\Header;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureSiteIsAvailable
@@ -32,6 +34,12 @@ class EnsureSiteIsAvailable
             return response()->json([
                 'message' => 'The application is currently undergoing maintenance.',
             ], 503);
+        }
+
+        // A visit inside the app cannot show a page of its own: the client would put this one in a dialog over the page it was on.
+        // Telling it to load the address in full shows the maintenance page as a page.
+        if ($request->header(Header::INERTIA)) {
+            return Inertia::location($request->fullUrl());
         }
 
         return response()->view('maintenance', [], 503);

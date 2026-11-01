@@ -181,7 +181,7 @@ Strong already. Remaining gaps, in priority order:
 | Local setup | Sail in dev dependencies; no documented Docker flow | Ship `compose.yaml` (app, MySQL, Redis, Mailpit, queue worker, Vite). |
 | i18n | Only `lang/en`; 14 uses of the translator in the whole app; UI strings are hard-coded | **Decision: English-only in 1.0 with an extraction-ready structure** (section 8B). Bulk string extraction is 1.1. |
 | Accessibility | Skip link, focus styles, reduced-motion support; axe on the main public flows, criticals fixed (**done**, ninth slice, see [accessibility.md](accessibility.md)) | Keep the audit in CI. |
-| Error pages | No custom 403/404/419/429/500/503 views (only maintenance) | Add branded error pages. |
+| Error pages | A standalone branded page for a full page load; a visit inside the app got Inertia's iframe dialog (**done**, eighteenth slice, see [error-pages.md](error-pages.md)) | Keep the standalone page; an in-app visit gets an `Error` page, or a notice on the page it was on. |
 | Install | Manual steps | Add `php artisan metaforge:install` (env checks, migrate, seed roles, create admin, sample data optional). |
 | Versioning | No tags | Adopt SemVer, tag `v1.0.0-rc.N`, then `v1.0.0`; write upgrade notes. |
 
@@ -471,7 +471,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Playwright smoke suite; Vitest unit tests; coverage reporting
 - Documentation set: install, configuration, architecture, payments (Stripe and Tebex), search, theming and rebranding, adding a language, extending modules, deployment (Forge/Docker), upgrade guide (including "teams in 1.1"), API reference
 - `metaforge:install` command; demo seeders
-- Branded error pages; finish i18n conversion of shared chrome, auth, emails and error pages
+- Branded error pages (**done**, eighteenth slice, see [error-pages.md](error-pages.md)): an in-app visit that fails shows an `Error` page in the app's layout, and an action that is refused keeps the page with a notice, for 401, 402, 403, 404, 419, 429, 500 and 503. Still to do: finish i18n conversion of shared chrome, auth and emails
 - Third-party licence audit and `THIRD-PARTY-NOTICES.md`
 - Release candidates `v1.0.0-rc.1…`, bug bash, then tag `v1.0.0`
 - **Exit:** section 10 gates all green.
