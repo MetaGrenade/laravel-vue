@@ -2,7 +2,7 @@
 
 How to move the cache, the queue and the sessions from the database to Redis for production, what lives where once you have, and what the tests hold in place.
 
-> **Status:** the settings, the queue rule and the CI job that runs the app against a real Redis are in place. Not built: Horizon (the queue dashboard), Octane, a second Redis only for the cache, Sentinel or Cluster, and a Redis card in the admin area. See [What it does not do](#what-it-does-not-do).
+> **Status:** the settings, the queue rule and the CI job that runs the app against a real Redis are in place. Not built: Horizon (the queue dashboard), a second Redis only for the cache, Sentinel or Cluster, and a Redis card in the admin area. See [What it does not do](#what-it-does-not-do).
 
 ## Why
 
@@ -110,7 +110,7 @@ docker stop metaforge-redis-live
 ## What it does not do
 
 - **Horizon.** It is a dashboard and a supervisor for Redis queues, and a package this app does not have. Adding it is `composer require laravel/horizon`, its config file and a gate.
-- **Octane.** The app has not been audited for a process that serves more than one request.
+- **Octane.** The app has been audited for a process that serves more than one request, and not run on it: see [octane.md](octane.md).
 - **A second Redis for the cache.** Both connections use `REDIS_HOST`. A cache that is allowed to evict, on its own instance, is a change to `config/database.php`.
 - **Sentinel, Cluster or TLS.** `REDIS_CLUSTER`, `REDIS_URL` and the rest of Laravel's options are there; none is tested.
 - **Redis for rate limiting only.** Throttles use the cache store, so they move with it; `throttleWithRedis()` is not turned on.

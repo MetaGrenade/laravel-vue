@@ -61,10 +61,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // A worker that serves many requests (Octane) or many jobs (queue:work) builds a `singleton` once and keeps it. These two hold
+        // nothing that belongs to a request, so that is safe. Anything that holds the container, the session or a value read from the
+        // database is `scoped` instead (docs/octane.md); tests/Unit/OctaneSafetyTest.php fails on a new one that is not listed.
         $this->app->singleton(SubscriptionManager::class);
         $this->app->singleton(HtmlSanitizer::class);
-        $this->app->singleton(PaymentManager::class);
-        $this->app->singleton(TebexStoreProfile::class);
+        $this->app->scoped(PaymentManager::class);
+        $this->app->scoped(TebexStoreProfile::class);
         $this->app->bind(StripeGateway::class, CashierStripeGateway::class);
         $this->app->scoped(Seo::class);
         $this->app->scoped(Audit::class);
@@ -79,13 +82,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Only set MySQL’s time zone when you’re actually using MySQL
-        // When GitHub Actions run there is no real .env file, so Laravel falls back to its default database connection
-        // Which is set in config/database.php :19 'default' => env('DB_CONNECTION', 'sqlite'),
-        if (DB::getDriverName() === 'mysql') {
-            // force DB timestamps to use 'UTC' timezone for more accurate dayjs conversion to local timezones
-            DB::statement("SET time_zone = '+00:00'");
-        }
+        // MySQL's time zone is set where the connection is made (`timezone` in config/database.php), so it is set again whenever a
+        // long-lived worker reconnects. It used to be a statement here, which runs once for a process and not for its next connection.
 
         Gate::policy(ForumPost::class, ForumPostPolicy::class);
         Gate::policy(Blog::class, BlogPolicy::class);
@@ -149,7 +147,9 @@ class AppServiceProvider extends ServiceProvider
         ForumPost::observe(SearchIndexObserver::class);
 
         // A setting written in a transaction that is rolled back must not stay in what this request has read of the settings.
-        Event::listen(TransactionRolledBack::class, fn () => $this->app->make(SettingsSnapshot::class)->forget());
+        // Resolved when it runs, from whichever container is serving the request: `$this->app` is the one this provider was booted in,
+        // and Octane serves each request from a copy of it, so the snapshot forgotten here would not be the request's own.
+        Event::listen(TransactionRolledBack::class, fn () => app(SettingsSnapshot::class)->forget());
     }
 
     /**

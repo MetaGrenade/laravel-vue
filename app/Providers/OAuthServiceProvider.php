@@ -12,7 +12,8 @@ class OAuthServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(OAuthManager::class, function ($app) {
+        // Scoped, not a singleton: it holds the container, the session and the providers it built from them (docs/octane.md).
+        $this->app->scoped(OAuthManager::class, function ($app) {
             return new OAuthManager(
                 $app,
                 $app->make('session.store'),
