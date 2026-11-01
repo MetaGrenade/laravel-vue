@@ -111,8 +111,12 @@ return [
      * When set to true, Laravel\Octane\Events\OperationTerminated event listener will be registered
      * this will refresh permissions on every TickTerminated, TaskTerminated and RequestTerminated
      * NOTE: This should not be needed in most cases, but an Octane/Vapor combination benefited from it.
+     *
+     * MetaForge turns it on (docs/octane.md): the list of which role holds which permission is read once and kept in memory, and the
+     * admin area changes it. Without this, a worker that did not make the change keeps serving the old one (a role that lost a
+     * permission still has it) until it restarts. It does nothing unless Octane is installed.
      */
-    'register_octane_reset_listener' => false,
+    'register_octane_reset_listener' => true,
 
     /*
      * Events will fire when a role or permission is assigned/unassigned:
