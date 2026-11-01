@@ -14,7 +14,8 @@
         "bundle:check": "node scripts/check-bundle-size.mjs",
         "bundle:test": "node --test scripts/*.test.mjs",
         "ttfb": "node scripts/measure-ttfb.mjs",
-        "a11y": "playwright test --config=tests/a11y/playwright.config.ts"
+        "a11y": "playwright test --config=tests/a11y/playwright.config.ts",
+        "e2e": "playwright test --config=tests/e2e/playwright.config.ts"
     },
     "dependencies": {
         "@inertiajs/vue3": "^3.9.1",

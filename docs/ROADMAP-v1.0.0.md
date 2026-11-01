@@ -171,7 +171,7 @@ Strong already. Remaining gaps, in priority order:
 | Item | State | Plan |
 |------|-------|------|
 | PHP tests | 84 files, 338 tests, **SQLite in-memory only** | CI matrix: **MySQL 8 and PostgreSQL 16** as the supported databases; SQLite stays for local development and the fast test path only. |
-| Front-end tests | None (no Vitest, no Playwright) | Add Vitest for composables and utilities; Playwright smoke suite for login, checkout, forum post, support ticket. |
+| Front-end tests | None (no Vitest, no Playwright) | Add Vitest for composables and utilities; Playwright smoke suite for login, checkout, forum post, support ticket (suite **done**, nineteenth slice, see [e2e-tests.md](e2e-tests.md); Vitest waits). |
 | Static analysis | None for PHP | Add Larastan at level 5, raise later. |
 | Coverage | Not enforced | Report in CI; threshold on new code. |
 | Flaky test | One unidentified test failed once earlier and never reproduced | Run the suite repeatedly in CI to identify it. |
@@ -468,7 +468,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 
 ### M7. Quality, docs and release (11–15 days)
 
-- Playwright smoke suite; Vitest unit tests; coverage reporting
+- Playwright smoke suite (**done**, nineteenth slice, see [e2e-tests.md](e2e-tests.md)): 15 paths in a real browser on a database of its own, in a CI job of its own that keeps the report of a failed run, and a test that fails first when the seeder stops giving it what it asks for. Registering and signing in, a forum thread and its reply, a comment, a support ticket, the cart, an order that costs nothing, the admin area, the 404 and 403 pages. Paying stays out (Stripe and Tebex are external). Still to do: Vitest unit tests (a new package) and coverage reporting
 - Documentation set: install, configuration, architecture, payments (Stripe and Tebex), search, theming and rebranding, adding a language, extending modules, deployment (Forge/Docker), upgrade guide (including "teams in 1.1"), API reference
 - `metaforge:install` command; demo seeders
 - Branded error pages (**done**, eighteenth slice, see [error-pages.md](error-pages.md)): an in-app visit that fails shows an `Error` page in the app's layout, and an action that is refused keeps the page with a notice, for 401, 402, 403, 404, 419, 429, 500 and 503. Still to do: finish i18n conversion of shared chrome, auth and emails

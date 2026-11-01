@@ -1,11 +1,7 @@
-import { defineConfig, devices } from '@playwright/test';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { defineConfig } from '@playwright/test';
+import { appFor } from '../e2e/server';
 
-const php = process.env.PHP_BIN ?? 'php';
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const baseURL = process.env.A11Y_BASE_URL ?? 'http://127.0.0.1:8000';
-const serve = process.env.A11Y_BASE_URL === undefined;
+const app = appFor({ database: 'a11y.sqlite', seeder: 'AccessibilityFlowSeeder', port: 8000, baseUrlVariable: 'A11Y_BASE_URL' });
 
 export default defineConfig({
     testDir: '.',
@@ -16,24 +12,10 @@ export default defineConfig({
     reporter: 'line',
     timeout: 60_000,
     use: {
-        baseURL,
+        baseURL: app.baseURL,
         ignoreHTTPSErrors: true,
         trace: 'off',
     },
-    projects: [
-        {
-            name: 'chromium',
-            use: { ...devices['Desktop Chrome'] },
-        },
-    ],
-    webServer: serve
-        ? {
-              command: `node tests/a11y/serve.mjs`,
-              cwd: root,
-              url: 'http://127.0.0.1:8000',
-              reuseExistingServer: false,
-              timeout: 180_000,
-              env: { ...process.env, PHP_BIN: php },
-          }
-        : undefined,
+    projects: app.projects,
+    webServer: app.webServer,
 });
