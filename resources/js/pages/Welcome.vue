@@ -413,17 +413,13 @@ const faqs = [
         </section>
 
         <!-- Live modules -->
-        <section
-            v-if="modules.length"
-            class="relative overflow-hidden border-y bg-surface bg-wash-success cv-auto"
-            aria-labelledby="modules-heading"
-        >
+        <section v-if="modules.length" class="relative overflow-hidden border-y bg-surface bg-wash-success cv-auto" aria-labelledby="modules-heading">
             <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-success/80 to-transparent" />
             <div class="pointer-events-none absolute inset-0 bg-grid [mask-image:linear-gradient(to_bottom,transparent,black_40%,transparent)]" />
             <div class="relative container-app py-20 lg:py-24">
                 <div class="reveal flex flex-col justify-between gap-4 md:flex-row md:items-end">
                     <div class="max-w-2xl">
-                        <p class="eyebrow inline-flex items-center gap-2 text-[hsl(152_64%_24%)] dark:text-success">
+                        <p class="inline-flex items-center gap-2 eyebrow text-[hsl(152_64%_24%)] dark:text-success">
                             <span class="size-1.5 rounded-full bg-success" aria-hidden="true" />
                             Live demo
                         </p>
@@ -494,7 +490,7 @@ const faqs = [
             <div class="pointer-events-none absolute inset-0 bg-stripes [mask-image:linear-gradient(to_bottom_right,black,transparent_60%)]" />
             <div class="relative container-app grid gap-12 py-20 lg:grid-cols-[1fr_2fr] lg:py-24">
                 <div class="reveal">
-                    <p class="eyebrow inline-flex items-center gap-2 text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">
+                    <p class="inline-flex items-center gap-2 eyebrow text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">
                         <span class="size-1.5 rotate-45 bg-destructive" aria-hidden="true" />
                         Tech stack
                     </p>
@@ -520,7 +516,7 @@ const faqs = [
                     <div
                         v-for="group in stack"
                         :key="group.title"
-                        class="rounded-xl border border-destructive/20 bg-card p-5 shadow-sm [background-image:linear-gradient(165deg,hsl(var(--destructive)/0.16),transparent_72%)] dark:shadow-none"
+                        class="rounded-xl border border-destructive/20 bg-card [background-image:linear-gradient(165deg,hsl(var(--destructive)/0.16),transparent_72%)] p-5 shadow-sm dark:shadow-none"
                     >
                         <h3 class="font-semibold text-[hsl(0_70%_32%)] dark:text-[hsl(0_80%_74%)]">{{ group.title }}</h3>
                         <ul class="mt-4 space-y-2.5">
