@@ -41,7 +41,8 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            // Where the web finds these files. Set PUBLIC_DISK_URL to put a CDN in front of them (docs/images.md).
+            'url' => rtrim(env('PUBLIC_DISK_URL') ?: rtrim(env('APP_URL', 'http://localhost'), '/').'/storage', '/'),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
+import CoverImage from '@/components/blog/CoverImage.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
@@ -389,7 +390,6 @@ watch(
 const selectedCategories = computed(() => categoryOptions.value.filter((category) => form.category_ids.includes(category.id)));
 const selectedTags = computed(() => tagOptions.value.filter((tag) => form.tag_ids.includes(tag.id)));
 
-const previewCover = computed(() => existingCoverImage.value ?? '/images/default-cover.jpg');
 const previewScheduledMessage = computed(() => {
     if (form.status === 'scheduled' && form.scheduled_for) {
         return `Scheduled for ${formatDate(form.scheduled_for, 'MMMM D, YYYY h:mm A')}`;
@@ -842,8 +842,8 @@ const handleSubmit = () => {
                         </div>
 
                         <div class="space-y-6">
-                            <div class="overflow-hidden rounded-lg border border-muted">
-                                <img :src="previewCover" alt="Preview cover" class="h-56 w-full object-cover" />
+                            <div class="h-56 overflow-hidden rounded-lg border border-muted">
+                                <CoverImage :src="existingCoverImage" sizes="100vw" alt="Preview cover" class="h-56 w-full object-cover" />
                             </div>
 
                             <div class="space-y-4">

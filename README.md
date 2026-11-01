@@ -211,6 +211,7 @@ Settings that can be changed in `.env` (full table in [docs/commerce.md](docs/co
 | `COMMERCE_LOW_STOCK_THRESHOLD` | `5` | Stock at or below this is flagged as low. |
 | `COMMERCE_IMAGE_DISK` | `public` | Disk for product pictures; it must be served by the web (`php artisan storage:link` for `public`). |
 | `COMMERCE_IMAGE_MAX_PIXELS` | `16000000` | Largest picture accepted (width × height). |
+| `PUBLIC_DISK_URL` | `APP_URL` + `/storage` | Where public pictures (blog covers, product pictures) are fetched from. Set it to put a CDN in front of them; see [docs/images.md](docs/images.md#using-a-cdn). |
 | `COMMERCE_DOWNLOAD_DISK` | `local` | Disk for digital files; it must be private. |
 | `COMMERCE_DOWNLOAD_MAX_KB` | `102400` | Largest digital file, in kilobytes. |
 | `COMMERCE_DOWNLOAD_LIMIT` | `10` | Downloads of each file per order (`0` = unlimited). |

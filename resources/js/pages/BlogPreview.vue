@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import CoverImage from '@/components/blog/CoverImage.vue';
 import { CalendarClock } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 
@@ -13,6 +14,7 @@ interface BlogPreviewPayload {
     excerpt?: string | null;
     body: string;
     cover_image?: string | null;
+    cover_srcset?: string | null;
     published_at?: string | null;
     scheduled_for?: string | null;
     status: string;
@@ -28,8 +30,6 @@ const props = defineProps<{ blog: BlogPreviewPayload }>();
 
 const { formatDate } = useUserTimezone();
 const blog = computed(() => props.blog);
-
-const coverImage = computed(() => blog.value.cover_image ?? '/images/default-cover.jpg');
 
 const authorName = computed(() => blog.value.user?.nickname ?? 'Unknown author');
 
@@ -70,8 +70,14 @@ const tags = computed(() => blog.value.tags ?? []);
             </Alert>
 
             <div class="mb-8 rounded-xl border border-border bg-card p-6 shadow-sm">
-                <div v-if="coverImage" class="mb-6 overflow-hidden rounded-lg">
-                    <img :src="coverImage" alt="Blog cover" class="h-64 w-full object-cover" />
+                <div v-if="blog.cover_image" class="mb-6 h-64 overflow-hidden rounded-lg">
+                    <CoverImage
+                        :src="blog.cover_image"
+                        :srcset="blog.cover_srcset"
+                        sizes="(min-width: 1280px) 1200px, 100vw"
+                        alt="Blog cover"
+                        class="h-64 w-full object-cover"
+                    />
                 </div>
                 <h1 class="mb-3 text-3xl font-bold">{{ blog.title }}</h1>
                 <div class="mb-4 text-sm text-muted-foreground">

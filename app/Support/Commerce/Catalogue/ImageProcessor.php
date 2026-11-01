@@ -55,6 +55,29 @@ class ImageProcessor
     }
 
     /**
+     * One WebP whose longest side is at most $longest, and the same picture again at each of the given
+     * widths, for a picture that is shown across a column of the page (a blog cover). Decoded once. A width
+     * is measured on the large picture, not the upload, and never enlarges it: a narrow picture comes back
+     * the same at every width.
+     *
+     * @param  list<int>  $widths
+     * @return array{large: string, widths: array<int, string>} The widths are keys, as given.
+     *
+     * @throws ImageRejected
+     */
+    public function webpAtWidths(string $bytes, int $longest, array $widths): array
+    {
+        $large = $this->fit($this->decode($bytes), max(1, $longest));
+        $encoded = ['large' => $this->encode($large), 'widths' => []];
+
+        foreach ($widths as $width) {
+            $encoded['widths'][$width] = $this->encode($this->fitWidth($large, max(1, $width)));
+        }
+
+        return $encoded;
+    }
+
+    /**
      * @throws ImageRejected
      */
     private function decode(string $bytes): GdImage
@@ -138,16 +161,32 @@ class ImageProcessor
      */
     private function fit(GdImage $image, int $longest): GdImage
     {
+        return $this->scaled($image, min(1, $longest / max(imagesx($image), imagesy($image))));
+    }
+
+    /**
+     * The picture scaled to the given width, keeping its proportions. A picture that is already narrower
+     * is not enlarged.
+     */
+    private function fitWidth(GdImage $image, int $width): GdImage
+    {
+        return $this->scaled($image, min(1, $width / imagesx($image)));
+    }
+
+    /**
+     * @param  float|int  $scale  At most 1: pictures are made smaller here, never larger.
+     */
+    private function scaled(GdImage $image, float|int $scale): GdImage
+    {
         $width = imagesx($image);
         $height = imagesy($image);
-        $scale = min(1, $longest / max($width, $height));
 
         // Transparent areas (a cut-out product on a clear background) stay transparent.
         imagepalettetotruecolor($image);
         imagealphablending($image, false);
         imagesavealpha($image, true);
 
-        if ($scale === 1) {
+        if ($scale >= 1) {
             return $image;
         }
 

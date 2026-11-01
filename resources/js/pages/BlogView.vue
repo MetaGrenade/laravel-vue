@@ -5,6 +5,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import { csrfHeaders } from '@/lib/http';
 import Button from '@/components/ui/button/Button.vue';
 import BlogComments from '@/components/blog/BlogComments.vue';
+import CoverImage from '@/components/blog/CoverImage.vue';
 import { Share2 } from '@lucide/vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -88,6 +89,7 @@ type RecommendedPost = {
     slug: string;
     excerpt?: string | null;
     cover_image?: string | null;
+    cover_srcset?: string | null;
     published_at?: string | null;
     views?: number;
     last_viewed_at?: string | null;
@@ -107,6 +109,7 @@ type BlogPayload = {
     last_viewed_at?: string | null;
     comment_report_reasons?: ReportReasonOption[];
     cover_image?: string | null;
+    cover_srcset?: string | null;
     categories?: BlogTaxonomyItem[];
     tags?: BlogTaxonomyItem[];
     canonical_url?: string | null;
@@ -306,8 +309,6 @@ const categories = computed(() => blog.value.categories ?? []);
 const tags = computed(() => blog.value.tags ?? []);
 const recommendations = computed<RecommendedPost[]>(() => blog.value.recommendations ?? []);
 
-const coverImage = computed(() => blog.value.cover_image ?? '/images/default-cover.jpg');
-
 const authorName = computed(() => author.value?.nickname ?? 'Unknown author');
 
 const authorAvatarUrl = computed(() => author.value?.avatar_url ?? '');
@@ -391,8 +392,15 @@ const shareLinks = computed(() => ({
         <div class="container mx-auto px-4 py-8">
             <!-- Blog Post Content -->
             <div class="mb-8 rounded-xl border border-border bg-card p-6 shadow-sm">
-                <div v-if="coverImage" class="mb-6 overflow-hidden rounded-lg">
-                    <img :src="coverImage" alt="Blog cover" class="h-64 w-full object-cover" />
+                <div v-if="blog.cover_image" class="mb-6 h-64 overflow-hidden rounded-lg">
+                    <CoverImage
+                        :src="blog.cover_image"
+                        :srcset="blog.cover_srcset"
+                        sizes="(min-width: 1280px) 1200px, 100vw"
+                        alt="Blog cover"
+                        fetchpriority="high"
+                        class="h-64 w-full object-cover"
+                    />
                 </div>
                 <h1 class="mb-3 text-3xl font-bold">{{ blog.title }}</h1>
                 <div class="mb-4 text-sm text-muted-foreground">
@@ -490,10 +498,14 @@ const shareLinks = computed(() => ({
                         class="group flex h-full flex-col overflow-hidden rounded-lg border border-border/70 bg-card transition hover:border-primary hover:shadow-lg"
                     >
                         <div class="aspect-video w-full overflow-hidden bg-muted">
-                            <img
+                            <CoverImage
                                 v-if="post.cover_image"
                                 :src="post.cover_image"
+                                :srcset="post.cover_srcset"
+                                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                                 :alt="`Cover image for ${post.title}`"
+                                loading="lazy"
+                                decoding="async"
                                 class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                             />
                             <div v-else class="flex h-full w-full items-center justify-center text-sm text-muted-foreground">No cover image</div>

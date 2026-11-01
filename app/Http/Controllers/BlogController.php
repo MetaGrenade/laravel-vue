@@ -9,6 +9,7 @@ use App\Models\BlogComment;
 use App\Models\BlogTag;
 use App\Models\BlogView;
 use App\Models\User;
+use App\Support\Blog\BlogCovers;
 use App\Support\Localization\DateFormatter;
 use App\Support\Seo\Seo;
 use App\Support\Spam\CommentGuard;
@@ -93,7 +94,9 @@ class BlogController extends Controller
             ->paginate(9)
             ->withQueryString();
 
-        $blogItems = $blogs->getCollection()->map(function (Blog $blog) use ($formatter) {
+        $covers = app(BlogCovers::class);
+
+        $blogItems = $blogs->getCollection()->map(function (Blog $blog) use ($formatter, $covers) {
             return [
                 'id' => $blog->id,
                 'title' => $blog->title,
@@ -102,6 +105,7 @@ class BlogController extends Controller
                 'cover_image' => $blog->cover_image
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
+                'cover_srcset' => $covers->srcset($blog->cover_image),
                 'views' => $blog->views,
                 'last_viewed_at' => $formatter->iso($blog->last_viewed_at),
                 'published_at' => $formatter->iso($blog->published_at),
@@ -414,8 +418,10 @@ class BlogController extends Controller
             }
         }
 
+        $covers = app(BlogCovers::class);
+
         $recommendations = $relatedPosts
-            ->map(function (Blog $relatedBlog) use ($formatter) {
+            ->map(function (Blog $relatedBlog) use ($formatter, $covers) {
                 return [
                     'id' => $relatedBlog->id,
                     'title' => $relatedBlog->title,
@@ -424,6 +430,7 @@ class BlogController extends Controller
                     'cover_image' => $relatedBlog->cover_image
                         ? Storage::disk('public')->url($relatedBlog->cover_image)
                         : null,
+                    'cover_srcset' => $covers->srcset($relatedBlog->cover_image),
                     'published_at' => $formatter->iso($relatedBlog->published_at),
                 ];
             })
@@ -482,6 +489,7 @@ class BlogController extends Controller
                 'slug' => $blog->slug,
                 'excerpt' => $blog->excerpt,
                 'cover_image' => $coverImageUrl,
+                'cover_srcset' => $covers->srcset($blog->cover_image),
                 'canonical_url' => $canonicalUrl,
                 'body' => $blog->body,
                 'views' => $blog->views,
@@ -605,6 +613,7 @@ class BlogController extends Controller
                 'cover_image' => $blog->cover_image
                     ? Storage::disk('public')->url($blog->cover_image)
                     : null,
+                'cover_srcset' => app(BlogCovers::class)->srcset($blog->cover_image),
                 'body' => $blog->body,
                 'published_at' => $formatter->iso($blog->published_at),
                 'scheduled_for' => $formatter->iso($blog->scheduled_for),

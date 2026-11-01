@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type QueryParams } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
+import CoverImage from '@/components/blog/CoverImage.vue';
 import {
     Pagination,
     PaginationEllipsis,
@@ -34,6 +35,7 @@ interface BlogSummary {
     slug: string;
     excerpt: string | null;
     cover_image: string | null;
+    cover_srcset: string | null;
     views: number;
     last_viewed_at: string | null;
     published_at: string | null;
@@ -220,8 +222,10 @@ const {
                     :aria-label="`Read featured blog: ${featuredBlog.title}`"
                     class="group relative block h-64 overflow-hidden rounded-xl border bg-card shadow-sm focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-72"
                 >
-                    <img
-                        :src="featuredBlog.cover_image || '/images/default-cover.jpg'"
+                    <CoverImage
+                        :src="featuredBlog.cover_image"
+                        :srcset="featuredBlog.cover_srcset"
+                        sizes="100vw"
                         alt="Featured blog cover"
                         fetchpriority="high"
                         decoding="async"
@@ -405,8 +409,10 @@ const {
                     >
                         <Link :href="route('blogs.view', { slug: blog.slug })" class="block">
                             <div class="relative aspect-[16/7] overflow-hidden border-b bg-muted">
-                                <img
-                                    :src="blog.cover_image || '/images/default-cover.jpg'"
+                                <CoverImage
+                                    :src="blog.cover_image"
+                                    :srcset="blog.cover_srcset"
+                                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                                     alt="Blog cover"
                                     loading="lazy"
                                     decoding="async"
