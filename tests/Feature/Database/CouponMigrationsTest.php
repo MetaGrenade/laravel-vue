@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\ForeignKeyIndexes;
 use Tests\TestCase;
 
 /**
@@ -31,7 +32,8 @@ class CouponMigrationsTest extends TestCase
 
     private function rollBack(): void
     {
-        // Newest first: the columns on carts and orders reference the coupons table.
+        // Newest first: the indexes on foreign keys, then the columns on carts and orders that reference the coupons table.
+        ForeignKeyIndexes::takeOff();
         $this->migration('2026_10_14_000100_add_coupon_to_carts_and_orders')->down();
         $this->migration('2026_10_14_000000_create_coupons_tables')->down();
     }
@@ -40,6 +42,7 @@ class CouponMigrationsTest extends TestCase
     {
         $this->migration('2026_10_14_000000_create_coupons_tables')->up();
         $this->migration('2026_10_14_000100_add_coupon_to_carts_and_orders')->up();
+        ForeignKeyIndexes::putBack();
     }
 
     #[Test]

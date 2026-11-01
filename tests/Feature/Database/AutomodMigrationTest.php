@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\ForeignKeyIndexes;
 use Tests\TestCase;
 
 /**
@@ -38,6 +39,7 @@ class AutomodMigrationTest extends TestCase
         }
 
         try {
+            ForeignKeyIndexes::takeOff();
             $this->migration()->down();
             $this->assertFalse(Schema::hasTable('automod_rules'));
             $this->assertFalse(Schema::hasColumn('forum_posts', 'held_at'));
@@ -50,6 +52,8 @@ class AutomodMigrationTest extends TestCase
             if (! Schema::hasTable('automod_rules')) {
                 $this->migration()->up();
             }
+
+            ForeignKeyIndexes::putBack();
         }
     }
 
