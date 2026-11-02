@@ -540,13 +540,13 @@ The repository is already MIT (`LICENSE.md` and `"license": "MIT"` in `composer.
 - **The dependencies' licences are now audited** (twentieth slice, see [licences.md](licences.md)): everything shipped is under a permissive licence except four packages, which are decisions written in `scripts/licence-policy.json`: the three LGPL libraries behind the invoice PDF (`dompdf/*`, used unmodified as installed from Packagist) and `elkjs` (EPL-2.0, not in the built front end). Nothing is under the GPL or AGPL. The audit also covers the Outfit and Source Sans 3 fonts (SIL OFL 1.1) and the technology logos on the home page (Simple Icons, CC0; the trademarks are the owners' and are not covered by MIT).
 - A permissive licence does not stop you earning from the project: paid support, a hosted version, premium add-on modules, templates and services are the usual routes.
 - **Trade-off to know:** MIT cannot be taken back for versions already released. If you might want a commercial licence or a paid "pro" edition later, decide before tagging 1.0; future versions can be licensed differently, but anyone who already has 1.0 keeps MIT rights to it.
-- Tidy-up: `LICENSE.md` names an individual and personal email as the copyright holder. Confirm that is how you want it to read (an organisation name is more usual for a product).
+- Tidy-up (**done**): `LICENSE.md` names the company, Dead Pixel Labs, LLC, and its contact address as the copyright holder, in place of a person and a personal email.
 
 This is a recommendation, not legal advice; have a lawyer review it if the licence matters commercially.
 
 ### Still open
 
-1. **Copyright holder line** in `LICENSE.md` (see the licence note above): confirm whether it should stay a personal name and email or become an organisation name.
+1. ~~**Copyright holder line** in `LICENSE.md`~~ **Done**: it names Dead Pixel Labs, LLC (contact@deadpixellabs.com).
 2. **When to set up the Tebex store** (for M2b). Nothing is needed before then.
 
 ---

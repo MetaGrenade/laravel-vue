@@ -151,6 +151,7 @@ The path to 1.0.0 is laid out in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md
 
 ### Changed
 
+- `LICENSE.md` names the company, Dead Pixel Labs, LLC, with its contact address, as the copyright holder, instead of a person and a personal email address. The licence itself (MIT) is unchanged.
 - Home page feature cards place a larger icon beside the title, on a wash that matches that icon. Live demo icons and getting-started numbers sit on the title line at the same size.
 - The repository link moves from the header to the home hero. Dashboard takes its place on the right and stays in the menu. Header links collapse to icons before the menu opens, the active icon on the right uses the same indigo pill as the left, and the home page dark-mode badge toggles the theme.
 - The home hero draws the horizon as indigo and gold graph lines, each with a fill that fades to transparent, and those ridges drift. The product preview beside the heading stays still. The live-demo band uses a green wash and green card rules instead of the gold tint that turned muddy in dark mode. The tech-stack band pools crimson at the lower right, and each column is washed with the same crimson.
