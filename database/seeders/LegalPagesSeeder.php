@@ -150,9 +150,23 @@ class LegalPagesSeeder extends Seeder
             'remember_days' => '400',
             'appearance_days' => '365',
             'sidebar_days' => '7',
-            'search_retention_days' => (string) config('search.queries.retention_days'),
-            'usage_retention_months' => (string) config('billing.usage.retention_months'),
+            'search_retention' => self::retention((int) config('search.queries.retention_days', 90), 'day'),
+            'usage_retention' => self::retention((int) config('billing.usage.retention_months', 13), 'month'),
         ];
+    }
+
+    /**
+     * How long a kind of record is kept, as the end of a sentence. The prune jobs (PruneSearchQueryLogs, PruneUsageEvents) read the same
+     * settings with the same defaults, and delete nothing at 0 or less, so then the text must not name a period: "0 days" would promise a
+     * deletion that never happens.
+     */
+    private static function retention(int $amount, string $unit): string
+    {
+        if ($amount <= 0) {
+            return 'no fixed period. They are not deleted automatically, so they are kept until we remove them.';
+        }
+
+        return $amount.' '.$unit.($amount === 1 ? '' : 's').'.';
     }
 
     /**

@@ -2,10 +2,17 @@
 
 namespace Tests\Feature\Legal;
 
+use App\Jobs\PruneSearchQueryLogs;
+use App\Jobs\PruneUsageEvents;
+use App\Models\SearchQuery;
 use App\Models\SystemSetting;
+use App\Models\UsageEvent;
+use App\Models\User;
 use App\Support\Legal\CookieConsent;
 use App\Support\Legal\LegalPages;
+use App\Support\Usage\Usage;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Database\Seeders\LegalPagesSeeder;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -170,6 +177,59 @@ class LegalPagesSeederTest extends TestCase
         $this->assertStringContainsString('<strong>API usage counts:</strong> 6 months.', $privacy);
         $this->assertStringContainsString('<li><strong>forge-session</strong> keeps you signed in', $cookies);
         $this->assertStringContainsString('90 minutes after your last visit', $cookies);
+    }
+
+    #[Test]
+    public function a_period_is_not_promised_where_the_pruning_is_turned_off(): void
+    {
+        foreach ([0, -30] as $setting) {
+            config(['search.queries.retention_days' => $setting, 'billing.usage.retention_months' => $setting]);
+
+            $privacy = LegalPagesSeeder::render('privacy');
+
+            $this->assertStringContainsString('<li><strong>Searches:</strong> no fixed period. They are not deleted automatically, so they are kept until we remove them.</li>', $privacy);
+            $this->assertStringContainsString('<li><strong>API usage counts:</strong> no fixed period. They are not deleted automatically, so they are kept until we remove them.</li>', $privacy);
+            // Anchored to the two items: "within 30 days", elsewhere in the page, contains "0 days".
+            $this->assertStringNotContainsString("<strong>Searches:</strong> {$setting} day", $privacy);
+            $this->assertStringNotContainsString("<strong>API usage counts:</strong> {$setting} month", $privacy);
+        }
+    }
+
+    #[Test]
+    public function a_period_of_one_is_not_plural(): void
+    {
+        config(['search.queries.retention_days' => 1, 'billing.usage.retention_months' => 1]);
+
+        $privacy = LegalPagesSeeder::render('privacy');
+
+        $this->assertStringContainsString('<strong>Searches:</strong> 1 day.', $privacy);
+        $this->assertStringContainsString('<strong>API usage counts:</strong> 1 month.', $privacy);
+    }
+
+    #[Test]
+    public function what_the_text_says_about_keeping_searches_and_usage_is_what_the_pruning_does(): void
+    {
+        $user = User::factory()->create();
+
+        foreach ([0, 45] as $setting) {
+            config(['search.queries.retention_days' => $setting, 'billing.usage.retention_months' => $setting]);
+
+            SearchQuery::query()->delete();
+            UsageEvent::query()->delete();
+            SearchQuery::factory()->create(['created_at' => now()->subDays(400)]);
+            app(Usage::class)->record($user, 'api-calls', 1, key: "old-{$setting}", at: CarbonImmutable::now()->subMonths(60));
+
+            (new PruneSearchQueryLogs)->handle();
+            (new PruneUsageEvents)->handle();
+
+            $kept = $setting === 0;
+            $privacy = LegalPagesSeeder::render('privacy');
+
+            $this->assertSame($kept ? 1 : 0, SearchQuery::query()->count(), "searches, retention {$setting}");
+            $this->assertSame($kept ? 1 : 0, UsageEvent::query()->count(), "usage, retention {$setting}");
+            $this->assertSame($kept, str_contains($privacy, '<strong>Searches:</strong> no fixed period.'), "the text on searches, retention {$setting}");
+            $this->assertSame($kept, str_contains($privacy, '<strong>API usage counts:</strong> no fixed period.'), "the text on usage, retention {$setting}");
+        }
     }
 
     #[Test]
