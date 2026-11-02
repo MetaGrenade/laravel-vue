@@ -21,7 +21,7 @@ return [
     'home' => [
         'title' => env('SEO_HOME_TITLE') ?: 'Ship a shop, community and SaaS on one Laravel stack',
         'description' => env('SEO_HOME_DESCRIPTION')
-            ?: 'MetaForge includes checkout with Stripe and Tebex, entitlements, forums with moderation, a support desk, billing and security defaults wired for production.',
+            ?: 'MetaForger includes checkout with Stripe and Tebex, entitlements, forums with moderation, a support desk, billing and security defaults wired for production.',
     ],
 
     // Absolute URL or path (relative to APP_URL) of the default social share image (1200x630).

@@ -13,7 +13,7 @@ use Throwable;
  */
 class SyncSearchIndexSettingsCommand extends Command
 {
-    protected $signature = 'metaforge:search:sync';
+    protected $signature = 'metaforger:search:sync';
 
     protected $description = 'Apply Meilisearch index settings for blogs, forum threads, FAQs and products';
 

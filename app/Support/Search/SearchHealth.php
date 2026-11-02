@@ -10,7 +10,7 @@ use Meilisearch\Exceptions\ApiException;
 use Throwable;
 
 /**
- * Asks Meilisearch how it is, for the ACP card and `metaforge:search:health` (docs/search-index.md): is it reachable, does it hold the
+ * Asks Meilisearch how it is, for the ACP card and `metaforger:search:health` (docs/search-index.md): is it reachable, does it hold the
  * documents the database says it should, are its settings the coded ones, and were any updates refused.
  *
  * It only reads, waits no longer than `search.health.timeout_seconds` for any answer, and never puts the key in a message.
@@ -124,21 +124,21 @@ final class SearchHealth
             $indexes[] = ['name' => $name, 'exists' => true, 'documents' => $documents, 'expected' => $expected, 'indexing' => $indexing, 'settings_in_sync' => $inSync];
 
             if (! $inSync) {
-                $problems[] = "The [{$name}] settings are not the ones this app expects. Run: php artisan metaforge:search:sync";
+                $problems[] = "The [{$name}] settings are not the ones this app expects. Run: php artisan metaforger:search:sync";
             }
 
             if ($indexing) {
                 $notes[] = "The [{$name}] index is still being updated, so its count may change.";
             } elseif ($documents !== $expected) {
-                $problems[] = "The [{$name}] index has {$documents} ".Str::plural('document', $documents)." and {$expected} should be there. Run: php artisan metaforge:search:reindex";
+                $problems[] = "The [{$name}] index has {$documents} ".Str::plural('document', $documents)." and {$expected} should be there. Run: php artisan metaforger:search:reindex";
             }
         }
 
         if ($missing !== []) {
             // On a fresh install every index is missing: one line says so, not four.
             array_unshift($problems, count($missing) === count($names)
-                ? 'No search index exists yet. Run: php artisan metaforge:search:reindex'
-                : 'The '.Arr::join(array_map(fn (string $name) => "[{$name}]", $missing), ', ', ' and ').' '.(count($missing) === 1 ? 'index does' : 'indexes do').' not exist. Run: php artisan metaforge:search:reindex');
+                ? 'No search index exists yet. Run: php artisan metaforger:search:reindex'
+                : 'The '.Arr::join(array_map(fn (string $name) => "[{$name}]", $missing), ', ', ' and ').' '.(count($missing) === 1 ? 'index does' : 'indexes do').' not exist. Run: php artisan metaforger:search:reindex');
         }
 
         $refused = $this->refusedUpdates($names);

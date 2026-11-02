@@ -45,8 +45,8 @@ A post that has no cover shows a plain placeholder in a list and in the editor's
 A cover uploaded before this keeps working at its one size. To draw them all again at every size:
 
 ```bash
-php artisan metaforge:blog:covers:upgrade --dry-run
-php artisan metaforge:blog:covers:upgrade
+php artisan metaforger:blog:covers:upgrade --dry-run
+php artisan metaforger:blog:covers:upgrade
 ```
 
 Each cover is drawn again, the posts and the revisions that named the old file name the new one, and the old file is removed once nothing points at it. A cover whose file is gone, or that is not a picture the site accepts, is reported and left alone. It changes no post's *updated* time, and running it again does nothing. Run it when nobody is editing the covers; one that is replaced while it runs is noticed, and what the command had just drawn for it is removed again.

@@ -14,7 +14,7 @@ A post without a cover shows a placeholder in the list, and nothing on the post.
 
 ## Covers already on the site
 
-A cover uploaded before the sizes were built has one file, and is shown at that one size. `php artisan metaforge:blog:covers:upgrade` draws them again ([images.md](images.md#covers-already-on-the-site)); `--dry-run` says what it would do.
+A cover uploaded before the sizes were built has one file, and is shown at that one size. `php artisan metaforger:blog:covers:upgrade` draws them again ([images.md](images.md#covers-already-on-the-site)); `--dry-run` says what it would do.
 
 ## Not built
 

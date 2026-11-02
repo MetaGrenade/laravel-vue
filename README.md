@@ -1,8 +1,10 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="public/brand/logo-dark.png">
   <source media="(prefers-color-scheme: light)" srcset="public/brand/logo-light.png">
-  <img alt="MetaForge Boilerplate" src="docs/assets/readme/stack-highlights-light.png" width="100%">
+  <img alt="MetaForger Boilerplate" src="docs/assets/readme/stack-highlights-light.png" width="100%">
 </picture>
+
+**Project home: [metaforger.dev](https://metaforger.dev)**
 
 A batteries-included boilerplate for building SaaS products, online shops and large community websites with Laravel and Vue. The project ships with a production-ready forum, blog, support center, a working shop and admin tooling so teams can focus on features rather than scaffolding. Inertia.js keeps the frontend and backend in sync, Tailwind CSS powers the design system, and first-class TypeScript support ensures maintainable UI code.
 
@@ -58,7 +60,7 @@ A batteries-included boilerplate for building SaaS products, online shops and la
   - **Admin**: Commerce, Products, Orders, Reviews, Brands and tags, Shipping, Tax rates, Discount codes, Gift cards and Tebex in the ACP.
   - **Not built yet**: selling gift cards as a product, and entitlements from the shop's own products (on the roadmap; Stripe plans give them already).
 - **Polls & Surveys**: Polls with admin management, voting and an API.
-- **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics. The default searches the database; with `SEARCH_DRIVER=meilisearch` the page reads the index (settings via `php artisan metaforge:search:sync`, documents via `php artisan metaforge:search:reindex`). The index only keeps what a guest can already open. **Admin → System settings** and `php artisan metaforge:search:health` say whether Meilisearch is reachable and holds what it should, and a CI job runs the search tests against a real Meilisearch ([docs/search-index.md](docs/search-index.md)).
+- **Global Search**: One search across blog posts, forum threads and FAQs with admin analytics. The default searches the database; with `SEARCH_DRIVER=meilisearch` the page reads the index (settings via `php artisan metaforger:search:sync`, documents via `php artisan metaforger:search:reindex`). The index only keeps what a guest can already open. **Admin → System settings** and `php artisan metaforger:search:health` say whether Meilisearch is reachable and holds what it should, and a CI job runs the search tests against a real Meilisearch ([docs/search-index.md](docs/search-index.md)).
 - **Billing & Subscriptions**: Stripe-powered subscriptions via Laravel Cashier, an end-user settings page for plan management, and an admin invoice browser with webhook visibility. Plans give entitlements, and a failed renewal is followed up: the customer is emailed once for each attempt (and when it goes through, or the subscription ends), and can press **Pay now** after fixing their card. A plan can give a new customer a free trial, with a reminder before it ends, and a customer can enter a Stripe promotion code that is checked before they pay, and the billing page links to Stripe's customer portal ([docs/billing.md](docs/billing.md)). A metered-usage example counts each account's API calls per month against what its plan allows, with a usage panel for customers and a report for staff ([docs/usage.md](docs/usage.md)).
 - **Admin Control Panel (ACP)**: Inertia-powered layouts under `resources/js/pages/acp` for managing users, forums, support assignment rules, team membership, the shop, and content. Permission middleware ensures only privileged roles can reach moderation endpoints.
 - **Admin audit log**: every change made in the admin area is written to an append-only log (who, what it was done to, what changed as it was and as it became, where from, and whether it worked), with a viewer in **Admin → Audit log**, a view of everything done on one account, and a retention setting ([docs/audit-log.md](docs/audit-log.md)).
@@ -125,7 +127,7 @@ compose.yaml                # Optional backing services for local development (D
 </picture>
 </h2>
 
-> **Shortcut:** after cloning, `composer setup` installs PHP and Node dependencies, creates `.env`, generates the app key, runs migrations (creating the SQLite file if needed) and builds the frontend. It does not link storage or add the roles and an administrator, so follow it with `php artisan metaforge:install` (step 2 below), which keeps the `.env` and the key it made.
+> **Shortcut:** after cloning, `composer setup` installs PHP and Node dependencies, creates `.env`, generates the app key, runs migrations (creating the SQLite file if needed) and builds the frontend. It does not link storage or add the roles and an administrator, so follow it with `php artisan metaforger:install` (step 2 below), which keeps the `.env` and the key it made.
 
 1. **Clone & Install**
    ```bash
@@ -136,7 +138,7 @@ compose.yaml                # Optional backing services for local development (D
    ```
 2. **Set up the site**
    ```bash
-   php artisan metaforge:install
+   php artisan metaforger:install
    ```
    The command checks that the machine has what the site needs (before it changes anything), makes `.env` and the application key, creates the tables (a SQLite file by default), links `public/storage`, adds the roles, support categories and badges, and makes your administrator account. It asks for the name and address of the site (`http://localhost:8000` for `php artisan serve`, or your `.test` address under Herd or Valet) and for the administrator's nickname, email address and password. Run again on a site that is set up, it only runs migrations that are still to run and never empties a table. [docs/install.md](docs/install.md) has the options (for scripts and CI), production use, demo data and troubleshooting.
 
@@ -147,13 +149,13 @@ compose.yaml                # Optional backing services for local development (D
    ```
 4. **Run the App**
    - Everything in one terminal: `composer dev` (Laravel server, queue worker, **scheduler** and Vite). The scheduler does the scheduled work: releasing the stock of unpaid orders (every five minutes), support SLA checks, lifting suspensions that have ended (every minute).
-   - Or separately: `php artisan serve`, `php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`
-   - Under Laravel Herd or Valet the web server is already running; start the queue worker, the scheduler and Vite (`php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`).
+   - Or separately: `php artisan serve`, `php artisan metaforger:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`
+   - Under Laravel Herd or Valet the web server is already running; start the queue worker, the scheduler and Vite (`php artisan metaforger:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`).
 
 <details>
 <summary>Setting up by hand, and demo data from the seeders</summary>
 
-`metaforge:install` does these steps. Do them yourself when you want to.
+`metaforger:install` does these steps. Do them yourself when you want to.
 
 1. **Environment**
    ```bash
@@ -189,7 +191,7 @@ compose.yaml                # Optional backing services for local development (D
    php artisan db:seed --class=LegalPagesSeeder         # starting text for the terms, privacy and cookie policies (see docs/legal-pages.md)
    ```
 
-   `LegalPagesSeeder` is the one to run on a production site as well: it never overwrites a page that has text, and it lists what you have to fill in. `php artisan metaforge:install --legal-pages` runs it for you.
+   `LegalPagesSeeder` is the one to run on a production site as well: it never overwrites a page that has text, and it lists what you have to fill in. `php artisan metaforger:install --legal-pages` runs it for you.
 
 </details>
 
@@ -198,9 +200,9 @@ compose.yaml                # Optional backing services for local development (D
 ```bash
 docker compose up -d mysql redis mailpit        # choose what you need
 docker compose --profile pgsql up -d pgsql      # PostgreSQL is opt-in
-docker compose --profile search up -d meilisearch  # optional; then SEARCH_DRIVER=meilisearch, metaforge:search:sync / reindex
+docker compose --profile search up -d meilisearch  # optional; then SEARCH_DRIVER=meilisearch, metaforger:search:sync / reindex
 ```
-Then point `.env` at them (database, `REDIS_*`, and `MAIL_MAILER=smtp` with `MAIL_HOST=127.0.0.1`, `MAIL_PORT=1025` for Mailpit, whose inbox is at http://localhost:8025). Unless `DB_DATABASE` and `DB_PASSWORD` are set in `.env`, the containers use the database `metaforge` and the password `password` (user `root` on MySQL, `postgres` on PostgreSQL). See [CONTRIBUTING.md](CONTRIBUTING.md) for running the tests against each database.
+Then point `.env` at them (database, `REDIS_*`, and `MAIL_MAILER=smtp` with `MAIL_HOST=127.0.0.1`, `MAIL_PORT=1025` for Mailpit, whose inbox is at http://localhost:8025). Unless `DB_DATABASE` and `DB_PASSWORD` are set in `.env`, the containers use the database `metaforger` and the password `password` (user `root` on MySQL, `postgres` on PostgreSQL). See [CONTRIBUTING.md](CONTRIBUTING.md) for running the tests against each database.
 
 <h2 id="setting-up-the-shop">
 <picture>
@@ -406,7 +408,7 @@ The starter ships with first-party integrations for Google, Discord, and Steam b
    const canManageUsers = computed(() => hasPermission('users.acp.manage'));
    ```
 - **Translations**: Use `useI18n()` (`t()` / `tc()`) for new interface text and add the keys to `lang/en`; see [docs/i18n.md](docs/i18n.md). The shop pages still use literal English for now.
-- **Queues & Background Work**: `composer dev` also starts `queue:listen` so job dispatches from forum moderation, notifications or shop emails run instantly during development. Notification emails wait on their own queue, `mail`, and `queue:work` / `queue:listen` read only one queue (the connection's own, `default` unless `DB_QUEUE` or `REDIS_QUEUE` is set), so a worker started with them never sends an email. `composer dev` starts the worker with `php artisan metaforge:queue listen`, which reads the connection's own queue, `default` and `mail` and takes the options of `queue:listen`; `php artisan metaforge:queue work` does the same for `queue:work`. Scheduled work runs from `php artisan schedule:work`, which `composer dev` starts as well.
+- **Queues & Background Work**: `composer dev` also starts `queue:listen` so job dispatches from forum moderation, notifications or shop emails run instantly during development. Notification emails wait on their own queue, `mail`, and `queue:work` / `queue:listen` read only one queue (the connection's own, `default` unless `DB_QUEUE` or `REDIS_QUEUE` is set), so a worker started with them never sends an email. `composer dev` starts the worker with `php artisan metaforger:queue listen`, which reads the connection's own queue, `default` and `mail` and takes the options of `queue:listen`; `php artisan metaforger:queue work` does the same for `queue:work`. Scheduled work runs from `php artisan schedule:work`, which `composer dev` starts as well.
 
 ## Feature Notes & Endpoints
 - **Forum moderation routes** handle publishing, locking, pinning, reporting, and deletion, guarded by role middleware (`role:admin|editor|moderator`).
@@ -486,8 +488,8 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - **Testing fixtures**: Sample webhook JSON lives in `tests/Fixtures/stripe/`. Feature tests under
   `tests/Feature/Webhooks/StripeWebhookTest.php` exercise invoice and subscription webhook flows. Use Stripe's test keys when
   exercising end-to-end subscription flows locally.
-- **Queues & jobs**: Webhook handling and subscription updates rely on queued jobs. Ensure a worker (`php artisan metaforge:queue listen`, or a
-  Supervisor job running `metaforge:queue work`) is running in development and production so invoice syncing happens promptly
+- **Queues & jobs**: Webhook handling and subscription updates rely on queued jobs. Ensure a worker (`php artisan metaforger:queue listen`, or a
+  Supervisor job running `metaforger:queue work`) is running in development and production so invoice syncing happens promptly
   and the emails are sent (see [docs/redis.md](docs/redis.md#the-queue)).
 
 <h2 id="testing--quality">
@@ -521,8 +523,8 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 ## Artisan commands
 | Command | What it does |
 |---------|--------------|
-| `php artisan metaforge:install` | Set up a new site: check the machine, make `.env` and the key, create the tables, link storage, add the roles, categories and badges, make the first administrator. Safe to run again; `--demo` adds demo data (never in production); `--legal-pages` adds a starting text for the legal pages. See [docs/install.md](docs/install.md). |
-| `composer setup` | First-time setup of the code: install dependencies, create `.env`, generate the key, migrate and build assets. Follow it with `metaforge:install`. |
+| `php artisan metaforger:install` | Set up a new site: check the machine, make `.env` and the key, create the tables, link storage, add the roles, categories and badges, make the first administrator. Safe to run again; `--demo` adds demo data (never in production); `--legal-pages` adds a starting text for the legal pages. See [docs/install.md](docs/install.md). |
+| `composer setup` | First-time setup of the code: install dependencies, create `.env`, generate the key, migrate and build assets. Follow it with `metaforger:install`. |
 | `composer dev` / `composer dev:ssr` | Run the server, queue worker, scheduler and Vite (the SSR variant builds SSR first and adds log tailing and the SSR server). |
 | `php artisan commerce:expire-orders` | Cancel unpaid orders past their payment window and release their stock (the scheduler runs this every five minutes). |
 | `php artisan lang:check` | Fail if a language is missing keys the fallback language has. |
@@ -538,7 +540,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 </picture>
 </h2>
 
-- [docs/install.md](docs/install.md): `php artisan metaforge:install` step by step, its options for scripts and CI, running it again, production, demo data and what to do when it stops.
+- [docs/install.md](docs/install.md): `php artisan metaforger:install` step by step, its options for scripts and CI, running it again, production, demo data and what to do when it stops.
 - [docs/commerce.md](docs/commerce.md): how the shop works (flow, orders, pricing, shipping, tax, discounts, digital goods, refunds, webhooks, configuration and upgrade notes).
 - [docs/billing.md](docs/billing.md): subscriptions, what a customer is told and can do when a payment fails, and the Stripe events the shop needs.
 - [docs/entitlements.md](docs/entitlements.md): what a purchase or a subscription plan gives an account (features and limits), when it is given and taken back, and how code asks for it.

@@ -51,7 +51,7 @@ test.describe('visitors', () => {
     test('the home page, the shop, the forum and the blog open and link to each other', async ({ page }) => {
         await page.goto('/');
         await chooseNecessaryCookiesOnly(page);
-        await expect(page).toHaveTitle(/MetaForge/);
+        await expect(page).toHaveTitle(/MetaForger/);
 
         await page.getByRole('link', { name: 'Shop', exact: true }).first().click();
         await expect(page).toHaveURL(/\/shop$/);

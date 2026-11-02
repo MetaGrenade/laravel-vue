@@ -251,7 +251,7 @@ class RequirementsTest extends TestCase
         $this->assertTrue($probe->extensionLoaded('json'));
         $this->assertFalse($probe->extensionLoaded('no_such_extension'));
         $this->assertTrue($probe->writable(sys_get_temp_dir()));
-        $this->assertFalse($probe->writable(sys_get_temp_dir().DIRECTORY_SEPARATOR.'metaforge-no-such-folder'));
+        $this->assertFalse($probe->writable(sys_get_temp_dir().DIRECTORY_SEPARATOR.'metaforger-no-such-folder'));
         $this->assertNull($probe->bytes('no_such_setting'));
     }
 

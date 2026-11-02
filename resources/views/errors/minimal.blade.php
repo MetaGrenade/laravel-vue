@@ -245,7 +245,7 @@
             <section class="mf-error__card">
                 <a class="mf-error__brand" href="{{ url('/') }}">
                     <img src="/brand/mark.png" alt="" width="32" height="32">
-                    <span class="mf-error__name">{{ config('app.name', 'MetaForge') }}</span>
+                    <span class="mf-error__name">{{ config('app.name', 'MetaForger') }}</span>
                 </a>
                 <p class="mf-error__code"><span class="mf-error__rule" aria-hidden="true"></span>{{ $code }}</p>
                 <h1>{{ $hint }}</h1>

@@ -8,10 +8,10 @@ return [
     | only value that talks to Meilisearch. The database driver, and anything
     | else, uses Scout's null engine so a save does not try to reach it.
     |
-    | metaforge:search:sync applies index-settings. metaforge:search:reindex
+    | metaforger:search:sync applies index-settings. metaforger:search:reindex
     | flushes and re-imports documents. With SEARCH_DRIVER=meilisearch the
     | search page reads the index, and falls back to the database when
-    | Meilisearch cannot be reached. metaforge:search:health says how it is.
+    | Meilisearch cannot be reached. metaforger:search:health says how it is.
     */
 
     'driver' => env('SEARCH_DRIVER', 'database') === 'meilisearch' ? 'meilisearch' : 'null',

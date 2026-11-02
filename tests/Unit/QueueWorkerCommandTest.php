@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 /**
- * `metaforge:queue` is how composer dev, the README and the Supervisor example in docs/redis.md start a worker (tests/Unit/QueueConfigTest.php
+ * `metaforger:queue` is how composer dev, the README and the Supervisor example in docs/redis.md start a worker (tests/Unit/QueueConfigTest.php
  * fails if one of them does not). `queue:work --queue=` replaces the connection's own queue, so the command has to put it back in the
  * list: a site with DB_QUEUE or REDIS_QUEUE set runs the jobs that name no queue there.
  */
@@ -54,7 +54,7 @@ class QueueWorkerCommandTest extends TestCase
         config(['queue.default' => 'database', 'queue.connections.database.queue' => 'default']);
         $seen = $this->standIn('queue:work');
 
-        $this->artisan('metaforge:queue work --tries=3')->assertSuccessful();
+        $this->artisan('metaforger:queue work --tries=3')->assertSuccessful();
 
         $this->assertSame(['connection' => null, 'queue' => 'default,mail', 'tries' => '3'], $seen->getArrayCopy());
     }
@@ -64,7 +64,7 @@ class QueueWorkerCommandTest extends TestCase
         config(['queue.default' => 'redis', 'queue.connections.redis.queue' => 'site-jobs']);
         $seen = $this->standIn('queue:work');
 
-        $this->artisan('metaforge:queue work')->assertSuccessful();
+        $this->artisan('metaforger:queue work')->assertSuccessful();
 
         $this->assertSame('site-jobs,default,mail', $seen['queue']);
     }
@@ -78,7 +78,7 @@ class QueueWorkerCommandTest extends TestCase
         ]);
         $seen = $this->standIn('queue:work');
 
-        $this->artisan('metaforge:queue work redis --tries=3')->assertSuccessful();
+        $this->artisan('metaforger:queue work redis --tries=3')->assertSuccessful();
 
         $this->assertSame(['connection' => 'redis', 'queue' => 'site-jobs,default,mail', 'tries' => '3'], $seen->getArrayCopy());
     }
@@ -89,7 +89,7 @@ class QueueWorkerCommandTest extends TestCase
         $work = $this->standIn('queue:work');
         $listen = $this->standIn('queue:listen');
 
-        $this->artisan('metaforge:queue listen --tries=1')->assertSuccessful();
+        $this->artisan('metaforger:queue listen --tries=1')->assertSuccessful();
 
         $this->assertSame([], $work->getArrayCopy());
         $this->assertSame(['connection' => null, 'queue' => 'site-jobs,default,mail', 'tries' => '1'], $listen->getArrayCopy());
@@ -100,7 +100,7 @@ class QueueWorkerCommandTest extends TestCase
         config(['queue.default' => 'redis', 'queue.connections.redis.queue' => 'site-jobs']);
         $seen = $this->standIn('queue:work');
 
-        $this->artisan('metaforge:queue work --queue=reports')->assertSuccessful();
+        $this->artisan('metaforger:queue work --queue=reports')->assertSuccessful();
 
         $this->assertSame('reports', $seen['queue']);
     }
@@ -109,8 +109,8 @@ class QueueWorkerCommandTest extends TestCase
     {
         $seen = $this->standIn('queue:work');
 
-        $this->artisan('metaforge:queue restart')->assertExitCode(Command::INVALID);
-        $this->artisan('metaforge:queue --tries=3 work')->assertExitCode(Command::INVALID);
+        $this->artisan('metaforger:queue restart')->assertExitCode(Command::INVALID);
+        $this->artisan('metaforger:queue --tries=3 work')->assertExitCode(Command::INVALID);
 
         $this->assertSame([], $seen->getArrayCopy());
     }

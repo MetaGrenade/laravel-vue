@@ -1,4 +1,4 @@
-# Contributing to MetaForge
+# Contributing to MetaForger
 
 Thanks for helping. This guide covers setting up, the checks a change must pass, and how to submit it. The direction of the project is described in [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md); please read it before proposing large features.
 
@@ -48,7 +48,7 @@ npm run licences:check          # the licences of what is shipped, and THIRD-PAR
 CI runs the suite on SQLite, MySQL 8 and PostgreSQL 16. To run locally on one of them, start it with `compose.yaml` and override the connection for a run:
 
 ```bash
-DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_PORT=5432 DB_DATABASE=metaforge \
+DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_PORT=5432 DB_DATABASE=metaforger \
 DB_USERNAME=postgres DB_PASSWORD=password EXPECTED_DB_DRIVER=pgsql php artisan test
 ```
 
@@ -59,9 +59,9 @@ DB_USERNAME=postgres DB_PASSWORD=password EXPECTED_DB_DRIVER=pgsql php artisan t
 The suite runs on the array cache, the sync queue and array sessions. The `redis (Redis 7)` CI job runs `tests/Live/Redis` against a real Redis; they skip themselves unless `REDIS_LIVE_HOST` is set, and they empty the Redis they run against, so give them one of their own (docs/redis.md):
 
 ```bash
-docker run --rm -d --name metaforge-redis-live -p 6390:6379 redis:7-alpine
+docker run --rm -d --name metaforger-redis-live -p 6390:6379 redis:7-alpine
 REDIS_LIVE_HOST=127.0.0.1 REDIS_LIVE_PORT=6390 php artisan test tests/Live/Redis
-docker stop metaforge-redis-live
+docker stop metaforger-redis-live
 ```
 
 ## Writing portable code

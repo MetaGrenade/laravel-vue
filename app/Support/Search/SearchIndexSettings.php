@@ -9,7 +9,7 @@ use App\Models\Product;
 
 /**
  * Meilisearch index settings for the four search indexes. Applied by
- * `php artisan metaforge:search:sync`. Document import is a later command.
+ * `php artisan metaforger:search:sync`. Document import is a later command.
  *
  * Keys are model classes so Scout resolves the index name through
  * `indexableAs()` / `searchableAs()`, including `scout.prefix`.

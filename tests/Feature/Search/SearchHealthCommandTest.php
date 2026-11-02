@@ -14,7 +14,7 @@ use Tests\Support\FakeMeilisearch;
 use Tests\TestCase;
 
 /**
- * `php artisan metaforge:search:health` (docs/search-index.md): what it prints, and that it fails when something is wrong so a deploy
+ * `php artisan metaforger:search:health` (docs/search-index.md): what it prints, and that it fails when something is wrong so a deploy
  * script can stop on it.
  */
 class SearchHealthCommandTest extends TestCase
@@ -47,7 +47,7 @@ class SearchHealthCommandTest extends TestCase
      */
     private function run_(string ...$options): array
     {
-        $code = Artisan::call('metaforge:search:health', array_fill_keys($options, true));
+        $code = Artisan::call('metaforger:search:health', array_fill_keys($options, true));
 
         return [$code, Artisan::output()];
     }
@@ -57,7 +57,7 @@ class SearchHealthCommandTest extends TestCase
     {
         config(['search.driver' => 'database', 'scout.driver' => 'null']);
 
-        $this->artisan('metaforge:search:health')
+        $this->artisan('metaforger:search:health')
             ->expectsOutputToContain('Search uses the database (SEARCH_DRIVER=database)')
             ->assertSuccessful();
     }
@@ -86,7 +86,7 @@ class SearchHealthCommandTest extends TestCase
         [$code, $output] = $this->run_();
 
         $this->assertSame(1, $code);
-        $this->assertStringContainsString('The [blogs] index has 0 documents and 2 should be there. Run: php artisan metaforge:search:reindex', $output);
+        $this->assertStringContainsString('The [blogs] index has 0 documents and 2 should be there. Run: php artisan metaforger:search:reindex', $output);
         $this->assertStringNotContainsString('Meilisearch is healthy.', $output);
     }
 

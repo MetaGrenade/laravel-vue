@@ -48,7 +48,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: metaforge
+          MYSQL_DATABASE: metaforger
         ports:
           - 3306:3306
         options: >-
@@ -62,7 +62,7 @@ jobs:
       DB_CONNECTION: mysql
       DB_HOST: 127.0.0.1
       DB_PORT: 3306
-      DB_DATABASE: metaforge
+      DB_DATABASE: metaforger
       DB_USERNAME: root
       DB_PASSWORD: password
 
@@ -86,7 +86,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_PASSWORD: password
-          POSTGRES_DB: metaforge
+          POSTGRES_DB: metaforger
         ports:
           - 5432:5432
         options: >-
@@ -100,7 +100,7 @@ jobs:
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
-      DB_DATABASE: metaforge
+      DB_DATABASE: metaforger
       DB_USERNAME: postgres
       DB_PASSWORD: password
 
@@ -236,7 +236,7 @@ jobs:
   # run a second time to show that it changes nothing, and the site it made is served and signed in to as the administrator it made.
   # The password is made here, so that none is written in the repository.
   install:
-    name: install (metaforge:install)
+    name: install (metaforger:install)
     runs-on: ubuntu-latest
 
     steps:
@@ -261,14 +261,14 @@ jobs:
 
       - name: Install the site
         run: >
-          php artisan metaforge:install --no-interaction
+          php artisan metaforger:install --no-interaction
           --app-name="CI Site" --app-url=http://127.0.0.1:8000
           --admin-nickname=owner --admin-email=owner@example.test --admin-password="$ADMIN_PASSWORD"
 
       - name: Install again, which must change nothing
         run: |
           cp .env /tmp/env.first
-          php artisan metaforge:install --no-interaction
+          php artisan metaforger:install --no-interaction
           cmp .env /tmp/env.first
           php artisan tinker --execute='echo App\Models\User::count();' | grep -qx 1
 

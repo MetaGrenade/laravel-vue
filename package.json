@@ -1,6 +1,7 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
+    "homepage": "https://metaforger.dev",
     "type": "module",
     "scripts": {
         "build": "vite build",

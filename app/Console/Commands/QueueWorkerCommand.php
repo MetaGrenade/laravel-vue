@@ -14,7 +14,7 @@ use Symfony\Component\Console\Input\ArgvInput;
  */
 class QueueWorkerCommand extends Command
 {
-    protected $signature = 'metaforge:queue
+    protected $signature = 'metaforger:queue
         {mode? : work (queue:work) or listen (queue:listen)}';
 
     protected $description = "Run queue:work or queue:listen on the connection's own queue, default and mail";
@@ -33,7 +33,7 @@ class QueueWorkerCommand extends Command
         $mode = array_shift($tokens);
 
         if (! in_array($mode, ['work', 'listen'], true)) {
-            $this->components->error('Say work or listen first, then any options of queue:work or queue:listen: php artisan metaforge:queue work --tries=3');
+            $this->components->error('Say work or listen first, then any options of queue:work or queue:listen: php artisan metaforger:queue work --tries=3');
 
             return self::INVALID;
         }

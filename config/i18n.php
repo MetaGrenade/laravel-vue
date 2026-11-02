@@ -7,7 +7,7 @@ return [
     | Supported interface languages
     |--------------------------------------------------------------------------
     |
-    | Two-letter language codes the UI is translated into. MetaForge 1.0 ships
+    | Two-letter language codes the UI is translated into. MetaForger 1.0 ships
     | English only; to add a language, create lang/<code>/*.php files, add the
     | code here (or in APP_SUPPORTED_LOCALES) and run `php artisan lang:check`.
     |

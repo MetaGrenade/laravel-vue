@@ -10,7 +10,7 @@
 # Ports are configurable through the FORWARD_* variables so they never clash
 # with services already running on your machine.
 
-name: metaforge
+name: metaforger
 
 services:
   mysql:
@@ -19,7 +19,7 @@ services:
       - '${FORWARD_DB_PORT:-3306}:3306'
     environment:
       MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-password}'
-      MYSQL_DATABASE: '${DB_DATABASE:-metaforge}'
+      MYSQL_DATABASE: '${DB_DATABASE:-metaforger}'
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -35,7 +35,7 @@ services:
       - '${FORWARD_PGSQL_PORT:-5432}:5432'
     environment:
       POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
-      POSTGRES_DB: '${DB_DATABASE:-metaforge}'
+      POSTGRES_DB: '${DB_DATABASE:-metaforger}'
     volumes:
       - pgsql-data:/var/lib/postgresql/data
     healthcheck:
@@ -68,8 +68,8 @@ services:
       - '${FORWARD_MAILPIT_PORT:-8025}:8025'
 
   # Optional search engine. With SEARCH_DRIVER=meilisearch, run
-  # metaforge:search:sync and metaforge:search:reindex, and the search page reads the index.
-  # metaforge:search:health says how it is; docs/search-index.md has the key to make for the app.
+  # metaforger:search:sync and metaforger:search:reindex, and the search page reads the index.
+  # metaforger:search:health says how it is; docs/search-index.md has the key to make for the app.
   meilisearch:
     image: getmeili/meilisearch:v1.12
     profiles: [search]

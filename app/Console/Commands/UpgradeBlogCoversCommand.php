@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class UpgradeBlogCoversCommand extends Command
 {
-    protected $signature = 'metaforge:blog:covers:upgrade {--dry-run : Report which covers would be drawn again without changing anything}';
+    protected $signature = 'metaforger:blog:covers:upgrade {--dry-run : Report which covers would be drawn again without changing anything}';
 
     protected $description = 'Draw blog covers that are stored as one file again at every size (docs/images.md)';
 

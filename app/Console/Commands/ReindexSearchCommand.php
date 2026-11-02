@@ -21,7 +21,7 @@ use Throwable;
  */
 class ReindexSearchCommand extends Command
 {
-    protected $signature = 'metaforge:search:reindex
+    protected $signature = 'metaforger:search:reindex
         {--chunk= : The number of records to import at a time}
         {--skip-sync : Skip pushing index settings before importing}
         {--wait= : Seconds to wait for Meilisearch to finish before the rebuild counts as done (0 does not wait; default SEARCH_REINDEX_WAIT)}';
@@ -64,7 +64,7 @@ class ReindexSearchCommand extends Command
             }
 
             if ($seconds === 0) {
-                $this->components->warn('Not waiting for Meilisearch, so the rebuild is not recorded as done. Run php artisan metaforge:search:health to see how it goes.');
+                $this->components->warn('Not waiting for Meilisearch, so the rebuild is not recorded as done. Run php artisan metaforger:search:health to see how it goes.');
 
                 return self::SUCCESS;
             }
@@ -114,7 +114,7 @@ class ReindexSearchCommand extends Command
         $this->components->info("Waiting for Meilisearch to finish (up to {$seconds} seconds)...");
 
         if (! $tasks->settle($indexes, $seconds)) {
-            $this->components->error("Meilisearch had not finished after {$seconds} seconds, so the rebuild is not recorded as done. It carries on: run php artisan metaforge:search:health to see when it has, and whether it refused anything. Use --wait to give a large index longer.");
+            $this->components->error("Meilisearch had not finished after {$seconds} seconds, so the rebuild is not recorded as done. It carries on: run php artisan metaforger:search:health to see when it has, and whether it refused anything. Use --wait to give a large index longer.");
 
             return self::FAILURE;
         }

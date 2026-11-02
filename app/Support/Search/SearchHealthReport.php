@@ -3,7 +3,7 @@
 namespace App\Support\Search;
 
 /**
- * What {@see SearchHealth} found, for the ACP card and `metaforge:search:health` (docs/search-index.md).
+ * What {@see SearchHealth} found, for the ACP card and `metaforger:search:health` (docs/search-index.md).
  */
 final readonly class SearchHealthReport
 {

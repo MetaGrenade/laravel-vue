@@ -12,7 +12,7 @@ use Illuminate\Console\Command;
  */
 class SearchHealthCommand extends Command
 {
-    protected $signature = 'metaforge:search:health
+    protected $signature = 'metaforger:search:health
         {--json : Print the report as JSON}';
 
     protected $description = 'Check that Meilisearch is reachable, configured and holds the documents it should';

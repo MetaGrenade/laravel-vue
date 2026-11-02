@@ -3,7 +3,7 @@
 namespace App\Support\Install;
 
 /**
- * What the machine must have before MetaForge can be installed on it (README, Prerequisites; docs/install.md). It only looks: nothing is
+ * What the machine must have before MetaForger can be installed on it (README, Prerequisites; docs/install.md). It only looks: nothing is
  * written, so the installer can run it before it touches a file or a database.
  */
 class Requirements
