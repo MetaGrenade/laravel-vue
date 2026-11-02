@@ -9,6 +9,7 @@ import {
     npmClosure,
     npmLicenceNames,
     parseExpression,
+    readAssetTexts,
     readTexts,
     renderNotices,
     resolveLicence,
@@ -501,6 +502,59 @@ describe('the notices', () => {
             /### Some font\n\n- Licence: OFL-1\.1\n- Notice: Copyright 2021 The Authors\n- Source: https:\/\/example\.com\/font\n- Use: Served from our own origin\./,
         );
     });
+
+    describe("the text of an asset's licence", () => {
+        const ofl = 'Copyright 2021 The Authors\n\nThis Font Software is licensed under the SIL Open Font License, Version 1.1.\n';
+        const font = (name, more = {}) => ({
+            name,
+            licence: 'OFL-1.1',
+            licenceText: 'https://example.com/ofl',
+            copyright: `Copyright 2021 ${name} Authors`,
+            source: 'https://example.com/font',
+            where: 'Served from our own origin.',
+            ...more,
+        });
+        const withText = (...assets) => ({ ...policy({ assets }), assets: assets.map((asset) => ({ ...asset, text: ofl })) });
+
+        test('is shown once for the assets under it, and each of them links to it', () => {
+            const notices = renderNotices(found(base()).packages, withText(font('Headings'), font('Body')));
+
+            assert.equal([...notices.matchAll(/^### OFL-1\.1 \(/gm)].length, 1);
+            assert.match(notices, /Used by 2 assets: Body, Headings\./);
+            assert.equal(
+                [...notices.matchAll(/- Licence: OFL-1\.1 \(\[text\]\(#text-ofl-1-1-[0-9a-f]{6}\), also at https:\/\/example\.com\/ofl\)/g)].length,
+                2,
+            );
+            // The licence is there in full, and each font keeps its own copyright line in its notice.
+            assert.match(notices, /This Font Software is licensed under the SIL Open Font License, Version 1\.1\./);
+            assert.match(notices, /- Notice: Copyright 2021 Headings Authors/);
+            assert.match(notices, /- Notice: Copyright 2021 Body Authors/);
+            // The link goes to an anchor that exists.
+            const anchor = notices.match(/\[text\]\(#(text-ofl-1-1-[0-9a-f]{6})\), also at/)[1];
+            assert.ok(notices.includes(`<a id="${anchor}"></a>`), 'the link points at nothing');
+        });
+
+        test('leaves out the copyright line of the file, which belongs to the notice', () => {
+            const notices = renderNotices(found(base()).packages, withText(font('Headings')));
+
+            assert.doesNotMatch(notices, /^Copyright 2021 The Authors$/m);
+        });
+
+        test('is one entry with a package that has the same text', () => {
+            const root = base({ extra: { 'node_modules/left/LICENSE': ofl, 'node_modules/left/package.json': { name: 'left', license: 'MIT' } } });
+            const notices = renderNotices(found(root).packages, withText(font('Headings')));
+
+            assert.equal([...notices.matchAll(/^This Font Software is licensed/gm)].length, 1);
+            assert.match(notices, /Used by 2 packages and assets: Headings, left\./);
+        });
+
+        test('an asset without a file keeps the link to the licence it had', () => {
+            const notices = renderNotices(found(base()).packages, policy({ assets: [font('Headings')] }));
+
+            assert.match(notices, /- Licence: OFL-1\.1 \(https:\/\/example\.com\/ofl\)\n/);
+            assert.doesNotMatch(notices, /^### OFL-1\.1/m);
+        });
+    });
 });
 
 describe('the command', () => {
@@ -587,6 +641,75 @@ describe('the command', () => {
         );
     });
 
+    describe("with the text of an asset's licence in a file", () => {
+        const withFile = (file) => ({
+            name: 'Some font',
+            licence: 'OFL-1.1',
+            copyright: 'Copyright 2021 The Authors',
+            source: 'https://example.com',
+            where: 'Here.',
+            licenceTextFile: file,
+        });
+        const ofl = 'Copyright 2021 The Authors\n\nThis Font Software is licensed under the SIL Open Font License, Version 1.1.\n';
+
+        test('the notices hold the text, and the check passes until the file changes', () => {
+            const root = base({
+                policyFile: policy({ assets: [withFile('scripts/licence-texts/OFL-1.1.txt')] }),
+                extra: { 'scripts/licence-texts/OFL-1.1.txt': ofl },
+            });
+
+            assert.equal(
+                run(['--write'], root, () => {}),
+                0,
+            );
+            assert.match(readFileSync(join(root, 'THIRD-PARTY-NOTICES.md'), 'utf8'), /SIL Open Font License, Version 1\.1\./);
+            assert.equal(
+                run([], root, () => {}),
+                0,
+            );
+
+            writeFileSync(join(root, 'scripts/licence-texts/OFL-1.1.txt'), ofl.replace('Version 1.1', 'Version 1.2'));
+
+            const { out, log } = lines();
+
+            assert.equal(run([], root, log), 1);
+            assert.match(out.join('\n'), /a licence or a licence text changed/);
+        });
+
+        test('a file with Windows line endings and a byte order mark is the same text', () => {
+            const root = base({
+                policyFile: policy({ assets: [withFile('scripts/licence-texts/OFL-1.1.txt')] }),
+                extra: { 'scripts/licence-texts/OFL-1.1.txt': ofl },
+            });
+            run(['--write'], root, () => {});
+            writeFileSync(join(root, 'scripts/licence-texts/OFL-1.1.txt'), `﻿${ofl.replace(/\n/g, '\r\n')}`);
+
+            assert.equal(
+                run([], root, () => {}),
+                0,
+            );
+        });
+
+        test('a file that is not there fails, by the name of the asset, and writes nothing', () => {
+            const root = base({ policyFile: policy({ assets: [withFile('scripts/licence-texts/gone.txt')] }) });
+            const { out, log } = lines();
+
+            assert.equal(run(['--write'], root, log), 1);
+            assert.match(out.join('\n'), /Some font: licenceTextFile scripts\/licence-texts\/gone\.txt does not exist/);
+            assert.throws(() => readFileSync(join(root, 'THIRD-PARTY-NOTICES.md')), /ENOENT/);
+        });
+
+        test('a file with nothing but a copyright line in it fails: the notices would say the text is below and show none', () => {
+            const root = base({
+                policyFile: policy({ assets: [withFile('scripts/licence-texts/empty.txt')] }),
+                extra: { 'scripts/licence-texts/empty.txt': 'Copyright 2021 The Authors\n' },
+            });
+            const { problems } = readAssetTexts(root, JSON.parse(readFileSync(join(root, 'scripts/licence-policy.json'), 'utf8')));
+
+            assert.deepEqual(problems, ['Some font: licenceTextFile scripts/licence-texts/empty.txt has no licence text in it']);
+        });
+    });
+
     test('a licence that is not allowed fails, lists the problem, and writes nothing', () => {
         const root = base({ extra: { 'node_modules/right/package.json': { name: 'right', license: 'GPL-3.0-only' } } });
         const { out, log } = lines();
@@ -607,6 +730,23 @@ describe('the policy of this project', () => {
             assert.ok(one.licence, `${key} names the licence it is an exception for`);
             assert.ok(one.reason.length > 40, `${key} says why`);
             assert.ok(!file.allowed.includes(one.licence), `${key} would not need an exception`);
+        }
+    });
+
+    test('every font names the text of its licence, a file that is there and is the licence it says', () => {
+        const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+        const fonts = file.assets.filter((asset) => /^OFL-/.test(asset.licence));
+
+        assert.ok(fonts.length >= 2, 'the policy lists the two fonts');
+
+        for (const font of fonts) {
+            assert.ok(font.licenceTextFile, `${font.name} has no licenceTextFile: the notices would link to the web instead of holding the text`);
+
+            const text = readFileSync(join(root, font.licenceTextFile), 'utf8');
+
+            assert.match(text, /SIL OPEN FONT LICENSE Version 1\.1 - 26 February 2007/, font.name);
+            assert.match(text, /PERMISSION & CONDITIONS/, font.name);
+            assert.match(text, /OTHER DEALINGS IN THE FONT SOFTWARE\./, font.name);
         }
     });
 

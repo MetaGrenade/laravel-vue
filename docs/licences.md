@@ -16,7 +16,7 @@ Both need the packages installed (`composer install` and `npm ci`), because the 
 | PHP | The packages `composer install --no-dev` installs | `composer.lock`, `vendor/<package>/` |
 | JavaScript | Everything `dependencies` in `package.json` reaches, and what those packages need | `package-lock.json`, `node_modules/<package>/` |
 | JavaScript, built in | `tailwindcss` and `tw-animate-css`, which are build tools whose CSS ends up in the stylesheet (`alsoShipped` in the policy) | the same |
-| Fonts and images | Outfit, Source Sans 3 and the technology logos on the home page | `assets` in the policy, written by hand |
+| Fonts and images | Outfit, Source Sans 3 and the technology logos on the home page | `assets` in the policy, written by hand; the fonts' licence text is `scripts/licence-texts/OFL-1.1.txt` |
 
 What only builds or tests the project (`devDependencies`, Composer's `require-dev`, Playwright, ESLint) is not shipped, so it is neither checked nor listed. If one of them ever starts to put its own code or files into what visitors receive, add it to `alsoShipped`.
 
@@ -30,7 +30,7 @@ The project's own packages (`metagrenade/metaforge-discord`) are not third-party
 - **`exceptions`**: a package under a licence that is not allowed, one by one, each with the licence it is an exception for and the reason. The exception stops matching when the package changes its licence, so a new licence is a new decision. An exception for a package that is no longer shipped fails the check, so none stays behind.
 - **`aliases`**: names old packages use for a licence (`Apache 2.0` for `Apache-2.0`).
 - **`fallbackTexts`**: for a package that ships no licence file. The copyright line is copied from where the package's authors state it (`source`), and the text is the standard MIT text the script holds. Only MIT has one; another licence needs the script to learn its text.
-- **`assets`**: fonts and images, which no lock file lists.
+- **`assets`**: fonts and images, which no lock file lists. An asset can name `licenceTextFile`, a path in the project to the text of its licence: the notices then hold that text (once, shared with any other asset or package that has the same text) instead of only an address. A file that is missing, or has nothing in it but a copyright line, fails the check.
 
 A package under a licence that is neither allowed nor excepted fails `npm run licences:check` with its name, version and licence. **A new licence is not something to add to the list to make CI green.** Weak copyleft (LGPL, MPL, EPL) can be fine when the library is used as installed and unmodified, and strong copyleft (GPL, AGPL) is not compatible with shipping this project under MIT. Decide, write the reason, and put it in `exceptions` if the answer is yes.
 
@@ -48,7 +48,7 @@ For the three LGPL libraries: they are used as installed from Packagist, unmodif
 The file is generated. It has, in this order: the count per licence, the packages that needed an exception and why, one table per ecosystem (package, licence, copyright lines, and a link to the text), the fonts and images, and each distinct licence text once.
 
 - **Versions are left out.** A routine update (Dependabot opens them weekly) does not change the file. What does change it is a package that comes or goes, a licence that changes, and a copyright line or licence text that changes (a new year in a package's copyright line is a change to its row).
-- **A licence text is shown once** for all the packages that share it, without the copyright lines, which are in the table next to the package they belong to. Two packages share a text when it is the same after whitespace and capital letters are ignored. A text with a name in the body (BSD-3-Clause names the organisation, for one) is its own entry. A line is taken for a copyright line when it starts with `Copyright` and has a year, `(c)` or `©` after it, or starts with `©`, or with `(c)` and a year. A numbered clause is not one: Apache-2.0's `(c) You must retain, in the Source form of any Derivative Works` stays in the text.
+- **A licence text is shown once** for all the packages (and fonts) that share it, without the copyright lines, which are in the table next to the package they belong to, or in the notice of the font or image. Two packages share a text when it is the same after whitespace and capital letters are ignored. A text with a name in the body (BSD-3-Clause names the organisation, for one) is its own entry. A line is taken for a copyright line when it starts with `Copyright` and has a year, `(c)` or `©` after it, or starts with `©`, or with `(c)` and a year. A numbered clause is not one: Apache-2.0's `(c) You must retain, in the Source form of any Derivative Works` stays in the text.
 - **Nothing depends on the machine.** The order is by name in plain code-unit order, line endings are normalised, and there are no dates. The same lock files and the same package contents give the same file on Windows and Linux. An optional package that is not installed on the machine (a build for another platform) is skipped with a line saying so; none of the shipped packages is one today.
 
 When the check says the file is out of date, run `npm run licences:notices` and commit the result. It tells you which packages came or went.
@@ -58,6 +58,14 @@ When the check says the file is out of date, run `npm run licences:notices` and 
 1. Add it, and run `npm run licences:check`.
 2. If it passes, it fails only because the file is stale: run `npm run licences:notices` and commit `THIRD-PARTY-NOTICES.md` with the dependency.
 3. If it names a licence, that is the decision above. If it says the package has no licence file, find the authors' statement of the licence (the repository, the README), and put the copyright line in `fallbackTexts` with the address you read it at.
+
+### Adding a font or an image
+
+1. Add it to `assets` in `scripts/licence-policy.json`: the name, the licence, the copyright line as its authors give it, where it comes from and how it is used.
+2. If the licence asks that each copy carries its text (the SIL Open Font License does, and so do most licences that are not CC0), save the text the authors ship with it in `scripts/licence-texts/` and name the file in `licenceTextFile`. Use the file from the authors' repository as it is: do not retype it.
+3. Run `npm run licences:notices` and commit `THIRD-PARTY-NOTICES.md` with it.
+
+`OFL-1.1.txt` is the `OFL.txt` of the Outfit project (SIL OFL 1.1, 26 February 2007), copied byte for byte. Source Sans 3 is under the same version of the same licence and shares that text (Adobe's `LICENSE.md` is word for word the same from the preamble down; compared on 2026-11-02); its own copyright line (Adobe, with the Reserved Font Name `Source`) is in its notice, as the font files that are served state it.
 
 ## Tests
 
@@ -69,7 +77,8 @@ When the check says the file is out of date, run `npm run licences:notices` and 
 - a missing install names the command to run; a package without a licence file fails until the policy holds its text;
 - which lines are copyright lines: the usual shapes are taken out, the licence's own words about copyright and its template stay, and so do the numbered clauses of the Apache licence;
 - the notices: shared texts, per-package copyright lines, two versions under two licences in one row, a `|` in a copyright line, a text that contains backticks, the same file in any input order, no versions in it;
-- the command: `--write` makes the file, a package that came, went or changed its text fails the check by name, Windows line endings are accepted, and a failed audit writes nothing.
+- the command: `--write` makes the file, a package that came, went or changed its text fails the check by name, Windows line endings are accepted, and a failed audit writes nothing;
+- the text of a font's licence: shown once for the fonts under it and linked from each, without the copyright line of the file, joined with a package that has the same text, a missing or empty file is a failure, and the policy of this project names a file that is there and is the OFL for both fonts.
 
 Each of 14 changes to the script (an unconditional "allowed", `OR` taking the last alternative, `AND` taking one part, the optional-peer rule removed, the line-ending rule removed, a stale exception not reported and so on) was made in turn to check that a test fails for it.
 
