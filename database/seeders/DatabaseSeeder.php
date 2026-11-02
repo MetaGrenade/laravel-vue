@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             BadgeSeeder::class,
             CommerceDemoSeeder::class,
             PollDemoSeeder::class,
+            LegalPagesSeeder::class,
         ]);
     }
 }

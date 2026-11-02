@@ -154,13 +154,16 @@ compose.yaml                # Optional backing services for local development (D
    ```bash
    php artisan db:seed
    ```
-   This creates the roles and permissions, subscription plans, support categories and badges, plus demo data: a demo shop (products with variants, shipping zones, tax rates and the discount codes `WELCOME10`, `SAVE5` and `FREESHIP`), a poll and a few demo users. The first user (ID 1, `test@example.com`, password `password`) is made an administrator, so you can sign in and open the ACP straight away. **Never seed a production database** (see [Production & SSR Builds](#production--ssr-builds)).
+   This creates the roles and permissions, subscription plans, support categories and badges, plus demo data: a demo shop (products with variants, shipping zones, tax rates and the discount codes `WELCOME10`, `SAVE5` and `FREESHIP`), a poll, starting text for the legal pages and a few demo users. The first user (ID 1, `test@example.com`, password `password`) is made an administrator, so you can sign in and open the ACP straight away. **Never seed a production database** (see [Production & SSR Builds](#production--ssr-builds)).
 
    Extra demo content is available on request and each seeder is safe to skip:
    ```bash
    php artisan db:seed --class=ForumDemoSeeder          # empties the forum tables, then adds categories, boards and multi-page threads
    php artisan db:seed --class=AcpDashboardDemoSeeder   # a year of users, blog posts and tickets for the ACP dashboard charts
+   php artisan db:seed --class=LegalPagesSeeder         # starting text for the terms, privacy and cookie policies (see docs/legal-pages.md)
    ```
+
+   `LegalPagesSeeder` is the one to run on a production site as well: it never overwrites a page that has text, and it lists what you have to fill in.
 6. **Run the App**
    - Everything in one terminal: `composer dev` (Laravel server, queue worker, **scheduler** and Vite). The scheduler does the scheduled work: releasing the stock of unpaid orders (every five minutes), support SLA checks, lifting suspensions that have ended (every minute).
    - Or separately: `php artisan serve`, `php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`
