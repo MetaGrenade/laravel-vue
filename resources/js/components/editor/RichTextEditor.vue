@@ -329,7 +329,7 @@ const createEditor = (initialContent: string) => {
         ],
         editorProps: {
             attributes: {
-                class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-hidden px-3 py-2 min-h-64',
+                class: 'max-w-none focus:outline-hidden px-3 py-2 min-h-64',
             },
         },
         onUpdate: ({ editor: current }) => {
@@ -537,7 +537,7 @@ onBeforeUnmount(() => {
 
             <div class="bg-background">
                 <EditorContent v-if="!isPreviewing" :editor="editor ?? undefined" />
-                <div v-else class="prose prose-sm dark:prose-invert min-h-64 max-w-none px-3 py-2">
+                <div v-else class="tiptap min-h-64 max-w-none px-3 py-2">
                     <div
                         v-if="(editor && editor.getText().trim() !== '') || (props.modelValue && props.modelValue.trim() !== '')"
                         v-html="editor?.getHTML() ?? props.modelValue"

@@ -90,7 +90,7 @@ const tags = computed(() => blog.value.tags ?? []);
                 <p v-if="blog.excerpt" class="mb-6 text-base text-muted-foreground">
                     {{ blog.excerpt }}
                 </p>
-                <div class="prose max-w-none" v-html="blog.body"></div>
+                <div class="tiptap max-w-none" v-html="blog.body"></div>
             </div>
 
             <div v-if="categories.length || tags.length" class="mb-8 rounded-xl border border-border bg-card p-4">

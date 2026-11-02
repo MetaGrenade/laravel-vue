@@ -854,7 +854,7 @@ const handleSubmit = () => {
                                 <div v-if="form.excerpt" class="text-sm text-muted-foreground">
                                     {{ form.excerpt }}
                                 </div>
-                                <div class="prose max-w-none" v-html="form.body || '<p>No body content yet.</p>'"></div>
+                                <div class="tiptap max-w-none" v-html="form.body || '<p>No body content yet.</p>'"></div>
                             </div>
 
                             <div v-if="selectedCategories.length || selectedTags.length" class="space-y-3">

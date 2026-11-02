@@ -214,7 +214,7 @@ const requestRestore = (revisionId: number) => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div class="space-y-6">
                         <div class="rounded-xl border p-6 shadow-xs">
                             <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
@@ -278,7 +278,7 @@ const requestRestore = (revisionId: number) => {
 
                                 <div class="rounded-lg border bg-background p-4 shadow-xs">
                                     <h3 class="font-semibold">Body</h3>
-                                    <div class="prose prose-sm mt-4 max-w-none" v-html="blog.body" />
+                                    <div class="tiptap mt-4 max-w-none" v-html="blog.body" />
                                 </div>
                             </div>
                         </div>
@@ -318,7 +318,7 @@ const requestRestore = (revisionId: number) => {
                                         </Button>
                                     </div>
 
-                                    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+                                    <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                                         <div class="space-y-3">
                                             <div class="rounded-lg border bg-muted/30 p-3 text-sm">
                                                 <p><span class="font-medium">Status:</span> {{ revision.status }}</p>
@@ -386,7 +386,7 @@ const requestRestore = (revisionId: number) => {
                                             </div>
                                             <div class="rounded-lg border bg-background p-3 shadow-xs">
                                                 <h4 class="font-semibold">Body</h4>
-                                                <div class="prose prose-sm mt-3 max-w-none" v-html="revision.body" />
+                                                <div class="tiptap mt-3 max-w-none" v-html="revision.body" />
                                             </div>
                                         </div>
                                     </div>

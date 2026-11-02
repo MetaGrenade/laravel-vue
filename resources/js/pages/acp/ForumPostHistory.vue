@@ -155,7 +155,7 @@ const requestRestore = (revisionId: number) => {
                     </div>
                 </div>
 
-                <div class="grid gap-6">
+                <div class="grid grid-cols-1 gap-6">
                     <div class="rounded-xl border p-6 shadow-xs">
                         <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                             <div>
@@ -172,7 +172,7 @@ const requestRestore = (revisionId: number) => {
                                 <p v-else>Restoring a revision will archive this version automatically.</p>
                             </div>
                         </div>
-                        <div class="prose prose-sm mt-4 max-w-none" v-html="post.body" />
+                        <div class="tiptap mt-4 max-w-none" v-html="post.body" />
                     </div>
 
                     <div class="rounded-xl border p-6 shadow-xs">
@@ -208,7 +208,7 @@ const requestRestore = (revisionId: number) => {
                                         Restore this version
                                     </Button>
                                 </div>
-                                <div class="prose prose-sm mt-4 max-w-none rounded-lg border bg-muted/40 p-4" v-html="revision.body" />
+                                <div class="tiptap mt-4 max-w-none rounded-lg border bg-muted/40 p-4" v-html="revision.body" />
                             </div>
                         </div>
                     </div>
