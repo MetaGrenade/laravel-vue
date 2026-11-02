@@ -54,13 +54,23 @@ class ReindexSearchCommand extends Command
             $chunk = $this->option('chunk');
             $chunk = $chunk === null || $chunk === '' ? null : max(1, (int) $chunk);
 
-            foreach (array_keys(SearchIndexSettings::forScout()) as $modelClass) {
-                $index = (new $modelClass)->indexableAs();
+            // With indexing on the queue (SCOUT_QUEUE, on by default with Meilisearch) makeAllSearchable only queues jobs, so the index
+            // would be empty and this command would be waiting for nothing: it would say the rebuild was done while the documents still
+            // waited for a worker. The rebuild sends them itself.
+            $onQueue = config('scout.queue');
+            config(['scout.queue' => false]);
 
-                $modelClass::removeAllFromSearch();
-                $modelClass::makeAllSearchable($chunk);
+            try {
+                foreach (array_keys(SearchIndexSettings::forScout()) as $modelClass) {
+                    $index = (new $modelClass)->indexableAs();
 
-                $this->components->info("Rebuilt the [{$index}] index.");
+                    $modelClass::removeAllFromSearch();
+                    $modelClass::makeAllSearchable($chunk);
+
+                    $this->components->info("Rebuilt the [{$index}] index.");
+                }
+            } finally {
+                config(['scout.queue' => $onQueue]);
             }
 
             if ($seconds === 0) {

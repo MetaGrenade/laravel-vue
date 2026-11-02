@@ -110,14 +110,17 @@ Put the `key` it answers with in `MEILISEARCH_KEY`. If the site uses `SCOUT_PREF
 
 **Searching** keeps working: the page falls back to the database (see [Searching](#searching)).
 
-**Saving** does not, by default. Scout indexes a record while the request that saved it is handled (`SCOUT_QUEUE=false`), so with Meilisearch down the post, FAQ, product or forum reply **is stored and then the request fails** with a connection error. That reaches a member posting a reply as much as an editor publishing a post. Set **`SCOUT_QUEUE=true`** (and keep a queue worker running, as for email) to index on the queue instead: the save works and the job waits for Meilisearch, and if it gives up it ends in the failed jobs.
+**Saving** keeps working too, because with `SEARCH_DRIVER=meilisearch` Scout indexes a record **on the queue** (`SCOUT_QUEUE` is on unless it is set to `false`; with the database driver there is nothing to index, so it is off). The save returns at once and the job waits for Meilisearch; if it gives up, it ends in the failed jobs. This needs a queue worker running, the same one that sends email (`php artisan metaforger:queue work`, or `listen` while developing), and a record is in the index only once the worker has run its job. Without a worker the records are stored and the jobs wait, and the health card shows the documents that are missing. With `QUEUE_CONNECTION=sync` a job runs inside the request, which is the same as not queueing.
 
-Either way, anything saved while Meilisearch was down is missing from the index afterwards. The health card shows the count that is off, and `php artisan metaforger:search:reindex` puts it right. The card also says so while indexing is not on the queue.
+With **`SCOUT_QUEUE=false`** Scout indexes a record while the request that saved it is handled, so with Meilisearch down the post, FAQ, product or forum reply **is stored and then the request fails** with a connection error. That reaches a member posting a reply as much as an editor publishing a post. The health card notes it while indexing is not on the queue.
+
+Either way, anything saved while Meilisearch was down is missing from the index afterwards. The health card shows the count that is off, and `php artisan metaforger:search:reindex` puts it right. The rebuild sends the documents itself, whatever `SCOUT_QUEUE` says: queued, it would be waiting for Meilisearch to finish what had not been sent, and would say the rebuild was done while the documents were still waiting for a worker.
 
 ## Deploying
 
 - **Self-hosted:** `docker compose --profile search up -d meilisearch` runs the version this app is tested against (`getmeili/meilisearch:v1.12`, in `compose.yaml`). Set a master key of at least 16 bytes (`MEILI_MASTER_KEY`: Meilisearch will not start in production without one), make the key above, and keep the data volume. The index is a copy of what is in the database, so the simplest upgrade or recovery is to start with an empty Meilisearch and run `metaforger:search:sync` and then `metaforger:search:reindex`.
 - **Meilisearch Cloud:** use the project's URL as `MEILISEARCH_HOST` and a key made as above (its *Default Admin API Key* works, with the caveat in [Keys](#keys)). Run `metaforger:search:sync` and `metaforger:search:reindex` once.
+- Keep a queue worker running (`php artisan metaforger:queue work`, under Supervisor in production, see [The queue](redis.md#the-queue)): with Meilisearch, saving a record indexes it on the queue (see [When Meilisearch is down](#when-meilisearch-is-down)).
 - Run `metaforger:search:health` in a deploy script, and `metaforger:search:reindex` again if it says a count is off.
 
 ## Not built
@@ -125,7 +128,6 @@ Either way, anything saved while Meilisearch was down is missing from the index 
 - A scheduled blog post is not added to the Meilisearch index by the clock: it is added when the post is saved after it is due, or when the index is rebuilt. The database search path still finds a due scheduled post without that save.
 - Queued rebuild and zero-downtime index swap.
 - A rebuild counts refusals from where it began up to a page of 100 (it says "100 or more" past that), and any refusal of an index since it began counts, including one for a post somebody saved while it ran.
-- Indexing on the queue is **not the default** (`SCOUT_QUEUE=false`), so a site that wants saves to survive a Meilisearch outage has to set it.
 - Telling anybody when the health check finds a problem (it shows on the System page and in the command; nothing is sent).
 - Products on the global search page.
 

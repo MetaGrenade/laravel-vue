@@ -355,6 +355,22 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     }
 
     #[Test]
+    public function a_rebuild_fills_the_index_itself_when_saving_is_indexed_on_the_queue(): void
+    {
+        Blog::withoutSyncingToSearch(fn () => Blog::factory()->published()->create(['title' => 'Only in the database', 'user_id' => $this->author()->id]));
+
+        // The default with Meilisearch. Queued, the import would be jobs waiting for a worker, and the rebuild would say it was done.
+        config(['scout.queue' => true]);
+        Queue::fake();
+
+        $this->artisan('metaforger:search:reindex')->assertSuccessful();
+        $this->settle();
+
+        Queue::assertNothingPushed();
+        $this->assertSame(SearchHealthReport::HEALTHY, $this->health()->status, 'the document is in the index, not waiting for a worker');
+    }
+
+    #[Test]
     public function settings_changed_on_the_server_are_noticed_and_a_sync_puts_them_right(): void
     {
         $this->artisan('metaforger:search:sync')->assertSuccessful();

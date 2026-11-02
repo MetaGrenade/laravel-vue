@@ -12,6 +12,7 @@ use App\Models\ForumThread;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Laravel\Scout\Contracts\UpdatesIndexSettings;
 use Laravel\Scout\EngineManager;
@@ -106,6 +107,24 @@ class ReindexSearchCommandTest extends TestCase
         $this->assertSame([], $engine->settings);
         $this->assertContains('blogs', $engine->flushed);
         $this->assertNotEmpty($engine->updatedIds[Blog::class] ?? []);
+    }
+
+    #[Test]
+    public function it_sends_the_documents_itself_when_saving_is_indexed_on_the_queue(): void
+    {
+        $post = Blog::factory()->published()->create(['title' => 'Visible lighthouse']);
+
+        $engine = $this->recordingMeilisearch();
+        config(['scout.queue' => true]);
+        Queue::fake();
+
+        $this->artisan('metaforger:search:reindex')->assertSuccessful();
+
+        // Queued, the import would be jobs waiting for a worker while the command waited for Meilisearch to finish nothing, and said the
+        // rebuild was done.
+        Queue::assertNothingPushed();
+        $this->assertSame([$post->id], $engine->updatedIds[Blog::class] ?? []);
+        $this->assertTrue(config('scout.queue'), 'The setting is put back for whatever runs after the rebuild.');
     }
 
     private function recordingMeilisearch(): RecordingReindexEngine
