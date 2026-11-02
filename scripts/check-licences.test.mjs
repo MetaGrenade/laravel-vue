@@ -366,6 +366,43 @@ describe('splitting a text into its copyright lines and the rest', () => {
         assert.deepEqual(copyright, []);
         assert.equal(body, text);
     });
+
+    test('the numbered clauses of the Apache licence stay in the text, including "(c) You must retain"', () => {
+        const clauses = [
+            '4. Redistribution. You may reproduce and distribute copies of the',
+            '      Work or Derivative Works thereof in any medium, with or without',
+            '      modifications, and in Source or Object form, provided that You',
+            '      meet the following conditions:',
+            '',
+            '      (a) You must give any other recipients of the Work or',
+            '          Derivative Works a copy of this License; and',
+            '',
+            '      (b) You must cause any modified files to carry prominent notices',
+            '          stating that You changed the files; and',
+            '',
+            '      (c) You must retain, in the Source form of any Derivative Works',
+            '          that You distribute, all copyright, patent, trademark, and',
+            '          attribution notices from the Source form of the Work,',
+            '          excluding those notices that do not pertain to any part of',
+            '          the Derivative Works; and',
+            '',
+            '      (d) If the Work includes a "NOTICE" text file as part of its',
+            '          distribution, then any Derivative Works that You distribute must',
+            '          include a readable copy of the attribution notices contained',
+            '          within such NOTICE file.',
+        ].join('\n');
+        const { copyright, body } = splitText(`${clauses}\n\nCopyright 2016 Acme Co\n`);
+
+        assert.deepEqual(copyright, ['Copyright 2016 Acme Co']);
+        assert.equal(body, clauses);
+    });
+
+    test('a notice that starts with (c) is still taken out when a year or the word Copyright follows', () => {
+        const { copyright, body } = splitText('(c) 2020 Acme\n(C) Copyright 2019 Other\n(c) You must keep this line.\n');
+
+        assert.deepEqual(copyright, ['(c) 2020 Acme', '(C) Copyright 2019 Other']);
+        assert.equal(body, '(c) You must keep this line.');
+    });
 });
 
 describe('the notices', () => {

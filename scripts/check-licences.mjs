@@ -339,7 +339,11 @@ export function collect(root, policy) {
 
 // ---- The notices -------------------------------------------------------------------------------------------------------------------------
 
-const COPYRIGHT_LINE = /^\s*(?:copyright\b.*?(?:\d{4}|\(c\)|©)|\(c\)\s|©)/i;
+/**
+ * A line that is somebody's notice: `Copyright ...` with a year, `(c)` or `©`; `© ...`; or `(c) 2020 ...`. A bare `(c) ` is not enough, because
+ * that is also how Apache-2.0 numbers its clause 4(c) ("(c) You must retain, in the Source form of any Derivative Works").
+ */
+const COPYRIGHT_LINE = /^\s*(?:copyright\b.*?(?:\d{4}|\(c\)|©)|\(c\)\s+(?:\d{4}|copyright\b)|©)/i;
 /** The licence's own template (`Copyright [yyyy] [name of copyright owner]`) is not anybody's notice. */
 const TEMPLATE_LINE = /[<[{](?:year|yyyy|fullname|owner|name[^>\]}]*|copyright holders?)[>\]}]/i;
 

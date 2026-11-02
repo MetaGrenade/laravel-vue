@@ -77,7 +77,7 @@ These are under a licence that the project allows only by a written exception (`
 | [nikic/php-parser](https://packagist.org/packages/nikic/php-parser) | BSD-3-Clause | Copyright (c) 2011, Nikita Popov | [text](#text-bsd-3-clause-d933f0) |
 | [nunomaduro/termwind](https://packagist.org/packages/nunomaduro/termwind) | MIT | Copyright (c) Nuno Maduro <enunomaduro@gmail.com> | [text](#text-mit-fb2784) |
 | [php-http/discovery](https://packagist.org/packages/php-http/discovery) | MIT | Copyright (c) 2015-2016 PHP HTTP Team <team@php-http.org> | [text](#text-mit-d64f3b) |
-| [phpoption/phpoption](https://packagist.org/packages/phpoption/phpoption) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works | [text](#text-apache-2-0-d5c301) |
+| [phpoption/phpoption](https://packagist.org/packages/phpoption/phpoption) | Apache-2.0 |  | [text](#text-apache-2-0-b8ceb1) |
 | [psr/clock](https://packagist.org/packages/psr/clock) | MIT | Copyright (c) 2017 PHP Framework Interoperability Group | [text](#text-mit-d64f3b) |
 | [psr/container](https://packagist.org/packages/psr/container) | MIT | Copyright (c) 2013-2016 container-interop<br>Copyright (c) 2016 PHP Framework Interoperability Group | [text](#text-mit-fb2784) |
 | [psr/event-dispatcher](https://packagist.org/packages/psr/event-dispatcher) | MIT | Copyright (c) 2018 PHP-FIG | [text](#text-mit-750260) |
@@ -164,13 +164,13 @@ These are under a licence that the project allows only by a written exception (`
 | [@floating-ui/vue](https://www.npmjs.com/package/@floating-ui/vue) | MIT | Copyright (c) 2021 Floating UI contributors | [text](#text-mit-750260) |
 | [@inertiajs/core](https://www.npmjs.com/package/@inertiajs/core) | MIT | Copyright (c) Jonathan Reinink <jonathan@reinink.ca> | [text](#text-mit-750260) |
 | [@inertiajs/vue3](https://www.npmjs.com/package/@inertiajs/vue3) | MIT | Copyright (c) Jonathan Reinink <jonathan@reinink.ca> | [text](#text-mit-750260) |
-| [@internationalized/date](https://www.npmjs.com/package/@internationalized/date) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>Copyright 2019 Adobe | [text](#text-apache-2-0-e22557) |
-| [@internationalized/number](https://www.npmjs.com/package/@internationalized/number) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>Copyright 2019 Adobe | [text](#text-apache-2-0-e22557) |
+| [@internationalized/date](https://www.npmjs.com/package/@internationalized/date) | Apache-2.0 | Copyright 2019 Adobe | [text](#text-apache-2-0-a0df78) |
+| [@internationalized/number](https://www.npmjs.com/package/@internationalized/number) | Apache-2.0 | Copyright 2019 Adobe | [text](#text-apache-2-0-a0df78) |
 | [@jridgewell/gen-mapping](https://www.npmjs.com/package/@jridgewell/gen-mapping) | MIT | Copyright 2024 Justin Ridgewell <justin@ridgewell.name> | [text](#text-mit-d64f3b) |
 | [@jridgewell/resolve-uri](https://www.npmjs.com/package/@jridgewell/resolve-uri) | MIT | Copyright 2019 Justin Ridgewell <jridgewell@google.com> | [text](#text-mit-d64f3b) |
 | [@jridgewell/sourcemap-codec](https://www.npmjs.com/package/@jridgewell/sourcemap-codec) | MIT | Copyright 2024 Justin Ridgewell <justin@ridgewell.name> | [text](#text-mit-d64f3b) |
 | [@jridgewell/trace-mapping](https://www.npmjs.com/package/@jridgewell/trace-mapping) | MIT | Copyright 2024 Justin Ridgewell <justin@ridgewell.name> | [text](#text-mit-d64f3b) |
-| [@juggle/resize-observer](https://www.npmjs.com/package/@juggle/resize-observer) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>Copyright 2019 JUGGLE LTD | [text](#text-apache-2-0-e22557) |
+| [@juggle/resize-observer](https://www.npmjs.com/package/@juggle/resize-observer) | Apache-2.0 | Copyright 2019 JUGGLE LTD | [text](#text-apache-2-0-a0df78) |
 | [@lucide/vue](https://www.npmjs.com/package/@lucide/vue) | ISC | Copyright (c) 2026 Lucide Icons and Contributors<br>Copyright (c) 2013-present Cole Bemis | [text](#text-isc-461eb4) |
 | [@mapbox/jsonlint-lines-primitives](https://www.npmjs.com/package/@mapbox/jsonlint-lines-primitives) | MIT | Copyright (c) 2012 Zachary Carter | [text](#text-mit-750260) |
 | [@mapbox/point-geometry](https://www.npmjs.com/package/@mapbox/point-geometry) | ISC | Copyright (c) 2024, Mapbox | [text](#text-isc-d168f9) |
@@ -179,10 +179,10 @@ These are under a licence that the project allows only by a written exception (`
 | [@mapbox/vector-tile](https://www.npmjs.com/package/@mapbox/vector-tile) | BSD-3-Clause | Copyright (c) 2024, Mapbox | [text](#text-bsd-3-clause-30346e) |
 | [@maplibre/geojson-vt](https://www.npmjs.com/package/@maplibre/geojson-vt) | ISC | Copyright (c) 2025 MapLibre contributors<br>Copyright (c) 2024, Mapbox | [text](#text-isc-2ae6eb) |
 | [@maplibre/maplibre-gl-style-spec](https://www.npmjs.com/package/@maplibre/maplibre-gl-style-spec) | ISC | Copyright (c) 2020, MapLibre contributors<br>Copyright (c) 2020, Mapbox<br>Copyright (C) 2011 by Evan Wallace<br>Copyright 2010-2016 Mike Bostock | [text](#text-isc-78cb63) |
-| [@maplibre/mlt](https://www.npmjs.com/package/@maplibre/mlt) | MIT | Copyright (c) 2024 MapLibre contributors<br>(c) You must retain, in the Source form of any Derivative Works<br>Copyright 2024 MapLibre contributors | [text](#text-mit-f48126) |
+| [@maplibre/mlt](https://www.npmjs.com/package/@maplibre/mlt) | MIT | Copyright (c) 2024 MapLibre contributors<br>Copyright 2024 MapLibre contributors | [text](#text-mit-f78d45) |
 | [@maplibre/vt-pbf](https://www.npmjs.com/package/@maplibre/vt-pbf) | MIT | Copyright (c) 2025 MapLibre contributors<br>Copyright (c) 2015 Anand Thakker<br>Copyright (c) 2014, Mapbox | [text](#text-mit-0a190b) |
 | [@popperjs/core](https://www.npmjs.com/package/@popperjs/core) | MIT | Copyright (c) 2019 Federico Zivolo | [text](#text-mit-fb2784) |
-| [@swc/helpers](https://www.npmjs.com/package/@swc/helpers) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>Copyright 2024 SWC contributors. | [text](#text-apache-2-0-e22557) |
+| [@swc/helpers](https://www.npmjs.com/package/@swc/helpers) | Apache-2.0 | Copyright 2024 SWC contributors. | [text](#text-apache-2-0-a0df78) |
 | [@tanstack/virtual-core](https://www.npmjs.com/package/@tanstack/virtual-core) | MIT | Copyright (c) 2021-present Tanner Linsley | [text](#text-mit-750260) |
 | [@tanstack/vue-virtual](https://www.npmjs.com/package/@tanstack/vue-virtual) | MIT | Copyright (c) 2021-present Tanner Linsley | [text](#text-mit-750260) |
 | [@tebexio/tebex.js](https://www.npmjs.com/package/@tebexio/tebex.js) | MIT | Copyright (c) 2024 Tebex Ltd - https://js.tebex.io | [text](#text-mit-51129d) |
@@ -265,8 +265,8 @@ These are under a licence that the project allows only by a written exception (`
 | [@types/web-bluetooth](https://www.npmjs.com/package/@types/web-bluetooth) | MIT | Copyright (c) Microsoft Corporation. | [text](#text-mit-ae102c) |
 | [@unovis/dagre-layout](https://www.npmjs.com/package/@unovis/dagre-layout) | MIT | Copyright (c) 2018 Tyler Long | [text](#text-mit-d64f3b) |
 | [@unovis/graphlibrary](https://www.npmjs.com/package/@unovis/graphlibrary) | MIT | Copyright (c) 2018 Tyler Long | [text](#text-mit-d64f3b) |
-| [@unovis/ts](https://www.npmjs.com/package/@unovis/ts) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>© 2022 F5, Inc. https://www.f5.com/ | [text](#text-apache-2-0-e9d73d) |
-| [@unovis/vue](https://www.npmjs.com/package/@unovis/vue) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>© 2022 F5, Inc. https://www.f5.com/ | [text](#text-apache-2-0-e9d73d) |
+| [@unovis/ts](https://www.npmjs.com/package/@unovis/ts) | Apache-2.0 | © 2022 F5, Inc. https://www.f5.com/ | [text](#text-apache-2-0-5254b6) |
+| [@unovis/vue](https://www.npmjs.com/package/@unovis/vue) | Apache-2.0 | © 2022 F5, Inc. https://www.f5.com/ | [text](#text-apache-2-0-5254b6) |
 | [@vue/compiler-core](https://www.npmjs.com/package/@vue/compiler-core) | MIT | Copyright (c) 2018-present, Yuxi (Evan) You | [text](#text-mit-fb2784) |
 | [@vue/compiler-dom](https://www.npmjs.com/package/@vue/compiler-dom) | MIT | Copyright (c) 2018-present, Yuxi (Evan) You | [text](#text-mit-fb2784) |
 | [@vue/compiler-sfc](https://www.npmjs.com/package/@vue/compiler-sfc) | MIT | Copyright (c) 2018-present, Yuxi (Evan) You | [text](#text-mit-fb2784) |
@@ -281,16 +281,16 @@ These are under a licence that the project allows only by a written exception (`
 | [@vueuse/shared](https://www.npmjs.com/package/@vueuse/shared) | MIT | Copyright (c) 2019-PRESENT Anthony Fu<https://github.com/antfu> | [text](#text-mit-750260) |
 | [aria-hidden](https://www.npmjs.com/package/aria-hidden) | MIT | Copyright (c) 2017 Anton Korzunov | [text](#text-mit-750260) |
 | [babel-plugin-macros](https://www.npmjs.com/package/babel-plugin-macros) | MIT | Copyright (c) 2020 Kent C. Dodds | [text](#text-mit-fb2784) |
-| [belter](https://www.npmjs.com/package/belter) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>Copyright 2016 MyCompany | [text](#text-apache-2-0-6b3c50) |
+| [belter](https://www.npmjs.com/package/belter) | Apache-2.0 | Copyright 2016 MyCompany | [text](#text-apache-2-0-5eda68) |
 | [bidi-js](https://www.npmjs.com/package/bidi-js) | MIT | Copyright (c) 2021 Jason Johnston | [text](#text-mit-750260) |
 | [callsites](https://www.npmjs.com/package/callsites) | MIT | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) | [text](#text-mit-750260) |
-| [class-variance-authority](https://www.npmjs.com/package/class-variance-authority) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>Copyright 2022 Joe Bell | [text](#text-apache-2-0-2c2a2c) |
+| [class-variance-authority](https://www.npmjs.com/package/class-variance-authority) | Apache-2.0 | Copyright 2022 Joe Bell | [text](#text-apache-2-0-17c517) |
 | [clsx](https://www.npmjs.com/package/clsx) | MIT | Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com) | [text](#text-mit-750260) |
 | [commander](https://www.npmjs.com/package/commander) | MIT | Copyright (c) 2011 TJ Holowaychuk <tj@vision-media.ca> | [text](#text-mit-ab4391) |
 | [convert-source-map](https://www.npmjs.com/package/convert-source-map) | MIT | Copyright 2013 Thorsten Lorenz. | [text](#text-mit-0263a2) |
 | [cosmiconfig](https://www.npmjs.com/package/cosmiconfig) | MIT | Copyright (c) 2015 David Clark | [text](#text-mit-fb2784) |
-| [cross-domain-safe-weakmap](https://www.npmjs.com/package/cross-domain-safe-weakmap) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>Copyright 2016 MyCompany | [text](#text-apache-2-0-6b3c50) |
-| [cross-domain-utils](https://www.npmjs.com/package/cross-domain-utils) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>Copyright 2017 PayPal | [text](#text-apache-2-0-6b3c50) |
+| [cross-domain-safe-weakmap](https://www.npmjs.com/package/cross-domain-safe-weakmap) | Apache-2.0 | Copyright 2016 MyCompany | [text](#text-apache-2-0-5eda68) |
+| [cross-domain-utils](https://www.npmjs.com/package/cross-domain-utils) | Apache-2.0 | Copyright 2017 PayPal | [text](#text-apache-2-0-5eda68) |
 | [csstype](https://www.npmjs.com/package/csstype) | MIT | Copyright (c) 2017-2018 Fredrik Nicol | [text](#text-mit-d64f3b) |
 | [d3](https://www.npmjs.com/package/d3) | ISC | Copyright 2010-2023 Mike Bostock | [text](#text-isc-d168f9) |
 | [d3-array](https://www.npmjs.com/package/d3-array) | BSD-3-Clause, ISC | Copyright 2010-2020 Mike Bostock<br>Copyright 2010-2023 Mike Bostock | [text](#text-bsd-3-clause-960be7), [text](#text-isc-d168f9) |
@@ -424,12 +424,12 @@ These are under a licence that the project allows only by a written exception (`
 | [tslib](https://www.npmjs.com/package/tslib) | 0BSD | Copyright (c) Microsoft Corporation. | [text](#text-0bsd-7a6d71) |
 | [tw-animate-css](https://www.npmjs.com/package/tw-animate-css) | MIT | Copyright (c) 2025 Wombosvideo | [text](#text-mit-750260) |
 | [tweetnacl](https://www.npmjs.com/package/tweetnacl) | Unlicense |  | [text](#text-unlicense-94b939) |
-| [universal-serialize](https://www.npmjs.com/package/universal-serialize) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>Copyright 2016 MyCompany | [text](#text-apache-2-0-6b3c50) |
+| [universal-serialize](https://www.npmjs.com/package/universal-serialize) | Apache-2.0 | Copyright 2016 MyCompany | [text](#text-apache-2-0-5eda68) |
 | [vue](https://www.npmjs.com/package/vue) | MIT | Copyright (c) 2018-present, Yuxi (Evan) You | [text](#text-mit-fb2784) |
 | [vue-sonner](https://www.npmjs.com/package/vue-sonner) | MIT | Copyright (c) 2022 Yunwei Xiao | [text](#text-mit-750260) |
 | [w3c-keyname](https://www.npmjs.com/package/w3c-keyname) | MIT | Copyright (C) 2016 by Marijn Haverbeke <marijn@haverbeke.berlin> and others | [text](#text-mit-d64f3b) |
 | [yaml](https://www.npmjs.com/package/yaml) | ISC | Copyright 2018 Eemeli Aro <eemeli@gmail.com> | [text](#text-isc-d168f9) |
-| [zalgo-promise](https://www.npmjs.com/package/zalgo-promise) | Apache-2.0 | (c) You must retain, in the Source form of any Derivative Works<br>Copyright 2016 PayPal | [text](#text-apache-2-0-6b3c50) |
+| [zalgo-promise](https://www.npmjs.com/package/zalgo-promise) | Apache-2.0 | Copyright 2016 PayPal | [text](#text-apache-2-0-5eda68) |
 | [ziggy-js](https://www.npmjs.com/package/ziggy-js) | MIT | Copyright (c) Tighten Co. <hello@tighten.co> | [text](#text-mit-fb2784) |
 | [zoid](https://www.npmjs.com/package/zoid) | Apache-2.0 |  | [text](#text-apache-2-0-4ec3fd) |
 
@@ -647,9 +647,9 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-<a id="text-apache-2-0-6b3c50"></a>
+<a id="text-apache-2-0-5eda68"></a>
 
-### Apache-2.0 (6b3c50)
+### Apache-2.0 (5eda68)
 
 Used by 5 packages: belter, cross-domain-safe-weakmap, cross-domain-utils, universal-serialize, zalgo-promise.
 
@@ -753,6 +753,7 @@ Apache License
       (b) You must cause any modified files to carry prominent notices
           stating that You changed the files; and
 
+      (c) You must retain, in the Source form of any Derivative Works
           that You distribute, all copyright, patent, trademark, and
           attribution notices from the Source form of the Work,
           excluding those notices that do not pertain to any part of
@@ -854,9 +855,9 @@ Apache License
    limitations under the License.
 ```
 
-<a id="text-apache-2-0-e22557"></a>
+<a id="text-apache-2-0-a0df78"></a>
 
-### Apache-2.0 (e22557)
+### Apache-2.0 (a0df78)
 
 Used by 4 packages: @internationalized/date, @internationalized/number, @juggle/resize-observer, @swc/helpers.
 
@@ -960,6 +961,7 @@ Apache License
       (b) You must cause any modified files to carry prominent notices
           stating that You changed the files; and
 
+      (c) You must retain, in the Source form of any Derivative Works
           that You distribute, all copyright, patent, trademark, and
           attribution notices from the Source form of the Work,
           excluding those notices that do not pertain to any part of
@@ -1121,9 +1123,9 @@ Used by 2 packages: post-robot, zoid.
 \*───────────────────────────────────────────────────────────────────────────*/
 ```
 
-<a id="text-apache-2-0-e9d73d"></a>
+<a id="text-apache-2-0-5254b6"></a>
 
-### Apache-2.0 (e9d73d)
+### Apache-2.0 (5254b6)
 
 Used by 2 packages: @unovis/ts, @unovis/vue.
 
@@ -1227,6 +1229,7 @@ Apache License
     (b) You must cause any modified files to carry prominent notices
         stating that You changed the files; and
 
+    (c) You must retain, in the Source form of any Derivative Works
         that You distribute, all copyright, patent, trademark, and
         attribution notices from the Source form of the Work,
         excluding those notices that do not pertain to any part of
@@ -2146,9 +2149,9 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-<a id="text-apache-2-0-2c2a2c"></a>
+<a id="text-apache-2-0-17c517"></a>
 
-### Apache-2.0 (2c2a2c)
+### Apache-2.0 (17c517)
 
 Used by 1 package: class-variance-authority.
 
@@ -2252,6 +2255,7 @@ Apache License
       (b) You must cause any modified files to carry prominent notices
           stating that You changed the files; and
 
+      (c) You must retain, in the Source form of any Derivative Works
           that You distribute, all copyright, patent, trademark, and
           attribution notices from the Source form of the Work,
           excluding those notices that do not pertain to any part of
@@ -2342,9 +2346,9 @@ Apache License
    limitations under the License.
 ```
 
-<a id="text-apache-2-0-d5c301"></a>
+<a id="text-apache-2-0-b8ceb1"></a>
 
-### Apache-2.0 (d5c301)
+### Apache-2.0 (b8ceb1)
 
 Used by 1 package: phpoption/phpoption.
 
@@ -2448,6 +2452,7 @@ Apache License
       (b) You must cause any modified files to carry prominent notices
           stating that You changed the files; and
 
+      (c) You must retain, in the Source form of any Derivative Works
           that You distribute, all copyright, patent, trademark, and
           attribution notices from the Source form of the Work,
           excluding those notices that do not pertain to any part of
@@ -3861,9 +3866,9 @@ licenses; we recommend you read them, as their terms may differ from the
 terms above.
 ```
 
-<a id="text-mit-f48126"></a>
+<a id="text-mit-f78d45"></a>
 
-### MIT (f48126)
+### MIT (f78d45)
 
 Used by 1 package: @maplibre/mlt.
 
@@ -3995,6 +4000,7 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
    (b) You must cause any modified files to carry prominent notices
        stating that You changed the files; and
 
+   (c) You must retain, in the Source form of any Derivative Works
        that You distribute, all copyright, patent, trademark, and
        attribution notices from the Source form of the Work,
        excluding those notices that do not pertain to any part of
