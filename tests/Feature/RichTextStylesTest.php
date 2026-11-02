@@ -43,6 +43,23 @@ class RichTextStylesTest extends TestCase
         $this->assertMatchesRegularExpression('/\.tiptap ol,\s*\.ProseMirror ol \{\s*@apply my-3 list-decimal/', $css);
     }
 
+    #[Test]
+    public function the_rich_text_styles_size_the_headings_by_level(): void
+    {
+        $css = (string) file_get_contents(resource_path('css/app.css'));
+        $sizes = [];
+
+        foreach (['h1', 'h2', 'h3'] as $level) {
+            // Tailwind's preflight gives every heading the size of the text, so a heading with no size of its own looks like a bold line.
+            $this->assertSame(1, preg_match('/\.tiptap '.$level.',\s*\.ProseMirror '.$level.' \{[^}]*font-size:\s*([\d.]+)em;/', $css, $match), "{$level} has no size in the rich text styles.");
+            $sizes[$level] = (float) $match[1];
+        }
+
+        $this->assertGreaterThan($sizes['h2'], $sizes['h1']);
+        $this->assertGreaterThan($sizes['h3'], $sizes['h2']);
+        $this->assertGreaterThan(1.0, $sizes['h3']);
+    }
+
     /**
      * @return list<string>
      */

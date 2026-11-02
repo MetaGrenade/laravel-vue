@@ -16,7 +16,7 @@ A page that is only a script is not published. A setting that is not the expecte
 
 Viewing the site as a customer does not save a choice. That view cannot change anything.
 
-The page is shown with the same styles as a forum post (headings, lists, quotes, links, tables).
+The page is shown with the rich-text styles the blog and the editor use: headings that step down in size, lists, quotes, links and tables.
 
 ## Starting text
 

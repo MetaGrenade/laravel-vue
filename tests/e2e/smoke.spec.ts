@@ -77,6 +77,64 @@ test.describe('visitors', () => {
         await expect(page.getByRole('listitem').filter({ hasText: 'A first point' })).toHaveCSS('list-style-type', 'disc');
     });
 
+    test('in a blog post the headings step down in size under the page title, and the bar beside a quote can be seen, in light and dark', async ({ page }) => {
+        for (const colorScheme of ['light', 'dark'] as const) {
+            await page.emulateMedia({ colorScheme });
+            await page.goto('/blogs/a-first-post');
+
+            const text = page.locator('.tiptap', { has: page.getByRole('heading', { name: 'A first section' }) });
+            const measured = await text.evaluate((root) => {
+                const sizeOf = (element: Element | null) => parseFloat(getComputedStyle(element!).fontSize);
+                const canvas = document.createElement('canvas');
+                canvas.width = canvas.height = 1;
+                const context = canvas.getContext('2d', { willReadFrequently: true })!;
+
+                /** The colour that results from painting these on top of each other, as red, green, blue and alpha. */
+                const paint = (...colours: string[]) => {
+                    context.clearRect(0, 0, 1, 1);
+                    for (const colour of colours) {
+                        context.fillStyle = colour;
+                        context.fillRect(0, 0, 1, 1);
+                    }
+
+                    return [...context.getImageData(0, 0, 1, 1).data];
+                };
+                const luminance = ([red, green, blue]: number[]) => {
+                    const channel = (value: number) => (value / 255 <= 0.03928 ? value / 255 / 12.92 : ((value / 255 + 0.055) / 1.055) ** 2.4);
+
+                    return 0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue);
+                };
+
+                // What the bar is drawn on: the first thing behind the text that is not see-through.
+                let surface = 'rgb(255, 255, 255)';
+                for (let node: Element | null = root; node; node = node.parentElement) {
+                    const colour = getComputedStyle(node).backgroundColor;
+                    if (paint(colour)[3] === 255) {
+                        surface = colour;
+                        break;
+                    }
+                }
+                const bar = getComputedStyle(root.querySelector('blockquote')!).borderLeftColor;
+                const [lighter, darker] = [luminance(paint(surface)), luminance(paint(surface, bar))].sort((a, b) => b - a);
+
+                return {
+                    title: sizeOf(document.querySelector('h1')),
+                    h2: sizeOf(root.querySelector('h2')),
+                    h3: sizeOf(root.querySelector('h3')),
+                    paragraph: sizeOf(root.querySelector('p')),
+                    contrast: (lighter + 0.05) / (darker + 0.05),
+                };
+            });
+
+            // Sizes: the page title, then the headings in the text, then the text. Equal sizes were what showed a heading as a bold line.
+            expect(measured.title, `${colorScheme}: the page title is larger than a heading in the text`).toBeGreaterThan(measured.h2);
+            expect(measured.h2, `${colorScheme}: h2 is larger than h3`).toBeGreaterThan(measured.h3);
+            expect(measured.h3, `${colorScheme}: h3 is larger than the text`).toBeGreaterThan(measured.paragraph);
+            // 3 to 1 is what WCAG asks of a mark that is needed to see what something is; the old bar was 1.05 to 1 in light mode.
+            expect(measured.contrast, `${colorScheme}: the quote bar against what it is drawn on`).toBeGreaterThanOrEqual(3);
+        }
+    });
+
     test('the search box finds a post by its title and opens it', async ({ page }) => {
         await page.goto('/');
         await chooseNecessaryCookiesOnly(page);

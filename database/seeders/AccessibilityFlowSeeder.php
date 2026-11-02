@@ -70,7 +70,8 @@ class AccessibilityFlowSeeder extends Seeder
             'title' => 'A first post',
             'slug' => 'a-first-post',
             'excerpt' => 'What the post is about.',
-            'body' => '<p>The post itself.</p><ul><li>A first point</li><li>A second point</li></ul>',
+            'body' => '<p>The post itself.</p><h2>A first section</h2><p>Some words under it.</p><h3>A smaller heading</h3>'
+                .'<blockquote><p>A quotation.</p></blockquote><ul><li>A first point</li><li>A second point</li></ul>',
         ]);
     }
 }
