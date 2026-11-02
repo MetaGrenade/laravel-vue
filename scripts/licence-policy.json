@@ -60,6 +60,7 @@
             "name": "Outfit (headings)",
             "licence": "OFL-1.1",
             "licenceText": "https://openfontlicense.org/open-font-license-official-text/",
+            "licenceTextFile": "scripts/licence-texts/OFL-1.1.txt",
             "copyright": "Copyright 2021 The Outfit Project Authors (https://github.com/Outfitio/Outfit-Fonts)",
             "source": "https://github.com/Outfitio/Outfit-Fonts",
             "where": "Downloaded from Bunny Fonts when the front end is built (`vite.config.ts`) and served from the site's own origin, unmodified. The licence is named inside the font files as https://scripts.sil.org/OFL."
@@ -68,6 +69,7 @@
             "name": "Source Sans 3 (text)",
             "licence": "OFL-1.1",
             "licenceText": "https://openfontlicense.org/open-font-license-official-text/",
+            "licenceTextFile": "scripts/licence-texts/OFL-1.1.txt",
             "copyright": "© 2023 Adobe (http://www.adobe.com/), with Reserved Font Name ‘Source’",
             "source": "https://github.com/adobe-fonts/source-sans",
             "where": "Downloaded from Bunny Fonts when the front end is built (`vite.config.ts`) and served from the site's own origin, unmodified. The licence is named inside the font files as http://scripts.sil.org/OFL."

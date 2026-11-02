@@ -427,6 +427,22 @@ export function renderNotices(packages, policy) {
         line.copyright = [...copyright];
     }
 
+    // The text of an asset's licence, when the project keeps it (`licenceTextFile`): in the same list as the packages' texts, so a text that
+    // two fonts share appears once.
+    const assetKeys = new Map();
+
+    for (const asset of policy.assets ?? []) {
+        if (!asset.text) continue;
+
+        const { body } = splitText(asset.text);
+        const key = hashOf(body);
+        const group = groups.get(key) ?? { key, label: asset.licence, body, members: new Set() };
+
+        group.members.add(`asset:${asset.name}`);
+        groups.set(key, group);
+        assetKeys.set(asset.name, key);
+    }
+
     const ordered = [...groups.values()].sort((a, b) => b.members.size - a.members.size || compare(a.label, b.label) || compare(a.key, b.key));
     const anchorOf = (group) => `text-${slug(group.label)}-${group.key}`;
     const groupByKey = new Map(ordered.map((group) => [group.key, group]));
@@ -484,10 +500,15 @@ export function renderNotices(packages, policy) {
         out.push('', '## Fonts and images', '');
 
         for (const asset of policy.assets) {
+            const key = assetKeys.get(asset.name);
+            const text = key
+                ? `[text](#${anchorOf(groupByKey.get(key))})${asset.licenceText ? `, also at ${asset.licenceText}` : ''}`
+                : asset.licenceText;
+
             out.push(
                 `### ${asset.name}`,
                 '',
-                `- Licence: ${asset.licence}${asset.licenceText ? ` (${asset.licenceText})` : ''}`,
+                `- Licence: ${asset.licence}${text ? ` (${text})` : ''}`,
                 `- Notice: ${asset.copyright}`,
                 `- Source: ${asset.source}`,
                 `- Use: ${asset.where}`,
@@ -502,11 +523,14 @@ export function renderNotices(packages, policy) {
         '',
         '## Licence texts',
         '',
-        'Each text appears once, without the copyright lines, which are in the tables above next to the package they belong to.',
+        'Each text appears once, without the copyright lines, which are in the tables above next to the package they belong to (for a font or an image, in its notice).',
     );
 
     for (const group of ordered) {
         const members = [...group.members].map((member) => member.replace(/^[a-z]+:/, '')).sort();
+        const kinds = new Set([...group.members].map((member) => (member.startsWith('asset:') ? 'asset' : 'package')));
+        const users =
+            members.length === 1 ? `1 ${[...kinds][0]}` : `${members.length} ${kinds.size === 2 ? 'packages and assets' : `${[...kinds][0]}s`}`;
         const fence = fenceFor(group.body);
 
         out.push(
@@ -515,7 +539,7 @@ export function renderNotices(packages, policy) {
             '',
             `### ${group.label} (${group.key})`,
             '',
-            `Used by ${members.length === 1 ? '1 package' : `${members.length} packages`}: ${members.join(', ')}.`,
+            `Used by ${users}: ${members.join(', ')}.`,
             '',
             fence,
             group.body,
@@ -531,6 +555,39 @@ export function renderNotices(packages, policy) {
 const namesIn = (notices) => new Set([...notices.matchAll(/^\| \[([^\]]+)\]\(/gm)].map((match) => match[1]));
 
 /**
+ * The policy's assets, with the text of the licence for those that name a file (`licenceTextFile`, a path in the project). A file that is
+ * not there, or has nothing in it, is a problem: the notices would say the text is below and show none.
+ *
+ * @returns {{ assets: object[], problems: string[] }}
+ */
+export function readAssetTexts(root, policy) {
+    const problems = [];
+    const assets = (policy.assets ?? []).map((asset) => {
+        if (!asset.licenceTextFile) return asset;
+
+        const path = join(root, asset.licenceTextFile);
+
+        if (!existsSync(path)) {
+            problems.push(`${asset.name}: licenceTextFile ${asset.licenceTextFile} does not exist`);
+
+            return asset;
+        }
+
+        const text = readFileSync(path, 'utf8').replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+
+        if (splitText(text).body === '') {
+            problems.push(`${asset.name}: licenceTextFile ${asset.licenceTextFile} has no licence text in it`);
+
+            return asset;
+        }
+
+        return { ...asset, text };
+    });
+
+    return { assets, problems };
+}
+
+/**
  * @param {string[]} argv `--write` writes the notices; without it they are only compared with the file.
  * @param {string} root The project folder.
  * @param {(line: string) => void} log
@@ -539,6 +596,9 @@ const namesIn = (notices) => new Set([...notices.matchAll(/^\| \[([^\]]+)\]\(/gm
 export function run(argv, root, log = console.log) {
     const policy = JSON.parse(readFileSync(join(root, POLICY_FILE), 'utf8'));
     const { packages, problems, skipped } = collect(root, policy);
+    const texts = readAssetTexts(root, policy);
+
+    problems.push(...texts.problems);
 
     for (const one of skipped) log(`skipped: ${one}`);
 
@@ -552,7 +612,7 @@ export function run(argv, root, log = console.log) {
         return 1;
     }
 
-    const notices = renderNotices(packages, policy);
+    const notices = renderNotices(packages, { ...policy, assets: texts.assets });
     const file = join(root, NOTICES_FILE);
 
     if (argv.includes('--write')) {
