@@ -70,6 +70,13 @@ test.describe('visitors', () => {
         await expect(page.getByText('The post itself.')).toBeVisible();
     });
 
+    test('a blog post is shown with the text styles of the editor, so a list has its bullets', async ({ page }) => {
+        await page.goto('/blogs/a-first-post');
+
+        // Tailwind takes the bullets off every list. The rich text styles (.tiptap) put them back; a post without them is a column of lines.
+        await expect(page.getByRole('listitem').filter({ hasText: 'A first point' })).toHaveCSS('list-style-type', 'disc');
+    });
+
     test('the search box finds a post by its title and opens it', async ({ page }) => {
         await page.goto('/');
         await chooseNecessaryCookiesOnly(page);

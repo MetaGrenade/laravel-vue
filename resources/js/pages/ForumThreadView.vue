@@ -2012,7 +2012,7 @@ const submitReply = () => {
                                 </div>
                             </div>
                             <!-- Post Body -->
-                            <div class="tiptap ProseMirror prose prose-sm dark:prose-invert max-w-none" v-html="renderPostBody(post)"></div>
+                            <div class="tiptap ProseMirror max-w-none" v-html="renderPostBody(post)"></div>
                             <div v-if="post.attachments.length > 0" class="mt-4 space-y-3">
                                 <template v-for="file in post.attachments" :key="file.id">
                                     <a v-if="file.image" :href="file.url" class="block w-fit">

@@ -42,7 +42,7 @@ const addToCart = () => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head :title="props.package.name" />
 
-        <div class="grid gap-8 p-4 lg:grid-cols-2">
+        <div class="grid grid-cols-1 gap-8 p-4 lg:grid-cols-2">
             <div class="space-y-3">
                 <img v-if="mainPicture" :src="mainPicture" :alt="props.package.name" class="aspect-video w-full rounded-lg border object-cover" />
                 <div
@@ -87,7 +87,7 @@ const addToCart = () => {
 
                 <!-- Cleaned on the server (HtmlSanitizer): scripts, frames, styles and handlers are gone. -->
                 <!-- eslint-disable-next-line vue/no-v-html -->
-                <div v-if="props.package.description_html" class="prose dark:prose-invert max-w-none" v-html="props.package.description_html" />
+                <div v-if="props.package.description_html" class="tiptap max-w-none" v-html="props.package.description_html" />
 
                 <div v-if="props.package.can_buy" class="flex flex-wrap items-end gap-4">
                     <div v-if="props.package.max_quantity > 1" class="space-y-2">

@@ -438,7 +438,7 @@ const shareLinks = computed(() => ({
                 <p v-if="blog.excerpt" class="mb-6 text-base text-muted-foreground">
                     {{ blog.excerpt }}
                 </p>
-                <div class="prose max-w-none" v-html="blog.body"></div>
+                <div class="tiptap max-w-none" v-html="blog.body"></div>
             </div>
 
             <div v-if="showAuthorCard" class="mb-8 rounded-xl border border-border bg-card p-6 shadow-sm">

@@ -18,6 +18,7 @@ There are two browser suites. They share the server script and the browser, and 
 | Who | Path |
 |---|---|
 | A visitor | Home to the shop, the forum (a board, a thread) and the blog (a post) by their links |
+| A visitor | A blog post is shown with the text styles of the editor, so a list has its bullets (a post styled with a class that nothing defines shows none) |
 | A visitor | The search box finds a post by its title and opens it; the search page lists what matches |
 | A visitor | The cookie banner is answered once and stays answered after a reload |
 | A visitor | On a phone, the end of the page (the footer) is not hidden under the cookie banner |
