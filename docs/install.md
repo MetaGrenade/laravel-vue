@@ -24,12 +24,13 @@ You need PHP 8.4 with the extensions in the README's [Prerequisites](../README.m
 | 2 | **Asks what it needs** and checks the answers: the address must start with `http://` or `https://`, the email must be an email, the password must pass the site's password rules. | Questions, or the options you gave. |
 | 3 | **Makes `.env`** from `.env.example` when there is none, and sets `APP_NAME` and `APP_URL`. | `Making .env from .env.example` |
 | 4 | **Makes the application key** when the site has none. A key that is there is never replaced. | `Making the application key` |
-| 5 | **Creates the tables.** Makes the SQLite file when that is the database. Runs the migrations that have not run, nothing else. | The database it will use, and how many migrations ran. |
+| 5 | **Creates the tables.** Makes the SQLite file when that is the database. Runs the migrations that have not run, nothing else. It reads the database the way Laravel connects to it, so a `DB_URL` counts: it can name another driver, a host or another SQLite file. | The database it will use (without its password), and how many migrations ran. |
 | 6 | **Links `public/storage`** to `storage/app/public`, where public uploads (product pictures, blog covers) are served from. | `linked`, or `already linked` |
 | 7 | **Adds the roles and their permissions, the support categories and the reputation badges.** | `Adding roles, support categories and badges` |
 | 8 | **Makes the administrator.** The account is verified and given the `admin` role by name, whatever its id turns out to be. | `Making the administrator` |
 | 9 | **Adds demo data** when you asked for it with `--demo`. | `Adding demo data` |
-| 10 | **Tells you what is left**: where to sign in, building the front end, the queue worker and the scheduler, the legal pages, mail and Stripe. | A list |
+| 10 | **Adds a starting text for the legal pages** when you asked for it with `--legal-pages` (see [Legal pages](#legal-pages)). | The pages it filled, and the `[Bracketed items]` you still have to fill in |
+| 11 | **Tells you what is left**: where to sign in, building the front end, the queue worker and the scheduler, the legal pages, mail and Stripe. | A list |
 
 Steps 1 and 2 happen before anything is written, so a missing PHP extension, a mistyped address or a missing password leaves the checkout as it was.
 
@@ -40,6 +41,7 @@ Steps 1 and 2 happen before anything is written, so a missing PHP extension, a m
 - It never replaces an application key. The key encrypts licence keys and other stored secrets, so a new one would make them unreadable.
 - It never gives the administrator role to somebody who already has an account (see [Running it again](#running-it-again)).
 - It never adds demo data to a production site, even with `--force`.
+- It never lets the demo data reset an administrator. The demo seeders give the account that has one of their email addresses the password `password`, so `--demo` is refused, before anything is written, when the administrator you give has one of those addresses or nicknames, or when the site's administrator already has one of those addresses.
 
 ## Options
 
@@ -52,6 +54,7 @@ Ask `php artisan metaforge:install --help` for the same list.
 | `--admin-nickname=`, `--admin-email=`, `--admin-password=` | The first administrator. Without a person to ask (`--no-interaction`, a script, CI) all three are needed. |
 | `--skip-admin` | Do not make an administrator. |
 | `--demo` | Add the demo data (see [Demo data](#demo-data)). |
+| `--legal-pages` | Add a starting text for the terms, the privacy policy and the cookie policy where those pages are empty (see [Legal pages](#legal-pages)). |
 | `--no-storage-link` | Do not link `public/storage`. |
 | `--force` | Run in production. |
 | `--no-interaction` | Ask nothing. A question that has no answer from an option stops the command before it writes anything. |
@@ -114,7 +117,15 @@ A machine that has no `.env` and no `APP_ENV` in its environment is not taken fo
 - a demo shop: products with variants, shipping zones, tax rates and the discount codes `WELCOME10`, `SAVE5` and `FREESHIP`;
 - a poll.
 
-It is for a machine where you try the site out. `php artisan db:seed` does the same without the installer, and also makes `test@example.com` (password `password`) the administrator; see the README's "Setting up by hand" section. Two more demo seeders are separate and opt-in: `ForumDemoSeeder` (it **empties the forum tables** first) and `AcpDashboardDemoSeeder` (a year of activity for the dashboard charts).
+It is for a machine where you try the site out. `php artisan db:seed` does the same without the installer, adds the starting text for the legal pages, and also makes `test@example.com` (password `password`) the administrator; see the README's "Setting up by hand" section. Two more demo seeders are separate and opt-in: `ForumDemoSeeder` (it **empties the forum tables** first) and `AcpDashboardDemoSeeder` (a year of activity for the dashboard charts).
+
+Do not give the administrator one of the two token-log addresses or the nicknames `Token Log Admin` and `Token Log Service` when you add `--demo`: the command stops and says so, because the demo seeder would otherwise reset that account's password to `password`.
+
+## Legal pages
+
+`php artisan metaforge:install --legal-pages` fills the terms, the privacy policy and the cookie policy with the starting text from [legal-pages.md](legal-pages.md), for the pages that are empty. A page that already has text is never touched, so it is safe on a site that is set up (`php artisan db:seed --class=LegalPagesSeeder` does the same without the installer).
+
+It is asked for, not done for everyone, because **a page is public as soon as it has text**: the footer links to it and the sitemap lists it. The text has ten `[Bracketed items]` that only you can fill in (your name and address, a contact email, the refund period, the governing law). The command lists the ones left, and each page opens with a note that it is a starting point and not legal advice. Fill them in, delete the note, and have the pages read by someone who can give legal advice before the site opens to the public.
 
 ## When something goes wrong
 
@@ -127,10 +138,11 @@ It is for a machine where you try the site out. `php artisan db:seed` does the s
 | `Could not link public/storage` | Run `php artisan storage:link` yourself. On Windows, making a symbolic link needs Developer Mode or an elevated terminal. |
 | `The configuration is cached` | Run `php artisan config:clear`; a cached configuration ignores `.env`. |
 | `has members but no administrator` | See [Running it again](#running-it-again). |
+| `The demo data has an account with the address …` or `… with the nickname …` | Give the administrator another address or nickname, or leave out `--demo`. See [Demo data](#demo-data). |
 | The page loads without styles or scripts | The front end is not built: `npm run build`. |
 
 ## How it is tested
 
 - `tests/Unit/Install` covers the `.env` writer (quoting, Windows line endings, comments kept, a value with `$` in it) and the machine checks, which are fed machines that lack things. Two tests keep the extension list and the PHP version in the code equal to the README and `composer.json`.
-- `tests/Feature/Install` runs the command against a copy of the migrated schema, with an `.env` in a folder of its own: a fresh site, an existing `.env` kept byte for byte, the key, the prompts, every refusal, a site that is already installed, production and `--demo`.
+- `tests/Feature/Install` runs the command against a copy of the migrated schema, with an `.env` in a folder of its own: a fresh site, an existing `.env` kept byte for byte, the key, the prompts, every refusal, a site that is already installed, production, `--demo` (and the administrators it must not reset), `--legal-pages`, and a `DB_URL` that names another driver or another SQLite file than the plain settings do. `DatabaseSeederTest` seeds the whole demo site, and is written to pass on MySQL and PostgreSQL, where the id of the first member is not 1 after other tests have run.
 - The `install` job in CI runs it for real on a checkout as a clone leaves it (no `.env`, no database), runs it a second time to show that nothing changes, serves the site, and signs in as the administrator it made with `scripts/check-install.mjs`. Run that script yourself against any site: `node scripts/check-install.mjs http://127.0.0.1:8000 you@example.test 'password'`.

@@ -8,8 +8,10 @@ use App\Support\Install\Requirement;
 use App\Support\Install\Requirements;
 use Database\Seeders\BaselineSeeder;
 use Database\Seeders\DemoSeeder;
+use Database\Seeders\LegalPagesSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Console\ConfirmableTrait;
+use Illuminate\Support\ConfigurationUrlParser;
 use Illuminate\Support\Env;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -40,6 +42,7 @@ class InstallCommand extends Command
         {--admin-password= : Password of the first administrator. Other people on this machine can see it while the command runs, so prefer the prompt}
         {--skip-admin : Do not make an administrator}
         {--demo : Add demo data: a shop, a poll and demo accounts with the password "password". Never for a production site}
+        {--legal-pages : Add a starting text for the terms, the privacy policy and the cookie policy where those pages are empty. They are public as soon as they have text}
         {--no-storage-link : Do not link public/storage}
         {--force : Run in production}';
 
@@ -91,6 +94,10 @@ class InstallCommand extends Command
             if ($this->option('demo')) {
                 $this->components->task('Adding demo data', fn () => $this->callSilent('db:seed', ['--class' => DemoSeeder::class, '--force' => true]) === self::SUCCESS);
             }
+
+            if ($this->option('legal-pages')) {
+                $this->addLegalPages();
+            }
         } catch (Throwable $error) {
             $this->newLine();
             $this->components->error($error->getMessage());
@@ -121,8 +128,9 @@ class InstallCommand extends Command
     {
         $this->components->info('Checking this machine');
 
-        $connection = (string) config('database.default');
-        $driver = (string) config("database.connections.{$connection}.driver", $connection);
+        $config = $this->connectionConfig();
+        $driver = (string) $config['driver'];
+        $sqliteFile = $driver === 'sqlite' ? $this->sqliteFile($config) : null;
         $redisFor = array_keys(array_filter([
             'cache' => config('cache.default') === 'redis',
             'queue' => config('queue.default') === 'redis',
@@ -131,7 +139,7 @@ class InstallCommand extends Command
 
         $results = $requirements->check(
             $driver,
-            [storage_path(), base_path('bootstrap/cache'), ...($driver === 'sqlite' ? [database_path()] : [])],
+            [storage_path(), base_path('bootstrap/cache'), ...($sqliteFile !== null ? [dirname($sqliteFile)] : [])],
             $redisFor,
             max(0, (int) config('commerce.downloads.max_kilobytes')) * 1024,
         );
@@ -219,6 +227,12 @@ class InstallCommand extends Command
         }
 
         if ($this->administratorExists()) {
+            if ($this->option('demo') && User::query()->whereIn('email', array_keys(DemoSeeder::accounts()))->role('admin')->exists()) {
+                $this->components->error('An administrator of this site has an address the demo data uses, and adding the demo data would reset their password to "password". Leave out --demo. Nothing has been changed.');
+
+                return false;
+            }
+
             $this->components->info('This site already has an administrator, so a new one is not made.');
 
             return true;
@@ -246,6 +260,10 @@ class InstallCommand extends Command
             ['nickname' => ['required', 'string', 'max:255'], 'email' => ['required', 'string', 'lowercase', 'email', 'max:255']],
         )->errors()->all();
 
+        if ($this->option('demo')) {
+            $problems = [...$problems, ...$this->demoCollisions((string) $nickname, (string) $email)];
+        }
+
         if (is_string($password)) {
             $problems = [...$problems, ...Validator::make(['password' => $password], ['password' => ['required', Password::defaults()]])->errors()->all()];
         } else {
@@ -263,6 +281,29 @@ class InstallCommand extends Command
         $this->admin = ['nickname' => (string) $nickname, 'email' => (string) $email, 'password' => (string) $password];
 
         return true;
+    }
+
+    /**
+     * What would go wrong if the demo data were added after this administrator was made. The demo seeders reset an account that has one of
+     * their email addresses to the password "password" (and it would still be an administrator), and nicknames are unique.
+     *
+     * @return list<string>
+     */
+    private function demoCollisions(string $nickname, string $email): array
+    {
+        $problems = [];
+
+        foreach (DemoSeeder::accounts() as $demoEmail => $demoNickname) {
+            if (strtolower(trim($email)) === strtolower($demoEmail)) {
+                $problems[] = "The demo data has an account with the address {$demoEmail}, and adding it would reset the password of the account with that address to \"password\". Give the administrator another address, or leave out --demo.";
+            }
+
+            if (mb_strtolower(trim($nickname)) === mb_strtolower($demoNickname)) {
+                $problems[] = "The demo data has an account with the nickname \"{$demoNickname}\", and nicknames are unique. Give the administrator another nickname, or leave out --demo.";
+            }
+        }
+
+        return $problems;
     }
 
     /**
@@ -345,11 +386,10 @@ class InstallCommand extends Command
 
     private function prepareDatabase(): bool
     {
-        $connection = (string) config('database.default');
-        $config = (array) config("database.connections.{$connection}", []);
-        $driver = (string) ($config['driver'] ?? $connection);
+        $config = $this->connectionConfig();
+        $driver = (string) $config['driver'];
         $database = (string) ($config['database'] ?? '');
-        $inMemory = $driver === 'sqlite' && ($database === ':memory:' || $database === '');
+        $sqliteFile = $driver === 'sqlite' ? $this->sqliteFile($config) : null;
         $where = $driver === 'sqlite'
             ? $database
             : trim(($config['host'] ?? '').(isset($config['port']) ? ':'.$config['port'] : '').'/'.$database, '/');
@@ -362,8 +402,8 @@ class InstallCommand extends Command
             return false;
         }
 
-        if ($driver === 'sqlite' && ! $inMemory && ! is_file($database)) {
-            $this->components->task('Making the SQLite file', fn () => touch($database) || throw new RuntimeException("Could not make {$database}."));
+        if ($sqliteFile !== null && ! is_file($sqliteFile)) {
+            $this->components->task('Making the SQLite file', fn () => touch($sqliteFile) || throw new RuntimeException("Could not make {$sqliteFile}."));
         }
 
         $before = $this->migrationCount();
@@ -374,6 +414,40 @@ class InstallCommand extends Command
         $this->components->twoColumnDetail('Migrations', $ran > 0 ? "{$ran} run" : '<fg=green>already up to date</>');
 
         return true;
+    }
+
+    /**
+     * The settings of the default connection as Laravel will use them. `DB_URL` is folded into them the way the database manager does it,
+     * so it can change the driver, the host and the file: the raw `config()` entry is not what the connection will be.
+     *
+     * @return array<string, mixed>
+     */
+    private function connectionConfig(): array
+    {
+        $connection = (string) config('database.default');
+        $config = (array) config("database.connections.{$connection}", []);
+
+        $config = (new ConfigurationUrlParser)->parseConfiguration($config);
+        $config['driver'] ??= $connection;
+
+        return $config;
+    }
+
+    /**
+     * The file of a SQLite database, or null where there is none to make: in memory, or a `file:` address that SQLite opens itself. A path
+     * that is not absolute is looked for in the project folder, as the connector does.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function sqliteFile(array $config): ?string
+    {
+        $database = (string) ($config['database'] ?? '');
+
+        if ($database === '' || $database === ':memory:' || str_starts_with($database, 'file:') || str_contains($database, 'mode=memory')) {
+            return null;
+        }
+
+        return preg_match('~^([A-Za-z]:)?[\\\\/]~', $database) === 1 ? $database : base_path($database);
     }
 
     private function migrationCount(): int
@@ -452,6 +526,19 @@ class InstallCommand extends Command
         return true;
     }
 
+    /**
+     * The seeder fills only the pages that are empty and says what is left to fill in, so its report is shown (a silent run would hide
+     * the list). The pages are public as soon as they have text, which is why this is asked for and not done for everybody.
+     */
+    private function addLegalPages(): void
+    {
+        $this->components->info('Legal pages');
+
+        if ($this->call('db:seed', ['--class' => LegalPagesSeeder::class, '--force' => true]) !== self::SUCCESS) {
+            throw new RuntimeException('The starting text for the legal pages could not be added.');
+        }
+    }
+
     private function administratorExists(): bool
     {
         try {
@@ -483,7 +570,9 @@ class InstallCommand extends Command
         }
 
         $steps[] = 'Run it: `composer dev` starts the site, the queue worker, the scheduler and Vite. Under Herd or Valet the site is already served; start the rest with `php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`.';
-        $steps[] = 'In the admin area: write the legal pages (Admin > Legal pages) and review the system settings.';
+        $steps[] = $this->option('legal-pages')
+            ? 'In the admin area (Admin > Legal pages): fill in the [Bracketed items] listed above and delete the note at the top of each page. The pages are public already. Then review the system settings.'
+            : 'In the admin area: write the legal pages (Admin > Legal pages), or start from a text with `php artisan db:seed --class=LegalPagesSeeder`, which fills only empty pages. Then review the system settings.';
         $steps[] = 'Mail is written to storage/logs until you set MAIL_MAILER in .env. Payments need the Stripe keys (docs/commerce.md).';
 
         if ($this->option('demo')) {

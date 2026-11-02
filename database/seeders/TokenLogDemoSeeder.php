@@ -13,6 +13,15 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class TokenLogDemoSeeder extends Seeder
 {
+    /** The two accounts this seeder makes, or resets to the password `password` where the email is already taken (see {@see DemoSeeder::accounts()}). */
+    public const ADMIN_EMAIL = 'token-log-admin@example.com';
+
+    public const ADMIN_NICKNAME = 'Token Log Admin';
+
+    public const SERVICE_EMAIL = 'token-log-service@example.com';
+
+    public const SERVICE_NICKNAME = 'Token Log Service';
+
     public function run(): void
     {
         DB::transaction(function () {
@@ -20,9 +29,9 @@ class TokenLogDemoSeeder extends Seeder
             $password = Hash::make('password');
 
             $admin = User::updateOrCreate(
-                ['email' => 'token-log-admin@example.com'],
+                ['email' => self::ADMIN_EMAIL],
                 [
-                    'nickname' => 'Token Log Admin',
+                    'nickname' => self::ADMIN_NICKNAME,
                     'password' => $password,
                     'email_verified_at' => $now->copy()->subDays(14),
                     'last_activity_at' => $now->copy()->subDay(),
@@ -37,9 +46,9 @@ class TokenLogDemoSeeder extends Seeder
             ])->saveQuietly();
 
             $serviceUser = User::updateOrCreate(
-                ['email' => 'token-log-service@example.com'],
+                ['email' => self::SERVICE_EMAIL],
                 [
-                    'nickname' => 'Token Log Service',
+                    'nickname' => self::SERVICE_NICKNAME,
                     'password' => $password,
                     'email_verified_at' => $now->copy()->subDays(30),
                     'last_activity_at' => $now->copy()->subHours(6),

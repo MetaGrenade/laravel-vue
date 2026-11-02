@@ -140,7 +140,7 @@ compose.yaml                # Optional backing services for local development (D
    ```
    The command checks that the machine has what the site needs (before it changes anything), makes `.env` and the application key, creates the tables (a SQLite file by default), links `public/storage`, adds the roles, support categories and badges, and makes your administrator account. It asks for the name and address of the site (`http://localhost:8000` for `php artisan serve`, or your `.test` address under Herd or Valet) and for the administrator's nickname, email address and password. Run again on a site that is set up, it only runs migrations that are still to run and never empties a table. [docs/install.md](docs/install.md) has the options (for scripts and CI), production use, demo data and troubleshooting.
 
-   Mail is written to the log by default (`MAIL_MAILER=log`); point `MAIL_*` at Mailpit (below) to see emails in a browser. The shop's settings are covered in [Setting up the shop](#setting-up-the-shop). To try the site with a demo shop, a poll and demo accounts, add `--demo` (never on a production site).
+   Mail is written to the log by default (`MAIL_MAILER=log`); point `MAIL_*` at Mailpit (below) to see emails in a browser. The shop's settings are covered in [Setting up the shop](#setting-up-the-shop). To try the site with a demo shop, a poll and demo accounts, add `--demo` (never on a production site). To start from a text for the terms, privacy and cookie policies, add `--legal-pages`: those pages are public as soon as they have text, so fill in its `[Bracketed items]` before you open the site.
 3. **Build the front end**
    ```bash
    npm run build
@@ -180,13 +180,16 @@ compose.yaml                # Optional backing services for local development (D
    ```bash
    php artisan db:seed
    ```
-   This creates the roles and permissions, subscription plans, support categories and badges, plus demo data: a demo shop (products with variants, shipping zones, tax rates and the discount codes `WELCOME10`, `SAVE5` and `FREESHIP`), a poll and a few demo users. The first user (ID 1, `test@example.com`, password `password`) is made an administrator, so you can sign in and open the ACP straight away. **Never seed a production database** (see [Production & SSR Builds](#production--ssr-builds)).
+   This creates the roles and permissions, subscription plans, support categories and badges, plus demo data: a demo shop (products with variants, shipping zones, tax rates and the discount codes `WELCOME10`, `SAVE5` and `FREESHIP`), a poll, starting text for the legal pages and a few demo users. The first user (ID 1, `test@example.com`, password `password`) is made an administrator, so you can sign in and open the ACP straight away. **Never seed a production database** (see [Production & SSR Builds](#production--ssr-builds)).
 
    Extra demo content is available on request and each seeder is safe to skip:
    ```bash
    php artisan db:seed --class=ForumDemoSeeder          # empties the forum tables, then adds categories, boards and multi-page threads
    php artisan db:seed --class=AcpDashboardDemoSeeder   # a year of users, blog posts and tickets for the ACP dashboard charts
+   php artisan db:seed --class=LegalPagesSeeder         # starting text for the terms, privacy and cookie policies (see docs/legal-pages.md)
    ```
+
+   `LegalPagesSeeder` is the one to run on a production site as well: it never overwrites a page that has text, and it lists what you have to fill in. `php artisan metaforge:install --legal-pages` runs it for you.
 
 </details>
 
@@ -518,7 +521,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 ## Artisan commands
 | Command | What it does |
 |---------|--------------|
-| `php artisan metaforge:install` | Set up a new site: check the machine, make `.env` and the key, create the tables, link storage, add the roles, categories and badges, make the first administrator. Safe to run again; `--demo` adds demo data (never in production). See [docs/install.md](docs/install.md). |
+| `php artisan metaforge:install` | Set up a new site: check the machine, make `.env` and the key, create the tables, link storage, add the roles, categories and badges, make the first administrator. Safe to run again; `--demo` adds demo data (never in production); `--legal-pages` adds a starting text for the legal pages. See [docs/install.md](docs/install.md). |
 | `composer setup` | First-time setup of the code: install dependencies, create `.env`, generate the key, migrate and build assets. Follow it with `metaforge:install`. |
 | `composer dev` / `composer dev:ssr` | Run the server, queue worker, scheduler and Vite (the SSR variant builds SSR first and adds log tailing and the SSR server). |
 | `php artisan commerce:expire-orders` | Cancel unpaid orders past their payment window and release their stock (the scheduler runs this every five minutes). |

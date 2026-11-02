@@ -8,7 +8,10 @@ use App\Models\SubscriptionPlan;
 use App\Models\SupportTicketCategory;
 use App\Models\User;
 use App\Support\Install\Requirements;
+use App\Support\Legal\LegalPages;
 use Database\Seeders\BaselineSeeder;
+use Database\Seeders\DemoSeeder;
+use Database\Seeders\TokenLogDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
@@ -598,6 +601,166 @@ class InstallCommandTest extends TestCase
             ->assertSuccessful();
 
         $this->assertTrue(User::query()->where('email', 'owner@example.test')->exists());
+    }
+
+    // --- The demo data, and who it may touch -----------------------------------------------------------------------------------------------
+
+    #[Test]
+    public function an_administrator_with_an_address_of_the_demo_data_is_refused_before_anything_is_written(): void
+    {
+        foreach (array_keys(DemoSeeder::accounts()) as $email) {
+            $this->install([...$this->adminOptions(), '--admin-email' => $email, '--demo' => true])
+                ->expectsOutputToContain("The demo data has an account with the address {$email}")
+                ->assertFailed();
+
+            $this->assertNothingWritten();
+        }
+    }
+
+    #[Test]
+    public function an_administrator_with_the_nickname_of_a_demo_account_is_refused_whatever_the_case(): void
+    {
+        $this->install([...$this->adminOptions(), '--admin-nickname' => 'TOKEN log admin', '--demo' => true])
+            ->expectsOutputToContain('nicknames are unique')
+            ->assertFailed();
+
+        $this->assertNothingWritten();
+    }
+
+    #[Test]
+    public function an_address_of_the_demo_data_is_fine_for_an_administrator_when_no_demo_data_is_asked_for(): void
+    {
+        $this->install([...$this->adminOptions(), '--admin-email' => TokenLogDemoSeeder::ADMIN_EMAIL])->assertSuccessful();
+
+        $admin = User::query()->where('email', TokenLogDemoSeeder::ADMIN_EMAIL)->sole();
+
+        $this->assertTrue($admin->hasRole('admin'));
+        $this->assertTrue(Hash::check(self::PASSWORD, $admin->password));
+    }
+
+    #[Test]
+    public function demo_data_is_not_added_to_a_site_whose_administrator_has_an_address_of_the_demo_data(): void
+    {
+        // Made by an earlier run, without --demo.
+        $this->install([...$this->adminOptions(), '--admin-email' => TokenLogDemoSeeder::ADMIN_EMAIL])->assertSuccessful();
+
+        $this->install(['--demo' => true])
+            ->expectsOutputToContain('An administrator of this site has an address the demo data uses')
+            ->assertFailed();
+
+        $this->assertTrue(Hash::check(self::PASSWORD, User::query()->where('email', TokenLogDemoSeeder::ADMIN_EMAIL)->sole()->password));
+        $this->assertSame(0, SubscriptionPlan::count());
+        $this->assertSame(1, User::count());
+    }
+
+    #[Test]
+    public function the_demo_accounts_the_installer_guards_are_the_ones_the_demo_seeders_make(): void
+    {
+        $this->seed(BaselineSeeder::class);
+        $this->seed(DemoSeeder::class);
+
+        $made = User::query()->pluck('nickname', 'email')->all();
+        $listed = DemoSeeder::accounts();
+
+        ksort($made);
+        ksort($listed);
+
+        $this->assertSame($listed, $made);
+    }
+
+    // --- The database the settings really name ---------------------------------------------------------------------------------------------
+
+    #[Test]
+    public function the_database_url_decides_which_sqlite_file_is_made(): void
+    {
+        // The connection that is already open keeps serving the test; only what the command reads from the settings changes.
+        $file = 'storage/framework/install-url-'.bin2hex(random_bytes(4)).'.sqlite';
+        config(['database.connections.'.config('database.default').'.url' => 'sqlite:///'.$file]);
+        $this->app->instance(Requirements::class, new Requirements(new FakePhpProbe));
+        $plain = database_path('database.sqlite');
+        $plainBefore = is_file($plain);
+
+        try {
+            $this->install($this->adminOptions())
+                ->expectsOutputToContain('sqlite '.$file)
+                ->expectsOutputToContain('Making the SQLite file')
+                ->assertSuccessful();
+
+            $this->assertFileExists(base_path($file));
+            $this->assertSame($plainBefore, is_file($plain), 'the file the settings would name without the URL');
+        } finally {
+            @unlink(base_path($file));
+        }
+    }
+
+    #[Test]
+    public function the_database_url_decides_the_driver_and_the_place_that_is_shown_without_its_password(): void
+    {
+        config(['database.connections.'.config('database.default').'.url' => 'mysql://app:s3cret-pass@db.example.test:3307/shop']);
+        $this->app->instance(Requirements::class, new Requirements(new FakePhpProbe));
+        $plain = database_path('database.sqlite');
+        $plainBefore = is_file($plain);
+
+        $this->install($this->adminOptions())
+            ->expectsOutputToContain('mysql db.example.test:3307/shop')
+            ->doesntExpectOutputToContain('Making the SQLite file')
+            ->doesntExpectOutputToContain('s3cret-pass')
+            ->assertSuccessful();
+
+        $this->assertSame($plainBefore, is_file($plain), 'a SQLite file is not made for a MySQL address');
+    }
+
+    #[Test]
+    public function the_folder_checked_for_a_sqlite_database_is_the_one_the_url_names(): void
+    {
+        $php = new FakePhpProbe;
+        $php->unwritable = [base_path('storage/framework')];
+        $this->app->instance(Requirements::class, new Requirements($php));
+        config(['database.connections.'.config('database.default').'.url' => 'sqlite:///storage/framework/elsewhere.sqlite']);
+
+        $this->install($this->adminOptions())
+            ->expectsOutputToContain('the web server and the queue worker must be able to write here')
+            ->expectsOutputToContain('Nothing has been changed')
+            ->assertFailed();
+
+        $this->assertNothingWritten();
+        $this->assertFileDoesNotExist(base_path('storage/framework/elsewhere.sqlite'));
+    }
+
+    // --- The legal pages -------------------------------------------------------------------------------------------------------------------
+
+    #[Test]
+    public function the_legal_pages_get_a_starting_text_only_when_it_is_asked_for_and_the_next_steps_say_how(): void
+    {
+        $this->install($this->adminOptions())
+            ->expectsOutputToContain('php artisan db:seed --class=LegalPagesSeeder')
+            ->assertSuccessful();
+
+        $this->assertSame([], app(LegalPages::class)->publishedSlugs());
+    }
+
+    #[Test]
+    public function the_legal_pages_are_added_on_request_and_what_is_left_to_fill_in_is_listed(): void
+    {
+        $this->install([...$this->adminOptions(), '--legal-pages' => true])
+            ->expectsOutputToContain('starting text added for')
+            ->expectsOutputToContain('[Operator name]')
+            ->expectsOutputToContain('fill in the [Bracketed items] listed above')
+            ->assertSuccessful();
+
+        $this->assertEqualsCanonicalizing(array_keys(LegalPages::PAGES), app(LegalPages::class)->publishedSlugs());
+    }
+
+    #[Test]
+    public function a_legal_page_that_has_text_is_left_as_it_is(): void
+    {
+        $this->install($this->adminOptions())->assertSuccessful();
+        app(LegalPages::class)->save(['terms' => '<p>Our own terms.</p>', 'privacy' => '', 'cookies' => '']);
+
+        $this->install(['--legal-pages' => true])->assertSuccessful();
+
+        $this->assertStringContainsString('Our own terms.', (string) app(LegalPages::class)->body('terms'));
+        $this->assertNotNull(app(LegalPages::class)->body('privacy'));
     }
 
     #[Test]
