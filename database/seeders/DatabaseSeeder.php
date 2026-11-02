@@ -8,7 +8,10 @@ use Illuminate\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
+     * Seed the application's database: a demo site for local development, never for production (README, "Seed Data").
+     *
+     * The demo member is made first, because RolePermissionSeeder gives the administrator role to user 1. A real site is set up with
+     * `php artisan metaforge:install`, which makes its own administrator by name and adds no demo data.
      */
     public function run(): void
     {
@@ -22,13 +25,8 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
-            RolePermissionSeeder::class,
-            SubscriptionPlanSeeder::class,
-            SupportTicketCategorySeeder::class,
-            TokenLogDemoSeeder::class,
-            BadgeSeeder::class,
-            CommerceDemoSeeder::class,
-            PollDemoSeeder::class,
+            BaselineSeeder::class,
+            DemoSeeder::class,
         ]);
     }
 }

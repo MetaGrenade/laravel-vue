@@ -182,7 +182,7 @@ Strong already. Remaining gaps, in priority order:
 | i18n | Only `lang/en`; 14 uses of the translator in the whole app; UI strings are hard-coded | **Decision: English-only in 1.0 with an extraction-ready structure** (section 8B). Bulk string extraction is 1.1. |
 | Accessibility | Skip link, focus styles, reduced-motion support; axe on the main public flows, criticals fixed (**done**, ninth slice, see [accessibility.md](accessibility.md)) | Keep the audit in CI. |
 | Error pages | A standalone branded page for a full page load; a visit inside the app got Inertia's iframe dialog (**done**, eighteenth slice, see [error-pages.md](error-pages.md)) | Keep the standalone page; an in-app visit gets an `Error` page, or a notice on the page it was on. |
-| Install | Manual steps | Add `php artisan metaforge:install` (env checks, migrate, seed roles, create admin, sample data optional). |
+| Install | Manual steps | **Done** (M7, twenty-second slice, see [install.md](install.md)): `php artisan metaforge:install` (machine checks, `.env` and key, migrate, link storage, seed roles, create admin, demo data optional). |
 | Versioning | No tags | Adopt SemVer, tag `v1.0.0-rc.N`, then `v1.0.0`; write upgrade notes. |
 
 ---
@@ -470,7 +470,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 
 - Playwright smoke suite (**done**, nineteenth slice, see [e2e-tests.md](e2e-tests.md)): 15 paths in a real browser on a database of its own, in a CI job of its own that keeps the report of a failed run, and a test that fails first when the seeder stops giving it what it asks for. Registering and signing in, a forum thread and its reply, a comment, a support ticket, the cart, an order that costs nothing, the admin area, the 404 and 403 pages. Paying stays out (Stripe and Tebex are external). Still to do: Vitest unit tests (a new package) and coverage reporting
 - Documentation set: install, configuration, architecture, payments (Stripe and Tebex), search, theming and rebranding, adding a language, extending modules, deployment (Forge/Docker), upgrade guide (including "teams in 1.1"), API reference
-- `metaforge:install` command; demo seeders
+- `metaforge:install` command; demo seeders (**done**, twenty-second slice, see [install.md](install.md)): one command after `composer install` checks the machine before it writes anything, makes `.env` and the key, creates the tables, links storage, seeds the roles, support categories and badges and makes the first administrator by role name. It can be run again without undoing what staff changed, refuses to guess an administrator, needs `--force` in production and never adds demo data there. `BaselineSeeder` and `DemoSeeder` are the two halves of `db:seed`. A CI job installs a clean checkout, installs again, serves it and signs in.
 - Branded error pages (**done**, eighteenth slice, see [error-pages.md](error-pages.md)): an in-app visit that fails shows an `Error` page in the app's layout, and an action that is refused keeps the page with a notice, for 401, 402, 403, 404, 419, 429, 500 and 503. Still to do: finish i18n conversion of shared chrome, auth and emails
 - Third-party licence audit and `THIRD-PARTY-NOTICES.md` (**done**, twentieth slice, see [licences.md](licences.md)): `npm run licences:check` reads both lock files and the installed packages, allows permissive licences only, and fails when `THIRD-PARTY-NOTICES.md` is out of date, in a CI job of its own. 96 PHP and 295 npm packages: all permissive except four that are written down as exceptions, the three LGPL libraries behind the invoice PDF (dompdf) and `elkjs` (EPL-2.0, not in the built front end). Still to do: the verbatim text of the SIL Open Font License for the two fonts
 - Release candidates `v1.0.0-rc.1…`, bug bash, then tag `v1.0.0`
@@ -509,7 +509,7 @@ A release candidate is cut only when every box is checked.
 - [ ] Legal pages, cookie consent and error pages shipped
 - [ ] README, install guide, payments guides, upgrade guide, API reference
 - [ ] `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`, templates, `THIRD-PARTY-NOTICES.md` (the last is in, and CI keeps it current)
-- [ ] `metaforge:install` works on a clean machine from the docs alone
+- [ ] `metaforge:install` works on a clean machine from the docs alone (the `install` CI job runs it on a clean checkout; reading the docs cold is part of the release-candidate pass)
 
 ---
 
