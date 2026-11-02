@@ -32,6 +32,7 @@ use App\Policies\SupportTicketPolicy;
 use App\Support\Audit\Audit;
 use App\Support\Audit\AuditObserver;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Frontend\StaffAreaVite;
 use App\Support\Search\MeilisearchCircuitBreaker;
 use App\Support\Search\SearchHealth;
 use App\Support\Search\SearchTasks;
@@ -41,6 +42,7 @@ use App\Support\Settings\SettingsSnapshot;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\TransactionRolledBack;
+use Illuminate\Foundation\Vite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -71,6 +73,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(Seo::class);
         $this->app->scoped(Audit::class);
         $this->app->scoped(SettingsSnapshot::class);
+        // The framework binds Vite as a singleton. This one is told for each request whether to leave the staff area out of what it
+        // fetches in the background (PrefetchAssetsForMembers), so it is rebuilt for each request.
+        $this->app->scoped(Vite::class, StaffAreaVite::class);
         // The health check gives up on a silent Meilisearch sooner than the client Scout uses to index and search does.
         $this->app->bind(SearchHealth::class, fn ($app) => new SearchHealth(SearchHealth::clientFromConfig(), $app->make(MeilisearchCircuitBreaker::class)));
         $this->app->bind(SearchTasks::class, fn () => new SearchTasks(SearchHealth::clientFromConfig()));

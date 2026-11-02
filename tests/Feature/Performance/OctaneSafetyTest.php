@@ -11,6 +11,7 @@ use App\Support\Seo\Seo;
 use App\Support\Settings\SettingsSnapshot;
 use Illuminate\Container\Container;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Vite;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Facade;
 use PHPUnit\Framework\Attributes\Test;
@@ -154,6 +155,8 @@ class OctaneSafetyTest extends TestCase
             OAuthManager::class,
             PaymentManager::class,
             TebexStoreProfile::class,
+            // The framework's singleton, replaced by one that keeps what PrefetchAssetsForMembers sets for the request.
+            Vite::class,
         ];
     }
 
