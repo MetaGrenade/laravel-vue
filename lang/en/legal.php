@@ -10,7 +10,7 @@ return [
     'updated' => 'Updated :date',
     'footer' => 'Legal',
     'banner' => [
-        'message' => 'Necessary cookies keep you signed in and remember this choice. Anything else stays off until you allow it.',
+        'message' => 'Necessary cookies keep you signed in and remember this choice. Preference cookies remember your theme and menu settings when you change them. Anything else stays off until you allow it.',
         'necessary' => 'Necessary only',
         'all' => 'Allow all',
     ],

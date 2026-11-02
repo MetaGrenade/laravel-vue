@@ -100,6 +100,25 @@ test.describe('visitors', () => {
         await expect(banner).toBeHidden();
     });
 
+    test('the cookie banner does not cover the end of the page, on a phone either', async ({ page }) => {
+        // The banner is fixed to the bottom of the window and grows when the screen is narrow, so this is where a fixed-height gap fails.
+        await page.setViewportSize({ width: 375, height: 812 });
+        await page.goto('/');
+
+        const banner = page.getByRole('region', { name: /Necessary cookies/ });
+        await expect(banner).toBeVisible();
+
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+
+        const footer = await page.locator('footer').last().boundingBox();
+        const covering = await banner.boundingBox();
+
+        expect(footer).not.toBeNull();
+        expect(covering).not.toBeNull();
+        // Nothing of the footer is under the banner: the footer ends where the banner begins, or above it.
+        expect(footer!.y + footer!.height).toBeLessThanOrEqual(covering!.y + 1);
+    });
+
     test('an address that is not there answers 404 on a page of the site', async ({ page }) => {
         const response = await page.goto('/forum/announcements/there-is-no-such-thread');
 

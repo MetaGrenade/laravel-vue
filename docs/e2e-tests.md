@@ -20,6 +20,7 @@ There are two browser suites. They share the server script and the browser, and 
 | A visitor | Home to the shop, the forum (a board, a thread) and the blog (a post) by their links |
 | A visitor | The search box finds a post by its title and opens it; the search page lists what matches |
 | A visitor | The cookie banner is answered once and stays answered after a reload |
+| A visitor | On a phone, the end of the page (the footer) is not hidden under the cookie banner |
 | A visitor | An address that is not there answers 404 on a page of the site |
 | A visitor | Registers, is signed in, signs out and signs in again |
 | A member | Signs in and out; a wrong password is refused and says so |
