@@ -210,11 +210,25 @@ class QueueConfigTest extends TestCase
             }
         }
 
-        $readme = (string) file_get_contents(base_path('README.md'));
+        // Every document that tells a person what to run: a command written without its mode is refused ("Say work or listen first"), so a
+        // site that followed it would have no worker, and nothing would fail to say so.
+        $documents = ['README.md' => base_path('README.md'), 'CHANGELOG.md' => base_path('CHANGELOG.md')];
 
-        if (preg_match_all('/`php artisan ((?:metaforger:queue|queue:(?:work|listen))[^`]*)`/', $readme, $found, PREG_OFFSET_CAPTURE)) {
-            foreach ($found[1] as [$command, $offset]) {
-                $commands[] = ['README.md line '.(substr_count($readme, "\n", 0, $offset) + 1), trim($command)];
+        foreach (glob(base_path('docs/*.md')) ?: [] as $path) {
+            $documents['docs/'.basename($path)] = $path;
+        }
+
+        foreach ($documents as $label => $path) {
+            $text = (string) file_get_contents($path);
+
+            // The README is where a person is told how to start a worker, so a bare queue:work is wrong there too. Elsewhere it may be
+            // named in passing (docs/octane.md lists the processes that stay alive), and only the wrapper's own command is checked.
+            $pattern = $label === 'README.md' ? 'metaforger:queue|queue:(?:work|listen)' : 'metaforger:queue';
+
+            if (preg_match_all("/`php artisan ((?:{$pattern})[^`]*)`/", $text, $found, PREG_OFFSET_CAPTURE)) {
+                foreach ($found[1] as [$command, $offset]) {
+                    $commands[] = [$label.' line '.(substr_count($text, "\n", 0, $offset) + 1), trim($command)];
+                }
             }
         }
 

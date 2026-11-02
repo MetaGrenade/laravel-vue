@@ -110,7 +110,7 @@ Put the `key` it answers with in `MEILISEARCH_KEY`. If the site uses `SCOUT_PREF
 
 **Searching** keeps working: the page falls back to the database (see [Searching](#searching)).
 
-**Saving** keeps working too, because with `SEARCH_DRIVER=meilisearch` Scout indexes a record **on the queue** (`SCOUT_QUEUE` is on unless it is set to `false`; with the database driver there is nothing to index, so it is off). The save returns at once and the job waits for Meilisearch; if it gives up, it ends in the failed jobs. This needs a queue worker running, the same one that sends email (`php artisan metaforger:queue`), and a record is in the index only once the worker has run its job. Without a worker the records are stored and the jobs wait, and the health card shows the documents that are missing. With `QUEUE_CONNECTION=sync` a job runs inside the request, which is the same as not queueing.
+**Saving** keeps working too, because with `SEARCH_DRIVER=meilisearch` Scout indexes a record **on the queue** (`SCOUT_QUEUE` is on unless it is set to `false`; with the database driver there is nothing to index, so it is off). The save returns at once and the job waits for Meilisearch; if it gives up, it ends in the failed jobs. This needs a queue worker running, the same one that sends email (`php artisan metaforger:queue work`, or `listen` while developing), and a record is in the index only once the worker has run its job. Without a worker the records are stored and the jobs wait, and the health card shows the documents that are missing. With `QUEUE_CONNECTION=sync` a job runs inside the request, which is the same as not queueing.
 
 With **`SCOUT_QUEUE=false`** Scout indexes a record while the request that saved it is handled, so with Meilisearch down the post, FAQ, product or forum reply **is stored and then the request fails** with a connection error. That reaches a member posting a reply as much as an editor publishing a post. The health card notes it while indexing is not on the queue.
 
@@ -120,7 +120,7 @@ Either way, anything saved while Meilisearch was down is missing from the index 
 
 - **Self-hosted:** `docker compose --profile search up -d meilisearch` runs the version this app is tested against (`getmeili/meilisearch:v1.12`, in `compose.yaml`). Set a master key of at least 16 bytes (`MEILI_MASTER_KEY`: Meilisearch will not start in production without one), make the key above, and keep the data volume. The index is a copy of what is in the database, so the simplest upgrade or recovery is to start with an empty Meilisearch and run `metaforger:search:sync` and then `metaforger:search:reindex`.
 - **Meilisearch Cloud:** use the project's URL as `MEILISEARCH_HOST` and a key made as above (its *Default Admin API Key* works, with the caveat in [Keys](#keys)). Run `metaforger:search:sync` and `metaforger:search:reindex` once.
-- Keep a queue worker running (`php artisan metaforger:queue`): with Meilisearch, saving a record indexes it on the queue (see [When Meilisearch is down](#when-meilisearch-is-down)).
+- Keep a queue worker running (`php artisan metaforger:queue work`, under Supervisor in production, see [The queue](redis.md#the-queue)): with Meilisearch, saving a record indexes it on the queue (see [When Meilisearch is down](#when-meilisearch-is-down)).
 - Run `metaforger:search:health` in a deploy script, and `metaforger:search:reindex` again if it says a count is off.
 
 ## Not built
