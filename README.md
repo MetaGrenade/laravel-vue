@@ -125,7 +125,7 @@ compose.yaml                # Optional backing services for local development (D
 </picture>
 </h2>
 
-> **Shortcut:** after cloning, `composer setup` installs PHP and Node dependencies, creates `.env`, generates the app key, runs migrations (creating the SQLite file if needed) and builds the frontend. It does not link storage or seed data, so continue with steps 4 and 5 below.
+> **Shortcut:** after cloning, `composer setup` installs PHP and Node dependencies, creates `.env`, generates the app key, runs migrations (creating the SQLite file if needed) and builds the frontend. It does not link storage or add the roles and an administrator, so follow it with `php artisan metaforge:install` (step 2 below), which keeps the `.env` and the key it made.
 
 1. **Clone & Install**
    ```bash
@@ -134,22 +134,48 @@ compose.yaml                # Optional backing services for local development (D
    composer install
    npm install
    ```
-2. **Environment**
+2. **Set up the site**
+   ```bash
+   php artisan metaforge:install
+   ```
+   The command checks that the machine has what the site needs (before it changes anything), makes `.env` and the application key, creates the tables (a SQLite file by default), links `public/storage`, adds the roles, support categories and badges, and makes your administrator account. It asks for the name and address of the site (`http://localhost:8000` for `php artisan serve`, or your `.test` address under Herd or Valet) and for the administrator's nickname, email address and password. Run again on a site that is set up, it only runs migrations that are still to run and never empties a table. [docs/install.md](docs/install.md) has the options (for scripts and CI), production use, demo data and troubleshooting.
+
+   Mail is written to the log by default (`MAIL_MAILER=log`); point `MAIL_*` at Mailpit (below) to see emails in a browser. The shop's settings are covered in [Setting up the shop](#setting-up-the-shop). To try the site with a demo shop, a poll and demo accounts, add `--demo` (never on a production site). To start from a text for the terms, privacy and cookie policies, add `--legal-pages`: those pages are public as soon as they have text, so fill in its `[Bracketed items]` before you open the site.
+3. **Build the front end**
+   ```bash
+   npm run build
+   ```
+4. **Run the App**
+   - Everything in one terminal: `composer dev` (Laravel server, queue worker, **scheduler** and Vite). The scheduler does the scheduled work: releasing the stock of unpaid orders (every five minutes), support SLA checks, lifting suspensions that have ended (every minute).
+   - Or separately: `php artisan serve`, `php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`
+   - Under Laravel Herd or Valet the web server is already running; start the queue worker, the scheduler and Vite (`php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`).
+
+<details>
+<summary>Setting up by hand, and demo data from the seeders</summary>
+
+`metaforge:install` does these steps. Do them yourself when you want to.
+
+1. **Environment**
    ```bash
    cp .env.example .env
    php artisan key:generate
    ```
-   Set `APP_URL` to the address you will browse (`http://localhost:8000` for `php artisan serve`, or your `.test` address under Herd or Valet) and update database credentials and any third-party service keys. Mail is written to the log by default (`MAIL_MAILER=log`); point `MAIL_*` at Mailpit (below) to see emails in a browser. The shop's settings are covered in [Setting up the shop](#setting-up-the-shop).
-3. **Database**
+   Set `APP_URL` to the address you will browse and update database credentials and any third-party service keys.
+2. **Database**
    ```bash
    php artisan migrate
    ```
    With the default SQLite connection Laravel offers to create `database/database.sqlite` for you. The migrations create every table the app needs, including the session, cache and queue tables used by the default `database` drivers.
-4. **Storage link**
+3. **Storage link**
    ```bash
    php artisan storage:link
    ```
    Public uploads (product pictures, blog cover images) are served from `storage/app/public`. Private files (support attachments and digital downloads) stay on the `local` disk and never need the link.
+4. **Roles, support categories and badges, then an administrator**
+   ```bash
+   php artisan db:seed --class=BaselineSeeder
+   ```
+   Then give the `admin` role to an account (register one, then `php artisan tinker` and `App\Models\User::find(1)->assignRole('admin')`). `BaselineSeeder` is for a site that has none of this yet: run again, its seeders put back what staff removed on purpose.
 5. **Seed Data (optional, local development only)**
    ```bash
    php artisan db:seed
@@ -163,11 +189,9 @@ compose.yaml                # Optional backing services for local development (D
    php artisan db:seed --class=LegalPagesSeeder         # starting text for the terms, privacy and cookie policies (see docs/legal-pages.md)
    ```
 
-   `LegalPagesSeeder` is the one to run on a production site as well: it never overwrites a page that has text, and it lists what you have to fill in.
-6. **Run the App**
-   - Everything in one terminal: `composer dev` (Laravel server, queue worker, **scheduler** and Vite). The scheduler does the scheduled work: releasing the stock of unpaid orders (every five minutes), support SLA checks, lifting suspensions that have ended (every minute).
-   - Or separately: `php artisan serve`, `php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`
-   - Under Laravel Herd or Valet the web server is already running; start the queue worker, the scheduler and Vite (`php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`).
+   `LegalPagesSeeder` is the one to run on a production site as well: it never overwrites a page that has text, and it lists what you have to fill in. `php artisan metaforge:install --legal-pages` runs it for you.
+
+</details>
 
 ### Local services with Docker (optional)
 `compose.yaml` provides MySQL, PostgreSQL, Redis, Meilisearch and Mailpit for local development; the application itself still runs on your machine. (Meilisearch is optional; set `SEARCH_DRIVER=meilisearch` to search the index. See [docs/search-index.md](docs/search-index.md).)
@@ -497,7 +521,8 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 ## Artisan commands
 | Command | What it does |
 |---------|--------------|
-| `composer setup` | First-time setup: install dependencies, create `.env`, generate the key, migrate and build assets. |
+| `php artisan metaforge:install` | Set up a new site: check the machine, make `.env` and the key, create the tables, link storage, add the roles, categories and badges, make the first administrator. Safe to run again; `--demo` adds demo data (never in production); `--legal-pages` adds a starting text for the legal pages. See [docs/install.md](docs/install.md). |
+| `composer setup` | First-time setup of the code: install dependencies, create `.env`, generate the key, migrate and build assets. Follow it with `metaforge:install`. |
 | `composer dev` / `composer dev:ssr` | Run the server, queue worker, scheduler and Vite (the SSR variant builds SSR first and adds log tailing and the SSR server). |
 | `php artisan commerce:expire-orders` | Cancel unpaid orders past their payment window and release their stock (the scheduler runs this every five minutes). |
 | `php artisan lang:check` | Fail if a language is missing keys the fallback language has. |
@@ -513,6 +538,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 </picture>
 </h2>
 
+- [docs/install.md](docs/install.md): `php artisan metaforge:install` step by step, its options for scripts and CI, running it again, production, demo data and what to do when it stops.
 - [docs/commerce.md](docs/commerce.md): how the shop works (flow, orders, pricing, shipping, tax, discounts, digital goods, refunds, webhooks, configuration and upgrade notes).
 - [docs/billing.md](docs/billing.md): subscriptions, what a customer is told and can do when a payment fails, and the Stripe events the shop needs.
 - [docs/entitlements.md](docs/entitlements.md): what a purchase or a subscription plan gives an account (features and limits), when it is given and taken back, and how code asks for it.

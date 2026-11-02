@@ -232,6 +232,55 @@ jobs:
       - name: Run the Redis tests
         run: php artisan test tests/Live/Redis
 
+  # The installer on a checkout as a clone leaves it: no .env, no database, no application key. It sets the site up (docs/install.md), is
+  # run a second time to show that it changes nothing, and the site it made is served and signed in to as the administrator it made.
+  # The password is made here, so that none is written in the repository.
+  install:
+    name: install (metaforge:install)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
+        with:
+          prepare-environment: 'false'
+
+      - name: Make a password for the administrator
+        run: |
+          password="Ci-$(openssl rand -hex 16)-Aa1"
+          echo "::add-mask::$password"
+          echo "ADMIN_PASSWORD=$password" >> "$GITHUB_ENV"
+
+      - name: Check there is nothing to start from
+        run: |
+          test ! -e .env
+          test ! -e database/database.sqlite
+
+      - name: Install the site
+        run: >
+          php artisan metaforge:install --no-interaction
+          --app-name="CI Site" --app-url=http://127.0.0.1:8000
+          --admin-nickname=owner --admin-email=owner@example.test --admin-password="$ADMIN_PASSWORD"
+
+      - name: Install again, which must change nothing
+        run: |
+          cp .env /tmp/env.first
+          php artisan metaforge:install --no-interaction
+          cmp .env /tmp/env.first
+          php artisan tinker --execute='echo App\Models\User::count();' | grep -qx 1
+
+      - name: Serve the site and sign in
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 > /tmp/serve.log 2>&1 &
+          node scripts/check-install.mjs http://127.0.0.1:8000 owner@example.test "$ADMIN_PASSWORD"
+
+      - name: Show the server log of a failed run
+        if: failure()
+        run: cat /tmp/serve.log storage/logs/*.log 2>/dev/null || true
+
   # What the built front end weighs, in gzipped bytes: what every page loads, what a page adds to that, and the largest script.
   # The numbers are in scripts/bundle-budget.json; docs/bundle-budget.md says how to read a failure and when to raise one.
   bundle:
