@@ -1,0 +1,84 @@
+{
+    "allowed": ["0BSD", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "CC0-1.0", "ISC", "MIT", "Unlicense"],
+    "aliases": {
+        "Apache 2.0": "Apache-2.0"
+    },
+    "alsoShipped": ["tailwindcss", "tw-animate-css"],
+    "firstParty": ["composer:metagrenade/metaforge-discord"],
+    "exceptions": {
+        "composer:dompdf/dompdf": {
+            "licence": "LGPL-2.1",
+            "reason": "Laravel Cashier draws the PDF of a billing invoice with it (`DompdfInvoiceRenderer`, the default `cashier.invoices.renderer`), for `settings.billing.invoices.download`. It is used as installed from Packagist, unmodified, so the LGPL asks for what this file and the package's own licence text already give: the notice, the licence text, and a copy you can replace (`composer update dompdf/dompdf` or another `InvoiceRenderer`)."
+        },
+        "composer:dompdf/php-font-lib": {
+            "licence": "LGPL-2.1-or-later",
+            "reason": "Required by dompdf/dompdf (above), with the same use and the same duties."
+        },
+        "composer:dompdf/php-svg-lib": {
+            "licence": "LGPL-3.0-or-later",
+            "reason": "Required by dompdf/dompdf (above), with the same use and the same duties."
+        },
+        "npm:elkjs": {
+            "licence": "EPL-2.0",
+            "reason": "A dependency of @unovis/ts (graph layouts). Nothing in the built front end imports it (looked for in public/build on 2026-11-01, and `npm run build` is the place to look again if a chart type that lays out a graph is added), and it is unmodified. The Eclipse Public License asks that the source of what is distributed stays available, which the unmodified package on npm is."
+        }
+    },
+    "fallbackTexts": {
+        "npm:embla-carousel": {
+            "licence": "MIT",
+            "copyright": "Copyright (c) David Jerleke.",
+            "source": "https://github.com/davidjerleke/embla-carousel/blob/master/LICENSE"
+        },
+        "npm:embla-carousel-autoplay": {
+            "licence": "MIT",
+            "copyright": "Copyright (c) David Jerleke.",
+            "source": "https://github.com/davidjerleke/embla-carousel/blob/master/LICENSE"
+        },
+        "npm:embla-carousel-reactive-utils": {
+            "licence": "MIT",
+            "copyright": "Copyright (c) David Jerleke.",
+            "source": "https://github.com/davidjerleke/embla-carousel/blob/master/LICENSE"
+        },
+        "npm:embla-carousel-vue": {
+            "licence": "MIT",
+            "copyright": "Copyright (c) David Jerleke.",
+            "source": "https://github.com/davidjerleke/embla-carousel/blob/master/LICENSE"
+        },
+        "composer:pusher/pusher-php-server": {
+            "licence": "MIT",
+            "copyright": "Copyright 2014, Pusher.\nCopyright 2010, Squeeks.",
+            "source": "https://github.com/pusher/pusher-http-php#license"
+        },
+        "npm:murmurhash-js": {
+            "licence": "MIT",
+            "copyright": "Copyright (c) 2011 Gary Court",
+            "source": "https://github.com/garycourt/murmurhash-js#license-mit"
+        }
+    },
+    "assets": [
+        {
+            "name": "Outfit (headings)",
+            "licence": "OFL-1.1",
+            "licenceText": "https://openfontlicense.org/open-font-license-official-text/",
+            "copyright": "Copyright 2021 The Outfit Project Authors (https://github.com/Outfitio/Outfit-Fonts)",
+            "source": "https://github.com/Outfitio/Outfit-Fonts",
+            "where": "Downloaded from Bunny Fonts when the front end is built (`vite.config.ts`) and served from the site's own origin, unmodified. The licence is named inside the font files as https://scripts.sil.org/OFL."
+        },
+        {
+            "name": "Source Sans 3 (text)",
+            "licence": "OFL-1.1",
+            "licenceText": "https://openfontlicense.org/open-font-license-official-text/",
+            "copyright": "© 2023 Adobe (http://www.adobe.com/), with Reserved Font Name ‘Source’",
+            "source": "https://github.com/adobe-fonts/source-sans",
+            "where": "Downloaded from Bunny Fonts when the front end is built (`vite.config.ts`) and served from the site's own origin, unmodified. The licence is named inside the font files as http://scripts.sil.org/OFL."
+        },
+        {
+            "name": "Technology logos on the home page (`resources/images/tech-icons/*.svg`)",
+            "licence": "CC0-1.0",
+            "licenceText": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+            "copyright": "The drawings are from Simple Icons (https://simpleicons.org), whose icons are released under CC0 1.0. The brands they show are trademarks of their owners; they are shown to say what the site is built with, not to suggest that those owners endorse it.",
+            "source": "https://github.com/simple-icons/simple-icons",
+            "where": "Copied into the repository, one file per brand, under the names Simple Icons gives them."
+        }
+    ]
+}

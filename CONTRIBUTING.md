@@ -37,8 +37,11 @@ npm run format                  # Prettier (format:check to only check)
 npm run lint:check              # ESLint
 npm run types:check             # vue-tsc
 npm run build && npm run bundle:check   # the size of the front end against its budget
-npm run bundle:test             # tests of the scripts in scripts/ (the size check, the time-to-first-byte check)
+npm run bundle:test             # tests of the scripts in scripts/ (the size check, the time-to-first-byte check, the licence check)
+npm run licences:check          # the licences of what is shipped, and THIRD-PARTY-NOTICES.md (needs composer install and npm ci)
 ```
+
+**When you add or update a dependency**, run `npm run licences:check`. A new package makes `THIRD-PARTY-NOTICES.md` out of date: run `npm run licences:notices` and commit the file with the dependency. A package under a licence the project does not allow fails the check; that is a decision to make and write down, see [docs/licences.md](docs/licences.md).
 
 ### Testing on other databases
 

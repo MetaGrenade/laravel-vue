@@ -6,5 +6,8 @@
 *.md diff=markdown
 *.php diff=php
 
+# Written by `npm run licences:notices`; GitHub folds it in a diff.
+THIRD-PARTY-NOTICES.md linguist-generated=true
+
 CHANGELOG.md export-ignore
 README.md export-ignore
