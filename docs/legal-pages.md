@@ -8,7 +8,7 @@ Terms, a privacy policy and a cookie policy, written in the admin area, and a ba
 
 **Admin → Legal pages** (the same people who can open system settings). Each page is HTML. A page with no text is not on the site: it is not in the footer, not in the sitemap, and its address answers 404. Saving removes a script, a style, a frame and a `javascript:` link. The date on a page changes only when its text changes.
 
-The footer lists the pages that have text. The banner sits at the bottom of the public pages until the visitor chooses. **Necessary only** keeps the cookies that sign someone in and that remember this choice. **Allow all** is the only choice that turns optional cookies on. The choice lasts 180 days, is not readable by a script on the page, and is sent with ordinary visits.
+The footer lists the pages that have text. The banner sits at the bottom of the public pages until the visitor chooses. **Necessary only** keeps the cookies that sign someone in and that remember this choice. **Allow all** is the only choice that turns optional cookies on. The theme and side menu cookies are **preference cookies**: the front end sets them only when a visitor changes those settings, whichever choice they made, and the banner and the cookie policy say so. The choice lasts 180 days, is not readable by a script on the page, and is sent with ordinary visits.
 
 Nothing optional is loaded today. `CookieConsent::allowsOptional()` is the check a later script should use. Paying (Stripe, Tebex) is not optional and does not wait for this choice.
 

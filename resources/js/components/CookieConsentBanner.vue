@@ -3,11 +3,17 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
 import type { SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import { useElementSize } from '@vueuse/core';
 import { computed, ref } from 'vue';
 
 const page = usePage<SharedData>();
 const { t } = useI18n();
 const saving = ref(false);
+
+// The banner is fixed to the bottom of the window, so a block of its height keeps the end of the page from sitting underneath it. How tall
+// it is depends on the words and on the width of the screen, so it is measured. The first value is a guess for the first paint.
+const banner = ref<HTMLElement | null>(null);
+const { height: bannerHeight } = useElementSize(banner, { width: 0, height: 112 }, { box: 'border-box' });
 
 const visible = computed(() => page.props.impersonation === null && page.props.legal.consent === null);
 const showPolicy = computed(() => page.props.legal.pages.includes('cookies'));
@@ -29,8 +35,14 @@ const choose = (choice: 'necessary' | 'all') => {
 </script>
 
 <template>
-    <div v-if="visible" class="h-28" aria-hidden="true" />
-    <div v-if="visible" class="fixed inset-x-0 bottom-0 z-40 border-t bg-background" role="region" aria-labelledby="cookie-consent-message">
+    <div v-if="visible" :style="{ height: `${bannerHeight}px` }" aria-hidden="true" />
+    <div
+        v-if="visible"
+        ref="banner"
+        class="fixed inset-x-0 bottom-0 z-40 border-t bg-background"
+        role="region"
+        aria-labelledby="cookie-consent-message"
+    >
         <div class="container-app flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p id="cookie-consent-message" class="text-sm text-muted-foreground">
                 {{ t('legal.banner.message') }}

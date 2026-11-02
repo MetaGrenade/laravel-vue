@@ -331,6 +331,28 @@ class LegalPagesSeederTest extends TestCase
         $this->assertSame(1, substr_count($this->source('resources/js/components/ui/sidebar/SidebarProvider.vue'), 'document.cookie ='));
     }
 
+    #[Test]
+    public function the_banner_and_the_cookie_policy_say_that_preference_cookies_do_not_wait_for_the_choice(): void
+    {
+        // They are written when a setting is changed, and nothing that writes them reads what the visitor chose on the banner.
+        foreach (['resources/js/composables/useAppearance.ts', 'resources/js/components/ui/sidebar/SidebarProvider.vue', 'resources/js/components/ui/sidebar/utils.ts'] as $file) {
+            $this->assertStringNotContainsString(CookieConsent::NAME, $this->source($file), $file);
+            $this->assertStringNotContainsString('legal.consent', $this->source($file), $file);
+        }
+
+        $banner = (string) __('legal.banner.message');
+
+        $this->assertStringContainsString('Preference cookies', $banner);
+        $this->assertStringContainsString('theme', $banner);
+        $this->assertStringContainsString('menu', $banner);
+        $this->assertStringContainsString('Anything else stays off until you allow it', $banner);
+
+        $html = LegalPagesSeeder::render('cookies');
+
+        $this->assertStringContainsString('whichever choice you made on the cookie banner', $html);
+        $this->assertStringContainsString('Neither choice stops the preference cookies above', $html);
+    }
+
     private function rememberMinutes(): int
     {
         $property = new ReflectionProperty(SessionGuard::class, 'rememberDuration');

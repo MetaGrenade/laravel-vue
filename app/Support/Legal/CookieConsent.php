@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
  * The visitor's cookie choice (docs/legal-pages.md).
  *
  * Necessary cookies (the session, this choice) are always set. Anything optional stays off until the choice is "all".
+ * Preference cookies (the theme and the side menu) are written by the front end only when the visitor changes that setting,
+ * and they do not wait for the choice: the banner and the cookie policy say so, and a test keeps that true.
+ *
  * Nothing on the site calls {@see allowsOptional()} yet, because there is no optional script. Checkout stays available
  * either way: paying is not optional.
  */

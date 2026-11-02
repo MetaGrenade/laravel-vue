@@ -428,7 +428,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 ### M5. Security and compliance (5–7 days)
 
 - Section 4.2 checklist; upload pipeline; token defaults
-- Legal pages (Terms, Privacy, Cookie policy) managed in the ACP; cookie-consent banner (**done**, first slice, see [legal-pages.md](legal-pages.md)); a starting text for the three pages in a seeder, written for what the software does, with `[Bracketed items]` for what only the operator knows (**done**, twenty-first M7 slice)
+- Legal pages (Terms, Privacy, Cookie policy) managed in the ACP; cookie-consent banner (**done**, first slice, see [legal-pages.md](legal-pages.md)); a starting text for the three pages in a seeder, written for what the software does, with `[Bracketed items]` for what only the operator knows (**done**, twenty-first M7 slice); the banner names the preference cookies (theme, side menu) that are set whichever choice is made, and keeps the end of the page clear of itself on a phone (**done**, M7)
 - Blog covers are decoded and saved again as WebP (**done**, second slice, see [blog-covers.md](blog-covers.md))
 - Two-factor codes match the published test times, and a used recovery code asks for a new set (**done**, third slice, see [two-factor.md](two-factor.md))
 - Blog management in the admin area follows named permissions (**done**, fourth slice, see [blog-permissions.md](blog-permissions.md))
