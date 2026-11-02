@@ -22,7 +22,7 @@ use Tests\Support\FakePhpProbe;
 use Tests\TestCase;
 
 /**
- * `php artisan metaforge:install` (docs/install.md). The test database is the one a fresh checkout has after its migrations, and the
+ * `php artisan metaforger:install` (docs/install.md). The test database is the one a fresh checkout has after its migrations, and the
  * environment file is a folder of its own, so the project's own `.env` is never read or written.
  */
 class InstallCommandTest extends TestCase
@@ -37,7 +37,7 @@ class InstallCommandTest extends TestCase
     {
         parent::setUp();
 
-        $this->dir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'metaforge-install-'.bin2hex(random_bytes(6));
+        $this->dir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'metaforger-install-'.bin2hex(random_bytes(6));
         mkdir($this->dir);
 
         $this->app->useEnvironmentPath($this->dir);
@@ -80,7 +80,7 @@ class InstallCommandTest extends TestCase
      */
     private function install(array $options = [])
     {
-        return $this->artisan('metaforge:install', [
+        return $this->artisan('metaforger:install', [
             '--no-interaction' => true,
             '--no-storage-link' => true,
             ...$options,
@@ -210,7 +210,7 @@ class InstallCommandTest extends TestCase
     #[Test]
     public function it_asks_what_it_needs_when_it_is_run_by_a_person(): void
     {
-        $this->artisan('metaforge:install', ['--no-storage-link' => true])
+        $this->artisan('metaforger:install', ['--no-storage-link' => true])
             ->expectsQuestion('Name of the site (APP_NAME)', 'Asked Name')
             ->expectsQuestion('Address of the site (APP_URL)', 'https://asked.test/')
             ->expectsQuestion('Nickname', 'chief')
@@ -228,7 +228,7 @@ class InstallCommandTest extends TestCase
     #[Test]
     public function it_asks_again_when_the_answers_are_no_good(): void
     {
-        $this->artisan('metaforge:install', ['--no-storage-link' => true, '--app-name' => 'Site', '--app-url' => 'http://site.test'])
+        $this->artisan('metaforger:install', ['--no-storage-link' => true, '--app-name' => 'Site', '--app-url' => 'http://site.test'])
             ->expectsQuestion('Nickname', 'chief')
             ->expectsQuestion('Email address', 'not-an-email')
             ->expectsQuestion('Email address', 'chief@example.test')
@@ -247,7 +247,7 @@ class InstallCommandTest extends TestCase
     #[Test]
     public function a_person_who_declines_the_tables_leaves_the_database_alone(): void
     {
-        $this->artisan('metaforge:install', ['--no-storage-link' => true, '--skip-admin' => true, '--app-name' => 'Site', '--app-url' => 'http://site.test'])
+        $this->artisan('metaforger:install', ['--no-storage-link' => true, '--skip-admin' => true, '--app-name' => 'Site', '--app-url' => 'http://site.test'])
             ->expectsConfirmation('Create the tables in this database?', 'no')
             ->expectsOutputToContain('Nothing has been changed in the database')
             ->assertFailed();
@@ -558,7 +558,7 @@ class InstallCommandTest extends TestCase
         mkdir($public.DIRECTORY_SEPARATOR.'storage', recursive: true);
         $this->app->usePublicPath($public);
 
-        $this->artisan('metaforge:install', ['--no-interaction' => true, ...$this->adminOptions()])
+        $this->artisan('metaforger:install', ['--no-interaction' => true, ...$this->adminOptions()])
             ->expectsOutputToContain('already linked')
             ->assertSuccessful();
     }
@@ -573,7 +573,7 @@ class InstallCommandTest extends TestCase
         config(['filesystems.links' => [$link => storage_path('app/public')]]);
 
         try {
-            $this->artisan('metaforge:install', ['--no-interaction' => true, ...$this->adminOptions()])->assertSuccessful();
+            $this->artisan('metaforger:install', ['--no-interaction' => true, ...$this->adminOptions()])->assertSuccessful();
 
             if (! is_link($link)) {
                 $this->markTestSkipped('This machine does not let PHP make symbolic links (on Windows that needs developer mode or an elevated terminal).');
@@ -596,7 +596,7 @@ class InstallCommandTest extends TestCase
         $this->app->usePublicPath($public);
         config(['filesystems.links' => []]);
 
-        $this->artisan('metaforge:install', ['--no-interaction' => true, ...$this->adminOptions()])
+        $this->artisan('metaforger:install', ['--no-interaction' => true, ...$this->adminOptions()])
             ->expectsOutputToContain('Could not link public/storage. Run `php artisan storage:link` yourself')
             ->assertSuccessful();
 

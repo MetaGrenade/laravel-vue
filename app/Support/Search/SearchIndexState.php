@@ -10,7 +10,7 @@ use Throwable;
 /**
  * When the Meilisearch settings were last pushed and the documents last rebuilt, and where the last rebuild began, so the ACP health
  * card can say how old they are and count what Meilisearch refused of the rebuild (docs/search-index.md). Kept in `system_settings`,
- * written only by `metaforge:search:sync` and `metaforge:search:reindex`.
+ * written only by `metaforger:search:sync` and `metaforger:search:reindex`.
  *
  * A rebuild is noted twice. Where it BEGAN is noted before it does anything, as a Meilisearch task number: the updates it sends are
  * done afterwards and may be refused, so the refusals are the tasks from that number on. That it is DONE is noted only once those tasks

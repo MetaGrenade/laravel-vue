@@ -45,7 +45,7 @@ class SearchIndexStateTest extends TestCase
     {
         $this->freezeTime();
 
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
 
         $this->assertSame(now()->toIso8601String(), SearchIndexState::lastSyncedAt()->toIso8601String());
         $this->assertNull(SearchIndexState::lastReindexedAt());
@@ -58,7 +58,7 @@ class SearchIndexStateTest extends TestCase
         $this->freezeTime();
         Blog::factory()->published()->create();
 
-        $this->artisan('metaforge:search:reindex')->assertSuccessful();
+        $this->artisan('metaforger:search:reindex')->assertSuccessful();
 
         $this->assertSame(now()->toIso8601String(), SearchIndexState::lastSyncedAt()->toIso8601String());
         $this->assertSame(now()->toIso8601String(), SearchIndexState::lastReindexedAt()->toIso8601String());
@@ -68,7 +68,7 @@ class SearchIndexStateTest extends TestCase
     #[Test]
     public function a_reindex_that_skips_the_settings_notes_only_the_rebuild(): void
     {
-        $this->artisan('metaforge:search:reindex', ['--skip-sync' => true])->assertSuccessful();
+        $this->artisan('metaforger:search:reindex', ['--skip-sync' => true])->assertSuccessful();
 
         $this->assertNull(SearchIndexState::lastSyncedAt());
         $this->assertNotNull(SearchIndexState::lastReindexedAt());
@@ -80,8 +80,8 @@ class SearchIndexStateTest extends TestCase
     {
         config(['search.driver' => 'database', 'scout.driver' => 'null']);
 
-        $this->artisan('metaforge:search:sync')->assertFailed();
-        $this->artisan('metaforge:search:reindex')->assertFailed();
+        $this->artisan('metaforger:search:sync')->assertFailed();
+        $this->artisan('metaforger:search:reindex')->assertFailed();
 
         $this->assertNull(SearchIndexState::lastSyncedAt());
         $this->assertNull(SearchIndexState::lastReindexedAt());
@@ -93,8 +93,8 @@ class SearchIndexStateTest extends TestCase
     {
         $this->app->make(EngineManager::class)->extend('meilisearch', fn () => new TakesSettingsEngine(failing: true));
 
-        $this->artisan('metaforge:search:sync')->assertFailed();
-        $this->artisan('metaforge:search:reindex')->assertFailed();
+        $this->artisan('metaforger:search:sync')->assertFailed();
+        $this->artisan('metaforger:search:reindex')->assertFailed();
 
         $this->assertNull(SearchIndexState::lastSyncedAt());
         $this->assertNull(SearchIndexState::lastReindexedAt(), 'it was not done');

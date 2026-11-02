@@ -34,7 +34,7 @@ Settings live in code (`App\Support\Search\SearchIndexSettings`) and in `config/
 With Meilisearch running and `SEARCH_DRIVER=meilisearch`, apply them:
 
 ```bash
-php artisan metaforge:search:sync
+php artisan metaforger:search:sync
 ```
 
 That command only pushes settings. It does not import documents. With `SEARCH_DRIVER=database` it refuses and says so.
@@ -44,7 +44,7 @@ That command only pushes settings. It does not import documents. With `SEARCH_DR
 To flush each index and import every record that may be listed:
 
 ```bash
-php artisan metaforge:search:reindex
+php artisan metaforger:search:reindex
 ```
 
 Settings are applied first (same as sync). Pass `--skip-sync` to import only, or `--chunk=100` to change the batch size. Import runs in-process; a queued rebuild and a zero-downtime index swap are not built yet. With `SEARCH_DRIVER=database` the command refuses and says so.
@@ -53,7 +53,7 @@ Settings are applied first (same as sync). Pass `--skip-sync` to import only, or
 
 - All accepted: it prints that Meilisearch finished and refused nothing, and records the time ("Documents last rebuilt" on the health card).
 - Something refused: it fails (exit 1), says how many were refused and why the first was, and **does not record the rebuild as done**. The health card counts the refusals from the same point, so they stay in view until a rebuild that is accepted.
-- Not finished within the time: it fails and says so (Meilisearch carries on; `metaforge:search:health` shows when it has, and whether it refused anything). The time is `SEARCH_REINDEX_WAIT` seconds (default 120); `--wait=300` gives a large index longer.
+- Not finished within the time: it fails and says so (Meilisearch carries on; `metaforger:search:health` shows when it has, and whether it refused anything). The time is `SEARCH_REINDEX_WAIT` seconds (default 120); `--wait=300` gives a large index longer.
 - `--wait=0` does not wait: it sends the rebuild and returns, and says the rebuild is **not recorded as done**, since it does not know. Where it began is still noted, so the health card shows what Meilisearch refuses of it.
 
 Where the rebuild began is a task number and not a time, because the app's clock and Meilisearch's can differ and a time is only kept to the second: an update refused after the command finished is still the rebuild's, however long the command took.
@@ -64,9 +64,9 @@ A bulk import only loads rows that already qualify (published blogs and due sche
 
 ## Checking on it
 
-**Admin → System settings** has a **Search** card, and `php artisan metaforge:search:health` says the same on the command line. They ask Meilisearch (waiting no longer than `SEARCH_HEALTH_TIMEOUT` seconds, default 3, for any answer) and report:
+**Admin → System settings** has a **Search** card, and `php artisan metaforger:search:health` says the same on the command line. They ask Meilisearch (waiting no longer than `SEARCH_HEALTH_TIMEOUT` seconds, default 3, for any answer) and report:
 
-- whether it is **reachable**, which **version** it is, and when the settings were last pushed and the documents last rebuilt (noted by `metaforge:search:sync` and `metaforge:search:reindex`);
+- whether it is **reachable**, which **version** it is, and when the settings were last pushed and the documents last rebuilt (noted by `metaforger:search:sync` and `metaforger:search:reindex`);
 - for each index, **how many documents it holds against how many the database says it should** (counted the way a reindex would), and whether its **settings are the coded ones**. Anything else you changed on the server, such as stop words or synonyms, is left alone;
 - how many **updates Meilisearch refused** since the last rebuild began (so the rebuild's own are among them, however long the command took), and why the first was;
 - whether search is **on the database for a moment** after a failure (the circuit in [Searching](#searching)).
@@ -75,9 +75,9 @@ Each problem comes with the command that puts it right:
 
 | It says | Run |
 |---|---|
-| No index exists yet, or a named one does not | `php artisan metaforge:search:reindex` |
-| A count is off (a post saved while Meilisearch was down, or imported by a script) | `php artisan metaforge:search:reindex` |
-| Settings are not the coded ones | `php artisan metaforge:search:sync` |
+| No index exists yet, or a named one does not | `php artisan metaforger:search:reindex` |
+| A count is off (a post saved while Meilisearch was down, or imported by a script) | `php artisan metaforger:search:reindex` |
+| Settings are not the coded ones | `php artisan metaforger:search:sync` |
 | It cannot be reached | Check `MEILISEARCH_HOST` and that Meilisearch is running. Search is on the database meanwhile. |
 | It needs a key, or refused the key | Check `MEILISEARCH_KEY` and the [key's permissions](#keys). |
 
@@ -96,7 +96,7 @@ curl -X POST "$MEILISEARCH_HOST/keys" \
   -H "Authorization: Bearer $MEILI_MASTER_KEY" \
   -H "Content-Type: application/json" \
   --data '{
-    "name": "MetaForge",
+    "name": "MetaForger",
     "description": "Search, index and settings for the app",
     "actions": ["search", "documents.add", "documents.delete", "indexes.create", "indexes.get", "indexes.delete", "settings.get", "settings.update", "tasks.get", "stats.get", "version"],
     "indexes": ["*"],
@@ -112,13 +112,13 @@ Put the `key` it answers with in `MEILISEARCH_KEY`. If the site uses `SCOUT_PREF
 
 **Saving** does not, by default. Scout indexes a record while the request that saved it is handled (`SCOUT_QUEUE=false`), so with Meilisearch down the post, FAQ, product or forum reply **is stored and then the request fails** with a connection error. That reaches a member posting a reply as much as an editor publishing a post. Set **`SCOUT_QUEUE=true`** (and keep a queue worker running, as for email) to index on the queue instead: the save works and the job waits for Meilisearch, and if it gives up it ends in the failed jobs.
 
-Either way, anything saved while Meilisearch was down is missing from the index afterwards. The health card shows the count that is off, and `php artisan metaforge:search:reindex` puts it right. The card also says so while indexing is not on the queue.
+Either way, anything saved while Meilisearch was down is missing from the index afterwards. The health card shows the count that is off, and `php artisan metaforger:search:reindex` puts it right. The card also says so while indexing is not on the queue.
 
 ## Deploying
 
-- **Self-hosted:** `docker compose --profile search up -d meilisearch` runs the version this app is tested against (`getmeili/meilisearch:v1.12`, in `compose.yaml`). Set a master key of at least 16 bytes (`MEILI_MASTER_KEY`: Meilisearch will not start in production without one), make the key above, and keep the data volume. The index is a copy of what is in the database, so the simplest upgrade or recovery is to start with an empty Meilisearch and run `metaforge:search:sync` and then `metaforge:search:reindex`.
-- **Meilisearch Cloud:** use the project's URL as `MEILISEARCH_HOST` and a key made as above (its *Default Admin API Key* works, with the caveat in [Keys](#keys)). Run `metaforge:search:sync` and `metaforge:search:reindex` once.
-- Run `metaforge:search:health` in a deploy script, and `metaforge:search:reindex` again if it says a count is off.
+- **Self-hosted:** `docker compose --profile search up -d meilisearch` runs the version this app is tested against (`getmeili/meilisearch:v1.12`, in `compose.yaml`). Set a master key of at least 16 bytes (`MEILI_MASTER_KEY`: Meilisearch will not start in production without one), make the key above, and keep the data volume. The index is a copy of what is in the database, so the simplest upgrade or recovery is to start with an empty Meilisearch and run `metaforger:search:sync` and then `metaforger:search:reindex`.
+- **Meilisearch Cloud:** use the project's URL as `MEILISEARCH_HOST` and a key made as above (its *Default Admin API Key* works, with the caveat in [Keys](#keys)). Run `metaforger:search:sync` and `metaforger:search:reindex` once.
+- Run `metaforger:search:health` in a deploy script, and `metaforger:search:reindex` again if it says a count is off.
 
 ## Not built
 

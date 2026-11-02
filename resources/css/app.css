@@ -11,7 +11,7 @@
  * be composed with an alpha value: `hsl(var(--primary) / 0.5)`. Tailwind colour
  * utilities are mapped onto them here.
  *
- * The palette follows the MetaForge mark: a cool paper or deep navy field, a
+ * The palette follows the MetaForger mark: a cool paper or deep navy field, a
  * single indigo (`#5346e8`) and the gold diamond (`#f5b029`). To rebrand,
  * change --primary / --primary-text / --highlight / --ring and their dark-mode
  * counterparts. --primary is the action fill. --primary-text is for links and

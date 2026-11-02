@@ -569,7 +569,7 @@ const faqs = [
                     <div class="relative">
                         <h2 class="text-3xl font-semibold tracking-tight">Start from a stack that already sells and moderates</h2>
                         <p class="mx-auto mt-4 max-w-xl text-primary-foreground/80 dark:text-muted-foreground">
-                            MetaForge is free and open source. Clone it, turn on the modules you need, and ship.
+                            MetaForger is free and open source. Clone it, turn on the modules you need, and ship.
                         </p>
                         <div class="mt-8 flex flex-wrap justify-center gap-3">
                             <Button v-if="canRegister" size="lg" variant="highlight" as-child>

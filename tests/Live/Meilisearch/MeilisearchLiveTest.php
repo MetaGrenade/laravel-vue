@@ -55,7 +55,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     #[Test]
     public function a_sync_gives_every_index_the_coded_settings(): void
     {
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
         $this->settle();
 
         foreach (SearchIndexSettings::forScout() as $model => $coded) {
@@ -92,7 +92,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
         Product::factory()->create(['name' => 'Shown lantern', 'brand_id' => $brand->id]);
         Product::factory()->inactive()->create(['name' => 'Hidden lantern']);
 
-        $this->artisan('metaforge:search:reindex')->assertSuccessful();
+        $this->artisan('metaforger:search:reindex')->assertSuccessful();
         $this->settle();
 
         $this->assertSame(1, $this->documentsIn(Blog::class));
@@ -107,7 +107,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
         $this->assertSame(array_fill(0, 4, 1), array_column($report->indexes, 'expected'));
         $this->assertNotNull($report->version);
 
-        $this->artisan('metaforge:search:health')->expectsOutputToContain('Meilisearch is healthy.')->assertSuccessful();
+        $this->artisan('metaforger:search:health')->expectsOutputToContain('Meilisearch is healthy.')->assertSuccessful();
     }
 
     /**
@@ -118,7 +118,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
      */
     private function reindex(array $options = []): array
     {
-        $code = Artisan::call('metaforge:search:reindex', $options);
+        $code = Artisan::call('metaforger:search:reindex', $options);
 
         return [$code, trim((string) preg_replace('/\s+/', ' ', Artisan::output()))];
     }
@@ -163,7 +163,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
         $host = (string) getenv('MEILISEARCH_LIVE_HOST');
         $master = getenv('MEILISEARCH_LIVE_KEY') ?: null;
         $key = $this->meili->createKey([
-            'name' => 'metaforge test without tasks '.$this->prefix,
+            'name' => 'metaforger test without tasks '.$this->prefix,
             'actions' => array_values(array_diff(self::actionsTheAppNeeds(), ['tasks.get'])),
             'indexes' => [$this->prefix.'*'],
             'expiresAt' => null,
@@ -196,7 +196,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     #[Test]
     public function a_match_in_the_title_ranks_above_a_match_in_the_body(): void
     {
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
         $author = $this->author();
         Blog::factory()->published()->create(['title' => 'Cooking pasta', 'excerpt' => 'Italian food', 'body' => 'We mention kubernetes once, deep in the body of this post.', 'user_id' => $author->id]);
         Blog::factory()->published()->create(['title' => 'Kubernetes basics', 'excerpt' => 'An introduction', 'body' => 'About containers.', 'user_id' => $author->id]);
@@ -208,7 +208,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     #[Test]
     public function a_typo_is_forgiven_in_a_longer_word_and_not_in_a_short_one(): void
     {
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
         $author = $this->author();
         Blog::factory()->published()->create(['title' => 'Kubernetes basics', 'user_id' => $author->id]);
         Blog::factory()->published()->create(['title' => 'Cat care', 'user_id' => $author->id]);
@@ -225,7 +225,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     #[Test]
     public function unpublishing_a_post_takes_it_out_of_the_index_and_publishing_it_puts_it_back(): void
     {
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
         $blog = Blog::factory()->published()->create(['title' => 'Lighthouse keeper', 'user_id' => $this->author()->id]);
         $this->settle();
         $this->assertSame(['Lighthouse keeper'], $this->titles('lighthouse'));
@@ -247,7 +247,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     #[Test]
     public function a_held_reply_is_not_in_its_threads_document_and_holding_one_takes_its_words_out(): void
     {
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
         $thread = $this->thread($this->board(), 'A public thread');
         $visible = ForumPost::query()->create(['forum_thread_id' => $thread->id, 'user_id' => $thread->user_id, 'body' => 'a reply about zephyrword']);
         (new ForumPost)->forceFill(['forum_thread_id' => $thread->id, 'user_id' => $thread->user_id, 'body' => 'a held reply about quarksecret', 'held_at' => now()])->save();
@@ -267,7 +267,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     #[Test]
     public function the_search_page_reads_the_live_index(): void
     {
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
         $author = $this->author();
         $blog = Blog::factory()->published()->create(['title' => 'Kubernetes basics', 'user_id' => $author->id]);
         Blog::factory()->create(['title' => 'Kubernetes draft', 'user_id' => $author->id]);
@@ -285,7 +285,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     #[Test]
     public function the_search_page_falls_back_to_the_database_when_meilisearch_cannot_be_reached(): void
     {
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
         Blog::factory()->published()->create(['title' => 'Kubernetes basics', 'user_id' => $this->author()->id]);
         $this->settle();
 
@@ -336,7 +336,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     {
         $author = $this->author();
         Blog::factory()->published()->create(['title' => 'First post', 'user_id' => $author->id]);
-        $this->artisan('metaforge:search:reindex')->assertSuccessful();
+        $this->artisan('metaforger:search:reindex')->assertSuccessful();
         $this->settle();
         $this->assertSame(SearchHealthReport::HEALTHY, $this->health()->status);
 
@@ -345,19 +345,19 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
 
         $report = $this->health();
         $this->assertSame(SearchHealthReport::ATTENTION, $report->status);
-        $this->assertSame(['The ['.(new Blog)->indexableAs().'] index has 1 document and 2 should be there. Run: php artisan metaforge:search:reindex'], $report->problems);
-        $this->artisan('metaforge:search:health')->assertFailed();
+        $this->assertSame(['The ['.(new Blog)->indexableAs().'] index has 1 document and 2 should be there. Run: php artisan metaforger:search:reindex'], $report->problems);
+        $this->artisan('metaforger:search:health')->assertFailed();
 
-        $this->artisan('metaforge:search:reindex')->assertSuccessful();
+        $this->artisan('metaforger:search:reindex')->assertSuccessful();
         $this->settle();
         $this->assertSame(SearchHealthReport::HEALTHY, $this->health()->status);
-        $this->artisan('metaforge:search:health')->assertSuccessful();
+        $this->artisan('metaforger:search:health')->assertSuccessful();
     }
 
     #[Test]
     public function settings_changed_on_the_server_are_noticed_and_a_sync_puts_them_right(): void
     {
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
         $this->settle();
         $this->assertSame(SearchHealthReport::HEALTHY, $this->health()->status);
 
@@ -366,9 +366,9 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
 
         $report = $this->health();
         $this->assertSame(SearchHealthReport::ATTENTION, $report->status);
-        $this->assertSame(['The ['.(new Blog)->indexableAs().'] settings are not the ones this app expects. Run: php artisan metaforge:search:sync'], $report->problems);
+        $this->assertSame(['The ['.(new Blog)->indexableAs().'] settings are not the ones this app expects. Run: php artisan metaforger:search:sync'], $report->problems);
 
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
         $this->settle();
         $this->assertSame(SearchHealthReport::HEALTHY, $this->health()->status);
     }
@@ -379,7 +379,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
         $report = $this->health();
 
         $this->assertSame(SearchHealthReport::ATTENTION, $report->status);
-        $this->assertSame(['No search index exists yet. Run: php artisan metaforge:search:reindex'], $report->problems);
+        $this->assertSame(['No search index exists yet. Run: php artisan metaforger:search:reindex'], $report->problems);
     }
 
     #[Test]
@@ -393,7 +393,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
         $this->assertStringContainsString('refused the key (HTTP 403)', $report->problems[0]);
         $this->assertStringNotContainsString($this->wrongKey(), (string) json_encode($report->toArray()));
 
-        Artisan::call('metaforge:search:health');
+        Artisan::call('metaforger:search:health');
         $this->assertStringNotContainsString($this->wrongKey(), Artisan::output());
     }
 
@@ -437,7 +437,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     public function a_key_with_only_the_actions_the_docs_list_does_everything_the_app_does(): void
     {
         $key = $this->meili->createKey([
-            'name' => 'metaforge test '.$this->prefix,
+            'name' => 'metaforger test '.$this->prefix,
             'description' => 'Made by the live search tests; removed afterwards.',
             'actions' => self::actionsTheAppNeeds(),
             'indexes' => [$this->prefix.'*'],
@@ -448,7 +448,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
             $this->useMeilisearch((string) getenv('MEILISEARCH_LIVE_HOST'), $key->getKey());
             Blog::factory()->published()->create(['title' => 'Kubernetes basics', 'user_id' => $this->author()->id]);
 
-            $this->artisan('metaforge:search:reindex')->assertSuccessful();
+            $this->artisan('metaforger:search:reindex')->assertSuccessful();
             $this->settle();
             $this->assertSame(['Kubernetes basics'], $this->titles('kubernets'));
             $this->get(route('search.results', ['q' => 'kubernets']))->assertOk()->assertInertia(fn (Assert $page) => $page->where('results.blogs.meta.total', 1));
@@ -465,7 +465,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
     public function a_key_that_lacks_one_of_those_actions_is_refused_where_it_matters(): void
     {
         $key = $this->meili->createKey([
-            'name' => 'metaforge test without settings '.$this->prefix,
+            'name' => 'metaforger test without settings '.$this->prefix,
             'actions' => array_values(array_diff(self::actionsTheAppNeeds(), ['settings.update'])),
             'indexes' => [$this->prefix.'*'],
             'expiresAt' => null,
@@ -474,7 +474,7 @@ class MeilisearchLiveTest extends LiveMeilisearchTestCase
         try {
             $this->useMeilisearch((string) getenv('MEILISEARCH_LIVE_HOST'), $key->getKey());
 
-            $this->artisan('metaforge:search:sync')->assertFailed();
+            $this->artisan('metaforger:search:sync')->assertFailed();
         } finally {
             $this->useMeilisearch((string) getenv('MEILISEARCH_LIVE_HOST'), getenv('MEILISEARCH_LIVE_KEY') ?: null);
             $this->meili->deleteKey($key->getKey());

@@ -1,4 +1,4 @@
-// Signs in to a site that `php artisan metaforge:install` just set up, over HTTP, the way a browser would (docs/install.md):
+// Signs in to a site that `php artisan metaforger:install` just set up, over HTTP, the way a browser would (docs/install.md):
 //
 //     node scripts/check-install.mjs http://127.0.0.1:8000 owner@example.test "the password"
 //

@@ -21,7 +21,7 @@ use Tests\Support\FakeMeilisearch;
 use Tests\TestCase;
 
 /**
- * What the ACP card and `metaforge:search:health` find (docs/search-index.md), through the real Meilisearch client and a stand-in that
+ * What the ACP card and `metaforger:search:health` find (docs/search-index.md), through the real Meilisearch client and a stand-in that
  * answers by path.
  */
 class SearchHealthTest extends TestCase
@@ -257,7 +257,7 @@ class SearchHealthTest extends TestCase
         $report = $this->check($fake);
 
         $this->assertSame(SearchHealthReport::ATTENTION, $report->status);
-        $this->assertSame(['No search index exists yet. Run: php artisan metaforge:search:reindex'], $report->problems);
+        $this->assertSame(['No search index exists yet. Run: php artisan metaforger:search:reindex'], $report->problems);
         $this->assertSame([false, false, false, false], array_column($report->indexes, 'exists'));
         $this->assertSame([null, null, null, null], array_column($report->indexes, 'documents'));
     }
@@ -268,8 +268,8 @@ class SearchHealthTest extends TestCase
         $one = $this->check(FakeMeilisearch::serving()->refusing('GET /indexes/faqs/stats', 404, 'index_not_found', 'invalid_request'));
         $two = $this->check(FakeMeilisearch::serving()->refusing('GET /indexes/faqs/stats', 404, 'index_not_found', 'invalid_request')->refusing('GET /indexes/products/stats', 404, 'index_not_found', 'invalid_request'));
 
-        $this->assertSame(['The [faqs] index does not exist. Run: php artisan metaforge:search:reindex'], $one->problems);
-        $this->assertSame(['The [faqs] and [products] indexes do not exist. Run: php artisan metaforge:search:reindex'], $two->problems);
+        $this->assertSame(['The [faqs] index does not exist. Run: php artisan metaforger:search:reindex'], $one->problems);
+        $this->assertSame(['The [faqs] and [products] indexes do not exist. Run: php artisan metaforger:search:reindex'], $two->problems);
     }
 
     /**
@@ -298,7 +298,7 @@ class SearchHealthTest extends TestCase
         $report = $this->check(FakeMeilisearch::serving()->on('GET /indexes/blogs/settings', $live));
 
         $this->assertSame(SearchHealthReport::ATTENTION, $report->status);
-        $this->assertSame(['The [blogs] settings are not the ones this app expects. Run: php artisan metaforge:search:sync'], $report->problems);
+        $this->assertSame(['The [blogs] settings are not the ones this app expects. Run: php artisan metaforger:search:sync'], $report->problems);
         $this->assertFalse($report->indexes[0]['settings_in_sync']);
         $this->assertSame([true, true, true], array_column(array_slice($report->indexes, 1), 'settings_in_sync'), 'the others are as coded');
     }
@@ -328,8 +328,8 @@ class SearchHealthTest extends TestCase
 
         $this->assertSame(SearchHealthReport::ATTENTION, $report->status);
         $this->assertSame([
-            'The [blogs] index has 1 document and 2 should be there. Run: php artisan metaforge:search:reindex',
-            'The [faqs] index has 0 documents and 1 should be there. Run: php artisan metaforge:search:reindex',
+            'The [blogs] index has 1 document and 2 should be there. Run: php artisan metaforger:search:reindex',
+            'The [faqs] index has 0 documents and 1 should be there. Run: php artisan metaforger:search:reindex',
         ], $report->problems);
     }
 
@@ -338,7 +338,7 @@ class SearchHealthTest extends TestCase
     {
         $report = $this->check(FakeMeilisearch::serving(['products' => 3]));
 
-        $this->assertSame(['The [products] index has 3 documents and 0 should be there. Run: php artisan metaforge:search:reindex'], $report->problems);
+        $this->assertSame(['The [products] index has 3 documents and 0 should be there. Run: php artisan metaforger:search:reindex'], $report->problems);
     }
 
     #[Test]

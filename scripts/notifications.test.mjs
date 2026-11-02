@@ -11,7 +11,7 @@ const NOW = new Date('2026-11-01T10:00:00.000Z');
 const PUSHED = {
     title: 'New reply in "Something to Test"',
     excerpt: 'Ada: it works',
-    url: 'https://metaforge.test/forum/general/something-to-test?post=7',
+    url: 'https://metaforger.test/forum/general/something-to-test?post=7',
     thread_title: 'Something to Test',
     id: '6b0f2c1e-0000-4000-8000-000000000001',
     type: 'App\\Notifications\\ForumThreadUpdated',

@@ -34,7 +34,7 @@ class InstallCommand extends Command
 {
     use ConfirmableTrait;
 
-    protected $signature = 'metaforge:install
+    protected $signature = 'metaforger:install
         {--app-name= : Name of the site (APP_NAME). Asked for when there is no .env yet}
         {--app-url= : Address the site is served from (APP_URL). Asked for when there is no .env yet}
         {--admin-nickname= : Nickname of the first administrator}
@@ -46,7 +46,7 @@ class InstallCommand extends Command
         {--no-storage-link : Do not link public/storage}
         {--force : Run in production}';
 
-    protected $description = 'Set up a new MetaForge site: check the machine, make .env and the key, create the tables and the first administrator';
+    protected $description = 'Set up a new MetaForger site: check the machine, make .env and the key, create the tables and the first administrator';
 
     /** @var array{nickname: string, email: string, password: string}|null */
     private ?array $admin = null;
@@ -184,7 +184,7 @@ class InstallCommand extends Command
         $url = $this->option('app-url');
 
         if ($name === null && $fresh && $this->input->isInteractive()) {
-            $name = $this->ask('Name of the site (APP_NAME)', $example->get('APP_NAME') ?? 'MetaForge');
+            $name = $this->ask('Name of the site (APP_NAME)', $example->get('APP_NAME') ?? 'MetaForger');
         }
 
         if ($url === null && $fresh && $this->input->isInteractive()) {
@@ -569,7 +569,7 @@ class InstallCommand extends Command
             $steps[] = 'Build the front end: `npm run build`. It is not built yet, so pages cannot load their scripts.';
         }
 
-        $steps[] = 'Run it: `composer dev` starts the site, the queue worker, the scheduler and Vite. Under Herd or Valet the site is already served; start the rest with `php artisan metaforge:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`.';
+        $steps[] = 'Run it: `composer dev` starts the site, the queue worker, the scheduler and Vite. Under Herd or Valet the site is already served; start the rest with `php artisan metaforger:queue listen --tries=1`, `php artisan schedule:work` and `npm run dev`.';
         $steps[] = $this->option('legal-pages')
             ? 'In the admin area (Admin > Legal pages): fill in the [Bracketed items] listed above and delete the note at the top of each page. The pages are public already. Then review the system settings.'
             : 'In the admin area: write the legal pages (Admin > Legal pages), or start from a text with `php artisan db:seed --class=LegalPagesSeeder`, which fills only empty pages. Then review the system settings.';

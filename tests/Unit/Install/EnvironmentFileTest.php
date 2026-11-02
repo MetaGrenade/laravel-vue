@@ -17,7 +17,7 @@ class EnvironmentFileTest extends TestCase
     {
         parent::setUp();
 
-        $this->dir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'metaforge-env-'.bin2hex(random_bytes(6));
+        $this->dir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'metaforger-env-'.bin2hex(random_bytes(6));
         mkdir($this->dir);
     }
 

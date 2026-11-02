@@ -18,7 +18,7 @@ use Tests\Support\FakeMeilisearch;
 use Tests\TestCase;
 
 /**
- * What `metaforge:search:reindex` does about Meilisearch's tasks (docs/search-index.md). Meilisearch answers an update at once, does it
+ * What `metaforger:search:reindex` does about Meilisearch's tasks (docs/search-index.md). Meilisearch answers an update at once, does it
  * afterwards, and may refuse it. So the rebuild notes where it BEGAN before it sends anything, waits for its updates to finish, and counts
  * as DONE only if none was refused; the health check counts refusals from the same point, so those of the rebuild itself are not lost to
  * the time the command happened to finish.
@@ -81,7 +81,7 @@ class ReindexSearchCommandTasksTest extends TestCase
      */
     private function reindex(array $options = []): array
     {
-        $code = Artisan::call('metaforge:search:reindex', $options);
+        $code = Artisan::call('metaforger:search:reindex', $options);
 
         return [$code, trim((string) preg_replace('/\s+/', ' ', Artisan::output()))];
     }
@@ -215,7 +215,7 @@ class ReindexSearchCommandTasksTest extends TestCase
 
         $this->assertSame(1, $code);
         $this->assertStringContainsString('Meilisearch had not finished after 2 seconds, so the rebuild is not recorded as done.', $output);
-        $this->assertStringContainsString('run php artisan metaforge:search:health to see when it has', $output);
+        $this->assertStringContainsString('run php artisan metaforger:search:health to see when it has', $output);
         $this->assertNull(SearchIndexState::lastReindexedAt());
         $this->assertSame(8, SearchIndexState::lastReindexFromTask(), 'but where it began is noted, so what it was refused is counted when it finishes');
     }

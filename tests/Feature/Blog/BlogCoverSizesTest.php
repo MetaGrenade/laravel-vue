@@ -240,7 +240,7 @@ class BlogCoverSizesTest extends TestCase
 
         $this->travel(1)->hours();
 
-        $this->artisan('metaforge:blog:covers:upgrade')->assertSuccessful();
+        $this->artisan('metaforger:blog:covers:upgrade')->assertSuccessful();
 
         $path = $blog->fresh()->cover_image;
 
@@ -261,12 +261,12 @@ class BlogCoverSizesTest extends TestCase
         Storage::disk('public')->put('blog-covers/old.png', UploadedFile::fake()->image('old.png', 800, 400)->getContent());
         $blog = Blog::factory()->create(['cover_image' => 'blog-covers/old.png']);
 
-        $this->artisan('metaforge:blog:covers:upgrade')->assertSuccessful();
+        $this->artisan('metaforger:blog:covers:upgrade')->assertSuccessful();
 
         $path = $blog->fresh()->cover_image;
         $files = Storage::disk('public')->allFiles();
 
-        $this->artisan('metaforge:blog:covers:upgrade')->expectsOutputToContain('0 cover(s) are stored as one file.')->assertSuccessful();
+        $this->artisan('metaforger:blog:covers:upgrade')->expectsOutputToContain('0 cover(s) are stored as one file.')->assertSuccessful();
 
         $this->assertSame($path, $blog->fresh()->cover_image);
         $this->assertSame($files, Storage::disk('public')->allFiles());
@@ -278,7 +278,7 @@ class BlogCoverSizesTest extends TestCase
         Storage::disk('public')->put('blog-covers/old.png', UploadedFile::fake()->image('old.png', 800, 400)->getContent());
         $blog = Blog::factory()->create(['cover_image' => 'blog-covers/old.png']);
 
-        $this->artisan('metaforge:blog:covers:upgrade', ['--dry-run' => true])
+        $this->artisan('metaforger:blog:covers:upgrade', ['--dry-run' => true])
             ->expectsOutputToContain('would redraw blog-covers/old.png')
             ->assertSuccessful();
 
@@ -294,7 +294,7 @@ class BlogCoverSizesTest extends TestCase
         $gone = Blog::factory()->create(['cover_image' => 'blog-covers/gone.png']);
         $notes = Blog::factory()->create(['cover_image' => 'blog-covers/notes.png']);
 
-        $this->artisan('metaforge:blog:covers:upgrade')->assertSuccessful();
+        $this->artisan('metaforger:blog:covers:upgrade')->assertSuccessful();
 
         $this->assertSame('blog-covers/gone.png', $gone->fresh()->cover_image);
         $this->assertSame('blog-covers/notes.png', $notes->fresh()->cover_image);
@@ -320,7 +320,7 @@ class BlogCoverSizesTest extends TestCase
             }
         });
 
-        $this->artisan('metaforge:blog:covers:upgrade')->assertSuccessful();
+        $this->artisan('metaforger:blog:covers:upgrade')->assertSuccessful();
 
         $this->assertSame('blog-covers/replacement-large.webp', $blog->fresh()->cover_image);
         $this->assertSame(['blog-covers/old.png'], Storage::disk('public')->allFiles(), 'what was drawn for it is gone, and the old file is not the command to remove');

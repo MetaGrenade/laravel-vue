@@ -32,7 +32,7 @@ SESSION_DRIVER=redis
 
 Then run `php artisan config:cache` as usual and restart the queue workers with your process manager (`supervisorctl restart all`, for example). Not `php artisan queue:restart` this once: it signals the workers through the cache, and the running ones are still reading the old cache. Nothing needs migrating. Everyone is signed out once, because their sessions were in the database.
 
-Switch the three together or one at a time, they do not depend on each other. If you move only the queue, jobs already waiting in the `jobs` table stay there; run `php artisan metaforge:queue work database --stop-when-empty` once to finish them.
+Switch the three together or one at a time, they do not depend on each other. If you move only the queue, jobs already waiting in the `jobs` table stay there; run `php artisan metaforger:queue work database --stop-when-empty` once to finish them.
 
 ## Where things live
 
@@ -52,9 +52,9 @@ What stays in the database whatever you choose: failed jobs (`failed_jobs`, so a
 A worker has to be running, with the database queue as much as with Redis: the scheduler's jobs, the queued notifications and the shop's emails go through it.
 
 ```ini
-; /etc/supervisor/conf.d/metaforge-worker.conf
-[program:metaforge-worker]
-command=php /var/www/metaforge/artisan metaforge:queue work redis --sleep=3 --tries=3 --max-time=3600
+; /etc/supervisor/conf.d/metaforger-worker.conf
+[program:metaforger-worker]
+command=php /var/www/metaforger/artisan metaforger:queue work redis --sleep=3 --tries=3 --max-time=3600
 process_name=%(program_name)s_%(process_num)02d
 numprocs=2
 autostart=true
@@ -64,7 +64,7 @@ killasgroup=true
 stopwaitsecs=3600
 ```
 
-- **`metaforge:queue work` is what makes the emails go out.** Every notification puts its email on a queue called `mail` (its database and push channels use `default`), and `queue:work` reads only one queue: the one `--queue` names, or else the connection's own (`queue.connections.redis.queue`: `default` unless you set `REDIS_QUEUE`; `DB_QUEUE` for the database queue). Started plainly, a worker never reads `mail`, so the emails wait in the queue for good, with the database queue as much as with Redis, and nothing fails to say so. `--queue` also *replaces* the connection's own queue instead of adding to it: a command with `--queue=default,mail` written into it stops the jobs that name no queue on a site that sets `REDIS_QUEUE=site-jobs`. `php artisan metaforge:queue work` looks the queue up. It starts `queue:work` on the connection's own queue, then `default`, then `mail` (`site-jobs,default,mail` on that site, `default,mail` on one that sets nothing), takes `queue:work`'s options as you type them, and keeps a `--queue` you give. `queue:listen` prints the list it reads when it starts, and `queue:work` does when it has a terminal. `composer dev` and the [README](../README.md) use `metaforge:queue listen`. A test (`QueueConfigTest`) fails if one of them goes back to a plain `queue:work` or `queue:listen`, or if the app starts using a queue that `App\Support\Queues\WorkerQueues` does not list. A new queue is added to the app and to that list together. A process manager that cannot run the command (a hosting panel with a queue field) needs the same list written out: `--queue=` your `REDIS_QUEUE` if you set one, then `default,mail`.
+- **`metaforger:queue work` is what makes the emails go out.** Every notification puts its email on a queue called `mail` (its database and push channels use `default`), and `queue:work` reads only one queue: the one `--queue` names, or else the connection's own (`queue.connections.redis.queue`: `default` unless you set `REDIS_QUEUE`; `DB_QUEUE` for the database queue). Started plainly, a worker never reads `mail`, so the emails wait in the queue for good, with the database queue as much as with Redis, and nothing fails to say so. `--queue` also *replaces* the connection's own queue instead of adding to it: a command with `--queue=default,mail` written into it stops the jobs that name no queue on a site that sets `REDIS_QUEUE=site-jobs`. `php artisan metaforger:queue work` looks the queue up. It starts `queue:work` on the connection's own queue, then `default`, then `mail` (`site-jobs,default,mail` on that site, `default,mail` on one that sets nothing), takes `queue:work`'s options as you type them, and keeps a `--queue` you give. `queue:listen` prints the list it reads when it starts, and `queue:work` does when it has a terminal. `composer dev` and the [README](../README.md) use `metaforger:queue listen`. A test (`QueueConfigTest`) fails if one of them goes back to a plain `queue:work` or `queue:listen`, or if the app starts using a queue that `App\Support\Queues\WorkerQueues` does not list. A new queue is added to the app and to that list together. A process manager that cannot run the command (a hosting panel with a queue field) needs the same list written out: `--queue=` your `REDIS_QUEUE` if you set one, then `default,mail`.
 - `--max-time=3600` makes a worker finish its job and exit once an hour, so memory a job leaked is given back; Supervisor starts a new one.
 - **`php artisan queue:restart` on every deploy.** Workers hold the old code in memory until they are told to stop.
 - **`retry_after` must be longer than the longest a job can run.** It is 90 seconds (`REDIS_QUEUE_RETRY_AFTER`, `DB_QUEUE_RETRY_AFTER`), and a worker is stopped after 60 (`--timeout`). A job that is still running when `retry_after` passes is given to a second worker, and runs twice. A test fails if either setting drops under the worker's timeout, or if a queued class sets a timeout that reaches `retry_after`. A job that needs longer, a big export, sets `$timeout` (or `#[Timeout]`) *and* the site raises `retry_after` above it.
@@ -89,7 +89,7 @@ The shop already dispatches its order events with `DB::afterCommit()`; this make
 docker compose up -d redis
 ```
 
-Then the lines under [Switching](#switching) with `REDIS_HOST=127.0.0.1`, and `php artisan metaforge:queue listen --tries=1` (or `composer dev`).
+Then the lines under [Switching](#switching) with `REDIS_HOST=127.0.0.1`, and `php artisan metaforger:queue listen --tries=1` (or `composer dev`).
 
 To see what you are running, `php artisan about` lists the cache, queue and session drivers.
 
@@ -97,15 +97,15 @@ To see what you are running, `php artisan about` lists the cache, queue and sess
 
 | Test | Where | Runs |
 |---|---|---|
-| A Redis queue holds a job until the transaction commits; `retry_after` is longer than a worker's timeout and than any job's; the worker commands in `composer.json`, the README and the Supervisor example above all go through `metaforge:queue`, which reads every queue the app uses and the connection's own | `tests/Unit/QueueConfigTest.php`, `tests/Unit/QueueWorkerCommandTest.php` | with the suite |
+| A Redis queue holds a job until the transaction commits; `retry_after` is longer than a worker's timeout and than any job's; the worker commands in `composer.json`, the README and the Supervisor example above all go through `metaforger:queue`, which reads every queue the app uses and the connection's own | `tests/Unit/QueueConfigTest.php`, `tests/Unit/QueueWorkerCommandTest.php` | with the suite |
 | The cache has a database of its own; clearing it leaves sessions, queue and locks; a job waits for the commit and is never queued by a rolled back transaction; a lock is held until released; a worker runs a job and takes it off the queue | `tests/Live/Redis/RedisLiveTest.php` | the `redis (Redis 7)` CI job |
 
 The live tests go through the real stack: a page request that starts a session, `cache:clear`, `queue:work`. `php artisan test` does not run them, and they skip themselves unless `REDIS_LIVE_HOST` is set. They **empty both Redis databases** at the end, so they will not start against a Redis that already holds a key. Use a Redis of their own:
 
 ```bash
-docker run --rm -d --name metaforge-redis-live -p 6390:6379 redis:7-alpine
+docker run --rm -d --name metaforger-redis-live -p 6390:6379 redis:7-alpine
 REDIS_LIVE_HOST=127.0.0.1 REDIS_LIVE_PORT=6390 php artisan test tests/Live/Redis
-docker stop metaforge-redis-live
+docker stop metaforger-redis-live
 ```
 
 ## What it does not do

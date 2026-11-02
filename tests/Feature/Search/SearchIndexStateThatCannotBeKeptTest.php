@@ -40,7 +40,7 @@ class SearchIndexStateThatCannotBeKeptTest extends TestCase
     {
         Log::spy();
 
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
 
         Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message) => str_starts_with($message, 'Could not note when the search index was updated: The database is not taking writes.'));
     }
@@ -50,7 +50,7 @@ class SearchIndexStateThatCannotBeKeptTest extends TestCase
     {
         Log::spy();
 
-        $this->artisan('metaforge:search:reindex')->assertSuccessful();
+        $this->artisan('metaforger:search:reindex')->assertSuccessful();
 
         // The settings, where the rebuild began and the rebuild itself are noted: each is logged and none stops the command.
         Log::shouldHaveReceived('warning')->times(3);

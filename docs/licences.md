@@ -1,6 +1,6 @@
-# Licences of what MetaForge is built on
+# Licences of what MetaForger is built on
 
-MetaForge is MIT ([LICENSE.md](../LICENSE.md)) and is built on other people's software. Each piece is used under its own licence, and most of those licences ask for one thing when the software is passed on: that the copyright line and the licence text stay with it. [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md) is that notice, and a check in CI keeps it true.
+MetaForger is MIT ([LICENSE.md](../LICENSE.md)) and is built on other people's software. Each piece is used under its own licence, and most of those licences ask for one thing when the software is passed on: that the copyright line and the licence text stay with it. [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md) is that notice, and a check in CI keeps it true.
 
 ```bash
 npm run licences:check     # fails on a licence the policy does not allow, or when THIRD-PARTY-NOTICES.md is out of date

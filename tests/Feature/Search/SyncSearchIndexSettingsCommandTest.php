@@ -24,7 +24,7 @@ class SyncSearchIndexSettingsCommandTest extends TestCase
     {
         $this->assertSame('database', config('search.driver'));
 
-        $this->artisan('metaforge:search:sync')
+        $this->artisan('metaforger:search:sync')
             ->expectsOutputToContain('Set SEARCH_DRIVER=meilisearch')
             ->assertFailed();
     }
@@ -41,7 +41,7 @@ class SyncSearchIndexSettingsCommandTest extends TestCase
             'scout.prefix' => '',
         ]);
 
-        $this->artisan('metaforge:search:sync')
+        $this->artisan('metaforger:search:sync')
             ->expectsOutputToContain('[blogs]')
             ->expectsOutputToContain('[forum_threads]')
             ->expectsOutputToContain('[faqs]')
@@ -71,7 +71,7 @@ class SyncSearchIndexSettingsCommandTest extends TestCase
             'scout.prefix' => 'site_',
         ]);
 
-        $this->artisan('metaforge:search:sync')->assertSuccessful();
+        $this->artisan('metaforger:search:sync')->assertSuccessful();
 
         $this->assertSame(
             [

@@ -59,11 +59,11 @@ class QueueConfigTest extends TestCase
         }
     }
 
-    public function test_every_worker_command_in_the_repo_is_started_through_metaforge_queue(): void
+    public function test_every_worker_command_in_the_repo_is_started_through_metaforger_queue(): void
     {
         // `queue:work` reads one queue: the one --queue names, or else the connection's own. Notification emails are queued on `mail`, so
         // a worker started either way never sent one, and nothing failed to say so. A --queue written into the command line is no better:
-        // it replaces DB_QUEUE / REDIS_QUEUE, and a site that sets one stops running the jobs that name no queue. `metaforge:queue`
+        // it replaces DB_QUEUE / REDIS_QUEUE, and a site that sets one stops running the jobs that name no queue. `metaforger:queue`
         // looks the connection's queue up and adds the ones the app names.
         $commands = $this->workerCommands();
         $found = array_column($commands, 0);
@@ -76,9 +76,9 @@ class QueueConfigTest extends TestCase
 
         foreach ($commands as [$where, $command]) {
             $this->assertMatchesRegularExpression(
-                '/^metaforge:queue (work|listen)\b/',
+                '/^metaforger:queue (work|listen)\b/',
                 $command,
-                "$where starts `php artisan $command`, which does not read every queue the app puts work on (`mail`, and the connection's own queue). Start it with `php artisan metaforge:queue work` or `listen`, with the same options.",
+                "$where starts `php artisan $command`, which does not read every queue the app puts work on (`mail`, and the connection's own queue). Start it with `php artisan metaforger:queue work` or `listen`, with the same options.",
             );
         }
     }
@@ -102,7 +102,7 @@ class QueueConfigTest extends TestCase
                     $this->assertContains(
                         $queue,
                         $read,
-                        "With the $connection queue set to '$own', a worker started through metaforge:queue reads [".implode(', ', $read)."] and never '$queue'. Add it to WorkerQueues::NAMED, or whatever is queued there is not run.",
+                        "With the $connection queue set to '$own', a worker started through metaforger:queue reads [".implode(', ', $read)."] and never '$queue'. Add it to WorkerQueues::NAMED, or whatever is queued there is not run.",
                     );
                 }
             }
@@ -191,7 +191,7 @@ class QueueConfigTest extends TestCase
     }
 
     /**
-     * Each worker (`metaforge:queue`, `queue:work` or `queue:listen`) a person is told to start, or that `composer dev` starts, with where
+     * Each worker (`metaforger:queue`, `queue:work` or `queue:listen`) a person is told to start, or that `composer dev` starts, with where
      * it is written down.
      *
      * @return list<array{string, string}>
@@ -204,7 +204,7 @@ class QueueConfigTest extends TestCase
 
         foreach ($scripts as $name => $script) {
             foreach ((array) $script as $line) {
-                if (preg_match('/php artisan ((?:metaforge:queue|queue:(?:work|listen))[^"]*)/', $line, $match)) {
+                if (preg_match('/php artisan ((?:metaforger:queue|queue:(?:work|listen))[^"]*)/', $line, $match)) {
                     $commands[] = ["composer.json \"$name\"", trim($match[1])];
                 }
             }
@@ -212,13 +212,13 @@ class QueueConfigTest extends TestCase
 
         $readme = (string) file_get_contents(base_path('README.md'));
 
-        if (preg_match_all('/`php artisan ((?:metaforge:queue|queue:(?:work|listen))[^`]*)`/', $readme, $found, PREG_OFFSET_CAPTURE)) {
+        if (preg_match_all('/`php artisan ((?:metaforger:queue|queue:(?:work|listen))[^`]*)`/', $readme, $found, PREG_OFFSET_CAPTURE)) {
             foreach ($found[1] as [$command, $offset]) {
                 $commands[] = ['README.md line '.(substr_count($readme, "\n", 0, $offset) + 1), trim($command)];
             }
         }
 
-        if (preg_match('/^command=.*artisan ((?:metaforge:queue|queue:(?:work|listen)).*)$/m', (string) file_get_contents(base_path('docs/redis.md')), $match)) {
+        if (preg_match('/^command=.*artisan ((?:metaforger:queue|queue:(?:work|listen)).*)$/m', (string) file_get_contents(base_path('docs/redis.md')), $match)) {
             $commands[] = ['docs/redis.md Supervisor example', trim($match[1])];
         }
 

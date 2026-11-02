@@ -30,7 +30,7 @@ class ReindexSearchCommandTest extends TestCase
     {
         $this->assertSame('database', config('search.driver'));
 
-        $this->artisan('metaforge:search:reindex')
+        $this->artisan('metaforger:search:reindex')
             ->expectsOutputToContain('Set SEARCH_DRIVER=meilisearch')
             ->assertFailed();
     }
@@ -70,7 +70,7 @@ class ReindexSearchCommandTest extends TestCase
 
         $engine = $this->recordingMeilisearch();
 
-        $this->artisan('metaforge:search:reindex')
+        $this->artisan('metaforger:search:reindex')
             ->expectsOutputToContain('Index settings synced')
             ->expectsOutputToContain('[blogs]')
             ->expectsOutputToContain('[forum_threads]')
@@ -100,7 +100,7 @@ class ReindexSearchCommandTest extends TestCase
 
         $engine = $this->recordingMeilisearch();
 
-        $this->artisan('metaforge:search:reindex', ['--skip-sync' => true])
+        $this->artisan('metaforger:search:reindex', ['--skip-sync' => true])
             ->assertSuccessful();
 
         $this->assertSame([], $engine->settings);

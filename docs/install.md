@@ -1,4 +1,4 @@
-# Installing MetaForge
+# Installing MetaForger
 
 One command sets up a site that was just cloned: it checks the machine, makes `.env` and the application key, creates the tables, links `public/storage`, adds the roles, support categories and badges, and makes the first administrator.
 
@@ -7,7 +7,7 @@ git clone https://github.com/MetaGrenade/laravel-vue.git
 cd laravel-vue
 composer install
 npm install
-php artisan metaforge:install
+php artisan metaforger:install
 npm run build
 composer dev
 ```
@@ -45,7 +45,7 @@ Steps 1 and 2 happen before anything is written, so a missing PHP extension, a m
 
 ## Options
 
-Ask `php artisan metaforge:install --help` for the same list.
+Ask `php artisan metaforger:install --help` for the same list.
 
 | Option | |
 | --- | --- |
@@ -101,7 +101,7 @@ Keep a copy of `.env` somewhere safe. A site that has lost its `.env` is not rec
 Set the site up by hand first, then run the installer on it:
 
 1. Copy `.env.example` to `.env` and set at least `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, the `DB_*` settings (create the empty MySQL or PostgreSQL database yourself: the command makes only the SQLite file), mail, and Redis if you use it. The README's [Production & SSR Builds](../README.md#production--ssr-builds) lists the rest.
-2. Run `php artisan metaforge:install --force`. Without `--force` a site that says it is production asks you to confirm and, with `--no-interaction`, stops.
+2. Run `php artisan metaforger:install --force`. Without `--force` a site that says it is production asks you to confirm and, with `--no-interaction`, stops.
 3. Build the front end, run `php artisan optimize`, and start the queue worker and the scheduler as the README describes.
 
 `--demo` is refused in production. The demo accounts have a password everybody knows.
@@ -110,7 +110,7 @@ A machine that has no `.env` and no `APP_ENV` in its environment is not taken fo
 
 ## Demo data
 
-`php artisan metaforge:install --demo` adds, after the administrator is made:
+`php artisan metaforger:install --demo` adds, after the administrator is made:
 
 - the subscription plans, with the placeholder Stripe prices `price_starter` and `price_pro` (they work only after you create the prices in Stripe and set them in `.env`);
 - two demo accounts for the token log (`token-log-admin@example.com` and `token-log-service@example.com`), with the password `password`;
@@ -123,7 +123,7 @@ Do not give the administrator one of the two token-log addresses or the nickname
 
 ## Legal pages
 
-`php artisan metaforge:install --legal-pages` fills the terms, the privacy policy and the cookie policy with the starting text from [legal-pages.md](legal-pages.md), for the pages that are empty. A page that already has text is never touched, so it is safe on a site that is set up (`php artisan db:seed --class=LegalPagesSeeder` does the same without the installer).
+`php artisan metaforger:install --legal-pages` fills the terms, the privacy policy and the cookie policy with the starting text from [legal-pages.md](legal-pages.md), for the pages that are empty. A page that already has text is never touched, so it is safe on a site that is set up (`php artisan db:seed --class=LegalPagesSeeder` does the same without the installer).
 
 It is asked for, not done for everyone, because **a page is public as soon as it has text**: the footer links to it and the sitemap lists it. The text has ten `[Bracketed items]` that only you can fill in (your name and address, a contact email, the refund period, the governing law). The command lists the ones left, and each page opens with a note that it is a starting point and not legal advice. Fill them in, delete the note, and have the pages read by someone who can give legal advice before the site opens to the public.
 

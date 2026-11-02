@@ -38,7 +38,7 @@ export function sample(url, { timeout = 15_000 } = {}) {
             {
                 agent: false,
                 timeout,
-                headers: { accept: 'text/html,*/*', 'accept-encoding': 'gzip, br', connection: 'close', 'user-agent': 'metaforge-ttfb' },
+                headers: { accept: 'text/html,*/*', 'accept-encoding': 'gzip, br', connection: 'close', 'user-agent': 'metaforger-ttfb' },
             },
             (response) => {
                 const ttfb = performance.now() - start;

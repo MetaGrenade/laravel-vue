@@ -1,6 +1,6 @@
 # Discord companion integration
 
-MetaForge ships the [`metagrenade/metaforge-discord`](https://github.com/MetaGrenade/MetaForge-DiscordBot/tree/main/laravel) package for role sync, bot webhooks, and Discord notification opt-in.
+MetaForger ships the [`metagrenade/metaforge-discord`](https://github.com/MetaGrenade/MetaForge-DiscordBot/tree/main/laravel) package for role sync, bot webhooks, and Discord notification opt-in.
 
 ## Install
 
@@ -8,7 +8,7 @@ The package lives in the MetaForge-DiscordBot monorepo (`laravel/`). Because the
 
 ```bash
 composer install
-php artisan vendor:publish --tag=metaforge-discord-config
+php artisan vendor:publish --tag=metaforger-discord-config
 php artisan migrate
 php artisan discord:ping
 ```
