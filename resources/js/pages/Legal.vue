@@ -33,7 +33,7 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: props.title, href
                 </div>
             </header>
 
-            <div class="prose max-w-none rounded-xl border bg-card p-5 shadow-xs" v-html="body" />
+            <div class="tiptap max-w-none rounded-xl border bg-card p-5 shadow-xs" v-html="body" />
         </article>
     </AppLayout>
 </template>
