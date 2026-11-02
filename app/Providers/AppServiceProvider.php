@@ -48,7 +48,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -154,8 +153,9 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Safer defaults: stricter passwords and no destructive commands in
-     * production, N+1 query warnings during local development, and asset
-     * prefetching for faster client-side navigation.
+     * production, and N+1 query warnings during local development. Asset
+     * prefetching for faster client-side navigation is per request, and for
+     * signed-in users only (PrefetchAssetsForMembers).
      */
     protected function configureDefaults(): void
     {
@@ -175,8 +175,6 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.force_https')) {
             URL::forceHttps();
         }
-
-        Vite::prefetch(concurrency: 3);
     }
 
     /**

@@ -68,7 +68,7 @@ A failed test leaves a screenshot and a trace in `test-results/e2e` (`npx playwr
   - Before anything is dropped, the script asks Laravel which database it will use (`php artisan db:show --json`) and stops, without touching anything, unless that is the suite's own file. This holds for whatever else may one day override the settings.
 - **Nothing leaves the machine.** Mail goes to the array driver, broadcasting to the log, Stripe's keys are blank and search uses the database. The session cookie is not pinned to a domain, because the server is `http://127.0.0.1`.
 - **The server's output is a file**, because PHP's built-in server writes a line for every request.
-- The built-in server answers one request at a time, so a click can wait behind the scripts a page asks for after it has drawn (`Vite::prefetch`, see [bundle-budget.md](bundle-budget.md)). The expectations wait 15 seconds for that; the whole suite takes about a minute.
+- The built-in server answers one request at a time, so a click can wait behind the scripts a page asks for after it has drawn (`Vite::prefetch`, which only a signed-in user's page has, see [bundle-budget.md](bundle-budget.md)). The expectations wait 15 seconds for that; the whole suite takes about a minute.
 
 `tests/e2e/server.ts` is the part of the configs the two suites share: the address, the browser and the `webServer` entry.
 

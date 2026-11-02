@@ -75,17 +75,18 @@ OPcache is the setting the target depends on: without it PHP reads and compiles 
 
 ## What a page weighs
 
-A guest's page is one HTML document that starts the front end. The login page is 142,002 bytes as the application writes it and **20,367 bytes gzipped**, because most of it is repeated text:
+A guest's page is one HTML document that starts the front end. The login page is 71,215 bytes as the application writes it and **15,820 bytes gzipped**, because most of it is repeated text:
 
 | Part | Written | Gzipped |
 |------|---------|---------|
 | The route table for the front end (207 routes, none of them in the staff area) | 45.7 kB, 24.5 kB of it route data | 3 kB (the route data) |
-| The script that fetches the other pages in the background once this one has loaded | 70.9 kB | 4.5 kB |
 | The page's own data (its props, the interface text it needs: 7.9 kB of the 10.9 kB) | 10.9 kB | 3.3 kB |
 
-So the web server (or the CDN in front of it) must compress `text/html`. Uncompressed, a home page is 144 kB to send, 0.7 s on a slow 4G link (1.6 Mbit/s) before anything else; the login page, which has the same parts, is 20 kB compressed. `npm run ttfb` says when it sees a page arrive uncompressed.
+The rest is the head of the page, its stylesheet and script tags. A signed-in user's page has one more part, **the script that fetches the other pages in the background once this one has loaded: 71 kB written, 4.5 kB gzipped**. Every visitor's page had it until it was limited to signed-in users: the same login page was 142,552 bytes and 20,550 gzipped (the home page 144,027 and 20,722), so the visitor's page is now half the size written and about a quarter smaller gzipped.
 
-The background fetch is the `Vite::prefetch` setting that is still an open decision ([bundle-budget.md](bundle-budget.md#the-editor-on-the-thread-page)): it costs the 71 kB script above in every page and then downloads the rest of the front end, about 990 kB gzipped, after the page has loaded.
+So the web server (or the CDN in front of it) must compress `text/html`. Uncompressed, a visitor's home page is 73 kB to send, 0.4 s on a slow 4G link (1.6 Mbit/s) before anything else (it was 144 kB, 0.7 s); the login page, which has the same parts, is 16 kB compressed. `npm run ttfb` says when it sees a page arrive uncompressed.
+
+The background fetch is `PrefetchAssetsForMembers` ([bundle-budget.md](bundle-budget.md#what-it-does-not-do)): for a signed-in user it downloads the rest of the front end, about 990 kB gzipped, after the page has loaded. A visitor does not download it. The page sizes above are from plain requests (no compression asked for) for `/`, `/login`, `/shop`, a blog post and a forum thread, as the application writes them, and gzipped at level 6; a visitor's pages came to 71 to 76 kB written and 15.8 to 17.1 kB gzipped.
 
 ## A production checklist
 

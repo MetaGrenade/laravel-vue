@@ -49,7 +49,8 @@ Looked at and left as they are:
 | The CSP nonce | `SecurityHeaders` asks `Vite` for a new one on every web request, and Octane calls `Vite::flush()` for each. |
 | Impersonation | The user is swapped for the request and put back before the session is saved; Octane also resets the authentication state between requests. |
 | `config()` | Nothing writes to the configuration while serving a request. |
-| `Vite::prefetch(...)`, `URL::forceHttps()`, rate limiters, gates, observers | Set up once at boot, and they hold no request: closures take the request or user they are given. |
+| `URL::forceHttps()`, rate limiters, gates, observers | Set up once at boot, and they hold no request: closures take the request or user they are given. |
+| `Vite::prefetch(...)` | Not set at boot: `PrefetchAssetsForMembers` sets it on every web request, for a signed-in user, and turns it off for everybody else. `Vite` is a singleton, so setting it only for members would leave a visitor served after a member on the same worker prefetching; a test serves a visitor after a member. |
 
 ## Rules for new code
 
