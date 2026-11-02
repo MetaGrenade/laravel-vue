@@ -35,6 +35,7 @@ So what is not reset is what the app itself keeps: its static properties, its si
 | `OAuthManager` | Bound as a singleton, holding the container, the session and the providers it built from them. | `scoped` |
 | `PaymentManager` | Bound as a singleton, holding the container. | `scoped` |
 | `TebexStoreProfile` | Bound as a singleton, holding the store profile it read from the settings. A long-lived process kept the first profile it read, so a store switched to another platform (or disabled) through "Test connection" in a web request was not seen by it. | `scoped`, so each request and each job reads it again. |
+| `Vite` | The framework binds it as a singleton. The background fetch of the other pages is switched on for a signed-in user and, for a member who is not staff, told to leave the admin pages out (`PrefetchAssetsForMembers`); that is state of one request, kept by the object. | The app's `Vite` is `StaffAreaVite`, `scoped` (rebuilt for each request and job), and the middleware sets both things on every web request. A test serves each order of visitor, member and staff on one app. |
 
 Looked at and left as they are:
 
@@ -49,7 +50,8 @@ Looked at and left as they are:
 | The CSP nonce | `SecurityHeaders` asks `Vite` for a new one on every web request, and Octane calls `Vite::flush()` for each. |
 | Impersonation | The user is swapped for the request and put back before the session is saved; Octane also resets the authentication state between requests. |
 | `config()` | Nothing writes to the configuration while serving a request. |
-| `Vite::prefetch(...)`, `URL::forceHttps()`, rate limiters, gates, observers | Set up once at boot, and they hold no request: closures take the request or user they are given. |
+| `URL::forceHttps()`, rate limiters, gates, observers | Set up once at boot, and they hold no request: closures take the request or user they are given. |
+| `Vite::prefetch(...)` | Not set at boot: `PrefetchAssetsForMembers` sets it on every web request, for a signed-in user, and turns it off for everybody else (and says whether the admin pages are left out). It is set both ways because a worker that did not reset it would leave a visitor served after a member prefetching, and a member served after staff fetching the admin pages; the object is `scoped` (above) and the tests serve each order. |
 
 ## Rules for new code
 

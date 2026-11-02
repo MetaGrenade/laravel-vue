@@ -32,6 +32,7 @@ use App\Policies\SupportTicketPolicy;
 use App\Support\Audit\Audit;
 use App\Support\Audit\AuditObserver;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Frontend\StaffAreaVite;
 use App\Support\Search\MeilisearchCircuitBreaker;
 use App\Support\Search\SearchHealth;
 use App\Support\Search\SearchTasks;
@@ -41,6 +42,7 @@ use App\Support\Settings\SettingsSnapshot;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\TransactionRolledBack;
+use Illuminate\Foundation\Vite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -48,7 +50,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -72,6 +73,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(Seo::class);
         $this->app->scoped(Audit::class);
         $this->app->scoped(SettingsSnapshot::class);
+        // The framework binds Vite as a singleton. This one is told for each request whether to leave the staff area out of what it
+        // fetches in the background (PrefetchAssetsForMembers), so it is rebuilt for each request.
+        $this->app->scoped(Vite::class, StaffAreaVite::class);
         // The health check gives up on a silent Meilisearch sooner than the client Scout uses to index and search does.
         $this->app->bind(SearchHealth::class, fn ($app) => new SearchHealth(SearchHealth::clientFromConfig(), $app->make(MeilisearchCircuitBreaker::class)));
         $this->app->bind(SearchTasks::class, fn () => new SearchTasks(SearchHealth::clientFromConfig()));
@@ -154,8 +158,9 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Safer defaults: stricter passwords and no destructive commands in
-     * production, N+1 query warnings during local development, and asset
-     * prefetching for faster client-side navigation.
+     * production, and N+1 query warnings during local development. Asset
+     * prefetching for faster client-side navigation is per request, and for
+     * signed-in users only (PrefetchAssetsForMembers).
      */
     protected function configureDefaults(): void
     {
@@ -175,8 +180,6 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.force_https')) {
             URL::forceHttps();
         }
-
-        Vite::prefetch(concurrency: 3);
     }
 
     /**

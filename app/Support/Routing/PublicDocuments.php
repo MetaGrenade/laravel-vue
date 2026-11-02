@@ -6,6 +6,7 @@ use App\Http\Middleware\ApplyImpersonation;
 use App\Http\Middleware\AuditAdminActions;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\PrefetchAssetsForMembers;
 use App\Http\Middleware\PreventBannedUser;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\UpdateLastActivity;
@@ -44,6 +45,7 @@ final class PublicDocuments
         HandleAppearance::class,
         SetLocale::class,
         HandleInertiaRequests::class,
+        PrefetchAssetsForMembers::class,
         AddLinkHeadersForPreloadedAssets::class,
         UpdateLastActivity::class,
         AuditAdminActions::class,

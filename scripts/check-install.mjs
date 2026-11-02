@@ -25,6 +25,18 @@ function keepCookies(response) {
     }
 }
 
+/**
+ * Fetch, and read the body to the end although only the status and headers are used. A body that is never read can stop Node's HTTP
+ * client (undici) with `assert(!this.paused)` when the server ends the response by closing the connection, as PHP's built-in server
+ * does: it ended the `install` job in CI once, with a stack trace and no word about the site. Up to about 40 kB it does so every time.
+ */
+async function fetchAll(url, options) {
+    const response = await fetch(url, options);
+    await response.arrayBuffer();
+
+    return response;
+}
+
 async function request(path, { method = 'GET', form } = {}) {
     const headers = { Cookie: [...jar].map(([name, value]) => `${name}=${value}`).join('; ') };
 
@@ -34,7 +46,7 @@ async function request(path, { method = 'GET', form } = {}) {
         headers['X-XSRF-TOKEN'] = decodeURIComponent(jar.get('XSRF-TOKEN') ?? '');
     }
 
-    const response = await fetch(origin + path, { method, headers, body: form ? new URLSearchParams(form) : undefined, redirect: 'manual' });
+    const response = await fetchAll(origin + path, { method, headers, body: form ? new URLSearchParams(form) : undefined, redirect: 'manual' });
     keepCookies(response);
 
     return response;
@@ -59,7 +71,7 @@ async function waitForSite(seconds) {
 
     while (Date.now() < until) {
         try {
-            const response = await fetch(`${origin}/login`, { redirect: 'manual' });
+            const response = await fetchAll(`${origin}/login`, { redirect: 'manual' });
 
             if (response.status === 200) return;
 
