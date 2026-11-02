@@ -153,7 +153,7 @@ final class SearchHealth
 
         if (! config('scout.queue')) {
             // Found by saving a post with Meilisearch down: the post is stored and the request then fails.
-            $notes[] = 'Posts are indexed while they are saved (SCOUT_QUEUE=false), so saving one while Meilisearch is down fails. Set SCOUT_QUEUE=true to index on the queue.';
+            $notes[] = 'Posts are indexed while they are saved (SCOUT_QUEUE=false), so saving one while Meilisearch is down fails. Take SCOUT_QUEUE out of .env, or set it to true, to index on the queue.';
         }
 
         return new SearchHealthReport(

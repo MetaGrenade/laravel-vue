@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Search\SearchDriver;
 use App\Support\Search\SearchIndexSettings;
 
 return [
@@ -20,11 +21,12 @@ return [
     | Whether saving a record indexes it on the queue (a worker has to be
     | running) or while the request is handled. Done in the request, a
     | Meilisearch that is down makes the save fail after the record is stored;
-    | on the queue the save succeeds and the job fails instead.
+    | on the queue the save succeeds and the job fails instead. When
+    | SCOUT_QUEUE is not set it is on with Meilisearch and off without it.
     | See "When Meilisearch is down" in docs/search-index.md.
     */
 
-    'queue' => (bool) env('SCOUT_QUEUE', false),
+    'queue' => SearchDriver::indexesOnQueue(env('SCOUT_QUEUE'), env('SEARCH_DRIVER', 'database')),
 
     'meilisearch' => [
         'host' => env('MEILISEARCH_HOST', 'http://localhost:7700'),

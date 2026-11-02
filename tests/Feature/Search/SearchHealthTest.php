@@ -510,7 +510,7 @@ class SearchHealthTest extends TestCase
         $report = $this->check(FakeMeilisearch::serving());
 
         $this->assertSame(SearchHealthReport::HEALTHY, $report->status, 'worth knowing, not wrong');
-        $this->assertSame(['Posts are indexed while they are saved (SCOUT_QUEUE=false), so saving one while Meilisearch is down fails. Set SCOUT_QUEUE=true to index on the queue.'], $report->notes);
+        $this->assertSame(['Posts are indexed while they are saved (SCOUT_QUEUE=false), so saving one while Meilisearch is down fails. Take SCOUT_QUEUE out of .env, or set it to true, to index on the queue.'], $report->notes);
     }
 
     #[Test]
