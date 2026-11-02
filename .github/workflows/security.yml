@@ -96,3 +96,33 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm audit --omit=dev --audit-level=high
+
+  licences:
+    name: licences (policy and notices)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      # What is shipped, not what the tests need: the notices list the packages `--no-dev` installs. The licence texts are read from vendor/.
+      - name: Install PHP dependencies
+        run: composer install --no-dev --no-scripts --no-interaction --prefer-dist
+
+      - name: Install Node dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Check the licences and THIRD-PARTY-NOTICES.md
+        run: npm run licences:check

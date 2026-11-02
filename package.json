@@ -14,6 +14,8 @@
         "bundle:check": "node scripts/check-bundle-size.mjs",
         "bundle:test": "node --test scripts/*.test.mjs",
         "ttfb": "node scripts/measure-ttfb.mjs",
+    "licences:check": "node scripts/check-licences.mjs",
+    "licences:notices": "node scripts/check-licences.mjs --write",
         "a11y": "playwright test --config=tests/a11y/playwright.config.ts",
         "e2e": "playwright test --config=tests/e2e/playwright.config.ts"
     },

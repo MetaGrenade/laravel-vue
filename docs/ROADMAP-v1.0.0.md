@@ -472,7 +472,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Documentation set: install, configuration, architecture, payments (Stripe and Tebex), search, theming and rebranding, adding a language, extending modules, deployment (Forge/Docker), upgrade guide (including "teams in 1.1"), API reference
 - `metaforge:install` command; demo seeders
 - Branded error pages (**done**, eighteenth slice, see [error-pages.md](error-pages.md)): an in-app visit that fails shows an `Error` page in the app's layout, and an action that is refused keeps the page with a notice, for 401, 402, 403, 404, 419, 429, 500 and 503. Still to do: finish i18n conversion of shared chrome, auth and emails
-- Third-party licence audit and `THIRD-PARTY-NOTICES.md`
+- Third-party licence audit and `THIRD-PARTY-NOTICES.md` (**done**, twentieth slice, see [licences.md](licences.md)): `npm run licences:check` reads both lock files and the installed packages, allows permissive licences only, and fails when `THIRD-PARTY-NOTICES.md` is out of date, in a CI job of its own. 96 PHP and 295 npm packages: all permissive except four that are written down as exceptions, the three LGPL libraries behind the invoice PDF (dompdf) and `elkjs` (EPL-2.0, not in the built front end). Still to do: the verbatim text of the SIL Open Font License for the two fonts
 - Release candidates `v1.0.0-rc.1…`, bug bash, then tag `v1.0.0`
 - **Exit:** section 10 gates all green.
 
@@ -508,7 +508,7 @@ A release candidate is cut only when every box is checked.
 **Product and docs**
 - [ ] Legal pages, cookie consent and error pages shipped
 - [ ] README, install guide, payments guides, upgrade guide, API reference
-- [ ] `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`, templates, `THIRD-PARTY-NOTICES.md`
+- [ ] `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`, templates, `THIRD-PARTY-NOTICES.md` (the last is in, and CI keeps it current)
 - [ ] `metaforge:install` works on a clean machine from the docs alone
 
 ---
@@ -537,7 +537,7 @@ A release candidate is cut only when every box is checked.
 The repository is already MIT (`LICENSE.md` and `"license": "MIT"` in `composer.json`). I recommend keeping it:
 
 - It matches the Laravel ecosystem and the official starter kits. Adopters of a boilerplate expect to fork it, rebrand it and sell what they build, which MIT allows without friction.
-- **I have not yet audited the dependencies' licences**, so this is unconfirmed. The major frameworks used here (Laravel, Vue, Inertia, Tailwind and similar) are commonly MIT-licensed, but that must be checked, not assumed. M7 adds a licence audit (for example `composer licenses` and a Node licence checker) and a `THIRD-PARTY-NOTICES.md`; any copyleft dependency would need a decision. The audit should also cover the Outfit and Source Sans 3 fonts and the technology logos on the home page, whose trademarks are not covered by MIT.
+- **The dependencies' licences are now audited** (twentieth slice, see [licences.md](licences.md)): everything shipped is under a permissive licence except four packages, which are decisions written in `scripts/licence-policy.json`: the three LGPL libraries behind the invoice PDF (`dompdf/*`, used unmodified as installed from Packagist) and `elkjs` (EPL-2.0, not in the built front end). Nothing is under the GPL or AGPL. The audit also covers the Outfit and Source Sans 3 fonts (SIL OFL 1.1) and the technology logos on the home page (Simple Icons, CC0; the trademarks are the owners' and are not covered by MIT).
 - A permissive licence does not stop you earning from the project: paid support, a hosted version, premium add-on modules, templates and services are the usual routes.
 - **Trade-off to know:** MIT cannot be taken back for versions already released. If you might want a commercial licence or a paid "pro" edition later, decide before tagging 1.0; future versions can be licensed differently, but anyone who already has 1.0 keeps MIT rights to it.
 - Tidy-up: `LICENSE.md` names an individual and personal email as the copyright holder. Confirm that is how you want it to read (an organisation name is more usual for a product).

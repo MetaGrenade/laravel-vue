@@ -553,4 +553,4 @@ Issues and pull requests are welcome! Read [CONTRIBUTING.md](CONTRIBUTING.md) fi
 - **Keep Docs Current**: When introducing new tooling, scripts, or workflows, update this README so onboarding remains frictionless for future contributors.
 
 ## License
-This project is open-sourced under the [MIT License](LICENSE.md).
+This project is open-sourced under the [MIT License](LICENSE.md). The software and the assets it is built on keep their own licences, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) (see [docs/licences.md](docs/licences.md)).
