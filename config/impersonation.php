@@ -119,6 +119,7 @@ return [
         'discord/admin/role-mappings',
         'discord/admin/sync/status',
         'discord/admin/sync/runs',
+        'discord/admin/sync/failures',
         'discord/admin/discord-roles',
 
         // Files. A download is the customer's own data (or what they bought, and it counts against their allowance).
