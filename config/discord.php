@@ -88,6 +88,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Moderation staff mirror
+    |--------------------------------------------------------------------------
+    |
+    | Host events listed here are listened to by the Discord companion (see MetaForge-DiscordBot docs/moderation-discord.md).
+    |
+    */
+
+    'moderation_event_classes' => array_values(array_filter(array_map(
+        trim(...),
+        explode(',', (string) env('DISCORD_MODERATION_EVENT_CLASSES', 'App\\Events\\ModerationDiscordMirror')),
+    ))),
+
+    'moderation_mirror_enabled' => (bool) env('DISCORD_MODERATION_MIRROR_ENABLED', true),
+
+    'moderation_channel_id' => env('DISCORD_MODERATION_CHANNEL_ID'),
+
+    'moderation_webhook_url' => env('DISCORD_MODERATION_WEBHOOK_URL'),
+
+    'moderation_url_template' => env('DISCORD_MODERATION_URL_TEMPLATE'),
+
+    'moderation_staff_reason_in_embed' => (bool) env('DISCORD_MODERATION_STAFF_REASON_IN_EMBED', false),
+
+    'moderation_reason_excerpt_max' => (int) env('DISCORD_MODERATION_REASON_EXCERPT_MAX', 200),
+
+    'moderation_subject_label_max' => (int) env('DISCORD_MODERATION_SUBJECT_LABEL_MAX', 120),
+
+    /*
+    |--------------------------------------------------------------------------
     | Models (override in host app if needed)
     |--------------------------------------------------------------------------
     */

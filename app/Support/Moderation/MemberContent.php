@@ -120,7 +120,7 @@ class MemberContent
 
             $taken = $taken->withReports($this->closeReports($threadIds, $replyIds, $commentIds, $moderator));
 
-            ModerationAction::query()->create([
+            $action = ModerationAction::query()->create([
                 'user_id' => $member->id,
                 'actor_id' => $moderator->id,
                 'type' => ModerationAction::REMOVAL,
@@ -129,6 +129,8 @@ class MemberContent
                 'details' => $taken->toArray(),
                 'notified' => false,
             ]);
+
+            $this->moderation->mirrorRecordedAction($action);
 
             return $taken;
         });
