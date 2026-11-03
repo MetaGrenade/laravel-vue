@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1\Support;
 
-use App\Events\SupportTicketDiscordMirror;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePublicSupportTicketRequest;
 use App\Models\SupportTicket;
@@ -74,8 +73,6 @@ class SupportTicketController extends Controller
 
         if ($ticket && $message) {
             $ticket->loadMissing(['assignee', 'team']);
-
-            event(new SupportTicketDiscordMirror($ticket, 'opened', $message));
 
             $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket, $message) {
                 return (new TicketOpened($ticket, $message))
