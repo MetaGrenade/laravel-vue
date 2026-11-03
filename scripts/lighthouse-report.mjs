@@ -64,13 +64,24 @@ export function lighthouseCli() {
  * @param {string} output The reports are written to `<output>.report.json` and `<output>.report.html`.
  * @param {{preset?: 'mobile'|'desktop', sandbox?: boolean}} [options]
  */
+/** Lighthouse sometimes exits before a trace starts (NO_NAVSTART); a second run usually succeeds. */
+export function isTransientLighthouseFailure(message) {
+    return /NO_NAVSTART|recording the trace over your page load/i.test(String(message));
+}
+
 export function argumentsFor(url, output, { preset = 'mobile', sandbox = true } = {}) {
+    const chromeFlags = ['--headless=new'];
+
+    if (!sandbox) {
+        chromeFlags.push('--no-sandbox', '--disable-dev-shm-usage');
+    }
+
     return [
         url,
         '--output=json',
         '--output=html',
         `--output-path=${output}`,
-        `--chrome-flags=${['--headless=new', ...(sandbox ? [] : ['--no-sandbox'])].join(' ')}`,
+        `--chrome-flags=${chromeFlags.join(' ')}`,
         '--only-categories=performance,accessibility,best-practices,seo',
         '--locale=en',
         '--quiet',
@@ -283,6 +294,33 @@ export async function audit(url, name, { out, cli = lighthouseCli(), preset = 'm
     return JSON.parse(fs.readFileSync(`${output}.report.json`, 'utf8'));
 }
 
+/**
+ * Runs {@link audit} again when Lighthouse did not record a navigation trace. The page is read once more before each retry.
+ *
+ * @param {(url: string) => Promise<unknown>} [beforeRetry]
+ */
+export async function auditWithRetry(url, name, options, { attempts = 3, beforeRetry } = {}) {
+    let lastError;
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+            return await audit(url, name, options);
+        } catch (error) {
+            lastError = error;
+
+            if (attempt >= attempts || !isTransientLighthouseFailure(error.message)) {
+                throw error;
+            }
+
+            if (beforeRetry) {
+                await beforeRetry(url);
+            }
+        }
+    }
+
+    throw lastError;
+}
+
 /** Ends a process and what it started: the application's server is a child of the script that starts it. */
 function stop(child) {
     if (child.exitCode !== null || child.pid === undefined) return;
@@ -404,7 +442,15 @@ async function main(argv) {
             process.stdout.write(`  ${page.name.padEnd(7)} ${base}${page.path} ...`);
 
             try {
-                const lhr = await audit(`${base}${page.path}`, page.name, { out, cli, preset, sandbox: !process.env.CI, timeout: 180_000 });
+                const lhr = await auditWithRetry(`${base}${page.path}`, page.name, {
+                    out,
+                    cli,
+                    preset,
+                    sandbox: !process.env.CI,
+                    timeout: 180_000,
+                }, {
+                    beforeRetry: (url) => warm(url, { timeout: requestTimeout }),
+                });
 
                 rows.push({ name: page.name, summary: summarise(lhr) });
                 problems.push(...stableProblems(lhr, { server: given !== null }).map((problem) => `${page.path}: ${problem}`));
