@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\BillingInvoice;
 use App\Support\Commerce\Money;
 use App\Support\Localization\DateFormatter;
+use App\Support\Mail\MailText;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -49,22 +50,24 @@ class SubscriptionPaymentFailed extends Notification implements ShouldQueue
         $first = $this->attempt <= 1;
 
         $message = (new MailMessage)
-            ->subject($first ? "We couldn't take your payment" : "We still couldn't take your payment")
-            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
-            ->line(($first ? "We couldn't take your payment of {$amount}" : "We tried again and still couldn't take your payment of {$amount}").($plan ? " for {$plan}." : '.'));
+            ->subject($first ? __('mail.subscription.payment_failed.subject_first') : __('mail.subscription.payment_failed.subject_again'))
+            ->greeting(MailText::greeting($notifiable))
+            ->line($first
+                ? ($plan ? __('mail.subscription.payment_failed.first_plan', ['amount' => $amount, 'plan' => $plan]) : __('mail.subscription.payment_failed.first', ['amount' => $amount]))
+                : ($plan ? __('mail.subscription.payment_failed.again_plan', ['amount' => $amount, 'plan' => $plan]) : __('mail.subscription.payment_failed.again', ['amount' => $amount])));
 
         // Cashier ends access at the first failed payment unless the app says otherwise. Either way it ends when Stripe gives up
         // (the subscription is then unpaid or cancelled), which is when there is no next attempt.
         $message->line(Cashier::$deactivatePastDue || $this->nextAttempt === null
-            ? 'Until it goes through, what your plan gives you is paused.'
-            : 'Your plan stays active while we keep trying.');
+            ? __('mail.subscription.payment_failed.paused')
+            : __('mail.subscription.payment_failed.stays_active'));
 
         $message->line($this->nextAttempt !== null
-            ? 'We will try again on '.DateFormatter::for($notifiable)->date($this->nextAttempt).'.'
-            : "We won't try again automatically, so please sort out your payment method now.");
+            ? __('mail.subscription.payment_failed.retry_on', ['date' => DateFormatter::for($notifiable)->date($this->nextAttempt)])
+            : __('mail.subscription.payment_failed.no_retry'));
 
         return $message
-            ->line('Update your payment method and pay now from your billing settings.')
-            ->action('Go to billing', route('settings.billing.index'));
+            ->line(__('mail.subscription.payment_failed.update'))
+            ->action(__('mail.subscription.view_billing'), route('settings.billing.index'));
     }
 }

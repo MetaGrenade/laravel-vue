@@ -5,6 +5,7 @@ namespace App\Support\Notifications;
 use App\Models\EmailDigestItem;
 use App\Models\User;
 use App\Notifications\DailyDigest;
+use App\Support\Localization\Locales;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,7 +23,9 @@ class EmailDigest
      */
     public function hold(User $user, string $category, RecordsForDigest $notification): bool
     {
-        $payload = $notification->toArray($user);
+        // The line is kept in the language of the person it is for, the one their email will be in: it is made now, while the request
+        // that caused it may be in another.
+        $payload = Locales::within($user->preferredLocale(), fn () => $notification->toArray($user));
         $title = $payload['title'] ?? null;
         $url = $payload['url'] ?? null;
 

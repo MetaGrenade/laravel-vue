@@ -7,6 +7,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\User;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use App\Support\Mail\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
@@ -58,21 +59,21 @@ class TicketOpened extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $subject = match ($this->audience) {
-            'agent', 'team' => 'New support ticket: '.$this->ticket->subject,
-            default => 'Support ticket received: '.$this->ticket->subject,
+            'agent', 'team' => __('mail.support.opened.title_agent', ['subject' => $this->ticket->subject]),
+            default => __('mail.support.opened.subject_owner', ['subject' => $this->ticket->subject]),
         };
 
-        $greeting = 'Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!';
+        $greeting = MailText::greeting($notifiable);
 
         $messageLines = match ($this->audience) {
             'agent', 'team' => [
-                'A new support ticket requires your attention.',
-                'Subject: '.$this->ticket->subject,
-                'From: '.($this->ticket->user?->nickname ?? $this->ticket->user?->email ?? 'Customer'),
+                __('mail.support.opened.agent'),
+                __('mail.support.subject_line', ['subject' => $this->ticket->subject]),
+                __('mail.support.from_line', ['from' => $this->ticket->user?->nickname ?? $this->ticket->user?->email ?? __('mail.support.customer')]),
             ],
             default => [
-                'Thanks for contacting our support team. Your ticket has been opened and our agents will take a look shortly.',
-                'Subject: '.$this->ticket->subject,
+                __('mail.support.opened.owner'),
+                __('mail.support.subject_line', ['subject' => $this->ticket->subject]),
             ],
         };
 
@@ -85,12 +86,12 @@ class TicketOpened extends Notification implements ShouldQueue
         }
 
         if ($excerpt = $this->messageExcerpt()) {
-            $mailMessage->line('Message: '.$excerpt);
+            $mailMessage->line(__('mail.support.message_line', ['excerpt' => $excerpt]));
         }
 
         $mailMessage
-            ->action('View conversation', $this->conversationUrlFor($notifiable))
-            ->line('Thank you for using our support center.');
+            ->action(__('mail.support.view_conversation'), $this->conversationUrlFor($notifiable))
+            ->line(__('mail.support.thanks'));
 
         return $mailMessage;
     }
@@ -143,8 +144,8 @@ class TicketOpened extends Notification implements ShouldQueue
     protected function title(): string
     {
         return match ($this->audience) {
-            'agent', 'team' => 'New support ticket: '.$this->ticket->subject,
-            default => 'Support ticket opened: '.$this->ticket->subject,
+            'agent', 'team' => __('mail.support.opened.title_agent', ['subject' => $this->ticket->subject]),
+            default => __('mail.support.opened.title_owner', ['subject' => $this->ticket->subject]),
         };
     }
 
@@ -155,8 +156,8 @@ class TicketOpened extends Notification implements ShouldQueue
         }
 
         return match ($this->audience) {
-            'agent', 'team' => 'A new support ticket requires your attention.',
-            default => 'We received your support request and will follow up soon.',
+            'agent', 'team' => __('mail.support.opened.agent'),
+            default => __('mail.support.opened.excerpt_owner'),
         };
     }
 

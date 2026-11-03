@@ -40,18 +40,18 @@ class BanLifted extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $message = (new MailMessage)
-            ->subject($this->ranOut ? 'Your suspension has ended' : 'Your ban has been lifted')
-            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
+            ->subject($this->ranOut ? __('mail.ban_lifted.subject_ran_out') : __('mail.ban_lifted.subject_lifted'))
+            ->greeting(MailText::greeting($notifiable))
             ->line($this->ranOut
-                ? 'The suspension on your account has ended. You can sign in again.'
-                : 'A moderator has lifted the ban on your account. You can sign in again.');
+                ? __('mail.ban_lifted.ran_out')
+                : __('mail.ban_lifted.lifted'));
 
         if (filled($this->reason)) {
             $message->line(MailText::quoted((string) $this->reason));
         }
 
         return $message
-            ->line('Please keep to the rules: a further breach may lead to another ban.')
-            ->action('Sign in', route('login'));
+            ->line(__('mail.ban_lifted.rules'))
+            ->action(__('mail.ban_lifted.action'), route('login'));
     }
 }

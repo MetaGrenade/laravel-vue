@@ -20,6 +20,6 @@ class SendOrderConfirmation
             return;
         }
 
-        Notification::route('mail', $order->customer_email)->notify(new OrderConfirmation($order));
+        Notification::route('mail', $order->customer_email)->notify((new OrderConfirmation($order))->locale($order->notificationLocale()));
     }
 }

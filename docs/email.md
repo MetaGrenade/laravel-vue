@@ -44,6 +44,9 @@ You can choose any colour. The layout picks what goes on it so that it can still
 
 Use `MailMessage` as the notifications here do: `greeting()`, `line()`, `action()`. Do **not** call `->view()`, `->markdown()` or `->theme()`: that is a layout of its own, and a test fails when a notification does.
 
+- **Every word is a language key**, in `lang/en/mail.php`: `__('mail.ban_lifted.subject_lifted')`, one whole sentence for each key, with `:placeholders` for names, numbers and dates, and `trans_choice` for anything that counts. The greeting is `MailText::greeting($notifiable)`. The email is written in the language of the person it is for, whatever language the request that caused it was in, and the notice in the site and the browser alert are made from the same keys ([i18n.md](i18n.md#emails)). `tests/Feature/Mail/MailLanguageTest.php` fails for a key that is not in the file and for a value a sentence asks for and is not given.
+- **An email to an address that is not a user** (an order's, sent to the address from checkout) has no language of its own: pass one with `->locale(...)`, as the order listeners do with `Order::notificationLocale()`.
+
 - **Text somebody else typed** (a key's name, a ticket subject) goes in as `ApiKeyCreated::literal($text)` or is otherwise made safe: the lines are read as Markdown, so a `[link](https://...)` in a name would be a link in the email.
 - **Secrets are never put in an email.** Say where to find them, and link there ([an order's licence keys](commerce.md) are the example).
 - **A link that has to work for somebody who cannot sign in** (a guest's order) is a signed URL.
@@ -69,5 +72,5 @@ and open `mail.html`. Mail apps differ more than browsers do: check one that is 
 
 - **A different footer for each email**, such as a link to the recipient's notification settings or "you are receiving this because...". The footer is the same for all; some emails go to people with no account (a guest's order), and some ignore the settings (security notices).
 - **Setting the logo and colour in the admin area.** They are in `.env`.
-- **Other languages.** The layout's own words ("All rights reserved.") go through Laravel's translations; the notifications' words are English, like the rest of the shop ([i18n.md](i18n.md)).
+- **Other languages.** The notifications' words are in `lang/en/mail.php` and ready to translate; the site ships English only. Laravel's own sentences in an email ("Verify your email address", "Regards,", the layout's "All rights reserved.") are looked up by their English text in `lang/<code>.json` ([i18n.md](i18n.md#emails)). A guest's order is written in the site's language, because an order does not keep the language the buyer browsed in.
 - **A page that previews every email.**

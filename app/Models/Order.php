@@ -6,6 +6,7 @@ use App\Enums\OrderPaymentStatus;
 use App\Enums\OrderStatus;
 use App\Models\Concerns\HasOwner;
 use App\Support\Commerce\Money;
+use App\Support\Localization\Locales;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -104,6 +105,16 @@ class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The language of the emails about this order: the buyer's own when they have an account, else the site's. The emails go to the
+     * address given at checkout, which is not a user and has no language of its own, and an order does not keep the language the
+     * buyer browsed in: a guest is written to in the site's language until it does (docs/i18n.md).
+     */
+    public function notificationLocale(): string
+    {
+        return $this->user?->preferredLocale() ?? Locales::default();
     }
 
     /**

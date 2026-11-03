@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use App\Support\Mail\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
@@ -48,16 +49,16 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
     {
         $subject = $this->title();
 
-        $greeting = 'Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!';
+        $greeting = MailText::greeting($notifiable);
 
         $lines = match ($this->audience) {
             'agent', 'team' => [
-                'A support ticket you are assigned to has a new status.',
-                'Subject: '.$this->ticket->subject,
+                __('mail.support.status_updated.agent'),
+                __('mail.support.subject_line', ['subject' => $this->ticket->subject]),
             ],
             default => [
-                'Your support ticket status has been updated.',
-                'Subject: '.$this->ticket->subject,
+                __('mail.support.status_updated.owner'),
+                __('mail.support.subject_line', ['subject' => $this->ticket->subject]),
             ],
         };
 
@@ -71,8 +72,8 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
 
         $mailMessage
             ->line($this->statusLine())
-            ->action('View conversation', $this->conversationUrlFor($notifiable))
-            ->line('Thank you for using our support center.');
+            ->action(__('mail.support.view_conversation'), $this->conversationUrlFor($notifiable))
+            ->line(__('mail.support.thanks'));
 
         return $mailMessage;
     }
@@ -137,22 +138,21 @@ class TicketStatusUpdated extends Notification implements ShouldQueue
     protected function title(): string
     {
         return match ($this->audience) {
-            'agent', 'team' => 'Ticket status updated: '.$this->ticket->subject,
-            default => 'Support ticket status updated: '.$this->ticket->subject,
+            'agent', 'team' => __('mail.support.status_updated.title_agent', ['subject' => $this->ticket->subject]),
+            default => __('mail.support.status_updated.title_owner', ['subject' => $this->ticket->subject]),
         };
     }
 
     protected function statusLine(): string
     {
-        return sprintf(
-            'Status changed from %s to %s.',
-            $this->formatStatus($this->previousStatus),
-            $this->formatStatus($this->ticket->status)
-        );
+        return __('mail.support.status_updated.changed', [
+            'from' => $this->formatStatus($this->previousStatus),
+            'to' => $this->formatStatus($this->ticket->status),
+        ]);
     }
 
     protected function formatStatus(string $status): string
     {
-        return Str::title(str_replace('_', ' ', $status));
+        return MailText::label('mail.support.status', $status, Str::title(str_replace('_', ' ', $status)));
     }
 }

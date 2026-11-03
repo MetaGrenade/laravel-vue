@@ -42,16 +42,16 @@ class AccountBanned extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $message = (new MailMessage)
-            ->subject($this->until !== null ? 'Your account has been suspended' : 'Your account has been banned')
-            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
+            ->subject($this->until !== null ? __('mail.account_banned.subject_suspended') : __('mail.account_banned.subject_banned'))
+            ->greeting(MailText::greeting($notifiable))
             ->line($this->until !== null
-                ? 'A moderator has suspended your account until '.DateFormatter::for($notifiable)->dayDateTime($this->until).'. You cannot sign in until then.'
-                : 'A moderator has banned your account. You cannot sign in.')
-            ->line('The reason given:')
+                ? __('mail.account_banned.suspended', ['date' => DateFormatter::for($notifiable)->dayDateTime($this->until)])
+                : __('mail.account_banned.banned'))
+            ->line(__('mail.account_banned.reason'))
             ->line(MailText::quoted($this->reason));
 
         if (filled(config('moderation.contact'))) {
-            $message->line('If you think this was a mistake, contact '.config('moderation.contact').'.');
+            $message->line(__('mail.moderation_contact', ['contact' => config('moderation.contact')]));
         }
 
         return $message;

@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use App\Support\Mail\MailText;
 use App\Support\Notifications\RecordsForDigest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -54,21 +55,21 @@ class ForumPostMentioned extends Notification implements RecordsForDigest, Shoul
         ]).'#post-'.$this->post->id;
 
         return (new MailMessage)
-            ->subject('You were mentioned in "'.$this->thread->title.'"')
-            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
-            ->line('You were mentioned in a forum discussion.')
+            ->subject(__('mail.forum.post_mentioned.title', ['title' => $this->thread->title]))
+            ->greeting(MailText::greeting($notifiable))
+            ->line(__('mail.forum.post_mentioned.line'))
             ->line(Str::limit(strip_tags($this->post->body), 200))
-            ->action('View mention', $url);
+            ->action(__('mail.forum.post_mentioned.action'), $url);
     }
 
     public function toArray(object $notifiable): array
     {
-        return $this->payload('You were mentioned in "'.$this->thread->title.'"');
+        return $this->payload(__('mail.forum.post_mentioned.title', ['title' => $this->thread->title]));
     }
 
     public function toBroadcast(object $notifiable): BroadcastMessage
     {
-        return new BroadcastMessage($this->payload('You were mentioned in "'.$this->thread->title.'"'));
+        return new BroadcastMessage($this->payload(__('mail.forum.post_mentioned.title', ['title' => $this->thread->title])));
     }
 
     /**

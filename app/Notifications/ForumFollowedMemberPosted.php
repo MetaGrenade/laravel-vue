@@ -7,6 +7,7 @@ use App\Models\ForumThread;
 use App\Models\User;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
 use App\Support\Forum\PostPages;
+use App\Support\Mail\MailText;
 use App\Support\Notifications\RecordsForDigest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -54,12 +55,12 @@ class ForumFollowedMemberPosted extends Notification implements RecordsForDigest
         $name = (string) $this->author->nickname;
 
         return (new MailMessage)
-            ->subject($name.' posted in "'.$this->thread->title.'"')
-            ->greeting('Hi '.($notifiable->nickname ?? 'there').'!')
-            ->line($name.' posted in "'.$this->thread->title.'".')
+            ->subject(__('mail.forum.followed_member_posted.title', ['name' => $name, 'title' => $this->thread->title]))
+            ->greeting(MailText::greeting($notifiable))
+            ->line(__('mail.forum.followed_member_posted.line', ['name' => $name, 'title' => $this->thread->title]))
             ->line(Str::limit(strip_tags((string) $this->post->body), 200))
-            ->action('View post', $this->url())
-            ->line('You are receiving this email because you follow '.$name.'.');
+            ->action(__('mail.forum.followed_member_posted.action'), $this->url())
+            ->line(__('mail.forum.followed_member_posted.reason', ['name' => $name]));
     }
 
     public function toArray(object $notifiable): array
@@ -90,7 +91,7 @@ class ForumFollowedMemberPosted extends Notification implements RecordsForDigest
     {
         $name = (string) $this->author->nickname;
         $excerpt = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags((string) $this->post->body)) ?? ''), 140);
-        $title = $name.' posted in "'.$this->thread->title.'"';
+        $title = __('mail.forum.followed_member_posted.title', ['name' => $name, 'title' => $this->thread->title]);
 
         return [
             'thread_id' => $this->thread->id,

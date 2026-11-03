@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Support\Entitlements\Entitlements;
 use App\Support\Entitlements\EntitlementSet;
 use App\Support\Forum\ForumAttachments;
+use App\Support\Localization\Locales;
 use App\Support\Notifications\EmailDigest;
 use App\Support\Notifications\RecordsForDigest;
 use App\Support\Notifications\SplitDelivery;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,9 +33,19 @@ use Spatie\Permission\Traits\HasRoles;
  * @property CarbonInterface|null $last_activity_at
  * @property array<array-key, mixed>|null $social_links
  */
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
 {
     use Billable, HasApiTokens, HasFactory, HasRoles, MustVerifyEmailTrait, Notifiable;
+
+    /**
+     * The language of what is sent to this person, an email or a notice in the site, whoever caused it and whatever language that
+     * person's own request was in. Laravel asks for it whenever a notification is sent, queued or not. The `locale` setting names
+     * a language and a region ("fr_CA"); only the language is used, and only if the site has it, or else the site's own.
+     */
+    public function preferredLocale(): string
+    {
+        return Locales::supportedLanguage($this->locale) ?? Locales::default();
+    }
 
     protected static function booted(): void
     {

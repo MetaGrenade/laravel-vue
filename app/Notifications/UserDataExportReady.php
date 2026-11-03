@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\DataExport;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use App\Support\Mail\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
@@ -47,23 +48,23 @@ class UserDataExportReady extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $greeting = 'Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!';
+        $greeting = MailText::greeting($notifiable);
         $downloadUrl = $this->downloadUrl();
 
         $mailMessage = (new MailMessage)
-            ->subject('Your data export is ready')
+            ->subject(__('mail.data_export.title'))
             ->greeting($greeting)
-            ->line('Your privacy data export is ready to download.')
-            ->line('The archive contains your profile details, blog comments, forum posts, and support tickets.');
+            ->line(__('mail.data_export.ready'))
+            ->line(__('mail.data_export.contents'));
 
         if ($downloadUrl) {
-            $mailMessage->action('Download export', $downloadUrl);
+            $mailMessage->action(__('mail.data_export.download'), $downloadUrl);
         } else {
-            $mailMessage->action('View privacy settings', route('privacy.index'));
+            $mailMessage->action(__('mail.data_export.view_settings'), route('privacy.index'));
         }
 
-        $mailMessage->line('This download link will expire in '.DataExport::DOWNLOAD_TTL_MINUTES.' minutes.')
-            ->line('If you did not request this export, please contact support.');
+        $mailMessage->line(trans_choice('mail.data_export.expires', DataExport::DOWNLOAD_TTL_MINUTES))
+            ->line(__('mail.data_export.if_not_you'));
 
         return $mailMessage;
     }
@@ -117,9 +118,9 @@ class UserDataExportReady extends Notification implements ShouldQueue
         return [
             'export_id' => $this->export->id,
             'status' => $this->export->status,
-            'title' => 'Your data export is ready',
-            'thread_title' => 'Your data export is ready',
-            'excerpt' => 'Download your privacy data export before it expires.',
+            'title' => __('mail.data_export.title'),
+            'thread_title' => __('mail.data_export.title'),
+            'excerpt' => __('mail.data_export.excerpt'),
             'url' => route('privacy.index'),
             'download_url' => $this->downloadUrl(),
             'download_expires_at' => $this->export->downloadExpiresAt()?->toIso8601String(),

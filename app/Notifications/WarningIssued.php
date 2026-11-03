@@ -40,16 +40,16 @@ class WarningIssued extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $message = (new MailMessage)
-            ->subject('A moderator has warned you')
-            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
-            ->line('A moderator has given you a warning about something you posted'.($this->about !== null ? ': '.MailText::inline($this->about) : '.'))
+            ->subject(__('mail.warning_issued.subject'))
+            ->greeting(MailText::greeting($notifiable))
+            ->line($this->about !== null ? __('mail.warning_issued.about', ['about' => MailText::inline($this->about)]) : __('mail.warning_issued.without_about'))
             ->line(MailText::quoted($this->reason))
-            ->line('Nothing else has changed: your account is as it was. But please read the rules again, as a further breach may lead to a ban.');
+            ->line(__('mail.warning_issued.nothing_else'));
 
         if (filled(config('moderation.contact'))) {
-            $message->line('If you think this was a mistake, contact '.config('moderation.contact').'.');
+            $message->line(__('mail.moderation_contact', ['contact' => config('moderation.contact')]));
         }
 
-        return $message->action('See your warnings', route('settings.standing'));
+        return $message->action(__('mail.warning_issued.action'), route('settings.standing'));
     }
 }

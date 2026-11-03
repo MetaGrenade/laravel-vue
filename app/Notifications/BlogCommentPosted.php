@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\Blog;
 use App\Models\BlogComment;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use App\Support\Mail\MailText;
 use App\Support\Notifications\RecordsForDigest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -55,11 +56,11 @@ class BlogCommentPosted extends Notification implements RecordsForDigest, Should
 
         return (new MailMessage)
             ->subject($this->notificationTitle())
-            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
-            ->line($commentAuthor.' just left a new reply on "'.$this->blog->title.'".')
+            ->greeting(MailText::greeting($notifiable))
+            ->line(__('mail.blog_comment.line', ['author' => $commentAuthor, 'title' => $this->blog->title]))
             ->line($excerpt)
-            ->action('Read the reply', $url)
-            ->line('You are receiving this email because you opted in to comment notifications for this post.');
+            ->action(__('mail.blog_comment.action'), $url)
+            ->line(__('mail.blog_comment.reason'));
     }
 
     public function toArray(object $notifiable): array
@@ -127,16 +128,16 @@ class BlogCommentPosted extends Notification implements RecordsForDigest, Should
     {
         return $this->comment->user?->nickname
             ?? $this->comment->user?->name
-            ?? 'A community member';
+            ?? __('mail.blog_comment.anonymous_author');
     }
 
     protected function notificationTitle(): string
     {
-        return 'New reply on "'.$this->blog->title.'"';
+        return __('mail.blog_comment.title', ['title' => $this->blog->title]);
     }
 
     protected function excerptLine(string $commentAuthor, string $excerpt): string
     {
-        return $commentAuthor.' replied: '.$excerpt;
+        return __('mail.blog_comment.replied', ['author' => $commentAuthor, 'excerpt' => $excerpt]);
     }
 }

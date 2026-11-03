@@ -19,6 +19,6 @@ class SendOrderShippedNotification
             return;
         }
 
-        Notification::route('mail', $order->customer_email)->notify(new OrderShipped($order));
+        Notification::route('mail', $order->customer_email)->notify((new OrderShipped($order))->locale($order->notificationLocale()));
     }
 }

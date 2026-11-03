@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\DirectMessage;
 use App\Models\User;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use App\Support\Mail\MailText;
 use App\Support\Notifications\RecordsForDigest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -49,12 +50,12 @@ class DirectMessageReceived extends Notification implements RecordsForDigest, Sh
         $name = (string) $this->author->nickname;
 
         return (new MailMessage)
-            ->subject($name.' sent you a message.')
-            ->greeting('Hi '.($notifiable->nickname ?? 'there').'!')
-            ->line($name.' sent you a message.')
+            ->subject(__('mail.direct_message.title', ['name' => $name]))
+            ->greeting(MailText::greeting($notifiable))
+            ->line(__('mail.direct_message.title', ['name' => $name]))
             ->line($this->excerpt())
-            ->action('View message', $this->url())
-            ->line('You are receiving this email because '.$name.' sent you a message.');
+            ->action(__('mail.direct_message.action'), $this->url())
+            ->line(__('mail.direct_message.reason', ['name' => $name]));
     }
 
     public function toArray(object $notifiable): array
@@ -89,7 +90,7 @@ class DirectMessageReceived extends Notification implements RecordsForDigest, Sh
             'message_id' => $this->message->id,
             'author' => $name,
             'excerpt' => $this->excerpt(),
-            'title' => $name.' sent you a message.',
+            'title' => __('mail.direct_message.title', ['name' => $name]),
             'url' => $this->url(),
             'created_at' => optional($this->message->created_at)->toIso8601String(),
         ];
