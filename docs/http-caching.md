@@ -2,7 +2,7 @@
 
 The files the app serves that are the same for everyone (`robots.txt`, the sitemap, the feeds) start no session, set no cookie, and tell any cache between the server and the reader that it may keep them.
 
-> **Status:** in place for eight documents. Not built: caching of pages (the HTML), the public API, and anything that needs a design decision first. They are listed at the end.
+> **Status:** in place for eight documents. Not built: caching of pages (the HTML, decided against for 1.0, see [performance.md](performance.md#whole-pages-are-not-cached-for-guests)), the public API, and anything that needs a design decision first. They are listed at the end.
 
 ## Why
 
@@ -64,7 +64,7 @@ A controller that reads `$request->user()` or the session is not a document, wha
 
 ## What is not covered
 
-- **Pages (the HTML).** Every page carries a one-time `nonce` for the Content Security Policy (8 to 15 times, in the markup and in the header), a CSRF token in a `<meta>` tag, and the session cookie. An `ETag` and a `304` cannot work: a `304` would keep the old body with a header that holds a new nonce, and the browser would block the scripts. Keeping the page for guests would mean replacing the nonce with hashes and fetching the token and the flashed messages separately. That changes the security policy and the page shell, and is a decision for its own slice.
+- **Pages (the HTML).** Every page carries a one-time `nonce` for the Content Security Policy (8 to 15 times, in the markup and in the header), a CSRF token in a `<meta>` tag, and the session cookie. An `ETag` and a `304` cannot work: a `304` would keep the old body with a header that holds a new nonce, and the browser would block the scripts. Keeping the page for guests would mean replacing the nonce with hashes and fetching the token and the flashed messages separately. That changes the security policy and the page shell. Decided for 1.0: pages are not kept, and OPcache is what makes a guest's page fast ([performance.md](performance.md#whole-pages-are-not-cached-for-guests)); it is looked at again in 1.1.
 - **The public API.** `routes/api.php` has its own middleware (keys, scopes, throttles, the usage meter), and a response a cache keeps never reaches the meter. It needs its own review.
 - **Files the web server serves** (the build in `public/build` has hashed names; covers and product pictures are in [images.md](images.md)). Cache them in the web server or the CDN.
 - **Counts and fragments** (the members count, trending lists). Each is a query that wants measuring first.

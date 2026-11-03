@@ -2,7 +2,7 @@
 
 How to move the cache, the queue and the sessions from the database to Redis for production, what lives where once you have, and what the tests hold in place.
 
-> **Status:** the settings, the queue rule and the CI job that runs the app against a real Redis are in place. Not built: Horizon (the queue dashboard), a second Redis only for the cache, Sentinel or Cluster, and a Redis card in the admin area. See [What it does not do](#what-it-does-not-do).
+> **Status:** the settings, the queue rule and the CI job that runs the app against a real Redis are in place. Horizon (the queue dashboard) is not installed, and [Adding Horizon](#adding-horizon) says how a site adds it. Not built: a second Redis only for the cache, Sentinel or Cluster, and a Redis card in the admin area. See [What it does not do](#what-it-does-not-do).
 
 ## Why
 
@@ -77,6 +77,62 @@ The Redis connection therefore has `after_commit` on (`config/queue.php`): a job
 
 The shop already dispatches its order events with `DB::afterCommit()`; this makes the same true of everything else.
 
+## Adding Horizon
+
+[Horizon](https://laravel.com/docs/13.x/horizon) is Laravel's dashboard and supervisor for Redis queues: throughput, run time and wait time for each queue, the failed jobs, and worker processes that move to the queue that is filling up. MetaForger does not include it, on purpose (decided for 1.0): the worker above runs every job, and Horizon is a package, a config file and a gate to keep up to date. A site that wants to see its queue can add it. This is what that takes in this app. It was written from Horizon's documentation and from Composer, and **not run**: Horizon is not installed here and no test covers it.
+
+What it needs (checked with Composer on 2026-11-03: `laravel/horizon` v5.50.1, MIT, installs with Laravel 13 and PHP 8.4):
+
+- **Redis as the queue,** `QUEUE_CONNECTION=redis`. Horizon's documentation says it does not work with Redis Cluster at this time.
+- **PHP's `pcntl` and `posix` extensions.** PHP on Windows has neither, and Composer refuses to install Horizon without them, so on Windows use WSL or a container. Check a server with `php -m`.
+
+```bash
+composer require laravel/horizon
+php artisan horizon:install
+```
+
+Then six things that are particular to this app:
+
+1. **List every queue the app uses.** A supervisor reads only the queues in its `queue` option, so the list has to name `mail` as well as `default`, or the emails wait for good and nothing fails to say so (the trap described under [The queue](#the-queue)). The list is what `metaforger:queue` reads, `WorkerQueues::forConnection('redis')`: your `REDIS_QUEUE` first if you set one, then `default` and `mail`. Horizon makes a single attempt unless it is told otherwise, and the worker above makes three; `maxTime` is its `--max-time`.
+
+   ```php
+   // config/horizon.php
+   'defaults' => [
+       'supervisor-1' => [
+           'connection' => 'redis',
+           'queue' => ['default', 'mail'],   // REDIS_QUEUE first, if you set one
+           'tries' => 3,
+           'timeout' => 60,
+           'maxTime' => 3600,
+           // ...
+       ],
+   ],
+   ```
+
+   `QueueConfigTest` fails when the app starts using a queue that `WorkerQueues` does not list, and when a worker command skips `metaforger:queue`. It does not read `config/horizon.php`, so add a test that compares the `queue` option with `WorkerQueues::forConnection('redis')` when you add Horizon.
+2. **Keep `timeout` under `retry_after`.** The supervisor's `timeout` has to be a few seconds shorter than `retry_after` (90, `REDIS_QUEUE_RETRY_AFTER`) and longer than any job's own `$timeout`. Otherwise a job that is still running is handed to a second worker and runs twice (see `retry_after` under [The queue](#the-queue)). The test that holds this reads the worker commands, not this file. In Supervisor, `stopwaitsecs` has to be longer than the longest job.
+3. **Say who may open it.** `/horizon` opens in the `local` environment only; anywhere else the gate in `app/Providers/HorizonServiceProvider.php` decides. Job payloads and exceptions show what the job carried, which can be a customer's email address or an order, so keep it to administrators:
+
+   ```php
+   Gate::define('viewHorizon', fn ($user) => $user->hasRole('admin'));
+   ```
+4. **Give the dashboard the page's nonce.** `SecurityHeaders` sends a Content Security Policy with a nonce on every HTML response in the `web` group ([security-headers.md](security-headers.md)), and Horizon's pages are in that group. Horizon puts no nonce on its scripts and styles unless it is given one, and a script without it is blocked. Its hook is `Horizon::cspNonce()`, called from a middleware that is listed after `web` in the `middleware` option of `config/horizon.php`, so that the nonce `SecurityHeaders` made for the request exists:
+
+   ```php
+   public function handle(Request $request, Closure $next): Response
+   {
+       Horizon::cspNonce(Vite::cspNonce());
+
+       return $next($request);
+   }
+   ```
+
+   This is the step that has not been checked in any way. Open the dashboard with the browser's console open and make sure nothing is reported as blocked.
+5. **Run it instead of the worker, not beside it.** One Supervisor program, `php artisan horizon`, which starts the workers itself (so no `numprocs=2`). Remove the `metaforger-worker` program for Redis, so that one set of workers reads each queue. On a deploy, `php artisan horizon:terminate` takes the place of `queue:restart`. `metaforger:queue` stays for the database queue, such as the jobs left behind when you move.
+6. **Schedule the snapshot.** The dashboard's graphs need `horizon:snapshot` every five minutes. The schedule is in `bootstrap/app.php`: `$schedule->command('horizon:snapshot')->everyFiveMinutes();`.
+
+Afterwards run `composer audit`, `npm run licences:check` and `npm run licences:notices`, so that `THIRD-PARTY-NOTICES.md` names the package ([licences.md](licences.md)).
+
 ## Memory and restarts
 
 - **No eviction.** Redis starts with no memory limit and `noeviction`, which is what a queue and sessions need: when it is full a write fails loudly, instead of a queued job or somebody's session being dropped to make room. Cache entries carry a lifetime and expire on their own (one small exception, the support assignment rules, is kept until they change). Give the server room, set `maxmemory` with headroom, and watch `used_memory`. Do not use `allkeys-lru` on an instance that also holds the queue.
@@ -110,7 +166,7 @@ docker stop metaforger-redis-live
 
 ## What it does not do
 
-- **Horizon.** It is a dashboard and a supervisor for Redis queues, and a package this app does not have. Adding it is `composer require laravel/horizon`, its config file and a gate.
+- **Horizon.** It is a dashboard and a supervisor for Redis queues, and a package this app does not have. [Adding Horizon](#adding-horizon) says what a site that wants it has to do, and what it has to tell it about this app's queues and Content Security Policy.
 - **Octane.** The app has been audited for a process that serves more than one request, and not run on it: see [octane.md](octane.md).
 - **A second Redis for the cache.** Both connections use `REDIS_HOST`. A cache that is allowed to evict, on its own instance, is a change to `config/database.php`.
 - **Sentinel, Cluster or TLS.** `REDIS_CLUSTER`, `REDIS_URL` and the rest of Laravel's options are there; none is tested.

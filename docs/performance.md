@@ -2,7 +2,7 @@
 
 How fast a guest's page starts to answer, how to measure that on your own site, and which settings the number depends on.
 
-> **Status:** the time to first byte is measured on a reference setup and has a command, `npm run ttfb`, to measure any site. The roadmap target (under 200 ms) is met by a factor of two to four on a laptop, and only with OPcache on. The Largest Contentful Paint is reported by Lighthouse ([lighthouse.md](lighthouse.md)): 1.1 s on simulated slow 4G for the home page, a blog post and a product page, against a target of 2.5 s. Not measured: a small VPS, Redis, and a site under load.
+> **Status:** the time to first byte is measured on a reference setup and has a command, `npm run ttfb`, to measure any site. The roadmap target (under 200 ms) is met by a factor of two to four on a laptop, and only with OPcache on. The Largest Contentful Paint is reported by Lighthouse ([lighthouse.md](lighthouse.md)): 1.1 s on simulated slow 4G for the home page, a blog post and a product page, against a target of 2.5 s. Whole pages are not cached for guests in 1.0, and [why](#whole-pages-are-not-cached-for-guests) and what to turn on instead are written down. Not measured: a small VPS, Redis, and a site under load.
 
 ## The targets
 
@@ -72,6 +72,16 @@ The same requests with one thing changed, the mean over the 15 pages above:
 | **OPcache off** | **272 ms** | **207 ms more; every page between 246 and 322 ms** |
 
 OPcache is the setting the target depends on: without it PHP reads and compiles every file a request uses (the framework alone is hundreds) on every request, and no page is under 200 ms. `php artisan optimize` and moving sessions off the database are worth a few milliseconds each, and sessions off the database also keep a row from being written for every visit ([redis.md](redis.md) says how). Redis was not measured here.
+
+## Whole pages are not cached for guests
+
+Decided for 1.0: a guest's page is built for each request and no copy of it is kept. To make a guest's page faster, turn on OPcache first ([the checklist](#a-production-checklist), item 3). Keeping pages is revisited in 1.1.
+
+**Why a page cannot simply be kept.** Every page carries a nonce for its Content Security Policy that is new in each response (two requests for `/login` got two different ones), a CSRF token in a `<meta>` tag, and the session cookie. A guest's page is sent `Cache-Control: no-cache, private`, so a browser, a CDN or a proxy keeps none of it. A kept copy would either break or defeat the nonce. Served whole, every visitor would get the same nonce, and a nonce that is not new each time protects nothing; revalidated with a `304`, the old body would sit under a header with a new nonce, and the browser would block the scripts. The nonce is what stops a script that someone injected from running ([security-headers.md](security-headers.md)), and it stays strict. Making pages keepable means replacing it with hashes and fetching the token and the flashed messages separately, which changes the security policy and the page shell ([http-caching.md](http-caching.md#what-is-not-covered)).
+
+**Why it is not worth that for 1.0.** The most a cache of the page could save is what the page costs: 50 to 90 ms on the reference setup, about 20 ms of it the framework starting. OPcache off costs 207 ms more on average, and it is a setting. In order, then: OPcache, `php artisan optimize`, compression of text, and sessions and cache on Redis (the checklist below). The documents that are the same for everyone are already kept ([http-caching.md](http-caching.md)), the built assets can be cached for a year (item 5 of the checklist), and a CDN can take the images (`PUBLIC_DISK_URL`, [images.md](images.md)).
+
+**When to look at it again.** If measuring a real site, under load, shows that a guest waits for the page and not for the start-up, the next step is the one above (hashes and a separate token), as its own change with its own tests. Counts and trending lists can be kept for a few minutes without any of that, one at a time, once each is measured.
 
 ## What a page weighs
 
