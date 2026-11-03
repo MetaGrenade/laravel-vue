@@ -177,11 +177,7 @@ describe('the command given to Lighthouse', () => {
     });
 
     test('a runner that is thrown away after the job turns the sandbox off', () => {
-        assert.ok(
-            argumentsFor('http://x/', 'o', { sandbox: false }).includes(
-                '--chrome-flags=--headless=new --no-sandbox --disable-dev-shm-usage',
-            ),
-        );
+        assert.ok(argumentsFor('http://x/', 'o', { sandbox: false }).includes('--chrome-flags=--headless=new --no-sandbox --disable-dev-shm-usage'));
     });
 
     test('desktop is a preset', () => {

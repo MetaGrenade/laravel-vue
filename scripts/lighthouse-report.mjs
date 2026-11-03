@@ -442,15 +442,20 @@ async function main(argv) {
             process.stdout.write(`  ${page.name.padEnd(7)} ${base}${page.path} ...`);
 
             try {
-                const lhr = await auditWithRetry(`${base}${page.path}`, page.name, {
-                    out,
-                    cli,
-                    preset,
-                    sandbox: !process.env.CI,
-                    timeout: 180_000,
-                }, {
-                    beforeRetry: (url) => warm(url, { timeout: requestTimeout }),
-                });
+                const lhr = await auditWithRetry(
+                    `${base}${page.path}`,
+                    page.name,
+                    {
+                        out,
+                        cli,
+                        preset,
+                        sandbox: !process.env.CI,
+                        timeout: 180_000,
+                    },
+                    {
+                        beforeRetry: (url) => warm(url, { timeout: requestTimeout }),
+                    },
+                );
 
                 rows.push({ name: page.name, summary: summarise(lhr) });
                 problems.push(...stableProblems(lhr, { server: given !== null }).map((problem) => `${page.path}: ${problem}`));
