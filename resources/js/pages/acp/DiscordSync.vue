@@ -280,11 +280,7 @@ onMounted(load);
                                     >
                                         Resolved
                                     </Button>
-                                    <Button
-                                        size="sm"
-                                        :variant="failuresFilter === 'all' ? 'default' : 'outline'"
-                                        @click="applyFailuresFilter('all')"
-                                    >
+                                    <Button size="sm" :variant="failuresFilter === 'all' ? 'default' : 'outline'" @click="applyFailuresFilter('all')">
                                         All
                                     </Button>
                                 </div>
@@ -293,9 +289,7 @@ onMounted(load);
                                         <Label for="retry-limit" class="text-xs">Batch limit</Label>
                                         <Input id="retry-limit" v-model="retryLimit" class="w-24" inputmode="numeric" />
                                     </div>
-                                    <Button variant="secondary" size="sm" :disabled="retrying" @click="retryBatchFailures">
-                                        Retry batch
-                                    </Button>
+                                    <Button variant="secondary" size="sm" :disabled="retrying" @click="retryBatchFailures"> Retry batch </Button>
                                     <Button size="sm" :disabled="retrying || selectedFailureIds.length === 0" @click="retrySelectedFailures">
                                         Retry selected ({{ selectedFailureIds.length }})
                                     </Button>
@@ -308,9 +302,9 @@ onMounted(load);
                                     <TableRow>
                                         <TableHead class="w-10">
                                             <Checkbox
-                                                :checked="allVisibleFailuresSelected"
+                                                :model-value="allVisibleFailuresSelected"
                                                 :disabled="failuresFilter === 'resolved'"
-                                                @update:checked="(value: boolean) => toggleSelectAllVisible(value)"
+                                                @update:model-value="(value) => toggleSelectAllVisible(value === true)"
                                             />
                                         </TableHead>
                                         <TableHead>ID</TableHead>
@@ -326,9 +320,9 @@ onMounted(load);
                                     <TableRow v-for="failure in failures" :key="failure.id">
                                         <TableCell>
                                             <Checkbox
-                                                :checked="selectedFailureIds.includes(failure.id)"
+                                                :model-value="selectedFailureIds.includes(failure.id)"
                                                 :disabled="failure.resolved_at !== null"
-                                                @update:checked="(value: boolean) => toggleFailureSelection(failure, value)"
+                                                @update:model-value="(value) => toggleFailureSelection(failure, value === true)"
                                             />
                                         </TableCell>
                                         <TableCell>{{ failure.id }}</TableCell>
@@ -336,7 +330,7 @@ onMounted(load);
                                         <TableCell>{{ failure.user_id ?? '—' }}</TableCell>
                                         <TableCell class="font-mono text-xs">{{ failure.discord_user_id ?? '—' }}</TableCell>
                                         <TableCell>{{ failure.attempts }}</TableCell>
-                                        <TableCell class="whitespace-nowrap text-xs">{{ failure.last_failed_at }}</TableCell>
+                                        <TableCell class="text-xs whitespace-nowrap">{{ failure.last_failed_at }}</TableCell>
                                         <TableCell class="max-w-xs truncate text-xs" :title="failure.error">{{ failure.error }}</TableCell>
                                     </TableRow>
                                 </TableBody>
