@@ -25,6 +25,7 @@ There are two browser suites. They share the server script and the browser, and 
 | A visitor | On a phone, the end of the page (the footer) is not hidden under the cookie banner |
 | A visitor | An address that is not there answers 404 on a page of the site |
 | A visitor | Registers, is signed in, signs out and signs in again |
+| A visitor | The sign-in pages (log in, register, forgot password) show their words and not the names of language keys, and so does a signed-in member's confirm-password page: they are sent their words by their routes only ([i18n.md](i18n.md)) |
 | A member | Signs in and out; a wrong password is refused and says so |
 | A member | Starts a forum thread and replies to it |
 | A member | Comments on a blog post |

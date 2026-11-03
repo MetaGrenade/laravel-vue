@@ -15,6 +15,7 @@ use App\Http\Middleware\PrefetchAssetsForMembers;
 use App\Http\Middleware\PreventBannedUser;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\ShareTranslationGroups;
 use App\Http\Middleware\ThrottleTokenUsage;
 use App\Http\Middleware\UpdateLastActivity;
 use App\Jobs\AggregateSearchQueryStats;
@@ -90,6 +91,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'section.enabled' => EnsureWebsiteSectionIsEnabled::class,
             'entitled' => EnsureEntitled::class,
+            'translations' => ShareTranslationGroups::class,
         ]);
 
         // The usage meter has to see a request before Laravel looks up what its address names (SubstituteBindings, which the api group

@@ -2,6 +2,7 @@
 import AppLogo from '@/components/AppLogo.vue';
 import ForgeHorizon from '@/components/ForgeHorizon.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
+import { useI18n } from '@/composables/useI18n';
 import { Link } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 
@@ -9,6 +10,8 @@ defineProps<{
     title?: string;
     description?: string;
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -20,14 +23,14 @@ defineProps<{
                 class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
                 <ArrowLeft class="size-4" />
-                Back to site
+                {{ t('auth.common.back_to_site') }}
             </Link>
             <ThemeToggle />
         </header>
 
         <main class="relative flex flex-1 items-center justify-center px-4 pb-16">
             <div class="w-full max-w-[25rem]">
-                <Link :href="route('home')" class="mb-8 flex justify-center rounded-md" aria-label="Home">
+                <Link :href="route('home')" class="mb-8 flex justify-center rounded-md" :aria-label="t('auth.common.home')">
                     <AppLogo />
                 </Link>
 

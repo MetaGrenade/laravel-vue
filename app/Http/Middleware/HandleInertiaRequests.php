@@ -58,7 +58,11 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'locale' => app()->getLocale(),
             'locales' => array_values((array) config('i18n.supported', ['en'])),
-            'translations' => fn () => FrontendTranslations::forGroups((array) config('i18n.shared_groups', ['ui'])),
+            // Resolved when the page is built, after the route's middleware has said which more groups its pages need.
+            'translations' => fn () => FrontendTranslations::forGroups(array_values(array_unique([
+                ...(array) config('i18n.shared_groups', ['ui']),
+                ...ShareTranslationGroups::groups($request),
+            ]))),
             'quote' => function () {
                 [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 

@@ -77,7 +77,9 @@ test.describe('visitors', () => {
         await expect(page.getByRole('listitem').filter({ hasText: 'A first point' })).toHaveCSS('list-style-type', 'disc');
     });
 
-    test('in a blog post the headings step down in size under the page title, and the bar beside a quote can be seen, in light and dark', async ({ page }) => {
+    test('in a blog post the headings step down in size under the page title, and the bar beside a quote can be seen, in light and dark', async ({
+        page,
+    }) => {
         for (const colorScheme of ['light', 'dark'] as const) {
             await page.emulateMedia({ colorScheme });
             await page.goto('/blogs/a-first-post');
@@ -141,7 +143,10 @@ test.describe('visitors', () => {
 
         await page.getByRole('button', { name: /Search…/ }).click();
         await page.getByPlaceholder('Search blogs, forum threads, and FAQs').fill('first');
-        await page.getByRole('link', { name: /A first post/ }).first().click();
+        await page
+            .getByRole('link', { name: /A first post/ })
+            .first()
+            .click();
 
         await expect(page).toHaveURL(/\/blogs\/a-first-post$/);
     });
@@ -231,6 +236,31 @@ test.describe('accounts', () => {
         await expect(page).toHaveURL(/\/login$/);
         await expect(page.getByText(/do not match|credentials/i)).toBeVisible();
         await expect(page.getByRole('button', { name: 'Account menu' })).toHaveCount(0);
+    });
+
+    test('the sign-in pages show their words, not the names of language keys, signed in or not', async ({ page }) => {
+        // The words come with the page, from a language group that only these routes send (docs/i18n.md). A page that was not sent them
+        // shows `auth.login.title` where its heading should be.
+        const pages = [
+            { path: '/login', heading: 'Log in to your account' },
+            { path: '/register', heading: 'Create an account' },
+            { path: '/forgot-password', heading: 'Forgot password' },
+        ];
+
+        for (const { path, heading } of pages) {
+            await page.goto(path);
+            await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible();
+            await expect(page.getByRole('link', { name: 'Back to site' })).toBeVisible();
+            expect(await page.locator('body').innerText(), `${path} shows a language key`).not.toMatch(/\b(?:auth|ui)\.[a-z_]+\.[a-z_]+/);
+        }
+
+        // The pages for a signed-in member are on another group of routes, which asks for the words too.
+        await signIn(page, member.email);
+        await page.goto('/confirm-password');
+        await expect(page.getByRole('heading', { name: 'Confirm your password', level: 1 })).toBeVisible();
+        await page.getByLabel('Password').fill(password);
+        await page.getByRole('button', { name: 'Confirm password' }).click();
+        await expect(page).not.toHaveURL(/\/confirm-password$/);
     });
 });
 

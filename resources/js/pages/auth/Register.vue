@@ -4,6 +4,7 @@ import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useI18n } from '@/composables/useI18n';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -13,6 +14,8 @@ import { Separator } from '@/components/ui/separator';
 const props = defineProps<{
     socialProviders?: Array<{ key: string; label: string; description?: string | null; enabled?: boolean }>;
 }>();
+
+const { t } = useI18n();
 
 const form = useForm({
     nickname: '',
@@ -35,8 +38,8 @@ const submit = () => {
 </script>
 
 <template>
-    <AuthBase title="Create an account" description="Enter your details below to create your account">
-        <Head title="Register" />
+    <AuthBase :title="t('auth.register.title')" :description="t('auth.register.description')">
+        <Head :title="t('auth.register.head')" />
 
         <form @submit.prevent="submit" class="flex flex-col gap-6">
             <div v-if="socialProviders.length" class="grid gap-4">
@@ -49,20 +52,20 @@ const submit = () => {
                         class="w-full"
                         @click="redirectToProvider(provider.key)"
                     >
-                        Sign up with {{ provider.label }}
+                        {{ t('auth.register.sign_up_with', { provider: provider.label }) }}
                     </Button>
                 </div>
 
                 <div class="flex items-center gap-3 text-xs tracking-wide text-muted-foreground uppercase">
                     <Separator class="flex-1" />
-                    <span>Or continue with email</span>
+                    <span>{{ t('auth.common.or_continue_with_email') }}</span>
                     <Separator class="flex-1" />
                 </div>
             </div>
 
             <div class="grid gap-6">
                 <div class="grid gap-2">
-                    <Label for="nickname">Nickname</Label>
+                    <Label for="nickname">{{ t('auth.register.nickname') }}</Label>
                     <Input
                         id="nickname"
                         type="text"
@@ -71,19 +74,27 @@ const submit = () => {
                         :tabindex="1"
                         autocomplete="nickname"
                         v-model="form.nickname"
-                        placeholder="Nickname"
+                        :placeholder="t('auth.register.nickname')"
                     />
                     <InputError :message="form.errors.nickname" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
-                    <Input id="email" type="email" required :tabindex="2" autocomplete="email" v-model="form.email" placeholder="email@example.com" />
+                    <Label for="email">{{ t('auth.common.email') }}</Label>
+                    <Input
+                        id="email"
+                        type="email"
+                        required
+                        :tabindex="2"
+                        autocomplete="email"
+                        v-model="form.email"
+                        :placeholder="t('auth.common.email_placeholder')"
+                    />
                     <InputError :message="form.errors.email" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="password">Password</Label>
+                    <Label for="password">{{ t('auth.common.password') }}</Label>
                     <Input
                         id="password"
                         type="password"
@@ -91,13 +102,13 @@ const submit = () => {
                         :tabindex="3"
                         autocomplete="new-password"
                         v-model="form.password"
-                        placeholder="Password"
+                        :placeholder="t('auth.common.password')"
                     />
                     <InputError :message="form.errors.password" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="password_confirmation">Confirm password</Label>
+                    <Label for="password_confirmation">{{ t('auth.common.confirm_password') }}</Label>
                     <Input
                         id="password_confirmation"
                         type="password"
@@ -105,20 +116,20 @@ const submit = () => {
                         :tabindex="4"
                         autocomplete="new-password"
                         v-model="form.password_confirmation"
-                        placeholder="Confirm password"
+                        :placeholder="t('auth.common.confirm_password')"
                     />
                     <InputError :message="form.errors.password_confirmation" />
                 </div>
 
                 <Button type="submit" class="mt-2 w-full" tabindex="5" :disabled="form.processing">
                     <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Create account
+                    {{ t('auth.register.submit') }}
                 </Button>
             </div>
 
             <div class="text-center text-sm text-muted-foreground">
-                Already have an account?
-                <TextLink :href="route('login')" class="underline underline-offset-4" :tabindex="6">Log in</TextLink>
+                {{ t('auth.register.have_account') }}
+                <TextLink :href="route('login')" class="underline underline-offset-4" :tabindex="6">{{ t('auth.register.log_in') }}</TextLink>
             </div>
         </form>
     </AuthBase>
