@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Events\SupportTicketDiscordMirror;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\User;
@@ -30,6 +31,11 @@ class TicketOpened extends Notification implements ShouldQueue
         if ($this->message) {
             $this->message->setRelation('ticket', $this->ticket);
         }
+    }
+
+    public function supportMirrorEvent(): SupportTicketDiscordMirror
+    {
+        return new SupportTicketDiscordMirror($this->ticket, 'opened', $this->message);
     }
 
     public function via(object $notifiable): array

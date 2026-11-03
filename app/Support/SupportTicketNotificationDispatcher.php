@@ -5,6 +5,8 @@ namespace App\Support;
 use App\Models\SupportTeam;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Notifications\TicketOpened;
+use App\Notifications\TicketReplied;
 use App\Support\Notifications\SplitDelivery;
 use Illuminate\Notifications\Notification as BaseNotification;
 
@@ -24,6 +26,11 @@ class SupportTicketNotificationDispatcher
             'assignee.supportTeams.members',
             'team.members',
         ]);
+
+        $mirrorProbe = $notificationFactory('owner');
+        if ($mirrorProbe instanceof TicketOpened || $mirrorProbe instanceof TicketReplied) {
+            event($mirrorProbe->supportMirrorEvent());
+        }
 
         $recipientCandidates = collect();
 
