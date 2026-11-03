@@ -4,10 +4,13 @@ import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useI18n } from '@/composables/useI18n';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { LoaderCircle } from '@lucide/vue';
+
+const { t } = useI18n();
 
 const useRecovery = ref(false);
 
@@ -16,12 +19,8 @@ const form = useForm({
     recovery_code: '',
 });
 
-const title = computed(() => (useRecovery.value ? 'Use a recovery code' : 'Enter your authentication code'));
-const description = computed(() =>
-    useRecovery.value
-        ? 'Enter one of the recovery codes you saved when enabling multi-factor authentication.'
-        : 'Open your authenticator app (Authy, Google Authenticator, etc.) and enter the 6-digit verification code.',
-);
+const title = computed(() => t(useRecovery.value ? 'auth.two_factor.recovery_title' : 'auth.two_factor.code_title'));
+const description = computed(() => t(useRecovery.value ? 'auth.two_factor.recovery_description' : 'auth.two_factor.code_description'));
 
 const submit = () => {
     if (useRecovery.value) {
@@ -42,8 +41,8 @@ const toggleMode = () => {
 </script>
 
 <template>
-    <AuthBase title="Two-factor authentication" description="Complete the challenge to access your account">
-        <Head title="Two-factor authentication" />
+    <AuthBase :title="t('auth.two_factor.title')" :description="t('auth.two_factor.description')">
+        <Head :title="t('auth.two_factor.head')" />
 
         <form @submit.prevent="submit" class="flex flex-col gap-6">
             <div class="grid gap-2">
@@ -52,7 +51,7 @@ const toggleMode = () => {
             </div>
 
             <div v-if="!useRecovery" class="grid gap-2">
-                <Label for="code">Authentication code</Label>
+                <Label for="code">{{ t('auth.two_factor.code_label') }}</Label>
                 <Input
                     id="code"
                     inputmode="numeric"
@@ -67,7 +66,7 @@ const toggleMode = () => {
             </div>
 
             <div v-else class="grid gap-2">
-                <Label for="recovery_code">Recovery code</Label>
+                <Label for="recovery_code">{{ t('auth.two_factor.recovery_label') }}</Label>
                 <Input
                     id="recovery_code"
                     autocomplete="one-time-code"
@@ -82,14 +81,14 @@ const toggleMode = () => {
             <div class="space-y-2">
                 <Button type="submit" class="w-full" :disabled="form.processing">
                     <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Continue
+                    {{ t('auth.two_factor.submit') }}
                 </Button>
 
                 <Button type="button" variant="link" class="w-full" @click="toggleMode">
-                    <span v-if="useRecovery">Use an authenticator code instead</span>
-                    <span v-else>Use a recovery code</span>
+                    <span v-if="useRecovery">{{ t('auth.two_factor.use_code') }}</span>
+                    <span v-else>{{ t('auth.two_factor.use_recovery') }}</span>
                 </Button>
-                <TextLink :href="route('login')" class="block text-center text-sm">Back to login</TextLink>
+                <TextLink :href="route('login')" class="block text-center text-sm">{{ t('auth.common.back_to_login') }}</TextLink>
             </div>
         </form>
     </AuthBase>
