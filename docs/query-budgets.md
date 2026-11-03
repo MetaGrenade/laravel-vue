@@ -2,7 +2,7 @@
 
 How the test suite keeps pages from getting slower as the site grows: a lazy load fails the test that did it, and the pages people use most are held to a number of database queries that does not depend on how many rows they list.
 
-> **Status:** both are in place and run with the rest of the suite. 36 pages have a budget (the list is in `tests/Feature/Performance`). Not built: a budget for every page, a budget on the time a page takes (that is the Lighthouse and TTFB work in the roadmap), and a check on queries that run outside a request (the queue, scheduled commands).
+> **Status:** both are in place and run with the rest of the suite. 36 pages have a budget (the list is in `tests/Feature/Performance`). Not built: a budget for every page, a budget on the time a page takes (`npm run ttfb` and `npm run lighthouse` measure it, see [performance.md](performance.md) and [lighthouse.md](lighthouse.md)), and a check on queries that run outside a request (the queue, scheduled commands).
 
 ## Why
 

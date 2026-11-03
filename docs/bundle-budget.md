@@ -2,7 +2,7 @@
 
 How CI keeps the front end from getting heavier unnoticed: after `npm run build`, the size of what the browser downloads is held to numbers that are set on purpose.
 
-> **Status:** in place and run by CI (the `bundle (size budget)` job). Not built: a budget on how fast a page renders (that is the Lighthouse work in the roadmap), a budget on the images a page shows (the image pipeline), and a budget for the server-rendered build.
+> **Status:** in place and run by CI (the `bundle (size budget)` job). Not built: a budget on how fast a page renders (Lighthouse reports it, see [lighthouse.md](lighthouse.md), but no time fails a run), a budget on the images a page shows (the image pipeline), and a budget for the server-rendered build.
 
 ## Why
 
@@ -75,7 +75,7 @@ npm run bundle:test    # tests of the check itself (node:test, no dependencies)
 
 ## What it does not do
 
-- It does not run the app. How long a page takes to draw depends on more than its bytes (images, fonts, the server), and that is the Lighthouse budget still to come.
+- It does not run the app. How long a page takes to draw depends on more than its bytes (images, fonts, the server), and that is what Lighthouse reports ([lighthouse.md](lighthouse.md)): a report, not a budget.
 - It does not measure the server-rendered build (`build:ssr`), which runs on the server and is not downloaded.
 - It does not count a chunk a page loads after the user does something, apart from holding it to the largest-script limit.
 - It does not count what the browser fetches after the page has loaded. A page sent to a **signed-in user** (`PrefetchAssetsForMembers`, which calls `Vite::prefetch(concurrency: 3)` for them and for nobody else) fetches the rest of the build in the background once it has drawn, at low priority and three files at a time: for a member who is not staff everything except the admin pages and what only they import (134 files in Chrome, about 680 kB gzipped), and for staff the admin pages as well (231 files, about 980 kB). That keeps moving between pages quick for someone who will move around the site, and it is why a member on a thread still downloads the editor a moment after the page appears. A visitor gets none of it: their pages are half the size ([performance.md](performance.md#what-a-page-weighs)) and each page fetches what it shows. The budget is about what a page needs to appear and work, which is what its first view waits for, not the total a visit costs.

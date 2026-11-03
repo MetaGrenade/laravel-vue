@@ -2,7 +2,7 @@
 
 How fast a guest's page starts to answer, how to measure that on your own site, and which settings the number depends on.
 
-> **Status:** the time to first byte is measured on a reference setup and has a command, `npm run ttfb`, to measure any site. The roadmap target (under 200 ms) is met by a factor of two to four on a laptop, and only with OPcache on. Not measured: the Largest Contentful Paint (that needs a browser on a throttled network, which is the Lighthouse work in the roadmap), a small VPS, Redis, and a site under load.
+> **Status:** the time to first byte is measured on a reference setup and has a command, `npm run ttfb`, to measure any site. The roadmap target (under 200 ms) is met by a factor of two to four on a laptop, and only with OPcache on. The Largest Contentful Paint is reported by Lighthouse ([lighthouse.md](lighthouse.md)): 1.1 s on simulated slow 4G for the home page, a blog post and a product page, against a target of 2.5 s. Not measured: a small VPS, Redis, and a site under load.
 
 ## The targets
 
@@ -11,7 +11,7 @@ From section 5.2 of the roadmap:
 | Target | State |
 |--------|-------|
 | A guest page starts answering in under 200 ms, on a small VPS with Redis and OPcache | Measured below: 50 to 90 ms on a laptop |
-| Largest Contentful Paint under 2.5 s on 4G for the home page, a blog post and a product page | Not measured. What a page downloads is held to a budget ([bundle-budget.md](bundle-budget.md)) |
+| Largest Contentful Paint under 2.5 s on 4G for the home page, a blog post and a product page | Reported by Lighthouse, not held to a budget: 1.1 s for all three on the seeded site ([lighthouse.md](lighthouse.md)). What a page downloads is held to a budget ([bundle-budget.md](bundle-budget.md)) |
 | No N+1 queries on the top pages | Enforced in tests ([query-budgets.md](query-budgets.md)) |
 
 ## Measuring your own site
@@ -131,7 +131,7 @@ The nginx settings above are the standard ones and were not run in this reposito
 
 ## What it did not measure
 
-- **Largest Contentful Paint.** It needs a browser and a throttled network. The front end is not rendered on the server, so a page paints after its script has loaded and run; the size of that script is what [bundle-budget.md](bundle-budget.md) holds down. A Lighthouse run in CI is a new package and waits for a decision.
+- **Largest Contentful Paint.** It needs a browser and a throttled network, and `npm run lighthouse` supplies both ([lighthouse.md](lighthouse.md)), on a small seeded site and without a real web server in front. The front end is not rendered on the server, so a page paints after its script has loaded and run; the size of that script is what [bundle-budget.md](bundle-budget.md) holds down. No time fails a CI run: a Lighthouse number moves with the machine.
 - **A small VPS, or PHP-FPM on Linux.** The figures come from PHP's built-in server on Windows, one request at a time. A VPS may be faster or slower, so treat them as the order of size, and run `npm run ttfb` on yours.
 - **Load.** These are one request at a time. How many a second a server can take depends on the number of PHP-FPM workers, and a database query that takes 1 ms alone can take longer when many run at once. Octane ([octane.md](octane.md)) would remove the 20 ms start-up and has been audited but not run.
 - **Signed-in pages.** They do more (the cart, the notification count, the permissions) and are not cached for anyone else. The query budgets hold their queries, not their time.

@@ -47,16 +47,16 @@ const markClass = computed(() =>
             <img
                 src="/brand/logo-light.png"
                 :alt="page.props.name"
-                width="280"
-                height="56"
+                width="1024"
+                height="341"
                 decoding="async"
                 :class="cn(wordmarkClass, 'dark:hidden')"
             />
             <img
                 src="/brand/logo-dark.png"
                 :alt="page.props.name"
-                width="280"
-                height="56"
+                width="1024"
+                height="341"
                 decoding="async"
                 :class="cn(wordmarkClass, 'hidden dark:block')"
             />

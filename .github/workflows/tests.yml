@@ -164,6 +164,38 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # Lighthouse over the home page, the blog and a post, the forum, the shop and a product, on the seeded site the browser suites use (docs/lighthouse.md). It
+  # reports: the scores and timings are in the summary of the run, and none of them fails the job. What fails it is what the page itself
+  # decides: an image shown at another aspect ratio than its file, an image enlarged past its file, an image without a width and a height,
+  # and a page that does not answer. The reports are kept for two weeks.
+  lighthouse:
+    name: lighthouse (report)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the application
+        uses: ./.github/actions/setup-app
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Lighthouse
+        run: |
+          export CHROME_PATH="$(node -p "require('@playwright/test').chromium.executablePath()")"
+          npm run lighthouse
+
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lighthouse-report
+          path: lighthouse-report
+          retention-days: 14
+          if-no-files-found: ignore
+
   # A real Meilisearch (the version compose.yaml runs): what the search tests with a fake engine cannot show. How it ranks, what a typo
   # still finds, what leaves the index, the health check against what is really there, and the key recipe in docs/search-index.md.
   # The tests are in tests/Live/Meilisearch, which `php artisan test` does not run, and skip themselves unless MEILISEARCH_LIVE_HOST is set.
