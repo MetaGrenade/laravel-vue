@@ -27,5 +27,6 @@ yarn-error.log
 /.vs
 /database/a11y.sqlite
 /playwright-report
+/lighthouse-report
 /test-results
 /blob-report
