@@ -8,7 +8,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Fired once per support ticket activity for Discord staff mirroring (MetaForge Discord companion).
+ * Fired once per support ticket activity for Discord staff mirroring (MetaForger Discord companion).
  */
 class SupportTicketDiscordMirror
 {
