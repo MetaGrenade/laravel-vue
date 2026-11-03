@@ -112,19 +112,19 @@ class DirectMessages
 
         if ($block === 'self') {
             throw ValidationException::withMessages([
-                'user' => 'You cannot message yourself.',
+                'user' => __('forms.direct_messages.to_self'),
             ]);
         }
 
         if ($block === 'ignoring') {
             throw ValidationException::withMessages([
-                'user' => 'You are ignoring '.$to->nickname.'.',
+                'user' => __('forms.direct_messages.ignoring', ['name' => $to->nickname]),
             ]);
         }
 
         if ($block === 'unavailable') {
             throw ValidationException::withMessages([
-                'user' => 'That member cannot be messaged.',
+                'user' => __('forms.direct_messages.unavailable'),
             ]);
         }
 
@@ -132,7 +132,7 @@ class DirectMessages
 
         if ($text === '') {
             throw ValidationException::withMessages([
-                'body' => 'A message cannot be empty.',
+                'body' => __('forms.direct_messages.empty'),
             ]);
         }
 

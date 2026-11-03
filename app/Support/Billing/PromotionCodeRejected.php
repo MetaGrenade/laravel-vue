@@ -18,18 +18,18 @@ class PromotionCodeRejected extends ValidationException
     /** Not a code Stripe has, or one that has run out, expired or been switched off (Stripe does not say which). */
     public static function notValid(): static
     {
-        return static::because("That code isn't valid, or it has expired.");
+        return static::because(__('forms.promotion_code.not_valid'));
     }
 
     /** Stripe could not be asked, so the code was neither accepted nor refused. */
     public static function cannotBeChecked(): static
     {
-        return static::because("We couldn't check that code just now. Please try again in a moment, or remove it to carry on without it.");
+        return static::because(__('forms.promotion_code.cannot_check'));
     }
 
     /** Stripe refused it when the subscription was started, for a condition that could not be seen beforehand. */
     public static function refusedByStripe(): static
     {
-        return static::because("That code can't be used on this subscription. Nothing has been charged.");
+        return static::because(__('forms.promotion_code.refused_by_stripe'));
     }
 }

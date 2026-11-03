@@ -36,10 +36,10 @@ class ProductReviewRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'rating.required' => 'Choose a rating from 1 to 5 stars.',
-            'rating.between' => 'Choose a rating from 1 to 5 stars.',
-            'body.required' => 'Tell others what you thought of it.',
-            'body.min' => 'Write a little more: at least :min characters.',
+            'rating.required' => __('forms.reviews.rating_required'),
+            'rating.between' => __('forms.reviews.rating_between'),
+            'body.required' => __('forms.reviews.body_required'),
+            'body.min' => __('forms.reviews.body_min'),
         ];
     }
 }

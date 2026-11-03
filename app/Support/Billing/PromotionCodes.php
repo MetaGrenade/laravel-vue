@@ -141,11 +141,11 @@ class PromotionCodes
         if (Arr::get($data, 'amount_off') !== null) {
             // Cashier will not start a subscription with a coupon like this (see its SubscriptionBuilder), and a code is no different.
             if (Arr::get($data, 'duration') === 'forever') {
-                throw PromotionCodeRejected::because("That code can't be used on a subscription.");
+                throw PromotionCodeRejected::because(__('forms.promotion_code.not_for_subscriptions'));
             }
 
             $amountOff = $this->amountOffIn($data, $plan->currency)
-                ?? throw PromotionCodeRejected::because("That code can't be used with this plan's currency.");
+                ?? throw PromotionCodeRejected::because(__('forms.promotion_code.wrong_currency'));
         }
 
         $products = Arr::get($data, 'applies_to.products', []);
@@ -157,7 +157,7 @@ class PromotionCodes
             $product = is_array($product) ? ($product['id'] ?? null) : $product;
 
             if (! in_array($product, $products, true)) {
-                throw PromotionCodeRejected::because("That code doesn't apply to the {$plan->name} plan.");
+                throw PromotionCodeRejected::because(__('forms.promotion_code.wrong_plan', ['plan' => $plan->name]));
             }
         }
 

@@ -114,13 +114,13 @@ class IgnoredMembers
     {
         if ($viewer->id === $member->id) {
             throw ValidationException::withMessages([
-                'user' => 'You cannot ignore yourself.',
+                'user' => __('forms.forum.ignore_self'),
             ]);
         }
 
         if (! $this->canIgnore($viewer, $member)) {
             throw ValidationException::withMessages([
-                'user' => 'Moderators cannot be ignored.',
+                'user' => __('forms.forum.ignore_moderator'),
             ]);
         }
 

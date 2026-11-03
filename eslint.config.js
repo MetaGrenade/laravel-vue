@@ -17,13 +17,16 @@ export default defineConfigWithVueTs(
     },
     {
         // Text that a language file should hold. A warning, not an error, and only for what has been converted to keys so far
-        // (docs/i18n.md): a file that is still in literal English is not reported until it is added here. AppHeader.vue and
-        // UserMenuContent.vue are not in the list yet: their menus are still literal.
+        // (docs/i18n.md): a file that is still in literal English is not reported until it is added here. Add a file when it is
+        // converted.
         files: [
             'resources/js/pages/auth/**/*.vue',
             'resources/js/layouts/auth/AuthSimpleLayout.vue',
             'resources/js/layouts/AuthLayout.vue',
             'resources/js/layouts/app/AppHeaderLayout.vue',
+            'resources/js/components/AppHeader.vue',
+            'resources/js/components/UserMenuContent.vue',
+            'resources/js/layouts/settings/SettingsLayout.vue',
             'resources/js/components/AppFooter.vue',
             'resources/js/components/ThemeToggle.vue',
             'resources/js/components/CookieConsentBanner.vue',

@@ -25,8 +25,8 @@ class RotateApiKeyRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'grace_hours.required' => 'Choose how long the old key should go on working.',
-            'grace_hours.in' => 'Choose how long the old key should go on working from the list.',
+            'grace_hours.required' => __('forms.api_keys.grace_required'),
+            'grace_hours.in' => __('forms.api_keys.grace_invalid'),
         ];
     }
 

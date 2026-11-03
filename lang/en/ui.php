@@ -20,14 +20,45 @@ return [
         'support' => 'Support',
         'repository' => 'Repository',
         'open_menu' => 'Open navigation menu',
+        'menu_title' => 'Navigation menu',
         'skip_to_content' => 'Skip to content',
+        'settings' => 'Settings',
+        'account_menu' => 'Account menu',
     ],
 
     'actions' => [
         'log_in' => 'Log in',
+        'log_out' => 'Log out',
         'get_started' => 'Get started',
         'search' => 'Search',
         'search_placeholder' => 'Search…',
+    ],
+
+    // The cart in the header (the sheet that opens from the trolley) and the wishlist beside it.
+    'cart' => [
+        'open' => 'Open cart',
+        'title' => 'Your cart',
+        'description' => 'Review your items before checkout.',
+        'empty' => 'Your cart is empty.',
+        'base_product' => 'Base product',
+        'line' => ':variant · Qty :quantity',
+        'each' => ':price each',
+        'subtotal' => 'Subtotal',
+        'view' => 'View cart',
+        'keep_shopping' => 'Keep shopping',
+        'wishlist' => 'Wishlist',
+        'your_wishlist' => 'Your wishlist',
+    ],
+
+    // The bell in the header and the list it opens (docs/notifications.md).
+    'notifications' => [
+        'title' => 'Notifications',
+        'unread' => ':count unread notification|:count unread notifications',
+        'mark_all_read' => 'Mark all read',
+        'caught_up' => "You're all caught up.",
+        'mark_read' => 'Mark read',
+        'dismiss' => 'Dismiss',
+        'showing_latest' => 'Showing the latest :shown of :unread unread notifications.',
     ],
 
     'theme' => [

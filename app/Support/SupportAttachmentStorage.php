@@ -184,7 +184,7 @@ class SupportAttachmentStorage
 
         if (! Storage::disk($disk)->put($path, $bytes, ['visibility' => 'private'])) {
             throw ValidationException::withMessages([
-                'attachments' => 'That picture could not be saved. Try again.',
+                'attachments' => __('forms.support.picture_unsaved'),
             ]);
         }
 

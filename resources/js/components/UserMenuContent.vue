@@ -29,7 +29,7 @@ const forumEnabled = computed(() => page.props.settings.website_sections.forum);
         <DropdownMenuItem :as-child="true">
             <Link class="block w-full" :href="route('profile.edit')" as="button">
                 <Settings class="mr-2 h-4 w-4" />
-                Settings
+                {{ t('ui.nav.settings') }}
             </Link>
         </DropdownMenuItem>
         <DropdownMenuItem :as-child="true">
@@ -49,7 +49,7 @@ const forumEnabled = computed(() => page.props.settings.website_sections.forum);
     <DropdownMenuItem :as-child="true">
         <Link class="block w-full" method="post" :href="route('logout')" as="button">
             <LogOut class="mr-2 h-4 w-4" />
-            Log out
+            {{ t('ui.actions.log_out') }}
         </Link>
     </DropdownMenuItem>
 </template>

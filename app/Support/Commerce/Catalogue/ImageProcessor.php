@@ -91,7 +91,7 @@ class ImageProcessor
         $source = @imagecreatefromstring($bytes);
 
         if (! $source instanceof GdImage) {
-            throw new ImageRejected('That file could not be read as a picture. It may be damaged.');
+            throw new ImageRejected(__('forms.images.unreadable'));
         }
 
         return $this->oriented($source, $bytes, $type);
@@ -109,23 +109,22 @@ class ImageProcessor
         $info = @getimagesizefromstring($bytes);
 
         if ($info === false || ! in_array($info[2], self::TYPES, true)) {
-            throw new ImageRejected('Upload a JPEG, PNG, WebP or GIF picture.');
+            throw new ImageRejected(__('forms.images.type'));
         }
 
         [$width, $height] = $info;
 
         if ($width < 1 || $height < 1) {
-            throw new ImageRejected('That picture has no size.');
+            throw new ImageRejected(__('forms.images.no_size'));
         }
 
         $limit = (int) config('commerce.images.max_pixels', 16_000_000);
 
         if ($width * $height > $limit) {
-            throw new ImageRejected(sprintf(
-                'That picture is %s megapixels; the most allowed is %s. Make it smaller and try again.',
-                number_format($width * $height / 1_000_000, 1),
-                number_format($limit / 1_000_000, 1),
-            ));
+            throw new ImageRejected(__('forms.images.too_large', [
+                'size' => number_format($width * $height / 1_000_000, 1),
+                'max' => number_format($limit / 1_000_000, 1),
+            ]));
         }
 
         return [$width, $height, $info[2]];
@@ -193,7 +192,7 @@ class ImageProcessor
         $scaled = imagescale($image, max(1, (int) round($width * $scale)), max(1, (int) round($height * $scale)), IMG_BICUBIC);
 
         if (! $scaled instanceof GdImage) {
-            throw new ImageRejected('That picture could not be resized.');
+            throw new ImageRejected(__('forms.images.resize_failed'));
         }
 
         imagealphablending($scaled, false);
@@ -209,7 +208,7 @@ class ImageProcessor
         $data = (string) ob_get_clean();
 
         if (! $written || $data === '') {
-            throw new ImageRejected('That picture could not be converted.');
+            throw new ImageRejected(__('forms.images.convert_failed'));
         }
 
         return $data;

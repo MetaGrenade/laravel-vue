@@ -43,7 +43,7 @@ class TwoFactorController extends Controller
 
         if (! $user->two_factor_secret) {
             throw ValidationException::withMessages([
-                'code' => 'Two-factor authentication has not been initiated.',
+                'code' => __('forms.two_factor.not_started'),
             ]);
         }
 
@@ -51,7 +51,7 @@ class TwoFactorController extends Controller
 
         if (! $secret || ! TwoFactorAuthenticator::verify($secret, $request->string('code'), 1, now()->timestamp)) {
             throw ValidationException::withMessages([
-                'code' => 'The provided authentication code is invalid.',
+                'code' => __('forms.two_factor.code_invalid'),
             ]);
         }
 
@@ -65,7 +65,7 @@ class TwoFactorController extends Controller
             ])->save();
         } catch (JsonException) {
             throw ValidationException::withMessages([
-                'code' => 'Recovery codes could not be generated. Please try again.',
+                'code' => __('forms.two_factor.codes_failed'),
             ]);
         }
 

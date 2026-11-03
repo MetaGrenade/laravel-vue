@@ -34,11 +34,11 @@ class StorePublicSupportTicketRatingRequest extends FormRequest
             }
 
             if ($ticket->status !== 'closed') {
-                $validator->errors()->add('rating', 'You can only rate a ticket after it has been closed.');
+                $validator->errors()->add('rating', __('forms.support.rate_after_closed'));
             }
 
             if ($ticket->customer_satisfaction_rating !== null) {
-                $validator->errors()->add('rating', 'This ticket has already been rated.');
+                $validator->errors()->add('rating', __('forms.support.already_rated'));
             }
         });
     }
