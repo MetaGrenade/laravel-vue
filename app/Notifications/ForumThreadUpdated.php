@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use App\Support\Mail\MailText;
 use App\Support\Notifications\RecordsForDigest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -55,12 +56,12 @@ class ForumThreadUpdated extends Notification implements RecordsForDigest, Shoul
         ]);
 
         return (new MailMessage)
-            ->subject('New reply in "'.$this->thread->title.'"')
-            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
-            ->line('There is a new reply in a thread you follow: "'.$this->thread->title.'".')
+            ->subject(__('mail.forum.thread_updated.title', ['title' => $this->thread->title]))
+            ->greeting(MailText::greeting($notifiable))
+            ->line(__('mail.forum.thread_updated.line', ['title' => $this->thread->title]))
             ->line(Str::limit(strip_tags($this->post->body), 200))
-            ->action('View reply', $url)
-            ->line('You are receiving this email because you opted to follow this thread.');
+            ->action(__('mail.forum.thread_updated.action'), $url)
+            ->line(__('mail.forum.thread_updated.reason'));
     }
 
     public function toArray(object $notifiable): array
@@ -92,7 +93,7 @@ class ForumThreadUpdated extends Notification implements RecordsForDigest, Shoul
     protected function payload(): array
     {
         $excerpt = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($this->post->body)) ?? ''), 140);
-        $title = 'New reply in "'.$this->thread->title.'"';
+        $title = __('mail.forum.thread_updated.title', ['title' => $this->thread->title]);
 
         return [
             'thread_id' => $this->thread->id,

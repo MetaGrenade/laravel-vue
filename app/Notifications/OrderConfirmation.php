@@ -39,60 +39,66 @@ class OrderConfirmation extends Notification implements ShouldQueue
         $coveredByGiftCard = $giftCardTotal > 0 && $order->amountDue()->isZero();
 
         $message = (new MailMessage)
-            ->subject("Your order {$order->number}")
-            ->greeting($order->customer_name ? "Thanks for your order, {$order->customer_name}!" : 'Thanks for your order!')
+            ->subject(__('mail.order.confirmation.subject', ['number' => $order->number]))
+            ->greeting($order->customer_name ? __('mail.order.confirmation.greeting_named', ['name' => $order->customer_name]) : __('mail.order.confirmation.greeting'))
             ->line(match (true) {
-                $free => "Your order {$order->number} is confirmed. Nothing was charged.",
-                $coveredByGiftCard => "Your order {$order->number} is confirmed. It was paid for with your gift card.",
-                default => "We've received your payment for order {$order->number}.",
+                $free => __('mail.order.confirmation.confirmed_free', ['number' => $order->number]),
+                $coveredByGiftCard => __('mail.order.confirmation.confirmed_gift_card', ['number' => $order->number]),
+                default => __('mail.order.confirmation.payment_received', ['number' => $order->number]),
             });
 
         foreach ($order->items as $item) {
-            $message->line("{$item->quantity} × {$item->description} — {$item->subtotal} {$order->currency}");
+            $message->line(__('mail.order.confirmation.item', ['quantity' => $item->quantity, 'description' => $item->description, 'subtotal' => $item->subtotal, 'currency' => $order->currency]));
         }
 
         if ((float) $order->shipping_total > 0) {
-            $message->line('Shipping'.($order->shipping_method ? " ({$order->shipping_method})" : '').": {$order->shipping_total} {$order->currency}");
+            $message->line($order->shipping_method
+                ? __('mail.order.confirmation.shipping_method', ['method' => $order->shipping_method, 'amount' => $order->shipping_total, 'currency' => $order->currency])
+                : __('mail.order.confirmation.shipping', ['amount' => $order->shipping_total, 'currency' => $order->currency]));
         }
 
         // What a discount code took off (the shipping charge above is shown before it).
         if ((float) $order->discount_total > 0) {
-            $message->line('Discount'.($order->coupon_code ? " ({$order->coupon_code})" : '').": -{$order->discount_total} {$order->currency}");
+            $message->line($order->coupon_code
+                ? __('mail.order.confirmation.discount_code', ['code' => $order->coupon_code, 'amount' => $order->discount_total, 'currency' => $order->currency])
+                : __('mail.order.confirmation.discount', ['amount' => $order->discount_total, 'currency' => $order->currency]));
         }
 
         foreach ((array) ($order->metadata['tax_lines'] ?? []) as $taxLine) {
-            $message->line("{$taxLine['name']} ({$taxLine['rate']}%): {$taxLine['amount']} {$order->currency}");
+            $message->line(__('mail.order.confirmation.tax', ['name' => $taxLine['name'], 'rate' => $taxLine['rate'], 'amount' => $taxLine['amount'], 'currency' => $order->currency]));
         }
 
         if (is_array($order->shipping_address)) {
-            $message->line('Shipping to: '.$this->describe($order->shipping_address));
+            $message->line(__('mail.order.confirmation.shipping_to', ['address' => $this->describe($order->shipping_address)]));
         }
 
         // The links to the files are short-lived and made when the order page is opened, so the email
         // sends the customer there rather than carrying a link that would go stale.
         if ($order->downloadGrants()->exists()) {
-            $message->line('Your downloads are on your order page. Open it with the button below whenever you need them.');
+            $message->line(__('mail.order.confirmation.downloads'));
         }
 
         // Keys are secrets, so they are never put in an email: they are on the order page, behind the same link.
         if ($order->items->contains(fn ($item) => $item->delivers_keys)) {
-            $message->line('Your licence keys are on your order page. Open it with the button below to see them.');
+            $message->line(__('mail.order.confirmation.keys'));
         }
 
         if ($giftCardTotal > 0) {
-            $message->line("Order total: {$order->grand_total} {$order->currency}");
-            $message->line('Gift card'.($order->giftCard ? " (ending {$order->giftCard->last_four})" : '').": -{$order->gift_card_total} {$order->currency}");
+            $message->line(__('mail.order.confirmation.order_total', ['amount' => $order->grand_total, 'currency' => $order->currency]));
+            $message->line($order->giftCard
+                ? __('mail.order.confirmation.gift_card_ending', ['last_four' => $order->giftCard->last_four, 'amount' => $order->gift_card_total, 'currency' => $order->currency])
+                : __('mail.order.confirmation.gift_card', ['amount' => $order->gift_card_total, 'currency' => $order->currency]));
         }
 
         return $message
             ->line(match (true) {
-                $free => "Total: {$order->grand_total} {$order->currency}",
-                $coveredByGiftCard => "Charged to your card: 0.00 {$order->currency}",
-                $giftCardTotal > 0 => "Charged to your card: {$order->amountDue()->toDecimal()} {$order->currency}",
-                default => "Total paid: {$order->grand_total} {$order->currency}",
+                $free => __('mail.order.confirmation.total_free', ['amount' => $order->grand_total, 'currency' => $order->currency]),
+                $coveredByGiftCard => __('mail.order.confirmation.charged_nothing', ['currency' => $order->currency]),
+                $giftCardTotal > 0 => __('mail.order.confirmation.charged', ['amount' => $order->amountDue()->toDecimal(), 'currency' => $order->currency]),
+                default => __('mail.order.confirmation.total_paid', ['amount' => $order->grand_total, 'currency' => $order->currency]),
             })
             // Signed, so it works for guests who cannot sign in to see the order.
-            ->action('View your order', URL::signedRoute('shop.checkout.complete', ['order' => $order->public_id]));
+            ->action(__('mail.order.view'), URL::signedRoute('shop.checkout.complete', ['order' => $order->public_id]));
     }
 
     /**

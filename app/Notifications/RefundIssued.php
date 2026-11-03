@@ -41,25 +41,25 @@ class RefundIssued extends Notification implements ShouldQueue
         $refund = $this->refund;
 
         $message = (new MailMessage)
-            ->subject("Your refund for order {$order->number}")
-            ->greeting($order->customer_name ? "Hello {$order->customer_name}," : 'Hello,')
+            ->subject(__('mail.order.refund.subject', ['number' => $order->number]))
+            ->greeting($order->customer_name ? __('mail.order.refund.greeting_named', ['name' => $order->customer_name]) : __('mail.order.refund.greeting'))
             ->line($refund->isGiftCard()
-                ? "We've put {$refund->amount} {$refund->currency} back on your gift card ending {$order->giftCard?->last_four} for order {$order->number}."
-                : "We've refunded {$refund->amount} {$refund->currency} for order {$order->number}.");
+                ? __('mail.order.refund.to_gift_card', ['amount' => $refund->amount, 'currency' => $refund->currency, 'last_four' => $order->giftCard?->last_four, 'number' => $order->number])
+                : __('mail.order.refund.refunded', ['amount' => $refund->amount, 'currency' => $refund->currency, 'number' => $order->number]));
 
         if ($order->payment_status->value === 'refunded') {
-            $message->line('Your order has now been refunded in full.');
+            $message->line(__('mail.order.refund.in_full'));
         } else {
-            $message->line("Refunded so far: {$order->refunded_total} {$order->currency} of {$order->grand_total} {$order->currency}.");
+            $message->line(__('mail.order.refund.so_far', ['refunded' => $order->refunded_total, 'total' => $order->grand_total, 'currency' => $order->currency]));
         }
 
         // Money back on a gift card is there at once, and has no statement to show up on.
         if (! $refund->isGiftCard()) {
-            $message->line('Depending on your bank, it can take several days for the money to show on your statement.');
+            $message->line(__('mail.order.refund.statement'));
         }
 
         return $message
             // Signed, so it works for guests who cannot sign in to see the order.
-            ->action('View your order', URL::signedRoute('shop.checkout.complete', ['order' => $order->public_id]));
+            ->action(__('mail.order.view'), URL::signedRoute('shop.checkout.complete', ['order' => $order->public_id]));
     }
 }

@@ -7,6 +7,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\User;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
+use App\Support\Mail\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
@@ -59,20 +60,20 @@ class TicketReplied extends Notification implements ShouldQueue
         $authorName = $this->authorName();
 
         $subject = match ($this->audience) {
-            'agent', 'team' => 'New reply on support ticket: '.$this->ticket->subject,
-            default => 'We received your reply: '.$this->ticket->subject,
+            'agent', 'team' => __('mail.support.replied.subject_agent', ['subject' => $this->ticket->subject]),
+            default => __('mail.support.replied.subject_owner', ['subject' => $this->ticket->subject]),
         };
 
-        $greeting = 'Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!';
+        $greeting = MailText::greeting($notifiable);
 
         $messageLines = match ($this->audience) {
             'agent', 'team' => [
-                'There is a new reply on a ticket you are assigned to.',
-                'From: '.$authorName,
+                __('mail.support.replied.agent'),
+                __('mail.support.from_line', ['from' => $authorName]),
             ],
             default => [
-                'Your reply has been added to the conversation.',
-                'We will follow up as soon as possible if any further action is needed.',
+                __('mail.support.replied.owner'),
+                __('mail.support.replied.owner_follow_up'),
             ],
         };
 
@@ -85,12 +86,12 @@ class TicketReplied extends Notification implements ShouldQueue
         }
 
         if ($excerpt = $this->messageExcerpt()) {
-            $mailMessage->line('Message: '.$excerpt);
+            $mailMessage->line(__('mail.support.message_line', ['excerpt' => $excerpt]));
         }
 
         $mailMessage
-            ->action('View conversation', $this->conversationUrlFor($notifiable))
-            ->line('Thank you for using our support center.');
+            ->action(__('mail.support.view_conversation'), $this->conversationUrlFor($notifiable))
+            ->line(__('mail.support.thanks'));
 
         return $mailMessage;
     }
@@ -145,8 +146,8 @@ class TicketReplied extends Notification implements ShouldQueue
     protected function title(): string
     {
         return match ($this->audience) {
-            'agent', 'team' => 'New reply on ticket: '.$this->ticket->subject,
-            default => 'New reply on your ticket: '.$this->ticket->subject,
+            'agent', 'team' => __('mail.support.replied.title_agent', ['subject' => $this->ticket->subject]),
+            default => __('mail.support.replied.title_owner', ['subject' => $this->ticket->subject]),
         };
     }
 
@@ -157,8 +158,8 @@ class TicketReplied extends Notification implements ShouldQueue
         }
 
         return match ($this->audience) {
-            'agent', 'team' => $this->authorName().' replied to the ticket.',
-            default => 'Your reply has been added to the conversation.',
+            'agent', 'team' => __('mail.support.replied.excerpt_agent', ['name' => $this->authorName()]),
+            default => __('mail.support.replied.owner'),
         };
     }
 
@@ -166,7 +167,7 @@ class TicketReplied extends Notification implements ShouldQueue
     {
         $author = $this->message->author;
 
-        return $author?->nickname ?? $author?->email ?? 'A support member';
+        return $author?->nickname ?? $author?->email ?? __('mail.support.support_member');
     }
 
     protected function messageExcerpt(): ?string

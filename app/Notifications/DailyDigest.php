@@ -35,9 +35,9 @@ class DailyDigest extends Notification implements ShouldQueue
     {
         $count = count($this->items);
         $message = (new MailMessage)
-            ->subject('Your daily update')
-            ->greeting('Hi '.($notifiable->nickname ?? 'there').'!')
-            ->line($count === 1 ? 'Here is the update that was waiting for you.' : 'Here are the '.$count.' updates that were waiting for you.');
+            ->subject(__('mail.digest.subject'))
+            ->greeting(MailText::greeting($notifiable))
+            ->line(trans_choice('mail.digest.intro', $count));
 
         foreach ($this->grouped() as $category => $items) {
             $label = config('notification-preferences.categories.'.$category.'.label');
@@ -56,16 +56,14 @@ class DailyDigest extends Notification implements ShouldQueue
                 $message->line($item['url']);
             }
 
-            if ($earlier === 1) {
-                $message->line('And 1 earlier update.');
-            } elseif ($earlier > 1) {
-                $message->line('And '.$earlier.' earlier updates.');
+            if ($earlier > 0) {
+                $message->line(trans_choice('mail.digest.earlier', $earlier));
             }
         }
 
         return $message
-            ->action('Notification settings', route('settings.notifications.edit'))
-            ->line('You are receiving this email because you asked for a daily digest.');
+            ->action(__('mail.digest.action'), route('settings.notifications.edit'))
+            ->line(__('mail.digest.reason'));
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Support\Localization\DateFormatter;
+use App\Support\Mail\MailText;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -64,39 +65,39 @@ class ApiKeyCreated extends Notification implements ShouldQueue
 
         $message = (new MailMessage)
             ->subject(match ($this->how) {
-                self::ROTATION => 'An API key on your account was rotated',
-                self::STAFF => 'Staff added an API key to your account',
-                default => 'A new API key was made on your account',
+                self::ROTATION => __('mail.api_key_created.subject_rotation'),
+                self::STAFF => __('mail.api_key_created.subject_staff'),
+                default => __('mail.api_key_created.subject_created'),
             })
-            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
+            ->greeting(MailText::greeting($notifiable))
             ->line(match ($this->how) {
-                self::ROTATION => 'Your API key '.self::literal((string) $this->replaced).' was rotated: a new key called '.self::literal($this->name).' was made to replace it.',
-                self::STAFF => 'A member of staff made an API key called '.self::literal($this->name).' for your account.',
-                self::SIGN_IN => 'An API key called '.self::literal($this->name).' was made by signing in over the API with your email address and password.',
-                default => 'An API key called '.self::literal($this->name).' was made in your account settings.',
+                self::ROTATION => __('mail.api_key_created.rotation', ['old' => self::literal((string) $this->replaced), 'name' => self::literal($this->name)]),
+                self::STAFF => __('mail.api_key_created.staff', ['name' => self::literal($this->name)]),
+                self::SIGN_IN => __('mail.api_key_created.sign_in', ['name' => self::literal($this->name)]),
+                default => __('mail.api_key_created.settings', ['name' => self::literal($this->name)]),
             });
 
         if ($this->how === self::ROTATION) {
             $message->line($this->replacedUntil !== null
-                ? 'The old key keeps working until '.$dates->dayDateTime($this->replacedUntil).', so whatever uses it has time to be given the new one.'
-                : 'The old key stopped working at once.');
+                ? __('mail.api_key_created.old_until', ['date' => $dates->dayDateTime($this->replacedUntil)])
+                : __('mail.api_key_created.old_stopped'));
         }
 
         if ($this->ip !== null) {
-            $message->line('It was made from the address '.self::literal($this->ip).'.');
+            $message->line(__('mail.api_key_created.address', ['address' => self::literal($this->ip)]));
         }
 
         $message->line($this->fullAccess
-            ? 'It has full access to your account.'
-            : ($this->scopes === [] ? 'It cannot do anything.' : 'It can: '.implode(', ', $this->scopes).'.'));
+            ? __('mail.api_key_created.full_access')
+            : ($this->scopes === [] ? __('mail.api_key_created.no_access') : __('mail.api_key_created.scopes', ['scopes' => implode(', ', $this->scopes)])));
 
         $message->line($this->expiresAt !== null
-            ? 'It expires on '.$dates->dayDateTime($this->expiresAt).'.'
-            : 'It does not expire.');
+            ? __('mail.api_key_created.expires', ['date' => $dates->dayDateTime($this->expiresAt)])
+            : __('mail.api_key_created.does_not_expire'));
 
         return $message
-            ->line('If this was you, there is nothing more to do. If it was not, revoke the key now and change your password.')
-            ->action('Review your API keys', route('settings.api-keys.index'));
+            ->line(__('mail.api_key_created.if_not_you'))
+            ->action(__('mail.api_key_created.action'), route('settings.api-keys.index'));
     }
 
     /**

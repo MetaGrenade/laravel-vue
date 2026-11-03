@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\Mail\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -33,10 +34,10 @@ class SubscriptionCancelledForNonPayment extends Notification implements ShouldQ
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Your subscription has ended')
-            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
-            ->line("We couldn't take payment for ".($this->planName ?? 'your plan').' after several tries, so your subscription has ended and what it gave you is no longer available.')
-            ->line('You are welcome back at any time: choose a plan and add a payment method that works.')
-            ->action('Choose a plan', route('pricing'));
+            ->subject(__('mail.subscription.cancelled_for_non_payment.subject'))
+            ->greeting(MailText::greeting($notifiable))
+            ->line($this->planName !== null ? __('mail.subscription.cancelled_for_non_payment.ended', ['plan' => $this->planName]) : __('mail.subscription.cancelled_for_non_payment.ended_unknown_plan'))
+            ->line(__('mail.subscription.cancelled_for_non_payment.welcome_back'))
+            ->action(__('mail.subscription.cancelled_for_non_payment.action'), route('pricing'));
     }
 }

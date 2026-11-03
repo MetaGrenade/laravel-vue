@@ -20,6 +20,6 @@ class SendRefundNotification
             return;
         }
 
-        Notification::route('mail', $order->customer_email)->notify(new RefundIssued($order, $event->refund));
+        Notification::route('mail', $order->customer_email)->notify((new RefundIssued($order, $event->refund))->locale($order->notificationLocale()));
     }
 }

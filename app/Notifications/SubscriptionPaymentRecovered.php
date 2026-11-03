@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\BillingInvoice;
 use App\Support\Commerce\Money;
+use App\Support\Mail\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -40,10 +41,10 @@ class SubscriptionPaymentRecovered extends Notification implements ShouldQueue
         $amount = Money::ofMinor($this->amount, $this->invoice->currency)->toDecimal().' '.$this->invoice->currency;
 
         return (new MailMessage)
-            ->subject('Payment received, thank you')
-            ->greeting('Hi '.($notifiable->nickname ?? $notifiable->name ?? 'there').'!')
-            ->line("We've taken your payment of {$amount}".($plan ? " for {$plan}." : '.'))
-            ->line('Your plan is active again.')
-            ->action('Go to billing', route('settings.billing.index'));
+            ->subject(__('mail.subscription.payment_recovered.subject'))
+            ->greeting(MailText::greeting($notifiable))
+            ->line($plan ? __('mail.subscription.payment_recovered.received_plan', ['amount' => $amount, 'plan' => $plan]) : __('mail.subscription.payment_recovered.received', ['amount' => $amount]))
+            ->line(__('mail.subscription.payment_recovered.active_again'))
+            ->action(__('mail.subscription.view_billing'), route('settings.billing.index'));
     }
 }
