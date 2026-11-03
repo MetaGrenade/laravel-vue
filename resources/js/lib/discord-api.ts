@@ -117,7 +117,7 @@ export const discordAdminApi = {
             headers: jsonHeaders(),
         });
     },
-    listSyncFailures(options: { page?: number; perPage?: number; resolved?: boolean | null } = {}): Promise<{
+    listSyncFailures(options: { page?: number; perPage?: number; unresolved?: boolean } = {}): Promise<{
         data: DiscordSyncFailure[];
         meta?: Record<string, unknown>;
     }> {
@@ -128,10 +128,8 @@ export const discordAdminApi = {
             params.set('page', String(options.page));
         }
 
-        if (options.resolved === true) {
-            params.set('resolved', '1');
-        } else if (options.resolved === false) {
-            params.set('resolved', '0');
+        if (options.unresolved === true) {
+            params.set('unresolved', '1');
         }
 
         return request(`${adminBase}/sync/failures?${params.toString()}`, { headers: jsonHeaders() });

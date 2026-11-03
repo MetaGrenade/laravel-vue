@@ -32,16 +32,12 @@ const userId = ref('');
 const syncing = ref(false);
 const retrying = ref(false);
 
-const failuresResolvedParam = computed((): boolean | null => {
-    if (failuresFilter.value === 'unresolved') {
-        return false;
-    }
-
+const displayedFailures = computed(() => {
     if (failuresFilter.value === 'resolved') {
-        return true;
+        return failures.value.filter((row) => row.resolved_at !== null);
     }
 
-    return null;
+    return failures.value;
 });
 
 const unresolvedFailureCount = computed(() => status.value?.unresolved_failures ?? null);
@@ -59,7 +55,7 @@ const loadFailures = async () => {
         const response = await discordAdminApi.listSyncFailures({
             page: failuresPage.value,
             perPage: failuresPerPage.value,
-            resolved: failuresResolvedParam.value,
+            unresolved: failuresFilter.value === 'unresolved',
         });
 
         failures.value = response.data ?? [];
@@ -297,7 +293,7 @@ onMounted(load);
                             </div>
 
                             <p v-if="failuresLoading" class="text-sm text-muted-foreground">Loading failures…</p>
-                            <Table v-else-if="failures.length">
+                            <Table v-else-if="displayedFailures.length">
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead class="w-10">
@@ -317,7 +313,7 @@ onMounted(load);
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <TableRow v-for="failure in failures" :key="failure.id">
+                                    <TableRow v-for="failure in displayedFailures" :key="failure.id">
                                         <TableCell>
                                             <Checkbox
                                                 :model-value="selectedFailureIds.includes(failure.id)"

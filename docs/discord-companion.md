@@ -33,7 +33,7 @@ JSON APIs are provided by the package under `/discord/admin/*` and `/discord/use
 
 ### Sync dead-letter queue (operators)
 
-When Discord role sync jobs fail after retries, rows land in `discord_sync_failures`. On **ACP → Discord sync**, the **Sync dead-letter queue** panel lists unresolved (and resolved) failures, shows the **Unresolved DLQ** count from `GET /discord/admin/sync/status`, and lets you **Retry batch** (same as `php artisan discord:retry-failures --limit=N`) or **Retry selected** rows via `POST /discord/admin/sync/failures/retry`. Requires a companion release that exposes `GET /discord/admin/sync/failures` and the retry endpoint.
+When Discord role sync jobs fail after retries, rows land in `discord_sync_failures`. On **ACP → Discord sync**, the **Sync dead-letter queue** panel lists unresolved (and resolved) failures, shows the **Unresolved DLQ** count from `GET /discord/admin/sync/status`, and lets you **Retry batch** (same as `php artisan discord:retry-failures --limit=N`) or **Retry selected** rows via `POST /discord/admin/sync/failures/retry`. The list API accepts `?unresolved=1` to return only open rows; omit it for all rows (the ACP **Resolved** filter applies client-side on each page).
 
 ## Notifications pattern
 
