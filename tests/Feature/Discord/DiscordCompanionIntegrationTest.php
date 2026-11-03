@@ -7,6 +7,7 @@ use App\Models\SupportTicketMessage;
 use App\Models\User;
 use App\Notifications\SupportTicketAgentReply;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -40,6 +41,24 @@ class DiscordCompanionIntegrationTest extends TestCase
             ->get(route('acp.discord.sync'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('acp/DiscordSync'));
+    }
+
+    public function test_admin_sync_failures_api_is_protected_when_registered(): void
+    {
+        if (! $this->companionSyncFailuresRoutesRegistered()) {
+            $this->markTestSkipped('Companion sync failures admin routes are not registered yet.');
+        }
+
+        $this->getJson('/discord/admin/sync/failures')->assertUnauthorized();
+
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user->assignRole('admin');
+        $user->givePermissionTo('system.acp.view');
+
+        $this->actingAs($user)
+            ->getJson('/discord/admin/sync/failures?resolved=0')
+            ->assertOk()
+            ->assertJsonStructure(['data']);
     }
 
     public function test_admin_role_mapping_api_is_protected(): void
@@ -104,5 +123,16 @@ class DiscordCompanionIntegrationTest extends TestCase
             ->get(route('settings.discord-notifications.edit'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('settings/DiscordNotifications'));
+    }
+
+    private function companionSyncFailuresRoutesRegistered(): bool
+    {
+        foreach (Route::getRoutes()->getRoutes() as $route) {
+            if (str_contains($route->uri(), 'discord/admin/sync/failures')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
