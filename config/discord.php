@@ -76,6 +76,16 @@ return [
 
     'user_middleware' => ['web', 'auth', 'verified'],
 
+    'support_ticket_event_classes' => array_values(array_filter(array_map(
+        trim(...),
+        explode(',', (string) env('DISCORD_SUPPORT_TICKET_EVENT_CLASSES', 'App\\Events\\SupportTicketDiscordMirror')),
+    ))),
+
+    'forum_crosspost_event_classes' => array_values(array_filter(array_map(
+        trim(...),
+        explode(',', (string) env('DISCORD_FORUM_CROSSPOST_EVENT_CLASSES', 'App\\Events\\ForumPostCreated')),
+    ))),
+
     /*
     |--------------------------------------------------------------------------
     | Models (override in host app if needed)

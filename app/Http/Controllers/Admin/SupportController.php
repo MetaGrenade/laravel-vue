@@ -20,6 +20,7 @@ use App\Models\FaqCategory;
 use App\Models\FaqFeedback;
 use App\Models\SupportResponseTemplate;
 use App\Models\SupportTeam;
+use App\Events\SupportTicketDiscordMirror;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketAudit;
 use App\Models\SupportTicketCategory;
@@ -689,6 +690,8 @@ class SupportController extends Controller
         $ticket = SupportTicket::create($data);
 
         $this->ticketAssigner->assign($ticket);
+
+        event(new SupportTicketDiscordMirror($ticket, 'opened'));
 
         $this->ticketNotifier->dispatch($ticket, function (string $audience) use ($ticket) {
             return (new TicketOpened($ticket))
