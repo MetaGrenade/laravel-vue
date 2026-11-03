@@ -26,10 +26,14 @@ Run the gateway bot from [MetaForge-DiscordBot/bot](https://github.com/MetaGrena
 | Area | Route |
 |------|--------|
 | ACP role mappings | `/acp/discord/role-mappings` |
-| ACP sync status / manual sync | `/acp/discord/sync` |
+| ACP sync status / manual sync / DLQ | `/acp/discord/sync` |
 | User Discord notification opt-in | `/settings/discord-notifications` |
 
 JSON APIs are provided by the package under `/discord/admin/*` and `/discord/user/notification-preferences`, protected by `config/discord.php` middleware (`web`, `auth`, `verified`, and `system.acp.view` for admin).
+
+### Sync dead-letter queue (operators)
+
+When Discord role sync jobs fail after retries, rows land in `discord_sync_failures`. On **ACP → Discord sync**, the **Sync dead-letter queue** panel lists unresolved (and resolved) failures, shows the **Unresolved DLQ** count from `GET /discord/admin/sync/status`, and lets you **Retry batch** (same as `php artisan discord:retry-failures --limit=N`) or **Retry selected** rows via `POST /discord/admin/sync/failures/retry`. Requires a companion release that exposes `GET /discord/admin/sync/failures` and the retry endpoint.
 
 ## Notifications pattern
 

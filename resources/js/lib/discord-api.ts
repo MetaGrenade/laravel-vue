@@ -37,10 +37,28 @@ export type DiscordGuildRole = {
     position?: number;
 };
 
+export type DiscordSyncFailure = {
+    id: number;
+    operation: string;
+    user_id: number | null;
+    discord_user_id: string | null;
+    guild_id: string | null;
+    error: string;
+    attempts: number;
+    last_failed_at: string;
+    resolved_at: string | null;
+};
+
+export type DiscordSyncFailureRetryResult = {
+    retried: number;
+    skipped: number;
+};
+
 export type DiscordSyncStatus = {
     running: boolean;
     stale_linked_users: number;
     latest_run: Record<string, unknown> | null;
+    unresolved_failures?: number;
 };
 
 export type DiscordNotificationPreferences = {
@@ -97,6 +115,32 @@ export const discordAdminApi = {
         return request(`${adminBase}/sync/users/${userId}${query ? `?${query}` : ''}`, {
             method: 'POST',
             headers: jsonHeaders(),
+        });
+    },
+    listSyncFailures(options: { page?: number; perPage?: number; resolved?: boolean | null } = {}): Promise<{
+        data: DiscordSyncFailure[];
+        meta?: Record<string, unknown>;
+    }> {
+        const params = new URLSearchParams();
+        params.set('per_page', String(options.perPage ?? 15));
+
+        if (options.page !== undefined && options.page > 0) {
+            params.set('page', String(options.page));
+        }
+
+        if (options.resolved === true) {
+            params.set('resolved', '1');
+        } else if (options.resolved === false) {
+            params.set('resolved', '0');
+        }
+
+        return request(`${adminBase}/sync/failures?${params.toString()}`, { headers: jsonHeaders() });
+    },
+    retrySyncFailures(payload: { limit?: number; ids?: number[] } = {}): Promise<DiscordSyncFailureRetryResult> {
+        return request(`${adminBase}/sync/failures/retry`, {
+            method: 'POST',
+            headers: jsonHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify(payload),
         });
     },
 };

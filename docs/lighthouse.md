@@ -108,7 +108,8 @@ Lighthouse is in `devDependencies` and is not shipped: the licence audit ([licen
 `scripts/lighthouse-report.test.mjs` runs with `npm run bundle:test`. Lighthouse itself is not run by it (that takes a browser); a stand-in takes its place, and the script is run as `npm run lighthouse` runs it, against a stand-in site:
 
 - which audits fail a run, and that a score, a time, a cache or an image-delivery estimate never does; that compression is judged for a real site only;
-- the arguments Lighthouse is given, and that Chrome's sandbox is turned off on a CI runner and only there;
+- the arguments Lighthouse is given, and that Chrome's sandbox is turned off on a CI runner and only there (with `--disable-dev-shm-usage` there too);
+- a trace that never starts (NO_NAVSTART) is run again after the page is read once more;
 - reading the numbers out of a report, the two tables, and what a missing number looks like;
 - waiting for the site, and what it says when the site never answers or the application stopped; a page that ends by closing the connection is read to its end (Node 24 can crash on one that is left unread, see `scripts/check-install.test.mjs`);
 - a server that takes the connection and then stalls, before any answer or half-way through the body: the request is given up on at its deadline, a wait never outlasts its own deadline for it, a stalled request is asked again inside the wait, a port that is held by something that says nothing counts as used, and a page that stalls when it is read before the audit is named and ends the run with `2` before Lighthouse is started;

@@ -7,7 +7,20 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, test } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { PAGES, STABLE_AUDITS, argumentsFor, audit, inUse, stableProblems, summarise, table, waitForSite, warm } from './lighthouse-report.mjs';
+import {
+    PAGES,
+    STABLE_AUDITS,
+    argumentsFor,
+    audit,
+    auditWithRetry,
+    inUse,
+    isTransientLighthouseFailure,
+    stableProblems,
+    summarise,
+    table,
+    waitForSite,
+    warm,
+} from './lighthouse-report.mjs';
 
 const script = path.join(path.dirname(fileURLToPath(import.meta.url)), 'lighthouse-report.mjs');
 const made = [];
@@ -143,6 +156,14 @@ describe('what fails a run', () => {
     });
 });
 
+describe('transient Lighthouse failures', () => {
+    test('are recognised from the message Lighthouse prints', () => {
+        assert.equal(isTransientLighthouseFailure('exit 1\n(NO_NAVSTART)'), true);
+        assert.equal(isTransientLighthouseFailure('recording the trace over your page load'), true);
+        assert.equal(isTransientLighthouseFailure('exit 1\nChrome could not start'), false);
+    });
+});
+
 describe('the command given to Lighthouse', () => {
     test('asks for both reports, the four categories and a headless Chrome, on mobile', () => {
         const args = argumentsFor('http://127.0.0.1:8200/', '/tmp/out/home');
@@ -156,7 +177,7 @@ describe('the command given to Lighthouse', () => {
     });
 
     test('a runner that is thrown away after the job turns the sandbox off', () => {
-        assert.ok(argumentsFor('http://x/', 'o', { sandbox: false }).includes('--chrome-flags=--headless=new --no-sandbox'));
+        assert.ok(argumentsFor('http://x/', 'o', { sandbox: false }).includes('--chrome-flags=--headless=new --no-sandbox --disable-dev-shm-usage'));
     });
 
     test('desktop is a preset', () => {
@@ -338,12 +359,22 @@ function fakeCli(dir) {
     fs.writeFileSync(
         file,
         `import fs from 'node:fs';
+import path from 'node:path';
 const args = process.argv.slice(2);
 const output = args.find((arg) => arg.startsWith('--output-path=')).slice('--output-path='.length);
 fs.appendFileSync(process.env.FAKE_LOG, JSON.stringify(args) + '\\n');
 if (process.env.FAKE_FAIL) {
     console.error('Chrome could not start');
     process.exit(1);
+}
+if (process.env.FAKE_TRANSIENT_FAILS) {
+    const countFile = process.env.FAKE_TRANSIENT_COUNT ?? path.join(path.dirname(process.env.FAKE_LOG ?? '.'), 'transient-count');
+    let left = Number(fs.readFileSync(countFile, 'utf8'));
+    if (left > 0) {
+        fs.writeFileSync(countFile, String(left - 1));
+        console.error('Runtime error encountered: Something went wrong with recording the trace over your page load. Please run Lighthouse again. (NO_NAVSTART)');
+        process.exit(1);
+    }
 }
 if (process.env.FAKE_HANG) {
     setInterval(() => {}, 1000);
@@ -370,8 +401,32 @@ describe('one page', () => {
         assert.ok(fs.existsSync(path.join(dir, 'blog.report.html')), 'the HTML report is kept');
         assert.match(
             fs.readFileSync(path.join(dir, 'log'), 'utf8'),
-            /"http:\/\/127\.0\.0\.1:8200\/blogs".*"--chrome-flags=--headless=new --no-sandbox"/,
+            /"http:\/\/127\.0\.0\.1:8200\/blogs".*"--chrome-flags=--headless=new --no-sandbox --disable-dev-shm-usage"/,
         );
+    });
+
+    test('a trace that never started is tried again', async () => {
+        const dir = folder();
+        const lhr = path.join(dir, 'lhr.json');
+        fs.writeFileSync(lhr, JSON.stringify(report()));
+        const countFile = path.join(dir, 'transient-count');
+        fs.writeFileSync(countFile, '1');
+        Object.assign(process.env, {
+            FAKE_LHR: lhr,
+            FAKE_LOG: path.join(dir, 'log'),
+            FAKE_TRANSIENT_FAILS: '1',
+            FAKE_TRANSIENT_COUNT: countFile,
+        });
+
+        try {
+            const result = await auditWithRetry('http://127.0.0.1:8200/', 'home', { out: dir, cli: fakeCli(dir), sandbox: false });
+
+            assert.equal(summarise(result).performance, 99);
+            assert.equal(fs.readFileSync(path.join(dir, 'log'), 'utf8').trim().split('\n').length, 2);
+        } finally {
+            delete process.env.FAKE_TRANSIENT_FAILS;
+            delete process.env.FAKE_TRANSIENT_COUNT;
+        }
     });
 
     test('a command that fails says what it printed', async () => {
