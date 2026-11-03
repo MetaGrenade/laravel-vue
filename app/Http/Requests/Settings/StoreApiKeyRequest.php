@@ -43,11 +43,11 @@ class StoreApiKeyRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Give the key a name, so you can tell it from your others.',
-            'scopes.required' => 'Choose at least one thing the key can do.',
-            'scopes.*.in' => 'That is not something a key can be limited to.',
-            'expires_in.required' => 'Choose how long the key should last.',
-            'expires_in.in' => 'Choose how long the key should last from the list.',
+            'name.required' => __('forms.api_keys.name_required'),
+            'scopes.required' => __('forms.api_keys.scopes_required'),
+            'scopes.*.in' => __('forms.api_keys.scope_invalid'),
+            'expires_in.required' => __('forms.api_keys.expiry_required'),
+            'expires_in.in' => __('forms.api_keys.expiry_invalid'),
             ...ApiKeys::limitMessages(),
         ];
     }

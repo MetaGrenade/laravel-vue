@@ -42,7 +42,7 @@ class CommentGuard
 
         if ($honeypot !== null && (! is_string($honeypot) || trim($honeypot) !== '')) {
             throw ValidationException::withMessages([
-                'honeypot' => 'Spam check failed.',
+                'honeypot' => __('forms.comments.honeypot'),
             ]);
         }
     }
@@ -63,7 +63,7 @@ class CommentGuard
 
         if (! is_string($expected) || $expected === '' || ! is_string($token) || ! hash_equals($expected, $token)) {
             throw ValidationException::withMessages([
-                'captcha_token' => 'Invalid verification token.',
+                'captcha_token' => __('forms.comments.captcha'),
             ]);
         }
     }

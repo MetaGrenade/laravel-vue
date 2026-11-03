@@ -93,7 +93,7 @@ class NotificationSettingsController extends Controller
 
         if (! is_array($preferences)) {
             throw ValidationException::withMessages([
-                'preferences' => 'Invalid notification preferences payload.',
+                'preferences' => __('forms.notification_settings.invalid'),
             ]);
         }
 

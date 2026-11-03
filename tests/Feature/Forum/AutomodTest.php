@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
 use App\Support\Forum\ForumReview;
-use App\Support\Forum\ForumSubmissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
@@ -434,7 +433,7 @@ class AutomodTest extends TestCase
     {
         $rule = AutomodRule::factory()->words(['cheap watches'])->rejecting()->create();
 
-        $this->reply($this->member(), '<p>cheap watches</p>')->assertSessionHasErrors(['body' => ForumSubmissions::REJECTED]);
+        $this->reply($this->member(), '<p>cheap watches</p>')->assertSessionHasErrors(['body' => __('forms.forum.spam_rejected')]);
 
         $this->assertSame(0, ForumPost::query()->withoutGlobalScope(ForumPost::VISIBLE)->count(), 'nothing was kept');
         $this->assertSame(1, $rule->fresh()->hits);

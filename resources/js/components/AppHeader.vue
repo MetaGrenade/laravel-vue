@@ -207,7 +207,7 @@ type SectionAwareNavItem = NavItem & {
 };
 
 const { hasRole } = useRoles();
-const { t } = useI18n();
+const { t, tc } = useI18n();
 
 const isNavItemVisible = (item: SectionAwareNavItem): boolean => {
     if (item.section && !websiteSections.value[item.section]) {
@@ -419,7 +419,7 @@ const viewNotification = (notification: NotificationItem) => {
                 </SheetTrigger>
                 <SheetContent side="left" class="flex w-[300px] flex-col gap-0 p-0">
                     <SheetHeader class="border-b px-5 py-4 text-left">
-                        <SheetTitle class="sr-only">Navigation menu</SheetTitle>
+                        <SheetTitle class="sr-only">{{ t('ui.nav.menu_title') }}</SheetTitle>
                         <AppLogo />
                     </SheetHeader>
                     <nav class="flex-1 space-y-1 overflow-y-auto p-3" :aria-label="t('ui.nav.main')">
@@ -457,11 +457,11 @@ const viewNotification = (notification: NotificationItem) => {
                             class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                         >
                             <Heart class="size-4" />
-                            Wishlist
+                            {{ t('ui.cart.wishlist') }}
                         </Link>
                     </nav>
                     <div class="flex items-center justify-between border-t px-5 py-3 text-sm text-muted-foreground">
-                        Theme
+                        {{ t('ui.theme.label') }}
                         <ThemeToggle />
                     </div>
                     <div v-if="!user" class="grid gap-2 border-t p-4">
@@ -592,14 +592,19 @@ const viewNotification = (notification: NotificationItem) => {
                     class="hidden text-muted-foreground hover:text-foreground sm:inline-flex"
                     as-child
                 >
-                    <Link :href="route('shop.wishlist')" aria-label="Your wishlist" title="Your wishlist">
+                    <Link :href="route('shop.wishlist')" :aria-label="t('ui.cart.your_wishlist')" :title="t('ui.cart.your_wishlist')">
                         <Heart class="size-[1.15rem]" />
                     </Link>
                 </Button>
 
                 <Sheet v-if="commerceEnabled">
                     <SheetTrigger as-child>
-                        <Button variant="ghost" size="icon" class="relative text-muted-foreground hover:text-foreground" aria-label="Open cart">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="relative text-muted-foreground hover:text-foreground"
+                            :aria-label="t('ui.cart.open')"
+                        >
                             <ShoppingCart class="size-[1.15rem]" />
                             <span
                                 v-if="cartItemCount > 0"
@@ -611,39 +616,43 @@ const viewNotification = (notification: NotificationItem) => {
                     </SheetTrigger>
                     <SheetContent side="right" class="flex w-full max-w-md flex-col gap-0 p-0">
                         <SheetHeader class="space-y-1 border-b px-6 py-4 text-left">
-                            <SheetTitle>Your cart</SheetTitle>
-                            <p class="text-sm text-muted-foreground">Review your items before checkout.</p>
+                            <SheetTitle>{{ t('ui.cart.title') }}</SheetTitle>
+                            <p class="text-sm text-muted-foreground">{{ t('ui.cart.description') }}</p>
                         </SheetHeader>
                         <div class="flex-1 space-y-3 overflow-y-auto px-6 py-4">
                             <div v-if="!cartItems.length" class="flex flex-col items-center gap-2 py-12 text-center">
                                 <ShoppingCart class="size-8 text-muted-foreground/60" />
-                                <p class="text-sm text-muted-foreground">Your cart is empty.</p>
+                                <p class="text-sm text-muted-foreground">{{ t('ui.cart.empty') }}</p>
                             </div>
                             <div v-for="item in cartItems" :key="item.id" class="flex items-start justify-between gap-4 rounded-lg border p-3">
                                 <div class="min-w-0 space-y-1">
                                     <p class="truncate text-sm font-medium">{{ item.name }}</p>
-                                    <p class="text-xs text-muted-foreground">{{ item.variant || 'Base product' }} · Qty {{ item.quantity }}</p>
+                                    <p class="text-xs text-muted-foreground">
+                                        {{ t('ui.cart.line', { variant: item.variant || t('ui.cart.base_product'), quantity: item.quantity }) }}
+                                    </p>
                                 </div>
                                 <div class="text-right">
                                     <p class="text-sm font-semibold tabular-nums">{{ formatCurrency(Number(item.total)) }}</p>
-                                    <p class="text-xs text-muted-foreground tabular-nums">{{ formatCurrency(Number(item.unit_price)) }} each</p>
+                                    <p class="text-xs text-muted-foreground tabular-nums">
+                                        {{ t('ui.cart.each', { price: formatCurrency(Number(item.unit_price)) }) }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
                         <div class="space-y-3 border-t px-6 py-4">
                             <dl class="text-sm">
                                 <div class="flex justify-between text-base font-semibold">
-                                    <dt>Subtotal</dt>
+                                    <dt>{{ t('ui.cart.subtotal') }}</dt>
                                     <dd class="tabular-nums">{{ formatCurrency(cartSubtotal) }}</dd>
                                 </div>
                             </dl>
                             <div class="flex gap-2">
                                 <Button v-if="cartItems.length" class="flex-1" as-child>
-                                    <Link :href="route('shop.cart')">View cart</Link>
+                                    <Link :href="route('shop.cart')">{{ t('ui.cart.view') }}</Link>
                                 </Button>
-                                <Button v-else class="flex-1" disabled>View cart</Button>
+                                <Button v-else class="flex-1" disabled>{{ t('ui.cart.view') }}</Button>
                                 <Button variant="outline" class="flex-1" as-child>
-                                    <Link :href="route('shop.index')">Keep shopping</Link>
+                                    <Link :href="route('shop.index')">{{ t('ui.cart.keep_shopping') }}</Link>
                                 </Button>
                             </div>
                         </div>
@@ -656,7 +665,9 @@ const viewNotification = (notification: NotificationItem) => {
                             variant="ghost"
                             size="icon"
                             class="relative text-muted-foreground hover:text-foreground"
-                            :aria-label="unreadNotificationCount > 0 ? `${unreadNotificationCount} unread notifications` : 'Notifications'"
+                            :aria-label="
+                                unreadNotificationCount > 0 ? tc('ui.notifications.unread', unreadNotificationCount) : t('ui.notifications.title')
+                            "
                         >
                             <Bell class="size-[1.15rem]" />
                             <span
@@ -669,7 +680,7 @@ const viewNotification = (notification: NotificationItem) => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" class="w-[22rem] p-0">
                         <div class="flex items-center justify-between px-4 py-3">
-                            <p class="text-sm font-semibold">Notifications</p>
+                            <p class="text-sm font-semibold">{{ t('ui.notifications.title') }}</p>
                             <Button
                                 v-if="unreadNotificationCount > 0"
                                 variant="ghost"
@@ -679,13 +690,13 @@ const viewNotification = (notification: NotificationItem) => {
                                 @click.prevent="markAllNotificationsAsRead"
                             >
                                 <Check />
-                                Mark all read
+                                {{ t('ui.notifications.mark_all_read') }}
                             </Button>
                         </div>
                         <DropdownMenuSeparator class="m-0" />
                         <div v-if="notifications.length === 0" class="flex flex-col items-center gap-2 px-4 py-10 text-center">
                             <Bell class="size-6 text-muted-foreground/60" />
-                            <p class="text-sm text-muted-foreground">You're all caught up.</p>
+                            <p class="text-sm text-muted-foreground">{{ t('ui.notifications.caught_up') }}</p>
                         </div>
                         <ul v-else class="max-h-96 divide-y overflow-y-auto">
                             <li v-for="notification in notifications" :key="notification.id" class="group flex gap-3 px-4 py-3 hover:bg-muted/50">
@@ -710,7 +721,7 @@ const viewNotification = (notification: NotificationItem) => {
                                             :disabled="isNotificationProcessing(notification.id)"
                                             @click.prevent="markNotificationAsRead(notification.id)"
                                         >
-                                            Mark read
+                                            {{ t('ui.notifications.mark_read') }}
                                         </button>
                                         <button
                                             type="button"
@@ -719,7 +730,7 @@ const viewNotification = (notification: NotificationItem) => {
                                             @click.prevent="deleteNotification(notification.id)"
                                         >
                                             <Trash2 class="size-3" />
-                                            Dismiss
+                                            {{ t('ui.notifications.dismiss') }}
                                         </button>
                                     </div>
                                 </div>
@@ -728,7 +739,7 @@ const viewNotification = (notification: NotificationItem) => {
                         <template v-if="notificationsHasMore">
                             <DropdownMenuSeparator class="m-0" />
                             <p class="px-4 py-2 text-xs text-muted-foreground">
-                                Showing the latest {{ notifications.length }} of {{ unreadNotificationCount }} unread notifications.
+                                {{ t('ui.notifications.showing_latest', { shown: notifications.length, unread: unreadNotificationCount }) }}
                             </p>
                         </template>
                     </DropdownMenuContent>
@@ -736,7 +747,7 @@ const viewNotification = (notification: NotificationItem) => {
 
                 <DropdownMenu v-if="user">
                     <DropdownMenuTrigger as-child>
-                        <Button variant="ghost" class="ml-1 h-9 gap-2 rounded-full px-1.5 sm:pr-2.5" aria-label="Account menu">
+                        <Button variant="ghost" class="ml-1 h-9 gap-2 rounded-full px-1.5 sm:pr-2.5" :aria-label="t('ui.nav.account_menu')">
                             <Avatar class="size-7">
                                 <AvatarImage v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.nickname ?? ''" />
                                 <AvatarFallback class="bg-primary text-[0.65rem] font-semibold text-primary-foreground">

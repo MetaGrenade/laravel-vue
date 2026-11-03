@@ -36,7 +36,7 @@ class ReopenPublicSupportTicketRequest extends FormRequest
             }
 
             if ($ticket->status !== 'closed') {
-                $validator->errors()->add('status', 'This ticket is already open.');
+                $validator->errors()->add('status', __('forms.support.already_open'));
             }
         });
     }

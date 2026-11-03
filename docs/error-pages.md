@@ -77,6 +77,7 @@ The words are Laravel translations, not part of the front-end groups in `config/
 - A request that no route matches and is not a GET (a POST to a wrong address, a 405) is left as it was, so the Inertia client shows its dialog. Nothing in the app sends one.
 - Statuses that proxies and web servers produce (502, 504, an nginx 413) never reach Laravel, so they are the server's own pages.
 - The standalone page has the plate artwork; the `Error` page is the plain layout. If the two should match, restyle `Error.vue`.
+- The `<title>` of the standalone page ("Not Found") and the `abort()` explanation of a 403 are not in `lang/en/errors.php`: the first is Laravel's own sentence, looked up by its English text in `lang/<code>.json`, which `lang:check` does not read ([i18n.md](i18n.md#what-is-translated-today)), and the second is whatever the code that refused gave.
 
 ## Tests
 

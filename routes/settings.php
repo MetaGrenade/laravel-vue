@@ -19,7 +19,8 @@ use App\Http\Controllers\Settings\TwoFactorRecoveryCodeController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::middleware('auth')->group(function () {
+// The settings pages are sent the words of their frame (lang/en/settings.php) and no other page is.
+Route::middleware(['auth', 'translations:settings'])->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');

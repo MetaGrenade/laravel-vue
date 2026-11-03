@@ -113,9 +113,9 @@ class CheckoutRequest extends FormRequest
         $label = strtolower((string) app(TebexStoreProfile::class)->usernameLabel() ?: 'username');
 
         return [
-            'game_username.required' => "Enter your {$label}.",
-            'game_username.max' => "That {$label} is too long.",
-            'game_username.regex' => "That {$label} has characters it cannot have.",
+            'game_username.required' => __('forms.checkout.username_required', ['label' => $label]),
+            'game_username.max' => __('forms.checkout.username_too_long', ['label' => $label]),
+            'game_username.regex' => __('forms.checkout.username_characters', ['label' => $label]),
         ];
     }
 
@@ -142,7 +142,7 @@ class CheckoutRequest extends FormRequest
         $validator->after(function (Validator $validator) {
             foreach (['shipping_address_id', 'billing_address_id'] as $key) {
                 if ($this->filled($key) && $this->savedAddress((int) $this->input($key)) === null) {
-                    $validator->errors()->add($key, 'That saved address could not be found.');
+                    $validator->errors()->add($key, __('forms.checkout.address_missing'));
                 }
             }
 
@@ -240,7 +240,7 @@ class CheckoutRequest extends FormRequest
         $country = $this->input('shipping_address.country');
 
         if ($served !== null && is_string($country) && $country !== '' && ! in_array($country, $served, true)) {
-            $validator->errors()->add('shipping_address.country', "Sorry, we can't ship to that country.");
+            $validator->errors()->add('shipping_address.country', __('forms.checkout.country_not_served'));
         }
     }
 }

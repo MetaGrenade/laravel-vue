@@ -20,7 +20,7 @@ class TwoFactorRecoveryCodeController extends Controller
 
         if (! $user->two_factor_secret || ! $user->two_factor_confirmed_at) {
             throw ValidationException::withMessages([
-                'recovery' => 'Enable multi-factor authentication before generating recovery codes.',
+                'recovery' => __('forms.two_factor.enable_first'),
             ]);
         }
 
@@ -29,7 +29,7 @@ class TwoFactorRecoveryCodeController extends Controller
             $encryptedCodes = TwoFactorAuthenticator::encryptRecoveryCodes($recoveryCodes);
         } catch (JsonException) {
             throw ValidationException::withMessages([
-                'recovery' => 'Recovery codes could not be generated. Please try again.',
+                'recovery' => __('forms.two_factor.codes_failed'),
             ]);
         }
 

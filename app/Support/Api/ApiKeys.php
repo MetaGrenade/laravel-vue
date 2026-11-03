@@ -39,9 +39,9 @@ class ApiKeys
         $messages = [];
 
         foreach (['hourly_quota', 'daily_quota'] as $field) {
-            $messages["{$field}.integer"] = 'Enter a whole number of calls, or leave it empty for no limit.';
-            $messages["{$field}.min"] = 'A limit must be at least 1 call. Leave it empty for no limit.';
-            $messages["{$field}.max"] = 'A limit cannot be more than '.number_format(self::MAX_LIMIT).' calls.';
+            $messages["{$field}.integer"] = __('forms.api_keys.limit_integer');
+            $messages["{$field}.min"] = __('forms.api_keys.limit_min');
+            $messages["{$field}.max"] = __('forms.api_keys.limit_max', ['max' => number_format(self::MAX_LIMIT)]);
         }
 
         return $messages;
@@ -193,11 +193,11 @@ class ApiKeys
             $old = $user->tokens()->lockForUpdate()->findOrFail($key->getKey());
 
             if ($old->isRevoked() || $old->isExpired()) {
-                throw ApiKeyRejected::cannotRotate('This key no longer works, so there is nothing to replace. Make a new key instead.');
+                throw ApiKeyRejected::cannotRotate(__('forms.api_keys.rotate_dead'));
             }
 
             if ($old->rotated_at !== null) {
-                throw ApiKeyRejected::cannotRotate('This key has already been replaced, and is only working out its grace period.');
+                throw ApiKeyRejected::cannotRotate(__('forms.api_keys.rotate_replaced'));
             }
 
             $scopes = array_values(array_filter(
@@ -206,7 +206,7 @@ class ApiKeys
             ));
 
             if ($scopes === []) {
-                throw ApiKeyRejected::cannotRotate('This key holds nothing the site recognises, so a copy of it would do nothing. Make a new key instead.');
+                throw ApiKeyRejected::cannotRotate(__('forms.api_keys.rotate_empty'));
             }
 
             // The same length of life from now. (Rounded: a key's end is a moment after its start, by however long the request took.)

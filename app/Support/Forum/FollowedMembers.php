@@ -182,13 +182,13 @@ class FollowedMembers
     {
         if ($viewer->id === $member->id) {
             throw ValidationException::withMessages([
-                'user' => 'You cannot follow yourself.',
+                'user' => __('forms.forum.follow_self'),
             ]);
         }
 
         if ($member->is_banned || ! $this->canFollow($viewer, $member)) {
             throw ValidationException::withMessages([
-                'user' => 'That member cannot be followed.',
+                'user' => __('forms.forum.follow_unavailable'),
             ]);
         }
 

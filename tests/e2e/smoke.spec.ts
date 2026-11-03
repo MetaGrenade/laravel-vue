@@ -265,6 +265,36 @@ test.describe('accounts', () => {
 });
 
 test.describe('members', () => {
+    test('the settings pages and the header show their words, not the names of language keys', async ({ page }) => {
+        // The frame of the settings pages (docs/i18n.md) is sent by the routes of those pages only, and the header's words go with every
+        // page. A page that was not sent them shows `settings.title` where its heading should be.
+        await signIn(page, member.email);
+
+        const pages = [
+            '/settings/profile',
+            '/settings/password',
+            '/settings/security',
+            '/settings/api-keys',
+            '/settings/notifications',
+            '/settings/billing',
+            '/settings/addresses',
+        ];
+
+        for (const path of pages) {
+            await page.goto(path);
+            await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
+            await expect(page.getByRole('navigation', { name: 'Settings sections' }).last().getByRole('link', { name: 'Profile' })).toBeVisible();
+            expect(await page.locator('body').innerText(), `${path} shows a language key`).not.toMatch(/\b(?:ui|settings)\.[a-z_]+(?:\.[a-z_]+)?\b/);
+        }
+
+        await page.getByRole('button', { name: 'Account menu' }).click();
+        await expect(page.getByRole('menuitem', { name: 'Settings' })).toBeVisible();
+        await page.keyboard.press('Escape');
+
+        await page.getByRole('button', { name: 'Open cart' }).click();
+        await expect(page.getByRole('dialog').getByText('Your cart', { exact: true })).toBeVisible();
+    });
+
     test('a member starts a forum thread and replies to it', async ({ page }) => {
         const title = unique('Smoke thread');
         const reply = unique('A reply');

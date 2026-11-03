@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
@@ -20,6 +21,7 @@ import {
 import { computed, type Component } from 'vue';
 
 interface SettingsNavItem {
+    /** A translation key (the `settings` group is sent with these pages), resolved where it is shown. */
     title: string;
     href: string;
     icon: Component;
@@ -29,30 +31,31 @@ interface SettingsNavItem {
 
 const allNavGroups: { title: string; items: SettingsNavItem[] }[] = [
     {
-        title: 'Account',
+        title: 'settings.groups.account',
         items: [
-            { title: 'Profile', href: '/settings/profile', icon: User },
-            { title: 'Password', href: '/settings/password', icon: KeyRound },
-            { title: 'Security', href: '/settings/security', icon: ShieldCheck },
-            { title: 'API keys', href: '/settings/api-keys', icon: KeySquare },
-            { title: 'Notifications', href: '/settings/notifications', icon: Bell },
-            { title: 'Discord notifications', href: '/settings/discord-notifications', icon: MessagesSquare },
-            { title: 'Privacy', href: '/settings/privacy', icon: Lock },
-            { title: 'Account standing', href: '/settings/account-standing', icon: ShieldAlert },
-            { title: 'Appearance', href: '/settings/appearance', icon: Palette },
+            { title: 'settings.nav.profile', href: '/settings/profile', icon: User },
+            { title: 'settings.nav.password', href: '/settings/password', icon: KeyRound },
+            { title: 'settings.nav.security', href: '/settings/security', icon: ShieldCheck },
+            { title: 'settings.nav.api_keys', href: '/settings/api-keys', icon: KeySquare },
+            { title: 'settings.nav.notifications', href: '/settings/notifications', icon: Bell },
+            { title: 'settings.nav.discord_notifications', href: '/settings/discord-notifications', icon: MessagesSquare },
+            { title: 'settings.nav.privacy', href: '/settings/privacy', icon: Lock },
+            { title: 'settings.nav.account_standing', href: '/settings/account-standing', icon: ShieldAlert },
+            { title: 'settings.nav.appearance', href: '/settings/appearance', icon: Palette },
         ],
     },
     {
-        title: 'Billing',
+        title: 'settings.groups.billing',
         items: [
-            { title: 'Subscription', href: '/settings/billing', icon: CreditCard },
-            { title: 'Payment methods', href: '/settings/billing/payment-methods', icon: Wallet },
-            { title: 'Invoices', href: '/settings/billing/invoices', icon: Receipt },
-            { title: 'Addresses', href: '/settings/addresses', icon: MapPin, section: 'commerce' },
+            { title: 'settings.nav.subscription', href: '/settings/billing', icon: CreditCard },
+            { title: 'settings.nav.payment_methods', href: '/settings/billing/payment-methods', icon: Wallet },
+            { title: 'settings.nav.invoices', href: '/settings/billing/invoices', icon: Receipt },
+            { title: 'settings.nav.addresses', href: '/settings/addresses', icon: MapPin, section: 'commerce' },
         ],
     },
 ];
 
+const { t } = useI18n();
 const page = usePage<SharedData>();
 
 const sections = computed(() => page.props.settings?.website_sections);
@@ -77,18 +80,18 @@ const linkClass = (href: string) =>
 <template>
     <div class="px-4 py-6">
         <div class="mb-6">
-            <h1 class="text-xl font-semibold tracking-tight">Settings</h1>
-            <p class="text-sm text-muted-foreground">Manage your profile, security and billing.</p>
+            <h1 class="text-xl font-semibold tracking-tight">{{ t('settings.title') }}</h1>
+            <p class="text-sm text-muted-foreground">{{ t('settings.description') }}</p>
         </div>
 
         <!-- Mobile / tablet: horizontally scrolling tabs -->
-        <nav class="-mx-4 mb-6 scrollbar-thin overflow-x-auto border-b px-4 lg:hidden" aria-label="Settings sections">
+        <nav class="-mx-4 mb-6 scrollbar-thin overflow-x-auto border-b px-4 lg:hidden" :aria-label="t('settings.sections')">
             <ul class="flex w-max gap-1 pb-2">
                 <template v-for="group in navGroups" :key="group.title">
                     <li v-for="item in group.items" :key="item.href">
                         <Link :href="item.href" :class="linkClass(item.href)" :aria-current="isActive(item.href) ? 'page' : undefined">
                             <component :is="item.icon" class="size-4" />
-                            {{ item.title }}
+                            {{ t(item.title) }}
                         </Link>
                     </li>
                 </template>
@@ -97,16 +100,16 @@ const linkClass = (href: string) =>
 
         <div class="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)]">
             <aside class="hidden lg:block">
-                <nav class="sticky top-20 space-y-5" aria-label="Settings sections">
+                <nav class="sticky top-20 space-y-5" :aria-label="t('settings.sections')">
                     <div v-for="group in navGroups" :key="group.title">
                         <p class="mb-1.5 px-2.5 text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground/80 uppercase">
-                            {{ group.title }}
+                            {{ t(group.title) }}
                         </p>
                         <ul class="space-y-0.5">
                             <li v-for="item in group.items" :key="item.href">
                                 <Link :href="item.href" :class="linkClass(item.href)" :aria-current="isActive(item.href) ? 'page' : undefined">
                                     <component :is="item.icon" class="size-4" />
-                                    {{ item.title }}
+                                    {{ t(item.title) }}
                                 </Link>
                             </li>
                         </ul>

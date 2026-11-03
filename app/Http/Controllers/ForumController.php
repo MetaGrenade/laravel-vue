@@ -716,7 +716,7 @@ class ForumController extends Controller
 
         if ($bodyText === '') {
             throw ValidationException::withMessages([
-                'body' => 'Please enter some content before publishing.',
+                'body' => __('forms.forum.thread_body_empty'),
             ]);
         }
 

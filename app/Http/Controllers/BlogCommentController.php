@@ -315,7 +315,7 @@ class BlogCommentController extends Controller
 
         if ($body === '') {
             throw ValidationException::withMessages([
-                'body' => 'Comment cannot be empty.',
+                'body' => __('forms.comments.empty'),
             ]);
         }
 

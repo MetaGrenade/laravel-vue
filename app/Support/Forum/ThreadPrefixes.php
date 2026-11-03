@@ -81,7 +81,7 @@ class ThreadPrefixes
         if ($raw === null || $raw === '') {
             if ($required && $board->prefixes()->exists()) {
                 throw ValidationException::withMessages([
-                    'prefix' => 'Choose a prefix for this board.',
+                    'prefix' => __('forms.forum.prefix_required'),
                 ]);
             }
 
@@ -100,7 +100,7 @@ class ThreadPrefixes
 
         if (! $prefix instanceof ForumPrefix) {
             throw ValidationException::withMessages([
-                'prefix' => 'That prefix is not available on this board.',
+                'prefix' => __('forms.forum.prefix_unavailable'),
             ]);
         }
 

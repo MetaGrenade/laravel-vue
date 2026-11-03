@@ -42,7 +42,7 @@ class ThreadSolutions
 
         if (! is_int($postId) && ! (is_string($postId) && ctype_digit($postId))) {
             throw ValidationException::withMessages([
-                'post_id' => 'That reply is not in this thread.',
+                'post_id' => __('forms.forum.solution_not_in_thread'),
             ]);
         }
 
@@ -53,7 +53,7 @@ class ThreadSolutions
 
         if (! $post instanceof ForumPost) {
             throw ValidationException::withMessages([
-                'post_id' => 'That reply is not in this thread.',
+                'post_id' => __('forms.forum.solution_not_in_thread'),
             ]);
         }
 
@@ -67,7 +67,7 @@ class ThreadSolutions
 
         if (is_numeric($openerId) && (int) $openerId === $post->id) {
             throw ValidationException::withMessages([
-                'post_id' => 'The opening post cannot be the solution.',
+                'post_id' => __('forms.forum.solution_is_opener'),
             ]);
         }
 

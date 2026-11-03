@@ -248,7 +248,7 @@ class ForumAttachments
 
         if ($bytes === '') {
             throw ValidationException::withMessages([
-                'attachments.'.$index => 'That file is empty.',
+                'attachments.'.$index => __('forms.forum.attachment_empty'),
             ]);
         }
 
@@ -279,7 +279,7 @@ class ForumAttachments
         }
 
         throw ValidationException::withMessages([
-            'attachments.'.$index => 'Upload a JPEG, PNG, WebP or GIF picture, or a PDF, text file or zip.',
+            'attachments.'.$index => __('forms.forum.attachment_type'),
         ]);
     }
 
@@ -305,7 +305,7 @@ class ForumAttachments
 
         if ($kept + $incoming > $max) {
             throw ValidationException::withMessages([
-                'attachments' => 'A post can have '.$max.' files.',
+                'attachments' => trans_choice('forms.forum.attachments_max', $max, ['max' => $max]),
             ]);
         }
     }
@@ -352,7 +352,7 @@ class ForumAttachments
             }
 
             throw ValidationException::withMessages([
-                'attachments' => 'The file could not be saved.',
+                'attachments' => __('forms.forum.attachment_unsaved'),
             ]);
         }
     }

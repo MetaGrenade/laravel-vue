@@ -24,8 +24,6 @@ use Illuminate\Validation\ValidationException;
  */
 class ForumSubmissions
 {
-    public const REJECTED = 'This looks like spam, so it was not posted. If you think that is a mistake, please contact a moderator.';
-
     public function __construct(
         private readonly Automod $automod,
         private readonly ForumPublisher $publisher,
@@ -126,7 +124,7 @@ class ForumSubmissions
         $verdict = $this->automod->check($author, $title, $body);
 
         if ($verdict?->rejects()) {
-            throw ValidationException::withMessages(['body' => self::REJECTED]);
+            throw ValidationException::withMessages(['body' => __('forms.forum.spam_rejected')]);
         }
 
         return $verdict;

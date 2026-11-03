@@ -99,7 +99,7 @@ class ForumThreadModerationController extends Controller
 
         if ($title === '') {
             throw ValidationException::withMessages([
-                'title' => 'The thread title cannot be empty.',
+                'title' => __('forms.forum.title_empty'),
             ]);
         }
 

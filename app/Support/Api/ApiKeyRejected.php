@@ -14,7 +14,7 @@ class ApiKeyRejected extends ValidationException
     public static function tooMany(int $max): static
     {
         return static::withMessages([
-            'limit' => ['You already have '.$max.' API '.($max === 1 ? 'key' : 'keys').' you can use. Revoke one you no longer need, then make another.'],
+            'limit' => [trans_choice('forms.api_keys.too_many', $max, ['max' => $max])],
         ]);
     }
 
@@ -22,7 +22,7 @@ class ApiKeyRejected extends ValidationException
     public static function unverified(): static
     {
         return static::withMessages([
-            'email' => ['Verify your email address first: API keys can only be made once it is verified.'],
+            'email' => [__('forms.api_keys.unverified')],
         ]);
     }
 
@@ -30,7 +30,7 @@ class ApiKeyRejected extends ValidationException
     public static function noRoomToRotate(int $max): static
     {
         return static::withMessages([
-            'limit' => ['You already have '.$max.' API '.($max === 1 ? 'key' : 'keys').' you can use, and rotating with a grace period needs room for one more while the old key winds down. Revoke one you no longer need, or rotate this key and stop the old one at once.'],
+            'limit' => [trans_choice('forms.api_keys.no_room_to_rotate', $max, ['max' => $max])],
         ]);
     }
 
@@ -43,6 +43,6 @@ class ApiKeyRejected extends ValidationException
     /** The limits were set by staff, so they are not the owner's to change. */
     public static function limitsFromStaff(): static
     {
-        return static::withMessages(['limits' => ['Staff set the limits on this key, so you cannot change them.']]);
+        return static::withMessages(['limits' => [__('forms.api_keys.limits_from_staff')]]);
     }
 }

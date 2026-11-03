@@ -47,7 +47,7 @@ class ForumPostController extends Controller
 
         if ($bodyText === '') {
             throw ValidationException::withMessages([
-                'body' => 'Reply cannot be empty.',
+                'body' => __('forms.forum.reply_empty'),
             ]);
         }
 
@@ -108,7 +108,7 @@ class ForumPostController extends Controller
 
         if ($bodyText === '') {
             throw ValidationException::withMessages([
-                'body' => 'Post content cannot be empty.',
+                'body' => __('forms.forum.post_empty'),
             ]);
         }
 

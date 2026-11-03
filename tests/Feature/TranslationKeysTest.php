@@ -101,12 +101,45 @@ class TranslationKeysTest extends TestCase
     }
 
     #[Test]
-    public function the_pages_that_are_not_auth_pages_are_not_made_heavier_by_the_auth_strings(): void
+    public function every_settings_page_is_sent_every_string_of_its_frame(): void
+    {
+        $layout = 'js/layouts/settings/SettingsLayout.vue';
+        $keys = $this->keysIn($layout, 'settings');
+
+        $this->assertNotEmpty($keys, 'the settings layout uses no settings keys: has it been converted?');
+
+        // Every page in the navigation, found in the layout itself so that a page added to it is checked too.
+        preg_match_all("/href: '(\\/settings\\/[a-z0-9\\/-]+)'/", File::get(resource_path($layout)), $links);
+
+        $this->assertNotEmpty($links[1]);
+
+        $known = FrontendTranslations::forGroups(['settings'], 'en');
+
+        foreach ($keys as $key) {
+            $this->assertArrayHasKey($key, $known, "The settings layout shows {$key}, which is not in lang/en/settings.php.");
+        }
+
+        $member = User::factory()->create();
+
+        foreach ($links[1] as $url) {
+            $page = $this->page($url, $member);
+
+            foreach ($keys as $key) {
+                $this->assertArrayHasKey($key, $page['translations'], "{$url} ({$page['component']}) shows {$key} in its frame, which was not sent with it.");
+            }
+        }
+    }
+
+    #[Test]
+    public function the_pages_that_are_not_auth_or_settings_pages_are_not_made_heavier_by_their_strings(): void
     {
         $page = $this->page('/');
 
-        $this->assertSame([], array_filter(array_keys($page['translations']), fn (string $key) => str_starts_with($key, 'auth.')));
+        $this->assertSame([], array_filter(array_keys($page['translations']), fn (string $key) => str_starts_with($key, 'auth.') || str_starts_with($key, 'settings.')));
         $this->assertArrayHasKey('ui.nav.home', $page['translations']);
+        // What the header shows on every page is in the groups every page gets.
+        $this->assertArrayHasKey('ui.cart.title', $page['translations']);
+        $this->assertArrayHasKey('ui.notifications.title', $page['translations']);
     }
 
     #[Test]
