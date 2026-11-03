@@ -3,13 +3,16 @@
 namespace Tests\Feature\Mail;
 
 use App\Events\OrderPaid;
+use App\Http\Middleware\SetLocale;
 use App\Models\EmailDigestItem;
 use App\Models\Order;
 use App\Models\User;
 use App\Notifications\BanLifted;
 use App\Notifications\OrderConfirmation;
+use App\Support\Localization\Locales;
 use App\Support\Members\DirectMessages;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\SendQueuedNotifications;
@@ -34,7 +37,7 @@ class MailLanguageTest extends TestCase
     {
         parent::setUp();
 
-        config(['i18n.supported' => ['en', 'fr'], 'app.locale' => 'en']);
+        config(['i18n.supported' => ['en', 'fr'], 'i18n.default' => 'en', 'app.locale' => 'en']);
 
         Lang::addLines([
             'mail.greeting' => 'Bonjour :name !',
@@ -63,9 +66,41 @@ class MailLanguageTest extends TestCase
         $this->assertSame('en', User::factory()->make(['locale' => null])->preferredLocale());
         $this->assertSame('en', User::factory()->make(['locale' => 'not a locale'])->preferredLocale());
 
-        config(['app.locale' => 'fr']);
+        config(['i18n.default' => 'fr']);
 
         $this->assertSame('fr', User::factory()->make(['locale' => 'de'])->preferredLocale());
+    }
+
+    #[Test]
+    public function the_sites_own_language_is_not_the_language_of_the_request_in_hand(): void
+    {
+        // Laravel's setLocale() writes the request's language into `app.locale`, so that cannot be where the site's own is kept.
+        app()->setLocale('fr');
+
+        $this->assertSame('fr', config('app.locale'));
+        $this->assertSame('en', Locales::default());
+        $this->assertSame('en', User::factory()->make(['locale' => null])->preferredLocale());
+        $this->assertSame('en', User::factory()->make(['locale' => 'de'])->preferredLocale());
+    }
+
+    #[Test]
+    public function a_member_whose_language_the_site_does_not_have_is_not_written_to_in_the_language_of_the_request_that_caused_the_email(): void
+    {
+        // The column cannot be empty; what it can hold is a language the site has since stopped (or never started) offering.
+        $member = User::factory()->create(['locale' => 'de']);
+
+        // A moderator who reads French, going through the middleware that chooses the language of the request.
+        $request = Request::create('/', 'GET', [], ['locale' => 'fr']);
+
+        (new SetLocale)->handle($request, function () use ($member) {
+            $this->assertSame('fr', app()->getLocale());
+
+            $member->notify(new BanLifted(false));
+
+            return response('');
+        });
+
+        $this->assertSame('Your ban has been lifted', $this->sentMail()->last()->getOriginalMessage()->getSubject());
     }
 
     #[Test]
@@ -163,6 +198,9 @@ class MailLanguageTest extends TestCase
         $member = User::factory()->create(['locale' => 'fr']);
         $mine = Order::factory()->forUser($member)->paid()->create();
         $guests = Order::factory()->paid()->create(['customer_email' => 'guest@example.test']);
+
+        // The payment is confirmed in a request in French (a webhook has none, an admin marking an order paid has their own).
+        app()->setLocale('fr');
 
         event(new OrderPaid($mine));
         event(new OrderPaid($guests));

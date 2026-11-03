@@ -20,6 +20,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | The site's own language
+    |--------------------------------------------------------------------------
+    |
+    | The language used when nothing asks for another one: a visitor with no
+    | preference, a guest's order email, a member whose language the site does
+    | not have. It is APP_LOCALE, read once here. `app.locale` cannot be asked
+    | instead: Laravel's App::setLocale() writes the request's language into it,
+    | so after SetLocale (or while an email is being made in someone's language)
+    | it is the language in use, not the site's.
+    |
+    */
+
+    'default' => env('APP_LOCALE', 'en'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Front-end translation groups
     |--------------------------------------------------------------------------
     |

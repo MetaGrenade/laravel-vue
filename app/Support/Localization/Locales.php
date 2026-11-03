@@ -33,12 +33,14 @@ final class Locales
     }
 
     /**
-     * The language used when nothing asks for another one: `APP_LOCALE`, or the first supported language if that is not one.
+     * The language used when nothing asks for another one: `APP_LOCALE`, or the first supported language if that is not one. It is
+     * read from `config('i18n.default')` and not from `app.locale`, which `App::setLocale()` overwrites with the language of the
+     * request in hand: a member with no language of their own would be written to in the language of whoever caused the email.
      */
     public static function default(): string
     {
         $supported = self::supported();
-        $default = self::language((string) config('app.locale', 'en'));
+        $default = self::language((string) config('i18n.default', 'en'));
 
         return $default !== null && in_array($default, $supported, true) ? $default : $supported[0];
     }
