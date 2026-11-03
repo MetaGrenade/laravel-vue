@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Notifications\SupportTicketAgentReply;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use MetaForge\Discord\Models\DiscordSyncFailure;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -67,19 +68,17 @@ class DiscordCompanionIntegrationTest extends TestCase
             $this->markTestSkipped('Companion sync failures admin routes are not registered yet.');
         }
 
-        if (! class_exists(\MetaForge\Discord\Models\DiscordSyncFailure::class)) {
+        if (! class_exists(DiscordSyncFailure::class)) {
             $this->markTestSkipped('Companion package is not installed.');
         }
 
-        $failureModel = \MetaForge\Discord\Models\DiscordSyncFailure::class;
-
-        $failureModel::record(
-            $failureModel::OPERATION_OUTBOUND_ROLE_SYNC,
+        DiscordSyncFailure::record(
+            DiscordSyncFailure::OPERATION_OUTBOUND_ROLE_SYNC,
             'Open failure',
             1,
         );
-        $failureModel::record(
-            $failureModel::OPERATION_OUTBOUND_ROLE_SYNC,
+        DiscordSyncFailure::record(
+            DiscordSyncFailure::OPERATION_OUTBOUND_ROLE_SYNC,
             'Closed failure',
             2,
         )->markResolved();
