@@ -2651,7 +2651,7 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/MetaGrenade/MetaForge-DiscordBot.git",
-                "reference": "main"
+                "reference": "22fa4db8a656508f5cd3642f81954382de77cc54"
             },
             "require": {
                 "illuminate/contracts": "^13.0",

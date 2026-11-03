@@ -56,9 +56,48 @@ class DiscordCompanionIntegrationTest extends TestCase
         $user->givePermissionTo('system.acp.view');
 
         $this->actingAs($user)
-            ->getJson('/discord/admin/sync/failures?resolved=0')
+            ->getJson('/discord/admin/sync/failures?unresolved=1')
             ->assertOk()
             ->assertJsonStructure(['data']);
+    }
+
+    public function test_admin_sync_failures_unresolved_filter_when_registered(): void
+    {
+        if (! $this->companionSyncFailuresRoutesRegistered()) {
+            $this->markTestSkipped('Companion sync failures admin routes are not registered yet.');
+        }
+
+        if (! class_exists(\MetaForge\Discord\Models\DiscordSyncFailure::class)) {
+            $this->markTestSkipped('Companion package is not installed.');
+        }
+
+        $failureModel = \MetaForge\Discord\Models\DiscordSyncFailure::class;
+
+        $failureModel::record(
+            $failureModel::OPERATION_OUTBOUND_ROLE_SYNC,
+            'Open failure',
+            1,
+        );
+        $failureModel::record(
+            $failureModel::OPERATION_OUTBOUND_ROLE_SYNC,
+            'Closed failure',
+            2,
+        )->markResolved();
+
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user->assignRole('admin');
+        $user->givePermissionTo('system.acp.view');
+
+        $this->actingAs($user)
+            ->getJson('/discord/admin/sync/failures')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->actingAs($user)
+            ->getJson('/discord/admin/sync/failures?unresolved=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.error', 'Open failure');
     }
 
     public function test_admin_role_mapping_api_is_protected(): void
