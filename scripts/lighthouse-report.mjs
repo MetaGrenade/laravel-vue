@@ -78,38 +78,55 @@ export function argumentsFor(url, output, { preset = 'mobile', sandbox = true } 
     ];
 }
 
+/** How long one request may take, from asking to the last byte of the answer. The first page after a start compiles its views: seconds, not half a minute. */
+export const REQUEST_TIMEOUT = 30_000;
+
+/** Whether a request ran out of time, as opposed to being refused or answered with an error. */
+const timedOut = (error) => error.cause?.name === 'TimeoutError';
+
 /**
  * Asks for the page to be read once, so the first compile of a view and the first read of the database are not what Lighthouse measures.
  * The whole body is read: a response that is left unread can crash Node's client when the server ends it by closing the connection.
+ *
+ * A server that takes the connection and then stalls would hold this for ever, and so would a body that stops half-way: `fetch()` comes
+ * back at the headers. The deadline is one signal for both, so whichever is waiting is stopped, and `timeout` is in milliseconds.
  */
-export async function warm(url) {
-    let response;
+export async function warm(url, { timeout = REQUEST_TIMEOUT } = {}) {
+    const signal = AbortSignal.timeout(timeout);
 
     try {
-        response = await fetch(url, { redirect: 'follow' });
+        const response = await fetch(url, { redirect: 'follow', signal });
+
+        await response.arrayBuffer();
+
+        return response.status;
     } catch (error) {
+        if (signal.aborted) throw new Error(`no complete answer within ${number(timeout / 1000)} s`, { cause: signal.reason });
+
         // Node's client says only "fetch failed"; the reason (ECONNREFUSED, ENOTFOUND, a certificate) is in the cause.
         throw new Error(error.cause?.code ?? error.cause?.message ?? error.message, { cause: error });
     }
-
-    await response.arrayBuffer();
-
-    return response.status;
 }
 
-/** Whether something answers at the address. */
-async function answers(base) {
+/**
+ * Whether something is using the address: it answered, or it took the connection and said nothing. Only a refused connection (or
+ * another failure to connect) says there is nothing there.
+ */
+export async function inUse(base, { timeout = 5_000 } = {}) {
     try {
-        await warm(base);
+        await warm(base, { timeout });
 
         return true;
-    } catch {
-        return false;
+    } catch (error) {
+        return timedOut(error);
     }
 }
 
-/** Waits until the site answers 200, or says why it did not. */
-export async function waitForSite(base, { timeout = 180_000, interval = 500, giveUp = () => null } = {}) {
+/**
+ * Waits until the site answers 200, or says why it did not. A request is never allowed past the deadline of the wait, so `timeout` is
+ * the longest this takes (and `interval` the pause between two requests), whatever the site does.
+ */
+export async function waitForSite(base, { timeout = 180_000, interval = 500, requestTimeout = REQUEST_TIMEOUT, giveUp = () => null } = {}) {
     const end = Date.now() + timeout;
     let last = 'no answer';
 
@@ -119,7 +136,7 @@ export async function waitForSite(base, { timeout = 180_000, interval = 500, giv
         if (reason) throw new Error(reason);
 
         try {
-            const status = await warm(base);
+            const status = await warm(base, { timeout: Math.max(1, Math.min(requestTimeout, end - Date.now())) });
 
             if (status === 200) return;
 
@@ -279,12 +296,12 @@ function stop(child) {
 }
 
 /** Starts the application on a database of its own and waits for it. @returns {Promise<{base: string, stop: () => void}>} */
-async function startSite(out) {
+async function startSite(out, { requestTimeout }) {
     const base = `http://127.0.0.1:${SITE.port}`;
 
-    if (await answers(base)) {
+    if (await inUse(base)) {
         throw new Error(
-            `Something already answers at ${base}, so the application would not be the one started here. Stop it, or use --site=${base} to audit it.`,
+            `Something is already using ${base}, so the application would not be the one started here. Stop it, or use --site=${base} to audit it.`,
         );
     }
 
@@ -308,7 +325,10 @@ async function startSite(out) {
     });
 
     try {
-        await waitForSite(base, { giveUp: () => (child.exitCode === null ? null : `The application stopped with exit code ${child.exitCode}.`) });
+        await waitForSite(base, {
+            requestTimeout,
+            giveUp: () => (child.exitCode === null ? null : `The application stopped with exit code ${child.exitCode}.`),
+        });
     } catch (error) {
         stop(child);
 
@@ -325,11 +345,16 @@ async function main(argv) {
     const given = option('site', null);
     const out = path.resolve(root, option('out', 'lighthouse-report'));
     const preset = option('preset', 'mobile');
+    const seconds = Number(option('request-timeout', REQUEST_TIMEOUT / 1000));
+    const requestTimeout = seconds * 1000;
     const cli = process.env.LIGHTHOUSE_CLI ?? lighthouseCli();
 
-    if (!['mobile', 'desktop'].includes(preset) || (given !== null && !/^https?:\/\//.test(given))) {
-        console.error('Usage: npm run lighthouse [-- --site=https://example.com] [--out=lighthouse-report] [--preset=mobile|desktop]');
+    if (!['mobile', 'desktop'].includes(preset) || !(seconds > 0 && Number.isFinite(seconds)) || (given !== null && !/^https?:\/\//.test(given))) {
+        console.error(
+            'Usage: npm run lighthouse [-- --site=https://example.com] [--out=lighthouse-report] [--preset=mobile|desktop] [--request-timeout=30]',
+        );
         console.error('Without --site the application is started on a database of its own. A site is its address, e.g. https://example.com.');
+        console.error('--request-timeout is the seconds a page may take to answer completely when it is read before the audit (a number above 0).');
 
         return 2;
     }
@@ -346,12 +371,14 @@ async function main(argv) {
 
     try {
         if (!base) {
-            site = await startSite(out);
+            site = await startSite(out, { requestTimeout });
             base = site.base;
         }
 
         for (const page of PAGES) {
-            const status = await warm(`${base}${page.path}`);
+            const status = await warm(`${base}${page.path}`, { timeout: requestTimeout }).catch((error) => {
+                throw timedOut(error) ? new Error(`${page.path} did not finish answering within ${number(requestTimeout / 1000)} s.`) : error;
+            });
 
             if (status !== 200) throw new Error(`${page.path} answers ${status}, not 200.`);
         }

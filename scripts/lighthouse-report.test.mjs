@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, test } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { PAGES, STABLE_AUDITS, argumentsFor, audit, stableProblems, summarise, table, waitForSite } from './lighthouse-report.mjs';
+import { PAGES, STABLE_AUDITS, argumentsFor, audit, inUse, stableProblems, summarise, table, waitForSite, warm } from './lighthouse-report.mjs';
 
 const script = path.join(path.dirname(fileURLToPath(import.meta.url)), 'lighthouse-report.mjs');
 const made = [];
@@ -15,6 +15,8 @@ const servers = [];
 
 after(async () => {
     made.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true }));
+    // A server that stalls on purpose still holds the connection a test gave up on, and close() waits for it.
+    servers.forEach((server) => server.closeAllConnections?.());
     await Promise.all(servers.map((server) => new Promise((resolve) => server.close(resolve))));
 });
 
@@ -242,6 +244,61 @@ describe('waiting for the site', () => {
         );
     });
 
+    // A server that takes the connection and then stalls: fetch() would wait for ever, and a wait that only looks at its clock between
+    // two requests would never get to look. Each of these is a test that ends in a failed assertion instead of a hang, because the
+    // time a request is allowed is in the assertion (and `node --test` is not asked to wait for longer than that).
+    const stalls = {
+        'before it sends any answer': () => {},
+        'after the headers, in the middle of the body': (request, response) => {
+            response.writeHead(200, { 'content-length': '1000' });
+            response.write('x');
+        },
+    };
+
+    for (const [when, handler] of Object.entries(stalls)) {
+        test(`a page that stalls ${when} is given up on at the deadline`, async () => {
+            const base = await site(handler);
+            const started = Date.now();
+
+            await assert.rejects(warm(base, { timeout: 150 }), (error) => {
+                assert.match(error.message, /^no complete answer within 0\.15 s$/);
+                assert.equal(error.cause.name, 'TimeoutError');
+
+                return true;
+            });
+            assert.ok(Date.now() - started < 5000, `it waited ${Date.now() - started} ms`);
+        });
+    }
+
+    test('a wait does not outlast its own deadline for a request that never ends', async () => {
+        const base = await site(() => {});
+        const started = Date.now();
+
+        // The request is allowed 30 s by default; only the 0.4 s that are left of the wait can stop it.
+        await assert.rejects(
+            waitForSite(base, { timeout: 400, interval: 20 }),
+            /did not answer 200 within 0\.4 s \(no complete answer within 0\.\d+ s\)/,
+        );
+        assert.ok(Date.now() - started < 5000, `it waited ${Date.now() - started} ms`);
+    });
+
+    test('a request that stalls is given up on and asked again, inside the wait', async () => {
+        let asked = 0;
+        const base = await site((request, response) => {
+            if (++asked > 1) response.end('ok');
+        });
+
+        await waitForSite(base, { timeout: 10_000, interval: 10, requestTimeout: 150 });
+
+        assert.equal(asked, 2);
+    });
+
+    test('knows that something is using an address if it answers, or takes the connection and says nothing, and not if it refuses', async () => {
+        assert.equal(await inUse(await site((request, response) => response.end('ok'))), true);
+        assert.equal(await inUse(await site(() => {}), { timeout: 150 }), true);
+        assert.equal(await inUse(`http://127.0.0.1:${await freePort()}`), false);
+    });
+
     // PHP's built-in server ends its answers by closing the connection, with no length. On Node 24 a body that is never read then stops
     // the HTTP client with `assert(!this.paused)` (it stopped the install job in CI once, see scripts/check-install.test.mjs), so the
     // client here is a process of its own, and a crash is its exit code.
@@ -452,6 +509,22 @@ describe('the command', () => {
         assert.match(err, /\/forum answers 404, not 200/);
     });
 
+    test('a page that stalls is a run that could not be made, said soon and with its path, and the reports are not started', async () => {
+        const base = await site((request, response) => {
+            if (request.url !== '/forum') response.end('x');
+        });
+        const { dir, env } = setup(report());
+        const out = path.join(dir, 'reports');
+        const started = Date.now();
+        const { code, err } = await runScript([`--site=${base}`, `--out=${out}`, '--request-timeout=0.3'], env);
+
+        assert.equal(code, 2);
+        assert.ok(err.includes(`Could not reach ${base}: /forum did not finish answering within 0.3 s.`), err);
+        assert.ok(Date.now() - started < 20_000, `it took ${Date.now() - started} ms`);
+        assert.deepEqual(fs.readdirSync(out), []);
+        assert.ok(!fs.existsSync(path.join(dir, 'log')), 'Lighthouse was run');
+    });
+
     test('a site that is not there is a run that could not be made', async () => {
         const { dir, env } = setup(report());
         const gone = `http://127.0.0.1:${await freePort()}`;
@@ -488,7 +561,13 @@ describe('the command', () => {
     });
 
     test('says how to use it when it is given something it does not know', async () => {
-        for (const args of [['--preset=tablet'], ['--site=example.com']]) {
+        for (const args of [
+            ['--preset=tablet'],
+            ['--site=example.com'],
+            ['--request-timeout=0'],
+            ['--request-timeout=soon'],
+            ['--request-timeout='],
+        ]) {
             const { code, err } = await runScript(args);
 
             assert.equal(code, 2, args.join(' '));

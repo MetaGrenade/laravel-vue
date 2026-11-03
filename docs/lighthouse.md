@@ -30,6 +30,7 @@ In CI the `lighthouse (report)` job does the same on Playwright's Chromium, and 
 | `--site=https://example.com` | Audit a site that is running, instead of starting one. See [a real site](#a-real-site). |
 | `--out=folder` | Where the reports go (`lighthouse-report`). Only the reports and the log of an earlier run in it are removed. |
 | `--preset=desktop` | Desktop emulation, without the throttling. |
+| `--request-timeout=seconds` | How long a page may take to answer completely when it is read before the audit (default `30`). A page that takes longer, or that takes the connection and then says nothing, is a run that could not be made (exit code `2`) and is named. |
 
 `PHP_BIN` names the PHP to start the application with (default `php`), and `CHROME_PATH` the Chrome to use (default: the one that is installed).
 
@@ -50,7 +51,7 @@ What does fail a run is what the page decides for itself, and answers the same e
 
 The built-in PHP server that is started without `--site` never compresses anything, and never sends a cache header, so what a real web server does for the page cannot be judged there: those are the `document-latency-insight` compression check (which is judged only with `--site`) and the `cache-insight`, which is never judged. The nginx settings for both are in [performance.md](performance.md).
 
-The exit code is `0` when nothing is wrong, `1` when one of the checks above failed (the table is printed first, and the reports are kept), and `2` when the run could not be made: the site did not start or answer, or a page did not answer `200`. In CI each problem is also an error annotation on the run.
+The exit code is `0` when nothing is wrong, `1` when one of the checks above failed (the table is printed first, and the reports are kept), and `2` when the run could not be made: the site did not start or answer, a page did not answer `200`, or a page did not finish answering in time (see `--request-timeout`; the 180 s that the site is given to start is a limit on the whole wait, and no single request is allowed past it). In CI each problem is also an error annotation on the run.
 
 Image oversize (`image-delivery-insight`, "the file is larger than it needs to be for where it is shown") is **not** a check. The estimate depends on the pixel ratio of the emulated phone and moves between Lighthouse versions; it is in the reports, and see below for what it found.
 
@@ -110,6 +111,7 @@ Lighthouse is in `devDependencies` and is not shipped: the licence audit ([licen
 - the arguments Lighthouse is given, and that Chrome's sandbox is turned off on a CI runner and only there;
 - reading the numbers out of a report, the two tables, and what a missing number looks like;
 - waiting for the site, and what it says when the site never answers or the application stopped; a page that ends by closing the connection is read to its end (Node 24 can crash on one that is left unread, see `scripts/check-install.test.mjs`);
+- a server that takes the connection and then stalls, before any answer or half-way through the body: the request is given up on at its deadline, a wait never outlasts its own deadline for it, a stalled request is asked again inside the wait, a port that is held by something that says nothing counts as used, and a page that stalls when it is read before the audit is named and ends the run with `2` before Lighthouse is started;
 - the exit codes, the job summary, the annotations, that one page failing does not stop the others, and that an earlier run's reports are removed and nothing else in the folder is.
 
 The start of the application (the part that needs PHP) is not in the tests; `npm run lighthouse` is its test, and CI runs it.
