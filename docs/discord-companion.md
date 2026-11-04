@@ -38,3 +38,21 @@ When Discord role sync jobs fail after retries, rows land in `discord_sync_failu
 ## Notifications pattern
 
 `App\Notifications\SupportTicketAgentReply` implements `DiscordNotifiableNotification` and sends via `DiscordWebhookChannel` when an agent replies on a ticket (category `support_ticket_reply`). Copy this pattern for other high-value notifications.
+
+## Moderation staff mirror
+
+When a moderator records a warning, ban, unban, or content removal, `App\Support\Moderation\Moderation` dispatches `App\Events\ModerationDiscordMirror`. The companion listens when the class is listed in `config/discord.php` → `moderation_event_classes` (default via `DISCORD_MODERATION_EVENT_CLASSES`).
+
+Set staff channel credentials and optional deep-link template in `.env` (see `.env.example`):
+
+| Variable | Purpose |
+|----------|---------|
+| `DISCORD_MODERATION_MIRROR_ENABLED` | Master switch (companion respects this when posting) |
+| `DISCORD_MODERATION_CHANNEL_ID` | Private staff channel (bot token path) |
+| `DISCORD_MODERATION_WEBHOOK_URL` | Alternative webhook-only posting |
+| `DISCORD_MODERATION_URL_TEMPLATE` | Embed link; `{user_id}` and `{action_id}` placeholders |
+| `DISCORD_MODERATION_STAFF_REASON_IN_EMBED` | Include truncated public reason in staff embeds (default off) |
+
+Full wiring and security notes: [MetaForge-DiscordBot docs/moderation-discord.md](https://github.com/MetaGrenade/MetaForge-DiscordBot/blob/main/docs/moderation-discord.md).
+
+Optional bot ingest without host events: `POST /discord/bot/moderation` (HMAC, same as other bot routes).

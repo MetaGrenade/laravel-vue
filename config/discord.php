@@ -1,5 +1,12 @@
 <?php
 
+$discordEventClassesFromEnv = static function (string $envKey, string $default): array {
+    return array_values(array_unique(array_filter(array_map(
+        static fn (string $class): string => preg_replace('/\\\\+/', '\\', trim($class)) ?? '',
+        explode(',', (string) env($envKey, $default)),
+    ))));
+};
+
 return [
 
     /*
@@ -76,15 +83,43 @@ return [
 
     'user_middleware' => ['web', 'auth', 'verified'],
 
-    'support_ticket_event_classes' => array_values(array_filter(array_map(
-        trim(...),
-        explode(',', (string) env('DISCORD_SUPPORT_TICKET_EVENT_CLASSES', 'App\\Events\\SupportTicketDiscordMirror')),
-    ))),
+    'support_ticket_event_classes' => $discordEventClassesFromEnv(
+        'DISCORD_SUPPORT_TICKET_EVENT_CLASSES',
+        'App\\Events\\SupportTicketDiscordMirror',
+    ),
 
-    'forum_crosspost_event_classes' => array_values(array_filter(array_map(
-        trim(...),
-        explode(',', (string) env('DISCORD_FORUM_CROSSPOST_EVENT_CLASSES', 'App\\Events\\ForumPostCreated')),
-    ))),
+    'forum_crosspost_event_classes' => $discordEventClassesFromEnv(
+        'DISCORD_FORUM_CROSSPOST_EVENT_CLASSES',
+        'App\\Events\\ForumPostCreated',
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Moderation staff mirror
+    |--------------------------------------------------------------------------
+    |
+    | Host events listed here are listened to by the Discord companion (see MetaForge-DiscordBot docs/moderation-discord.md).
+    |
+    */
+
+    'moderation_event_classes' => $discordEventClassesFromEnv(
+        'DISCORD_MODERATION_EVENT_CLASSES',
+        'App\\Events\\ModerationDiscordMirror',
+    ),
+
+    'moderation_mirror_enabled' => (bool) env('DISCORD_MODERATION_MIRROR_ENABLED', true),
+
+    'moderation_channel_id' => env('DISCORD_MODERATION_CHANNEL_ID'),
+
+    'moderation_webhook_url' => env('DISCORD_MODERATION_WEBHOOK_URL'),
+
+    'moderation_url_template' => env('DISCORD_MODERATION_URL_TEMPLATE'),
+
+    'moderation_staff_reason_in_embed' => (bool) env('DISCORD_MODERATION_STAFF_REASON_IN_EMBED', false),
+
+    'moderation_reason_excerpt_max' => (int) env('DISCORD_MODERATION_REASON_EXCERPT_MAX', 200),
+
+    'moderation_subject_label_max' => (int) env('DISCORD_MODERATION_SUBJECT_LABEL_MAX', 120),
 
     /*
     |--------------------------------------------------------------------------
