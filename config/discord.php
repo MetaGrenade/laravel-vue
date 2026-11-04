@@ -1,5 +1,12 @@
 <?php
 
+$discordEventClassesFromEnv = static function (string $envKey, string $default): array {
+    return array_values(array_unique(array_filter(array_map(
+        static fn (string $class): string => preg_replace('/\\\\+/', '\\', trim($class)) ?? '',
+        explode(',', (string) env($envKey, $default)),
+    ))));
+};
+
 return [
 
     /*
@@ -76,15 +83,15 @@ return [
 
     'user_middleware' => ['web', 'auth', 'verified'],
 
-    'support_ticket_event_classes' => array_values(array_filter(array_map(
-        trim(...),
-        explode(',', (string) env('DISCORD_SUPPORT_TICKET_EVENT_CLASSES', 'App\\Events\\SupportTicketDiscordMirror')),
-    ))),
+    'support_ticket_event_classes' => $discordEventClassesFromEnv(
+        'DISCORD_SUPPORT_TICKET_EVENT_CLASSES',
+        'App\\Events\\SupportTicketDiscordMirror',
+    ),
 
-    'forum_crosspost_event_classes' => array_values(array_filter(array_map(
-        trim(...),
-        explode(',', (string) env('DISCORD_FORUM_CROSSPOST_EVENT_CLASSES', 'App\\Events\\ForumPostCreated')),
-    ))),
+    'forum_crosspost_event_classes' => $discordEventClassesFromEnv(
+        'DISCORD_FORUM_CROSSPOST_EVENT_CLASSES',
+        'App\\Events\\ForumPostCreated',
+    ),
 
     /*
     |--------------------------------------------------------------------------
@@ -95,10 +102,10 @@ return [
     |
     */
 
-    'moderation_event_classes' => array_values(array_filter(array_map(
-        trim(...),
-        explode(',', (string) env('DISCORD_MODERATION_EVENT_CLASSES', 'App\\Events\\ModerationDiscordMirror')),
-    ))),
+    'moderation_event_classes' => $discordEventClassesFromEnv(
+        'DISCORD_MODERATION_EVENT_CLASSES',
+        'App\\Events\\ModerationDiscordMirror',
+    ),
 
     'moderation_mirror_enabled' => (bool) env('DISCORD_MODERATION_MIRROR_ENABLED', true),
 
