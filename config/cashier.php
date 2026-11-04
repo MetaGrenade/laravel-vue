@@ -16,7 +16,9 @@ return [
 
     'currency_locale' => env('CASHIER_CURRENCY_LOCALE', 'en'),
 
-    'payment_notification' => env('CASHIER_PAYMENT_NOTIFICATION', true),
+    // The name of a notification class (Laravel\Cashier\Notifications\ConfirmPayment is the one Cashier ships), or nothing.
+    // Not `true`: Cashier builds the class with `new`, and `true` is not one.
+    'payment_notification' => env('CASHIER_PAYMENT_NOTIFICATION'),
 
     'logger' => env('CASHIER_LOGGER'),
 
