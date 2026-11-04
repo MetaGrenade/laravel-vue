@@ -12,7 +12,10 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
+use Laravel\Cashier\Notifications\ConfirmPayment;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * One endpoint for everything Stripe sends. Subscription and invoice events go
@@ -38,7 +41,12 @@ class StripeWebhookController extends CashierWebhookController
         private readonly WebhookReceiver $webhooks,
     ) {}
 
-    public function __invoke(Request $request): Response
+    /**
+     * The answer is a Symfony response, not an `Illuminate\Http\Response`: for every event that this class does not
+     * handle itself, Cashier answers with `new Symfony\...\Response` (`successMethod()`, `missingMethod()`). Promising
+     * the narrower type turned each of those into a TypeError, a 500 for Stripe, and a redelivery for three days.
+     */
+    public function __invoke(Request $request): SymfonyResponse
     {
         if ($this->signatures->secrets() === []) {
             return new Response('Webhook signing secret not configured', 500);
@@ -77,6 +85,29 @@ class StripeWebhookController extends CashierWebhookController
         return $this->billOnce($payload, function () use ($payload): void {
             $this->processor->handleCustomerSubscriptionTrialWillEnd($payload);
         });
+    }
+
+    /**
+     * A renewal that the customer has to confirm with their bank. Cashier sends them the notification class named in
+     * `cashier.payment_notification` and builds it with `new $notification(...)`, so anything that is not a class (the
+     * setting used to default to `true`) ended in an Error and a 500. With no notification to send there is nothing to
+     * do: the failed payment itself is dealt with by `invoice.payment_failed` ({@see BillingWebhookProcessor}).
+     */
+    protected function handleInvoicePaymentActionRequired(array $payload)
+    {
+        $notification = config('cashier.payment_notification');
+
+        if (! is_string($notification) || ! class_exists($notification)) {
+            if (filled($notification)) {
+                Log::warning('CASHIER_PAYMENT_NOTIFICATION is not the name of a notification class, so the customer was not sent a request to confirm the payment. Leave it unset, or give it a class such as '.ConfirmPayment::class.'.', [
+                    'event' => Arr::get($payload, 'id'),
+                ]);
+            }
+
+            return $this->successMethod();
+        }
+
+        return parent::handleInvoicePaymentActionRequired($payload);
     }
 
     protected function handleCheckoutSessionCompleted(array $payload): Response

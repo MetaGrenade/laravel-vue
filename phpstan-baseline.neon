@@ -1285,12 +1285,6 @@ parameters:
 			path: app/Http/Controllers/SupportCenterController.php
 
 		-
-			message: '#^Method App\\Http\\Controllers\\Webhooks\\StripeWebhookController\:\:__invoke\(\) should return Illuminate\\Http\\Response but returns Symfony\\Component\\HttpFoundation\\Response\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Http/Controllers/Webhooks/StripeWebhookController.php
-
-		-
 			message: '#^Using nullsafe method call on non\-nullable type App\\Models\\User\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
