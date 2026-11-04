@@ -102,7 +102,7 @@ Set the site up by hand first, then run the installer on it:
 
 1. Copy `.env.example` to `.env` and set at least `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, the `DB_*` settings (create the empty MySQL or PostgreSQL database yourself: the command makes only the SQLite file), mail, and Redis if you use it. The README's [Production & SSR Builds](../README.md#production--ssr-builds) lists the rest.
 2. Run `php artisan metaforger:install --force`. Without `--force` a site that says it is production asks you to confirm and, with `--no-interaction`, stops.
-3. Build the front end, run `php artisan optimize`, and start the queue worker and the scheduler as the README describes.
+3. Build the front end, run `php artisan optimize`, and start the queue worker and the scheduler. [deployment.md](deployment.md) has all of this in order, with a web server, Supervisor and cron to copy, and what to do on every deploy after the first; [configuration.md](configuration.md) lists every setting.
 
 `--demo` is refused in production. The demo accounts have a password everybody knows.
 

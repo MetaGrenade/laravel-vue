@@ -37,10 +37,15 @@ npm run format                  # Prettier (format:check to only check)
 npm run lint:check              # ESLint
 npm run types:check             # vue-tsc
 npm run build && npm run bundle:check   # the size of the front end against its budget
-npm run bundle:test             # tests of the scripts in scripts/ (the size check, the time-to-first-byte check, the licence check)
+npm run bundle:test             # tests of the scripts in scripts/ (the size check, the time-to-first-byte check, the licence check, the documentation check)
 npm run licences:check          # the licences of what is shipped, and THIRD-PARTY-NOTICES.md (needs composer install and npm ci)
+npm run docs:check              # every link and #heading in README.md, CONTRIBUTING.md, SECURITY.md, CHANGELOG.md and docs/ leads somewhere
 npm run build && npm run lighthouse   # Lighthouse over six pages: a report, and a few checks on images (docs/lighthouse.md)
 ```
+
+**When you write or move documentation**, run `npm run docs:check`. It reads the Markdown files, follows every link and image to a file in the repository and every `#heading` to a heading that exists on that page (anchors are made the way GitHub makes them, so `## Production & SSR Builds` is `#production--ssr-builds`), and fails on the ones that lead nowhere. Addresses on the web are not followed. Code is not read, so an example of a link inside a code block or between backticks is fine.
+
+**When you add a setting to `config/`** that reads `env()`, add its key to [docs/configuration.md](docs/configuration.md) in the same change. `ConfigurationDocsTest` fails for a key that page does not mention.
 
 **When you add or update a dependency**, run `npm run licences:check`. A new package makes `THIRD-PARTY-NOTICES.md` out of date: run `npm run licences:notices` and commit the file with the dependency. A package under a licence the project does not allow fails the check; that is a decision to make and write down, see [docs/licences.md](docs/licences.md).
 
