@@ -158,7 +158,7 @@ All three of the cache, the sessions and the queue can use it ([redis.md](redis.
 | `AUTH_PASSWORD_BROKER` | `users` | The password reset settings used. Do not change it. |
 | `AUTH_MODEL` | the model `App\Models\User` | The model of a member. Do not change it. |
 | `AUTH_PASSWORD_RESET_TOKEN_TABLE` | `password_reset_tokens` | The table of reset tokens. |
-| `AUTH_PASSWORD_TIMEOUT` | `10800` | Seconds after which a signed-in member is asked for their password again before something sensitive. |
+| `AUTH_PASSWORD_TIMEOUT` | `10800` | Seconds after which a signed-in member is asked for their password again before something sensitive: turning two-factor off and making new recovery codes ([Turning it off](two-factor.md#turning-it-off)). |
 | `SANCTUM_STATEFUL_DOMAINS` | `localhost`, `127.0.0.1`, `::1` and the host of `APP_URL` | The hosts whose browser requests to `/api` are signed in by the member's session instead of an API key. Needed only for a separate front end on another host that calls the API with the member's session; API keys work without it. A list, with ports where the host has one. `.env.example` lists only the local ones. |
 | `SANCTUM_TOKEN_PREFIX` | empty | Put in front of new API keys. A distinctive prefix lets GitHub's secret scanning recognise a key that was leaked ([api-keys.md](api-keys.md)). |
 | `API_KEYS_MAX` | `10` | How many keys that can still be used one person may have at a time ([api-keys.md](api-keys.md)). Revoked and expired keys do not count. |

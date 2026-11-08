@@ -50,6 +50,8 @@ const submit = () => {
                         {{ t('auth.confirm_password.submit') }}
                     </Button>
                 </div>
+
+                <p class="text-center text-xs text-muted-foreground">{{ t('auth.confirm_password.no_password') }}</p>
             </div>
         </form>
     </AuthLayout>

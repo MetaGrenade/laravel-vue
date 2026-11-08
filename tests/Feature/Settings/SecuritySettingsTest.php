@@ -71,7 +71,9 @@ class SecuritySettingsTest extends TestCase
         $initialRecoveryCodes = TwoFactorAuthenticator::decryptRecoveryCodes($user->two_factor_recovery_codes);
         $this->assertCount(8, $initialRecoveryCodes);
 
+        // A new set replaces the one written down, so it asks for the password first (SecurityPasswordConfirmationTest).
         $this->actingAs($user)
+            ->withSession(['auth.password_confirmed_at' => time()])
             ->post(route('security.recovery-codes.store'))
             ->assertRedirect();
 

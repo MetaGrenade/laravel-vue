@@ -12,6 +12,7 @@ use App\Support\OAuth\OAuthManager;
 use App\Support\OAuth\OAuthProviders;
 use App\Support\OAuth\OAuthUser;
 use App\Support\OAuth\ProviderRegistry;
+use App\Support\Security\SignInMethods;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -199,14 +200,14 @@ class SocialLoginController extends Controller
 
     protected function placeholderEmail(string $provider, string $identifier): string
     {
-        $base = sprintf('%s_%s@oauth.local', $provider, Str::lower($identifier));
+        $base = sprintf('%s_%s@%s', $provider, Str::lower($identifier), SignInMethods::PLACEHOLDER_DOMAIN);
 
         if (! User::query()->where('email', $base)->exists()) {
             return $base;
         }
 
         do {
-            $email = sprintf('%s_%s@oauth.local', $provider, Str::lower(Str::random(12)));
+            $email = sprintf('%s_%s@%s', $provider, Str::lower(Str::random(12)), SignInMethods::PLACEHOLDER_DOMAIN);
         } while (User::query()->where('email', $email)->exists());
 
         return $email;

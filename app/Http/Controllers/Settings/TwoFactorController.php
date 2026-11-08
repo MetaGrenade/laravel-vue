@@ -19,6 +19,12 @@ class TwoFactorController extends Controller
     {
         $user = $request->user();
 
+        // A new secret clears the confirmation, so setting up again on top of a confirmed one would switch two-factor off without asking
+        // anybody for anything. Turning it off asks for the password first (see the route), and only then can a new one be set up.
+        if ($user->two_factor_confirmed_at) {
+            return back()->with('status', 'two-factor-already-on');
+        }
+
         $secret = TwoFactorAuthenticator::generateSecret();
 
         $user->forceFill([

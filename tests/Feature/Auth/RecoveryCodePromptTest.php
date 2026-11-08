@@ -74,6 +74,7 @@ class RecoveryCodePromptTest extends TestCase
         $user = $this->memberWithCodes(['AAAA-BBBB-CCCC']);
 
         $this->actingAs($user)
+            ->withSession(['auth.password_confirmed_at' => time()])
             ->post(route('security.recovery-codes.store'))
             ->assertRedirect();
 

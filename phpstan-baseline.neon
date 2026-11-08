@@ -565,18 +565,6 @@ parameters:
 			path: app/Http/Controllers/Admin/TrustSafetyController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Admin/UserSocialAccountController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:user\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Admin/UserSocialAccountController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
 			identifier: property.notFound
 			count: 1
@@ -597,12 +585,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/Admin/UsersController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, provider\: string, provider_id\: string, name\: string\|null, nickname\: string\|null, email\: string\|null, avatar\: string\|null, created_at\: string\|null, updated_at\: string\|null\}, Closure\(App\\Models\\SocialAccount\)\: array\{id\: int\<0, max\>, provider\: string, provider_id\: string, name\: string\|null, nickname\: string\|null, email\: string\|null, avatar\: string\|null, created_at\: string\|null, updated_at\: string\|null\} given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Admin/UsersController.php
 
@@ -689,12 +671,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Auth/SocialLoginController.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
@@ -1127,66 +1103,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Settings/PrivacyController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$avatar\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Settings/SecurityController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Settings/SecurityController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Settings/SecurityController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Settings/SecurityController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Settings/SecurityController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nickname\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Settings/SecurityController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Settings/SecurityController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Settings/SecurityController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$updated_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Settings/SecurityController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/Settings/SecurityController.php
 
 		-
 			message: '#^Access to an undefined property Laravel\\Cashier\\Invoice\:\:\$currency\.$#'
