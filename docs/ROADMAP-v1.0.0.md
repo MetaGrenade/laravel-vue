@@ -133,7 +133,7 @@ Strong already. Remaining gaps, in priority order:
 - [x] Security headers test in CI (every HTML response is checked for the clickjacking, sniffing, referrer, permissions and opener headers and for a nonce-based content security policy; a response that is not HTML keeps those headers and omits the policy; thirteenth M5 slice, see [security-headers.md](security-headers.md))
 - [x] `SECURITY.md`, `security.txt`, dependency-update automation (Dependabot or Renovate) (`/.well-known/security.txt` names the private contact, the policy, and an expiry under a year; Dependabot opens a weekly request for Composer, npm, and GitHub Actions; fourteenth M5 slice, see [security-contact.md](security-contact.md))
 - [x] Secrets scanning in CI (every commit on the branch is read, on each push and pull request and again each week, and the job fails if the scanner accepts a key; fifteenth M5 slice, see [secrets-scan.md](secrets-scan.md))
-- [ ] Optional: CAPTCHA provider integration for registration and contact forms
+- [ ] Optional: CAPTCHA provider integration for registration and contact forms (proposed for 1.1; the section 10 gate does not wait for it, decision 3 in section 11)
 - Deferred to 1.1: passkeys (WebAuthn)
 
 ---
@@ -174,7 +174,7 @@ Strong already. Remaining gaps, in priority order:
 | Front-end tests | None (no Vitest, no Playwright) | Add Vitest for composables and utilities; Playwright smoke suite for login, checkout, forum post, support ticket (suite **done**, nineteenth slice, see [e2e-tests.md](e2e-tests.md); Vitest waits). |
 | Static analysis | None for PHP | Add Larastan at level 5, raise later. |
 | Coverage | Not enforced | Report in CI; threshold on new code. |
-| Flaky test | One unidentified test failed once earlier and never reproduced | Run the suite repeatedly in CI to identify it. |
+| Flaky test | One unidentified test failed once earlier and never reproduced | Run the suite repeatedly in CI to identify it. The weekly `stability` workflow does (10 runs in random order); it failed on 4 November for a reason not yet known, see section 10. |
 | Formatting/linting | Pint, Prettier, ESLint, vue-tsc enforced | Keep. |
 | Docs | README only; title still "Laravel Vue Starter"; app name inconsistent (`MetaForger`, `SPA Boilerplate`) | Rewrite README; add a `docs/` set (section 10); single source for the app name. |
 | Release files | No CHANGELOG, CONTRIBUTING, SECURITY, issue/PR templates, CODEOWNERS | Add. |
@@ -479,7 +479,7 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 - Third-party licence audit and `THIRD-PARTY-NOTICES.md` (**done**, twentieth slice, see [licences.md](licences.md)): `npm run licences:check` reads both lock files and the installed packages, allows permissive licences only, and fails when `THIRD-PARTY-NOTICES.md` is out of date, in a CI job of its own. 96 PHP and 295 npm packages: all permissive except four that are written down as exceptions, the three LGPL libraries behind the invoice PDF (dompdf) and `elkjs` (EPL-2.0, not in the built front end). The verbatim text of the SIL Open Font License for the two fonts is in the notices too (**done**, M7, `scripts/licence-texts/OFL-1.1.txt`)
 - Project name and logo (**done**, M7): the project is called MetaForger and its home is metaforger.dev, because the domain for the earlier name could not be had. The site name, the six artisan commands, the Compose project, the default database and the documents use the new name; the logo, the mark and the icons are made from two drawings in `resources/brand/` by `scripts/build-brand-assets.php`; tests check the files and fail on the earlier name. Still to do: the README banner pictures (`docs/assets/readme/`) have the earlier name drawn into them and are kept for now until new designs replace them, and the Discord companion keeps its own names until its repository is renamed
 - Prefetch for signed-in users only (**done**, M7, see [bundle-budget.md](bundle-budget.md#what-it-does-not-do) and [performance.md](performance.md#what-a-page-weighs)): `PrefetchAssetsForMembers` sets `Vite::prefetch` on each request for a signed-in user and switches it off for everybody else, so a visitor's pages are half the size (login page 71 kB instead of 142 kB written, 15.8 kB instead of 20.6 kB gzipped) and download nothing in the background. The admin pages (97 files, about 297 kB of the 980 kB gzipped) are fetched for staff only (**done**, `StaffAreaVite`): a member who is not staff is asked for 134 files, an administrator for 231. Still open: it starts with the next full page load after signing in
-- Release candidates `v1.0.0-rc.1…`, bug bash, then tag `v1.0.0`
+- Release candidates `v1.0.0-rc.1…`, bug bash, then tag `v1.0.0`. The gates were audited on 8 November (thirty-sixth slice, section 10): eleven boxes ticked with what shows them, six open with what each needs
 - **Exit:** section 10 gates all green.
 
 **Total: about 70–100 developer-days** for the decided scope. Teams (about 8–12 days) and passkeys (about 4–6) are out, but Meilisearch (4–6), PostgreSQL support and the i18n structure (about 4–6) are in. **No scope is being cut now.** If the date is ever at risk, the agreed cut order is: gift cards first (about 2 days), then reviews and wishlists (about 3–4 days).
@@ -490,32 +490,40 @@ Section 8 in full: client, catalogue sync, baskets and checkout, webhook receive
 
 A release candidate is cut only when every box is checked.
 
+**Audit of 8 November 2026, against `main` at 044ff3cf** (all 15 CI jobs green). A box is ticked where the repository or CI shows it, with what shows it. A box left open says what is missing and what it needs. Six are open. Two need an account or a store only the owner has (a real Stripe test purchase, the Tebex store). The security box is a decision about what "clean" means for `npm audit`. The performance box needs a server (the first-byte time) and a decision about the wording of one target. The flaky-test box needs the cause of a failed weekly run, and the install box needs a cold read of the guide. What can only be done at the tag is listed after the boxes.
+
 **Functional**
-- [ ] Guest and customer checkout works end to end with Stripe (physical and digital goods)
-- [ ] Tebex purchase, refund and subscription events verified against a real store end to end (mode A; M2b)
-- [ ] Plans and purchases grant and revoke entitlements
-- [ ] Support, forum, blog, polls, shop and search work on MySQL 8 **and** PostgreSQL 16
-- [ ] Search works with Meilisearch and falls back cleanly without it
+- [ ] Guest and customer checkout works end to end with Stripe (physical and digital goods). *Built and tested against a faked Stripe (`CheckoutTest`, the order, fulfilment and refund tests). Missing: one real test-mode purchase and refund of each kind of goods by hand, as [payments.md](payments.md#try-it-before-anyone-real-does) describes. It needs the owner's Stripe test keys.*
+- [ ] Tebex purchase, refund and subscription events verified against a real store end to end (mode A; M2b). *Built against the documented payloads and the fixtures (M2a). It needs a Tebex store (decision 10, open question 2).*
+- [x] Plans and purchases grant and revoke entitlements. *`tests/Feature/Entitlements/`: a subscription gives what its plan gives only while Cashier counts it as live, swapping plans changes it at once, a grant taken back or run out does not count; `TebexEntitlementsTest`: a refund in full takes back what the order gave and a recurring payment that expires takes it back.*
+- [x] Support, forum, blog, polls, shop and search work on MySQL 8 **and** PostgreSQL 16. *The whole suite runs on both (`ci-mysql`, `ci-pgsql`), green on `main`.*
+- [x] Search works with Meilisearch and falls back cleanly without it. *The `search` job runs the live suite against Meilisearch 1.12; `GlobalSearchMeilisearchFallbackTest` is the fall back to the database when it cannot be reached.*
 
 **Security**
-- [ ] All items in section 4.2 done; `composer audit` and `npm audit` clean
-- [ ] Private uploads; authorised downloads
-- [ ] Webhook endpoints verified and idempotent for both providers
+- [ ] All items in section 4.2 done; `composer audit` and `npm audit` clean. *Every item in 4.2 is ticked except the optional CAPTCHA, which I propose to move to 1.1 (decision 3 in section 11). `composer audit` is clean, and so is `npm audit --omit=dev --audit-level=high`, which is what CI runs. A plain `npm audit` reports 15 moderate advisories, all in packages used only to build and test (nothing in the built site). Decision 4 in section 11: does "clean" mean the packages that ship?*
+- [x] Private uploads; authorised downloads. *Section 4.2, first item.*
+- [x] Webhook endpoints verified and idempotent for both providers. *A delivery is kept once and not applied twice, a bad signature is refused, and a stale one too; tests for Stripe and Tebex ([webhooks.md](webhooks.md)). Against a real Tebex store is the M2b box above.*
 
 **Quality**
-- [ ] CI green on the MySQL 8 and PostgreSQL 16 matrix; Larastan clean at the agreed level
-- [ ] Playwright smoke suite green on the main flows
-- [ ] No flaky tests; no lazy-loading violations in the test suite (the second half is enforced by the suite itself since M6, seventh slice)
-- [ ] `lang:check` passes
+- [x] CI green on the MySQL 8 and PostgreSQL 16 matrix; Larastan clean at the agreed level. *Level 5, in the `quality` job. "Clean" is with a baseline of 302 entries (466 occurrences), mostly generics and relation types the tool cannot follow. The baseline has hidden two real bugs (API users' `name` was always `null`; the Stripe webhook answered 500), so reading it for more is worth a slice before 1.0, though it is not a gate.*
+- [x] Playwright smoke suite green on the main flows. *`npm run e2e`, the `e2e` job.*
+- [ ] No flaky tests; no lazy-loading violations in the test suite (the second half is enforced by the suite itself since M6, seventh slice). *Open: the weekly `stability` job (10 runs in random order) passed on 14, 21 and 28 October and failed on 7 October (after 4 minutes) and on 4 November (6 of the 10 runs failed, and the job took 45 minutes where the other three took 15 to 31, which looks like something waiting on a timeout). A job's log needs a GitHub sign-in, so the failing tests are not known. One difference I can see: the Discord companion's `main`, which CI installed then, had gained a moderation mirror the day before (its pull request 9) that the app wired up only that evening (#388). On reading it is harmless (one POST route and an opt-in listener), so that is a lead and not a cause. Four random-order runs on my machine fail only on one test that antivirus on Windows breaks (`ProductImagesTest`, the web-shell fixture). Next scheduled run: 11 November; or Actions, stability, Run workflow.*
+- [x] `lang:check` passes. *The `quality` job runs it (`lint.yml`).*
 
 **Performance**
-- [ ] Targets in section 5.2 met; budgets enforced in CI
+- [ ] Targets in section 5.2 met; budgets enforced in CI. *Met: Largest Contentful Paint 1.1 s on mobile emulation with simulated slow 4G (home, post, product; a report, no score budget, by decision), no N+1 queries on 36 pages, the bundle budget. Missing: (1) a first-byte time under 200 ms on a small VPS with Redis (50 to 90 ms on a laptop with OPcache; `npm run ttfb` against a real server measures it); (2) "queue-backed webhook processing": the emails (22 notifications) and the data export are queued, but both webhook receivers keep the delivery and apply it inside the request, in one transaction. I would reword the target for 1.0 (decision 5 in section 11).*
 
 **Product and docs**
-- [ ] Legal pages, cookie consent and error pages shipped
+- [x] Legal pages, cookie consent and error pages shipped. *Section 4.1 (first M5 slice), the cookie banner, and the error pages (eighteenth slice).*
 - [x] README, install guide, payments guides, upgrade guide, API reference (the documentation set, M7; `npm run docs:check` keeps its links)
-- [ ] `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`, templates, `THIRD-PARTY-NOTICES.md` (the last is in, and CI keeps it current)
+- [x] `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`, templates, `THIRD-PARTY-NOTICES.md` (the last is in, and CI keeps it current). *All present, with the issue and pull request templates and `CODEOWNERS`. Two lines in them change at the tag, below.*
 - [ ] `metaforger:install` works on a clean machine from the docs alone (the `install` CI job runs it on a clean checkout; reading the docs cold is part of the release-candidate pass)
+
+**At the tag** (what no earlier commit can do)
+- Give the Discord companion a tag. `composer.lock` has pinned a commit of it since 7 November, but `composer.json` still asks for `dev-main`, so a release is only reproducible while nobody runs `composer update` for that package.
+- Turn on private vulnerability reporting (Settings, Code security): `SECURITY.md` sends people to it.
+- Change `SECURITY.md` ("Until 1.0.0 is tagged, only the `main` branch is supported") and `CHANGELOG.md` (`[Unreleased]` becomes the version).
+- The README banner pictures have the earlier name drawn into them; the new designs replace them (to do, see the project-name item in M7).
 
 ---
 
@@ -554,6 +562,9 @@ This is a recommendation, not legal advice; have a lawyer review it if the licen
 
 1. ~~**Copyright holder line** in `LICENSE.md`~~ **Done**: it names Dead Pixel Labs, LLC (contact@deadpixellabs.com).
 2. **When to set up the Tebex store** (for M2b). Nothing is needed before then.
+3. **The optional CAPTCHA** (section 4.2): move it to 1.1? It was never a gate; registration is rate limited (`throttle:auth`), there is no contact form to protect, and a CAPTCHA provider is a choice (and a privacy note) of its own.
+4. **What "`npm audit` clean" means** (section 10): the packages that ship (what CI checks, clean today), or every package including the build and test tools (15 moderate advisories, none in the built site)?
+5. **Queue-backed webhook processing** (section 5.2): reword the target for 1.0 to say that the delivery is kept once and applied in one transaction in the request, and that queueing it is a 1.1 option, or build it now? I would reword it: it keeps the idempotency simple, the provider retries a failure, and a queue between the provider and the order would add a way for a paid order to wait.
 
 ---
 
