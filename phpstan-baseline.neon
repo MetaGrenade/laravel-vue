@@ -613,12 +613,6 @@ parameters:
 			path: app/Http/Controllers/Admin/UsersController.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\User\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/V1/AuthTokenController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
 			identifier: property.notFound
 			count: 1
@@ -1349,12 +1343,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Resources/Api/V1/ForumThreadResource.php
-
-		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\UserSummaryResource\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/Api/V1/UserSummaryResource.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\SearchQuery\:\:\$last_ran_at\.$#'

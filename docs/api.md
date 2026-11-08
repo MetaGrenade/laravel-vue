@@ -53,7 +53,7 @@ curl -X POST https://your-site/api/v1/blogs/a-first-post/comments \
 |---|---|---|---|---|
 | `POST` | `/api/v1/auth/token` | public | — | Sign in with an email and password and get a key. |
 | `DELETE` | `/api/v1/auth/token` | any key | — | Revoke the key that makes the call. |
-| `GET` | `/api/v1/profile` | `profile:read` | — | The key owner's id, name and email. |
+| `GET` | `/api/v1/profile` | `profile:read` | — | The key owner's id, nickname and email. |
 | `GET` | `/api/user` | `profile:read` | — | The same, at the address older clients use. |
 | `GET` | `/api/v1/blogs` | public | blog | Published posts, newest first, 15 to a page. |
 | `GET` | `/api/v1/blogs/{blog}` | public | blog | One published post, by its slug. |
@@ -123,7 +123,7 @@ Records are named by their slug (a post, a thread, a board, a poll) or their num
 - **A comment needs a `captcha_token`.** The field is required, and for a key it can be any text: the check against the page's own token is skipped when there is no session, which is the case for a key. Send something. A forum post has no such field.
 - **The slug of a new thread is not the title's.** A random ending is added (`from-the-api-peT2Du`). Read `slug` from the answer; do not build it.
 - **What you just made may show empty defaults.** The answer to starting a thread has `is_locked`, `is_pinned` and `views` as `null`, and a new ticket has `status` as `null`. Fetch it again for the stored values.
-- **A user object has an `email` only for the key's owner**, and not always then: the author of a reply you have just made comes back with `email` as `null`.
+- **A user object is `id` and `nickname`.** A member has no other name, so there is no `name`; the support endpoints say `nickname` too. It has an `email` only for the key's owner, and not always then: the author of a reply you have just made comes back with `email` as `null`.
 
 ## Errors
 
@@ -166,9 +166,8 @@ The API answers any origin: it sends `Access-Control-Allow-Origin: *` and answer
 
 Found while writing this page. They are code, not documentation, and each has a task to fix it. When one is fixed, this section loses its line.
 
-1. **Every name is `null`.** A user's `name` in the API (an author, the profile, the sign-in answer) is always `null`, because the column was renamed `nickname` and the API still reads `name`. Use the `id`. (The messages of a support ticket show a `nickname` instead.)
-2. **`/api/docs` is blank.** The page loads Swagger UI from a CDN with a script that has no nonce, and the site's Content Security Policy blocks all three, so the page stays empty. `/api/docs/openapi.json` works.
+1. **`/api/docs` is blank.** The page loads Swagger UI from a CDN with a script that has no nonce, and the site's Content Security Policy blocks all three, so the page stays empty. `/api/docs/openapi.json` works.
 
 ## Testing
 
-`tests/Feature/ApiReferenceDocsTest.php` reads the table above and fails for a route that is not in it, a row for a route that does not exist, a scope that is not the one the route asks for, a section that is not the route's, and an OpenAPI document that does not describe exactly the `/api/v1` routes. `tests/Feature/Api/` holds the tests of the behaviour: `TokenScopesTest`, `OpenApiScopesTest`, `AuthTokenTest`, `ApiKeyAuthenticationTest`, `TokenQuotaTest`, `ApiRateLimitsTest` (each per-minute limit is a count of its own), and one for each area (`BlogApiTest`, `ForumWriteApiTest`, `PollApiTest`, `SupportApiTest`). `tests/Feature/RouteThrottlesTest.php` fails for a route that is throttled with bare numbers (`throttle:20,1`) or by a name that is not a limiter.
+`tests/Feature/ApiReferenceDocsTest.php` reads the table above and fails for a route that is not in it, a row for a route that does not exist, a scope that is not the one the route asks for, a section that is not the route's, and an OpenAPI document that does not describe exactly the `/api/v1` routes. `tests/Feature/Api/` holds the tests of the behaviour: `TokenScopesTest`, `OpenApiScopesTest`, `AuthTokenTest`, `ApiKeyAuthenticationTest`, `TokenQuotaTest`, `ApiRateLimitsTest` (each per-minute limit is a count of its own), one for each area (`BlogApiTest`, `ForumWriteApiTest`, `PollApiTest`, `SupportApiTest`), and `UserNicknameApiTest` (what a user looks like in an author, the profile and the sign-in answer). `tests/Feature/RouteThrottlesTest.php` fails for a route that is throttled with bare numbers (`throttle:20,1`) or by a name that is not a limiter.
