@@ -59,3 +59,6 @@ jobs:
 
       - name: Check translation files
         run: php artisan lang:check
+
+      - name: Check links in the documentation
+        run: npm run docs:check
