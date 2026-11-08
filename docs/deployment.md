@@ -16,7 +16,7 @@ A site is more than a web server. Two of its parts are separate programs that no
 | **The scheduler** | One cron line that runs every minute. It puts the timed jobs on the queue: releasing the stock held by unpaid orders (every five minutes), lifting suspensions that have ended (every minute), checking support SLAs (every fifteen), the email digests (08:00 UTC), refreshing the Tebex catalogue and pruning old logs (at night). | Unpaid orders hold stock for ever, suspensions never end, no digests are sent. **The worker is what runs them:** a scheduler without a worker only fills the queue. |
 | Redis | The cache, the sessions and the queue, off the database ([redis.md](redis.md)). Recommended, not required. | The database does it all. |
 | Node.js | Builds the front end with `npm run build`. Needed on the machine that builds (22.13 or newer; `.nvmrc` names 24), and on the server only for server-side rendering. | |
-| Meilisearch, an SSR server | Only if you switch them on ([search-index.md](search-index.md), [configuration.md](configuration.md#server-side-rendering)). | |
+| Meilisearch, an SSR server | Only if you switch them on ([search-index.md](search-index.md); [Server-side rendering](#server-side-rendering-optional) below, which is a third process to keep running and to restart on every deploy). | |
 
 You also need a domain that points at the server and a certificate for it (Let's Encrypt is free), mail credentials for a real mailer, and somewhere safe to keep a copy of `.env`.
 
@@ -71,7 +71,7 @@ Leave `APP_KEY` empty: the installer makes it. `chmod 600 .env`.
 
 ```bash
 npm ci
-npm run build          # npm run build:ssr, if you use server-side rendering
+npm run build          # npm run build:ssr, if you use server-side rendering (see below)
 ```
 
 **6. Run the installer** (`--force` because this is production; it asks for the first administrator, whose password has to pass the production rules, see [install.md](install.md#production)):
@@ -162,19 +162,43 @@ cd /var/www/metaforger
 git fetch --tags && git checkout <the tag>
 composer install --no-dev --optimize-autoloader
 npm ci
-npm run build
+npm run build                         # npm run build:ssr, with server-side rendering
 php artisan migrate --force
 php artisan optimize
 php artisan queue:restart
+php artisan inertia:stop-ssr --graceful   # with server-side rendering only
 sudo systemctl reload php8.4-fpm      # when OPcache is set not to check for changes
 ```
 
 - **Never `php artisan db:seed` on a live site.** The default seeder adds a demo account with a known password. `migrate --force` is all a deploy needs; the installer is for the first setup.
 - **`php artisan queue:restart`** because workers hold the old code in memory until they are told to stop. Supervisor then starts new ones. (After a change to `.env` too, which a worker also keeps.)
+- **Server-side rendering needs two more things on every deploy:** `npm run build:ssr` in place of `npm run build` (`build` makes only the browser files), and `php artisan inertia:stop-ssr --graceful` so that the rendering server starts again with the new bundle. [Server-side rendering](#server-side-rendering-optional) says why.
 - **Reload PHP-FPM** when OPcache has `validate_timestamps=0`, as [the checklist](performance.md#a-production-checklist) recommends, or the old code goes on running.
 - **Read the CHANGELOG** for what the release changes. A release that needs more than this says so under *Upgrading*.
 - Put `php artisan down --refresh=15` before and `php artisan up` after for a deploy that changes the database in a way that old code cannot live with. A site on several servers sets `APP_MAINTENANCE_DRIVER=cache` first, so that they all see the flag.
-- **Building on the server is not required.** `npm run build` can run in your CI or on your machine, and the `public/build` folder be copied to the server, which then needs no Node. Do not copy `public/hot`.
+- **Building on the server is not required.** `npm run build` can run in your CI or on your machine, and the `public/build` folder be copied to the server, which then needs no Node. Do not copy `public/hot`. With server-side rendering, copy `bootstrap/ssr` too: that server runs on Node, so the machine it runs on needs Node after all.
+
+## Server-side rendering (optional)
+
+Pages are rendered in the browser. With server-side rendering the site first asks a small Node program for each page's HTML, so that crawlers are given written pages (the settings are under [Server-side rendering](configuration.md#server-side-rendering)). It is a **third process**, next to the queue worker and the scheduler. When it is not running, or does not answer, pages fall back to the browser: nothing breaks, they are just not rendered in advance.
+
+1. Set `INERTIA_SSR_ENABLED=true` in `.env`, then `php artisan optimize`.
+2. Build with **`npm run build:ssr`** in place of `npm run build`. `build` makes only the browser files; `build:ssr` also makes the server's bundle, `bootstrap/ssr/ssr.js`.
+3. Keep `php artisan inertia:start-ssr` running under Supervisor, as the worker is. It stays in the foreground, listens on `INERTIA_SSR_URL` (`http://127.0.0.1:13714`) and exits when it is told to stop, so Supervisor has to start it again whatever the exit code: `autorestart=true`, not `unexpected`.
+
+   ```ini
+   [program:metaforger-ssr]
+   command=php /var/www/metaforger/artisan inertia:start-ssr
+   user=deploy
+   autostart=true
+   autorestart=true
+   stopasgroup=true
+   killasgroup=true
+   ```
+
+4. **Restart it on every deploy:** `php artisan inertia:stop-ssr --graceful`. The rendering server keeps the bundle it started with in memory, as a queue worker keeps the code. A deploy that only rebuilt the files would leave it rendering the previous release's components while browsers load the new ones, and the page can flash or fail to hydrate. Supervisor starts it again with the new bundle; `--graceful` makes the command succeed when it is not running yet (the first deploy).
+
+`php artisan inertia:check-ssr` says whether it answers.
 
 ## On Forge
 
@@ -188,14 +212,16 @@ Create the site with PHP 8.4 and the web directory `public`, point it at the rep
   git pull origin $FORGE_SITE_BRANCH
   $FORGE_COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autoloader
   npm ci
-  npm run build
+  npm run build                       # npm run build:ssr, with server-side rendering
   $FORGE_PHP artisan migrate --force
   $FORGE_PHP artisan optimize
   $FORGE_PHP artisan queue:restart
+  $FORGE_PHP artisan inertia:stop-ssr --graceful   # with server-side rendering only
   ```
 
   The first deploy needs `$FORGE_PHP artisan metaforger:install --force` run once on the server, as in step 6.
 - **Scheduler:** switch Forge's scheduler on for the site. It is the cron line of step 10.
+- **Server-side rendering:** a second daemon, `php artisan inertia:start-ssr`, with the site's directory, and the two changes to the deployment script above. See [Server-side rendering](#server-side-rendering-optional).
 - **Queue worker:** a daemon whose command is `php artisan metaforger:queue work redis --sleep=3 --tries=3 --max-time=3600` (or `database`), with the site's directory. If you use Forge's own queue-worker form instead, give it the queues `default,mail`, as [redis.md](redis.md#the-queue) says.
 - **Proxy settings:** a site whose HTTPS ends in the nginx on the same server needs nothing. If a load balancer sits in front, set `TRUSTED_PROXIES` as under [Behind a proxy or a load balancer](#behind-a-proxy-or-a-load-balancer).
 
