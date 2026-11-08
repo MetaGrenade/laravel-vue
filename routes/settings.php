@@ -16,6 +16,7 @@ use App\Http\Controllers\Settings\SecuritySessionController;
 use App\Http\Controllers\Settings\SubscriptionController;
 use App\Http\Controllers\Settings\TwoFactorController;
 use App\Http\Controllers\Settings\TwoFactorRecoveryCodeController;
+use App\Http\Middleware\RequirePasswordWhenTwoFactorIsOn;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -123,11 +124,18 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
     Route::delete('settings/security/sessions/{session}', [SecuritySessionController::class, 'destroy'])
         ->name('security.sessions.destroy');
 
+    // Switching two-factor off and making a new set of recovery codes ask for the password again (`password.confirm`, good for
+    // AUTH_PASSWORD_TIMEOUT seconds): a browser that was left signed in must not be enough to take away the second factor, or to be
+    // handed codes that replace it. Cancelling a setup that was never confirmed takes nothing away, so it does not ask. Ending another
+    // session is left open on purpose, see docs/two-factor.md.
     Route::post('settings/security/mfa', [TwoFactorController::class, 'store'])->name('security.mfa.store');
     Route::post('settings/security/mfa/confirm', [TwoFactorController::class, 'confirm'])->name('security.mfa.confirm');
-    Route::delete('settings/security/mfa', [TwoFactorController::class, 'destroy'])->name('security.mfa.destroy');
+    Route::delete('settings/security/mfa', [TwoFactorController::class, 'destroy'])
+        ->middleware(RequirePasswordWhenTwoFactorIsOn::class)
+        ->name('security.mfa.destroy');
 
     Route::post('settings/security/recovery-codes', [TwoFactorRecoveryCodeController::class, 'store'])
+        ->middleware('password.confirm')
         ->name('security.recovery-codes.store');
 
     Route::delete('settings/security/social/{provider}', [LinkedSocialAccountController::class, 'destroy'])

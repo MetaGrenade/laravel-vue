@@ -74,6 +74,7 @@ return [
         'title' => 'Confirm your password',
         'description' => 'This is a secure area of the application. Please confirm your password before continuing.',
         'submit' => 'Confirm password',
+        'no_password' => 'Signed up with Google, Discord or Steam and never chose a password? Sign out and use "Forgot your password?" on the sign-in page to set one. That works when your account has a verified email address.',
     ],
 
     'verify_email' => [

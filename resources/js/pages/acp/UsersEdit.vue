@@ -130,7 +130,8 @@ const attachForm = useForm({
     avatar: '',
 });
 
-const detachForm = useForm({});
+// Server-side errors for this form are reported under the `social_account` key.
+const detachForm = useForm<{ social_account?: never }>({});
 const removingAccountId = ref<number | null>(null);
 
 watch(
@@ -169,21 +170,33 @@ const attachAccount = () => {
     });
 };
 
-const detachAccount = (accountId: number) => {
+// The account the server refused to disconnect because it is the member's only way to sign in. A second button sends the request again
+// with `force`, which is the staff member saying they mean it.
+const blockedAccountId = ref<number | null>(null);
+
+const detachAccount = (accountId: number, force = false) => {
     removingAccountId.value = accountId;
 
-    detachForm.delete(
-        route('acp.users.social-accounts.destroy', {
-            user: props.user.id,
-            socialAccount: accountId,
-        }),
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                removingAccountId.value = null;
+    detachForm
+        .transform(() => ({ force }))
+        .delete(
+            route('acp.users.social-accounts.destroy', {
+                user: props.user.id,
+                socialAccount: accountId,
+            }),
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    blockedAccountId.value = null;
+                },
+                onError: () => {
+                    blockedAccountId.value = accountId;
+                },
+                onFinish: () => {
+                    removingAccountId.value = null;
+                },
             },
-        },
-    );
+        );
 };
 
 const { formatDate, fromNow } = useUserTimezone();
@@ -400,7 +413,7 @@ const removeSocialLink = (index: number) => {
                                     <div
                                         v-for="account in props.user.social_accounts"
                                         :key="account.id"
-                                        class="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between"
+                                        class="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                                     >
                                         <div class="space-y-1">
                                             <p class="leading-tight font-medium">{{ providerLabel(account.provider) }}</p>
@@ -428,6 +441,22 @@ const removeSocialLink = (index: number) => {
                                             />
                                             Disconnect
                                         </Button>
+
+                                        <div
+                                            v-if="blockedAccountId === account.id && detachForm.errors.social_account"
+                                            class="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm sm:basis-full"
+                                            role="alert"
+                                        >
+                                            <p>{{ detachForm.errors.social_account }}</p>
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                :disabled="detachForm.processing && removingAccountId === account.id"
+                                                @click="detachAccount(account.id, true)"
+                                            >
+                                                Disconnect anyway
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                                 <div v-else class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">

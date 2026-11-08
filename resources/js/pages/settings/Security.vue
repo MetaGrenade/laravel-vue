@@ -150,6 +150,19 @@ const statusDetails = computed(() => {
                 description: 'The selected provider was not linked to your account.',
                 variant: 'warning' as const,
             };
+        case 'social-account-last-sign-in':
+            return {
+                title: 'That is your only way to sign in',
+                description:
+                    'Disconnecting it would leave you with no way into your account. Connect another provider first, or add a real email address under Profile settings and verify it, so that you can reset a password.',
+                variant: 'destructive' as const,
+            };
+        case 'two-factor-already-on':
+            return {
+                title: 'Multi-factor authentication is already on',
+                description: 'To set it up again, disable it first (that asks for your password), then enable it.',
+                variant: 'warning' as const,
+            };
         default:
             return null;
     }
@@ -430,10 +443,11 @@ watch(hasRecoveryCodes, (value) => {
                                         </form>
                                     </div>
 
-                                    <div v-else class="flex flex-wrap gap-2">
+                                    <div v-else class="space-y-2">
                                         <Button type="button" variant="destructive" :disabled="disableForm.processing" @click="disableTwoFactor">
                                             Disable multi-factor authentication
                                         </Button>
+                                        <p class="text-xs text-muted-foreground">You will be asked for your password first.</p>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -504,6 +518,9 @@ watch(hasRecoveryCodes, (value) => {
                                             >
                                                 Generate new recovery codes
                                             </Button>
+                                            <p class="text-xs text-muted-foreground">
+                                                Asks for your password first. The codes you have now stop working.
+                                            </p>
                                             <InputError :message="recoveryForm.errors.recovery" />
                                         </CardFooter>
                                     </Card>

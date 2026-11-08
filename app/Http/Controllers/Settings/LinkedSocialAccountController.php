@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Support\OAuth\ProviderRegistry;
+use App\Support\Security\SignInMethods;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,7 +12,8 @@ use Symfony\Component\HttpFoundation\Response;
 class LinkedSocialAccountController extends Controller
 {
     /**
-     * Disconnect a linked social provider from the authenticated user.
+     * Disconnect a linked social provider from the authenticated user, unless that would leave them with no way to sign in
+     * (see {@see SignInMethods}).
      */
     public function destroy(Request $request, string $provider): RedirectResponse
     {
@@ -28,6 +30,10 @@ class LinkedSocialAccountController extends Controller
 
         if (! $account) {
             return redirect()->route('security.edit')->with('status', 'social-account-missing');
+        }
+
+        if (! SignInMethods::remainAfterUnlinking($request->user(), $account)) {
+            return redirect()->route('security.edit')->with('status', 'social-account-last-sign-in');
         }
 
         $account->delete();

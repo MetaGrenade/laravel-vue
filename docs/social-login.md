@@ -48,8 +48,21 @@ Then the usual rules apply: a banned member is refused with the reason ([Moderat
 
 ## Linking and unlinking
 
-- **A member** links and unlinks from **Settings → Security** (`/settings/security`). Only the enabled providers are offered.
-- **Staff** with the `users.acp.update` permission can attach a provider identity (its id, and optionally name, nickname, email and picture) to a member from **Admin → Users → Edit**, and remove one. The id cannot already belong to another member. Both are written to the [audit log](audit-log.md).
+- **A member** links and unlinks from **Settings → Security** (`/settings/security`). Only the enabled providers are offered. Unlinking is refused when it would leave them no way to sign in (see [Unlinking](#unlinking-and-the-last-way-in) below).
+- **Staff** with the `users.acp.update` permission can attach a provider identity (its id, and optionally name, nickname, email and picture) to a member from **Admin → Users → Edit**, and remove one. The id cannot already belong to another member. Both are written to the [audit log](audit-log.md). Removing the member's last way in is refused with the reason, until staff press **Disconnect anyway**.
+
+### Unlinking and the last way in
+
+A member who signed up with a provider has a password nobody showed them (a long random one) and, for Steam and for a Discord account with no address, an email address that only looks like one. If they unlink the provider, nothing is left to sign in with. So the site checks first, and **unlinks only if the member would still have a way in**. It counts two things, because they are the two it can check:
+
+1. **Another linked provider that is switched on** (Google, Discord or Steam; one that staff turned off under **Admin → System settings → OAuth Providers** does not count, and neither does a row for a provider the site no longer has).
+2. **A real email address the member has verified.** Then **Forgot your password?** reaches them whether or not they ever chose a password. A made-up `…@oauth.local` address does not count, and neither does a real address nobody has confirmed.
+
+If neither holds, the member sees "That is your only way to sign in" on **Settings → Security** and the provider stays linked. They connect another provider, or add a real address in **Settings → Profile** and confirm it, and then unlink.
+
+The site cannot tell a password the member chose from the random one (it keeps no such fact, and a column for it would only be a guess for the accounts that already exist). So a member whose verified address is real can unlink their only provider even if they never set a password; they use **Forgot your password?** to get one. And a member who registered with a form and a password they know, but never verified the address, is refused until they verify it.
+
+**Staff** can still do it. The same check runs, and when it fails the **Admin → Users → Edit** page shows the reason and a **Disconnect anyway** button, because staff have good reasons to cut off an account that is not the member's (a provider linked by mistake, or by somebody else). Pressing it sends `force`; nothing else does. It is written to the [audit log](audit-log.md) like any other disconnect.
 
 ## What is kept from a provider
 
@@ -66,10 +79,11 @@ Nothing needs more. The Discord companion reads only the provider and the id to 
 
 ## Things to know
 
-- **Unlinking is not guarded.** Nothing stops a member who signed up with a provider from unlinking it. Their password is a random one they never saw, and a made-up `@oauth.local` address cannot receive a reset email, so they would be locked out. Tell members to set a real password and email in **Settings** first, or have staff attach the provider again from the admin area.
+- **Unlinking the last way in is refused**, for members ([Unlinking and the last way in](#unlinking-and-the-last-way-in)). One thing follows for the people who run the site: **if you switch a provider off, members who only have that provider lose their way in**, and the guard does not see it coming (it only looks when somebody unlinks). Members with a real, verified address can still reset their password; the others cannot sign in until the provider is switched back on.
+- **Signing in with a provider and two-factor.** A member who never chose a password cannot turn two-factor off, or replace their recovery codes, from the site, because both ask for the password ([Two-factor authentication](two-factor.md#turning-it-off)).
 - **A made-up email is not a feature.** An address ending in `@oauth.local` should be treated as "no email". Mail to a member without a real one goes nowhere.
 - **The Discord button is not the Discord bot.** Signing in with Discord only proves who the person is. Roles on a Discord server, and messages from the site to it, are the separate [Discord companion](discord-companion.md).
 
 ## Testing
 
-`SocialLoginTest` signs in, registers and links through a fake provider, including the conflict and the disabled provider. It also signs in through the real Google and Discord provider classes with the provider's answers faked, and fails if a token, or a profile field the site does not use, is written to `social_accounts`; it fails for a new column on that table, for a token property on `OAuthUser`, and for a migration that leaves anything behind or cannot be run twice. `SocialLoginEmailVerificationTest` holds the rule about verified addresses (an unverified address does not find an account and does not mark a new one verified). `OAuthProvidersTest` holds the switches in the admin area and the 404s.
+`SocialLoginTest` signs in, registers and links through a fake provider, including the conflict and the disabled provider. It also signs in through the real Google and Discord provider classes with the provider's answers faked, and fails if a token, or a profile field the site does not use, is written to `social_accounts`; it fails for a new column on that table, for a token property on `OAuthUser`, and for a migration that leaves anything behind or cannot be run twice. `SocialLoginEmailVerificationTest` holds the rule about verified addresses (an unverified address does not find an account and does not mark a new one verified). `OAuthProvidersTest` holds the switches in the admin area and the 404s. `UnlinkLastSignInMethodTest` holds the rule for members (a made-up address, an unconfirmed address, another provider that is off or no longer exists are refused; a confirmed real address and another provider that is on are allowed; the refusal lifts once the address is confirmed), and `UserSocialAccountTest` holds the staff version (refused with the reason, `force` removes it, the permission is still needed, another member's account is a 404).
