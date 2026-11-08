@@ -89,7 +89,7 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
         ->middleware(['throttle:billing', 'throttle:promotion-codes'])
         ->name('settings.billing.subscribe');
     Route::post('settings/billing/retry-payment', [SubscriptionController::class, 'retryPayment'])
-        ->middleware('throttle:6,1')
+        ->middleware('throttle:retry-payment')
         ->name('settings.billing.retry-payment');
     Route::post('settings/billing/portal', [SubscriptionController::class, 'portal'])
         ->middleware('throttle:billing')
