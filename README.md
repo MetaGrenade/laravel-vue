@@ -554,6 +554,9 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - [docs/onboarding.md](docs/onboarding.md): the "Get started" checklist on the dashboard, its steps and how to add one.
 - [docs/ownership.md](docs/ownership.md): who a record belongs to, why access goes through the owner and never a user id, how that is tested, and what changes when teams arrive in 1.1.
 - [docs/i18n.md](docs/i18n.md): how translations, locale selection and the completeness check fit together.
+- [docs/adding-a-language.md](docs/adding-a-language.md): adding a language step by step, how the site chooses which one a visitor or a member sees (tried with a real second language), and what a new language does not change.
+- [docs/theming.md](docs/theming.md): changing the colours, fonts, logo, name, words and links, which of them are settings and which are files, and a rebrand in order.
+- [docs/extending.md](docs/extending.md): adding your own features: where each kind of thing lives, a new section that can be switched off, the page that has the recipe for each usual job, the tests that tell you what you forgot, and what is not open to extension.
 - [docs/ROADMAP-v1.0.0.md](docs/ROADMAP-v1.0.0.md): the plan and milestones to 1.0.0.
 - [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
