@@ -183,11 +183,34 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Named rate limiters for web endpoints (API routes are throttled per token).
+     * Named rate limiters, for the web endpoints and for the API (a key has limits of its own as well: `token.throttle`).
+     *
+     * A route is always throttled by one of these names and never by bare numbers (`throttle:20,1`): Laravel keys a limit written
+     * with numbers by the account alone, so every such limit in the application would be one count, and a route with two would
+     * count each request twice. The limiter's name is part of its key, so each name below is a count of its own.
+     * RouteThrottlesTest fails for a route that is throttled by numbers or by a name that is not here.
      */
     protected function configureRateLimiting(): void
     {
         $byUserOrIp = fn (Request $request) => $request->user()?->getAuthIdentifier() ?? $request->ip();
+
+        // The API's numbers are in config/rate-limits.php, read when a request arrives so that a test can lower them.
+        $api = fn (string $area) => fn (Request $request) => Limit::perMinute((int) config("rate-limits.api.{$area}"))->by((string) $byUserOrIp($request));
+
+        RateLimiter::for('api-blog', $api('blog'));
+        RateLimiter::for('api-polls', $api('polls'));
+        RateLimiter::for('api-forum-write', $api('forum_write'));
+        RateLimiter::for('api-forum-moderate', $api('forum_moderate'));
+        RateLimiter::for('api-support', $api('support'));
+        RateLimiter::for('api-support-write', $api('support_write'));
+        RateLimiter::for('api-support-read', $api('support_read'));
+        RateLimiter::for('api-support-rating', $api('support_rating'));
+
+        // Actions that call another service or send an email, so a few a minute is plenty.
+        RateLimiter::for('tebex-test', fn (Request $request) => Limit::perMinute(10)->by((string) $byUserOrIp($request)));
+        RateLimiter::for('tebex-sync', fn (Request $request) => Limit::perMinute(6)->by((string) $byUserOrIp($request)));
+        RateLimiter::for('email-verification', fn (Request $request) => Limit::perMinute(6)->by((string) $byUserOrIp($request)));
+        RateLimiter::for('retry-payment', fn (Request $request) => Limit::perMinute(6)->by((string) $byUserOrIp($request)));
 
         // The email a request names, in lower case, for a limiter's key. Limiters run before validation does, so it may not be text
         // (email[]=x): that is the form's validation error to give, and all such requests share one bucket (the empty email).

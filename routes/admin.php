@@ -613,10 +613,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
             // Both actions call Tebex, so they are limited.
             Route::get('tebex', [TebexController::class, 'index'])->name('tebex.index');
             Route::post('tebex/test', [TebexController::class, 'test'])
-                ->middleware(['can:commerce.acp.edit', 'throttle:10,1'])
+                ->middleware(['can:commerce.acp.edit', 'throttle:tebex-test'])
                 ->name('tebex.test');
             Route::post('tebex/sync', [TebexController::class, 'sync'])
-                ->middleware(['can:commerce.acp.edit', 'throttle:6,1'])
+                ->middleware(['can:commerce.acp.edit', 'throttle:tebex-sync'])
                 ->name('tebex.sync');
             // What buying a package gives the buyer's account (set here, next to the packages; Tebex knows nothing of it).
             Route::put('tebex/packages/{package}/entitlements', [TebexPackageEntitlementController::class, 'update'])

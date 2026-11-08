@@ -46,16 +46,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->name('profile.show');
     });
 
-    $blogCommentThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:20,1';
-
-    Route::middleware('section.enabled:blog')->group(function () use ($blogCommentThrottle) {
+    // Every limit below is a named limiter (app/Providers/AppServiceProvider.php, numbers in config/rate-limits.php), never bare
+    // numbers: those would be one count for the whole account, however many routes had one.
+    Route::middleware('section.enabled:blog')->group(function () {
         Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
         Route::get('/blogs/{blog:slug}', [BlogController::class, 'show'])->name('blogs.show');
 
-        Route::prefix('/blogs/{blog:slug}/comments')->group(function () use ($blogCommentThrottle) {
+        Route::prefix('/blogs/{blog:slug}/comments')->group(function () {
             Route::get('/', [ApiBlogCommentController::class, 'index'])->name('blogs.comments.index');
 
-            Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', $blogCommentThrottle, 'usage:api-calls', 'scope:blog:write'])->group(function () {
+            Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:api-blog', 'usage:api-calls', 'scope:blog:write'])->group(function () {
                 Route::post('/', [ApiBlogCommentController::class, 'store'])
                     ->middleware('throttle:blog-comments')
                     ->name('blogs.comments.store');
@@ -83,7 +83,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/polls', [PollController::class, 'index'])->name('polls.index');
     Route::get('/polls/{poll:slug}', [PollController::class, 'show'])->name('polls.show');
 
-    Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1', 'usage:api-calls', 'scope:polls:vote'])->group(function () {
+    Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:api-polls', 'usage:api-calls', 'scope:polls:vote'])->group(function () {
         Route::post('/polls/{poll:slug}/vote', [PollVoteController::class, 'store'])->name('polls.vote');
     });
 
@@ -93,7 +93,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/forum/threads/{thread:slug}', [ForumThreadController::class, 'show'])
             ->name('forum.threads.show');
 
-        Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:30,1', 'usage:api-calls', 'scope:forum:write'])->group(function () {
+        Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:api-forum-write', 'usage:api-calls', 'scope:forum:write'])->group(function () {
             Route::post('/forum/boards/{board:slug}/threads', [ForumThreadCommandController::class, 'store'])
                 ->name('forum.threads.store');
 
@@ -113,7 +113,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->name('forum.threads.solution');
         });
 
-        Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:20,1', 'role:admin|editor|moderator', 'usage:api-calls', 'scope:forum:moderate'])
+        Route::middleware(['auth:sanctum', 'token.throttle', 'token.activity', 'throttle:api-forum-moderate', 'role:admin|editor|moderator', 'usage:api-calls', 'scope:forum:moderate'])
             ->group(function () {
                 Route::patch('/forum/boards/{board:slug}/threads/{thread:slug}/publish', [ApiForumThreadModerationController::class, 'publish'])
                     ->name('forum.threads.publish');
@@ -132,39 +132,35 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             });
     });
 
-    $supportThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:20,1';
-    $ticketWriteThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:10,1';
-    $ticketReadThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:30,1';
-    $ticketRatingThrottle = app()->environment('testing') ? 'throttle:1000,1' : 'throttle:5,1';
-
-    Route::middleware(['section.enabled:support', 'auth:sanctum', 'token.throttle', 'token.activity', $supportThrottle, 'usage:api-calls'])
+    Route::middleware(['section.enabled:support', 'auth:sanctum', 'token.throttle', 'token.activity', 'throttle:api-support', 'usage:api-calls'])
         ->prefix('support')
         ->as('support.')
-        ->group(function () use ($ticketWriteThrottle, $ticketReadThrottle, $ticketRatingThrottle) {
+        ->group(function () {
             // Support center endpoints: customer ticket creation, threaded messages,
             // status transitions, and post-resolution CSAT ratings. All routes are
-            // Sanctum-protected and limited to 20 requests per minute, in addition
-            // to the custom token throttle + activity middleware.
+            // Sanctum-protected and share the 'api-support' limit, which each kind of
+            // call narrows with a limit of its own, in addition to the custom token
+            // throttle + activity middleware.
             Route::post('/tickets', [SupportTicketController::class, 'store'])
-                ->middleware([$ticketWriteThrottle, 'scope:support:write'])
+                ->middleware(['throttle:api-support-write', 'scope:support:write'])
                 ->name('tickets.store');
             Route::get('/tickets/{ticket}', [SupportTicketController::class, 'show'])
-                ->middleware([$ticketReadThrottle, 'scope:support:read'])
+                ->middleware(['throttle:api-support-read', 'scope:support:read'])
                 ->name('tickets.show');
             Route::post('/tickets/{ticket}/messages', [SupportTicketMessageController::class, 'store'])
-                ->middleware([$ticketWriteThrottle, 'scope:support:write'])
+                ->middleware(['throttle:api-support-write', 'scope:support:write'])
                 ->name('tickets.messages.store');
             Route::patch('/tickets/{ticket}/status', [SupportTicketStatusController::class, 'update'])
-                ->middleware([$ticketWriteThrottle, 'scope:support:write'])
+                ->middleware(['throttle:api-support-write', 'scope:support:write'])
                 ->name('tickets.status.update');
             Route::patch('/tickets/{ticket}/reopen', [SupportTicketStatusController::class, 'reopen'])
-                ->middleware([$ticketWriteThrottle, 'scope:support:write'])
+                ->middleware(['throttle:api-support-write', 'scope:support:write'])
                 ->name('tickets.reopen');
             Route::post('/tickets/{ticket}/rating', [SupportTicketRatingController::class, 'store'])
-                ->middleware([$ticketRatingThrottle, 'scope:support:write'])
+                ->middleware(['throttle:api-support-rating', 'scope:support:write'])
                 ->name('tickets.rating.store');
             Route::get('/attachments/{attachment}', [SupportAttachmentController::class, 'download'])
-                ->middleware([$ticketReadThrottle, 'scope:support:read'])
+                ->middleware(['throttle:api-support-read', 'scope:support:read'])
                 ->name('attachments.download');
         });
 });
