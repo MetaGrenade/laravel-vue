@@ -34,7 +34,7 @@ class GoogleProvider extends AbstractOAuth2Provider
         ];
     }
 
-    protected function mapUserToObject(array $user, array $tokenResponse, string $accessToken): OAuthUser
+    protected function mapUserToObject(array $user): OAuthUser
     {
         return new OAuthUser(
             id: (string) Arr::get($user, 'sub', Arr::get($user, 'id')),
@@ -43,9 +43,6 @@ class GoogleProvider extends AbstractOAuth2Provider
             email: Arr::get($user, 'email'),
             avatar: Arr::get($user, 'picture'),
             raw: $user,
-            accessToken: $accessToken,
-            refreshToken: Arr::get($tokenResponse, 'refresh_token'),
-            expiresIn: Arr::get($tokenResponse, 'expires_in'),
             emailVerified: filter_var(Arr::get($user, 'email_verified', false), FILTER_VALIDATE_BOOLEAN),
         );
     }

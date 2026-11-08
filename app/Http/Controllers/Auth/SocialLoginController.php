@@ -15,7 +15,6 @@ use App\Support\OAuth\ProviderRegistry;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -214,23 +213,18 @@ class SocialLoginController extends Controller
     }
 
     /**
-     * Build the social account data for storage.
+     * Build the social account data for storage: who the person is at the provider, and nothing that would let anyone act as them
+     * there. The provider's tokens do not reach this far ({@see OAuthUser}), and its raw profile is not kept.
      *
      * @return array<string, mixed>
      */
     protected function socialAccountAttributes(OAuthUser $oauthUser): array
     {
-        $expiresAt = $oauthUser->expiresIn ? Carbon::now()->addSeconds($oauthUser->expiresIn) : null;
-
         return [
             'name' => $oauthUser->name,
             'nickname' => $oauthUser->nickname,
             'email' => $oauthUser->email,
             'avatar' => $oauthUser->avatar,
-            'access_token' => $oauthUser->accessToken,
-            'refresh_token' => $oauthUser->refreshToken,
-            'token_expires_at' => $expiresAt,
-            'data' => $oauthUser->raw,
         ];
     }
 

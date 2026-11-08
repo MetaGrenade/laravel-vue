@@ -32,12 +32,12 @@ abstract class AbstractOAuth2Provider extends AbstractProvider
     abstract protected function tokenUrl(): string;
 
     /**
-     * Map the raw user array to an OAuthUser instance.
+     * Map the raw user array to an OAuthUser instance. The tokens are not passed on: they were used to fetch this array, and that is all
+     * they are for.
      *
      * @param  array<string, mixed>  $user
-     * @param  array<string, mixed>  $tokenResponse
      */
-    abstract protected function mapUserToObject(array $user, array $tokenResponse, string $accessToken): OAuthUser;
+    abstract protected function mapUserToObject(array $user): OAuthUser;
 
     /**
      * {@inheritdoc}
@@ -80,7 +80,7 @@ abstract class AbstractOAuth2Provider extends AbstractProvider
 
         $user = $this->getUserByToken($accessToken);
 
-        return $this->mapUserToObject($user, $tokenResponse, $accessToken);
+        return $this->mapUserToObject($user);
     }
 
     /**
