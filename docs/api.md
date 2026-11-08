@@ -57,7 +57,7 @@ curl -X POST https://your-site/api/v1/blogs/a-first-post/comments \
 | `GET` | `/api/user` | `profile:read` | — | The same, at the address older clients use. |
 | `GET` | `/api/v1/blogs` | public | blog | Published posts, newest first, 15 to a page. |
 | `GET` | `/api/v1/blogs/{blog}` | public | blog | One published post, by its slug. |
-| `GET` | `/api/v1/blogs/{blog}/comments` | public | blog | The comments of a post, 10 to a page. |
+| `GET` | `/api/v1/blogs/{blog}/comments` | public | blog | The comments of a post, 10 to a page by default (`per_page` 1 to 50, `sort` `oldest`, `newest` or `top`). |
 | `POST` | `/api/v1/blogs/{blog}/comments` | `blog:write` | blog | Write a comment. Needs a `captcha_token` ([below](#things-that-surprise-people)). |
 | `PATCH` | `/api/v1/blogs/{blog}/comments/{comment}` | `blog:write` | blog | Edit a comment. |
 | `DELETE` | `/api/v1/blogs/{blog}/comments/{comment}` | `blog:write` | blog | Delete a comment. |
@@ -96,7 +96,7 @@ Records are named by their slug (a post, a thread, a board, a poll) or their num
 
 ## What comes back
 
-- **Lists** (the blog, its comments, the threads) are Laravel pages: `data` (the rows), `links` (`first`, `last`, `prev`, `next`) and `meta` (`current_page`, `last_page`, `per_page`, `total`, and a `links` list of page buttons). Ask for another page with `?page=2`. The size of a page is fixed (15 posts or threads, 10 comments) and there is no parameter for it. The polls list is the exception: all polls, in `polls`.
+- **Lists** (the blog, its comments, the threads) are Laravel pages: `data` (the rows), `links` (`first`, `last`, `prev`, `next`) and `meta` (`current_page`, `last_page`, `per_page`, `total`, and a `links` list of page buttons). Ask for another page with `?page=2`. The posts and the threads come 15 to a page and there is no parameter to change that (`?per_page=3` is ignored). The comments are the exception: 10 to a page unless you send `?per_page=`, which is held to 1 to 50 (`100` gives 50, and `0` or text gives 1), and `?sort=` takes `oldest` (the default), `newest` or `top` (most liked; any other word is `oldest`). The polls list is not a page at all: all polls, in `polls`.
 - **Dates** are ISO 8601 with an offset, such as `2026-11-08T09:17:24+00:00`. The `expires_at` of a new key is UTC with a trailing `Z`.
 - **There is no one envelope.** What the calls that were tried answered:
 
