@@ -1,6 +1,6 @@
 # Billing: subscriptions
 
-How subscriptions to a plan are billed, and what happens when a payment does not go through. Subscriptions use **Laravel Cashier** and Stripe; the shop's orders (products, gift cards) are a separate flow described in [commerce.md](commerce.md), and what a plan gives an account is in [entitlements.md](entitlements.md#subscription-plans).
+How subscriptions to a plan are billed, and what happens when a payment does not go through. Subscriptions use **Laravel Cashier** and Stripe; the shop's orders (products, gift cards) are a separate flow described in [commerce.md](commerce.md), and what a plan gives an account is in [entitlements.md](entitlements.md#subscription-plans). Setting Stripe up, trying it in test mode and going live are in [payments.md](payments.md).
 
 > **Status:** plans, subscribing, cancelling and resuming, invoices and the webhook archive have been there since the start. Added for 1.0: plans that give entitlements, what a customer is told and can do when a payment fails, free trials, promotion codes, a link to Stripe's customer portal, and a metered-usage example (API calls against a plan's allowance: see [usage.md](usage.md)).
 

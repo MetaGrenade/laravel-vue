@@ -290,7 +290,7 @@ Notifications are pushed to the browser through Pusher or a service that speaks 
 
 ## The shop
 
-The shop is [commerce.md](commerce.md). Taking payment needs Stripe or Tebex, a queue worker and the scheduler.
+The shop is [commerce.md](commerce.md). Taking payment needs Stripe or Tebex, a queue worker and the scheduler; [payments.md](payments.md) is the way through it, from test keys to going live.
 
 | Key | Default | What it does |
 | --- | --- | --- |

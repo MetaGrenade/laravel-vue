@@ -345,7 +345,7 @@ A payment that arrives for an order that was already cancelled is honoured: the 
 
 ## Payment providers
 
-`App\Payments\Contracts\PaymentProvider` is the contract; the shop never talks to Stripe (or, later, Tebex) directly. Providers are registered in `config/commerce.php` and resolved by `PaymentManager`.
+Choosing a provider, setting one up, trying a purchase and going live is [payments.md](payments.md); this section is how the code is arranged. `App\Payments\Contracts\PaymentProvider` is the contract; the shop never talks to Stripe (or, later, Tebex) directly. Providers are registered in `config/commerce.php` and resolved by `PaymentManager`.
 
 - The **store-level provider** is `COMMERCE_PROVIDER` (default `stripe`) and can be changed in the ACP under System settings. Every order records the provider it was placed with, and webhooks and reconciliation use that recorded provider, so switching never strands an in-flight payment.
 - Providers declare `capabilities()` (one-time payments, subscriptions, refunds, hosted checkout, ...) and the shop checks those rather than the provider's name.
