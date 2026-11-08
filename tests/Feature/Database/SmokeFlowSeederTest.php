@@ -11,6 +11,7 @@ use Database\Seeders\SmokeFlowSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -51,6 +52,15 @@ class SmokeFlowSeederTest extends TestCase
             $this->assertNotNull($user->email_verified_at);
             $this->assertTrue(Hash::check('password', $user->password));
         }
+    }
+
+    #[Test]
+    public function the_role_the_discord_mapping_is_made_for_is_there(): void
+    {
+        // The suite picks it from the list on the Discord role mappings page, which is the roles the database holds.
+        $this->seed(SmokeFlowSeeder::class);
+
+        $this->assertTrue(Role::where('name', 'moderator')->exists());
     }
 
     #[Test]

@@ -339,6 +339,34 @@ test.describe('members', () => {
         await expect(page.getByText(subject).first()).toBeVisible();
     });
 
+    test('a member turns on a Discord notification, saves, and the page shows it kept', async ({ page }) => {
+        await signIn(page, member.email);
+        await page.goto('/settings/discord-notifications');
+
+        // The categories are listed in the order of config/discord.php, and their switches have no name of their own: the second is
+        // "Order shipped updates".
+        const switches = page.getByRole('switch');
+        await expect(switches).toHaveCount(3);
+        await expect(switches.nth(1)).not.toBeChecked();
+
+        for (const turnedOn of [true, false]) {
+            await switches.nth(1).click();
+
+            const saved = page.waitForResponse(
+                (response) => response.request().method() === 'PUT' && response.url().endsWith('/discord/user/notification-preferences'),
+            );
+            await page.getByRole('button', { name: 'Save preferences' }).click();
+            expect((await saved).request().postDataJSON()).toEqual({
+                preferences: { support_ticket_reply: false, order_shipped: turnedOn, account_moderation: false },
+            });
+
+            // What the site kept, not what is on the screen.
+            await page.reload();
+            await expect(switches).toHaveCount(3);
+            await expect(switches.nth(1)).toBeChecked({ checked: turnedOn });
+        }
+    });
+
     test('a member cannot open the admin area and is told so on a page of the site', async ({ page }) => {
         await signIn(page, member.email);
         const response = await page.goto('/acp/dashboard');
@@ -398,5 +426,63 @@ test.describe('staff', () => {
 
         await page.goto('/acp/users');
         await expect(page.getByText(member.email)).toBeVisible();
+    });
+
+    test('an administrator adds a Discord role mapping, and its switches show what was saved and save what is flipped', async ({ page }) => {
+        // The roles of the Discord server come from Discord, which a test cannot reach (the site answers 422 without a server id): the page
+        // asks the site for them, so the answer is given here. Everything else is the site's own.
+        await page.route('**/discord/admin/discord-roles', (route) => route.fulfill({ json: { data: [{ id: '4242424242', name: 'Moderators' }] } }));
+
+        await signIn(page, admin.email);
+        await page.goto('/acp/discord/role-mappings');
+
+        const syncTo = page.getByRole('switch', { name: 'Sync to Discord' });
+        const syncFrom = page.getByRole('switch', { name: /^Sync from Discord/ });
+        // A mapping's own switches have no name; they are the two switches of its row, "To Discord" and then "From Discord".
+        const row = page.getByRole('row').filter({ hasText: '4242424242' });
+
+        // The form starts as the site means it to: sync to Discord on, from Discord off. A switch that is not tied to the form shows off.
+        await expect(syncTo).toBeChecked();
+        await expect(syncFrom).not.toBeChecked();
+
+        await page.getByLabel('Spatie role').selectOption('moderator');
+        await expect(page.getByLabel('Discord role').locator('option', { hasText: 'Moderators' })).toHaveCount(1);
+        await page.getByLabel('Discord role').selectOption('4242424242');
+
+        // Flip both, so that neither is what the form would send had the switches done nothing.
+        await syncTo.click();
+        await syncFrom.click();
+        await expect(syncTo).not.toBeChecked();
+        await expect(syncFrom).toBeChecked();
+
+        const created = page.waitForRequest((request) => request.method() === 'POST' && request.url().endsWith('/discord/admin/role-mappings'));
+        await page.getByRole('button', { name: 'Add mapping' }).click();
+        expect((await created).postDataJSON()).toMatchObject({ sync_to_discord: false, sync_from_discord: true });
+
+        // The row is drawn from what the site saved.
+        await expect(row).toBeVisible();
+        await expect(row.getByRole('switch').nth(0)).not.toBeChecked();
+        await expect(row.getByRole('switch').nth(1)).toBeChecked();
+
+        // A flipped switch is sent, and a reload shows what the site kept.
+        for (const [index, field] of [
+            [0, 'sync_to_discord'],
+            [1, 'sync_from_discord'],
+        ] as const) {
+            const updated = page.waitForResponse(
+                (response) => response.request().method() === 'PUT' && /\/discord\/admin\/role-mappings\/\d+$/.test(response.url()),
+            );
+            await row.getByRole('switch').nth(index).click();
+            expect((await updated).request().postDataJSON()).toEqual({ [field]: index === 0 });
+        }
+
+        await page.reload();
+        await expect(row).toBeVisible();
+        await expect(row.getByRole('switch').nth(0)).toBeChecked();
+        await expect(row.getByRole('switch').nth(1)).not.toBeChecked();
+
+        // Leave the table as it was found.
+        await row.getByRole('button', { name: 'Delete' }).click();
+        await expect(row).toHaveCount(0);
     });
 });

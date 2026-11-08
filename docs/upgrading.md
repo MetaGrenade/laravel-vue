@@ -180,7 +180,7 @@ A site that is a fork, or that has files of its own, finds out about an upgrade 
 - **Subclasses and overrides in the shop.** `OrderLifecycle`, `OrderRefunder`, `OrderPlacer` and `OrderPricer` each gained a `GiftCards` constructor argument ([commerce.md](commerce.md#upgrading-an-existing-installation)).
 - **The Discord companion** is a separate repository with its own releases. It is listed as `dev-main` in `composer.json`.
 - **Language files.** `php artisan lang:check` fails when a language lacks a key that English has ([adding-a-language.md](adding-a-language.md)).
-- **Pages written for the earlier front end.** Components now come from Reka UI: a Checkbox or Switch binds with `v-model` or `:model-value` (not `v-model:checked`), icons come from `@lucide/vue`, and Tailwind is configured in `resources/css/app.css` (there is no `tailwind.config.js`).
+- **Pages written for the earlier front end.** Components now come from Reka UI: a Checkbox or Switch binds with `v-model` or `:model-value` and `@update:model-value` (not `v-model:checked`, `:checked` or `@update:checked`, which Vue accepts and which then do nothing; `npm run lint:check` reports them), icons come from `@lucide/vue`, and Tailwind is configured in `resources/css/app.css` (there is no `tailwind.config.js`).
 - **Stripe.** Cashier 16 sets the Stripe API version for the calls the site makes (`2026-08-26.dahlia` with the packages that `composer.lock` names today). If you use metered billing or coupons, read [Cashier's upgrade guide](https://github.com/laravel/cashier-stripe/blob/16.x/UPGRADE.md).
 - **Your own tests** should run on the new code before the deploy does: `php artisan test`.
 
