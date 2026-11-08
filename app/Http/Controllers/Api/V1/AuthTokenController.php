@@ -45,7 +45,7 @@ class AuthTokenController extends Controller
             'expires_at' => $token->accessToken->expires_at,
             'user' => [
                 'id' => $user->id,
-                'name' => $user->name,
+                'nickname' => $user->nickname,
                 'email' => $user->email,
             ],
         ], 201);
