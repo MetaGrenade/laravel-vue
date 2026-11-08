@@ -105,18 +105,21 @@ resources/
 └─ css/                   # Tailwind entry point and global styles
 tests/                      # PHPUnit feature and unit tests
 compose.yaml                # Optional backing services for local development (Docker)
+compose.production.yaml     # The production image's services for one machine: web, worker, scheduler, MySQL, Redis
+Dockerfile                  # The production image (docs/docker.md)
+docker/                     # What the image adds: the Caddyfile, php.ini and the entrypoint
 ```
 
 ## Prerequisites
 - **PHP 8.4+** and **Composer 2**, with these extensions (most are on by default; Herd's PHP has all of them):
-  - Required: `bcmath` (used by Cashier's money library), `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `iconv`, `json`, `libxml`, `mbstring`, `openssl`, `session`, `tokenizer`, `xml`, `xmlwriter` and `zip` (account data exports).
+  - Required: `bcmath` (used by Cashier's money library), `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `iconv`, `intl` (the list of languages in Settings → Profile), `json`, `libxml`, `mbstring`, `openssl`, `session`, `tokenizer`, `xml`, `xmlwriter` and `zip` (account data exports).
   - A PDO driver for your database: `pdo_sqlite`, `pdo_mysql` or `pdo_pgsql`.
   - `gd` **with WebP support**, for product pictures. Optional: `exif`, so sideways photos are turned upright.
   - `redis` (phpredis) only if you switch cache, queues or sessions to Redis (see [docs/redis.md](docs/redis.md)); the defaults use the database and `.env.example` sets `REDIS_CLIENT=phpredis`.
 - **Node.js 22.13 or newer** (24 LTS recommended, see `.nvmrc`) with **npm 10+**.
 - **A database**: SQLite (the default, for local development), **MySQL 8** or **PostgreSQL 16**. The test suite runs against all three in CI, and tests always use an in-memory SQLite database unless you ask otherwise.
 - **For the shop**: a Stripe account (test keys are enough) and, locally, the [Stripe CLI](https://docs.stripe.com/stripe-cli) to forward webhooks.
-- Optional: Docker, for the backing services in `compose.yaml` (see below).
+- Optional: Docker, for the backing services in `compose.yaml` (see below), or to run the whole site from the production image ([docs/docker.md](docs/docker.md)).
 - PHP's `upload_max_filesize` and `post_max_size` limit what staff can upload: product pictures are accepted up to 5 MB and digital files up to 100 MB by default (`COMMERCE_DOWNLOAD_MAX_KB`), but PHP's own defaults are much lower.
 
 <h2 id="quick-start">
@@ -506,6 +509,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 
 ## Production & SSR Builds
 - **The full guide** is [docs/deployment.md](docs/deployment.md): what a live site is made of, the first deploy and every deploy after it (a VPS, or Forge), a site behind a proxy or a load balancer, and how to check it. Every setting is in [docs/configuration.md](docs/configuration.md). What follows is the short version.
+- **Docker**: [docs/docker.md](docs/docker.md) runs the site from an image on one machine, with MySQL, Redis, a worker and the scheduler, from the first start to every update.
 - **Frontend build**: `npm run build` outputs versioned assets for Laravel's Vite integration.
 - **SSR build**: `npm run build:ssr` compiles the SPA and SSR bundle; run `php artisan inertia:start-ssr` and set `INERTIA_SSR_ENABLED=true`. Combine with `composer dev:ssr` when testing server rendering locally.
 - **Database**: run `php artisan migrate --force`. Do **not** run a plain `php artisan db:seed` in production: it creates a demo user with a known password and demo content. Seed only what you need, for example `php artisan db:seed --class=RolePermissionSeeder --force`, plus `SupportTicketCategorySeeder`, `BadgeSeeder` and `SubscriptionPlanSeeder` if you use those features. `RolePermissionSeeder` makes the user with ID 1 an administrator, so register your own account first, or run `User::find($id)->assignRole('admin')` in `php artisan tinker` for another account.
@@ -539,6 +543,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - [docs/configuration.md](docs/configuration.md): every setting the site reads from `.env`, with its default and what it does, and a checklist for going live. A test fails when a setting has no row here.
 - [docs/deployment.md](docs/deployment.md): putting a site on a VPS or on Forge: the queue worker and the scheduler, the first deploy, every deploy, a site behind a proxy or a load balancer, backups and what to do when something is wrong.
 - [docs/upgrading.md](docs/upgrading.md): moving a running site to a newer version: the backup, the steps after the migrations, what behaves differently and how to go back.
+- [docs/docker.md](docs/docker.md): running the site from the Docker image on one machine: the first start, every update, HTTPS, backups and what to do when it does not start.
 - [docs/payments.md](docs/payments.md): taking money with Stripe or Tebex from start to finish: which to choose, keys and webhooks, trying a purchase before a real one, going live and what to do when a buyer paid and the order is still pending.
 - [docs/commerce.md](docs/commerce.md): how the shop works (flow, orders, pricing, shipping, tax, discounts, digital goods, refunds, webhooks, configuration and upgrade notes).
 - [docs/billing.md](docs/billing.md): subscriptions, what a customer is told and can do when a payment fails, and the Stripe events the shop needs.

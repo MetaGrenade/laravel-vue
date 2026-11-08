@@ -1,0 +1,54 @@
+# What the image does not need, and what must never be baked into it. The image holds the code and the built front end; the settings
+# (.env) and the site's files (storage) come in when it runs.
+
+# Version control, editors and the tools that work on the code
+.git
+.github
+.claude
+.idea
+.vscode
+.phpunit.cache
+.phpunit.result.cache
+playwright-report
+test-results
+lighthouse-report
+
+# Made inside the image (composer install, npm ci and npm run build)
+vendor
+node_modules
+public/build
+public/hot
+public/storage
+bootstrap/ssr
+
+# Settings and secrets. .env.example stays: the installer reads it.
+.env
+.env.*
+!.env.example
+auth.json
+
+# The site's own data
+database/*.sqlite
+database/*.sqlite-journal
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/framework/testing
+storage/app/*
+storage/pail
+bootstrap/cache/*
+
+# The build reads these itself; copying them in would only make a change to one of them rebuild the PHP packages and the front end.
+Dockerfile
+.dockerignore
+compose.yaml
+compose.production.yaml
+
+# Only the tests and the documentation read these
+tests
+docs
+scripts
+*.md
+!LICENSE.md
+!THIRD-PARTY-NOTICES.md

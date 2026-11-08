@@ -2,7 +2,7 @@
 
 How to put a MetaForger site on a server you run: a VPS, or one that Laravel Forge manages for you. It covers what a live site is made of, the first deploy, every deploy after it, what changes behind a proxy or a load balancer, and what to check afterwards. The settings it names are in [configuration.md](configuration.md).
 
-> **Status:** the application's own steps (the installer, the build, the queue command, the scheduler, the proxy settings) are what the tests and CI run. The nginx, Supervisor and Forge parts follow their documentation and were **not run** for this guide: look at what they do on your server before you rely on them. A Docker image is not here yet. It will be written when an image has been built and run, and not before.
+> **Status:** the application's own steps (the installer, the build, the queue command, the scheduler, the proxy settings) are what the tests and CI run. The nginx, Supervisor and Forge parts follow their documentation and were **not run** for this guide: look at what they do on your server before you rely on them. The Docker image and its compose file have their own guide, [docker.md](docker.md), written after the image was built and run.
 
 ## What a live site is made of
 
@@ -12,7 +12,7 @@ A site is more than a web server. Two of its parts are separate programs that no
 | --- | --- | --- |
 | Web server and PHP-FPM | Answers requests. PHP 8.4 with the extensions in [install.md](install.md#what-it-checks-on-the-machine); the document root is `public/`. | There is no site. |
 | The database | MySQL 8 or PostgreSQL 16. SQLite is for a laptop. | |
-| **A queue worker** | Sends every email (they are queued on `mail`) and runs the jobs that the shop and the scheduler start. | Emails wait in the queue for good, and nothing says so. |
+| **A queue worker** | Sends the emails (they are queued on `mail`; only the two that Laravel sends itself, to verify an address and to reset a password, go out at once) and runs the jobs that the shop and the scheduler start. | Emails wait in the queue for good, and nothing says so. |
 | **The scheduler** | One cron line that runs every minute. It puts the timed jobs on the queue: releasing the stock held by unpaid orders (every five minutes), lifting suspensions that have ended (every minute), checking support SLAs (every fifteen), the email digests (08:00 UTC), refreshing the Tebex catalogue and pruning old logs (at night). | Unpaid orders hold stock for ever, suspensions never end, no digests are sent. **The worker is what runs them:** a scheduler without a worker only fills the queue. |
 | Redis | The cache, the sessions and the queue, off the database ([redis.md](redis.md)). Recommended, not required. | The database does it all. |
 | Node.js | Builds the front end with `npm run build`. Needed on the machine that builds (22.13 or newer; `.nvmrc` names 24), and on the server only for server-side rendering. | |
@@ -297,7 +297,7 @@ HTTPS can end in two places.
 
 ## Not covered
 
-- **A Docker image.** A production `Dockerfile` and a compose file are their own piece of work, to be written with an image that has been built and run.
+- **Docker.** [docker.md](docker.md) is the guide to the image and the compose file, for one machine. A Docker setup for several machines, or Kubernetes, has not been tried.
 - **Several web servers** behind a load balancer: sessions, the cache and the queue on Redis, `APP_MAINTENANCE_DRIVER=cache`, uploads on shared storage, and the scheduler on one of them. Each is described above; the whole has not been tried.
 - **Octane** ([octane.md](octane.md): audited, not run) and **Horizon** ([redis.md](redis.md#adding-horizon)).
 - **Laravel Cloud and Vapor.**

@@ -68,7 +68,7 @@ The password has to pass the same rules as a member's. On a production site, and
 | Check | Needed | Why |
 | --- | --- | --- |
 | PHP 8.4 or newer | yes | `composer.json` requires it |
-| The PHP extensions in the README (`bcmath`, `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `iconv`, `json`, `libxml`, `mbstring`, `openssl`, `session`, `tokenizer`, `xml`, `xmlwriter`, `zip`) | yes | The framework, money arithmetic and account data exports use them |
+| The PHP extensions in the README (`bcmath`, `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `iconv`, `intl`, `json`, `libxml`, `mbstring`, `openssl`, `session`, `tokenizer`, `xml`, `xmlwriter`, `zip`) | yes | The framework, money arithmetic, the list of languages in Settings → Profile and account data exports use them |
 | The PDO extension of the database in `.env` (`pdo_sqlite`, `pdo_mysql` or `pdo_pgsql`) | yes | Without it the site cannot reach its database |
 | GD with WebP support | yes | Product pictures and blog covers are saved as WebP |
 | `redis` (phpredis), when the cache, the queue or the sessions are set to Redis | yes | See [redis.md](redis.md) |

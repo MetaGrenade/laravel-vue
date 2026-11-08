@@ -1,0 +1,56 @@
+# The web server of the image (FrankenPHP, which is Caddy with PHP in it). It is the Caddyfile that comes with the image, with three
+# additions: the built files are kept for a year, a file whose name starts with a dot is not served, only index.php runs as PHP, and a
+# second address for the container's own health check. docs/docker.md.
+#
+# SERVER_NAME is the one setting: ":80" (the default) answers plain HTTP on port 80, for a site behind something else that ends
+# HTTPS; a domain name ("example.com") makes Caddy get and renew a certificate for it and answer on 443.
+
+{
+	skip_install_trust
+
+	{$CADDY_GLOBAL_OPTIONS}
+
+	frankenphp {
+		{$FRANKENPHP_CONFIG}
+	}
+}
+
+{$CADDY_EXTRA_CONFIG}
+
+{$SERVER_NAME:localhost} {
+	root {$SERVER_ROOT:public/}
+	encode zstd br gzip
+
+	header -Server
+
+	# Hidden files (.htaccess, .env), but not /.well-known, where certificates and security.txt are looked for.
+	@hidden {
+		path_regexp hidden /\.
+		not path /.well-known/*
+	}
+	respond @hidden 404
+
+	# Only index.php runs as PHP. php_server would also run any other .php file it finds under public/, and public/storage is where
+	# uploads land: a script that got in there by a flaw in an upload check would be run by a visit instead of being a dead file.
+	@otherphp {
+		path_regexp otherphp (?i)\.php(/|$)
+		not path /index.php /index.php/*
+	}
+	respond @otherphp 404
+
+	# A built file has a hash in its name, so a changed file has a new name (docs/performance.md).
+	@built path /build/assets/*
+	header @built Cache-Control "public, max-age=31536000, immutable"
+
+	{$CADDY_SERVER_EXTRA_DIRECTIVES}
+
+	php_server
+}
+
+# The health check of the web container asks this address, which only the container itself can reach, so that it works whatever
+# SERVER_NAME is (a domain name would answer a request for 127.0.0.1 with nothing).
+http://127.0.0.1:8081 {
+	bind 127.0.0.1
+	root {$SERVER_ROOT:public/}
+	php_server
+}
