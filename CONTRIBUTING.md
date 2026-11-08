@@ -45,6 +45,8 @@ npm run build && npm run lighthouse   # Lighthouse over six pages: a report, and
 
 **When you write or move documentation**, run `npm run docs:check`. It reads the Markdown files, follows every link and image to a file in the repository and every `#heading` to a heading that exists on that page (anchors are made the way GitHub makes them, so `## Production & SSR Builds` is `#production--ssr-builds`), and fails on the ones that lead nowhere. Addresses on the web are not followed. Code is not read, so an example of a link inside a code block or between backticks is fine.
 
+**When you add a page to `docs/`**, list it in [docs/README.md](docs/README.md) under the group it belongs to, with a line that says what it is for. `DocsIndexTest` fails for a page that is not there.
+
 **When you add a setting to `config/`** that reads `env()`, add its key to [docs/configuration.md](docs/configuration.md) in the same change. `ConfigurationDocsTest` fails for a key that page does not mention.
 
 **When you add or update a dependency**, run `npm run licences:check`. A new package makes `THIRD-PARTY-NOTICES.md` out of date: run `npm run licences:notices` and commit the file with the dependency. A package under a licence the project does not allow fails the check; that is a decision to make and write down, see [docs/licences.md](docs/licences.md).
