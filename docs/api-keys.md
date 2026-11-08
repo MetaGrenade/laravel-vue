@@ -2,7 +2,7 @@
 
 An **API key** lets a script or another service use the API as a person, without their password. Anyone signed in can make their own in **Settings → API keys**; each key is limited to the **scopes** they tick, **expires** when they say, can be given **limits** on how many calls it makes, can be **rotated** in one step, and can be **revoked** at any moment. They are **emailed** each time a key is made on their account. Staff make and manage keys for people in **Admin → Tokens**.
 
-A key is a Laravel Sanctum personal access token. What this page adds is the self-service page, a fixed list of scopes that the API really enforces, a choice of lifetimes, and a revocation that really stops the key.
+What a key can call, and what comes back, is in [api.md](api.md): every endpoint, the scope each asks for, the errors and the limits. A key is a Laravel Sanctum personal access token. What this page adds is the self-service page, a fixed list of scopes that the API really enforces, a choice of lifetimes, and a revocation that really stops the key.
 
 > **Status:** built: the settings page, scopes enforced on every API route that takes a key, expiry choices, revoke and remove, a limit on how many keys a person has, per-key usage, an email when a key is made, one-step rotation with a grace period, limits an owner sets on a key, least-privilege defaults and an expiry for keys made through `POST /api/v1/auth/token`, the ACP form using the same scopes, the data export, and the OpenAPI documentation. **Not built:** see [below](#not-built).
 

@@ -164,6 +164,7 @@ composer install --no-dev --optimize-autoloader
 npm ci
 npm run build                         # npm run build:ssr, with server-side rendering
 php artisan migrate --force
+php artisan api:docs
 php artisan optimize
 php artisan queue:restart
 php artisan inertia:stop-ssr --graceful   # with server-side rendering only
@@ -171,6 +172,7 @@ sudo systemctl reload php8.4-fpm      # when OPcache is set not to check for cha
 ```
 
 - **Never `php artisan db:seed` on a live site.** The default seeder adds a demo account with a known password. `migrate --force` is all a deploy needs; the installer is for the first setup.
+- **`php artisan api:docs`** because the API description at `/api/docs/openapi.json` is written to `storage/app/api-docs/openapi.json` once and served from that file until it is written again. Without it a site keeps describing the API of the release that first wrote it, and the address it was written under ([api.md](api.md#the-openapi-document)).
 - **`php artisan queue:restart`** because workers hold the old code in memory until they are told to stop. Supervisor then starts new ones. (After a change to `.env` too, which a worker also keeps.)
 - **Server-side rendering needs two more things on every deploy:** `npm run build:ssr` in place of `npm run build` (`build` makes only the browser files), and `php artisan inertia:stop-ssr --graceful` so that the rendering server starts again with the new bundle. [Server-side rendering](#server-side-rendering-optional) says why.
 - **Reload PHP-FPM** when OPcache has `validate_timestamps=0`, as [the checklist](performance.md#a-production-checklist) recommends, or the old code goes on running.
