@@ -15,8 +15,8 @@ use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
- * `php artisan db:seed` is the demo site for a development machine (README, "Setting up by hand"): the baseline plus the demo, and the
- * first member can sign in and open the admin area, as the README promises.
+ * `php artisan db:seed` is the demo site for a development machine (docs/install.md, "Demo data"): the baseline plus the demo, and the
+ * first member can sign in and open the admin area, as that page promises.
  */
 class DatabaseSeederTest extends TestCase
 {

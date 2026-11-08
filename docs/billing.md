@@ -4,6 +4,16 @@ How subscriptions to a plan are billed, and what happens when a payment does not
 
 > **Status:** plans, subscribing, cancelling and resuming, invoices and the webhook archive have been there since the start. Added for 1.0: plans that give entitlements, what a customer is told and can do when a payment fails, free trials, promotion codes, a link to Stripe's customer portal, and a metered-usage example (API calls against a plan's allowance: see [usage.md](usage.md)).
 
+## How a customer subscribes
+
+On **Settings → Billing** (or from the pricing page) the customer picks a plan, and:
+
+1. The browser asks the site for a Stripe **SetupIntent** and mounts Stripe's **Payment Element** with it. The card details are typed into Stripe's own fields and go from the browser to Stripe; the site never sees them.
+2. The browser confirms the setup with Stripe, which does any 3-D Secure step, and gets back the id of a payment method.
+3. The browser sends the plan, that id and an optional promotion code to the site, which starts the subscription through Cashier (`SubscriptionManager`). The first payment can still need the customer to act (strong customer authentication): then the site answers `requires_action` with the payment's client secret, and the browser finishes it with Stripe.
+
+The same page lists the customer's cards (adding one, choosing the default and removing one go through Stripe), their invoices, and the buttons to cancel and resume. With no `STRIPE_SECRET` set the page opens, but adding, choosing and removing a card answer "success" and send nothing to Stripe. Setting the keys, the webhook and the plans up is in [payments.md](payments.md#stripe).
+
 ## When a payment fails
 
 Stripe takes the payment for each renewal. When it cannot, it tries again on a schedule you set in Stripe (**Settings → Billing → Revenue recovery**: how many retries, how far apart, and what happens when they run out: cancel the subscription or leave it unpaid). The shop does not decide any of that; it follows what Stripe's webhooks say, and tells the customer.

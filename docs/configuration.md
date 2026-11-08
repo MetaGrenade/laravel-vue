@@ -241,12 +241,12 @@ Public pictures (blog covers, product pictures) are served from `storage/app/pub
 
 ## Realtime
 
-Notifications are pushed to the browser through Pusher or a service that speaks its protocol ([README](../README.md#realtime-broadcasting--pusher-setup)). With no credentials the site logs the broadcast and pushes nothing, and everything else works.
+Notifications are pushed to the browser through Pusher or a service that speaks its protocol ([Live updates](realtime.md)). With no credentials the site logs the broadcast and pushes nothing, and everything else works.
 
 | Key | Default | What it does |
 | --- | --- | --- |
 | `BROADCAST_CONNECTION` | — | `pusher`, `ably`, `redis`, `log` or `null`. Left out, or `log`, the site uses `pusher` when `PUSHER_APP_ID`, `PUSHER_APP_KEY` and `PUSHER_APP_SECRET` are all set, and `log` when they are not. `pusher` without all three is `log` too. |
-| `BROADCAST_FORCE_LOG` | `false` | `true` keeps `log` even with Pusher credentials: for a staging site that must not push to real people. |
+| `BROADCAST_FORCE_LOG` | `false` | `true` keeps `log` even with Pusher credentials: for a staging site that must not push to real people. It only applies when `BROADCAST_CONNECTION` is left out or is `log`; `BROADCAST_CONNECTION=pusher` with the credentials set is Pusher whatever this says. |
 | `PUSHER_APP_ID` | — | The app's id. |
 | `PUSHER_APP_KEY` | — | Its key. It is public: the browser gets it as `VITE_PUSHER_APP_KEY`. |
 | `PUSHER_APP_SECRET` | — | **Secret.** |
@@ -362,7 +362,7 @@ Selling through a Tebex store is [tebex.md](tebex.md).
 
 ## Sign in with Google, Discord and Steam
 
-See [OAuth & Social Login](../README.md#oauth--social-login). The address each provider sends the person back to has to be registered with the provider exactly as written here.
+See [Signing in with Google, Discord and Steam](social-login.md). The address each provider sends the person back to has to be registered with the provider exactly as written here.
 
 | Key | Default | What it does |
 | --- | --- | --- |
@@ -410,7 +410,7 @@ The bot, role sync and notifications of `metagrenade/metaforge-discord` ([discor
 
 ## Search engines and social cards
 
-Titles, descriptions and the sitemap ([README](../README.md#seo)).
+Titles, descriptions and the sitemap ([Search engines and sharing](seo.md)).
 
 | Key | Default | What it does |
 | --- | --- | --- |
@@ -426,7 +426,7 @@ Titles, descriptions and the sitemap ([README](../README.md#seo)).
 
 ## Server-side rendering
 
-Pages are rendered in the browser. Rendering them on the server as well gives crawlers fully written pages: `npm run build:ssr`, then `php artisan inertia:start-ssr` under a process manager, and `INERTIA_SSR_ENABLED=true`. If the server is down, pages fall back to the browser ([README](../README.md#production--ssr-builds)).
+Pages are rendered in the browser. Rendering them on the server as well gives crawlers fully written pages: `npm run build:ssr`, then `php artisan inertia:start-ssr` under a process manager, and `INERTIA_SSR_ENABLED=true`. If the server is down, pages fall back to the browser ([Search engines and sharing](seo.md#rendering-on-the-server), [Deploying](deployment.md#server-side-rendering-optional)).
 
 | Key | Default | What it does |
 | --- | --- | --- |
@@ -465,4 +465,4 @@ These are read by Laravel itself or by the tools around the site, not by a file 
 - the steps of the "Get started" checklist, in `config/onboarding.php`;
 - what the audit log records and how it names actions, in `config/audit.php`.
 
-Switching a section of the website on or off, the sign-in providers, the email-verification rule and the payment provider are settings kept in the database, under **System settings** in the admin area (see [Website Sections & Feature Toggles](../README.md#website-sections--feature-toggles)).
+Switching a section of the website on or off, the sign-in providers, the email-verification rule and the payment provider are settings kept in the database, under **System settings** in the admin area (see [Website sections and feature toggles](features.md#website-sections-and-feature-toggles)).

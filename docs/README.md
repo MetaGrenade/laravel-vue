@@ -2,6 +2,13 @@
 
 Every guide in this folder, grouped by what you are trying to do. A test fails when a page is added here and not listed, so the list is complete. The project's [README](../README.md) says what MetaForger is and how to start; the [CHANGELOG](../CHANGELOG.md) says what changed.
 
+## Start here
+
+What the project is, and how to work on it.
+
+- [What is in MetaForger](features.md): the technology it is built on and every module it ships with, with a link to the page for each.
+- [Developing on your own machine](development.md): starting the site while you work on it, the backing services in Docker, the commands, and a few things about the code that save time.
+
 ## Run a site
 
 Putting a site on a server and keeping it there, in the order you will need them.
@@ -13,9 +20,11 @@ Putting a site on a server and keeping it there, in the order you will need them
 - [Upgrading](upgrading.md): moving a running site to a newer version: what to back up, the steps that come after the migrations, what behaves differently, and how to go back.
 - [Payments](payments.md): taking money with Stripe or Tebex, from the first test to going live.
 - [Running on Redis](redis.md): the cache, the queue and the sessions on Redis, and the queue worker.
+- [Live updates (Pusher)](realtime.md): pushing notifications and new forum replies to an open browser, and what to check when nothing arrives.
 - [Running on Octane](octane.md): what a long-lived worker keeps from one request to the next.
 - [Performance](performance.md): how fast a guest's page starts to answer, how to measure it on your own site, and what the number depends on.
 - [Documents and caching](http-caching.md): the files that are the same for everyone, and the headers that let a cache keep them.
+- [How the site protects itself](security.md): what is done about security without being asked, from cleaned user content to rate limits, and where each part is written up.
 - [Security headers](security-headers.md): the headers every page carries and how to add a host to the Content Security Policy.
 - [Reporting a vulnerability](security-contact.md): how a security problem is reported in private.
 
@@ -24,6 +33,7 @@ Putting a site on a server and keeping it there, in the order you will need them
 Changing how the site looks, what language it speaks, and what it can do.
 
 - [Theming and rebranding](theming.md): colours, fonts, logo, name, words and links, and a rebrand in order.
+- [Search engines and sharing](seo.md): the title, description and picture of a page, the sitemap and `robots.txt`, when the site is indexed, and how to describe a page of your own.
 - [Error pages](error-pages.md): what somebody sees when the server refuses what they asked for, and how to change it.
 - [Adding a language](adding-a-language.md): how to make the site speak another language, and how it decides which one a person sees.
 - [Internationalisation](i18n.md): how the translation files, the locale and the completeness check fit together.
@@ -68,11 +78,13 @@ Changing how the site looks, what language it speaks, and what it can do.
 - [Notifications and the bell](notifications.md): how a notification reaches a member.
 - [Email digests](email-digests.md): a day's community email gathered into one message.
 - [Email design](email.md): the layout every email shares and the settings for it.
-- [Two-factor authentication](two-factor.md): an authenticator code at sign-in, and recovery codes.
+- [Two-factor authentication](two-factor.md): an authenticator code at sign-in, recovery codes, and the list of open browser sessions.
+- [Signing in with Google, Discord and Steam](social-login.md): switching on the buttons, what happens when somebody presses one, and linking an account afterwards.
 - [Discord companion](discord-companion.md): role sync, bot webhooks and Discord notification opt-in.
 
 ## The support desk
 
+- [Routing and service levels](support-assignment.md): the rules that send a ticket to an agent or a team, and what the site does with a ticket nobody has answered.
 - [Support attachments](support-attachments.md): files on a ticket.
 - [Support permissions](support-permissions.md): who may do what at the support desk.
 
