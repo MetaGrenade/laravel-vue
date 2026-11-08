@@ -212,7 +212,7 @@ Then point `.env` at them (database, `REDIS_*`, and `MAIL_MAILER=smtp` with `MAI
 </picture>
 </h2>
 
-The shop works out of the box for browsing and for orders that cost nothing. Taking payment needs Stripe, a queue worker and the scheduler. [docs/commerce.md](docs/commerce.md) explains how everything fits together.
+The shop works out of the box for browsing and for orders that cost nothing. Taking payment needs Stripe, a queue worker and the scheduler. [docs/commerce.md](docs/commerce.md) explains how everything fits together, and [docs/payments.md](docs/payments.md) takes Stripe or Tebex from test keys to going live.
 
 1. **Stripe credentials.** Put your test keys in `.env`: `STRIPE_KEY`, `STRIPE_SECRET` and `STRIPE_WEBHOOK_SECRET`. Stripe is only offered at checkout when both the secret key and the webhook signing secret are set, because without them a payment could never be confirmed.
 2. **Webhooks.** In development forward Stripe's events with the CLI and use the signing secret it prints (see [Billing & Subscription Management](#billing--subscription-management)):
@@ -544,6 +544,7 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 - [docs/install.md](docs/install.md): `php artisan metaforger:install` step by step, its options for scripts and CI, running it again, production, demo data and what to do when it stops.
 - [docs/configuration.md](docs/configuration.md): every setting the site reads from `.env`, with its default and what it does, and a checklist for going live. A test fails when a setting has no row here.
 - [docs/deployment.md](docs/deployment.md): putting a site on a VPS or on Forge: the queue worker and the scheduler, the first deploy, every deploy, a site behind a proxy or a load balancer, backups and what to do when something is wrong.
+- [docs/payments.md](docs/payments.md): taking money with Stripe or Tebex from start to finish: which to choose, keys and webhooks, trying a purchase before a real one, going live and what to do when a buyer paid and the order is still pending.
 - [docs/commerce.md](docs/commerce.md): how the shop works (flow, orders, pricing, shipping, tax, discounts, digital goods, refunds, webhooks, configuration and upgrade notes).
 - [docs/billing.md](docs/billing.md): subscriptions, what a customer is told and can do when a payment fails, and the Stripe events the shop needs.
 - [docs/entitlements.md](docs/entitlements.md): what a purchase or a subscription plan gives an account (features and limits), when it is given and taken back, and how code asks for it.

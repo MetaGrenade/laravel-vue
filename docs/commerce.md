@@ -345,7 +345,7 @@ A payment that arrives for an order that was already cancelled is honoured: the 
 
 ## Payment providers
 
-`App\Payments\Contracts\PaymentProvider` is the contract; the shop never talks to Stripe (or, later, Tebex) directly. Providers are registered in `config/commerce.php` and resolved by `PaymentManager`.
+Choosing a provider, setting one up, trying a purchase and going live is [payments.md](payments.md); this section is how the code is arranged. `App\Payments\Contracts\PaymentProvider` is the contract; the shop never talks to Stripe (or, later, Tebex) directly. Providers are registered in `config/commerce.php` and resolved by `PaymentManager`.
 
 - The **store-level provider** is `COMMERCE_PROVIDER` (default `stripe`) and can be changed in the ACP under System settings. Every order records the provider it was placed with, and webhooks and reconciliation use that recorded provider, so switching never strands an in-flight payment.
 - Providers declare `capabilities()` (one-time payments, subscriptions, refunds, hosted checkout, ...) and the shop checks those rather than the provider's name.
@@ -380,7 +380,7 @@ How the Stripe integration protects the order:
 
 `App\Payments\Webhooks\WebhookReceiver` is the pattern every provider's webhook follows. Each delivery is stored in `billing_webhook_calls` under `(provider, external_id)`. If that event was already processed the delivery is acknowledged and nothing runs again, so a provider's retries are harmless. The work runs in a transaction: an event is fully applied or not at all. If processing fails, the error and attempt count are stored on the call and a `500` is returned so the provider redelivers.
 
-`/stripe/webhook` and `/webhooks/tebex` stay registered even if the shop section is switched off in the ACP, so payments in flight still settle. The customer's receipt link also keeps working. A delivery that was understood but could not be acted on (a Tebex payment that matches no order) is kept with a note in `error`, which the archive under Billing → Webhooks shows as "Needs a look"; `Replay webhook` retries one that failed. Stripe's archive and Tebex's share the table and the page; see [tebex.md](tebex.md#payments-the-webhook) for what Tebex's deliveries do.
+`/stripe/webhook` and `/webhooks/tebex` stay registered even if the shop section is switched off in the ACP, so payments in flight still settle. The customer's receipt link also keeps working. A delivery that was understood but could not be acted on (a Tebex payment that matches no order) is kept with a note in `error`, which the archive under Billing → Webhooks shows as "Needs a look"; `Replay webhook` retries a Tebex delivery that failed, and a Stripe invoice, subscription-ended or trial event; it does **not** retry a Stripe shop-order or refund event (it only stores it again), so for those press **Check payment** on the order, or resend the event from the Stripe Dashboard. Stripe's archive and Tebex's share the table and the page; see [tebex.md](tebex.md#payments-the-webhook) for what Tebex's deliveries do.
 
 ## Rate limits
 
