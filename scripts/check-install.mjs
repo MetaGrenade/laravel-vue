@@ -3,7 +3,8 @@
 //     node scripts/check-install.mjs http://127.0.0.1:8000 owner@example.test "the password"
 //
 // A list of tables says little about whether the site works. This shows that it answers, that the administrator the installer made can sign
-// in, and that the administrator role came with the account: the admin area opens. It is what the `install` job in CI runs after the installer.
+// in, and that the administrator role came with the account: the admin area opens. Settings → Profile opens too: it is the page that needs
+// the `intl` extension, which a PHP without it passes everywhere else. It is what the `install` job in CI runs after the installer.
 
 const [base, email, password] = process.argv.slice(2);
 
@@ -93,5 +94,6 @@ expect('the sign-in page opens', await request('/login'), 200);
 expect('the administrator signs in', await request('/login', { method: 'POST', form: { email, password } }), 302, '/dashboard');
 expect('the member area opens', await request('/dashboard'), 200);
 expect('the admin area opens', await request('/acp/users'), 200);
+expect('the profile settings open', await request('/settings/profile'), 200);
 
 console.log('The site is up and the administrator can sign in.');

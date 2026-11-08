@@ -313,6 +313,26 @@ jobs:
         if: failure()
         run: cat /tmp/serve.log storage/logs/*.log 2>/dev/null || true
 
+  # The production image and its compose file (docs/docker.md): builds the image, starts the five services on a database made for the run,
+  # installs the site in a container, checks it over HTTP and the promises of the Caddyfile and the queue, then stops and starts it again.
+  # scripts/docker-smoke.mjs does all of it, and runs the same on a machine with Docker. It prints what the containers say when it fails.
+  docker:
+    name: docker (image and compose file)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Build the image, run the site and check it
+        run: node scripts/docker-smoke.mjs
+
   # What the built front end weighs, in gzipped bytes: what every page loads, what a page adds to that, and the largest script.
   # The numbers are in scripts/bundle-budget.json; docs/bundle-budget.md says how to read a failure and when to raise one.
   bundle:

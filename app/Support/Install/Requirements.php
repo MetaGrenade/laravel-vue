@@ -17,7 +17,7 @@ class Requirements
      * @var list<string>
      */
     public const EXTENSIONS = [
-        'bcmath', 'ctype', 'curl', 'dom', 'fileinfo', 'filter', 'iconv', 'json', 'libxml',
+        'bcmath', 'ctype', 'curl', 'dom', 'fileinfo', 'filter', 'iconv', 'intl', 'json', 'libxml',
         'mbstring', 'openssl', 'session', 'tokenizer', 'xml', 'xmlwriter', 'zip',
     ];
 

@@ -8,6 +8,7 @@ Putting a site on a server and keeping it there, in the order you will need them
 
 - [Installing](install.md): the one command that sets up a fresh clone, its options for scripts and CI, running it again, and what to do when it stops.
 - [Deploying](deployment.md): a server you run, or Forge: what a live site is made of, the first deploy, every deploy after it, a proxy or load balancer, backups, and what to do when something is wrong.
+- [Running in Docker](docker.md): the image and the compose file for one machine: the first start, every update, HTTPS, backups and what to do when it does not start.
 - [Configuration](configuration.md): every setting the site reads from `.env`, with its default and what it does.
 - [Upgrading](upgrading.md): moving a running site to a newer version: what to back up, the steps that come after the migrations, what behaves differently, and how to go back.
 - [Payments](payments.md): taking money with Stripe or Tebex, from the first test to going live.
