@@ -338,14 +338,7 @@ dispatch but nothing will be pushed to clients. To enable realtime notifications
 - **Server-side rendering** gives crawlers fully rendered HTML: run `npm run build:ssr`, start `php artisan inertia:start-ssr` (e.g. under Supervisor) and set `INERTIA_SSR_ENABLED=true`. If the SSR server is unavailable, pages fall back to client-side rendering.
 
 ## Upgrading
-- **From any earlier pre-1.0 build:** read the **Unreleased** section of [CHANGELOG.md](CHANGELOG.md), run `php artisan migrate`, and re-run `php artisan db:seed --class=RolePermissionSeeder` so new permissions (such as `commerce.acp.refund`) exist. The shop's upgrade notes, including behaviour changes and the Stripe events to add, are in [docs/commerce.md](docs/commerce.md#upgrading-an-existing-installation). Run `php artisan storage:link` if you have not (product pictures need it) and `php artisan support:attachments:privatize` once to move old support attachments off the public disk.
-
-### Laravel 12 → 13
-- PHP **8.4** and Node **22.13+** are now required.
-- Sessions are serialized as JSON, so existing sessions are invalidated after deploying and users need to sign in again.
-- Run `php artisan migrate` (adds the Cashier 16 `subscription_items` meter columns) and `php artisan content:sanitize`.
-- Stripe: Cashier 16 uses Stripe API version `2025-07-30.basil`. Review the [Cashier upgrade guide](https://github.com/laravel/cashier-stripe/blob/16.x/UPGRADE.md) if you use metered billing or coupons.
-- Frontend: shadcn-vue components now use Reka UI. Checkbox and Switch bind with `v-model` / `:model-value` (not `v-model:checked`), icons are imported from `@lucide/vue`, and Tailwind is configured in `resources/css/app.css` (there is no `tailwind.config.js`).
+Moving a running site to a newer version is written up in **[docs/upgrading.md](docs/upgrading.md)**: what to back up and how to rehearse on a copy, the steps that come after the migrations and are not done for you (the storage link, the role seeder, old support attachments, stored text, search), what behaves differently in the new build (PHP 8.4, Laravel 13 sessions, renamed commands, API key scopes, permissions), what to check afterwards, and how to go back. The deploy itself is the list in [docs/deployment.md](docs/deployment.md#every-deploy), and the CHANGELOG says what each release changes.
 
 ## HTTP API & Swagger Docs
 - **Versioned endpoints** live under `/api/v1`. Public consumers can fetch published blog posts and forum threads, while
@@ -541,9 +534,11 @@ assigning to a single agent set `assignee_type` to `user` and provide an `assign
 </picture>
 </h2>
 
+- [docs/README.md](docs/README.md): the index of all of them, grouped by what you are trying to do.
 - [docs/install.md](docs/install.md): `php artisan metaforger:install` step by step, its options for scripts and CI, running it again, production, demo data and what to do when it stops.
 - [docs/configuration.md](docs/configuration.md): every setting the site reads from `.env`, with its default and what it does, and a checklist for going live. A test fails when a setting has no row here.
 - [docs/deployment.md](docs/deployment.md): putting a site on a VPS or on Forge: the queue worker and the scheduler, the first deploy, every deploy, a site behind a proxy or a load balancer, backups and what to do when something is wrong.
+- [docs/upgrading.md](docs/upgrading.md): moving a running site to a newer version: the backup, the steps after the migrations, what behaves differently and how to go back.
 - [docs/payments.md](docs/payments.md): taking money with Stripe or Tebex from start to finish: which to choose, keys and webhooks, trying a purchase before a real one, going live and what to do when a buyer paid and the order is still pending.
 - [docs/commerce.md](docs/commerce.md): how the shop works (flow, orders, pricing, shipping, tax, discounts, digital goods, refunds, webhooks, configuration and upgrade notes).
 - [docs/billing.md](docs/billing.md): subscriptions, what a customer is told and can do when a payment fails, and the Stripe events the shop needs.

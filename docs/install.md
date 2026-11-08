@@ -92,7 +92,7 @@ Every step can be run again. What a second run does depends on whether the site 
   >>> App\Models\User::find(1)->assignRole('admin');
   ```
 
-When a deploy brings new migrations, run `php artisan migrate --force`. The installer would do the same, but it is meant for the first setup.
+When a deploy brings new migrations, run `php artisan migrate --force`. The installer would do the same, but it is meant for the first setup. Moving a site that has been running to a newer version is [upgrading.md](upgrading.md).
 
 Keep a copy of `.env` somewhere safe. A site that has lost its `.env` is not recognised by the command, which makes a new one with a new application key, and a new key cannot read what the old one encrypted (licence keys, two-factor secrets). Put the old `.env` back instead.
 
