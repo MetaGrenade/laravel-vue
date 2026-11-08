@@ -28,6 +28,7 @@ There are two browser suites. They share the server script and the browser, and 
 | A visitor | The sign-in pages (log in, register, forgot password) show their words and not the names of language keys, and so does a signed-in member's confirm-password page: they are sent their words by their routes only ([i18n.md](i18n.md)) |
 | A member | Seven settings pages (profile, password, security, API keys, notifications, billing, addresses) show the heading and the navigation of their frame and no language key, and the header's account menu and cart sheet have their words ([i18n.md](i18n.md)). Taking `translations:settings` off the routes fails it at the heading |
 | A member | Signs in and out; a wrong password is refused and says so |
+| A member | Turns on a Discord notification, saves, and a reload shows it kept: the switch on that page has to carry its value to the form and back |
 | A member | Starts a forum thread and replies to it |
 | A member | Comments on a blog post |
 | A member | Opens a support ticket and sees it in the list |
@@ -35,6 +36,7 @@ There are two browser suites. They share the server script and the browser, and 
 | A visitor | Puts a product in the cart, changes how many, takes it out again and reaches checkout |
 | A visitor | Orders a free download without paying: no payment provider is involved, and the order is shown as paid |
 | An administrator | Opens the admin area and finds a member |
+| An administrator | Adds a Discord role mapping and flips its switches: the form sends what the switches show, the table shows what was saved, and a flipped switch is saved (the roles of the Discord server come from Discord, so the test answers that one request itself) |
 
 The records come from `SmokeFlowSeeder`: the accessibility records (a member, a hoodie that costs 10.00, a board with a thread, a blog post), an administrator, the roles and permissions, the support categories, and a free digital product. The two people sign in with the factory's password, `password`; the accounts exist only in this throwaway database. The administrator is given the role by name: `RolePermissionSeeder` gives it to the account with id 1, which a MySQL or PostgreSQL database that has held users before does not have (they keep counting after a rollback). `SmokeFlowSeederTest` fails in `php artisan test`, on all three databases, when the seeder stops giving the suite what it asks for, so that is found in a minute and not in the browser job.
 
@@ -86,7 +88,7 @@ A failed test leaves a screenshot and a trace in `test-results/e2e` (`npx playwr
 - Paying: Stripe and Tebex are external, so a paid order stops at the checkout page. The order that costs nothing takes the same path up to the provider, and the payment layers have their own tests with fake providers.
 - Search through Meilisearch (`tests/Live/Meilisearch`), mail, two-factor sign-in, file uploads, the live parts that need a websocket server.
 - A phone-width screen, or any browser but Chromium.
-- The admin area beyond opening it: its forms are covered by the feature tests.
+- The admin area beyond opening it and the Discord role mappings page: its forms are covered by the feature tests.
 
 ## Not built
 

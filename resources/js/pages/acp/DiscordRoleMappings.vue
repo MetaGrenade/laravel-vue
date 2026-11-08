@@ -139,11 +139,11 @@ onMounted(loadData);
                             </select>
                         </div>
                         <div class="flex items-center gap-2">
-                            <Switch id="sync-to" v-model:checked="form.sync_to_discord" />
+                            <Switch id="sync-to" v-model="form.sync_to_discord" />
                             <Label for="sync-to">Sync to Discord</Label>
                         </div>
                         <div class="flex items-center gap-2">
-                            <Switch id="sync-from" v-model:checked="form.sync_from_discord" />
+                            <Switch id="sync-from" v-model="form.sync_from_discord" />
                             <Label for="sync-from">Sync from Discord (phase 3)</Label>
                         </div>
                         <div class="md:col-span-2">
@@ -174,14 +174,14 @@ onMounted(loadData);
                                     <TableCell class="font-mono text-xs">{{ mapping.discord_role_id }}</TableCell>
                                     <TableCell>
                                         <Switch
-                                            :checked="mapping.sync_to_discord"
-                                            @update:checked="(value: boolean) => updateMapping(mapping, { sync_to_discord: value })"
+                                            :model-value="mapping.sync_to_discord"
+                                            @update:model-value="(value: boolean) => updateMapping(mapping, { sync_to_discord: value })"
                                         />
                                     </TableCell>
                                     <TableCell>
                                         <Switch
-                                            :checked="mapping.sync_from_discord"
-                                            @update:checked="(value: boolean) => updateMapping(mapping, { sync_from_discord: value })"
+                                            :model-value="mapping.sync_from_discord"
+                                            @update:model-value="(value: boolean) => updateMapping(mapping, { sync_from_discord: value })"
                                         />
                                     </TableCell>
                                     <TableCell class="text-right">

@@ -87,8 +87,8 @@ onMounted(load);
                         <CardContent class="flex items-center justify-between gap-4">
                             <span class="text-sm text-muted-foreground">{{ entry.key }}</span>
                             <Switch
-                                :checked="preferences[entry.key] ?? false"
-                                @update:checked="(value: boolean) => (preferences[entry.key] = value)"
+                                :model-value="preferences[entry.key] ?? false"
+                                @update:model-value="(value: boolean) => (preferences[entry.key] = value)"
                             />
                         </CardContent>
                     </Card>
