@@ -2,6 +2,7 @@
 
 namespace App\Support\Moderation;
 
+use App\Events\ModerationDiscordMirror;
 use App\Models\ModerationAction;
 use App\Models\User;
 use App\Notifications\AccountBanned;
@@ -72,6 +73,8 @@ class Moderation
             $member->notify(new WarningIssued(trim($reason), $subject['label'] ?? null));
         }
 
+        $this->dispatchDiscordMirror($action);
+
         return $action;
     }
 
@@ -131,6 +134,8 @@ class Moderation
         if ($notify) {
             $member->notify(new AccountBanned($reason, $until));
         }
+
+        $this->dispatchDiscordMirror($action);
 
         return $action;
     }
@@ -287,7 +292,22 @@ class Moderation
             $member->notify(new BanLifted($moderator === null, $this->clean($reason)));
         }
 
+        $this->dispatchDiscordMirror($action);
+
         return $action;
+    }
+
+    /**
+     * Staff Discord mirror for a removal recorded outside {@see warn()} / {@see ban()} (content clean-up).
+     */
+    public function mirrorRecordedAction(ModerationAction $action): void
+    {
+        $this->dispatchDiscordMirror($action);
+    }
+
+    private function dispatchDiscordMirror(ModerationAction $action): void
+    {
+        event(new ModerationDiscordMirror($action));
     }
 
     private function clean(?string $text): ?string
