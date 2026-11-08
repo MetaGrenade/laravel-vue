@@ -14,8 +14,10 @@ Requirements: PHP 8.4+, Composer, Node.js (see `.nvmrc`), and SQLite (the defaul
 git clone https://github.com/MetaGrenade/laravel-vue.git
 cd laravel-vue
 composer setup        # installs dependencies, creates .env, migrates, builds assets
-composer dev          # server, queue worker and Vite together
+composer dev          # server, queue worker, scheduler and Vite together
 ```
+
+[docs/development.md](docs/development.md) has the rest of a day's work: the other ways to run it, the backing services, where things are, and the commands.
 
 Optional backing services (MySQL, PostgreSQL, Redis, Meilisearch, Mailpit) are defined in `compose.yaml`:
 
@@ -32,7 +34,9 @@ Run these before opening a pull request. CI runs the same.
 
 ```bash
 vendor/bin/pint                 # PHP code style (add --test to only check)
+composer analyse                # PHPStan with Larastan, level 5 (the baseline only shrinks)
 php artisan test                # PHP tests (SQLite by default)
+php artisan lang:check          # every language has the keys the fallback language has
 npm run format                  # Prettier (format:check to only check)
 npm run lint:check              # ESLint
 npm run types:check             # vue-tsc
@@ -41,7 +45,11 @@ npm run bundle:test             # tests of the scripts in scripts/ (the size che
 npm run licences:check          # the licences of what is shipped, and THIRD-PARTY-NOTICES.md (needs composer install and npm ci)
 npm run docs:check              # every link and #heading in README.md, CONTRIBUTING.md, SECURITY.md, CHANGELOG.md and docs/ leads somewhere
 npm run build && npm run lighthouse   # Lighthouse over six pages: a report, and a few checks on images (docs/lighthouse.md)
+npm run e2e                     # the browser smoke tests (docs/e2e-tests.md)
+npm run a11y                    # the accessibility checks (docs/accessibility.md)
 ```
+
+CI (`.github/workflows`) runs the suite on SQLite, MySQL 8 and PostgreSQL 16, then Pint, Prettier, ESLint, vue-tsc, Larastan and `lang:check`, the bundle budget, the licence and documentation checks, the browser, accessibility and Lighthouse runs, the installer, search against a real Meilisearch, Redis and the Docker image, plus dependency audits and a secrets scan of every commit on the branch ([docs/secrets-scan.md](docs/secrets-scan.md)). Two scheduled jobs repeat the suite in random order and, each week, re-check dependency advisories and read the branch again for a secret. The front-end checks only look at `resources/`.
 
 **When you write or move documentation**, run `npm run docs:check`. It reads the Markdown files, follows every link and image to a file in the repository and every `#heading` to a heading that exists on that page (anchors are made the way GitHub makes them, so `## Production & SSR Builds` is `#production--ssr-builds`), and fails on the ones that lead nowhere. Addresses on the web are not followed. Code is not read, so an example of a link inside a code block or between backticks is fine.
 
@@ -94,6 +102,7 @@ The application must work on MySQL, PostgreSQL and SQLite:
 - **Sorted lists:** a list of a table that grows (`orderBy` with a `limit`) needs an index that starts with the columns it filters with `=` and ends with the columns it sorts by, tie-break included; a foreign key index finds the rows and does not order them. Measure first with `EXPLAIN ANALYZE` (PostgreSQL) or `EXPLAIN` (look for `Using filesort`), and do not index a column that changes on every view or vote. Never start one with a foreign key column. `ListOrderIndexesTest` and [docs/indexes.md](docs/indexes.md#the-order-of-the-lists) say how.
 - **Documents:** a file that is the same for every reader (a feed, a text file, a schema) is declared with `PublicDocuments::cachedFor($seconds)` and gets a line in `PublicDocumentsTest::documents()`. It starts no session, so it must not read one or the signed-in member, and a cache may keep it ([docs/http-caching.md](docs/http-caching.md)).
 - **Refusals:** `abort(403, '...')` puts that message in front of the person who was refused (on the Error page, or as a notice when it was a button or a form), so write it for them: what they cannot do and, if it helps, why. Throw anything else and they see only the words for the status. A visit inside the app is answered by `App\Support\Errors\ErrorPages` ([docs/error-pages.md](docs/error-pages.md)); a new status needs `errors.hints.*` and `errors.actions.*` entries, and `ErrorPagesTest` fails until it has them.
+- **Documentation:** when a change touches setup, tooling, a setting or a workflow, change the page that explains it in the same pull request. The [README](README.md) is a front page that only links, so a long explanation goes in `docs/`, and a new page is listed in [docs/README.md](docs/README.md) (see above for the two checks that fail when it is not).
 - **Commits:** a short imperative subject line, then a body explaining why. Keep commits focused.
 
 ## Pull requests

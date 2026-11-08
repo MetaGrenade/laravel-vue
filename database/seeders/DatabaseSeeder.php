@@ -8,7 +8,7 @@ use Illuminate\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database: a demo site for local development, never for production (README, "Seed Data").
+     * Seed the application's database: a demo site for local development, never for production (docs/install.md, "Demo data").
      *
      * A real site is set up with `php artisan metaforger:install`, which makes its own administrator by name and adds no demo data.
      */

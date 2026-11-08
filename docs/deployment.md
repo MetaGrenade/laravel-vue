@@ -153,7 +153,7 @@ Run it on **one** machine only: the scheduled jobs are not locked against each o
 
 **11. Check it** (see [Checking a deploy](#checking-a-deploy)).
 
-Then the parts that need an account somewhere else: the shop's payments ([README](../README.md#setting-up-the-shop): the live Stripe keys and the webhook endpoint `https://example.com/stripe/webhook`, or Tebex, [tebex.md](tebex.md)), sign-in with Google, Discord or Steam, and the legal pages ([legal-pages.md](legal-pages.md): they are public as soon as they have text).
+Then the parts that need an account somewhere else: the shop's payments ([payments.md](payments.md#going-live): the live Stripe keys and the webhook endpoint `https://example.com/stripe/webhook`, or Tebex, [tebex.md](tebex.md)), sign-in with Google, Discord or Steam ([social-login.md](social-login.md)), and the legal pages ([legal-pages.md](legal-pages.md): they are public as soon as they have text).
 
 ## Every deploy
 

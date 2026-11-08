@@ -100,13 +100,56 @@ Keep a copy of `.env` somewhere safe. A site that has lost its `.env` is not rec
 
 Set the site up by hand first, then run the installer on it:
 
-1. Copy `.env.example` to `.env` and set at least `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, the `DB_*` settings (create the empty MySQL or PostgreSQL database yourself: the command makes only the SQLite file), mail, and Redis if you use it. The README's [Production & SSR Builds](../README.md#production--ssr-builds) lists the rest.
+1. Copy `.env.example` to `.env` and set at least `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, the `DB_*` settings (create the empty MySQL or PostgreSQL database yourself: the command makes only the SQLite file), mail, and Redis if you use it. [configuration.md](configuration.md#before-a-site-goes-live) lists the rest.
 2. Run `php artisan metaforger:install --force`. Without `--force` a site that says it is production asks you to confirm and, with `--no-interaction`, stops.
 3. Build the front end, run `php artisan optimize`, and start the queue worker and the scheduler. [deployment.md](deployment.md) has all of this in order, with a web server, Supervisor and cron to copy, and what to do on every deploy after the first; [configuration.md](configuration.md) lists every setting.
 
 `--demo` is refused in production. The demo accounts have a password everybody knows.
 
 A machine that has no `.env` and no `APP_ENV` in its environment is not taken for production, although Laravel's own default is `production`: the `.env` the command makes from the example (`APP_ENV=local`) is what the site will run as. Set `APP_ENV=production` in the environment, or give `--env=production`, to have it treated as production.
+
+## Doing it by hand
+
+The installer does these steps for you and checks the machine first; do them yourself when you want to. They give the same site.
+
+1. **Environment.**
+
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+   Set `APP_URL` to the address you will browse, and the database credentials and any other service keys ([configuration.md](configuration.md)).
+2. **Tables.**
+
+   ```bash
+   php artisan migrate
+   ```
+
+   With the default SQLite connection Laravel offers to create `database/database.sqlite`. The migrations create every table the site needs, including the session, cache and queue tables the default `database` drivers use.
+3. **Storage link.**
+
+   ```bash
+   php artisan storage:link
+   ```
+
+   Public uploads (product pictures, blog covers) are served from `storage/app/public`. Private files (support attachments and digital downloads) stay on the `local` disk and never need the link.
+4. **Roles, support categories and badges.**
+
+   ```bash
+   php artisan db:seed --class=BaselineSeeder
+   ```
+
+   It is for a site that has none of this yet: run again, its seeders put back what staff removed on purpose (a category, a badge, a permission taken from a role), so do not run it on a site that is set up.
+5. **An administrator.** Register an account, then give it the `admin` role:
+
+   ```bash
+   php artisan tinker --execute="App\Models\User::find(1)->assignRole('admin');"
+   ```
+
+   (Use the account's id if it is not 1. `RolePermissionSeeder` also gives the role to the user with ID 1 when it runs, which is why the installer makes the account by name and does not rely on that.)
+
+Then build the front end (`npm run build`) and start the site as in [Developing](development.md#starting-the-site), or on a server as in [deployment.md](deployment.md). On a production site **never run a plain `php artisan db:seed`**: it makes a demo account with a password everybody knows. For the legal pages, run `php artisan db:seed --class=LegalPagesSeeder` (see [Legal pages](#legal-pages)).
 
 ## Demo data
 
@@ -117,7 +160,7 @@ A machine that has no `.env` and no `APP_ENV` in its environment is not taken fo
 - a demo shop: products with variants, shipping zones, tax rates and the discount codes `WELCOME10`, `SAVE5` and `FREESHIP`;
 - a poll.
 
-It is for a machine where you try the site out. `php artisan db:seed` does the same without the installer, adds the starting text for the legal pages, and also makes `test@example.com` (password `password`) the administrator; see the README's "Setting up by hand" section. Two more demo seeders are separate and opt-in: `ForumDemoSeeder` (it **empties the forum tables** first) and `AcpDashboardDemoSeeder` (a year of activity for the dashboard charts).
+It is for a machine where you try the site out. `php artisan db:seed` does the same without the installer, adds the starting text for the legal pages, and also makes `test@example.com` (password `password`) the administrator; see [Doing it by hand](#doing-it-by-hand). Two more demo seeders are separate and opt-in: `ForumDemoSeeder` (it **empties the forum tables** first) and `AcpDashboardDemoSeeder` (a year of activity for the dashboard charts).
 
 Do not give the administrator one of the two token-log addresses or the nicknames `Token Log Admin` and `Token Log Service` when you add `--demo`: the command stops and says so, because the demo seeder would otherwise reset that account's password to `password`.
 

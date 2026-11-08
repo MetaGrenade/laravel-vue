@@ -14,8 +14,19 @@ Signing in with a recovery code uses one of the set. Until the member generates 
 
 Guessing is limited on the challenge itself: five tries a minute for that sign-in, and ten a minute from the same place. A recovery code is the same challenge, so it shares the limit.
 
+## Turning it off
+
+**Settings → Security** has a button that turns two-factor off: it clears the secret and the recovery codes at once, and the account goes back to a password alone. It asks nothing more of the member (no password, no code): whoever has a signed-in browser can use it. The same is true of making a new set of recovery codes and of ending another browser's session.
+
+## Browser sessions
+
+The same page lists the browsers that are signed in to the account: the address and kind of browser, when each last did anything, and the one in use now. Ending one deletes its row from the `sessions` table, so that browser has to sign in again. The one in use cannot be ended from here (sign out instead).
+
+The list **only works with `SESSION_DRIVER=database`**, the default, because it reads that table. On Redis sessions ([Running on Redis](redis.md)) the table is no longer written, so the panel shows nothing true.
+
 ## Not built
 
+- **Asking again before a change.** Turning two-factor off, making new recovery codes and ending a session do not ask for the password or a code first.
 - **Passkeys.** They are deferred.
 - **A new set made on its own.** The member generates it, and is shown the new codes. Nothing replaces them in the background.
 - **A reminder before a code has been used.** A full set of eight is quiet.

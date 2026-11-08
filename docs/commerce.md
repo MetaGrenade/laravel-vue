@@ -356,7 +356,7 @@ Choosing a provider, setting one up, trying a purchase and going live is [paymen
 
 Set `STRIPE_KEY`, `STRIPE_SECRET` and `STRIPE_WEBHOOK_SECRET` (the same credentials Cashier uses). Stripe is only offered at checkout when the secret **and** the webhook signing secret are set, because without the secret a payment could never be confirmed.
 
-Point a Stripe webhook endpoint at `/stripe/webhook` and enable, in addition to the subscription events already listed in the README:
+Point a Stripe webhook endpoint at `/stripe/webhook` and enable, in addition to the subscription events listed in [billing.md](billing.md#webhook-events):
 
 - `checkout.session.completed`
 - `checkout.session.async_payment_succeeded`
