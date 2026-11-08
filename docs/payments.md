@@ -122,7 +122,7 @@ Things to know before you choose it:
 
 ## Try it before anyone real does
 
-Do all of this on the site you will launch from, or on a copy of it, with test money. Watch **Billing → Webhooks** in the admin area as you go: every delivery from both providers is kept there, and one the shop understood but could not act on is marked **Needs a look**.
+Do all of this on the site you will launch from, or on a copy of it, with test money. Watch **Billing → Webhooks** in the admin area as you go: every delivery whose signature checks out is kept there, and one the shop understood but could not act on is marked **Needs a look**. A delivery with a wrong signature is refused and kept **nowhere**, so a payment that never shows up there may still have been sent: see [the table at the end](#when-a-buyer-paid-and-the-order-is-still-pending).
 
 ### Stripe, in test mode
 
@@ -178,18 +178,21 @@ Work through this with the keys of the live mode in a copy of `.env` before you 
 ## After launch
 
 - **Watch the webhook archive** (Billing → Webhooks) for **Needs a look**, and the log for `critical` lines. A payment in *review* is money taken that the shop would not apply: a person decides, in the provider's dashboard or by hand.
-- **A payment the buyer made while the webhook was down** is not lost. Stripe retries a delivery for a long while, and **Replay webhook** applies a stored one again. For a Stripe order **Check payment** on the order page asks Stripe what became of it. Tebex's Headless API cannot be asked about a payment, so for Tebex look in the archive and have Tebex send it again.
+- **A payment the buyer made while the webhook was down** is not lost. Both providers send a delivery again when it is not answered with a success.
+  - **Stripe order:** press **Check payment** on the unpaid order in the admin area; it asks Stripe what became of the checkout and applies it if it was paid. Or resend the event from the endpoint in the Stripe Dashboard. **Replay webhook does not do this:** for a Stripe shop-order or refund event it only stores the event again and does not run the order's handler.
+  - **Tebex order:** the Headless API cannot be asked about a payment, so look in the archive and have Tebex send the delivery again. **Replay webhook** applies a stored Tebex delivery that failed.
+  - **Stripe subscription events** (an invoice, a subscription that ended, a trial reminder) can be run again with **Replay webhook**.
 - **Switching provider** later changes what *new* orders use. Existing orders, refunds and webhooks keep using the provider they were made with.
 
 ## When a buyer paid and the order is still pending
 
 | What you see | What it means |
 |---|---|
-| **Billing → Webhooks** has nothing from that provider | The message never arrived. The endpoint address is wrong or unreachable from the internet (a firewall, a proxy), the events are not ticked, or (Stripe) the endpoint was made in the other mode. The provider's own dashboard shows what it sent and what your site answered. |
-| A delivery is there and was refused (400) | The secret is not the endpoint's (Stripe: test and live endpoints have different ones; Tebex: the secret was shown once and mistyped), the config is cached from before it was set, or something between the provider and the site changed the body. For Stripe, also check the server's clock. |
+| **Billing → Webhooks** has nothing from that provider | **An empty archive does not mean nothing was sent:** a delivery whose signature is wrong is refused (see the next row) and kept nowhere. Look at what the provider says it sent and what your site answered: Stripe's page for the endpoint lists each delivery with the answer (look for 400s), and the Tebex page in the admin area shows when the last delivery came. If nothing was sent at all, the endpoint address is wrong or unreachable from the internet (a firewall, a proxy), the events are not ticked, or (Stripe) the endpoint was made in the other mode. |
+| The provider got a 400 | The signature did not match, so the delivery was refused **before** it was kept and you will not find it in the archive. The secret is not the endpoint's (Stripe: test and live endpoints have different ones; Tebex: the secret was shown once and mistyped), the config is cached from before it was set, or something between the provider and the site changed the body. For Stripe, also check the server's clock (the signature must be within `STRIPE_WEBHOOK_TOLERANCE` seconds). Stripe is answered 500 *Webhook signing secret not configured* when neither `STRIPE_WEBHOOK_SECRET` nor `STRIPE_CLI_WEBHOOK_SECRET` is set. |
 | Tebex deliveries are refused with 404 | They arrive from an address that is not Tebex's. See `TEBEX_WEBHOOK_CHECK_IP` above. |
-| A delivery is there and failed (500) | Read the error on the delivery and in the log, fix it, and press **Replay webhook**. Stripe and Tebex also retry. |
-| A delivery is there and marked **Needs a look** | The shop understood it and chose not to act: an amount or currency that differs (Stripe), packages that are not the order's, an order it cannot find (Tebex). The note on the delivery says which. |
+| A delivery is in the archive with an error (the provider got a 500) | Read the error on the delivery and in the log and fix the cause. The provider sends it again by itself. To try at once: for a **Stripe order or refund**, press **Check payment** on the order or resend the event from the Stripe Dashboard (**Replay webhook** does not run the order's handler for those); for a **Tebex** delivery or a Stripe **invoice, subscription-ended or trial** event, press **Replay webhook**. |
+| A delivery is in the archive marked **Needs a look** | The shop understood it and chose not to act: packages that are not the order's, an order it cannot find (Tebex). The note on the delivery says which. For Stripe, an amount or currency that differs from the order puts the **payment** in *review*: look at the order's payment and for a `critical` line in the log. |
 | The order was paid but the buyer got no email or no download | The queue worker is not running, or the product or package gives nothing. See [commerce.md](commerce.md#digital-goods) and [entitlements.md](entitlements.md#troubleshooting). |
 | Stripe says *Missing credentials*, or Tebex says it is not set up | `STRIPE_SECRET` or the webhook secret is empty (Stripe), or `TEBEX_PUBLIC_TOKEN` / `TEBEX_WEBHOOK_SECRET` is (Tebex), or the config is cached. |
 
