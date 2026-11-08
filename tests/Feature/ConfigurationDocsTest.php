@@ -185,7 +185,7 @@ class ConfigurationDocsTest extends TestCase
             ));
 
             foreach ($tokens as $at => $token) {
-                if (! $token->is(T_STRING) || strtolower($token->text) !== 'env' || ! ($tokens[$at + 1] ?? null)?->is('(') || ! ($tokens[$at + 2] ?? null)?->is(T_CONSTANT_ENCAPSED_STRING)) {
+                if (! $this->isEnvCall($tokens, $at)) {
                     continue;
                 }
 
@@ -195,6 +195,30 @@ class ConfigurationDocsTest extends TestCase
         }
 
         return $found;
+    }
+
+    /**
+     * Whether the token at $at starts `env('KEY'`, or a call of a helper variable that reads the environment for a config file
+     * (config/discord.php has `$discordEventClassesFromEnv('KEY', 'default')`, which hides the key from a search for `env(`). The
+     * helper is recognised by a variable name that contains "env" and a key written in capitals.
+     *
+     * @param  list<PhpToken>  $tokens
+     */
+    private function isEnvCall(array $tokens, int $at): bool
+    {
+        $token = $tokens[$at];
+
+        if (! ($tokens[$at + 1] ?? null)?->is('(') || ! ($tokens[$at + 2] ?? null)?->is(T_CONSTANT_ENCAPSED_STRING)) {
+            return false;
+        }
+
+        if ($token->is(T_STRING)) {
+            return strtolower($token->text) === 'env';
+        }
+
+        return $token->is(T_VARIABLE)
+            && str_contains(strtolower($token->text), 'env')
+            && preg_match('/^[A-Z][A-Z0-9_]*$/', trim($tokens[$at + 2]->text, '\'"')) === 1;
     }
 
     /**

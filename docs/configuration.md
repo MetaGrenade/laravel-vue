@@ -397,6 +397,14 @@ The bot, role sync and notifications of `metagrenade/metaforge-discord` ([discor
 | `DISCORD_USER_ROUTE_PREFIX` | `discord/user` | The address of the members' pages. |
 | `DISCORD_SUPPORT_TICKET_EVENT_CLASSES` | `App\Events\SupportTicketDiscordMirror` | Events that mirror a support ticket to Discord, as class names separated by commas. |
 | `DISCORD_FORUM_CROSSPOST_EVENT_CLASSES` | `App\Events\ForumPostCreated` | Events that cross-post a forum thread to Discord. |
+| `DISCORD_MODERATION_MIRROR_ENABLED` | `true` | The master switch of the staff mirror: a message in a private Discord channel when a moderator records a warning, ban, unban or removal ([discord-companion.md](discord-companion.md#moderation-staff-mirror)). |
+| `DISCORD_MODERATION_EVENT_CLASSES` | `App\Events\ModerationDiscordMirror` | The events the companion listens to for that mirror, as class names separated by commas. |
+| `DISCORD_MODERATION_CHANNEL_ID` | — | The private staff channel the bot posts to. |
+| `DISCORD_MODERATION_WEBHOOK_URL` | — | **Secret.** A Discord webhook to post to instead, when there is no bot. |
+| `DISCORD_MODERATION_URL_TEMPLATE` | — | The link in the staff message to the member's moderation page. `{user_id}` and `{action_id}` stand for the member and the action; `.env.example` shows `${APP_URL}/acp/users/{user_id}/moderation` in a comment. |
+| `DISCORD_MODERATION_STAFF_REASON_IN_EMBED` | `false` | Put a shortened copy of the reason the member was shown in the staff message. Off, it holds only the action's id and type and the two accounts. |
+| `DISCORD_MODERATION_REASON_EXCERPT_MAX` | `200` | How many characters of that reason are kept. |
+| `DISCORD_MODERATION_SUBJECT_LABEL_MAX` | `120` | How many characters of the title of the thread or post an action was about are kept. |
 | `DISCORD_USER_MODEL` | `App\Models\User` | The member model. Do not change it. |
 | `DISCORD_SOCIAL_ACCOUNT_MODEL` | `App\Models\SocialAccount` | The model of a linked account. Do not change it. |
 
