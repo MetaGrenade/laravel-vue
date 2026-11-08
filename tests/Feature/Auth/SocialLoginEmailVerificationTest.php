@@ -154,7 +154,7 @@ class SocialLoginEmailVerificationTest extends TestCase
         $provider = new $class('x', [], app('session.store'), app('url'));
         $method = new ReflectionMethod($provider, 'mapUserToObject');
 
-        return $method->invoke($provider, $profile, [], 'token');
+        return $method->invoke($provider, $profile);
     }
 
     #[Test]

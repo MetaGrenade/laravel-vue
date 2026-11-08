@@ -171,6 +171,7 @@ Behaviour that was different in an earlier build and is different now. The CHANG
 | **The cart in the header shows only a subtotal.** | The estimate of 7% tax and a flat shipping charge it used to show was never real. | Nothing. |
 | **Search is saved on the queue.** | With Meilisearch, `SCOUT_QUEUE` is on unless you set it. | Keep a worker running, or set `SCOUT_QUEUE=false` ([search-index.md](search-index.md#when-meilisearch-is-down)). |
 | **The cookie banner has new words.** | It names the theme and menu cookies, which are set whatever was chosen on the banner. | Read your own cookie policy: if it was written before this, it may not say so. |
+| **The `social_accounts` table loses four columns.** | A sign-in with Google or Discord no longer keeps the provider's access token, refresh token or raw profile (`access_token`, `refresh_token`, `token_expires_at`, `data`), since nothing used them. `migrate` empties and drops them. | Nothing, except a backup made before it still holds the tokens: keep it private or delete it ([What is kept from a provider](social-login.md#what-is-kept-from-a-provider)). |
 | **New colours, type and logo.** | The interface, the logo and every icon in `public/` follow the MetaForger design. | If you changed any of them, read [theming.md](theming.md) before you check out the new code. |
 
 ## If you changed the code
@@ -181,6 +182,7 @@ A site that is a fork, or that has files of its own, finds out about an upgrade 
 - **The Discord companion** is a separate repository with its own releases. It is listed as `dev-main` in `composer.json`.
 - **Language files.** `php artisan lang:check` fails when a language lacks a key that English has ([adding-a-language.md](adding-a-language.md)).
 - **Pages written for the earlier front end.** Components now come from Reka UI: a Checkbox or Switch binds with `v-model` or `:model-value` and `@update:model-value` (not `v-model:checked`, `:checked` or `@update:checked`, which Vue accepts and which then do nothing; `npm run lint:check` reports them), icons come from `@lucide/vue`, and Tailwind is configured in `resources/css/app.css` (there is no `tailwind.config.js`).
+- **A sign-in provider of your own.** `OAuthUser` has no token properties now (`accessToken`, `refreshToken`, `expiresIn` are gone), and `AbstractOAuth2Provider::mapUserToObject()` takes the profile only, not the token response and the access token. A provider written against the old signature fails when it is loaded; take the arguments out ([social-login.md](social-login.md#what-is-kept-from-a-provider)).
 - **Stripe.** Cashier 16 sets the Stripe API version for the calls the site makes (`2026-08-26.dahlia` with the packages that `composer.lock` names today). If you use metered billing or coupons, read [Cashier's upgrade guide](https://github.com/laravel/cashier-stripe/blob/16.x/UPGRADE.md).
 - **Your own tests** should run on the new code before the deploy does: `php artisan test`.
 
