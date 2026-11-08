@@ -15,7 +15,9 @@ class UserSummaryResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            // The `users.name` column was renamed `nickname` (2025_04_25_064824), and a member has no other name. This used to read `name`,
+            // which is no longer anything, so every author in the API was `null`.
+            'nickname' => $this->nickname,
             'email' => $this->when($request->user()?->is($this->resource) ?? false, $this->email),
         ];
     }

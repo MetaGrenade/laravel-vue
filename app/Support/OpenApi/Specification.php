@@ -1360,10 +1360,10 @@ class Specification
                 'type' => 'object',
                 'properties' => [
                     'id' => ['type' => 'integer', 'example' => 1],
-                    'name' => ['type' => 'string', 'example' => 'Jane Doe'],
+                    'nickname' => ['type' => 'string', 'example' => 'jane'],
                     'email' => ['type' => 'string', 'format' => 'email', 'nullable' => true],
                 ],
-                'required' => ['id', 'name'],
+                'required' => ['id', 'nickname'],
             ],
             'Blog' => [
                 'type' => 'object',

@@ -136,7 +136,7 @@ Revoking in the ACP now really revokes. **Restoring** a revoked token (clearing 
 A client that needs more than that sends `abilities` (any scopes the site has, or `*`): these are only the defaults. The response says what the key can do and when it ends:
 
 ```json
-{ "token": "12|abc...", "abilities": ["profile:read"], "expires_at": "2027-01-21T12:00:00+00:00", "user": { "id": 1, "name": null, "email": "jane@example.com" } }
+{ "token": "12|abc...", "abilities": ["profile:read"], "expires_at": "2027-01-21T12:00:00+00:00", "user": { "id": 1, "nickname": "jane", "email": "jane@example.com" } }
 ```
 
 What else changed:
