@@ -4,16 +4,21 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\User;
+use App\Notifications\EmailAddressChanged;
 use App\Support\Billing\SubscriptionCancellationFailed;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\EmailVerification;
 use App\Support\Localization\PreferenceOptions;
+use App\Support\Security\EmailChange;
+use App\Support\Security\SignInMethods;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class ProfileController extends Controller
 {
@@ -24,6 +29,7 @@ class ProfileController extends Controller
     {
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => EmailVerification::isRequired(),
+            'emailChangeAsksForPassword' => EmailChange::asksForPassword($request->user()),
             'status' => $request->session()->get('status'),
             'timezoneOptions' => PreferenceOptions::timezoneOptions(),
             'localeOptions' => PreferenceOptions::localeOptions(),
@@ -36,8 +42,10 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
+        $previousEmail = (string) $user->email;
 
-        $user->fill($request->validated());
+        // The password that was asked for to change the address has been checked by now and is not a field of the account.
+        $user->fill($request->safe()->except('current_password'));
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
@@ -45,13 +53,36 @@ class ProfileController extends Controller
 
         $user->save();
 
-        if ($user instanceof MustVerifyEmail && $user->wasChanged('email')) {
+        if (! $user->wasChanged('email')) {
+            return to_route('profile.edit');
+        }
+
+        $this->tellThePreviousAddress($request, $user, $previousEmail);
+
+        if ($user instanceof MustVerifyEmail) {
             $user->sendEmailVerificationNotification();
 
             return to_route('profile.edit')->with('status', 'verification-link-sent');
         }
 
         return to_route('profile.edit');
+    }
+
+    /**
+     * Say to the address the account had that it now has another, unless that address could not have received it (one the site made up
+     * for a member whose provider gave none). A mail that cannot be queued is reported and does not undo a change that is made.
+     */
+    private function tellThePreviousAddress(Request $request, User $user, string $previousEmail): void
+    {
+        if ($previousEmail === '' || SignInMethods::isPlaceholderEmail($previousEmail)) {
+            return;
+        }
+
+        try {
+            $user->notify(new EmailAddressChanged($previousEmail, (string) $user->email, now(), $request->ip()));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     /**

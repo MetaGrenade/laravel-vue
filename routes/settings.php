@@ -25,8 +25,8 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('settings/profile', [ProfileController::class, 'update'])->middleware('throttle:current-password')->name('profile.update');
+    Route::delete('settings/profile', [ProfileController::class, 'destroy'])->middleware('throttle:current-password')->name('profile.destroy');
 
     Route::get('settings/password', [PasswordController::class, 'edit'])->name('password.edit');
     // The current password is checked, so a stolen session must not be able to guess it ('current-password' counts each member's tries).

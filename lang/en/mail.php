@@ -61,6 +61,15 @@ return [
         'action' => 'Review your API keys',
     ],
 
+    'email_changed' => [
+        'subject' => 'The email address on your account was changed',
+        'changed' => 'The email address on your account was changed to :new on :date.',
+        'address' => 'The change was made from the address :address.',
+        'what_follows' => 'From now on the emails from this site, a password reset included, go to the new address and not to this one.',
+        'if_not_you' => 'If this was you, there is nothing more to do. If it was not, someone else has your password: sign in if you still can, change it and set your email address back, and contact the people who run this site.',
+        'action' => 'Change your password',
+    ],
+
     'subscription' => [
         'view_billing' => 'Go to billing',
 
