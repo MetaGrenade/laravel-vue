@@ -29,6 +29,7 @@ There are two browser suites. They share the server script and the browser, and 
 | A member | Seven settings pages (profile, password, security, API keys, notifications, billing, addresses) show the heading and the navigation of their frame and no language key, and the header's account menu and cart sheet have their words ([i18n.md](i18n.md)). Taking `translations:settings` off the routes fails it at the heading |
 | A member | Signs in and out; a wrong password is refused and says so |
 | A member | Turns on a Discord notification, saves, and a reload shows it kept: the switch on that page has to carry its value to the form and back |
+| A member | Turns two-factor on with the code an authenticator app would show, then presses Disable: the site sends the page that asks for the password and two-factor stays on behind it, a wrong password is refused and says so, the right one brings the member back to the Security page with it still on, and the same button then switches it off ([two-factor.md](two-factor.md)). Taking the password check off the route fails it at the first press |
 | A member | Starts a forum thread and replies to it |
 | A member | Comments on a blog post |
 | A member | Opens a support ticket and sees it in the list |
@@ -78,7 +79,7 @@ A failed test leaves a screenshot and a trace in `test-results/e2e` (`npx playwr
 
 ## Writing a test
 
-- **Independent.** Each test signs in for itself and makes the records it needs, with names that are new for every run (`unique()`), so the tests run in any order and a site kept between runs never says "already taken".
+- **Independent.** Each test signs in for itself and makes the records it needs, with names that are new for every run (`unique()`), so the tests run in any order and a site kept between runs never says "already taken". A test that changes how a member signs in (two-factor) registers a member of its own: with two-factor on every sign-in asks for a code, so a test that failed half way would leave the member the other tests use unable to get in.
 - **Look at the saved thing, never at what was typed.** A test that types a reply and then looks for the text finds it in the box whether or not anything was sent. The first version of the reply test did, and passed with no request made. Look for the post (`[id^="post-"]`), the comment (`[id^="comment-"]`), the ticket in the list, or an input that was emptied because the form was saved.
 - **Use what a person uses**: roles and labels (`getByRole`, `getByLabel`), not classes. The rich text editor is the one exception, since it is an editable region with no label (`typeInEditor`).
 - **Check a new test can fail.** Break the code it depends on (an `abort(500)` at the top of the controller method) and run the test with `-g`: it must go red.
@@ -86,7 +87,7 @@ A failed test leaves a screenshot and a trace in `test-results/e2e` (`npx playwr
 ## Not covered
 
 - Paying: Stripe and Tebex are external, so a paid order stops at the checkout page. The order that costs nothing takes the same path up to the provider, and the payment layers have their own tests with fake providers.
-- Search through Meilisearch (`tests/Live/Meilisearch`), mail, two-factor sign-in, file uploads, the live parts that need a websocket server.
+- Search through Meilisearch (`tests/Live/Meilisearch`), mail, the code that two-factor asks for at sign-in (turning it on and off is covered), file uploads, the live parts that need a websocket server.
 - A phone-width screen, or any browser but Chromium.
 - The admin area beyond opening it and the Discord role mappings page: its forms are covered by the feature tests.
 
