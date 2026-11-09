@@ -171,5 +171,5 @@ docker stop metaforger-redis-live
 - **A second Redis for the cache.** Both connections use `REDIS_HOST`. A cache that is allowed to evict, on its own instance, is a change to `config/database.php`.
 - **Sentinel, Cluster or TLS.** `REDIS_CLUSTER`, `REDIS_URL` and the rest of Laravel's options are there; none is tested.
 - **Redis for rate limiting only.** Throttles use the cache store, so they move with it; `throttleWithRedis()` is not turned on.
-- **The list of open sessions in Settings → Security.** It reads the `sessions` table, which only `SESSION_DRIVER=database` writes ([Two-factor authentication](two-factor.md#browser-sessions)). With Redis sessions the panel shows whatever rows were left from before the switch, and ending one of them ends nothing that is open.
+- **The list of open sessions in Settings → Security.** It reads the `sessions` table, which only `SESSION_DRIVER=database` writes, so with Redis sessions the page shows no list and says so. What still works is **Sign out other browsers** and changing the password, which end the other sessions through the password fingerprint each session keeps and need no list ([Two-factor authentication](two-factor.md#browser-sessions)).
 - **A Redis card in the admin area**, like the one for search. `php artisan about` and the server's own tools are what there is.

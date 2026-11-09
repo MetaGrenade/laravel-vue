@@ -28,6 +28,8 @@ interface ActiveSession {
 
 interface Props {
     sessions: ActiveSession[];
+    // False when the site's session driver cannot say which sessions an account has (anything but the database): nothing is listed.
+    canListSessions: boolean;
     twoFactorEnabled: boolean;
     twoFactorConfirmed: boolean;
     pendingSecret: string | null;
@@ -57,8 +59,18 @@ const { t } = useI18n();
 const replaceRecoveryCodes = computed(() => page.props.auth.replaceRecoveryCodes === true);
 
 const props = defineProps<Props>();
-const { sessions, twoFactorEnabled, twoFactorConfirmed, pendingSecret, qrCodeUrl, recoveryCodes, status, socialAccounts, availableSocialProviders } =
-    toRefs(props);
+const {
+    sessions,
+    canListSessions,
+    twoFactorEnabled,
+    twoFactorConfirmed,
+    pendingSecret,
+    qrCodeUrl,
+    recoveryCodes,
+    status,
+    socialAccounts,
+    availableSocialProviders,
+} = toRefs(props);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -72,6 +84,9 @@ const disableForm = useForm({});
 // Server-side errors for this form are reported under the `recovery` key.
 const recoveryForm = useForm<{ recovery?: never }>({});
 const revokeForm = useForm({});
+const signOutOthersForm = useForm({
+    password: '',
+});
 const confirmForm = useForm({
     code: '',
 });
@@ -94,6 +109,18 @@ const statusDetails = computed(() => {
             return {
                 title: 'Active session preserved',
                 description: 'You cannot revoke the session currently in use.',
+                variant: 'warning' as const,
+            };
+        case 'other-sessions-ended':
+            return {
+                title: 'Other browsers signed out',
+                description: 'Every other browser that was signed in to your account has to sign in again.',
+                variant: 'default' as const,
+            };
+        case 'sessions-not-listed':
+            return {
+                title: 'Sessions are not listed on this site',
+                description: 'This site cannot end one session on its own. Use "Sign out other browsers" instead.',
                 variant: 'warning' as const,
             };
         case 'two-factor-secret-generated':
@@ -182,6 +209,13 @@ const revokeSession = (sessionId: string) => {
     });
 };
 
+const signOutOtherBrowsers = () => {
+    signOutOthersForm.post(route('security.sessions.destroy-others'), {
+        preserveScroll: true,
+        onFinish: () => signOutOthersForm.reset('password'),
+    });
+};
+
 const enableTwoFactor = () => {
     enableForm.post(route('security.mfa.store'), {
         preserveScroll: true,
@@ -247,7 +281,14 @@ watch(hasRecoveryCodes, (value) => {
         <SettingsLayout>
             <div class="space-y-10">
                 <div class="space-y-4">
-                    <HeadingSmall title="Active sessions" description="Review and revoke devices currently authenticated with your account." />
+                    <HeadingSmall
+                        title="Active sessions"
+                        :description="
+                            canListSessions
+                                ? 'Review and revoke devices currently authenticated with your account.'
+                                : 'Sign out every other browser that is signed in to your account.'
+                        "
+                    />
 
                     <Alert
                         v-if="statusDetails"
@@ -265,7 +306,41 @@ watch(hasRecoveryCodes, (value) => {
                         <AlertDescription>{{ statusDetails.description }}</AlertDescription>
                     </Alert>
 
-                    <div class="grid gap-4 lg:grid-cols-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Sign out other browsers</CardTitle>
+                            <CardDescription>
+                                Every browser but this one has to sign in again. Changing your password does the same.
+                                <template v-if="!canListSessions">
+                                    This site does not keep a list of open sessions, so they cannot be shown one by one.</template
+                                >
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form class="space-y-3" @submit.prevent="signOutOtherBrowsers">
+                                <div class="grid gap-2 sm:max-w-sm">
+                                    <Label for="sign-out-others-password">Your password</Label>
+                                    <Input
+                                        id="sign-out-others-password"
+                                        v-model="signOutOthersForm.password"
+                                        type="password"
+                                        autocomplete="current-password"
+                                    />
+                                    <InputError :message="signOutOthersForm.errors.password" />
+                                </div>
+                                <Button type="submit" variant="outline" :disabled="signOutOthersForm.processing || signOutOthersForm.password === ''">
+                                    Sign out other browsers
+                                </Button>
+                                <p class="text-xs text-muted-foreground">
+                                    Signed up with Google, Discord or Steam and never chose a password? Sign out, then use "Forgot your password?" on
+                                    the sign-in page to set one: that signs every browser out too. It works when your account has a verified email
+                                    address.
+                                </p>
+                            </form>
+                        </CardContent>
+                    </Card>
+
+                    <div v-if="canListSessions" class="grid gap-4 lg:grid-cols-2">
                         <Card v-for="session in sessions" :key="session.id">
                             <CardHeader>
                                 <CardTitle class="flex flex-col space-y-1">

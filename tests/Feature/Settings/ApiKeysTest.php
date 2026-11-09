@@ -508,6 +508,9 @@ class ApiKeysTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->withToken($secret)->getJson('/api/user')->assertOk();
 
+        // A call with a key leaves "sanctum" as the default guard for the rest of the test; a page of the site starts with "web".
+        $this->app['auth']->shouldUse('web');
+
         $this->actingAs($user)->post(route('settings.api-keys.revoke', $key->id))
             ->assertRedirect(route('settings.api-keys.index'))
             ->assertSessionHas('success', 'API key revoked.');
@@ -516,6 +519,8 @@ class ApiKeysTest extends TestCase
 
         $this->app['auth']->forgetGuards();
         $this->withToken($secret)->getJson('/api/user')->assertUnauthorized();
+
+        $this->app['auth']->shouldUse('web');
 
         $this->actingAs($user)->get(route('settings.api-keys.index'))
             ->assertInertia(fn (Assert $page) => $page->has('keys', 1)->where('keys.0.status', 'revoked'));
@@ -614,6 +619,7 @@ class ApiKeysTest extends TestCase
         $this->withToken($key->plainTextToken)->getJson('/api/user')->assertOk();
 
         $this->app['auth']->forgetGuards();
+        $this->app['auth']->shouldUse('web');
         $this->actingAs($user)->get(route('settings.api-keys.index'))
             ->assertInertia(fn (Assert $page) => $page->where('keys.0.last_used_at', fn ($at) => str_starts_with($at, '2026-10-15T12:00')));
     }

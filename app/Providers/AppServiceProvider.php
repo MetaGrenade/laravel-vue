@@ -234,6 +234,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('confirm-password', fn (Request $request) => Limit::perMinute(5)->by('confirm:'.$byUserOrIp($request)));
 
+        // Routes that check the CURRENT password of someone who is already signed in (changing it, signing the other browsers out): a
+        // session that was stolen must not be a place to guess it from. A count of its own, so these do not use up the confirm page's.
+        RateLimiter::for('current-password', fn (Request $request) => Limit::perMinute(5)->by('current-password:'.$byUserOrIp($request)));
+
         // Posting community content (threads, replies, tickets, messages).
         RateLimiter::for('content', fn (Request $request) => [
             Limit::perMinute(10)->by('content:'.$byUserOrIp($request)),

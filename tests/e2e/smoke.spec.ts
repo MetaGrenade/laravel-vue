@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac } from 'node:crypto';
 
 /**
@@ -38,6 +38,38 @@ async function signOut(page: Page): Promise<void> {
     await page.getByRole('menuitem', { name: 'Log out' }).click();
     await expect(page.getByRole('button', { name: 'Account menu' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Log in' }).first()).toBeVisible();
+}
+
+/**
+ * A member of its own, made through the registration form and left signed in on this page: a test that changes how a member signs in
+ * (two-factor, the password) must not touch the members the other tests use. Returns the address, to sign in with from another browser.
+ */
+async function registerMember(page: Page, prefix: string): Promise<string> {
+    const nickname = unique(prefix);
+    const email = `${nickname.toLowerCase().replace(/\s+/g, '-')}@example.com`;
+
+    await page.goto('/register');
+    await chooseNecessaryCookiesOnly(page);
+    await page.getByLabel('Nickname').fill(nickname);
+    await page.getByLabel('Email address').fill(email);
+    await page.getByLabel('Password', { exact: true }).fill(password);
+    await page.getByLabel('Confirm password').fill(password);
+    await page.getByRole('button', { name: 'Create account' }).click();
+    await expect(page.getByRole('button', { name: 'Account menu' })).toBeVisible();
+
+    return email;
+}
+
+/** A second browser: its own cookies and so its own session, signed in as the member and left on the security page. */
+async function signInFromAnotherBrowser(browser: Browser, baseURL: string | undefined, email: string): Promise<Page> {
+    const context = await browser.newContext({ baseURL, ignoreHTTPSErrors: true });
+    const other = await context.newPage();
+
+    await signIn(other, email);
+    await other.goto('/settings/security');
+    await expect(other.getByRole('button', { name: 'Sign out other browsers' })).toBeVisible();
+
+    return other;
 }
 
 /** The rich text editor is an editable region, not a form field, so it has no label to look it up by. */
@@ -315,17 +347,7 @@ test.describe('members', () => {
     test('turning two-factor off asks for the password first, and the page does it once it is given', async ({ page }) => {
         // A member of its own: with two-factor on every sign-in asks for a code, and a test that failed half way must not leave that on the
         // member the other tests sign in as.
-        const nickname = unique('Careful');
-        const email = `${nickname.toLowerCase().replace(/\s+/g, '-')}@example.com`;
-
-        await page.goto('/register');
-        await chooseNecessaryCookiesOnly(page);
-        await page.getByLabel('Nickname').fill(nickname);
-        await page.getByLabel('Email address').fill(email);
-        await page.getByLabel('Password', { exact: true }).fill(password);
-        await page.getByLabel('Confirm password').fill(password);
-        await page.getByRole('button', { name: 'Create account' }).click();
-        await expect(page.getByRole('button', { name: 'Account menu' })).toBeVisible();
+        await registerMember(page, 'Careful');
 
         await page.goto('/settings/security');
         await page.getByRole('button', { name: 'Enable multi-factor authentication' }).click();
@@ -351,6 +373,71 @@ test.describe('members', () => {
         await disable.click();
         await expect(page.getByRole('button', { name: 'Enable multi-factor authentication' })).toBeVisible();
         await expect(page).toHaveURL(/\/settings\/security$/);
+    });
+
+    test('changing the password signs the other browser out and keeps this one', async ({ page, browser, baseURL }) => {
+        // A member of its own, whose password this test changes.
+        const email = await registerMember(page, 'Rotated');
+        const other = await signInFromAnotherBrowser(browser, baseURL, email);
+
+        await page.goto('/settings/password');
+        await page.getByLabel('Current password').fill(password);
+        await page.getByLabel('New password').fill('a-new-password-1');
+        await page.getByLabel('Confirm password').fill('a-new-password-1');
+        await page.getByRole('button', { name: 'Save password' }).click();
+        await expect(page.getByText('Saved.')).toBeVisible();
+
+        // This browser carries on, on the next page and the one after.
+        await page.getByRole('link', { name: 'Security', exact: true }).first().click();
+        await expect(page).toHaveURL(/\/settings\/security$/);
+        await expect(page.getByRole('button', { name: 'Sign out other browsers' })).toBeVisible();
+
+        // The other one is still showing the page it had. The next link it follows is answered with the sign-in page, not an error.
+        await other.getByRole('link', { name: 'Profile', exact: true }).first().click();
+        await expect(other).toHaveURL(/\/login$/);
+        await expect(other.getByRole('button', { name: 'Log in' })).toBeVisible();
+        await expect(other.getByRole('button', { name: 'Account menu' })).toHaveCount(0);
+
+        await other.context().close();
+    });
+
+    test('"Sign out other browsers" asks for the password, then signs the other browser out and clears it from the list', async ({
+        page,
+        browser,
+        baseURL,
+    }) => {
+        const email = await registerMember(page, 'Guarded');
+        const other = await signInFromAnotherBrowser(browser, baseURL, email);
+
+        await page.goto('/settings/security');
+        const signOutOthers = page.getByRole('button', { name: 'Sign out other browsers' });
+        const listed = page.getByText('Session ID:');
+
+        // Two browsers are signed in, and both are listed (the test site keeps its sessions in the database).
+        await expect(listed).toHaveCount(2);
+        await expect(signOutOthers).toBeDisabled();
+
+        // A wrong password changes nothing: the other browser's next page opens as before.
+        await page.getByLabel('Your password').fill('wrong-password');
+        await signOutOthers.click();
+        await expect(page.getByText('The password is incorrect.')).toBeVisible();
+        await expect(listed).toHaveCount(2);
+        await other.getByRole('link', { name: 'Password', exact: true }).first().click();
+        await expect(other).toHaveURL(/\/settings\/password$/);
+
+        await page.getByLabel('Your password').fill(password);
+        await signOutOthers.click();
+
+        // The notice is what the page said happened; the list is what the site says is true.
+        await expect(page.getByText('Other browsers signed out')).toBeVisible();
+        await expect(listed).toHaveCount(1);
+        await expect(page.getByRole('button', { name: 'Account menu' })).toBeVisible();
+
+        await other.getByRole('link', { name: 'Security', exact: true }).first().click();
+        await expect(other).toHaveURL(/\/login$/);
+        await expect(other.getByRole('button', { name: 'Account menu' })).toHaveCount(0);
+
+        await other.context().close();
     });
 
     test('a member starts a forum thread and replies to it', async ({ page }) => {

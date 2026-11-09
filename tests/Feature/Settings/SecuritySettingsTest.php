@@ -19,6 +19,11 @@ class SecuritySettingsTest extends TestCase
     #[Test]
     public function user_can_revoke_an_active_session(): void
     {
+        // The list of sessions, and ending one by its id, exist only for the driver that keeps a row for each (SignOutOtherBrowsersTest
+        // has the other drivers).
+        config(['session.driver' => 'database']);
+        app('session')->forgetDrivers();
+
         $user = User::factory()->create();
         $sessionId = Str::random(40);
 

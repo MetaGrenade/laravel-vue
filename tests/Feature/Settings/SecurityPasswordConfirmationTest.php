@@ -220,7 +220,11 @@ class SecurityPasswordConfirmationTest extends TestCase
     public function ending_another_browsers_session_does_not_ask_for_the_password(): void
     {
         // It only signs a device out: whoever does it gains nothing, and the owner who lost a phone needs it done at once. A password
-        // prompt would make that slower exactly when speed matters. docs/two-factor.md says so.
+        // prompt would make that slower exactly when speed matters. docs/two-factor.md says so. (Ending one by its id is the database
+        // driver's, the only one that has rows to end.)
+        config(['session.driver' => 'database']);
+        app('session')->forgetDrivers();
+
         $member = $this->memberWithTwoFactor();
         $sessionId = Str::random(40);
 
