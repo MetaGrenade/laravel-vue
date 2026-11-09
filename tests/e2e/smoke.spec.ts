@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createHmac } from 'node:crypto';
 
 /**
  * The paths a person takes through the site, driven in a browser (docs/e2e-tests.md): what the feature tests cannot show, that the pages
@@ -45,6 +46,22 @@ async function typeInEditor(page: Page, text: string): Promise<void> {
 
     await editor.click();
     await page.keyboard.type(text);
+}
+
+/** What an authenticator app shows for a secret (RFC 6238: a base32 secret, SHA-1, 30 seconds, 6 digits), to finish setting two-factor up. */
+function authenticatorCode(secret: string): string {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    const bits = [...secret.toUpperCase().replace(/[^A-Z2-7]/g, '')].map((char) => alphabet.indexOf(char).toString(2).padStart(5, '0')).join('');
+    const key = Buffer.from((bits.match(/.{8}/g) ?? []).map((byte) => parseInt(byte, 2)));
+    const counter = Buffer.alloc(8);
+    counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 1000 / 30)));
+
+    const hash = createHmac('sha1', key).update(counter).digest();
+    const offset = hash[hash.length - 1] & 0x0f;
+
+    return String(hash.readUInt32BE(offset) & 0x7fffffff)
+        .slice(-6)
+        .padStart(6, '0');
 }
 
 test.describe('visitors', () => {
@@ -293,6 +310,47 @@ test.describe('members', () => {
 
         await page.getByRole('button', { name: 'Open cart' }).click();
         await expect(page.getByRole('dialog').getByText('Your cart', { exact: true })).toBeVisible();
+    });
+
+    test('turning two-factor off asks for the password first, and the page does it once it is given', async ({ page }) => {
+        // A member of its own: with two-factor on every sign-in asks for a code, and a test that failed half way must not leave that on the
+        // member the other tests sign in as.
+        const nickname = unique('Careful');
+        const email = `${nickname.toLowerCase().replace(/\s+/g, '-')}@example.com`;
+
+        await page.goto('/register');
+        await chooseNecessaryCookiesOnly(page);
+        await page.getByLabel('Nickname').fill(nickname);
+        await page.getByLabel('Email address').fill(email);
+        await page.getByLabel('Password', { exact: true }).fill(password);
+        await page.getByLabel('Confirm password').fill(password);
+        await page.getByRole('button', { name: 'Create account' }).click();
+        await expect(page.getByRole('button', { name: 'Account menu' })).toBeVisible();
+
+        await page.goto('/settings/security');
+        await page.getByRole('button', { name: 'Enable multi-factor authentication' }).click();
+        await page.getByLabel('Verification code').fill(authenticatorCode(await page.locator('input[readonly]').first().inputValue()));
+        await page.getByRole('button', { name: 'Confirm setup' }).click();
+        await expect(page.getByText('Multi-factor authentication is enabled')).toBeVisible();
+
+        // The button does not switch it off: the site sends the page that asks for the password, and two-factor stays on behind it.
+        const disable = page.getByRole('button', { name: 'Disable multi-factor authentication' });
+        await disable.click();
+        await expect(page).toHaveURL(/\/confirm-password$/);
+        await page.getByLabel('Password').fill('wrong-password');
+        await page.getByRole('button', { name: 'Confirm password' }).click();
+        await expect(page).toHaveURL(/\/confirm-password$/);
+        await expect(page.getByText('The provided password is incorrect.')).toBeVisible();
+
+        await page.getByLabel('Password').fill(password);
+        await page.getByRole('button', { name: 'Confirm password' }).click();
+
+        // Back on the page the member came from, still on; now the same button does it.
+        await expect(page).toHaveURL(/\/settings\/security$/);
+        await expect(page.getByText('Multi-factor authentication is enabled')).toBeVisible();
+        await disable.click();
+        await expect(page.getByRole('button', { name: 'Enable multi-factor authentication' })).toBeVisible();
+        await expect(page).toHaveURL(/\/settings\/security$/);
     });
 
     test('a member starts a forum thread and replies to it', async ({ page }) => {
