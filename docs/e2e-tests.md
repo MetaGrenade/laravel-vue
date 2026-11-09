@@ -30,6 +30,8 @@ There are two browser suites. They share the server script and the browser, and 
 | A member | Signs in and out; a wrong password is refused and says so |
 | A member | Turns on a Discord notification, saves, and a reload shows it kept: the switch on that page has to carry its value to the form and back |
 | A member | Turns two-factor on with the code an authenticator app would show, then presses Disable: the site sends the page that asks for the password and two-factor stays on behind it, a wrong password is refused and says so, the right one brings the member back to the Security page with it still on, and the same button then switches it off ([two-factor.md](two-factor.md)). Taking the password check off the route fails it at the first press |
+| A member | Is signed in in a second browser (a second context), changes the password in the first, and the second one's next click lands on the sign-in page while the first carries on ([two-factor.md](two-factor.md#browser-sessions)). Taking `AuthenticateSession` out of the web group fails it |
+| A member | The same two browsers: **Sign out other browsers** shows two sessions in the list, a wrong password is refused and signs nobody out, the right one shows "Other browsers signed out", leaves one session in the list and sends the second browser to the sign-in page. Taking the password check out, the row clearing or the field's connection to the form fails it |
 | A member | Starts a forum thread and replies to it |
 | A member | Comments on a blog post |
 | A member | Opens a support ticket and sees it in the list |
@@ -88,6 +90,7 @@ A failed test leaves a screenshot and a trace in `test-results/e2e` (`npx playwr
 
 - Paying: Stripe and Tebex are external, so a paid order stops at the checkout page. The order that costs nothing takes the same path up to the provider, and the payment layers have their own tests with fake providers.
 - Search through Meilisearch (`tests/Live/Meilisearch`), mail, the code that two-factor asks for at sign-in (turning it on and off is covered), file uploads, the live parts that need a websocket server.
+- Sessions that are not in the database (Redis, files): the suite runs on the database driver, where the button also deletes rows. That the button signs the other browsers out by itself, and that the page shows no list, are covered by the feature tests (`SignOutOtherBrowsersTest`).
 - A phone-width screen, or any browser but Chromium.
 - The admin area beyond opening it and the Discord role mappings page: its forms are covered by the feature tests.
 

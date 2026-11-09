@@ -13,6 +13,7 @@ use App\Http\Middleware\UpdateLastActivity;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Routing\RouteRegistrar;
+use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
@@ -39,6 +40,7 @@ final class PublicDocuments
      */
     public const WITHOUT = [
         StartSession::class,
+        AuthenticateSession::class,
         ShareErrorsFromSession::class,
         PreventRequestForgery::class,
         PreventBannedUser::class,

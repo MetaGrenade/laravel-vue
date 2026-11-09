@@ -39,14 +39,15 @@ There is also the command line (`php artisan list` shows the site's own commands
 
 ## A page request
 
-Laravel does not run a route's middleware in the order they were listed: some are moved by a **priority list**, and `bootstrap/app.php` adds four to it. This is the order a page request goes through (`app('router')->gatherRouteMiddleware($route)` prints it for any route):
+Laravel does not run a route's middleware in the order they were listed: some are moved by a **priority list**, and `bootstrap/app.php` adds five to it. This is the order a page request goes through (`app('router')->gatherRouteMiddleware($route)` prints it for any route):
 
 1. Laravel's own: cookies, the session, the forgery check.
-2. **`ApplyImpersonation`**: when staff are viewing the site as a customer, the request becomes the customer's. It is placed right before the sign-in check, which is the first thing that asks who is there.
-3. **`Authenticate`**, on a route that needs a signed-in person.
-4. **`AuditAdminActions`**: writes a change made under `acp/` to the audit log ([audit-log.md](audit-log.md)). It comes before the record is looked up so that a change that is refused, or names a record that is not there, is recorded too.
-5. **`SubstituteBindings`**: the record an address names is looked up.
-6. The site's own, in the order `bootstrap/app.php` lists them:
+2. **`AuthenticateSession`**: ends a session that was started with a password the account no longer has, which is how a password change signs the other browsers out ([two-factor.md](two-factor.md#browser-sessions)). It has to run before the next step: it checks the person the session belongs to, and after the swap that would be the customer, so a staff member would be signed out as soon as a view began.
+3. **`ApplyImpersonation`**: when staff are viewing the site as a customer, the request becomes the customer's. It is placed right before the sign-in check, which is the first thing that asks who is there.
+4. **`Authenticate`**, on a route that needs a signed-in person.
+5. **`AuditAdminActions`**: writes a change made under `acp/` to the audit log ([audit-log.md](audit-log.md)). It comes before the record is looked up so that a change that is refused, or names a record that is not there, is recorded too.
+6. **`SubstituteBindings`**: the record an address names is looked up.
+7. The site's own, in the order `bootstrap/app.php` lists them:
 
 | Middleware | What it does |
 |---|---|

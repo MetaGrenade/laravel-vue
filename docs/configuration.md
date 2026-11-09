@@ -96,7 +96,7 @@ These are the settings that are different on a live site from a machine that is 
 | `MEMCACHED_PERSISTENT_ID` | — | A name that makes the connection last between requests. |
 | `DYNAMODB_CACHE_TABLE` | `cache` | The DynamoDB table of the `dynamodb` store. It uses the `AWS_*` settings. |
 | `DYNAMODB_ENDPOINT` | — | A DynamoDB-compatible address, for a local one. |
-| `SESSION_DRIVER` | `database` | `database`, `redis`, `file`, `cookie`, `memcached`, `dynamodb` or `array`. A live site uses `redis`. |
+| `SESSION_DRIVER` | `database` | `database`, `redis`, `file`, `cookie`, `memcached`, `dynamodb` or `array`. A live site uses `redis`. The list of open sessions in Settings → Security needs `database`; with another driver the page shows no list ([two-factor.md](two-factor.md#browser-sessions)). |
 | `SESSION_LIFETIME` | `120` | Minutes without a request after which a session ends. |
 | `SESSION_EXPIRE_ON_CLOSE` | `false` | End the session when the browser is closed. |
 | `SESSION_ENCRYPT` | `false` | Encrypt what a session holds. |

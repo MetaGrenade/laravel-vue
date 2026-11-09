@@ -29,7 +29,8 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('settings/password', [PasswordController::class, 'edit'])->name('password.edit');
-    Route::put('settings/password', [PasswordController::class, 'update'])->name('password.update');
+    // The current password is checked, so a stolen session must not be able to guess it ('current-password' counts each member's tries).
+    Route::put('settings/password', [PasswordController::class, 'update'])->middleware('throttle:current-password')->name('password.update');
 
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/Appearance');
@@ -123,6 +124,12 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
 
     Route::delete('settings/security/sessions/{session}', [SecuritySessionController::class, 'destroy'])
         ->name('security.sessions.destroy');
+
+    // Every browser but this one, with any session driver (it changes the password hash the sessions are checked against). It asks for
+    // the password, the same lever as changing it, and counts the tries like the password page does.
+    Route::post('settings/security/sessions/others', [SecuritySessionController::class, 'destroyOthers'])
+        ->middleware('throttle:current-password')
+        ->name('security.sessions.destroy-others');
 
     // Switching two-factor off and making a new set of recovery codes ask for the password again (`password.confirm`, good for
     // AUTH_PASSWORD_TIMEOUT seconds): a browser that was left signed in must not be enough to take away the second factor, or to be

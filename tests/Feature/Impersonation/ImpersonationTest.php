@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
@@ -557,6 +558,28 @@ class ImpersonationTest extends TestCase
         $this->viewing($admin, $customer)->post(route('impersonation.stop'));
 
         $this->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('auth.user.id', $admin->id)->where('impersonation', null));
+    }
+
+    #[Test]
+    public function a_view_does_not_sign_the_staff_member_out_of_a_session_that_checks_the_password(): void
+    {
+        // `AuthenticateSession` compares a session with the password hash of whoever is signed in. It has to do that before the request
+        // becomes the customer's, or the staff member (whose session holds their own hash) is signed out the moment a view begins, and
+        // what the session holds afterwards would be the customer's hash.
+        $admin = $this->admin();
+        // Not the factory's password: it makes the same hash for every user, and then the two could not be told apart.
+        $customer = $this->customer(['password' => Hash::make('a-new-password-1')]);
+        $adminHash = Auth::guard('web')->hashPasswordForCookie($admin->getAuthPassword());
+        $this->assertNotSame($adminHash, Auth::guard('web')->hashPasswordForCookie($customer->getAuthPassword()));
+
+        $this->withSession(['password_hash_web' => $adminHash])->viewing($admin, $customer);
+
+        $this->get(route('dashboard'))->assertOk();
+        $this->get(route('dashboard'))->assertOk()->assertSessionHas('password_hash_web', $adminHash);
+
+        $this->post(route('impersonation.stop'));
+
+        $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('auth.user.id', $admin->id));
     }
 
     #[Test]

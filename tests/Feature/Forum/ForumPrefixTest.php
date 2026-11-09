@@ -341,6 +341,10 @@ class ForumPrefixTest extends TestCase
 
         $this->assertSame($numbered->id, ForumThread::query()->where('title', 'From the API')->value('forum_prefix_id'));
 
+        // Sanctum's actingAs and its auth middleware leave "sanctum" as the default guard for the rest of the test; a page of the site
+        // is a request of its own, which starts with the "web" guard (the session check in the web group looks at the default one).
+        $this->app['auth']->shouldUse('web');
+
         $this->actingAs($member)->post(route('forum.threads.store', $this->board), [
             'title' => 'From the form',
             'body' => '<p>Hello</p>',

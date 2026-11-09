@@ -36,6 +36,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\Middleware\AuthenticateSession;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -66,6 +67,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // session-authenticated user and invalidate their session.
         $middleware->web(
             append: [
+                // A session ends when the account's password changes (see the priority list below for where it runs).
+                AuthenticateSession::class,
                 SecurityHeaders::class,
                 PreventBannedUser::class,
                 EnsureSiteIsAvailable::class,
@@ -113,6 +116,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // are per person, the route bindings, the pages) sees the customer: it goes right before authentication, which is the first
         // thing that asks who is signed in. It is after the session starts, which it reads.
         $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: ApplyImpersonation::class);
+
+        // A session that was started before the account's password changed is signed out (that is how changing a password, and "sign out
+        // the other browsers", reach a browser that is not the one in use). It has to look at the person who is really signed in, so it
+        // goes BEFORE the view as a customer: after it, the signed-in user is the customer, whose password hash the staff member's
+        // session never held, and the staff member would be signed out the moment a view began. Added last, it lands right before.
+        $middleware->prependToPriorityList(before: ApplyImpersonation::class, prepend: AuthenticateSession::class);
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();
