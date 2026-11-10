@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Support\Frontend\StaffAreaVite;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Vite;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -20,6 +21,17 @@ class PrefetchAssetsTest extends TestCase
 
     /** A line of the script Laravel writes into a page for Vite::prefetch, which no other part of a page has. */
     private const PREFETCH_SCRIPT = 'const loadNext';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // These tests are about the built front end (they read public/build/manifest.json). While a Vite dev server runs, it keeps
+        // public/hot, and Laravel then draws the dev server's addresses instead of the built files, so a page has no prefetch at all.
+        // That file is the dev server's, so it is neither moved nor deleted: Vite is told to look for its hot file somewhere nothing
+        // ever writes one.
+        Vite::useHotFile(storage_path('framework/testing/vite-no-hot-file'));
+    }
 
     #[Test]
     public function a_visitor_is_not_asked_to_fetch_the_rest_of_the_front_end(): void
