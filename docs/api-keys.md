@@ -1,6 +1,6 @@
 # API keys
 
-An **API key** lets a script or another service use the API as a person, without their password. Anyone signed in can make their own in **Settings → API keys**; each key is limited to the **scopes** they tick, **expires** when they say, can be given **limits** on how many calls it makes, can be **rotated** in one step, and can be **revoked** at any moment. They are **emailed** each time a key is made on their account. Staff make and manage keys for people in **Admin → Tokens**.
+An **API key** lets a script or another service use the API as a person, without their password. Anyone signed in can make their own in **Settings → API keys** (making or rotating one asks for their password); each key is limited to the **scopes** they tick, **expires** when they say, can be given **limits** on how many calls it makes, can be **rotated** in one step, and can be **revoked** at any moment. They are **emailed** each time a key is made on their account. Staff make and manage keys for people in **Admin → Tokens**.
 
 What a key can call, and what comes back, is in [api.md](api.md): every endpoint, the scope each asks for, the errors and the limits. A key is a Laravel Sanctum personal access token. What this page adds is the self-service page, a fixed list of scopes that the API really enforces, a choice of lifetimes, and a revocation that really stops the key.
 
@@ -8,7 +8,7 @@ What a key can call, and what comes back, is in [api.md](api.md): every endpoint
 
 ## Making and using a key
 
-1. **Settings → API keys → Create key.** Give it a **name** (so you can tell your keys apart), tick what it **can do**, choose when it **expires** (30 days, 90 days, 1 year, or never, if the site allows that), and, if you like, **limit its calls** an hour and a day.
+1. **Settings → API keys → Create key.** Give it a **name** (so you can tell your keys apart), tick what it **can do**, choose when it **expires** (30 days, 90 days, 1 year, or never, if the site allows that), and, if you like, **limit its calls** an hour and a day. Then give your **password** ([why](#asking-for-the-password)).
 2. The key is shown **once**, straight after, with a copy button. Only a hash of it is kept, so nobody (including staff) can read it again. If it is lost, revoke it and make another.
 3. Send it as a bearer token:
 
@@ -25,6 +25,17 @@ A key that has expired or been revoked gets a `401`. A key that lacks the scope 
 ```
 
 The page lists every key a person has, newest first: its scopes, when it was created, when it was last used, when it ends (or that it was revoked or is being replaced), its limits, and how many calls it made this month. Calls made with any key count toward the account's [metered usage](usage.md), and the page shows that meter at the top.
+
+## Asking for the password
+
+A key is a credential that goes on working when the browser that made it is closed, when the session ends and, until it expires or is revoked, after the password is changed. From a browser that was left signed in, or whose cookie was taken, one click would hand over a way into the account that outlives all of that. So **making** a key and **rotating** one ask for the member's **current password**, in the same dialog, as `POST /api/v1/auth/token` always has.
+
+- **A wrong or missing password does nothing.** No key, no secret, no email. A rotation leaves the old key alone: with *Not at all* chosen it would otherwise stop a key that something depends on.
+- **Guesses are limited** to five a minute for each member, **counted together** with the other places that check the current password: **Settings → Password**, **Sign out other browsers**, changing the email address and deleting the account ([Changing the email address](two-factor.md#changing-the-email-address)). The limit on keys (five a minute, twenty an hour) applies as well, so the stricter of the two is the one that stops a guesser.
+- **Revoking, removing and limiting a key never ask**, and neither does looking at the page: taking a key away is what a person does in a hurry when one has leaked.
+- **A member whose address the site made up** (`…@oauth.local`, see [Social login](social-login.md)) is **not asked**, and what they do here is not counted as a guess: they have no password they were shown to give.
+- **A member who signed up with a provider, has a real address and never chose a password** cannot pass the prompt. The dialog says so: sign out, use **Forgot your password?** on the sign-in page to set one, come back.
+- **Keys staff make in Admin → Tokens** are not affected: they are made under the `tokens.acp.create` permission, and that page is not asked for a password (see [below](#not-built)).
 
 ## An email when a key is made
 
@@ -47,7 +58,7 @@ Things to know:
 - **Limits that staff set stay staff's** on the new key (see [limits](#limiting-a-key)); rotating is no way round them.
 - **What the old key held is not copied blindly:** abilities the site no longer has are dropped, and a key that holds none the site recognises is refused (make a new key instead).
 - **It needs the person's own session.** There is no endpoint a key can call to rotate itself: a leaked key could then renew itself for ever, which would make expiry no protection at all.
-- Rotating is held to the rules for making a key: the verified-address rule and the same rate limit.
+- Rotating is held to the rules for making a key: the verified-address rule, [the password](#asking-for-the-password) and the same rate limit.
 
 ## Limiting a key
 
@@ -167,6 +178,8 @@ Run `php artisan api:docs` after deploying, so the generated OpenAPI document (c
 ## Not built
 
 - **A key rotating itself over the API.** A leaked key could renew itself for ever, so rotation needs the person's own session. A service that must renew without a person should sign in again (`POST /api/v1/auth/token`) when its key is about to end.
+- **A password prompt on Admin → Tokens.** Staff can make a key of any scope for any member there, with the `tokens.acp.create` permission and nothing else, so a staff session that was left open could make one. Asking staff again before the sensitive things they can do is a decision about the whole staff area, not about keys.
+- **A way through the password prompt for members who have no password.** A made-up `…@oauth.local` address is not asked, and a member with a real address who never chose a password has to set one first with **Forgot your password?**.
 - **Opting out of the email**, or choosing another channel. It is a security notice, sent by email always.
 - **Two-factor authentication on `POST /api/v1/auth/token`.** It takes a password only, so an account with two-factor authentication can make a key without a code. Keys made on the settings page are made from a signed-in session, which has been through it.
 - **A client that signs in at every start and never gives the key back** will meet the limit on keys (a `422`): it should reuse its key or call `DELETE /api/v1/auth/token`.
@@ -174,4 +187,4 @@ Run `php artisan api:docs` after deploying, so the generated OpenAPI document (c
 
 ## Testing
 
-`tests/Feature/Api/ApiKeyAuthenticationTest.php` (revoked, expired), `TokenScopesTest.php` (every route, order of middleware, behaviour), `AuthTokenTest.php` (the same rules as Settings, the defaults), `OpenApiScopesTest.php`; `tests/Feature/Settings/ApiKeysTest.php`, `ApiKeysExportTest.php`, `ApiKeyNotificationTest.php`, `ApiKeyRotationTest.php` and `ApiKeyLimitsTest.php`; `tests/Feature/Admin/TokenScopesAcpTest.php`; `tests/Feature/Database/PersonalAccessTokenRotationMigrationTest.php`.
+`tests/Feature/Api/ApiKeyAuthenticationTest.php` (revoked, expired), `TokenScopesTest.php` (every route, order of middleware, behaviour), `AuthTokenTest.php` (the same rules as Settings, the defaults), `OpenApiScopesTest.php`; `tests/Feature/Settings/ApiKeysTest.php`, `ApiKeysExportTest.php`, `ApiKeyNotificationTest.php`, `ApiKeyRotationTest.php`, `ApiKeyLimitsTest.php` and `ApiKeyPasswordTest.php` (the password, the shared count of guesses); `tests/Feature/Admin/TokenScopesAcpTest.php`; `tests/Feature/Database/PersonalAccessTokenRotationMigrationTest.php`.

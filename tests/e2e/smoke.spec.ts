@@ -619,6 +619,84 @@ test.describe('members', () => {
         await expect(address).toHaveValue(newEmail);
     });
 
+    test('making a key asks for the password and makes nothing without the right one, and rotating a key does the same', async ({ page }) => {
+        // A key goes on working after the session that made it ends, so a browser that was left signed in must not be enough to make one,
+        // or to replace one (rotating with "Not at all" would stop a key something depends on).
+        await registerMember(page, 'Keyholder');
+        await page.goto('/settings/api-keys');
+
+        const name = unique('Smoke key');
+        const noKeys = page.getByText('You have no API keys yet.');
+        const secret = page.getByLabel('Your new API key');
+
+        // --- Making one -----------------------------------------------------------------------------------------------------------
+        await page.getByRole('button', { name: 'Create key' }).click();
+        const making = page.getByRole('dialog', { name: 'Create an API key' });
+        const makingPassword = making.getByLabel('Your password', { exact: true });
+        await making.getByLabel('Name', { exact: true }).fill(name);
+        await making.getByRole('checkbox', { name: /profile:read/ }).click();
+        await expect(makingPassword).toBeVisible();
+
+        await making.getByRole('button', { name: 'Create key' }).click();
+        await expect(making.getByText('Enter your password to make or replace a key.')).toBeVisible();
+
+        await makingPassword.fill('wrong-password');
+        await making.getByRole('button', { name: 'Create key' }).click();
+        await expect(making.getByText('The password is incorrect.')).toBeVisible();
+        // A password that was not accepted does not stay in the box.
+        await expect(makingPassword).toHaveValue('');
+
+        // Nothing was made: what the page shows after a reload is what the account has.
+        await page.reload();
+        await expect(noKeys).toBeVisible();
+
+        await page.getByRole('button', { name: 'Create key' }).click();
+        await making.getByLabel('Name', { exact: true }).fill(name);
+        await making.getByRole('checkbox', { name: /profile:read/ }).click();
+        await makingPassword.fill(password);
+        await making.getByRole('button', { name: 'Create key' }).click();
+        await expect(page.getByRole('dialog', { name: 'Copy your new key now' })).toBeVisible();
+        await expect(secret).toHaveValue(/.+/);
+        await page.getByRole('button', { name: 'I have copied it' }).click();
+        await expect(noKeys).toHaveCount(0);
+        await expect(page.getByText(name, { exact: true })).toHaveCount(1);
+
+        // --- Rotating it ----------------------------------------------------------------------------------------------------------
+        const rotating = page.getByRole('dialog', { name: `Rotate ${name}?` });
+        const rotatingPassword = rotating.getByLabel('Your password', { exact: true });
+        const replaced = page.getByText('Being replaced', { exact: true });
+
+        // Five tries a minute are all the password checks allow, and making a key took three of them: rotating has one wrong try, and
+        // the right one. (Leaving the password out is the same refusal, and is in the feature tests.)
+        await page.getByRole('button', { name: `Rotate ${name}` }).click();
+        await expect(rotatingPassword).toBeVisible();
+        await rotatingPassword.fill('wrong-password');
+        await rotating.getByRole('button', { name: 'Rotate key' }).click();
+        await expect(rotating.getByText('The password is incorrect.')).toBeVisible();
+        await expect(rotatingPassword).toHaveValue('');
+
+        // Nothing was replaced, and no second key was made.
+        await page.reload();
+        await expect(replaced).toHaveCount(0);
+        await expect(page.getByText(name, { exact: true })).toHaveCount(1);
+
+        await page.getByRole('button', { name: `Rotate ${name}` }).click();
+        await rotatingPassword.fill(password);
+        await rotating.getByRole('button', { name: 'Rotate key' }).click();
+        await expect(page.getByRole('dialog', { name: 'Copy your new key now' })).toBeVisible();
+        await page.getByRole('button', { name: 'I have copied it' }).click();
+        await expect(replaced).toBeVisible();
+        await expect(page.getByText(name, { exact: true })).toHaveCount(2);
+
+        // --- Taking one away asks for nothing -------------------------------------------------------------------------------------
+        await page
+            .getByRole('button', { name: `Revoke ${name}` })
+            .first()
+            .click();
+        await page.getByRole('button', { name: 'Revoke key' }).click();
+        await expect(page.getByText('Revoked', { exact: true }).first()).toBeVisible();
+    });
+
     test('a member starts a forum thread and replies to it', async ({ page }) => {
         const title = unique('Smoke thread');
         const reply = unique('A reply');
