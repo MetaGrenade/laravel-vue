@@ -57,6 +57,7 @@ use App\Http\Controllers\Admin\TrustSafetyController;
 use App\Http\Controllers\Admin\UserModerationController;
 use App\Http\Controllers\Admin\UsersController as AdminUserController;
 use App\Http\Controllers\Admin\UserSocialAccountController;
+use App\Http\Controllers\Admin\UserTwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
@@ -114,6 +115,11 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::post('acp/users/{user}/impersonate', [ImpersonationController::class, 'store'])
         ->middleware('can:users.acp.impersonate')
         ->name('acp.users.impersonate');
+    // Switching two-factor off for a member who is locked out (docs/two-factor.md). Its own permission: it takes a protection away
+    // from an account on somebody's word. A reason is asked for and kept in the audit log, and the member is emailed.
+    Route::delete('acp/users/{user}/two-factor', [UserTwoFactorController::class, 'destroy'])
+        ->middleware('can:users.acp.reset-two-factor')
+        ->name('acp.users.two-factor.destroy');
     Route::post('acp/users/{user}/social-accounts', [UserSocialAccountController::class, 'store'])
         ->middleware('can:users.acp.update')
         ->name('acp.users.social-accounts.store');

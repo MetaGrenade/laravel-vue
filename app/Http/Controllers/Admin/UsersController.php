@@ -18,6 +18,8 @@ use App\Support\Moderation\MemberContent;
 use App\Support\Moderation\Moderation;
 use App\Support\Moderation\ModerationRefused;
 use App\Support\OAuth\OAuthProviders;
+use App\Support\Security\SignInMethods;
+use App\Support\Security\TwoFactorReset;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Events\Verified;
@@ -152,7 +154,7 @@ class UsersController extends Controller
     /**
      * Show the form for editing the specified user.
      */
-    public function edit(Request $request, User $user, Impersonation $impersonation)
+    public function edit(Request $request, User $user, Impersonation $impersonation, TwoFactorReset $twoFactorReset)
     {
         $formatter = DateFormatter::for($request->user());
         $admin = $request->user();
@@ -212,6 +214,14 @@ class UsersController extends Controller
                 'can' => $admin instanceof User && $admin->can('users.acp.impersonate'),
                 'refusal' => $admin instanceof User ? $impersonation->refusal($admin, $user) : null,
                 'minutes' => (int) config('impersonation.minutes', 30),
+            ],
+            // The "two-factor" card (docs/two-factor.md, "When a member is locked out"): what the account has, whether the staff member may
+            // switch it off, why not when they may not, and whether the member can be told by email (not with an address the site made up).
+            'twoFactor' => [
+                'can' => $admin instanceof User && $admin->can('users.acp.reset-two-factor'),
+                'state' => $user->two_factor_confirmed_at !== null ? 'on' : ($user->two_factor_secret !== null ? 'pending' : 'off'),
+                'refusal' => $admin instanceof User ? $twoFactorReset->refusal($admin, $user) : null,
+                'canEmail' => ! SignInMethods::isPlaceholderEmail($user->email) && filled($user->email),
             ],
         ]);
     }

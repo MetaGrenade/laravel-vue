@@ -80,6 +80,7 @@ Each request a moderator makes (the warning, the ban, the lifting) is also in th
 | `users.acp.delete` | Delete an account. Not given to moderators. |
 | `users.acp.verify` | Mark an email address verified. Not given to moderators. |
 | `users.acp.update` | Link or remove a social account. Not given to moderators. |
+| `users.acp.reset-two-factor` | Switch two-factor off for a member who is locked out ([Two-factor authentication](two-factor.md#when-a-member-is-locked-out)). Not given to moderators. |
 
 The list, the account form, verifying an email, and a social account each check that permission on the route. A bulk action checks the permission for that action (verify, ban, clean-up, or delete).
 
