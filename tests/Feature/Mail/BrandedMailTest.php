@@ -7,6 +7,7 @@ use App\Notifications\ApiKeyCreated;
 use App\Notifications\EmailAddressChanged;
 use App\Notifications\SubscriptionCancelledForNonPayment;
 use App\Notifications\SubscriptionTrialEnding;
+use App\Notifications\TwoFactorWasReset;
 use App\Support\Mail\MailBrand;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -297,6 +298,7 @@ class BrandedMailTest extends TestCase
         $messages = [
             'an API key was made' => (new ApiKeyCreated('CI', ApiKeyCreated::SETTINGS, ['Read your profile'], false, null, '203.0.113.9'))->toMail($user),
             'the email address was changed' => (new EmailAddressChanged('old@example.com', 'new@example.com', now(), '203.0.113.9'))->toMail($user),
+            'two-factor was reset' => (new TwoFactorWasReset(now()))->toMail($user),
             'a subscription was cancelled' => (new SubscriptionCancelledForNonPayment('Pro'))->toMail($user),
             'a trial is ending' => (new SubscriptionTrialEnding('Pro', now()->addDays(3), 1200, 'usd', 'month'))->toMail($user),
         ];

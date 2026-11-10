@@ -73,6 +73,9 @@ class RolePermissionSeeder extends Seeder
                 // Seeing the site as a customer sees it (read only, and written to the audit log): shows what the customer sees, so it
                 // is granted on its own.
                 Permission::firstOrCreate(['name' => $permission.'.acp.impersonate']);
+                // Switching two-factor off for a member who lost their authenticator app and recovery codes: it takes a protection away
+                // from an account on somebody's word (and emails the member), so it is granted on its own (docs/two-factor.md).
+                Permission::firstOrCreate(['name' => $permission.'.acp.reset-two-factor']);
             }
             if ($permission == 'support') {
                 Permission::firstOrCreate(['name' => $permission.'.acp.assign']);

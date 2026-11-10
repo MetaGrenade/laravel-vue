@@ -52,7 +52,7 @@ Giving somebody a role, or a role a permission, is not a change to a model, so i
 
 ### Entries made by code
 
-`Audit::record($event, $actor, $subject, ...)` writes an entry for something that is not an admin request (a console command, a job) or is not a change. [Read-only impersonation](impersonation.md) uses it for the pages opened, the things refused and the end of a view.
+`Audit::record($event, $actor, $subject, ...)` writes an entry for something that is not an admin request (a console command, a job) or is not a change. [Read-only impersonation](impersonation.md) uses it for the pages opened, the things refused and the end of a view, and `php artisan metaforger:two-factor:reset` ([Two-factor authentication](two-factor.md#when-a-member-is-locked-out)) for a reset done on the server, with no signed-in person.
 
 ## The viewer
 

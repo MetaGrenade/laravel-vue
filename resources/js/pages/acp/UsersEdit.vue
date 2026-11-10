@@ -7,6 +7,7 @@ import AdminLayout from '@/layouts/acp/AdminLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ImpersonateUserCard from '@/components/ImpersonateUserCard.vue';
+import ResetTwoFactorCard from '@/components/ResetTwoFactorCard.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -85,6 +86,7 @@ const props = defineProps<{
     availableSocialProviders: SocialProviderOption[];
     /** Viewing as this person, read only: whether the staff member may, why not if this person cannot be viewed as, and for how long. */
     viewAs: { can: boolean; refusal: string | null; minutes: number };
+    twoFactor: { can: boolean; state: 'on' | 'pending' | 'off'; refusal: string | null; canEmail: boolean };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -574,6 +576,14 @@ const removeSocialLink = (index: number) => {
                             :user="{ id: props.user.id, nickname: props.user.nickname }"
                             :refusal="props.viewAs.refusal"
                             :minutes="props.viewAs.minutes"
+                        />
+
+                        <ResetTwoFactorCard
+                            v-if="props.twoFactor.can"
+                            :user="{ id: props.user.id, nickname: props.user.nickname }"
+                            :state="props.twoFactor.state"
+                            :refusal="props.twoFactor.refusal"
+                            :can-email="props.twoFactor.canEmail"
                         />
 
                         <Card v-if="canDeleteUsers">

@@ -70,6 +70,14 @@ return [
         'action' => 'Change your password',
     ],
 
+    'two_factor_reset' => [
+        'subject' => 'Two-factor authentication was turned off on your account',
+        'reset' => 'Someone who runs this site turned two-factor authentication off on your account on :date. This is what they do when a member has lost their authenticator app and their recovery codes and cannot sign in.',
+        'what_follows' => 'From now on signing in needs only your password. Your authenticator app and your old recovery codes no longer do anything.',
+        'if_not_you' => 'If you asked for this, you can turn two-factor on again in your security settings. If you did not, someone may be pretending to be you: change your password, turn two-factor on again, and contact the people who run this site.',
+        'action' => 'Open your security settings',
+    ],
+
     'subscription' => [
         'view_billing' => 'Go to billing',
 

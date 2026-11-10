@@ -741,6 +741,50 @@ test.describe('staff', () => {
         await expect(page.getByText(member.email)).toBeVisible();
     });
 
+    test('an administrator turns two-factor off for a member who lost their app, and the member signs in with the password alone', async ({
+        page,
+    }) => {
+        // A member of its own, who sets two-factor up and then cannot use it (they are signed out, which is all a lost phone is to the site).
+        const email = await registerMember(page, 'Locked');
+        await startTwoFactorSetup(page);
+        await page.getByLabel('Verification code').fill(authenticatorCode(await page.locator('input[readonly]').first().inputValue()));
+        await page.getByRole('button', { name: 'Confirm setup' }).click();
+        await expect(page.getByText('Multi-factor authentication is enabled')).toBeVisible();
+        await signOut(page);
+
+        // The member is found in the list and opened. The card says what the account has.
+        await signIn(page, admin.email);
+        await page.goto(`/acp/users?search=${encodeURIComponent(email)}`);
+        await page
+            .getByRole('row')
+            .filter({ hasText: email })
+            .getByRole('link', { name: /^Locked/ })
+            .click();
+        const card = page.getByTestId('reset-two-factor-card');
+        await expect(card.getByTestId('two-factor-state')).toContainText('Two-factor is on');
+
+        // A reason is asked for: one that is too short is refused by the server, with nothing changed.
+        await card.getByRole('button', { name: 'Turn two-factor off' }).click();
+        const dialog = page.getByRole('dialog');
+        await dialog.getByLabel('Why are you turning it off?').fill('abc');
+        await dialog.getByRole('button', { name: 'Turn two-factor off' }).click();
+        await expect(dialog.getByText('Say a little more about why')).toBeVisible();
+        await expect(card.getByTestId('two-factor-state')).toContainText('Two-factor is on');
+
+        // With a reason it is done, the card says so, and there is nothing left to turn off.
+        await dialog.getByLabel('Why are you turning it off?').fill('Ticket 4411: lost the phone');
+        await dialog.getByRole('button', { name: 'Turn two-factor off' }).click();
+        await expect(page.getByText('Two-factor was turned off for this account')).toBeVisible();
+        await expect(dialog).toBeHidden();
+        await expect(card.getByTestId('two-factor-state')).toContainText('Two-factor is not set up');
+        await expect(card.getByRole('button', { name: 'Turn two-factor off' })).toBeDisabled();
+
+        // The member signs in with the password alone: no code is asked for (signIn waits for the dashboard).
+        await signOut(page);
+        await signIn(page, email);
+        await expect(page).toHaveURL(/\/dashboard$/);
+    });
+
     test('an administrator adds a Discord role mapping, and its switches show what was saved and save what is flipped', async ({ page }) => {
         // The roles of the Discord server come from Discord, which a test cannot reach (the site answers 422 without a server id): the page
         // asks the site for them, so the answer is given here. Everything else is the site's own.

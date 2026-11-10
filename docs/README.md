@@ -78,7 +78,7 @@ Changing how the site looks, what language it speaks, and what it can do.
 - [Notifications and the bell](notifications.md): how a notification reaches a member.
 - [Email digests](email-digests.md): a day's community email gathered into one message.
 - [Email design](email.md): the layout every email shares and the settings for it.
-- [Two-factor authentication](two-factor.md): an authenticator code at sign-in, recovery codes (shown when they are made, and again only after the password), signing out other browsers, and the password asked before two-factor is set up or the email address changes.
+- [Two-factor authentication](two-factor.md): an authenticator code at sign-in, recovery codes (shown when they are made, and again only after the password), signing out other browsers, the password asked before two-factor is set up or the email address changes, and staff switching two-factor off for a member who is locked out.
 - [Signing in with Google, Discord and Steam](social-login.md): switching on the buttons, what happens when somebody presses one, and linking an account afterwards.
 - [Discord companion](discord-companion.md): role sync, bot webhooks and Discord notification opt-in.
 
