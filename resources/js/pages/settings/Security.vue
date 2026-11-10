@@ -213,10 +213,17 @@ const revokeSession = (sessionId: string) => {
     });
 };
 
+// Whatever came of a try, the password does not stay in the box. Inertia makes what was just submitted the new defaults after an accepted
+// try, so reset() would put the accepted password back: the box and its default are both emptied.
+const forgetPassword = () => {
+    signOutOthersForm.defaults('password', '');
+    signOutOthersForm.password = '';
+};
+
 const signOutOtherBrowsers = () => {
     signOutOthersForm.post(route('security.sessions.destroy-others'), {
         preserveScroll: true,
-        onFinish: () => signOutOthersForm.reset('password'),
+        onFinish: forgetPassword,
     });
 };
 
