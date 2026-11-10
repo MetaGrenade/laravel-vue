@@ -29,6 +29,7 @@ use App\Policies\ForumPostPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\SupportTicketPolicy;
+use App\Support\Api\ApiKeys;
 use App\Support\Audit\Audit;
 use App\Support\Audit\AuditObserver;
 use App\Support\Billing\SubscriptionManager;
@@ -236,13 +237,18 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('confirm-password', fn (Request $request) => Limit::perMinute(5)->by('confirm:'.$byUserOrIp($request)));
 
         // Routes that check the CURRENT password of someone who is already signed in (changing it, signing the other browsers out,
-        // changing the email address, deleting the account): a session that was stolen must not be a place to guess it from. One count for
-        // all of them, so using another of them is not another five guesses, and one of its own, so they do not use up the confirm page's.
-        // A save of the profile that leaves the email address alone asks for no password, so it is not a guess and is not counted.
+        // changing the email address, deleting the account, making or rotating an API key): a session that was stolen must not be a place
+        // to guess it from. One count for all of them, so using another of them is not another five guesses, and one of its own, so they
+        // do not use up the confirm page's. A save of the profile that leaves the email address alone, and a key made by a member whose
+        // address the site made up, ask for no password, so they are not guesses and are not counted.
         RateLimiter::for('current-password', function (Request $request) use ($byUserOrIp) {
             $user = $request->user();
 
             if ($request->routeIs('profile.update') && $user instanceof User && ! EmailChange::needsPassword($user, $request->input('email'))) {
+                return Limit::none();
+            }
+
+            if ($request->routeIs('settings.api-keys.store', 'settings.api-keys.rotate') && ! ApiKeys::asksForPassword($user)) {
                 return Limit::none();
             }
 

@@ -34,6 +34,7 @@ class StoreApiKeyRequest extends FormRequest
             'expires_in' => ['required', 'string', Rule::in($lifetimes)],
             'hourly_quota' => ApiKeys::LIMIT_RULES,
             'daily_quota' => ApiKeys::LIMIT_RULES,
+            ...ApiKeys::passwordRules($user),
         ];
     }
 
@@ -49,6 +50,7 @@ class StoreApiKeyRequest extends FormRequest
             'expires_in.required' => __('forms.api_keys.expiry_required'),
             'expires_in.in' => __('forms.api_keys.expiry_invalid'),
             ...ApiKeys::limitMessages(),
+            ...ApiKeys::passwordMessages(),
         ];
     }
 

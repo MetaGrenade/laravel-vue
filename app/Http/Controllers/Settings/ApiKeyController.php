@@ -79,6 +79,8 @@ class ApiKeyController extends Controller
             'rotation' => $this->keys->rotationChoices(),
             'limit' => ['active' => $this->keys->activeCount($user), 'max' => $this->keys->max()],
             'max_calls' => ApiKeys::MAX_LIMIT,
+            // Making or rotating a key asks for the password, except from a member whose address the site made up.
+            'asks_for_password' => ApiKeys::asksForPassword($user),
             // What the keys add up to: every call made with one is a use of the account's allowance (see docs/usage.md).
             'usage' => $this->usage->status($user, self::METER)->toArray(),
         ]);

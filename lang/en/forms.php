@@ -28,6 +28,7 @@ return [
         'rotate_replaced' => 'This key has already been replaced, and is only working out its grace period.',
         'rotate_empty' => 'This key holds nothing the site recognises, so a copy of it would do nothing. Make a new key instead.',
         'limits_from_staff' => 'Staff set the limits on this key, so you cannot change them.',
+        'password_required' => 'Enter your password to make or replace a key.',
     ],
 
     // A promotion code on a subscription (Settings → Billing, Pricing).

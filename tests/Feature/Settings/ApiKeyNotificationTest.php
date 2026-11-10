@@ -36,7 +36,7 @@ class ApiKeyNotificationTest extends TestCase
     private function create(User $user, array $overrides = [])
     {
         return $this->actingAs($user)->post(route('settings.api-keys.store'), [
-            'name' => 'Deploy script', 'scopes' => ['profile:read'], 'expires_in' => '90', ...$overrides,
+            'name' => 'Deploy script', 'scopes' => ['profile:read'], 'expires_in' => '90', 'current_password' => 'password', ...$overrides,
         ]);
     }
 
