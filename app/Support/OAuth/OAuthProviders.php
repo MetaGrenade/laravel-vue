@@ -48,6 +48,46 @@ class OAuthProviders
     }
 
     /**
+     * The settings (as `.env` names, `GOOGLE_CLIENT_ID`) the provider still needs before it can be used: those of `ProviderRegistry::credentials()`
+     * that are not set, or are blank.
+     *
+     * @return list<string>
+     */
+    public static function missingCredentials(string $provider): array
+    {
+        $key = strtolower($provider);
+
+        if (! ProviderRegistry::supports($key)) {
+            return [];
+        }
+
+        return array_values(array_map(
+            static fn (string $credential): string => strtoupper($key.'_'.$credential),
+            array_filter(
+                ProviderRegistry::credentials($key),
+                static fn (string $credential): bool => blank(config("services.{$key}.{$credential}")),
+            ),
+        ));
+    }
+
+    /**
+     * Whether the site has what the provider needs to sign anybody in (its credentials are in `.env`), whatever the switch says.
+     */
+    public static function isConfigured(string $provider): bool
+    {
+        return ProviderRegistry::supports($provider) && self::missingCredentials($provider) === [];
+    }
+
+    /**
+     * Whether the provider can be used now: switched on in the admin area and set up in `.env`. A button for one that is not would end at
+     * the provider's own error page, so it is not offered, and its addresses answer 404.
+     */
+    public static function isAvailable(string $provider): bool
+    {
+        return self::isEnabled($provider) && self::isConfigured($provider);
+    }
+
+    /**
      * Retrieve the stored provider configuration merged with defaults.
      *
      * @return array<string, bool>
@@ -106,6 +146,8 @@ class OAuthProviders
                 'label' => $meta['label'] ?? ucfirst($key),
                 'description' => $meta['description'] ?? null,
                 'enabled' => (bool) ($configuration[$key] ?? false),
+                'configured' => self::isConfigured($key),
+                'missing' => self::missingCredentials($key),
             ];
         }
 
@@ -113,7 +155,20 @@ class OAuthProviders
     }
 
     /**
-     * Retrieve only the enabled provider options.
+     * The providers that can be used now (see `isAvailable()`): what the sign-in, registration and Security pages offer.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function availableOptions(): array
+    {
+        return array_values(array_filter(
+            self::options(),
+            static fn (array $option): bool => (bool) $option['enabled'] && (bool) $option['configured'],
+        ));
+    }
+
+    /**
+     * Retrieve only the enabled provider options (set up or not: this is the list staff pick from when they connect an account by hand).
      *
      * @return array<int, array<string, mixed>>
      */

@@ -18,16 +18,19 @@ class ProviderRegistry
             'label' => 'Google',
             'description' => 'Use your Google account for sign in and account recovery.',
             'provider' => GoogleProvider::class,
+            'credentials' => ['client_id', 'client_secret'],
         ],
         'discord' => [
             'label' => 'Discord',
             'description' => 'Connect with Discord to reach community features.',
             'provider' => DiscordProvider::class,
+            'credentials' => ['client_id', 'client_secret'],
         ],
         'steam' => [
             'label' => 'Steam',
             'description' => 'Verify your Steam profile for gaming integrations.',
             'provider' => SteamProvider::class,
+            'credentials' => ['api_key'],
         ],
     ];
 
@@ -61,6 +64,17 @@ class ProviderRegistry
     public static function providerClass(string $name): string
     {
         return (string) Arr::get(self::get($name), 'provider');
+    }
+
+    /**
+     * The `config/services.php` keys a provider cannot be used without (what its setup guide has you put in `.env`). Where the person
+     * is sent back to is not one of them: it falls back to the site's own callback address.
+     *
+     * @return list<string>
+     */
+    public static function credentials(string $name): array
+    {
+        return array_values((array) Arr::get(self::get($name), 'credentials', []));
     }
 
     /**

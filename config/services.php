@@ -48,7 +48,6 @@ return [
     ],
 
     'steam' => [
-        'redirect' => env('STEAM_REDIRECT_URI'),
         'api_key' => env('STEAM_API_KEY'),
     ],
 

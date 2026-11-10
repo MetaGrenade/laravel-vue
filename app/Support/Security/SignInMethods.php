@@ -53,7 +53,7 @@ class SignInMethods
         $anotherProvider = $user->socialAccounts()
             ->whereKeyNot($account->getKey())
             ->pluck('provider')
-            ->contains(fn (string $provider): bool => OAuthProviders::isEnabled($provider));
+            ->contains(fn (string $provider): bool => OAuthProviders::isAvailable($provider));
 
         return $anotherProvider || self::canResetByEmail($user);
     }

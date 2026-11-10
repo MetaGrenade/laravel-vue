@@ -245,7 +245,7 @@ class SocialLoginController extends Controller
 
     protected function ensureProvider(string $provider): void
     {
-        if (! ProviderRegistry::supports($provider) || ! OAuthProviders::isEnabled($provider)) {
+        if (! ProviderRegistry::supports($provider) || ! OAuthProviders::isAvailable($provider)) {
             abort(Response::HTTP_NOT_FOUND);
         }
     }

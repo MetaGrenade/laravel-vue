@@ -82,7 +82,7 @@ class SecurityController extends Controller
             })
             ->all();
 
-        $providers = collect(OAuthProviders::enabledOptions())
+        $providers = collect(OAuthProviders::availableOptions())
             ->map(function ($meta) {
                 return [
                     'key' => $meta['key'],

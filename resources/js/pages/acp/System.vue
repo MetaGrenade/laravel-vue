@@ -27,7 +27,7 @@ const props = defineProps<{
         commerce_provider: string;
     };
     commerceProviders: Array<{ key: string; label: string; configured: boolean }>;
-    oauthProviders: Array<{ key: string; label: string; description?: string | null; enabled: boolean }>;
+    oauthProviders: Array<{ key: string; label: string; description?: string | null; enabled: boolean; configured: boolean; missing: string[] }>;
     diagnostics: {
         php_version: string;
         laravel_version: string;
@@ -199,7 +199,8 @@ const saveSettings = () => {
                     <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
                         <h3 class="mb-2 text-lg font-semibold">OAuth Providers</h3>
                         <p class="mb-4 text-sm text-muted-foreground">
-                            Control which social authentication providers are available for login and account linking.
+                            Control which social authentication providers are available for login and account linking. A provider gets its button only
+                            when it is switched on here and its credentials are in <code>.env</code>.
                         </p>
                         <div v-if="oauthProviderOptions.length" class="space-y-3">
                             <div v-for="provider in oauthProviderOptions" :key="provider.key" class="flex items-center justify-between">
@@ -207,6 +208,13 @@ const saveSettings = () => {
                                     <p class="text-sm font-medium">{{ provider.label }}</p>
                                     <p v-if="provider.description" class="text-xs text-muted-foreground">
                                         {{ provider.description }}
+                                    </p>
+                                    <p
+                                        v-if="!provider.configured"
+                                        class="text-xs font-medium text-foreground"
+                                        :data-testid="`oauth-provider-${provider.key}-missing`"
+                                    >
+                                        No button is shown yet: add {{ provider.missing.join(' and ') }} to .env.
                                     </p>
                                 </div>
                                 <div class="flex items-center">

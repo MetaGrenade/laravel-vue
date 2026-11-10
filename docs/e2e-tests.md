@@ -42,6 +42,7 @@ There are two browser suites. They share the server script and the browser, and 
 | A visitor | Puts a product in the cart, changes how many, takes it out again and reaches checkout |
 | A visitor | Orders a free download without paying: no payment provider is involved, and the order is shown as paid |
 | An administrator | Opens the admin area and finds a member |
+| A visitor, then an administrator | On a site with no sign-in provider set up (the test site sets none, whatever `.env` has): the sign-in and registration pages have no provider button, a provider's address answers 404, and **System settings** names the settings each provider still needs |
 | An administrator | Opens a member who has two-factor on and turns it off: the card says it is on, a reason that is too short is refused by the server with nothing changed, a real reason is accepted, the card then says nothing is set up and the button is off, and the member signs in with the password alone ([two-factor.md](two-factor.md#when-a-member-is-locked-out)). Taking the check off the route fails it |
 | An administrator | Adds a Discord role mapping and flips its switches: the form sends what the switches show, the table shows what was saved, and a flipped switch is saved (the roles of the Discord server come from Discord, so the test answers that one request itself) |
 
