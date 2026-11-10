@@ -112,8 +112,10 @@ return [
     ],
 
     'blocked' => [
-        // Secrets. The security page sends the recovery codes, a pending two-factor secret and the ids of the other sessions.
+        // Secrets. The security page sends a pending two-factor secret, the ids of the other sessions and, for one request after the
+        // member has asked (the password is asked first), the recovery codes. Asking is a GET too, and is turned away like the page.
         'security.edit',
+        'security.recovery-codes.show',
 
         // The admin area for Discord. Listing the guild's roles calls Discord, which a rollback does not reach.
         'discord/admin/role-mappings',

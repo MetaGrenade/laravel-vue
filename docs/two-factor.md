@@ -6,7 +6,7 @@ A member can require a code from an authenticator app at sign-in, and can keep r
 
 ## Using it
 
-**Settings → Security.** Turning it on shows a secret. Confirming with a 6-digit code from an authenticator app turns it on and makes eight recovery codes. Each recovery code works once. Generating a new set replaces the old one, so the codes written down before that no longer work.
+**Settings → Security.** Turning it on shows a secret. Confirming with a 6-digit code from an authenticator app turns it on and makes eight recovery codes. Each recovery code works once. Generating a new set replaces the old one, so the codes written down before that no longer work. The eight codes are shown on the page **once**, when they are made; to see them again the member asks, and is asked for the password ([Seeing the recovery codes](#seeing-the-recovery-codes)).
 
 The codes follow the published test times for this kind of authenticator (RFC 6238, SHA-1). A code from the 30 seconds just before or just after is accepted. Anything else is refused, including a code that is not six digits.
 
@@ -16,7 +16,7 @@ Guessing is limited on the challenge itself: five tries a minute for that sign-i
 
 ## Turning it off
 
-**Settings → Security** has a button that turns two-factor off: it clears the secret and the recovery codes at once, and the account goes back to a password alone. A browser that was left signed in must not be enough to do that, so the button **asks for the password first**, on the same page the site uses before any sensitive step (`/confirm-password`). Making a new set of recovery codes asks the same way, because the new set replaces the one written down.
+**Settings → Security** has a button that turns two-factor off: it clears the secret and the recovery codes at once, and the account goes back to a password alone. A browser that was left signed in must not be enough to do that, so the button **asks for the password first**, on the same page the site uses before any sensitive step (`/confirm-password`). Making a new set of recovery codes asks the same way, because the new set replaces the one written down, and so does asking to see the codes that are stored.
 
 After a correct password the site does not ask again from that browser for `AUTH_PASSWORD_TIMEOUT` seconds (three hours unless changed, see [Configuration](configuration.md)). The member lands back on the Security page and presses the button again. A wrong password changes nothing, and guesses at it are limited to five a minute for each member.
 
@@ -26,7 +26,22 @@ What does **not** ask, and why:
 - **Turning it on.** It takes nothing away, and a member who only ever signed in with a provider has no password to give. Turning it on *again* while it is on is refused with a notice: a new secret clears the confirmation that sign-in goes by, which would have switched two-factor off without asking. Turn it off first (with the password), then set it up again.
 - **Ending one other browser's session from the list.** It only signs that browser out, so whoever does it gains no way into the account, and a member who has lost a phone should be able to do it at once. A password prompt would make it slower exactly when speed matters. (**Sign out other browsers** is different: it does ask, because it also stores the password again, and a browser left open should not be able to sign the owner out of everything.)
 
-**A member who never chose a password** (they signed up with Google, Discord or Steam, and their password is a random one nobody was shown) cannot pass the prompt with it. The page says what to do: sign out, use **Forgot your password?** on the sign-in page, then come back. That works when the account has a **verified, real email address**. Steam, and a Discord account with no address, get a made-up `…@oauth.local` address that cannot receive mail; those members cannot turn two-factor off or replace their recovery codes from the site at all (see [Not built](#not-built)).
+**A member who never chose a password** (they signed up with Google, Discord or Steam, and their password is a random one nobody was shown) cannot pass the prompt with it. The page says what to do: sign out, use **Forgot your password?** on the sign-in page, then come back. That works when the account has a **verified, real email address**. Steam, and a Discord account with no address, get a made-up `…@oauth.local` address that cannot receive mail; those members cannot turn two-factor off, replace their recovery codes or ask to see them again from the site at all (see [Not built](#not-built)). They are shown the first set when they confirm, and must keep it.
+
+## Seeing the recovery codes
+
+The recovery codes are a way into the account that **outlasts a session**: with one of them and the password, a sign-in needs no authenticator. So the Security page does **not carry them on every load**. It used to: each visit sent all of them, decrypted, to the browser (a part of the page that a person never saw until they hovered, but sat in the page source and the network tab), so a browser that was left signed in, or anyone reading over a shoulder at the developer tools, had every code. The page now says **how many are left**, and carries the codes themselves in two cases only, and only for that one load:
+
+- **Right after a set was made**: when two-factor is confirmed (the first set) and when a new set is generated. The page says they are shown only now and to store them.
+- **After the member asks to see them.** **Show recovery codes** asks for the password first, on the same page and for the same time as [above](#turning-it-off), then comes back to the Security page with the codes. **Hide recovery codes**, or loading the page again, puts them away.
+
+How: the server sets a session flash (`TwoFactorAuthenticator::SHOW_RECOVERY_CODES`) that lives for the next request and no longer, and the page reads it. A request cannot ask for the codes by itself: no query string, form field or partial reload carries them. A page opened in between uses the flash up, so the codes do not wait for somebody who opens the page later. A decrypted set is only ever read when the flash is there; the number left is counted from the stored set without handing it over. While staff view the site as the member ([impersonation](impersonation.md)), the Security page and the request that asks for the codes are both turned away, as the page already was.
+
+What it does **not** do:
+
+- **The codes that were just shown stay in that tab's page history** (the browser keeps the page it showed so that Back works) until the tab is closed. `INERTIA_ENCRYPT_HISTORY=true` encrypts that history and ends its use after sign-out ([Configuration](configuration.md)); it is off by default.
+- **It does not stop a member who is at their own signed-in browser** with the password in hand. That is who it is for.
+- **A member who has no password** (see [above](#turning-it-off)) sees the first set once and cannot ask again.
 
 ## Browser sessions
 
@@ -66,7 +81,7 @@ The address is where **Forgot your password?** sends its link. Whoever can chang
 
 - **A way through the password prompt for members who have no password.** A made-up `…@oauth.local` address cannot receive a reset link, and **Settings → Password** asks for the current password, so such a member can never give one. They can still sign in (provider, then code); they cannot turn two-factor off or replace the codes. Asking the provider again would be the fix. (They can change their address, which is how they get a real one.)
 - **Staff cannot switch two-factor off for a member.** A member who has lost the app and the recovery codes has no way back in from the site; there is no button in the admin area and no command for it.
-- **Asking again before every change.** The password is asked before two-factor is turned off, before a new set of recovery codes and before the email address is changed ([above](#changing-the-email-address)). Making an API key does not ask.
+- **Asking again before every change.** The password is asked before two-factor is turned off, before a new set of recovery codes, before the stored codes are shown again and before the email address is changed ([above](#changing-the-email-address)). Making an API key does not ask.
 - **A way back for the owner after an address was changed by somebody else.** The notice goes to the old address, and that is all: it has no link that puts the address back or ends the sessions, because whoever changed it knew the password.
 - **Passkeys.** They are deferred.
 - **A new set made on its own.** The member generates it, and is shown the new codes. Nothing replaces them in the background.
@@ -76,7 +91,9 @@ The address is where **Forgot your password?** sends its link. Whoever can chang
 
 `tests/Feature/Auth/TwoFactorAuthenticatorTest.php`: the published times produce the published codes, a code is accepted one step either side and refused beyond that, and a short or unreadable set asks for a new one.
 
-`tests/Feature/Auth/RecoveryCodePromptTest.php`: a short set shows the prompt on the dashboard and on the security page, signing in with a recovery code shows it, generating a new set clears it, a full set and an account without this turned on do not, and viewing as the member hides it.
+`tests/Feature/Auth/RecoveryCodePromptTest.php`: a short set shows the prompt on the dashboard and on the security page (which says how many are left and carries none), signing in with a recovery code shows it, generating a new set clears it, a full set and an account without this turned on do not, and viewing as the member hides it.
+
+`tests/Feature/Settings/RecoveryCodesShownOnceTest.php`: an ordinary load of the Security page, and no other page, carries none of the codes, in the data or in the page source, and says how many are left; no query string, form field or partial reload can ask for them; codes that cannot be read count as none and do not break the page; confirming two-factor and generating a new set show the codes for one load and not for the next, and a refused set or a wrong code shows nothing; asking to see them goes through the confirm page, a wrong password and a confirmation older than the timeout show nothing, a recent confirmation goes straight back with the codes, and a page opened in between uses the flash up; seeing them changes nothing in the stored set; a member with no confirmed setup is shown nothing; a guest is sent to sign in.
 
 `tests/Feature/Auth/RateLimitingTest.php`: a sixth guess of an authenticator code, and of a recovery code, is refused.
 

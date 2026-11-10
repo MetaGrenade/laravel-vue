@@ -488,12 +488,16 @@ class ImpersonationTest extends TestCase
             'two_factor_recovery_codes' => TwoFactorAuthenticator::encryptRecoveryCodes(['AAAA-1111', 'BBBB-2222']),
         ])->save();
 
-        // The control: this page does send them to the customer, which is why a view must not.
-        $this->actingAs($customer)->get(route('security.edit'))->assertInertia(fn (Assert $page) => $page->where('recoveryCodes', ['AAAA-1111', 'BBBB-2222']));
+        // The control: after the customer has asked for them (the flash the password-confirmed route sets) this page does send them,
+        // which is why a view must not.
+        $this->actingAs($customer)
+            ->withSession([TwoFactorAuthenticator::SHOW_RECOVERY_CODES => true])
+            ->get(route('security.edit'))
+            ->assertInertia(fn (Assert $page) => $page->where('recoveryCodes', ['AAAA-1111', 'BBBB-2222']));
 
         Auth::guard('web')->forgetUser();
 
-        $response = $this->viewing($this->admin(), $customer)->get(route('security.edit'));
+        $response = $this->viewing($this->admin(), $customer)->withSession([TwoFactorAuthenticator::SHOW_RECOVERY_CODES => true])->get(route('security.edit'));
 
         $response->assertRedirect(route('dashboard'))->assertSessionHas('error');
         $this->assertStringNotContainsString('AAAA-1111', $response->getContent());
@@ -507,6 +511,7 @@ class ImpersonationTest extends TestCase
     {
         return [
             'security settings' => ['security.edit'],
+            'asking to see the recovery codes' => ['security.recovery-codes.show'],
             'the checkout' => ['shop.checkout'],
             'the sign-in page' => ['login'],
             'a social sign-in' => ['oauth.redirect'],
@@ -967,7 +972,7 @@ class ImpersonationTest extends TestCase
     {
         $viewable = (array) config('impersonation.viewable');
 
-        foreach (['security.edit', 'privacy.exports.download', 'settings.billing.invoices.download', 'support.attachments.download', 'shop.downloads.show', 'shop.checkout', 'shop.checkout.complete', 'shop.tebex.continue', 'cashier.payment', 'verification.verify', 'oauth.callback', 'login'] as $name) {
+        foreach (['security.edit', 'security.recovery-codes.show', 'privacy.exports.download', 'settings.billing.invoices.download', 'support.attachments.download', 'shop.downloads.show', 'shop.checkout', 'shop.checkout.complete', 'shop.tebex.continue', 'cashier.payment', 'verification.verify', 'oauth.callback', 'login'] as $name) {
             $this->assertNotContains($name, $viewable, $name);
         }
     }

@@ -375,6 +375,64 @@ test.describe('members', () => {
         await expect(page).toHaveURL(/\/settings\/security$/);
     });
 
+    test('the recovery codes come once, and again only after the password is given', async ({ page }) => {
+        // A member of its own, as in the test above.
+        await registerMember(page, 'Keeper');
+
+        await page.goto('/settings/security');
+        await page.getByRole('button', { name: 'Enable multi-factor authentication' }).click();
+        await page.getByLabel('Verification code').fill(authenticatorCode(await page.locator('input[readonly]').first().inputValue()));
+        await page.getByRole('button', { name: 'Confirm setup' }).click();
+        await expect(page.getByText('Multi-factor authentication is enabled')).toBeVisible();
+
+        const card = page.getByTestId('recovery-codes');
+        const codes = card.locator('li > span:first-child');
+        const shownCodes = async () => (await codes.allInnerTexts()).map((code) => code.trim());
+
+        // Right after setup the eight codes are on the page, with the words that say they are shown only now.
+        await expect(codes).toHaveCount(8);
+        const first = await shownCodes();
+        expect(first.every((code) => /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code))).toBe(true);
+        await expect(card.getByText('they are shown only this once')).toBeVisible();
+
+        // Loading the page again hides them, and they are not in the page source either: only how many are left.
+        await page.reload();
+        await expect(card.getByTestId('recovery-codes-left')).toContainText('8 recovery codes are left');
+        await expect(codes).toHaveCount(0);
+        expect(await page.content(), 'the page source after a reload').not.toContain(first[0]);
+
+        // Asking for them asks for the password first, and a wrong one shows nothing.
+        await card.getByRole('button', { name: 'Show recovery codes' }).click();
+        await expect(page).toHaveURL(/\/confirm-password$/);
+        await page.getByLabel('Password').fill('wrong-password');
+        await page.getByRole('button', { name: 'Confirm password' }).click();
+        await expect(page.getByText('The provided password is incorrect.')).toBeVisible();
+        await page.getByLabel('Password').fill(password);
+        await page.getByRole('button', { name: 'Confirm password' }).click();
+
+        // Then it comes back to the security page with the same eight, for that one load.
+        await expect(page).toHaveURL(/\/settings\/security$/);
+        await expect(codes).toHaveCount(8);
+        expect(await shownCodes()).toEqual(first);
+        await page.reload();
+        await expect(codes).toHaveCount(0);
+
+        // The password was given a moment ago, so now it goes straight there; "Hide" puts them away without leaving the page.
+        await card.getByRole('button', { name: 'Show recovery codes' }).click();
+        await expect(codes).toHaveCount(8);
+        await card.getByRole('button', { name: 'Hide recovery codes' }).click();
+        await expect(codes).toHaveCount(0);
+        await expect(card.getByTestId('recovery-codes-left')).toBeVisible();
+        await expect(page).toHaveURL(/\/settings\/security$/);
+
+        // A new set is shown once as well, and it is not the old one.
+        await card.getByRole('button', { name: 'Generate new recovery codes' }).click();
+        await expect(codes).toHaveCount(8);
+        expect(await shownCodes()).not.toEqual(first);
+        await page.reload();
+        await expect(codes).toHaveCount(0);
+    });
+
     test('changing the password signs the other browser out and keeps this one', async ({ page, browser, baseURL }) => {
         // A member of its own, whose password this test changes.
         const email = await registerMember(page, 'Rotated');

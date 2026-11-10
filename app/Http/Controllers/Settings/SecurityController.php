@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
-use JsonException;
 
 class SecurityController extends Controller
 {
@@ -56,15 +55,13 @@ class SecurityController extends Controller
             $qrCodeUrl = $pendingSecret ? TwoFactorAuthenticator::makeQrCodeUrl($user, $pendingSecret) : null;
         }
 
-        $recoveryCodes = [];
-
-        if ($user->two_factor_recovery_codes) {
-            try {
-                $recoveryCodes = TwoFactorAuthenticator::decryptRecoveryCodes($user->two_factor_recovery_codes);
-            } catch (JsonException) {
-                $recoveryCodes = [];
-            }
-        }
+        // The codes are a second way into the account that outlasts a session, so the page does not carry them on every load: a browser
+        // that was left signed in, or a person reading over a shoulder at the network tab, would have all of them. They are sent for the one
+        // request after a set was made or after the password was asked for them (the flash is read, never kept); otherwise only how many
+        // are left, which the prompt to replace a short set also says.
+        $stored = $user->two_factor_recovery_codes;
+        $stored = is_string($stored) ? TwoFactorAuthenticator::readRecoveryCodes($stored) : [];
+        $recoveryCodes = $request->session()->get(TwoFactorAuthenticator::SHOW_RECOVERY_CODES) === true ? $stored : [];
 
         $socialAccounts = $user->socialAccounts
             ->sortBy('provider')
@@ -103,6 +100,7 @@ class SecurityController extends Controller
             'pendingSecret' => $pendingSecret,
             'qrCodeUrl' => $qrCodeUrl,
             'recoveryCodes' => $recoveryCodes,
+            'recoveryCodesLeft' => count($stored),
             'status' => $request->session()->get('status'),
             'socialAccounts' => $socialAccounts,
             'availableSocialProviders' => $providers,

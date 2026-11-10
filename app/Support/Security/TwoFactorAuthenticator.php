@@ -21,6 +21,13 @@ class TwoFactorAuthenticator
     public const RECOVERY_SET_SIZE = 8;
 
     /**
+     * The session flash that lets the Security page carry the codes themselves, for the one request after it is set. It is set when a
+     * set has just been made (turning two-factor on, a new set) and by `security.recovery-codes.show`, which asks for the password. Any
+     * other load of the page sends how many are left and nothing else.
+     */
+    public const SHOW_RECOVERY_CODES = 'show_recovery_codes';
+
+    /**
      * Generate a new base32-encoded secret for TOTP.
      */
     public static function generateSecret(int $length = 32): string
@@ -106,17 +113,24 @@ class TwoFactorAuthenticator
      */
     public static function needsNewRecoveryCodes(?string $encryptedRecoveryCodes): bool
     {
-        if ($encryptedRecoveryCodes === null || $encryptedRecoveryCodes === '') {
-            return true;
-        }
+        return count(self::readRecoveryCodes($encryptedRecoveryCodes)) < self::RECOVERY_SET_SIZE;
+    }
 
+    /**
+     * The codes that are stored, or none when there are none or they cannot be read (a key that was changed, a value that is not a list).
+     * Nothing that sends the codes anywhere should call this without a reason: counting them does not need them handed over.
+     *
+     * @return list<string>
+     */
+    public static function readRecoveryCodes(?string $encryptedRecoveryCodes): array
+    {
         try {
             $codes = self::decryptRecoveryCodes($encryptedRecoveryCodes);
         } catch (DecryptException|JsonException) {
-            return true;
+            return [];
         }
 
-        return count($codes) < self::RECOVERY_SET_SIZE;
+        return array_values(array_filter($codes, is_string(...)));
     }
 
     /**

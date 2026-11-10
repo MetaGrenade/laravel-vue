@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, toRefs, watch } from 'vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { useI18n } from '@/composables/useI18n';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -14,8 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/SettingsLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, LoaderCircle } from '@lucide/vue';
+import { LoaderCircle } from '@lucide/vue';
 
 interface ActiveSession {
     id: string;
@@ -34,7 +33,10 @@ interface Props {
     twoFactorConfirmed: boolean;
     pendingSecret: string | null;
     qrCodeUrl: string | null;
+    // The codes themselves, only for the one load after a set was made or after the password was asked for them; otherwise empty.
     recoveryCodes: string[];
+    // How many are stored, always sent (it says nothing a thief could use).
+    recoveryCodesLeft: number;
     status?: string | null;
     socialAccounts: Array<{
         id: number;
@@ -67,6 +69,7 @@ const {
     pendingSecret,
     qrCodeUrl,
     recoveryCodes,
+    recoveryCodesLeft,
     status,
     socialAccounts,
     availableSocialProviders,
@@ -201,8 +204,6 @@ const hasRecoveryCodes = computed(() => recoveryCodes.value && recoveryCodes.val
 const linkedAccounts = computed(() => socialAccounts.value ?? []);
 const providerMetadata = computed(() => availableSocialProviders.value ?? []);
 
-const recoveryOpen = ref(false);
-
 const revokeSession = (sessionId: string) => {
     revokeForm.delete(route('security.sessions.destroy', sessionId), {
         preserveScroll: true,
@@ -241,6 +242,17 @@ const regenerateRecoveryCodes = () => {
     });
 };
 
+// Asking to see the codes asks for the password first (the server sends the visit to the confirm page and, once it is given, back here
+// with the codes for this one load).
+const showRecoveryCodes = () => {
+    router.get(route('security.recovery-codes.show'), {}, { preserveScroll: true });
+};
+
+// Loading the page again is what hides them: the next response does not carry them. (A reload keeps the scroll position by itself.)
+const hideRecoveryCodes = () => {
+    router.reload();
+};
+
 const unlinkForm = useForm({});
 const unlinkingProvider = ref<string | null>(null);
 
@@ -260,18 +272,6 @@ const unlinkProvider = (provider: string) => {
 };
 
 const providerAccount = (provider: string) => linkedAccounts.value.find((account) => account.provider === provider) ?? null;
-
-watch(status, (value) => {
-    if (value === 'two-factor-confirmed' || value === 'recovery-codes-generated') {
-        recoveryOpen.value = true;
-    }
-});
-
-watch(hasRecoveryCodes, (value) => {
-    if (!value) {
-        recoveryOpen.value = false;
-    }
-});
 </script>
 
 <template>
@@ -527,80 +527,91 @@ watch(hasRecoveryCodes, (value) => {
                                 </CardContent>
                             </Card>
 
-                            <Collapsible v-model:open="recoveryOpen">
-                                <template #default="{ open }">
-                                    <Card>
-                                        <CardHeader class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                            <div class="space-y-2">
-                                                <CardTitle>Recovery codes</CardTitle>
-                                                <CardDescription>
-                                                    Use a recovery code if you lose access to your authenticator device.
-                                                </CardDescription>
-                                                <Alert v-if="replaceRecoveryCodes">
-                                                    <AlertDescription>{{ t('ui.security.recovery_prompt') }}</AlertDescription>
-                                                </Alert>
-                                            </div>
-                                            <CollapsibleTrigger as-child>
-                                                <Button type="button" variant="ghost" size="sm" class="w-full sm:w-auto">
-                                                    <span class="flex items-center justify-center gap-2">
-                                                        {{ open ? 'Hide recovery codes' : 'View recovery codes' }}
-                                                        <ChevronDown
-                                                            class="h-4 w-4 transition-transform duration-200"
-                                                            :class="open ? 'rotate-180' : ''"
-                                                        />
-                                                    </span>
-                                                </Button>
-                                            </CollapsibleTrigger>
-                                        </CardHeader>
-                                        <CollapsibleContent>
-                                            <CardContent class="space-y-4">
-                                                <div v-if="hasRecoveryCodes">
-                                                    <p class="text-sm text-muted-foreground">
-                                                        Each recovery code can be used once. Print or store them securely before leaving this page.
-                                                    </p>
-                                                    <ul class="grid gap-2 sm:grid-cols-2">
-                                                        <li
-                                                            v-for="code in recoveryCodes"
-                                                            :key="code"
-                                                            tabindex="0"
-                                                            class="group relative cursor-pointer rounded border border-dashed border-muted/60 bg-muted/40 px-3 py-2 font-mono text-sm transition select-text focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                                                        >
-                                                            <span
-                                                                class="block text-transparent transition duration-200 group-hover:text-foreground group-focus-visible:text-foreground selection:text-foreground"
-                                                            >
-                                                                {{ code }}
-                                                            </span>
-                                                            <span
-                                                                aria-hidden="true"
-                                                                class="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-medium text-muted-foreground transition-opacity duration-200 group-hover:opacity-0 group-focus-visible:opacity-0"
-                                                            >
-                                                                Hover or focus to reveal
-                                                            </span>
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                                <p v-else class="text-sm text-muted-foreground">
-                                                    Recovery codes will appear after confirming multi-factor authentication.
-                                                </p>
-                                            </CardContent>
-                                        </CollapsibleContent>
-                                        <CardFooter class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                :disabled="recoveryForm.processing || !twoFactorConfirmed"
-                                                @click="regenerateRecoveryCodes"
+                            <Card data-testid="recovery-codes">
+                                <CardHeader class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div class="space-y-2">
+                                        <CardTitle>Recovery codes</CardTitle>
+                                        <CardDescription> Use a recovery code if you lose access to your authenticator device. </CardDescription>
+                                        <Alert v-if="replaceRecoveryCodes">
+                                            <AlertDescription>{{ t('ui.security.recovery_prompt') }}</AlertDescription>
+                                        </Alert>
+                                    </div>
+                                    <Button
+                                        v-if="twoFactorConfirmed && hasRecoveryCodes"
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        class="w-full sm:w-auto"
+                                        @click="hideRecoveryCodes"
+                                    >
+                                        Hide recovery codes
+                                    </Button>
+                                    <Button
+                                        v-else-if="twoFactorConfirmed && recoveryCodesLeft > 0"
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        class="w-full sm:w-auto"
+                                        @click="showRecoveryCodes"
+                                    >
+                                        Show recovery codes
+                                    </Button>
+                                </CardHeader>
+                                <CardContent class="space-y-4">
+                                    <div v-if="hasRecoveryCodes" class="space-y-3">
+                                        <p class="text-sm text-muted-foreground">
+                                            Each recovery code can be used once. Print or store them securely now: they are shown only this once, and
+                                            loading the page again hides them. To see them again you will be asked for your password.
+                                        </p>
+                                        <ul class="grid gap-2 sm:grid-cols-2">
+                                            <li
+                                                v-for="code in recoveryCodes"
+                                                :key="code"
+                                                tabindex="0"
+                                                class="group relative cursor-pointer rounded border border-dashed border-muted/60 bg-muted/40 px-3 py-2 font-mono text-sm transition select-text focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                             >
-                                                Generate new recovery codes
-                                            </Button>
-                                            <p class="text-xs text-muted-foreground">
-                                                Asks for your password first. The codes you have now stop working.
-                                            </p>
-                                            <InputError :message="recoveryForm.errors.recovery" />
-                                        </CardFooter>
-                                    </Card>
-                                </template>
-                            </Collapsible>
+                                                <span
+                                                    class="block text-transparent transition duration-200 group-hover:text-foreground group-focus-visible:text-foreground selection:text-foreground"
+                                                >
+                                                    {{ code }}
+                                                </span>
+                                                <span
+                                                    aria-hidden="true"
+                                                    class="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-medium text-muted-foreground transition-opacity duration-200 group-hover:opacity-0 group-focus-visible:opacity-0"
+                                                >
+                                                    Hover or focus to reveal
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <p
+                                        v-else-if="twoFactorConfirmed && recoveryCodesLeft > 0"
+                                        class="text-sm text-muted-foreground"
+                                        data-testid="recovery-codes-left"
+                                    >
+                                        {{ recoveryCodesLeft === 1 ? '1 recovery code is left.' : `${recoveryCodesLeft} recovery codes are left.` }}
+                                        They are kept off this page until you ask for them, and showing them asks for your password.
+                                    </p>
+                                    <p v-else-if="twoFactorConfirmed" class="text-sm text-muted-foreground">
+                                        No recovery codes are left. Generate a new set below.
+                                    </p>
+                                    <p v-else class="text-sm text-muted-foreground">
+                                        Recovery codes will appear after confirming multi-factor authentication.
+                                    </p>
+                                </CardContent>
+                                <CardFooter class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        :disabled="recoveryForm.processing || !twoFactorConfirmed"
+                                        @click="regenerateRecoveryCodes"
+                                    >
+                                        Generate new recovery codes
+                                    </Button>
+                                    <p class="text-xs text-muted-foreground">Asks for your password first. The codes you have now stop working.</p>
+                                    <InputError :message="recoveryForm.errors.recovery" />
+                                </CardFooter>
+                            </Card>
                         </div>
                     </div>
                 </div>
