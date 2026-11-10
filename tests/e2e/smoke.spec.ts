@@ -440,6 +440,42 @@ test.describe('members', () => {
         await other.context().close();
     });
 
+    test('a new email address asks for the password, and the profile keeps it only with the right one', async ({ page }) => {
+        // A member of its own: the address is what the other tests sign in with.
+        const email = await registerMember(page, 'Moving');
+        const newEmail = email.replace('@example.com', '-new@example.com');
+
+        await page.goto('/settings/profile');
+        const address = page.getByLabel('Email address');
+        const asked = page.getByLabel('Your password', { exact: true });
+
+        // The password is asked for only when the address typed is another one (spaces and case make no difference).
+        await expect(asked).toHaveCount(0);
+        await address.fill(newEmail);
+        await expect(asked).toBeVisible();
+        await address.fill(`  ${email.toUpperCase()} `);
+        await expect(asked).toHaveCount(0);
+        await address.fill(newEmail);
+
+        // Saving without it, and with a wrong one, keeps the address the account has.
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        await expect(page.getByText('The current password field is required.')).toBeVisible();
+        await asked.fill('wrong-password');
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        await expect(page.getByText('The password is incorrect.')).toBeVisible();
+        await page.reload();
+        await expect(address).toHaveValue(email);
+
+        // The right one saves it: what the page shows after a reload is what the account has.
+        await address.fill(newEmail);
+        await asked.fill(password);
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        await expect(page.getByText('Saved.')).toBeVisible();
+        await expect(asked).toHaveCount(0);
+        await page.reload();
+        await expect(address).toHaveValue(newEmail);
+    });
+
     test('a member starts a forum thread and replies to it', async ({ page }) => {
         const title = unique('Smoke thread');
         const reply = unique('A reply');

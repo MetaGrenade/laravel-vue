@@ -32,6 +32,7 @@ class ProfileUpdateTest extends TestCase
             ->patch('/settings/profile', [
                 'nickname' => 'Test User',
                 'email' => 'test@example.com',
+                'current_password' => 'password',
                 'avatar_url' => ' https://cdn.example.com/avatar.png ',
                 'profile_bio' => ' Passionate about testing. ',
             ]);
@@ -63,6 +64,7 @@ class ProfileUpdateTest extends TestCase
             ->patch('/settings/profile', [
                 'nickname' => 'New Nickname',
                 'email' => 'new@example.com',
+                'current_password' => 'password',
             ]);
 
         $response

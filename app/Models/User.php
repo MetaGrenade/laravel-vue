@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\EmailAddressChanged;
 use App\Support\Entitlements\Entitlements;
 use App\Support\Entitlements\EntitlementSet;
 use App\Support\Forum\ForumAttachments;
@@ -45,6 +46,15 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     public function preferredLocale(): string
     {
         return Locales::supportedLanguage($this->locale) ?? Locales::default();
+    }
+
+    /**
+     * Where an email to this person goes: the address of the account, except for the notice that the address was changed, which goes
+     * to the one the account had, the only one that can still reach somebody who did not change it.
+     */
+    public function routeNotificationForMail(BaseNotification $notification): string
+    {
+        return $notification instanceof EmailAddressChanged ? $notification->oldEmail : (string) $this->email;
     }
 
     protected static function booted(): void

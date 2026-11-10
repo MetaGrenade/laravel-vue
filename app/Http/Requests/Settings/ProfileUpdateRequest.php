@@ -4,6 +4,7 @@ namespace App\Http\Requests\Settings;
 
 use App\Models\User;
 use App\Support\Localization\PreferenceOptions;
+use App\Support\Security\EmailChange;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -61,7 +62,7 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'nickname' => [
                 'required',
                 'string',
@@ -117,5 +118,13 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::in(PreferenceOptions::localeValues()),
             ],
         ];
+
+        // A new address is where "Forgot your password?" writes to, so it is asked for with the password (docs/two-factor.md). Only then:
+        // a save that leaves the address as it is asks for nothing, and neither does a member whose address the site made up.
+        if (EmailChange::needsPassword($this->user(), $this->input('email'))) {
+            $rules['current_password'] = ['required', 'string', 'current_password'];
+        }
+
+        return $rules;
     }
 }

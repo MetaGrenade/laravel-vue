@@ -36,6 +36,7 @@ use App\Support\Frontend\StaffAreaVite;
 use App\Support\Search\MeilisearchCircuitBreaker;
 use App\Support\Search\SearchHealth;
 use App\Support\Search\SearchTasks;
+use App\Support\Security\EmailChange;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
 use App\Support\Settings\SettingsSnapshot;
@@ -234,9 +235,19 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('confirm-password', fn (Request $request) => Limit::perMinute(5)->by('confirm:'.$byUserOrIp($request)));
 
-        // Routes that check the CURRENT password of someone who is already signed in (changing it, signing the other browsers out): a
-        // session that was stolen must not be a place to guess it from. A count of its own, so these do not use up the confirm page's.
-        RateLimiter::for('current-password', fn (Request $request) => Limit::perMinute(5)->by('current-password:'.$byUserOrIp($request)));
+        // Routes that check the CURRENT password of someone who is already signed in (changing it, signing the other browsers out,
+        // changing the email address, deleting the account): a session that was stolen must not be a place to guess it from. One count for
+        // all of them, so using another of them is not another five guesses, and one of its own, so they do not use up the confirm page's.
+        // A save of the profile that leaves the email address alone asks for no password, so it is not a guess and is not counted.
+        RateLimiter::for('current-password', function (Request $request) use ($byUserOrIp) {
+            $user = $request->user();
+
+            if ($request->routeIs('profile.update') && $user instanceof User && ! EmailChange::needsPassword($user, $request->input('email'))) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute(5)->by('current-password:'.$byUserOrIp($request));
+        });
 
         // Posting community content (threads, replies, tickets, messages).
         RateLimiter::for('content', fn (Request $request) => [

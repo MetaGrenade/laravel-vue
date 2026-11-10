@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 
 import DeleteUser from '@/components/DeleteUser.vue';
@@ -20,6 +21,7 @@ interface PreferenceOption {
 
 interface Props {
     mustVerifyEmail: boolean;
+    emailChangeAsksForPassword: boolean;
     status?: string;
     timezoneOptions: PreferenceOption[];
     localeOptions: PreferenceOption[];
@@ -44,6 +46,7 @@ const fallbackLocale = props.localeOptions[0]?.value ?? 'en';
 const form = useForm({
     nickname: user.nickname,
     email: user.email,
+    current_password: '',
     avatar_url: user.avatar_url ?? '',
     profile_bio: user.profile_bio ?? '',
     social_links: user.social_links ? user.social_links.map((link) => ({ ...link })) : [],
@@ -58,10 +61,24 @@ const socialLinkUrlPlaceholder = 'https://example.social/@username';
 
 const fieldError = (key: string): string | undefined => (form.errors as Record<string, string | undefined>)[key];
 
+// The address the account has now (it changes when a new one is saved), and whether the one typed is another: then the form asks for the
+// current password, as the server does. Spaces and case do not make it another address.
+const savedEmail = computed(() => page.props.auth.user?.email ?? '');
+const emailIsChanging = computed(() => form.email.trim().toLowerCase() !== savedEmail.value.trim().toLowerCase());
+const asksForPassword = computed(() => props.emailChangeAsksForPassword && emailIsChanging.value);
+
 const submit = () => {
-    form.patch(route('profile.update'), {
-        preserveScroll: true,
-    });
+    form
+        // The password is sent only with a new address: a save that leaves it alone carries none.
+        .transform((data) => {
+            const { current_password, ...rest } = data;
+
+            return asksForPassword.value ? { ...rest, current_password } : rest;
+        })
+        .patch(route('profile.update'), {
+            preserveScroll: true,
+            onFinish: () => form.reset('current_password'),
+        });
 };
 
 const addSocialLink = () => {
@@ -112,6 +129,24 @@ const removeSocialLink = (index: number) => {
                             placeholder="Email address"
                         />
                         <InputError class="mt-2" :message="form.errors.email" />
+                    </div>
+
+                    <div v-if="asksForPassword" class="grid gap-2">
+                        <Label for="email-current-password">Your password</Label>
+                        <Input
+                            id="email-current-password"
+                            type="password"
+                            class="mt-1 block w-full"
+                            v-model="form.current_password"
+                            autocomplete="current-password"
+                            placeholder="Your current password"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            A new address is where password reset links are sent, so changing it asks for your password. Signed up with Google,
+                            Discord or Steam and never chose one? Sign out, use "Forgot your password?" on the sign-in page to set one, then come
+                            back.
+                        </p>
+                        <InputError class="mt-2" :message="form.errors.current_password" />
                     </div>
 
                     <div class="grid gap-2">
