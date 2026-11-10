@@ -2,6 +2,15 @@
 
 return [
     'default' => value(function () {
+        // `BROADCAST_FORCE_LOG=true` is checked first and wins over everything else: it is for a staging site that has the production Pusher
+        // keys (or any other real connection) in its `.env` and must not push to real people. (It used to be read only after an explicit
+        // `BROADCAST_CONNECTION=pusher` had already been returned, so next to the `pusher` that `.env.example` sets it did nothing.)
+        $forceLog = filter_var(env('BROADCAST_FORCE_LOG', false), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+
+        if ($forceLog === true) {
+            return 'log';
+        }
+
         $configuredDriver = env('BROADCAST_CONNECTION');
 
         $hasPusherCredentials = env('PUSHER_APP_ID') && env('PUSHER_APP_KEY') && env('PUSHER_APP_SECRET');
@@ -13,14 +22,6 @@ return [
         if ($configuredDriver && $configuredDriver !== 'log') {
             return $configuredDriver;
         }
-
-        $forceLog = filter_var(env('BROADCAST_FORCE_LOG', false), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
-
-        if ($forceLog === true) {
-            return $configuredDriver ?: 'log';
-        }
-
-        $hasPusherCredentials = env('PUSHER_APP_ID') && env('PUSHER_APP_KEY') && env('PUSHER_APP_SECRET');
 
         if ($hasPusherCredentials) {
             return 'pusher';

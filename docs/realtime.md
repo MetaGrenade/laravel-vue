@@ -47,13 +47,14 @@ Nothing else depends on it. With no Pusher account the site logs what it would h
 
 5. **Run a queue worker.** The email and the browser alert of a notification are sent from the queue, so a worker has to be running or nothing is pushed ([Running on Redis](redis.md#the-queue)).
 
+6. **On a staging site, keep it from pushing.** A copy of the site that has the production `.env` (to test against real data) has the production Pusher keys too, and would push to real people's browsers. Set `BROADCAST_FORCE_LOG=true`: it wins over `BROADCAST_CONNECTION` and the keys, and the site logs what it would have pushed. `php artisan config:show broadcasting.default` should then say `log`. (Before, it was ignored next to `BROADCAST_CONNECTION=pusher`, which `.env.example` sets: see [upgrading.md](upgrading.md).)
 ## How the browser connects
 
 `resources/js/lib/echo.ts` loads Laravel Echo and the Pusher client only for a signed-in member, and only when the build has a key (`VITE_PUSHER_APP_KEY`). A guest, and a build without a key, never download them. The content security policy lets the page connect to `*.pusher.com`, and to the host in `PUSHER_HOST` (with its port) when you set one, so a service of your own needs no change to `config/security.php` ([Security headers](security-headers.md)).
 
 ## When nothing arrives
 
-- **The server is still on `log`.** `php artisan tinker --execute="echo config('broadcasting.default');"` should say `pusher`. If it says `log`, one of the three server credentials is missing, or `BROADCAST_CONNECTION` is empty or `log` and `BROADCAST_FORCE_LOG` is `true`.
+- **The server is still on `log`.** `php artisan tinker --execute="echo config('broadcasting.default');"` should say `pusher`. If it says `log`, one of the three server credentials is missing, or `BROADCAST_FORCE_LOG` is `true` (it wins over everything else).
 - **The browser has no key.** Open the page's source and look for the key in the built script, or check that you built after setting the `VITE_*` lines. This is the usual cause after a change on a server whose files were built earlier.
 - **No worker.** The notification is stored, and the bell shows it on the next page, but nothing is pushed until a worker sends the `broadcast` part.
 - **`/broadcasting/auth` answers 403 or 419.** The member is not signed in any more (403), or the page was open so long that its token expired (419). A reload fixes both.

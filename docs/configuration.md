@@ -246,7 +246,7 @@ Notifications are pushed to the browser through Pusher or a service that speaks 
 | Key | Default | What it does |
 | --- | --- | --- |
 | `BROADCAST_CONNECTION` | — | `pusher`, `ably`, `redis`, `log` or `null`. Left out, or `log`, the site uses `pusher` when `PUSHER_APP_ID`, `PUSHER_APP_KEY` and `PUSHER_APP_SECRET` are all set, and `log` when they are not. `pusher` without all three is `log` too. |
-| `BROADCAST_FORCE_LOG` | `false` | `true` keeps `log` even with Pusher credentials: for a staging site that must not push to real people. It only applies when `BROADCAST_CONNECTION` is left out or is `log`; `BROADCAST_CONNECTION=pusher` with the credentials set is Pusher whatever this says. |
+| `BROADCAST_FORCE_LOG` | `false` | `true` keeps `log` whatever `BROADCAST_CONNECTION` says and whichever credentials are set: for a staging site that has the production Pusher keys in its `.env` and must not push to real people. Anything but a true value (`true`, `1`, `on`, `yes`) leaves it off. Check with `php artisan config:show broadcasting.default`. |
 | `PUSHER_APP_ID` | — | The app's id. |
 | `PUSHER_APP_KEY` | — | Its key. It is public: the browser gets it as `VITE_PUSHER_APP_KEY`. |
 | `PUSHER_APP_SECRET` | — | **Secret.** |
