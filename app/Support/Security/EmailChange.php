@@ -30,7 +30,7 @@ final class EmailChange
      */
     public static function asksForPassword(User $user): bool
     {
-        return ! SignInMethods::isPlaceholderEmail($user->email);
+        return SignInMethods::canBeAskedForPassword($user);
     }
 
     /**

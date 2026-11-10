@@ -148,8 +148,11 @@ class SecurityPasswordConfirmationTest extends TestCase
     public function cancelling_a_setup_that_was_never_confirmed_asks_for_nothing(): void
     {
         // Two-factor was never asked for at sign-in, so there is nothing to take away, and "Cancel" stays one click.
+        // The setup is made in the database, not through the page: starting one asks for the password (TwoFactorSetupPasswordTest), which
+        // would leave the confirmation open for the cancel too and make this test say nothing.
         $member = User::factory()->create();
-        $this->actingAs($member)->post(route('security.mfa.store'))->assertRedirect();
+        $member->forceFill(['two_factor_secret' => TwoFactorAuthenticator::encryptSecret(TwoFactorAuthenticator::generateSecret())])->save();
+        $this->actingAs($member);
         $this->assertNotNull($member->fresh()->two_factor_secret);
 
         $this->delete(route('security.mfa.destroy'))
@@ -167,18 +170,13 @@ class SecurityPasswordConfirmationTest extends TestCase
         $secret = $member->two_factor_secret;
 
         $this->actingAs($member)
+            ->withSession($this->confirmedJustNow())
             ->post(route('security.mfa.store'))
             ->assertRedirect()
             ->assertSessionHas('status', 'two-factor-already-on');
 
         $this->assertTwoFactorIsStillOn($member);
         $this->assertSame($secret, $member->two_factor_secret, 'and the secret in the authenticator app still works');
-
-        $this->actingAs($member)
-            ->withSession($this->confirmedJustNow())
-            ->post(route('security.mfa.store'))
-            ->assertSessionHas('status', 'two-factor-already-on');
-
         $this->assertSame($secret, $member->fresh()->two_factor_secret, 'even right after the password was given: turn it off first');
     }
 
@@ -243,15 +241,5 @@ class SecurityPasswordConfirmationTest extends TestCase
             ->assertSessionHas('status', 'session-revoked');
 
         $this->assertDatabaseMissing('sessions', ['id' => $sessionId]);
-    }
-
-    #[Test]
-    public function switching_two_factor_on_does_not_ask_for_the_password(): void
-    {
-        // Turning a protection on takes nothing away, and a member who has only ever signed in with a provider has no password to give.
-        $this->actingAs(User::factory()->create())
-            ->post(route('security.mfa.store'))
-            ->assertRedirect()
-            ->assertSessionHas('status', 'two-factor-secret-generated');
     }
 }

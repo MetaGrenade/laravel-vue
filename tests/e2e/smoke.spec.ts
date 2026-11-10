@@ -96,6 +96,39 @@ function authenticatorCode(secret: string): string {
         .padStart(6, '0');
 }
 
+/**
+ * Starts a two-factor setup and leaves the page showing the secret and the box for the code. Starting one asks for the password first
+ * (the site sends the page that asks and then the page the member came from), so the button is pressed twice.
+ */
+async function startTwoFactorSetup(page: Page): Promise<void> {
+    await page.goto('/settings/security');
+    await page.getByRole('button', { name: 'Enable multi-factor authentication' }).click();
+    await expect(page).toHaveURL(/\/confirm-password$/);
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: 'Confirm password' }).click();
+    await expect(page).toHaveURL(/\/settings\/security$/);
+    await page.getByRole('button', { name: 'Enable multi-factor authentication' }).click();
+    await expect(page.getByLabel('Verification code')).toBeVisible();
+}
+
+/**
+ * Signs out and in again as a member who has two-factor on, and leaves the page on the security settings. The new session has not given
+ * the password, so whatever asks for it asks again (what was given to set two-factor up is good for three hours). The code is the one
+ * an authenticator app would show for the secret.
+ */
+async function signInAgainWithTwoFactor(page: Page, email: string, secret: string): Promise<void> {
+    await signOut(page);
+    await page.goto('/login');
+    await page.getByLabel('Email address').fill(email);
+    await page.getByLabel('Password', { exact: true }).fill(password);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/two-factor-challenge$/);
+    await page.getByLabel('Authentication code').fill(authenticatorCode(secret));
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.goto('/settings/security');
+}
+
 test.describe('visitors', () => {
     test('the home page, the shop, the forum and the blog open and link to each other', async ({ page }) => {
         await page.goto('/');
@@ -344,15 +377,53 @@ test.describe('members', () => {
         await expect(page.getByRole('dialog').getByText('Your cart', { exact: true })).toBeVisible();
     });
 
+    test('turning two-factor on asks for the password first, and nothing starts without it', async ({ page }) => {
+        // Turning it on from a browser that was left signed in would put somebody else's authenticator on the account, so it asks.
+        await registerMember(page, 'Starter');
+
+        await page.goto('/settings/security');
+        await expect(page.getByTestId('setup-asks-for-password')).toBeVisible();
+        await page.getByRole('button', { name: 'Enable multi-factor authentication' }).click();
+        await expect(page).toHaveURL(/\/confirm-password$/);
+        await page.getByLabel('Password').fill('wrong-password');
+        await page.getByRole('button', { name: 'Confirm password' }).click();
+        await expect(page.getByText('The provided password is incorrect.')).toBeVisible();
+
+        // Nothing was started: the page the member goes back to offers the button, and has no secret and no box for a code.
+        await page.goto('/settings/security');
+        await expect(page.getByRole('button', { name: 'Enable multi-factor authentication' })).toBeVisible();
+        await expect(page.getByLabel('Verification code')).toHaveCount(0);
+
+        // With the password it comes back to the same page, and still has not started: the button does that.
+        await page.getByRole('button', { name: 'Enable multi-factor authentication' }).click();
+        await expect(page).toHaveURL(/\/confirm-password$/);
+        await page.getByLabel('Password').fill(password);
+        await page.getByRole('button', { name: 'Confirm password' }).click();
+        await expect(page).toHaveURL(/\/settings\/security$/);
+        await expect(page.getByLabel('Verification code')).toHaveCount(0);
+        await page.getByRole('button', { name: 'Enable multi-factor authentication' }).click();
+        await expect(page.getByLabel('Verification code')).toBeVisible();
+        await expect(page.locator('input[readonly]').first()).not.toHaveValue('');
+
+        // Cancelling a setup that was never confirmed is one click and asks for nothing.
+        await page.getByRole('button', { name: 'Cancel' }).click();
+        await expect(page.getByRole('button', { name: 'Enable multi-factor authentication' })).toBeVisible();
+        await expect(page).toHaveURL(/\/settings\/security$/);
+    });
+
     test('turning two-factor off asks for the password first, and the page does it once it is given', async ({ page }) => {
         // A member of its own: with two-factor on every sign-in asks for a code, and a test that failed half way must not leave that on the
         // member the other tests sign in as.
-        await registerMember(page, 'Careful');
+        const email = await registerMember(page, 'Careful');
 
-        await page.goto('/settings/security');
-        await page.getByRole('button', { name: 'Enable multi-factor authentication' }).click();
-        await page.getByLabel('Verification code').fill(authenticatorCode(await page.locator('input[readonly]').first().inputValue()));
+        await startTwoFactorSetup(page);
+        const secret = await page.locator('input[readonly]').first().inputValue();
+        await page.getByLabel('Verification code').fill(authenticatorCode(secret));
         await page.getByRole('button', { name: 'Confirm setup' }).click();
+        await expect(page.getByText('Multi-factor authentication is enabled')).toBeVisible();
+
+        // Setting it up was given the password, which is good for three hours: come back as a member who has not given it.
+        await signInAgainWithTwoFactor(page, email, secret);
         await expect(page.getByText('Multi-factor authentication is enabled')).toBeVisible();
 
         // The button does not switch it off: the site sends the page that asks for the password, and two-factor stays on behind it.
@@ -377,11 +448,11 @@ test.describe('members', () => {
 
     test('the recovery codes come once, and again only after the password is given', async ({ page }) => {
         // A member of its own, as in the test above.
-        await registerMember(page, 'Keeper');
+        const email = await registerMember(page, 'Keeper');
 
-        await page.goto('/settings/security');
-        await page.getByRole('button', { name: 'Enable multi-factor authentication' }).click();
-        await page.getByLabel('Verification code').fill(authenticatorCode(await page.locator('input[readonly]').first().inputValue()));
+        await startTwoFactorSetup(page);
+        const secret = await page.locator('input[readonly]').first().inputValue();
+        await page.getByLabel('Verification code').fill(authenticatorCode(secret));
         await page.getByRole('button', { name: 'Confirm setup' }).click();
         await expect(page.getByText('Multi-factor authentication is enabled')).toBeVisible();
 
@@ -400,6 +471,9 @@ test.describe('members', () => {
         await expect(card.getByTestId('recovery-codes-left')).toContainText('8 recovery codes are left');
         await expect(codes).toHaveCount(0);
         expect(await page.content(), 'the page source after a reload').not.toContain(first[0]);
+
+        // Setting it up was given the password, which is good for three hours: come back as a member who has not given it.
+        await signInAgainWithTwoFactor(page, email, secret);
 
         // Asking for them asks for the password first, and a wrong one shows nothing.
         await card.getByRole('button', { name: 'Show recovery codes' }).click();

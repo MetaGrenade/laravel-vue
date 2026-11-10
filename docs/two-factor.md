@@ -6,13 +6,23 @@ A member can require a code from an authenticator app at sign-in, and can keep r
 
 ## Using it
 
-**Settings → Security.** Turning it on shows a secret. Confirming with a 6-digit code from an authenticator app turns it on and makes eight recovery codes. Each recovery code works once. Generating a new set replaces the old one, so the codes written down before that no longer work. The eight codes are shown on the page **once**, when they are made; to see them again the member asks, and is asked for the password ([Seeing the recovery codes](#seeing-the-recovery-codes)).
+**Settings → Security.** Turning it on asks for the password ([below](#turning-it-on)) and then shows a secret. Confirming with a 6-digit code from an authenticator app turns it on and makes eight recovery codes. Each recovery code works once. Generating a new set replaces the old one, so the codes written down before that no longer work. The eight codes are shown on the page **once**, when they are made; to see them again the member asks, and is asked for the password ([Seeing the recovery codes](#seeing-the-recovery-codes)).
 
 The codes follow the published test times for this kind of authenticator (RFC 6238, SHA-1). A code from the 30 seconds just before or just after is accepted. Anything else is refused, including a code that is not six digits.
 
 Signing in with a recovery code uses one of the set. Until the member generates a new set of eight, a bar at the top of the site asks them to. The same bar shows when the stored set cannot be read. It is not shown to someone who has not turned this on, and it is not shown while a member of staff is viewing the site as that member.
 
 Guessing is limited on the challenge itself: five tries a minute for that sign-in, and ten a minute from the same place. A recovery code is the same challenge, so it shares the limit.
+
+## Turning it on
+
+Turning it on looks harmless, since it takes nothing away. From a browser that was left signed in, or whose session was taken, it is not: it puts **somebody else's authenticator on the account**. The owner then meets a code prompt they cannot answer at every sign-in, whoever set it up holds the recovery codes that the confirmation shows, and the site has no way for staff to switch it off ([Not built](#not-built)). So a setup **asks for the password**, on the same page and for the same time as [turning it off](#turning-it-off):
+
+- **Starting it** (the **Enable multi-factor authentication** button) goes to `/confirm-password` first and comes back to the Security page, and the member presses the button again. Nothing is made until then: no secret exists, and the page has none to show.
+- **Confirming it** (the 6-digit code) asks too, when the password was last given longer ago than the time above. The secret of a setup that was started is on the Security page until it is confirmed, so a session that did not start it could otherwise finish it with a code of its own. A setup left for hours is finished by giving the password and sending the code again.
+- **Cancelling a setup that was never confirmed** asks for nothing, so a member who finds a setup they did not start can get rid of it at once.
+
+**Who is not asked:** a member whose address the site made up (`…@oauth.local`: Steam, and a Discord account with no address). They have no password they were shown to give, and for them this is the only way to use two-factor at all (the same rule as [changing the email address](#changing-the-email-address)). So a stolen session of such an account can still do what is described above ([Not built](#not-built)). A member who signed up with Google, Discord or Steam and has a **real, verified address** is asked like everyone else: the site cannot tell whether they ever chose a password, and **Forgot your password?** on the sign-in page (sign out first) sets one.
 
 ## Turning it off
 
@@ -23,10 +33,10 @@ After a correct password the site does not ask again from that browser for `AUTH
 What does **not** ask, and why:
 
 - **Cancelling a setup that was never confirmed.** A secret has been shown but no code entered, so the account never asked for a code at sign-in and nothing is taken away. "Cancel" stays one click.
-- **Turning it on.** It takes nothing away, and a member who only ever signed in with a provider has no password to give. Turning it on *again* while it is on is refused with a notice: a new secret clears the confirmation that sign-in goes by, which would have switched two-factor off without asking. Turn it off first (with the password), then set it up again.
+- **Setting it up again while it is on.** Not a password prompt but a refusal, with a notice: a new secret clears the confirmation that sign-in goes by, which would have switched two-factor off without asking. Turn it off first (with the password), then set it up again.
 - **Ending one other browser's session from the list.** It only signs that browser out, so whoever does it gains no way into the account, and a member who has lost a phone should be able to do it at once. A password prompt would make it slower exactly when speed matters. (**Sign out other browsers** is different: it does ask, because it also stores the password again, and a browser left open should not be able to sign the owner out of everything.)
 
-**A member who never chose a password** (they signed up with Google, Discord or Steam, and their password is a random one nobody was shown) cannot pass the prompt with it. The page says what to do: sign out, use **Forgot your password?** on the sign-in page, then come back. That works when the account has a **verified, real email address**. Steam, and a Discord account with no address, get a made-up `…@oauth.local` address that cannot receive mail; those members cannot turn two-factor off, replace their recovery codes or ask to see them again from the site at all (see [Not built](#not-built)). They are shown the first set when they confirm, and must keep it.
+**A member who never chose a password** (they signed up with Google, Discord or Steam, and their password is a random one nobody was shown) cannot pass the prompt with it. The page says what to do: sign out, use **Forgot your password?** on the sign-in page, then come back. That works when the account has a **verified, real email address**. Steam, and a Discord account with no address, get a made-up `…@oauth.local` address that cannot receive mail; those members cannot turn two-factor off, replace their recovery codes or ask to see them again from the site at all (see [Not built](#not-built)). They are shown the first set when they confirm, and must keep it. Turning it on is the one step they are not asked the password for ([above](#turning-it-on)), which is how they can set it up at all.
 
 ## Seeing the recovery codes
 
@@ -80,8 +90,9 @@ The address is where **Forgot your password?** sends its link. Whoever can chang
 ## Not built
 
 - **A way through the password prompt for members who have no password.** A made-up `…@oauth.local` address cannot receive a reset link, and **Settings → Password** asks for the current password, so such a member can never give one. They can still sign in (provider, then code); they cannot turn two-factor off or replace the codes. Asking the provider again would be the fix. (They can change their address, which is how they get a real one.)
+- **A safe way to set two-factor up without a password.** A member whose address the site made up is not asked for the password when they set it up (they have none to give), so a stolen session of that account can still put its own authenticator on it, and nobody can switch it off from the site. Asking the provider again would be the fix.
 - **Staff cannot switch two-factor off for a member.** A member who has lost the app and the recovery codes has no way back in from the site; there is no button in the admin area and no command for it.
-- **Asking again before every change.** The password is asked before two-factor is turned off, before a new set of recovery codes, before the stored codes are shown again and before the email address is changed ([above](#changing-the-email-address)). Making an API key does not ask.
+- **Asking again before every change.** The password is asked before two-factor is turned on or off, before a new set of recovery codes, before the stored codes are shown again and before the email address is changed ([above](#changing-the-email-address)). Making an API key does not ask.
 - **A way back for the owner after an address was changed by somebody else.** The notice goes to the old address, and that is all: it has no link that puts the address back or ends the sessions, because whoever changed it knew the password.
 - **Passkeys.** They are deferred.
 - **A new set made on its own.** The member generates it, and is shown the new codes. Nothing replaces them in the background.
@@ -97,7 +108,9 @@ The address is where **Forgot your password?** sends its link. Whoever can chang
 
 `tests/Feature/Auth/RateLimitingTest.php`: a sixth guess of an authenticator code, and of a recovery code, is refused.
 
-`tests/Feature/Settings/SecurityPasswordConfirmationTest.php`: turning two-factor off and making new recovery codes ask for the password and change nothing until it is given; a confirmation older than the timeout is asked for again; a wrong password unlocks nothing; the visit from the page is sent to the confirm page with a 303; cancelling an unconfirmed setup, turning it on and ending another session ask for nothing; setting it up again on a confirmed secret is refused.
+`tests/Feature/Settings/SecurityPasswordConfirmationTest.php`: turning two-factor off and making new recovery codes ask for the password and change nothing until it is given; a confirmation older than the timeout is asked for again; a wrong password unlocks nothing; the visit from the page is sent to the confirm page with a 303; cancelling an unconfirmed setup and ending another session ask for nothing; setting it up again on a confirmed secret is refused.
+
+`tests/Feature/Settings/TwoFactorSetupPasswordTest.php`: starting a setup asks for the password and makes nothing until it is given (the Security page has no secret to show); a recent confirmation starts it, one older than the timeout is asked for again, the confirm page is the way through and a wrong password starts nothing; a setup that was started cannot be finished with a real code without the password (no recovery codes are made for whoever asked), is finished by the same code with it, and is asked for again when the confirmation has run out; cancelling an unconfirmed setup still asks for nothing; a member whose address the site made up is not asked, and one who signed up with a provider but has a real address is; the page says whether it will ask; a guest is sent to sign in.
 
 `tests/Feature/Settings/SignOutOtherBrowsersTest.php`: a session started with the old password is signed out (a page visit goes to the sign-in page, not to an error); a session with no fingerprint yet is kept and stores one; changing the password, or resetting it by email, signs the other browsers out and keeps the one that changed it, which gets a "remember me" cookie that works while the old cookie signs nobody in; a refused password signs nobody out; the button asks for the password, works with a driver that cannot name sessions, and on the database driver clears the other rows and keeps its own; the list shows only the account's own sessions and ends only the account's own; both password routes stop at five wrong tries a minute; and the check runs after the session starts and before a view as a customer. `ImpersonationTest.php` adds that two views as a customer on a site that checks the password leave the staff member signed in.
 

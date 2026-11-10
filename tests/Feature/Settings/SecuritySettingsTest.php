@@ -47,7 +47,9 @@ class SecuritySettingsTest extends TestCase
     {
         $user = User::factory()->create();
 
+        // Setting it up asks for the password first (TwoFactorSetupPasswordTest), so the member has just given it.
         $this->actingAs($user)
+            ->withSession(['auth.password_confirmed_at' => time()])
             ->post(route('security.mfa.store'))
             ->assertRedirect();
 
@@ -97,6 +99,7 @@ class SecuritySettingsTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
+            ->withSession(['auth.password_confirmed_at' => time()])
             ->post(route('security.mfa.store'))
             ->assertRedirect();
 

@@ -31,6 +31,8 @@ interface Props {
     canListSessions: boolean;
     twoFactorEnabled: boolean;
     twoFactorConfirmed: boolean;
+    // Whether starting a setup and confirming it ask for the password (not for a member whose address the site made up).
+    twoFactorSetupAsksForPassword: boolean;
     pendingSecret: string | null;
     qrCodeUrl: string | null;
     // The codes themselves, only for the one load after a set was made or after the password was asked for them; otherwise empty.
@@ -66,6 +68,7 @@ const {
     canListSessions,
     twoFactorEnabled,
     twoFactorConfirmed,
+    twoFactorSetupAsksForPassword,
     pendingSecret,
     qrCodeUrl,
     recoveryCodes,
@@ -460,8 +463,15 @@ const providerAccount = (provider: string) => linkedAccounts.value.find((account
                                         in.
                                     </CardDescription>
                                 </CardHeader>
-                                <CardFooter>
+                                <CardFooter class="flex-col items-start gap-2">
                                     <Button :disabled="enableForm.processing" @click="enableTwoFactor"> Enable multi-factor authentication </Button>
+                                    <p
+                                        v-if="twoFactorSetupAsksForPassword"
+                                        class="text-xs text-muted-foreground"
+                                        data-testid="setup-asks-for-password"
+                                    >
+                                        You will be asked for your password first.
+                                    </p>
                                 </CardFooter>
                             </Card>
                         </div>
@@ -515,6 +525,10 @@ const providerAccount = (provider: string) => linkedAccounts.value.find((account
                                                     Cancel
                                                 </Button>
                                             </div>
+                                            <p v-if="twoFactorSetupAsksForPassword" class="text-xs text-muted-foreground">
+                                                If it has been a while since you gave your password, you will be asked for it again before the code is
+                                                checked.
+                                            </p>
                                         </form>
                                     </div>
 
