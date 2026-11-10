@@ -36,7 +36,7 @@ Everything a customer can open, **except** what is under `blocked` in `config/im
 
 | Kept from view | Because |
 |---|---|
-| Security settings | The page sends the customer's decrypted **two-factor recovery codes**, any pending two-factor secret, and the ids of their other sessions. |
+| Security settings, and asking to see the recovery codes | The page sends any pending two-factor secret and the ids of the customer's other sessions, and their decrypted **two-factor recovery codes** for the one load after they asked for them (the password is asked first). Asking is a `GET` too, and is turned away like the page. |
 | Downloads (data export, invoices, ticket attachments, bought files) | A download is the customer's own data, or what they bought, and counts against their allowance. |
 | Checkout, order completion, Tebex continue, Cashier payment | They call Stripe or Tebex and can change something there, which a rollback does not reach. |
 | Sign-in, register, password reset, two-factor challenge, OAuth, verify-email link | Viewing as one person must not turn into being another. |
@@ -83,6 +83,6 @@ A page is **recorded before it is shown**, so a page that cannot be recorded is 
 
 ## Testing
 
-`tests/Feature/Impersonation/ImpersonationTest.php`: starting (reason, who, permission), the swap and putting back (including the session row in the database), read-only enforcement, rollback of a page that writes, leaves a transaction open or fails, the pages kept from view (with a control that the security page does hand over recovery codes to the customer), ending every way, the audit trail, where the middleware sits, and that every `GET` route is decided on. `ImpersonationCartTest.php`: the customer's cart is shown, not one tied to the staff member's browser (with a control that a cart tied to a browser is still found as before).
+`tests/Feature/Impersonation/ImpersonationTest.php`: starting (reason, who, permission), the swap and putting back (including the session row in the database), read-only enforcement, rollback of a page that writes, leaves a transaction open or fails, the pages kept from view (with a control that the security page does hand over recovery codes to the customer once they have asked for them), ending every way, the audit trail, where the middleware sits, and that every `GET` route is decided on. `ImpersonationCartTest.php`: the customer's cart is shown, not one tied to the staff member's browser (with a control that a cart tied to a browser is still found as before).
 
 A page prop must not be called `impersonation`: it would replace the shared prop the bar at the top of every page reads (the "view as" card on the users page is `viewAs`, and a test checks the users page leaves `impersonation` null).

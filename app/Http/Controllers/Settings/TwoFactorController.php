@@ -75,7 +75,8 @@ class TwoFactorController extends Controller
             ]);
         }
 
-        return back()->with('status', 'two-factor-confirmed');
+        // The first set is shown now, once: a page that is loaded later does not carry it (see SecurityController::edit).
+        return back()->with('status', 'two-factor-confirmed')->with(TwoFactorAuthenticator::SHOW_RECOVERY_CODES, true);
     }
 
     /**

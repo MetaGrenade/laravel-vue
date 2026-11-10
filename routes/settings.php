@@ -145,6 +145,12 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
         ->middleware('password.confirm')
         ->name('security.recovery-codes.store');
 
+    // The Security page does not carry the recovery codes on every load. Asking to see them asks for the password (the same window as
+    // above), then sends the member back to that page with the codes for that one request.
+    Route::get('settings/security/recovery-codes', [TwoFactorRecoveryCodeController::class, 'show'])
+        ->middleware('password.confirm')
+        ->name('security.recovery-codes.show');
+
     Route::delete('settings/security/social/{provider}', [LinkedSocialAccountController::class, 'destroy'])
         ->name('settings.social.unlink');
 });

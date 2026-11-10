@@ -30,7 +30,8 @@ class RecoveryCodePromptTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('auth.replaceRecoveryCodes', true)
-                ->where('recoveryCodes', ['AAAA-BBBB-CCCC'])
+                ->where('recoveryCodes', [])
+                ->where('recoveryCodesLeft', 1)
             );
 
         $full = $this->memberWithCodes(array_fill(0, TwoFactorAuthenticator::RECOVERY_SET_SIZE, 'DDDD-EEEE-FFFF'));
