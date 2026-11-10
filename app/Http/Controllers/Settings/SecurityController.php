@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Support\Localization\DateFormatter;
 use App\Support\OAuth\OAuthProviders;
 use App\Support\Security\BrowserSessions;
+use App\Support\Security\SignInMethods;
 use App\Support\Security\TwoFactorAuthenticator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -97,6 +98,8 @@ class SecurityController extends Controller
             'canListSessions' => $canListSessions,
             'twoFactorEnabled' => ! is_null($user->two_factor_secret),
             'twoFactorConfirmed' => ! is_null($user->two_factor_confirmed_at),
+            // Starting a setup and confirming it ask for the password, unless the address the member has was made up by the site.
+            'twoFactorSetupAsksForPassword' => SignInMethods::canBeAskedForPassword($user),
             'pendingSecret' => $pendingSecret,
             'qrCodeUrl' => $qrCodeUrl,
             'recoveryCodes' => $recoveryCodes,

@@ -16,6 +16,7 @@ use App\Http\Controllers\Settings\SecuritySessionController;
 use App\Http\Controllers\Settings\SubscriptionController;
 use App\Http\Controllers\Settings\TwoFactorController;
 use App\Http\Controllers\Settings\TwoFactorRecoveryCodeController;
+use App\Http\Middleware\RequirePasswordToSetUpTwoFactor;
 use App\Http\Middleware\RequirePasswordWhenTwoFactorIsOn;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -131,12 +132,18 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
         ->middleware('throttle:current-password')
         ->name('security.sessions.destroy-others');
 
-    // Switching two-factor off and making a new set of recovery codes ask for the password again (`password.confirm`, good for
-    // AUTH_PASSWORD_TIMEOUT seconds): a browser that was left signed in must not be enough to take away the second factor, or to be
-    // handed codes that replace it. Cancelling a setup that was never confirmed takes nothing away, so it does not ask. Ending another
-    // session is left open on purpose, see docs/two-factor.md.
-    Route::post('settings/security/mfa', [TwoFactorController::class, 'store'])->name('security.mfa.store');
-    Route::post('settings/security/mfa/confirm', [TwoFactorController::class, 'confirm'])->name('security.mfa.confirm');
+    // Switching two-factor off, making a new set of recovery codes and setting it up ask for the password again (`password.confirm`,
+    // good for AUTH_PASSWORD_TIMEOUT seconds): a browser that was left signed in must not be enough to take away the second factor, to be
+    // handed codes that replace it, or to put its own authenticator on the account and lock the owner out. Starting a setup and
+    // confirming it both ask (either finishes the job, the pending secret being on the page), except for a member whose address the
+    // site made up, who has no password to give. Cancelling a setup that was never confirmed takes nothing away, so it does not ask.
+    // Ending another session is left open on purpose, see docs/two-factor.md.
+    Route::post('settings/security/mfa', [TwoFactorController::class, 'store'])
+        ->middleware(RequirePasswordToSetUpTwoFactor::class)
+        ->name('security.mfa.store');
+    Route::post('settings/security/mfa/confirm', [TwoFactorController::class, 'confirm'])
+        ->middleware(RequirePasswordToSetUpTwoFactor::class)
+        ->name('security.mfa.confirm');
     Route::delete('settings/security/mfa', [TwoFactorController::class, 'destroy'])
         ->middleware(RequirePasswordWhenTwoFactorIsOn::class)
         ->name('security.mfa.destroy');

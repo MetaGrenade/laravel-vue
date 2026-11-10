@@ -35,6 +35,17 @@ class SignInMethods
     }
 
     /**
+     * Whether a step that asks for the current password (changing the address, starting a two-factor setup) asks this member. Everybody
+     * is asked except a member whose address the site made up: they have no password they were shown to give, so asking would shut them
+     * out of a step that cannot be done any other way. (A member who signed up with a provider and has a real address is asked, and can
+     * give one after "Forgot your password?": the site cannot tell whether they ever chose one, see above.)
+     */
+    public static function canBeAskedForPassword(User $user): bool
+    {
+        return ! self::isPlaceholderEmail($user->email);
+    }
+
+    /**
      * Whether the member could sign in again after this linked account is removed.
      */
     public static function remainAfterUnlinking(User $user, SocialAccount $account): bool

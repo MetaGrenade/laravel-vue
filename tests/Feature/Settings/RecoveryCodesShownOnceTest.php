@@ -100,7 +100,8 @@ class RecoveryCodesShownOnceTest extends TestCase
             ->get(route('security.edit', [TwoFactorAuthenticator::SHOW_RECOVERY_CODES => 1, 'recoveryCodes' => 1]))
             ->assertInertia(fn (Assert $page) => $page->where('recoveryCodes', []));
 
-        $this->post(route('security.mfa.store'), [TwoFactorAuthenticator::SHOW_RECOVERY_CODES => true]);
+        // (With the password just given, so that the request reaches the controller instead of being sent to the password page.)
+        $this->withSession($this->confirmedJustNow())->post(route('security.mfa.store'), [TwoFactorAuthenticator::SHOW_RECOVERY_CODES => true]);
         $this->assertTheCodesAreHidden();
 
         $this->get(route('security.edit'), ['X-Inertia-Partial-Component' => 'settings/Security', 'X-Inertia-Partial-Data' => 'recoveryCodes'])
@@ -150,7 +151,8 @@ class RecoveryCodesShownOnceTest extends TestCase
     {
         $member = User::factory()->create();
 
-        $this->actingAs($member)->post(route('security.mfa.store'))->assertRedirect();
+        // Setting it up asks for the password first (TwoFactorSetupPasswordTest), so the member has just given it.
+        $this->actingAs($member)->withSession($this->confirmedJustNow())->post(route('security.mfa.store'))->assertRedirect();
 
         $secret = TwoFactorAuthenticator::decryptSecret($member->fresh()->two_factor_secret);
         $this->assertNotNull($secret);
@@ -178,7 +180,7 @@ class RecoveryCodesShownOnceTest extends TestCase
     public function a_wrong_code_shows_nothing(): void
     {
         $member = User::factory()->create();
-        $this->actingAs($member)->post(route('security.mfa.store'));
+        $this->actingAs($member)->withSession($this->confirmedJustNow())->post(route('security.mfa.store'));
 
         $this->post(route('security.mfa.confirm'), ['code' => '000000'])
             ->assertSessionHasErrors('code')
