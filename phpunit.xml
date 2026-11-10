@@ -29,6 +29,13 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
+        <!-- A provider's button is offered only when its credentials are set, so the sign-in tests that use a fake provider need some.
+             The tests of "no credentials" blank them (tests/Feature/OAuthProvidersTest.php). -->
+        <env name="GOOGLE_CLIENT_ID" value="phpunit-google-client"/>
+        <env name="GOOGLE_CLIENT_SECRET" value="phpunit-google-secret"/>
+        <env name="DISCORD_CLIENT_ID" value="phpunit-discord-client"/>
+        <env name="DISCORD_CLIENT_SECRET" value="phpunit-discord-secret"/>
+        <env name="STEAM_API_KEY" value="phpunit-steam-key"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="PULSE_ENABLED" value="false"/>

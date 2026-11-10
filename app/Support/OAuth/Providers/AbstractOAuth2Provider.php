@@ -113,11 +113,25 @@ abstract class AbstractOAuth2Provider extends AbstractProvider
     {
         return [
             'client_id' => Arr::get($this->config, 'client_id'),
-            'redirect_uri' => Arr::get($this->config, 'redirect'),
+            'redirect_uri' => $this->redirectUri(),
             'response_type' => 'code',
             'scope' => implode(' ', $this->scopes()),
             'state' => $state,
         ];
+    }
+
+    /**
+     * Where the provider sends the person back to: the `redirect` setting when there is one, otherwise the site's own callback address
+     * (what `.env.example` writes out as `${APP_URL}/auth/oauth/<provider>/callback`). The same value goes with the code and with the token
+     * request, which the provider checks against each other.
+     */
+    protected function redirectUri(): string
+    {
+        $configured = Arr::get($this->config, 'redirect');
+
+        return is_string($configured) && $configured !== ''
+            ? $configured
+            : $this->url->route('oauth.callback', ['provider' => $this->name], true);
     }
 
     /**
@@ -141,7 +155,7 @@ abstract class AbstractOAuth2Provider extends AbstractProvider
             [
                 'client_id' => Arr::get($this->config, 'client_id'),
                 'client_secret' => Arr::get($this->config, 'client_secret'),
-                'redirect_uri' => Arr::get($this->config, 'redirect'),
+                'redirect_uri' => $this->redirectUri(),
                 'grant_type' => 'authorization_code',
                 'code' => $code,
             ],

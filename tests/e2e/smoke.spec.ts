@@ -741,6 +741,29 @@ test.describe('staff', () => {
         await expect(page.getByText(member.email)).toBeVisible();
     });
 
+    test('a site with no sign-in provider set up offers no provider button, and the system settings say what each still needs', async ({
+        page,
+        request,
+    }) => {
+        // A visitor sees the email form and no "Continue with" button, on either page. (The settings of the test site have no credentials.)
+        for (const path of ['/login', '/register']) {
+            await page.goto(path);
+            await expect(page.getByLabel('Email address')).toBeVisible();
+            // ("Continue with" on the sign-in page, "Sign up with" on the registration page.)
+            await expect(page.getByRole('button', { name: /^(Continue|Sign up) with (Google|Discord|Steam)/ })).toHaveCount(0);
+        }
+
+        // The addresses of a provider that is not set up lead nowhere (404), rather than to the provider's own error page.
+        expect((await request.get('/auth/oauth/google/redirect', { maxRedirects: 0 })).status()).toBe(404);
+
+        // The administrator is told why: it is the credentials that are missing, and which.
+        await signIn(page, admin.email);
+        await page.goto('/acp/system');
+        await expect(page.getByTestId('oauth-provider-google-missing')).toContainText('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
+        await expect(page.getByTestId('oauth-provider-discord-missing')).toContainText('DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET');
+        await expect(page.getByTestId('oauth-provider-steam-missing')).toContainText('STEAM_API_KEY');
+    });
+
     test('an administrator turns two-factor off for a member who lost their app, and the member signs in with the password alone', async ({
         page,
     }) => {

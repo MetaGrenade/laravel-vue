@@ -57,6 +57,13 @@ const env = {
     STRIPE_KEY: '',
     STRIPE_SECRET: '',
     STRIPE_WEBHOOK_SECRET: '',
+    // No sign-in provider is set up, whatever .env has: a site with the credentials of a real Google or Discord application would offer
+    // the buttons, and the test of "none set, none offered" would depend on whose machine it ran on.
+    GOOGLE_CLIENT_ID: '',
+    GOOGLE_CLIENT_SECRET: '',
+    DISCORD_CLIENT_ID: '',
+    DISCORD_CLIENT_SECRET: '',
+    STEAM_API_KEY: '',
     SEARCH_DRIVER: 'database',
     // A cached configuration (`php artisan config:cache`) is read instead of .env and of everything set above, so `migrate:fresh` would
     // run against whatever database it names. These files never exist: the application reads its configuration, routes and events from

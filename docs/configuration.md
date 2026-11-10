@@ -366,14 +366,13 @@ See [Signing in with Google, Discord and Steam](social-login.md). The address ea
 
 | Key | Default | What it does |
 | --- | --- | --- |
-| `GOOGLE_CLIENT_ID` | — | The OAuth client of the Google button. |
-| `GOOGLE_CLIENT_SECRET` | — | **Secret.** |
-| `GOOGLE_REDIRECT_URI` | — | `.env.example` sets `${APP_URL}/auth/oauth/google/callback`. |
-| `DISCORD_CLIENT_ID` | — | The application of the Discord button. |
-| `DISCORD_CLIENT_SECRET` | — | **Secret.** |
-| `DISCORD_REDIRECT_URI` | — | `.env.example` sets `${APP_URL}/auth/oauth/discord/callback`. |
-| `STEAM_API_KEY` | — | **Secret.** A Steam Web API key. |
-| `STEAM_REDIRECT_URI` | — | `.env.example` sets `${APP_URL}/auth/oauth/steam/callback`. Steam wants an exact match, and the domain added in its dashboard. |
+| `GOOGLE_CLIENT_ID` | — | The OAuth client of the Google button. The button is offered only when this and the secret are set. |
+| `GOOGLE_CLIENT_SECRET` | — | **Secret.** Needed with the client id. |
+| `GOOGLE_REDIRECT_URI` | — | Optional. `.env.example` sets `${APP_URL}/auth/oauth/google/callback`, and the site uses that address itself when this is left out. |
+| `DISCORD_CLIENT_ID` | — | The application of the Discord button. The button is offered only when this and the secret are set. |
+| `DISCORD_CLIENT_SECRET` | — | **Secret.** Needed with the client id. |
+| `DISCORD_REDIRECT_URI` | — | Optional. `.env.example` sets `${APP_URL}/auth/oauth/discord/callback`, and the site uses that address itself when this is left out. |
+| `STEAM_API_KEY` | — | **Secret.** A Steam Web API key. The Steam button is offered only when it is set. Steam's return address is built from `APP_URL`, and Steam wants the domain added in its dashboard to match. |
 
 ## The Discord companion
 

@@ -24,7 +24,7 @@ class RegisteredUserController extends Controller
     public function create(): Response
     {
         return Inertia::render('auth/Register', [
-            'socialProviders' => OAuthProviders::enabledOptions(),
+            'socialProviders' => OAuthProviders::availableOptions(),
         ]);
     }
 
