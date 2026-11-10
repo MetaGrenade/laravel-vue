@@ -69,14 +69,20 @@ const openNew = () => {
 const withPasswordIfAsked = <T extends { current_password: string }>({ current_password, ...rest }: T) =>
     props.asks_for_password ? { ...rest, current_password } : rest;
 
+// Whatever came of a try, the password does not stay in the form. Inertia makes what was just submitted the new defaults after an accepted
+// try, so reset() would put the accepted password back: the box and its default are both emptied.
+const forgetPassword = () => {
+    form.defaults('current_password', '');
+    form.current_password = '';
+};
+
 const create = () => {
     form.transform(withPasswordIfAsked).post(route('settings.api-keys.store'), {
         preserveScroll: true,
         onSuccess: () => {
             dialogOpen.value = false;
         },
-        // Whatever came of it, the password does not stay in the box.
-        onFinish: () => form.reset('current_password'),
+        onFinish: forgetPassword,
     });
 };
 
@@ -144,6 +150,12 @@ const openRotate = (key: ApiKey) => {
     pendingRotate.value = key;
 };
 
+// As for making a key: the box and its default are both emptied, because reset() would restore the accepted password.
+const forgetRotatePassword = () => {
+    rotateForm.defaults('current_password', '');
+    rotateForm.current_password = '';
+};
+
 const rotate = () => {
     if (!pendingRotate.value) {
         return;
@@ -154,7 +166,7 @@ const rotate = () => {
         onSuccess: () => {
             pendingRotate.value = null;
         },
-        onFinish: () => rotateForm.reset('current_password'),
+        onFinish: forgetRotatePassword,
     });
 };
 
