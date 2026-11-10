@@ -26,6 +26,7 @@ const props = defineProps<{
     rotation: ApiKeyRotation;
     limit: { active: number; max: number };
     max_calls: number;
+    asks_for_password: boolean;
     usage: UsageSummary;
 }>();
 
@@ -49,6 +50,7 @@ const form = useForm({
     expires_in: defaultLifetime(),
     hourly_quota: '' as number | '',
     daily_quota: '' as number | '',
+    current_password: '',
 });
 
 const errors = computed(() => form.errors as Record<string, string | undefined>);
@@ -58,17 +60,23 @@ const scopeError = computed(() => errors.value.scopes ?? Object.entries(errors.v
 
 // Inertia's reset() goes back to the last *submitted* values, so the dialog would open as it was left: blank defaults are set explicitly.
 const openNew = () => {
-    form.defaults({ name: '', scopes: [], expires_in: defaultLifetime(), hourly_quota: '', daily_quota: '' }).reset();
+    form.defaults({ name: '', scopes: [], expires_in: defaultLifetime(), hourly_quota: '', daily_quota: '', current_password: '' }).reset();
     form.clearErrors();
     dialogOpen.value = true;
 };
 
+// A member whose address the site made up has no password to give, so nothing is sent for them (the server asks for none).
+const withPasswordIfAsked = <T extends { current_password: string }>({ current_password, ...rest }: T) =>
+    props.asks_for_password ? { ...rest, current_password } : rest;
+
 const create = () => {
-    form.post(route('settings.api-keys.store'), {
+    form.transform(withPasswordIfAsked).post(route('settings.api-keys.store'), {
         preserveScroll: true,
         onSuccess: () => {
             dialogOpen.value = false;
         },
+        // Whatever came of it, the password does not stay in the box.
+        onFinish: () => form.reset('current_password'),
     });
 };
 
@@ -113,7 +121,7 @@ const origin = computed(() => (typeof window === 'undefined' ? '' : window.locat
 // --- Rotating a key -----------------------------------------------------------------------------------------------------------------
 
 const pendingRotate = ref<ApiKey | null>(null);
-const rotateForm = useForm({ grace_hours: props.rotation.default });
+const rotateForm = useForm({ grace_hours: props.rotation.default, current_password: '' });
 const rotateErrors = computed(() => rotateForm.errors as Record<string, string | undefined>);
 
 const graceLabel = (hours: number) => {
@@ -131,7 +139,7 @@ const graceLabel = (hours: number) => {
 };
 
 const openRotate = (key: ApiKey) => {
-    rotateForm.defaults({ grace_hours: props.rotation.default }).reset();
+    rotateForm.defaults({ grace_hours: props.rotation.default, current_password: '' }).reset();
     rotateForm.clearErrors();
     pendingRotate.value = key;
 };
@@ -141,11 +149,12 @@ const rotate = () => {
         return;
     }
 
-    rotateForm.post(route('settings.api-keys.rotate', pendingRotate.value.id), {
+    rotateForm.transform(withPasswordIfAsked).post(route('settings.api-keys.rotate', pendingRotate.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             pendingRotate.value = null;
         },
+        onFinish: () => rotateForm.reset('current_password'),
     });
 };
 
@@ -432,6 +441,22 @@ const quotas = (key: ApiKey) =>
                             </div>
                         </fieldset>
 
+                        <div v-if="asks_for_password" class="grid gap-2">
+                            <Label for="api-key-password">Your password</Label>
+                            <Input
+                                id="api-key-password"
+                                v-model="form.current_password"
+                                type="password"
+                                autocomplete="current-password"
+                                placeholder="Your current password"
+                            />
+                            <p class="text-xs text-muted-foreground">
+                                A key keeps working after you sign out, so making one asks for your password. Signed up with Google, Discord or Steam
+                                and never chose one? Sign out, use "Forgot your password?" on the sign-in page to set one, then come back.
+                            </p>
+                            <InputError :message="errors.current_password" />
+                        </div>
+
                         <InputError :message="errors.limit" />
                         <InputError :message="errors.email" />
                     </form>
@@ -462,6 +487,19 @@ const quotas = (key: ApiKey) =>
                                 <option v-for="hours in rotation.hours" :key="hours" :value="hours">{{ graceLabel(hours) }}</option>
                             </select>
                             <InputError :message="rotateErrors.grace_hours" />
+                        </div>
+
+                        <div v-if="asks_for_password" class="grid gap-2">
+                            <Label for="api-key-rotate-password">Your password</Label>
+                            <Input
+                                id="api-key-rotate-password"
+                                v-model="rotateForm.current_password"
+                                type="password"
+                                autocomplete="current-password"
+                                placeholder="Your current password"
+                            />
+                            <p class="text-xs text-muted-foreground">Rotating makes a new key, so it asks for your password too.</p>
+                            <InputError :message="rotateErrors.current_password" />
                         </div>
 
                         <InputError :message="rotateErrors.limit" />

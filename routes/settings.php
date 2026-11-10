@@ -53,13 +53,14 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
     Route::get('settings/account-standing', AccountStandingController::class)->name('settings.standing');
 
     Route::get('settings/api-keys', [ApiKeyController::class, 'index'])->name('settings.api-keys.index');
-    // Making a key needs a verified address where the site asks for one; taking one away never does.
+    // Making a key needs a verified address where the site asks for one, and the password (the form carries it: a wrong one costs one of
+    // five guesses a minute, as in the password change); taking a key away or limiting it never asks for either.
     Route::post('settings/api-keys', [ApiKeyController::class, 'store'])
-        ->middleware(['verified', 'throttle:api-keys'])
+        ->middleware(['verified', 'throttle:api-keys', 'throttle:current-password'])
         ->name('settings.api-keys.store');
     // Rotating makes a new key, so it is held to the same rules as making one.
     Route::post('settings/api-keys/{key}/rotate', [ApiKeyController::class, 'rotate'])
-        ->middleware(['verified', 'throttle:api-keys'])
+        ->middleware(['verified', 'throttle:api-keys', 'throttle:current-password'])
         ->whereNumber('key')
         ->name('settings.api-keys.rotate');
     Route::patch('settings/api-keys/{key}/limits', [ApiKeyController::class, 'limits'])

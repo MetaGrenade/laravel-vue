@@ -16,6 +16,7 @@ class RotateApiKeyRequest extends FormRequest
     {
         return [
             'grace_hours' => ['required', 'integer', Rule::in(app(ApiKeys::class)->rotationChoices()['hours'])],
+            ...ApiKeys::passwordRules($this->user()),
         ];
     }
 
@@ -27,6 +28,7 @@ class RotateApiKeyRequest extends FormRequest
         return [
             'grace_hours.required' => __('forms.api_keys.grace_required'),
             'grace_hours.in' => __('forms.api_keys.grace_invalid'),
+            ...ApiKeys::passwordMessages(),
         ];
     }
 

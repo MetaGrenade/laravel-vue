@@ -43,7 +43,7 @@ class ApiKeyRotationTest extends TestCase
 
     private function attempt(User $user, PersonalAccessToken $key, int $hours = 24)
     {
-        return $this->actingAs($user)->post(route('settings.api-keys.rotate', $key->id), ['grace_hours' => $hours]);
+        return $this->actingAs($user)->post(route('settings.api-keys.rotate', $key->id), ['grace_hours' => $hours, 'current_password' => 'password']);
     }
 
     /**
@@ -296,7 +296,7 @@ class ApiKeyRotationTest extends TestCase
     {
         $this->withoutMiddleware(ThrottleRequests::class);
 
-        $this->actingAs(User::factory()->create())->post(route('settings.api-keys.rotate', 999999), ['grace_hours' => 0])->assertNotFound();
+        $this->actingAs(User::factory()->create())->post(route('settings.api-keys.rotate', 999999), ['grace_hours' => 0, 'current_password' => 'password'])->assertNotFound();
     }
 
     // --- The limit on keys ----------------------------------------------------------------------------------------------------------------
@@ -343,11 +343,11 @@ class ApiKeyRotationTest extends TestCase
         $this->assertSame(3, app(ApiKeys::class)->activeCount($user), 'the old one, the other, and the new one');
 
         // No way round the limit by rotating over and over: the places are all taken until the old key's end.
-        $this->actingAs($user)->post(route('settings.api-keys.store'), ['name' => 'One more', 'scopes' => ['profile:read'], 'expires_in' => '30'])->assertSessionHasErrors('limit');
+        $this->actingAs($user)->post(route('settings.api-keys.store'), ['name' => 'One more', 'scopes' => ['profile:read'], 'expires_in' => '30', 'current_password' => 'password'])->assertSessionHasErrors('limit');
 
         $this->travel(25)->hours();
 
-        $this->actingAs($user)->post(route('settings.api-keys.store'), ['name' => 'One more', 'scopes' => ['profile:read'], 'expires_in' => '30'])->assertSessionHasNoErrors();
+        $this->actingAs($user)->post(route('settings.api-keys.store'), ['name' => 'One more', 'scopes' => ['profile:read'], 'expires_in' => '30', 'current_password' => 'password'])->assertSessionHasNoErrors();
     }
 
     #[Test]
@@ -419,10 +419,10 @@ class ApiKeyRotationTest extends TestCase
         $this->withoutMiddleware(ThrottleRequests::class);
 
         foreach ([5, -1, 999, 'soon', ''] as $value) {
-            $this->actingAs($user)->post(route('settings.api-keys.rotate', $key->accessToken->id), ['grace_hours' => $value])->assertSessionHasErrors('grace_hours');
+            $this->actingAs($user)->post(route('settings.api-keys.rotate', $key->accessToken->id), ['grace_hours' => $value, 'current_password' => 'password'])->assertSessionHasErrors('grace_hours');
         }
 
-        $this->actingAs($user)->post(route('settings.api-keys.rotate', $key->accessToken->id), [])->assertSessionHasErrors(['grace_hours' => 'Choose how long the old key should go on working.']);
+        $this->actingAs($user)->post(route('settings.api-keys.rotate', $key->accessToken->id), ['current_password' => 'password'])->assertSessionHasErrors(['grace_hours' => 'Choose how long the old key should go on working.']);
 
         $this->assertSame(1, $user->tokens()->count());
     }

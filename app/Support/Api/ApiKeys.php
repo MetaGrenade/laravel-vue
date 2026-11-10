@@ -6,6 +6,7 @@ use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Notifications\ApiKeyCreated;
 use App\Support\EmailVerification;
+use App\Support\Security\SignInMethods;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -45,6 +46,39 @@ class ApiKeys
         }
 
         return $messages;
+    }
+
+    /**
+     * Whether making or rotating a key in Settings asks this member for their password.
+     *
+     * A key is a credential that goes on working when the browser that made it is closed, when the session ends, and (until it expires or is
+     * revoked) after a password change, so a session that was left open or taken must not be able to make one by clicking: it has to know the
+     * password, as `POST /api/v1/auth/token` already does. Revoking, removing and limiting a key never ask. Everybody is asked except a
+     * member whose address the site made up (`SignInMethods::canBeAskedForPassword`): they have no password they were shown to give.
+     */
+    public static function asksForPassword(mixed $user): bool
+    {
+        return $user instanceof User && SignInMethods::canBeAskedForPassword($user);
+    }
+
+    /**
+     * The rule that carries the password, for a member who is asked for it (and nothing for one who is not).
+     *
+     * @return array<string, list<string>>
+     */
+    public static function passwordRules(mixed $user): array
+    {
+        return self::asksForPassword($user) ? ['current_password' => ['required', 'string', 'current_password']] : [];
+    }
+
+    /**
+     * What a person is told about the password they left out; a wrong one gets the standard "The password is incorrect.".
+     *
+     * @return array<string, string>
+     */
+    public static function passwordMessages(): array
+    {
+        return ['current_password.required' => __('forms.api_keys.password_required')];
     }
 
     /**

@@ -41,6 +41,7 @@ class ApiKeysTest extends TestCase
             'name' => 'Deploy script',
             'scopes' => ['profile:read'],
             'expires_in' => '90',
+            'current_password' => 'password',
             ...$overrides,
         ];
     }
