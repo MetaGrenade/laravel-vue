@@ -4,6 +4,12 @@ name: stability
 # or flaky tests. When a run fails, the log prints the random seed so the
 # failure can be reproduced locally with:
 #   vendor/bin/phpunit --order-by=random --random-order-seed=<seed>
+#
+# A job's log needs a GitHub sign-in to read, even in a public repository,
+# and its annotations do not. So every run is also reported as an annotation
+# (scripts/phpunit-failures.mjs): the tests that failed, the first lines of
+# why, the seed and how long the run took. They are on the run's page and in
+# the check-runs API (`/check-runs/<id>/annotations`).
 
 on:
   schedule:
@@ -31,15 +37,21 @@ jobs:
       - name: Run the suite repeatedly in random order
         shell: bash
         run: |
+          set -o pipefail
           runs="${{ github.event.inputs.runs || '10' }}"
           failed=0
           for i in $(seq 1 "$runs"); do
+            log="$RUNNER_TEMP/phpunit-run-$i.log"
             echo "::group::run $i of $runs"
-            if ! vendor/bin/phpunit --order-by=random --colors=never; then
-              echo "::error::run $i failed; see the Random Seed line above to reproduce"
+            if vendor/bin/phpunit --order-by=random --colors=never 2>&1 | tee "$log"; then
+              status=passed
+            else
+              status=failed
               failed=$((failed + 1))
             fi
             echo "::endgroup::"
+            # The report must never change whether the job passes.
+            node scripts/phpunit-failures.mjs "$log" "$i" "$runs" "$status" || echo "::warning::run $i could not be reported"
           done
           echo "$failed of $runs runs failed"
           test "$failed" -eq 0

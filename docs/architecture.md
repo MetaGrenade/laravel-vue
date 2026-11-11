@@ -194,7 +194,7 @@ Everything below runs in CI (`.github/workflows`):
 | `linter` | Pint, Prettier, ESLint, `vue-tsc`, Larastan (PHPStan), `lang:check`, the links in `docs/` |
 | `tests` | The suite on SQLite (`ci`), MySQL 8 (`ci-mysql`) and PostgreSQL 16 (`ci-pgsql`); the accessibility audit (`a11y`); the browser smoke suite (`e2e`); Lighthouse (a report, not a gate); the search tests against Meilisearch (`search`); the cache, queue and sessions on Redis (`redis`); a clean install with `metaforger:install` (`install`); the size of the JavaScript (`bundle`) |
 | `security` | A scan for committed secrets, dependency advisories (Composer and npm), and the licence policy |
-| `stability` | Once a week, the suite repeated in random order |
+| `stability` | Once a week, the suite repeated in random order. Each run is reported as an annotation (the tests that failed, the seed, the time), which can be read without signing in to GitHub (`scripts/phpunit-failures.mjs`) |
 
 The guards that fail for a specific mistake (a missing language key, a foreign key with no index, a route with no scope, a setting with no row in the reference, a link that goes nowhere) are listed in [extending.md](extending.md#the-tests-that-tell-you-what-you-forgot).
 

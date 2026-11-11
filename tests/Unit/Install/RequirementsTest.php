@@ -258,11 +258,17 @@ class RequirementsTest extends TestCase
     #[Test]
     public function the_probe_reads_a_size_setting_in_bytes(): void
     {
+        // PHP refuses to set a memory limit below what the process already uses, and the suite's memory grows with every test (about 370 MB
+        // by the end). A fixed 256M therefore worked when this test ran early and failed when a random order put it late: the weekly
+        // `stability` job failed on it in 4 of 10 runs. So the limit asked for is 64 MB above the most the process has used, and the
+        // process is made to use more than 256 MB first, so that every order meets the case that used to fail.
+        $ballast = str_repeat('x', max(0, 300 * 1048576 - memory_get_usage(true)));
+        $megabytes = intdiv(memory_get_peak_usage(true), 1048576) + 64;
         $before = ini_get('memory_limit');
 
         try {
-            ini_set('memory_limit', '256M');
-            $this->assertSame(256 * 1048576, (new PhpProbe)->bytes('memory_limit'));
+            ini_set('memory_limit', "{$megabytes}M");
+            $this->assertSame($megabytes * 1048576, (new PhpProbe)->bytes('memory_limit'));
 
             ini_set('memory_limit', '-1');
             $this->assertSame(-1, (new PhpProbe)->bytes('memory_limit'));
