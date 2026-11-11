@@ -553,6 +553,7 @@ test.describe('members', () => {
         await page.getByLabel('Your password').fill('wrong-password');
         await signOutOthers.click();
         await expect(page.getByText('The password is incorrect.')).toBeVisible();
+        await expect(page.getByLabel('Your password')).toHaveValue('');
         await expect(listed).toHaveCount(2);
         await other.getByRole('link', { name: 'Password', exact: true }).first().click();
         await expect(other).toHaveURL(/\/settings\/password$/);
@@ -564,6 +565,10 @@ test.describe('members', () => {
         await expect(page.getByText('Other browsers signed out')).toBeVisible();
         await expect(listed).toHaveCount(1);
         await expect(page.getByRole('button', { name: 'Account menu' })).toBeVisible();
+
+        // The password that was accepted is not left in the box (the button waits for a new one).
+        await expect(page.getByLabel('Your password')).toHaveValue('');
+        await expect(signOutOthers).toBeDisabled();
 
         await other.getByRole('link', { name: 'Security', exact: true }).first().click();
         await expect(other).toHaveURL(/\/login$/);
@@ -595,6 +600,7 @@ test.describe('members', () => {
         await asked.fill('wrong-password');
         await page.getByRole('button', { name: 'Save', exact: true }).click();
         await expect(page.getByText('The password is incorrect.')).toBeVisible();
+        await expect(asked).toHaveValue('');
         await page.reload();
         await expect(address).toHaveValue(email);
 
@@ -604,6 +610,11 @@ test.describe('members', () => {
         await page.getByRole('button', { name: 'Save', exact: true }).click();
         await expect(page.getByText('Saved.')).toBeVisible();
         await expect(asked).toHaveCount(0);
+
+        // The password that was accepted is not kept: a third address asks again, with an empty box.
+        await address.fill(`again-${newEmail}`);
+        await expect(asked).toBeVisible();
+        await expect(asked).toHaveValue('');
         await page.reload();
         await expect(address).toHaveValue(newEmail);
     });

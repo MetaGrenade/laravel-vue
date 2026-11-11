@@ -67,6 +67,13 @@ const savedEmail = computed(() => page.props.auth.user?.email ?? '');
 const emailIsChanging = computed(() => form.email.trim().toLowerCase() !== savedEmail.value.trim().toLowerCase());
 const asksForPassword = computed(() => props.emailChangeAsksForPassword && emailIsChanging.value);
 
+// Whatever came of a save, the password does not stay in the form. Inertia makes what was just submitted the new defaults after an accepted
+// save, so reset() would put the accepted password back: the box and its default are both emptied.
+const forgetPassword = () => {
+    form.defaults('current_password', '');
+    form.current_password = '';
+};
+
 const submit = () => {
     form
         // The password is sent only with a new address: a save that leaves it alone carries none.
@@ -77,7 +84,7 @@ const submit = () => {
         })
         .patch(route('profile.update'), {
             preserveScroll: true,
-            onFinish: () => form.reset('current_password'),
+            onFinish: forgetPassword,
         });
 };
 
