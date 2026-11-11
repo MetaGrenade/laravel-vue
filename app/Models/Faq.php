@@ -24,7 +24,7 @@ class Faq extends Model
     ];
 
     /**
-     * @return BelongsTo<FaqCategory, self>
+     * @return BelongsTo<FaqCategory, $this>
      */
     public function category(): BelongsTo
     {
@@ -32,7 +32,7 @@ class Faq extends Model
     }
 
     /**
-     * @return HasMany<FaqFeedback>
+     * @return HasMany<FaqFeedback, $this>
      */
     public function feedback(): HasMany
     {
@@ -40,7 +40,7 @@ class Faq extends Model
     }
 
     /**
-     * @return HasMany<FaqFeedback>
+     * @return HasMany<FaqFeedback, $this>
      */
     public function helpfulFeedback(): HasMany
     {
@@ -48,7 +48,7 @@ class Faq extends Model
     }
 
     /**
-     * @return HasMany<FaqFeedback>
+     * @return HasMany<FaqFeedback, $this>
      */
     public function notHelpfulFeedback(): HasMany
     {

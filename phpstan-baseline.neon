@@ -139,12 +139,6 @@ parameters:
 			path: app/Http/Controllers/Admin/BlogCommentController.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
-			identifier: property.notFound
-			count: 4
-			path: app/Http/Controllers/Admin/BlogController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -184,12 +178,6 @@ parameters:
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:flatMap\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: \(array\|Illuminate\\Support\\Collection\<int\|string, mixed\>\), Closure\(App\\Models\\BlogRevision\)\: array given\.$#'
 			identifier: argument.type
 			count: 2
-			path: app/Http/Controllers/Admin/BlogController.php
-
-		-
-			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
-			identifier: larastan.relationExistence
-			count: 5
 			path: app/Http/Controllers/Admin/BlogController.php
 
 		-
@@ -595,12 +583,6 @@ parameters:
 			path: app/Http/Controllers/Admin/UsersController.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/V1/BlogCommentController.php
-
-		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:each\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: mixed, Closure\(App\\Models\\User\)\: void given\.$#'
 			identifier: argument.type
 			count: 1
@@ -611,18 +593,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Api/V1/BlogCommentController.php
-
-		-
-			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Http/Controllers/Api/V1/BlogCommentController.php
-
-		-
-			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
-			identifier: larastan.relationExistence
-			count: 2
-			path: app/Http/Controllers/Api/V1/BlogController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
@@ -671,12 +641,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/Api/V1/Support/SupportTicketController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/BlogCommentController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$avatar_url\.$#'
@@ -733,18 +697,6 @@ parameters:
 			path: app/Http/Controllers/BlogCommentController.php
 
 		-
-			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Http/Controllers/BlogCommentController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Blog\:\:\$user\.$#'
-			identifier: property.notFound
-			count: 4
-			path: app/Http/Controllers/BlogController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\BlogCategory\:\:\$published_blogs_count\.$#'
 			identifier: property.notFound
 			count: 1
@@ -793,13 +745,13 @@ parameters:
 			path: app/Http/Controllers/BlogController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\BlogTag\>\:\:map\(\) contains unresolvable type\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\BlogComment\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Controllers/BlogController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\BlogComment\>\:\:map\(\) contains unresolvable type\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\BlogTag\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Controllers/BlogController.php
@@ -813,12 +765,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, slug\: string\}, Closure\(App\\Models\\BlogTag\)\: array\{id\: int\<0, max\>, name\: string, slug\: string\} given\.$#'
 			identifier: argument.type
-			count: 3
-			path: app/Http/Controllers/BlogController.php
-
-		-
-			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
-			identifier: larastan.relationExistence
 			count: 3
 			path: app/Http/Controllers/BlogController.php
 
@@ -913,7 +859,7 @@ parameters:
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, board\: array\{slug\: string, title\: string, category_title\: mixed\}, author\: string\|null, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, board\: array\{slug\: string, title\: string, category_title\: mixed\}, author\: string\|null, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, thread_slug\: string, board_slug\: string, board_title\: string, author\: string\|null, created_at\: string\|null, thread_id\: int\<0, max\>\}, Closure\(App\\Models\\ForumPost\)\: array\{id\: int\<0, max\>, title\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, thread_slug\: string, board_slug\: string, board_title\: string, author\: string\|null, created_at\: string\|null, thread_id\: int\<0, max\>\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php
@@ -925,7 +871,7 @@ parameters:
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, thread_slug\: string, board_slug\: string, board_title\: string, author\: string\|null, created_at\: string\|null, thread_id\: int\<0, max\>\}, Closure\(App\\Models\\ForumPost\)\: array\{id\: int\<0, max\>, title\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, thread_slug\: string, board_slug\: string, board_title\: string, author\: string\|null, created_at\: string\|null, thread_id\: int\<0, max\>\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\|string\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, board\: array\{slug\: string, title\: string, category_title\: mixed\}, author\: string\|null, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, board\: array\{slug\: string, title\: string, category_title\: mixed\}, author\: string\|null, views\: int\<0, max\>, replies\: int\<0, max\>, last_reply_at\: string\|null\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php
@@ -943,13 +889,13 @@ parameters:
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, author\: string\|null, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, author\: string\|null, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}, Closure\(App\\Models\\ForumBoard\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\}, Closure\(App\\Models\\ForumBoard\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, description\: string\|null, thread_count\: int\<0, max\>, post_count\: int\<0, max\>, latest_thread\: array\{id\: mixed, title\: mixed, slug\: mixed, board_slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, author\: mixed, last_reply_author\: mixed, last_reply_at\: string\|null\}\|null\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, author\: string\|null, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\}, Closure\(App\\Models\\ForumThread\)\: array\{id\: int\<0, max\>, title\: string, slug\: string, prefix\: array\{id\: int, name\: string, slug\: string, color\: string\}\|null, solved\: bool, author\: string\|null, replies\: int\<0, max\>, views\: int\<0, max\>, is_pinned\: bool, is_locked\: bool, is_published\: bool, has_unread\: bool, last_reply_author\: mixed, last_reply_at\: string\|null, permissions\: array\{canReport\: bool, canModerate\: bool, canMarkRead\: bool\}\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ForumController.php
@@ -1357,12 +1303,6 @@ parameters:
 			path: app/Jobs/GenerateUserDataExport.php
 
 		-
-			message: '#^Negated boolean expression is always false\.$#'
-			identifier: booleanNot.alwaysFalse
-			count: 1
-			path: app/Jobs/MonitorSupportTicketSlas.php
-
-		-
 			message: '#^Ternary operator condition is always true\.$#'
 			identifier: ternary.alwaysTrue
 			count: 1
@@ -1373,54 +1313,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Models/DataExport.php
-
-		-
-			message: '#^Generic type Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\FaqFeedback\> in PHPDoc tag @return does not specify all template types of class Illuminate\\Database\\Eloquent\\Relations\\HasMany\: TRelatedModel, TDeclaringModel$#'
-			identifier: generics.lessTypes
-			count: 3
-			path: app/Models/Faq.php
-
-		-
-			message: '#^Method App\\Models\\Faq\:\:category\(\) should return Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\FaqCategory, App\\Models\\Faq\> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\FaqCategory, \$this\(App\\Models\\Faq\)\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Models/Faq.php
-
-		-
-			message: '#^Method App\\Models\\Faq\:\:feedback\(\) should return Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\FaqFeedback\> but returns Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\FaqFeedback, \$this\(App\\Models\\Faq\)\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Models/Faq.php
-
-		-
-			message: '#^Generic type Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\Faq\> in PHPDoc tag @return does not specify all template types of class Illuminate\\Database\\Eloquent\\Relations\\HasMany\: TRelatedModel, TDeclaringModel$#'
-			identifier: generics.lessTypes
-			count: 1
-			path: app/Models/FaqCategory.php
-
-		-
-			message: '#^Method App\\Models\\FaqCategory\:\:faqs\(\) should return Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\Faq\> but returns Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Models\\Faq, \$this\(App\\Models\\FaqCategory\)\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Models/FaqCategory.php
-
-		-
-			message: '#^Method App\\Models\\FaqFeedback\:\:faq\(\) should return Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\Faq, App\\Models\\FaqFeedback\> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\Faq, \$this\(App\\Models\\FaqFeedback\)\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Models/FaqFeedback.php
-
-		-
-			message: '#^Method App\\Models\\FaqFeedback\:\:user\(\) should return Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\User, App\\Models\\FaqFeedback\> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<App\\Models\\User, \$this\(App\\Models\\FaqFeedback\)\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Models/FaqFeedback.php
-
-		-
-			message: '#^Method App\\Models\\Product\:\:optionValues\(\) should return Illuminate\\Database\\Eloquent\\Relations\\HasMany but returns Illuminate\\Database\\Eloquent\\Relations\\HasManyThrough\<App\\Models\\ProductOptionValue, App\\Models\\ProductOption, \$this\(App\\Models\\Product\)\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Models/Product.php
 
 		-
 			message: '#^Unsafe access to private constant App\\Models\\SupportAssignmentRule\:\:CACHE_KEY through static\:\:\.$#'
@@ -1531,24 +1423,6 @@ parameters:
 			path: app/Policies/SupportTicketMessageAttachmentPolicy.php
 
 		-
-			message: '#^Class App\\Providers\\SupportTicketMessageAttachment not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/Providers/AppServiceProvider.php
-
-		-
-			message: '#^Class App\\Providers\\SupportTicketMessageAttachmentPolicy not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/Providers/AppServiceProvider.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between DateInterval and false will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Rules/ValidDateInterval.php
-
-		-
 			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
@@ -1559,12 +1433,6 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 3
 			path: app/Support/Billing/BillingWebhookProcessor.php
-
-		-
-			message: '#^Call to an undefined static method Laravel\\Cashier\\Exceptions\\IncompletePayment\:\:invalidPaymentMethod\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 1
-			path: app/Support/Billing/SubscriptionManager.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
@@ -1588,12 +1456,6 @@ parameters:
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
-			path: app/Support/Search/GlobalSearchService.php
-
-		-
-			message: '#^Relation ''user'' is not found in App\\Models\\Blog model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
 			path: app/Support/Search/GlobalSearchService.php
 
 		-

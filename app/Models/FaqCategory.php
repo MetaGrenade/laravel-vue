@@ -18,7 +18,7 @@ class FaqCategory extends Model
     ];
 
     /**
-     * @return HasMany<Faq>
+     * @return HasMany<Faq, $this>
      */
     public function faqs(): HasMany
     {

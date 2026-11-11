@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\SupportTicket;
+use App\Rules\ValidDateInterval;
 use App\Support\SupportSlaConfiguration;
 use App\Support\SupportTicketAuditor;
 use App\Support\SupportTicketAutoAssigner;
@@ -13,10 +14,14 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class MonitorSupportTicketSlas implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /** @var list<string> The times in the settings that could not be read during this run, so each is logged once. */
+    private array $unreadable = [];
 
     public function handle(SupportTicketAutoAssigner $assigner, SupportTicketAuditor $auditor): void
     {
@@ -49,7 +54,9 @@ class MonitorSupportTicketSlas implements ShouldQueue
             return;
         }
 
-        if ($ticket->created_at?->greaterThan($this->thresholdTime($threshold))) {
+        $limit = $this->thresholdTime($threshold);
+
+        if ($limit === null || $ticket->created_at?->greaterThan($limit)) {
             return;
         }
 
@@ -79,7 +86,9 @@ class MonitorSupportTicketSlas implements ShouldQueue
             return;
         }
 
-        if ($ticket->updated_at?->greaterThan($this->thresholdTime($threshold))) {
+        $limit = $this->thresholdTime($threshold);
+
+        if ($limit === null || $ticket->updated_at?->greaterThan($limit)) {
             return;
         }
 
@@ -92,12 +101,21 @@ class MonitorSupportTicketSlas implements ShouldQueue
         ]);
     }
 
-    private function thresholdTime(string $threshold): Carbon
+    /**
+     * The moment a ticket has to be older than for a rule to apply, or null when the time written in the settings cannot be read. A rule
+     * that cannot be read is skipped (and said so once in the log): treating it as "now" would raise or hand over every open ticket at once.
+     */
+    private function thresholdTime(string $threshold): ?Carbon
     {
-        $interval = @\DateInterval::createFromDateString($threshold);
+        $interval = ValidDateInterval::parse($threshold);
 
-        if (! $interval) {
-            return now();
+        if ($interval === null) {
+            if (! in_array($threshold, $this->unreadable, true)) {
+                $this->unreadable[] = $threshold;
+                Log::warning('A support SLA time cannot be read, so its rule is skipped. Fix it under Admin → Support → SLA.', ['value' => $threshold]);
+            }
+
+            return null;
         }
 
         return now()->sub($interval);
