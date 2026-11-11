@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -68,7 +69,12 @@ class Product extends Model
         return $this->hasMany(ProductOption::class);
     }
 
-    public function optionValues(): HasMany
+    /**
+     * Every value of every option of this product, through its options.
+     *
+     * @return HasManyThrough<ProductOptionValue, ProductOption, $this>
+     */
+    public function optionValues(): HasManyThrough
     {
         return $this->hasManyThrough(ProductOptionValue::class, ProductOption::class);
     }

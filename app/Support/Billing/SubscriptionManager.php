@@ -10,8 +10,8 @@ use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Laravel\Cashier\Cashier;
-use Laravel\Cashier\Exceptions\IncompletePayment;
 use Laravel\Cashier\Subscription;
 use Stripe\Exception\ApiErrorException;
 use Stripe\Exception\CardException;
@@ -35,12 +35,13 @@ class SubscriptionManager
      *
      * @throws AuthenticationException the account no longer exists
      * @throws LockedHttpException the account is being deleted, or another subscription is being started, and did not finish in time
+     * @throws InvalidArgumentException there is no payment method (nothing was started, and Stripe was not asked)
      * @throws PromotionCodeRejected the promotion code cannot be used (nothing was started or charged)
      */
     public function create(User $user, SubscriptionPlan $plan, string $paymentMethod, array $options = []): ?Subscription
     {
         if ($paymentMethod === '') {
-            throw IncompletePayment::invalidPaymentMethod();
+            throw new InvalidArgumentException('A subscription needs a payment method.');
         }
 
         try {

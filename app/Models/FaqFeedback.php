@@ -23,7 +23,7 @@ class FaqFeedback extends Model
     ];
 
     /**
-     * @return BelongsTo<Faq, self>
+     * @return BelongsTo<Faq, $this>
      */
     public function faq(): BelongsTo
     {
@@ -31,7 +31,7 @@ class FaqFeedback extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
