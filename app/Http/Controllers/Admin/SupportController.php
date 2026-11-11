@@ -32,6 +32,7 @@ use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
+use App\Support\Members\StaffUserSearch;
 use App\Support\SupportAttachmentStorage;
 use App\Support\SupportSlaConfiguration;
 use App\Support\SupportTicketAutoAssigner;
@@ -809,7 +810,7 @@ class SupportController extends Controller
         return back()->with('success', 'Ticket priority updated.');
     }
 
-    public function searchUsers(Request $request)
+    public function searchUsers(Request $request, StaffUserSearch $search)
     {
         $user = $request->user();
 
@@ -820,46 +821,9 @@ class SupportController extends Controller
             'id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
-        if ($validated['id'] ?? false) {
-            $found = User::query()
-                ->whereKey($validated['id'])
-                ->get(['id', 'nickname', 'email'])
-                ->map(fn (User $match) => [
-                    'id' => $match->id,
-                    'nickname' => $match->nickname,
-                    'email' => $match->email,
-                ])
-                ->all();
-
-            return response()->json(['data' => $found]);
-        }
-
-        $term = $validated['q'] ?? '';
-
-        if ($term === '') {
-            return response()->json(['data' => []]);
-        }
-
-        $escaped = $this->escapeForLike($term);
-        $like = "%{$escaped}%";
-
-        $results = User::query()
-            ->where(function ($query) use ($like) {
-                $query
-                    ->whereLike('nickname', $like)
-                    ->orWhereLike('email', $like);
-            })
-            ->orderBy('nickname')
-            ->limit(10)
-            ->get(['id', 'nickname', 'email'])
-            ->map(fn (User $match) => [
-                'id' => $match->id,
-                'nickname' => $match->nickname,
-                'email' => $match->email,
-            ])
-            ->all();
-
-        return response()->json(['data' => $results]);
+        return response()->json([
+            'data' => ($validated['id'] ?? false) ? $search->find((int) $validated['id']) : $search->matching($validated['q'] ?? ''),
+        ]);
     }
 
     public function showTicket(Request $request, SupportTicket $ticket): Response

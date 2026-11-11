@@ -24,6 +24,7 @@ import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
 import InputError from '@/components/InputError.vue';
 import ApiScopePicker from '@/components/ApiScopePicker.vue';
+import SupportTicketUserSelect from '@/components/SupportTicketUserSelect.vue';
 import type { ApiScopeOption } from '@/types/api-keys';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -122,11 +123,6 @@ const props = defineProps<{
         expired: number;
         revoked: number;
     };
-    userList: Array<{
-        id: number;
-        nickname: string;
-        email: string;
-    }>;
     /** What a token can be limited to; `*` (full access) is offered on top of these. */
     scopes: ApiScopeOption[];
     tokenLogs: {
@@ -458,10 +454,9 @@ const showTokenPagination = computed(() => tokensMeta.value.total > tokensMeta.v
 
 // Create token dialog state & form
 const createDialogOpen = ref(false);
-const defaultUserId = props.userList.length ? props.userList[0].id : '';
 const createTokenForm = useForm({
     name: '',
-    user_id: defaultUserId as number | '',
+    user_id: null as number | null,
     expires_at: '',
     abilities: [] as string[],
     hourly_quota: null as number | null,
@@ -720,7 +715,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                 <DialogTrigger as-child>
                                     <Button class="text-sm md:ml-10"> Create Token </Button>
                                 </DialogTrigger>
-                                <DialogContent class="sm:max-w-lg">
+                                <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
                                     <form class="space-y-6" @submit.prevent="submitCreateToken">
                                         <DialogHeader class="space-y-2">
                                             <DialogTitle>Create access token</DialogTitle>
@@ -743,17 +738,11 @@ const lastUsedDisplay = (value?: string | null) => {
 
                                             <div class="space-y-2">
                                                 <Label for="token-user">User</Label>
-                                                <select
-                                                    id="token-user"
+                                                <SupportTicketUserSelect
                                                     v-model="createTokenForm.user_id"
-                                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
-                                                    required
-                                                >
-                                                    <option disabled value="">Select a user</option>
-                                                    <option v-for="user in userList" :key="user.id" :value="user.id">
-                                                        {{ user.nickname }} ({{ user.email }})
-                                                    </option>
-                                                </select>
+                                                    input-id="token-user"
+                                                    search-route="acp.tokens.users.search"
+                                                />
                                                 <InputError :message="createTokenForm.errors.user_id" />
                                             </div>
 
@@ -809,7 +798,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                 </DialogContent>
                             </Dialog>
                             <Dialog v-if="editTokens" v-model:open="editDialogOpen">
-                                <DialogContent class="sm:max-w-lg">
+                                <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
                                     <form class="space-y-6" @submit.prevent="submitEditToken">
                                         <DialogHeader class="space-y-2">
                                             <DialogTitle>Edit access token</DialogTitle>

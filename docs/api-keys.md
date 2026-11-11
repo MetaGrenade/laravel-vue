@@ -123,7 +123,7 @@ Sanctum's own `sanctum.expiration` (in minutes, `null` by default) still applies
 
 ## Staff
 
-**Admin → Tokens** (`tokens.acp.view`, `.create`, `.edit`) is unchanged except for the abilities field: it is the same scope list, with **Full access** on top, instead of free text. The ACP can also set a key's **hourly and daily quota** (the existing per-token rate limit); a person sees these on their page as "Limited by staff", and cannot change them (see [limiting a key](#limiting-a-key)). A key staff make for somebody emails them (see above).
+**Admin → Tokens** (`tokens.acp.view`, `.create`, `.edit`) is unchanged except for the abilities field: it is the same scope list, with **Full access** on top, instead of free text. The ACP can also set a key's **hourly and daily quota** (the existing per-token rate limit); a person sees these on their page as "Limited by staff", and cannot change them (see [limiting a key](#limiting-a-key)). A key staff make for somebody emails them (see above). The **User** box of the Create dialog is a search: type part of a nickname or email and the ten members that match are offered (`acp.tokens.users.search`, `tokens.acp.create`, `StaffUserSearch`), and nobody is chosen until one is clicked. The page does not carry a list of every member (it was 1.4 MB at 20,000, see [performance.md](performance.md#pages-that-grow-with-the-data)).
 
 Revoking in the ACP now really revokes. **Restoring** a revoked token (clearing the revocation in the edit dialog) makes it work again.
 

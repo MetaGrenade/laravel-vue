@@ -98,6 +98,20 @@ So the web server (or the CDN in front of it) must compress `text/html`. Uncompr
 
 The background fetch is `PrefetchAssetsForMembers` ([bundle-budget.md](bundle-budget.md#what-it-does-not-do)): for a signed-in user it downloads the rest of the front end after the page has loaded: about 680 kB gzipped for a member who is not staff, and about 980 kB for staff, who are also sent the admin pages. A visitor does not download it. The page sizes above are from plain requests (no compression asked for) for `/`, `/login`, `/shop`, a blog post and a forum thread, as the application writes them, and gzipped at level 6; a visitor's pages came to 71 to 76 kB written and 15.8 to 17.1 kB gzipped.
 
+## Pages that grow with the data
+
+The [query budgets](#what-it-measured-here) count a page's queries, so they hold the same with ten rows or ten thousand, and a page that reads every row of a table passes them. Two admin pages did, found by reading every `->get()` in the controllers and measuring the ones that grow (an in-memory SQLite database with 20,000 members, 20,000 closed support tickets, and 4,000 recent open ones with 12,000 messages; one request each, so the order of size and not a server's figure):
+
+| Page | Before | After |
+|------|--------|-------|
+| Admin → Dashboard | 1,127 ms, +78 MB of PHP memory | 214 ms, +12 MB |
+| Admin → Tokens | 480 ms, +56 MB, **1.4 MB** of page (1.35 MB of it the list of every member, for the *User* box of the Create dialog) | the list is gone: the box searches as staff type, ten matches at a time |
+
+- **The dashboard's support numbers are worked out by the database.** The average time to close a ticket read every closed ticket there had ever been into PHP, the average first response read every ticket of the last eight weeks *with every message in it, text included*, and the queue's age read every open ticket. Now each is one statement (`AdminController`: a grouped count, one join that finds each ticket's first answer, `Sql::secondsBetween()` for a time difference that differs by database). `AdminDashboardSlaMetricsTest` holds the numbers, with the edges of every bucket written out by hand, and fails if the dashboard reads the text of a message.
+- **A picker for a member is a search.** `StaffUserSearch` finds ten members by part of a nickname or email, or one by id; the support pages and the Create dialog of Admin → Tokens use it (`acp.support.users.search`, `acp.tokens.users.search`). Never hand a page a list of all the members.
+
+**Left as it is, and why:** the forum report list (Admin → Forums → Reports) reads every report of the chosen status and pages them in PHP, which is fine for the default (waiting) view and heavier for *All* and *Resolved* on a forum with many; it has not been measured. The API's poll list returns every published poll without paging. Both grow with what staff or moderators make or settle, not with the number of visitors, so they come after the pages above. A comment on a blog post notifies every subscriber inside the request; that is a different problem (the work, not the page) and is not touched here.
+
 ## A production checklist
 
 1. **`composer install --no-dev --optimize-autoloader`.** The classmap is read once, and the test tools are not on the server.

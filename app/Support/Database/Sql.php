@@ -27,4 +27,24 @@ class Sql
 
         return DB::raw($alias ? "{$sql} as {$grammar->wrap($alias)}" : $sql);
     }
+
+    /**
+     * How many seconds `$to` is after `$from` (negative when it is before), for two date/time columns, so that an average over thousands of rows
+     * is worked out by the database instead of by reading every row into PHP. Whole seconds: the columns have none finer.
+     */
+    public static function secondsBetween(string $from, string $to, ?string $alias = null, ?string $connection = null): Expression
+    {
+        $grammar = DB::connection($connection)->getQueryGrammar();
+        $start = $grammar->wrap($from);
+        $end = $grammar->wrap($to);
+
+        $sql = match (DB::connection($connection)->getDriverName()) {
+            'pgsql' => "extract(epoch from ({$end} - {$start}))",
+            'sqlite' => "(cast(strftime('%s', {$end}) as integer) - cast(strftime('%s', {$start}) as integer))",
+            'sqlsrv' => "datediff(second, {$start}, {$end})",
+            default => "timestampdiff(second, {$start}, {$end})",
+        };
+
+        return DB::raw($alias ? "{$sql} as {$grammar->wrap($alias)}" : $sql);
+    }
 }

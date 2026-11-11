@@ -14,6 +14,8 @@ use App\Support\Api\ApiKeys;
 use App\Support\Api\Scope;
 use App\Support\Api\Scopes;
 use App\Support\Localization\DateFormatter;
+use App\Support\Members\StaffUserSearch;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -93,8 +95,6 @@ class TokenController extends Controller
             'revoked' => (clone $tokenQuery)->whereNotNull('revoked_at')->count(),
         ];
 
-        $userList = User::select('id', 'nickname', 'email')->get();
-
         $tokenLogQuery = TokenLog::query()
             ->with('token:id,name')
             ->orderByDesc('created_at');
@@ -161,7 +161,6 @@ class TokenController extends Controller
                 'data' => $tokenItems,
             ], $this->inertiaPagination($tokens)),
             'tokenStats' => $tokenStats,
-            'userList' => $userList,
             'scopes' => array_values(array_map(fn (Scope $scope) => $scope->toArray(), $scopes->all())),
             'tokenLogs' => array_merge([
                 'data' => $tokenLogItems,
@@ -173,6 +172,22 @@ class TokenController extends Controller
                 'date_to' => $dateTo,
                 'per_page' => $logsPerPage,
             ],
+        ]);
+    }
+
+    /**
+     * Members to choose from when making a token, found by what staff type (or by id, to show a choice already made). The page does not
+     * carry the list of every member: at 20,000 members that was 1.4 MB on every visit.
+     */
+    public function searchUsers(Request $request, StaffUserSearch $search): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:255'],
+            'id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        return response()->json([
+            'data' => isset($validated['id']) ? $search->find((int) $validated['id']) : $search->matching($validated['q'] ?? ''),
         ]);
     }
 

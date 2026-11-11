@@ -896,6 +896,10 @@ Route::middleware(['auth', 'role:admin|editor|moderator'])->group(function () {
     Route::post('acp/tokens', [TokenController::class, 'store'])
         ->middleware('can:tokens.acp.create')
         ->name('acp.tokens.store');
+    // The picker for whose account a token is made on: it looks members up as staff type, instead of the page carrying every member.
+    Route::get('acp/tokens/users/search', [TokenController::class, 'searchUsers'])
+        ->middleware('can:tokens.acp.create')
+        ->name('acp.tokens.users.search');
     Route::put('acp/tokens/{token}', [TokenController::class, 'update'])
         ->middleware('can:tokens.acp.edit')
         ->name('acp.tokens.update');

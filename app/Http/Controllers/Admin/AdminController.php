@@ -132,39 +132,29 @@ class AdminController extends Controller
      */
     protected function buildQueueAgingMetrics(): array
     {
+        // Counted by the database, in one statement: the queue of a busy site can hold many thousands of tickets, and the dashboard is the
+        // first page staff open. A ticket that has waited exactly 24 hours is in the second bucket, 72 in the third, 168 in the last.
         $now = now();
+        $dayAgo = $now->copy()->subHours(24);
+        $threeDaysAgo = $now->copy()->subHours(72);
+        $weekAgo = $now->copy()->subHours(168);
 
-        $openTickets = SupportTicket::query()
+        $counts = SupportTicket::query()
             ->whereIn('status', ['open', 'pending'])
-            ->select(['id', 'created_at'])
-            ->get();
+            ->whereNotNull('created_at')
+            ->toBase()
+            ->selectRaw('coalesce(sum(case when created_at > ? then 1 else 0 end), 0) as under_1_day', [$dayAgo])
+            ->selectRaw('coalesce(sum(case when created_at <= ? and created_at > ? then 1 else 0 end), 0) as one_to_three_days', [$dayAgo, $threeDaysAgo])
+            ->selectRaw('coalesce(sum(case when created_at <= ? and created_at > ? then 1 else 0 end), 0) as three_to_seven_days', [$threeDaysAgo, $weekAgo])
+            ->selectRaw('coalesce(sum(case when created_at <= ? then 1 else 0 end), 0) as over_seven_days', [$weekAgo])
+            ->first();
 
-        $buckets = [
-            'under_1_day' => 0,
-            'one_to_three_days' => 0,
-            'three_to_seven_days' => 0,
-            'over_seven_days' => 0,
+        return [
+            'under_1_day' => (int) $counts->under_1_day,
+            'one_to_three_days' => (int) $counts->one_to_three_days,
+            'three_to_seven_days' => (int) $counts->three_to_seven_days,
+            'over_seven_days' => (int) $counts->over_seven_days,
         ];
-
-        foreach ($openTickets as $ticket) {
-            if (! $ticket->created_at) {
-                continue;
-            }
-
-            $hoursOpen = $ticket->created_at->diffInHours($now);
-
-            if ($hoursOpen < 24) {
-                $buckets['under_1_day']++;
-            } elseif ($hoursOpen < 72) {
-                $buckets['one_to_three_days']++;
-            } elseif ($hoursOpen < 168) {
-                $buckets['three_to_seven_days']++;
-            } else {
-                $buckets['over_seven_days']++;
-            }
-        }
-
-        return $buckets;
     }
 
     /**
@@ -227,74 +217,67 @@ class AdminController extends Controller
     {
         $rangeStart = now()->startOfWeek()->subWeeks(7);
 
-        $tickets = SupportTicket::query()
-            ->with(['messages' => function ($query) {
-                $query->orderBy('created_at');
-            }])
-            ->where('created_at', '>=', $rangeStart)
-            ->get();
+        // The first answer to a ticket is the earliest message in it from somebody who is not the ticket's owner and has an account (a note with
+        // no author is not an answer). It is found, and the time to it added up week by week, by the database: this used to read every ticket of
+        // the last eight weeks with every message in them, text included, into PHP, and the closed tickets of all time for the resolution
+        // below, which took over a second and 80 MB at 20,000 closed tickets.
+        $firstAnswers = SupportTicket::query()
+            ->join('support_ticket_messages as answers', function ($join) {
+                $join->on('answers.support_ticket_id', '=', 'support_tickets.id')
+                    ->whereNotNull('answers.user_id')
+                    ->whereColumn('answers.user_id', '<>', 'support_tickets.user_id');
+            })
+            ->where('support_tickets.created_at', '>=', $rangeStart)
+            ->groupBy('support_tickets.id', 'support_tickets.created_at')
+            ->select('support_tickets.created_at as opened_at')
+            ->selectRaw('min(answers.created_at) as answered_at')
+            ->toBase();
 
-        $responseMinutes = [];
-        $trendBuckets = [];
+        $seconds = Sql::secondsBetween('opened_at', 'answered_at')->getValue(DB::getQueryGrammar());
 
-        foreach ($tickets as $ticket) {
-            $firstResponse = $ticket->messages->first(function ($message) use ($ticket) {
-                return $message->user_id && $message->user_id !== $ticket->user_id;
-            });
+        $answers = DB::query()
+            ->fromSub($firstAnswers, 'first_answers')
+            ->selectRaw("count(*) as answered, coalesce(sum({$seconds}), 0) as seconds");
 
-            if (! $firstResponse || ! $ticket->created_at) {
-                continue;
-            }
+        // A week is named by its Monday, and holds the answers given in it (not the tickets opened in it).
+        $weeks = collect(range(0, 7))->map(fn (int $offset) => $rangeStart->copy()->addWeeks($offset));
 
-            $minutes = $ticket->created_at->diffInMinutes($firstResponse->created_at);
+        foreach ($weeks as $offset => $weekStart) {
+            $bounds = [$weekStart, $weekStart->copy()->addWeek()];
 
-            $responseMinutes[] = $minutes;
-
-            $bucketKey = $firstResponse->created_at->copy()->startOfWeek()->format('Y-m-d');
-
-            if (! array_key_exists($bucketKey, $trendBuckets)) {
-                $trendBuckets[$bucketKey] = [
-                    'minutes' => [],
-                ];
-            }
-
-            $trendBuckets[$bucketKey]['minutes'][] = $minutes;
+            $answers->selectRaw("coalesce(sum(case when answered_at >= ? and answered_at < ? then {$seconds} else 0 end), 0) as seconds_{$offset}", $bounds);
+            $answers->selectRaw("coalesce(sum(case when answered_at >= ? and answered_at < ? then 1 else 0 end), 0) as answered_{$offset}", $bounds);
         }
 
-        $trend = collect(range(0, 7))
-            ->map(function (int $offset) use ($rangeStart, $trendBuckets) {
-                $weekStart = $rangeStart->copy()->addWeeks($offset);
-                $key = $weekStart->format('Y-m-d');
+        $totals = $answers->first();
 
-                $minutes = $trendBuckets[$key]['minutes'] ?? [];
-                $averageHours = empty($minutes)
-                    ? 0.0
-                    : round(array_sum($minutes) / count($minutes) / 60, 1);
+        $trend = $weeks
+            ->map(function (Carbon $weekStart, int $offset) use ($totals) {
+                $answered = (int) $totals->{"answered_{$offset}"};
 
                 return [
                     'period' => $weekStart->format('M j'),
-                    'Average First Response (hrs)' => $averageHours,
+                    'Average First Response (hrs)' => $answered === 0
+                        ? 0.0
+                        : round((float) $totals->{"seconds_{$offset}"} / $answered / 3600, 1),
                 ];
             })
+            ->values()
             ->toArray();
 
-        $averageFirstResponseHours = empty($responseMinutes)
+        $averageFirstResponseHours = (int) $totals->answered === 0
             ? null
-            : round(array_sum($responseMinutes) / count($responseMinutes) / 60, 1);
+            : round((float) $totals->seconds / (int) $totals->answered / 3600, 1);
 
-        $resolutionMinutes = SupportTicket::query()
+        $averageResolutionSeconds = SupportTicket::query()
             ->where('status', 'closed')
             ->whereNotNull('created_at')
             ->whereNotNull('resolved_at')
-            ->get()
-            ->map(function (SupportTicket $ticket) {
-                return $ticket->created_at->diffInMinutes($ticket->resolved_at);
-            })
-            ->filter(fn ($minutes) => $minutes !== null);
+            ->avg(Sql::secondsBetween('created_at', 'resolved_at'));
 
-        $averageResolutionHours = $resolutionMinutes->isEmpty()
+        $averageResolutionHours = $averageResolutionSeconds === null
             ? null
-            : round($resolutionMinutes->avg() / 60, 1);
+            : round((float) $averageResolutionSeconds / 3600, 1);
 
         return [
             'average_first_response_hours' => $averageFirstResponseHours,

@@ -41,9 +41,9 @@ class StoreTokenRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        // ensure user_id is integer
+        // An integer, but not a made-up one: the picker starts with nobody chosen, and "nobody" has to read as "required", not as member 0.
         $this->merge([
-            'user_id' => (int) $this->input('user_id'),
+            'user_id' => $this->filled('user_id') ? (int) $this->input('user_id') : null,
             'hourly_quota' => $this->normalizeQuota($this->input('hourly_quota')),
             'daily_quota' => $this->normalizeQuota($this->input('daily_quota')),
         ]);
