@@ -14,9 +14,12 @@ use App\Support\Routing\ZiggyRouteGroup;
 use App\Support\Security\TwoFactorAuthenticator;
 use App\Support\Seo\Seo;
 use App\Support\WebsiteSections;
+use Closure;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
+use Symfony\Component\HttpFoundation\Response;
 use Tighten\Ziggy\Ziggy;
 
 class HandleInertiaRequests extends Middleware
@@ -29,6 +32,21 @@ class HandleInertiaRequests extends Middleware
      * @var string
      */
     protected $rootView = 'app';
+
+    /**
+     * A page that carries a secret the site has just made (a new API key) is kept in the browser's history encrypted, not in the clear: the
+     * browser keeps that history for the whole tab, and Back shows the page again. Said on every request, with the operator's own choice
+     * (`INERTIA_ENCRYPT_HISTORY`) as the base, because the Inertia factory is built once and a worker that serves many requests would
+     * otherwise keep the flag a request that needed it set. A page that builds its own secret says so in its controller.
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        Inertia::encryptHistory(
+            (bool) config('inertia.history.encrypt', false) || ($request->hasSession() && $request->session()->has('plain_text_token')),
+        );
+
+        return parent::handle($request, $next);
+    }
 
     /**
      * Determines the current asset version.

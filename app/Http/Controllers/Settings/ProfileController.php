@@ -107,6 +107,9 @@ class ProfileController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        // As when signing out: Back must not bring back what this browser showed the member (AuthenticatedSessionController::destroy).
+        Inertia::clearHistory();
+
         return redirect('/');
     }
 }

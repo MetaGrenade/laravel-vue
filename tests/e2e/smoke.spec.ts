@@ -41,6 +41,19 @@ async function signOut(page: Page): Promise<void> {
 }
 
 /**
+ * What the browser keeps in its history for the page on screen (Back shows it again). Inertia stores the page there with all its props:
+ * as an ArrayBuffer when the page said its history is encrypted, as a plain object when it did not, and then a secret among the props can
+ * be read straight out of it. `text` is that entry as JSON, which for an encrypted one has nothing in it.
+ */
+async function historyEntry(page: Page): Promise<{ encrypted: boolean; text: string }> {
+    return page.evaluate(() => {
+        const entry = window.history.state;
+
+        return { encrypted: entry?.page instanceof ArrayBuffer, text: JSON.stringify(entry ?? null) };
+    });
+}
+
+/**
  * A member of its own, made through the registration form and left signed in on this page: a test that changes how a member signs in
  * (two-factor, the password) must not touch the members the other tests use. Returns the address, to sign in with from another browser.
  */
@@ -452,6 +465,12 @@ test.describe('members', () => {
 
         await startTwoFactorSetup(page);
         const secret = await page.locator('input[readonly]').first().inputValue();
+
+        // The page that shows the secret is kept in the browser's history encrypted, so Back cannot show the secret in the clear.
+        const waiting = await historyEntry(page);
+        expect(waiting.encrypted).toBe(true);
+        expect(waiting.text, 'the history entry of the page that showed the secret').not.toContain(secret);
+
         await page.getByLabel('Verification code').fill(authenticatorCode(secret));
         await page.getByRole('button', { name: 'Confirm setup' }).click();
         await expect(page.getByText('Multi-factor authentication is enabled')).toBeVisible();
@@ -466,8 +485,15 @@ test.describe('members', () => {
         expect(first.every((code) => /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code))).toBe(true);
         await expect(card.getByText('they are shown only this once')).toBeVisible();
 
-        // Loading the page again hides them, and they are not in the page source either: only how many are left.
+        // They are not readable in the browser's history either, which Back would show again.
+        const shown = await historyEntry(page);
+        expect(shown.encrypted).toBe(true);
+        expect(shown.text, 'the history entry of the page that showed the codes').not.toContain(first[0]);
+
+        // Loading the page again hides them, and they are not in the page source either: only how many are left. Nothing secret is on
+        // that page, so it is kept as the site is set up.
         await page.reload();
+        expect((await historyEntry(page)).encrypted).toBe(false);
         await expect(card.getByTestId('recovery-codes-left')).toContainText('8 recovery codes are left');
         await expect(codes).toHaveCount(0);
         expect(await page.content(), 'the page source after a reload').not.toContain(first[0]);
@@ -695,6 +721,42 @@ test.describe('members', () => {
             .click();
         await page.getByRole('button', { name: 'Revoke key' }).click();
         await expect(page.getByText('Revoked', { exact: true }).first()).toBeVisible();
+    });
+
+    test('a new key is kept in encrypted history, and Back after signing out does not bring it back', async ({ page }) => {
+        // The browser keeps every page it showed for as long as the tab lives, and Back shows one again. The page that shows a new key
+        // once must not be in that history in the clear, and signing out must make what was kept unreadable: a computer that was left
+        // behind a signed-out account must not give the key to whoever presses Back.
+        await registerMember(page, 'Historian');
+        await page.goto('/settings/api-keys');
+
+        // Nothing secret is on the page yet, so it is kept as the site is set up.
+        expect((await historyEntry(page)).encrypted).toBe(false);
+
+        await page.getByRole('button', { name: 'Create key' }).click();
+        const making = page.getByRole('dialog', { name: 'Create an API key' });
+        await making.getByLabel('Name', { exact: true }).fill(unique('History key'));
+        await making.getByRole('checkbox', { name: /profile:read/ }).click();
+        await making.getByLabel('Your password', { exact: true }).fill(password);
+        await making.getByRole('button', { name: 'Create key' }).click();
+        await expect(page.getByRole('dialog', { name: 'Copy your new key now' })).toBeVisible();
+
+        // The key is on the screen, and not readable in what the browser keeps of this page.
+        const key = await page.getByLabel('Your new API key').inputValue();
+        const token = key.includes('|') ? key.split('|')[1] : key;
+        expect(token.length).toBeGreaterThan(20);
+        const kept = await historyEntry(page);
+        expect(kept.encrypted).toBe(true);
+        expect(kept.text, 'the history entry of the page that showed the key').not.toContain(token);
+        await page.getByRole('button', { name: 'I have copied it' }).click();
+
+        // Signing out clears the history: Back goes to the page that showed the key, which is not there for a visitor, and the key is not on it.
+        await signOut(page);
+        await page.goBack();
+        await expect(page).toHaveURL(/\/login$/);
+        await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
+        await expect(page.getByLabel('Your new API key')).toHaveCount(0);
+        expect(await page.content(), 'the page after Back').not.toContain(token);
     });
 
     test('a member starts a forum thread and replies to it', async ({ page }) => {

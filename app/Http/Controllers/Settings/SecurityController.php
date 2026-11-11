@@ -93,6 +93,13 @@ class SecurityController extends Controller
             ->values()
             ->all();
 
+        // The secret of a setup that waits for its code (and the QR code made from it) and the recovery codes shown for this one request are
+        // in the page, so the browser's copy of it, which Back shows again, is kept encrypted (and thrown away when the member signs out).
+        // Only turned on here: when the operator has chosen to encrypt all history, HandleInertiaRequests has already done it.
+        if ($pendingSecret !== null || $recoveryCodes !== []) {
+            Inertia::encryptHistory();
+        }
+
         return Inertia::render('settings/Security', [
             'sessions' => $sessions,
             'canListSessions' => $canListSessions,

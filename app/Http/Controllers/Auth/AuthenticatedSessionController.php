@@ -65,6 +65,11 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        // The browser keeps the pages it showed in its history, and Back after signing out shows them again. What was shown with a secret is
+        // encrypted (HandleInertiaRequests, SecurityController) and the key for it is thrown away when the page after this one loads, so
+        // those entries cannot be read. Asked for after the session is invalidated, which would have wiped it, and read once by the next page.
+        Inertia::clearHistory();
+
         return redirect('/');
     }
 }
