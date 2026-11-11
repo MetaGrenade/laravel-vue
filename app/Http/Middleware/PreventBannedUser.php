@@ -6,6 +6,7 @@ use App\Support\Moderation\Moderation;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
 class PreventBannedUser
@@ -31,6 +32,9 @@ class PreventBannedUser
                 Auth::guard('web')->logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
+
+                // As when signing out: Back must not bring back what this browser showed the member (AuthenticatedSessionController::destroy).
+                Inertia::clearHistory();
             }
 
             $message = app(Moderation::class)->banMessage($user);

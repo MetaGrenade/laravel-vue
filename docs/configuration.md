@@ -437,7 +437,7 @@ Pages are rendered in the browser. Rendering them on the server as well gives cr
 | `INERTIA_SSR_HOT_URL` | — | The rendering address while the Vite dev server runs. |
 | `INERTIA_SSR_TIMEOUT` | — | Seconds to wait for it. |
 | `INERTIA_SSR_THROW_ON_ERROR` | `false` | Raise an error when rendering fails, in place of falling back to the browser. For browser tests. |
-| `INERTIA_ENCRYPT_HISTORY` | `false` | Encrypt page data kept in the browser's history, so it cannot be read after sign-out. |
+| `INERTIA_ENCRYPT_HISTORY` | `false` | Encrypt the page data the browser keeps in its history for **every** page. A page that shows a secret (a new API key, the secret and the recovery codes of a two-factor setup) is encrypted whatever this says. The key is thrown away when the member signs out, so Back cannot bring a page back (needs HTTPS or `localhost`; [Seeing the recovery codes](two-factor.md#seeing-the-recovery-codes)). |
 | `INERTIA_PRESERVE_BIG_INTEGERS` | `false` | Hand numbers beyond JavaScript's safe range to the page as `BigInt` instead of rounding them. |
 | `INERTIA_DEVTOOLS_ENABLED` | — | Record each request for the Inertia DevTools extension. Empty records on a `local` site only. |
 | `INERTIA_DEVTOOLS_GATE` | — | The gate that decides who may read the record. |

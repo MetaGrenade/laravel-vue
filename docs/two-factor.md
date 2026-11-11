@@ -49,7 +49,7 @@ How: the server sets a session flash (`TwoFactorAuthenticator::SHOW_RECOVERY_COD
 
 What it does **not** do:
 
-- **The codes that were just shown stay in that tab's page history** (the browser keeps the page it showed so that Back works) until the tab is closed. `INERTIA_ENCRYPT_HISTORY=true` encrypts that history and ends its use after sign-out ([Configuration](configuration.md)); it is off by default.
+- **The codes that were just shown stay in that tab's page history, encrypted.** The browser keeps the page it showed so that Back works, and a page that carries the codes (or the secret of a setup that waits for its code) says its copy is to be encrypted. The key lives in that tab only, and signing out, deleting the account or being banned has the browser throw it away, so Back after signing out cannot bring the codes back: the entry cannot be read and the page is asked for again, as a visitor. What stays: while the member is signed in, Back in that tab shows the page again, with the codes; a session that runs out by itself is not a sign-out the tab sees, so the key stays until the tab is closed; and the browser can only encrypt on HTTPS (or on `localhost`), so on plain HTTP the copy is kept in the clear and the browser console says so. `INERTIA_ENCRYPT_HISTORY=true` does the same for every page, not only these ([Configuration](configuration.md)); it is off by default.
 - **It does not stop a member who is at their own signed-in browser** with the password in hand. That is who it is for.
 - **A member who has no password** (see [above](#turning-it-off)) sees the first set once and cannot ask again.
 

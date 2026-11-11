@@ -172,6 +172,7 @@ Run `php artisan api:docs` after deploying, so the generated OpenAPI document (c
 ## Privacy
 
 - Only a SHA-256 hash of a key is stored. The secret is flashed to the next page once, held in the page's memory while the dialog is open, and never logged: the activity log keeps the route, status and a cleaned request body, not the `Authorization` header.
+- The page that shows a new key (Settings → API keys and Admin → Tokens) is kept in the browser's history **encrypted**, and signing out has the browser throw the key away, so Back after signing out cannot show the secret again. Without that, the page was kept in the clear for as long as the tab lived. It needs HTTPS or `localhost`; on plain HTTP the browser cannot encrypt ([Seeing the recovery codes](two-factor.md#seeing-the-recovery-codes) says what stays).
 - A person's **data export** lists their keys (name, scopes, created, last used, ends, revoked) in both the JSON and the CSV, never the secret.
 - Keys go with the account when it is deleted.
 
