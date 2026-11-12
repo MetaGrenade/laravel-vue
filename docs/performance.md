@@ -118,7 +118,18 @@ The [query budgets](#what-it-measured-here) count a page's queries, so they hold
 
 The work did not go away: it moved to the queue, a hundred members to a job, where several workers can share it (`App\Jobs\NotifyMembers`, [notifications.md](notifications.md#telling-many-people)). The request only picks *who*. A site that runs its queue as `sync` still does it all in the request, and a site with no worker sees no notices for followers until one runs.
 
-**Left as it is, and why:** the forum report list (Admin → Forums → Reports) reads every report of the chosen status and pages them in PHP, which is fine for the default (waiting) view and heavier for *All* and *Resolved* on a forum with many; it has not been measured. The API's poll list returns every published poll without paging. Both grow with what staff or moderators make or settle, not with the number of visitors, so they come after the pages above.
+**A list made of two tables is cut by the database, not in PHP.** Admin → Forums → Reports shows the reports of threads and the reports of posts as one list, newest first. It read every report that matched, each with its thread, board, post, author and the two people, built a row for every one, sorted them in PHP and kept a page. Measured with 5,000 reports of threads and 5,000 of posts (the same in-memory database, pages of 25, one request each after a warm-up):
+
+| Request | Before | After |
+|---------|--------|-------|
+| Every report (*All*) | 2,909 ms, 21 queries, +40.8 MB | 31 ms, 23 queries, +0.6 MB |
+| The waiting ones (the default) | 1,011 ms, +16.1 MB | 28 ms, +0.5 MB |
+| The third page of reports of posts | 1,548 ms, 17 queries, +30.0 MB | 32 ms, 19 queries, +0.6 MB |
+| A search for part of a title | 956 ms, +13.2 MB | 54 ms, +0.6 MB |
+
+`ForumReportController::reportKeys()` puts the two tables side by side as the least that can be sorted (which kind, its id, when it was made), the database counts that and cuts the page out of it, and only then are the page's reports read in full, by id. A kind that is not on the page is not read at all. Two queries more than before (the count and the page), and the same however many reports there are (`QueryBudgetTest`). `ForumReportListTest` holds the order, the filters, the pages and what is read. The same 3,000 reports and seven different filters, every page of each, came out identical before and after, except for reports made in the same second as another of the same kind, whose order was whatever the database happened to return: it is now the later report first (a thread's before a post's), so a report does not move from one page to the next.
+
+**Left as it is, and why:** the API's poll list returns every published poll without paging. It grows with what staff make, not with the number of visitors, so it comes after the pages above.
 
 ## A production checklist
 
